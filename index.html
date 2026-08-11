@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alperler Auto | Rent a Car - Tur - Araç Alım Satım</title>
+  
+  <!-- Polyfill for process (Fixes ReferenceError: process is not defined) -->
+  <script>
+    window.process = { env: { NODE_ENV: 'production' } };
+  </script>
+
+  <!-- Global Error Logger (For Debugging White Screen) -->
+  <script>
+    window.onerror = function(message, source, lineno, colno, error) {
+      const errorContainer = document.createElement('div');
+      errorContainer.style.position = 'fixed';
+      errorContainer.style.top = '0';
+      errorContainer.style.left = '0';
+      errorContainer.style.width = '100%';
+      errorContainer.style.backgroundColor = '#fee2e2'; // red-100
+      errorContainer.style.color = '#991b1b'; // red-800
+      errorContainer.style.padding = '20px';
+      errorContainer.style.zIndex = '9999';
+      errorContainer.style.fontFamily = 'monospace';
+      errorContainer.style.borderBottom = '1px solid #b91c1c';
+      errorContainer.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+      errorContainer.innerHTML = '<strong>Application Error:</strong><br>' + 
+        message + '<br><small>' + source + ':' + lineno + '</small>';
+      document.body.appendChild(errorContainer);
+      console.error('Global Error Caught:', error);
+    };
+  </script>
+
+  <!-- Advanced SEO & Meta Tags for Maximum AI & Search Engine Discovery -->
+  <meta name="description" content="Tüm cihazlardan (Apple iOS, Android, Masaüstü) saniyeler içinde %100 uyumlu online rezervasyon yapın. Alperler Auto güvencesiyle Yüksekova'da hayalinizdeki araca anında ulaşın. Premium araç kiralama, VIP transfer ve ikinci el oto alım-satımında kusursuz müşteri deneyimi.">
+  <meta name="keywords" content="yüksekova araç kiralama, rent a car, online rezervasyon, ios android uyumlu araç kiralama, hakkari rent a car, lüks araç kiralama, ikinci el araba satma, araba satın alma, cilo sat turları, vip rent a car, hyundai i20 kiralama, fiat egea kiralama">
+  <meta name="author" content="Alperler Auto">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <link rel="canonical" href="https://alperrentacar.online/" />
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  
+  <!-- Open Graph / Facebook / WhatsApp -->
+  <meta property="og:locale" content="tr_TR" />
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Alperler Auto" />
+  <meta property="og:url" content="https://alperrentacar.online/">
+  <meta property="og:title" content="Alperler Auto & Galeri | Yüksekova">
+  <meta property="og:description" content="Hayallerinizin Yol Arkadaşı! Yüksekova'da güvenli, kaskolu araç kiralama, 2. el otomotiv ve Cilo-Sat turları.">
+  <meta property="og:image" content="https://picsum.photos/id/1072/1200/630">
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@alperler">
+  <meta name="twitter:title" content="Alperler Auto & Galeri Yüksekova">
+  <meta name="twitter:description" content="Cilo-Sat Dağları turları, geniş araç filosu ve 2. el galeri hizmetimizle Yüksekova'nın lider firmasıyız.">
+  <meta name="twitter:image" content="https://picsum.photos/id/1072/1200/630">
+
+  <!-- AI Discovery & Knowledge Graph JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "AutoRental",
+        "@id": "https://alperrentacar.online/#autorental",
+        "name": "Alperler Auto",
+        "url": "https://alperrentacar.online/",
+        "logo": "https://alperrentacar.online/assets/logo.png",
+        "image": "https://picsum.photos/id/1072/1200/630",
+        "description": "Yüksekova'da lüks, ekonomik ve şoförlü VIP araç kiralama hizmeti.",
+        "telephone": "+905320000000",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Cengiz Topel Caddesi",
+          "addressLocality": "Yüksekova",
+          "addressRegion": "Hakkari",
+          "postalCode": "30300",
+          "addressCountry": "TR"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 37.5756,
+          "longitude": 44.2936
+        },
+        "priceRange": "₺₺",
+        "founder": [
+          { "@type": "Person", "name": "Erkan Alper" },
+          { "@type": "Person", "name": "Hicran Alper" }
+        ]
+      },
+      {
+        "@type": "AutoDealer",
+        "@id": "https://alperrentacar.online/#autodealer",
+        "name": "Alperler Auto",
+        "url": "https://alperrentacar.online/",
+        "description": "Yüksekova'da güvenilir 2. el otomobil ve ticari araç alım satımı."
+      },
+      {
+        "@type": "TravelAgency",
+        "@id": "https://alperrentacar.online/#travelagency",
+        "name": "Alperler Turizm & Cilo-Sat Turları",
+        "url": "https://alperrentacar.online/tours",
+        "description": "Profesyonel rehberler eşliğinde Cilo-Sat Dağları ve Gölleri gezi turları."
+      }
+    ]
+  }
+  </script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    h1, h2, h3, .serif-font { font-family: 'Playfair Display', serif; }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-track { background: #0a0a0a; }
+    ::-webkit-scrollbar-thumb { background: #262626; border-radius: 5px; border: 2px solid #0a0a0a; }
+    ::-webkit-scrollbar-thumb:hover { background: #404040; }
+    
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .glass-panel-dark {
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* THEME OVERRIDES */
+    
+    /* Dark Theme */
+    body.theme-dark {
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+    }
+    body.theme-dark .bg-white {
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
+    }
+    body.theme-dark .bg-slate-50 {
+        background-color: #0f172a !important;
+    }
+    body.theme-dark .text-slate-900 {
+        color: #f8fafc !important;
+    }
+    body.theme-dark .text-slate-600 {
+        color: #cbd5e1 !important;
+    }
+    body.theme-dark .border-slate-200 {
+        border-color: #334155 !important;
+    }
+
+    /* Luxury Theme (Black & Gold) */
+    body.theme-luxury {
+        background-color: #1c1917 !important; /* stone-900 */
+        color: #e7e5e4 !important;
+    }
+    body.theme-luxury .bg-slate-900 {
+        background-color: #0c0a09 !important; /* stone-950 */
+    }
+    body.theme-luxury .bg-white {
+        background-color: #292524 !important; /* stone-800 */
+        color: #e7e5e4 !important;
+    }
+    body.theme-luxury .bg-slate-50 {
+        background-color: #1c1917 !important;
+    }
+    body.theme-luxury .text-slate-900 {
+        color: #e7e5e4 !important;
+    }
+    body.theme-luxury .text-slate-600 {
+        color: #a8a29e !important; /* stone-400 */
+    }
+    body.theme-luxury .text-blue-600 {
+        color: #d4af37 !important; /* gold */
+    }
+    body.theme-luxury .bg-blue-600 {
+        background-color: #d4af37 !important;
+    }
+    body.theme-luxury .border-slate-200 {
+        border-color: #44403c !important; /* stone-700 */
+    }
+
+    /* Corporate Theme (Blue & White) */
+    body.theme-corporate {
+        background-color: #f0f9ff !important; /* sky-50 */
+        color: #0c4a6e !important; /* sky-900 */
+    }
+    body.theme-corporate .bg-slate-900 {
+        background-color: #0c4a6e !important; /* sky-900 */
+    }
+    body.theme-corporate .text-blue-600 {
+        color: #0284c7 !important; /* sky-600 */
+    }
+    body.theme-corporate .bg-blue-600 {
+        background-color: #0284c7 !important;
+    }
+    body.theme-corporate .text-slate-900 {
+        color: #0c4a6e !important;
+    }
+
+    /* Modal Animations */
+    .animate-fade-in {
+      animation: fadeIn 0.3s ease-out forwards;
+    }
+    
+    .animate-slide-up {
+      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+  </style>
+
+
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-900 selection:text-white">
+  <app-root></app-root>
+</body>
+</html>

@@ -1,0 +1,173 @@
+           <!-- HOME CONTENT TAB -->
+           @if(activeTab() === 'home') {
+               <div class="space-y-6">
+                  
+                  <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl p-4 text-sm font-medium flex items-start">
+                     <mat-icon class="mr-2 text-blue-500">info</mat-icon>
+                     <div>
+                        Aşağıdaki metinler, ana sayfanızda kullanıcılara gösterilen başlık ve açıklamaları yönetir. 
+                        Metinleri dilediğiniz gibi güncelleyebilirsiniz.
+                     </div>
+                  </div>
+
+                  <h3 class="font-bold text-lg border-b pb-2 text-slate-700">Ana Sayfa Kahraman Bölümü (Hero)</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                      <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Ana Başlık</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.heroTitle" name="heroTitle" class="w-full p-3 border rounded font-bold">
+                      </div>
+                      <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alt Başlık Açıklama</label>
+                         <textarea *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.heroSubtitle" name="heroSub" rows="3" class="w-full p-3 border rounded"></textarea>
+                      </div>
+                      <div class="md:col-span-1">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Güven Etiketi Metni</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.heroTrustLine" name="heroTrust" class="w-full p-3 border rounded">
+                      </div>
+                      <div class="md:col-span-1">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Arama Butonu (CTA) Alt Metni</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.heroCtaSubtext" name="heroCtaSubtext" class="w-full p-3 border rounded">
+                      </div>
+                      <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Buton Metni (CTA)</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.heroCta" name="heroCta" class="w-full p-3 border rounded font-bold">
+                      </div>
+                  </div>
+
+                  <h3 class="font-bold text-lg border-b pb-2 text-slate-700">Araç Arama / Kiralama Formu (Booking)</h3>
+                  <div class="grid grid-cols-1 gap-4 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                      <div>
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Form Başlığı</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.bookingTitle" name="bookTitle" class="w-full p-3 border rounded font-bold">
+                      </div>
+                  </div>
+
+                  <h3 class="font-bold text-lg border-b pb-2 text-slate-700">Kiralık Araçlar - Öne Çıkanlar (Featured Rentals)</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                      <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Üst Etiket (Badge)</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.featuredBadge" name="featBadge" class="w-full p-3 border rounded">
+                      </div>
+                      <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Başlık</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.featuredTitle" name="featTitle" class="w-full p-3 border rounded font-bold">
+                      </div>
+                      <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alt Açıklama</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.featuredSubtitle" name="featSub" class="w-full p-3 border rounded">
+                      </div>
+                      <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tümünü İncele Buton Metni</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.featuredViewAll" name="featViewAll" class="w-full p-3 border rounded">
+                      </div>
+                  </div>
+
+                  <h3 class="font-bold text-lg border-b pb-2 text-slate-700">İkinci El Satış (Sales)</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                      <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Üst Etiket (Badge)</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.salesBadge" name="salesBadge" class="w-full p-3 border rounded">
+                      </div>
+                      <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Başlık</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.salesTitle" name="salesTitle" class="w-full p-3 border rounded font-bold">
+                      </div>
+                      <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alt Açıklama</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.salesDescription" name="salesSub" class="w-full p-3 border rounded">
+                      </div>
+                      <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tümünü İncele Buton Metni</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.salesViewAll" name="salesViewAll" class="w-full p-3 border rounded">
+                      </div>
+                  </div>
+
+                  <h3 class="font-bold text-lg border-b pb-2 text-slate-700">Neden Biz (Why Us)</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                      <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Ana Başlık</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.whyUsTitle" name="whyUsTitle" class="w-full p-3 border rounded font-bold">
+                      </div>
+                      <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Ana Alt Açıklama</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.whyUsSubtitle" name="whyUsSub" class="w-full p-3 border rounded text-slate-600">
+                      </div>
+                      <div class="md:col-span-2 mt-4 space-y-4">
+                         <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Güven Maddesi - Başlığı</label>
+                             <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.whyUsTrustTitle" name="whyTrustT" class="w-full p-2 border border-b-0 rounded-t font-bold">
+                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1 mt-2">Güven Maddesi - Açıklaması</label>
+                             <textarea *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.whyUsTrustDesc" name="whyTrustD" rows="2" class="w-full p-2 border rounded-b"></textarea>
+                         </div>
+                         <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Destek Maddesi - Başlığı</label>
+                             <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.whyUsSupportTitle" name="whySupT" class="w-full p-2 border border-b-0 rounded-t font-bold">
+                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1 mt-2">Destek Maddesi - Açıklaması</label>
+                             <textarea *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.whyUsSupportDesc" name="whySupD" rows="2" class="w-full p-2 border rounded-b"></textarea>
+                         </div>
+                         <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Konfor Maddesi - Başlığı</label>
+                             <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.whyUsComfortTitle" name="whyComfT" class="w-full p-2 border border-b-0 rounded-t font-bold">
+                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1 mt-2">Konfor Maddesi - Açıklaması</label>
+                             <textarea *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.whyUsComfortDesc" name="whyComfD" rows="2" class="w-full p-2 border rounded-b"></textarea>
+                         </div>
+                      </div>
+                  </div>
+
+                  <h3 class="font-bold text-lg border-b pb-2 text-slate-700">Aracını Bizimle Çalıştır (Partner Form)</h3>
+                  <div class="grid grid-cols-1 gap-4 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                      <div>
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Ana Başlık</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.partnerTitle" name="pTitle" class="w-full p-3 border rounded font-bold">
+                      </div>
+                      <div>
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Açıklama</label>
+                         <textarea *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.partnerSubtitle" name="pSub" rows="3" class="w-full p-3 border rounded"></textarea>
+                      </div>
+                      <div>
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Şartlar Başlığı</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.partnerReqTitle" name="pReqTitle" class="w-full p-3 border rounded">
+                      </div>
+                      <div>
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Form Başlığı</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.partnerFormTitle" name="pFormTitle" class="w-full p-3 border rounded">
+                      </div>
+                  </div>
+
+                  <h3 class="font-bold text-lg border-b pb-2 text-slate-700">Değerler & Kampanyalar (Campaigns)</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                      <div>
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Erken Rezervasyon Metni</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.campaignsEarly" name="cear" class="w-full p-3 border rounded">
+                      </div>
+                      <div>
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Yol Yardımı Metni</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.campaignsRoadside" name="croad" class="w-full p-3 border rounded">
+                      </div>
+                      <div>
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Ücretsiz Teslimat Metni</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.campaignsDelivery" name="cdeliv" class="w-full p-3 border rounded">
+                      </div>
+                  </div>
+
+                  <h3 class="font-bold text-lg border-b pb-2 text-slate-700">Turlar (Tours)</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                      <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Başlık</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.toursTitle" name="toursTitle" class="w-full p-3 border rounded font-bold">
+                      </div>
+                      <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alt Açıklama</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.toursSubtitle" name="toursSub" class="w-full p-3 border rounded">
+                      </div>
+                      <div class="md:col-span-1">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tümünü İncele Buton Metni</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.toursViewAll" name="toursView" class="w-full p-3 border rounded">
+                      </div>
+                      <div class="md:col-span-1">
+                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Rezervasyon Yap Buton Metni</label>
+                         <input *ngIf="formConfig.homeContent" [(ngModel)]="formConfig.homeContent.toursBookBtn" name="toursBook" class="w-full p-3 border rounded font-bold">
+                      </div>
+                  </div>
+               </div>
+           }

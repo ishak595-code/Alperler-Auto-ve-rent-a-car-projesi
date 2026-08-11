@@ -1,0 +1,123 @@
+export interface TeamMember {
+  id: number;
+  name: string;
+  role: string;
+  description: string;
+  image: string;
+}
+
+export interface SiteConfig {
+  logoUrl: string;
+  logoWidthDesktop?: number;
+  logoWidthMobile?: number;
+  adminProfileUrl?: string; // Appears in the top right / layout
+
+  adminEmails?: string[]; // Allowed admin emails
+
+  companyName: string;
+  tagline?: string;
+  phone: string;
+  email: string;
+  address: string;
+  whatsapp: string; // Just the number
+  whatsappMessage?: string; // Pre-filled message
+  instagramUrl: string;
+  twitterUrl: string;
+  facebookUrl: string;
+  youtubeUrl: string;
+  tiktokUrl: string;
+
+  // SEO & Tracking
+  seoTitle?: string;
+  seoKeywords?: string;
+  seoDescription?: string;
+  seoAuthor?: string;
+  seoOgTitle?: string;
+  seoOgDescription?: string;
+  seoOgImage?: string;
+  seoTwitterHandle?: string;
+  googleAnalyticsId?: string; // e.g. G-XXXXXXX
+  googleAdsId?: string; // e.g. AW-XXXXXXX
+  metaPixelId?: string; // e.g. 123456789012345
+
+  // About Section
+  aboutTitle: string;
+  aboutText: string;
+  team: TeamMember[];
+
+  // Legal Texts
+  kvkkText: string;
+  privacyText: string;
+  cookiesText: string;
+  termsText: string;
+  distanceSellingText: string;
+  cancellationText: string;
+  insuranceText: string;
+
+  // Theme
+  theme: "light" | "dark" | "luxury" | "corporate";
+
+  // Home Content Editor
+  homeContent?: {
+    heroTitle?: string;
+    heroSubtitle?: string;
+    heroTrustLine?: string;
+    heroCtaSubtext?: string;
+    heroCta?: string;
+
+    quickActionLabel?: string;
+    quickActionRentTitle?: string;
+    quickActionRentDesc?: string;
+    quickActionSalesTitle?: string;
+    quickActionSalesDesc?: string;
+    quickActionToursTitle?: string;
+    quickActionToursDesc?: string;
+    quickActionSellTitle?: string;
+    quickActionSellDesc?: string;
+
+    bookingTitle?: string;
+
+    featuredBadge?: string;
+    featuredTitle?: string;
+    featuredSubtitle?: string;
+    featuredViewAll?: string;
+
+    salesBadge?: string;
+    salesTitle?: string;
+    salesDescription?: string;
+    salesViewAll?: string;
+
+    whyUsTitle?: string;
+    whyUsSubtitle?: string;
+
+    whyUsTrustTitle?: string;
+    whyUsTrustDesc?: string;
+
+    whyUsSupportTitle?: string;
+    whyUsSupportDesc?: string;
+
+    whyUsComfortTitle?: string;
+    whyUsComfortDesc?: string;
+
+    partnerTitle?: string;
+    partnerSubtitle?: string;
+    partnerReqTitle?: string;
+    partnerFormTitle?: string;
+
+    campaignBannerBadge?: string;
+    campaignBannerTitle?: string;
+    campaignBannerSubtitle?: string;
+    campaignBannerButtonText?: string;
+
+    campaignsEarly?: string;
+    campaignsRoadside?: string;
+    campaignsFree?: string;
+    campaignsDelivery?: string;
+
+    toursTitle?: string;
+    toursSubtitle?: string;
+    toursViewAll?: string;
+    toursBookBtn?: string;
+    toursBottomNote?: string;
+  };
+}

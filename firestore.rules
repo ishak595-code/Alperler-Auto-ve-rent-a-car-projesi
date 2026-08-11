@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitives
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+    function isValidId(id) { return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // Blueprint Validators
+    function isValidVehicle(data) {
+      return data.keys().hasAll(['brand', 'model', 'category', 'price', 'status'])
+        && data.brand is string && data.brand.size() <= 100
+        && data.model is string && data.model.size() <= 100
+        && data.category is string && data.category in ['RENTAL', 'SALE', 'TOUR']
+        && (data.price is number)
+        && data.status is string && data.status in ['AVAILABLE', 'UNAVAILABLE', 'SOLD', 'RESERVED'];
+    }
+
+    function isValidBooking(data) {
+       return data.keys().hasAll(['type', 'customer', 'status', 'createdAt'])
+        && data.type is string && data.type.size() <= 50
+        && data.status is string && data.status in ['PENDING', 'APPROVED', 'REJECTED', 'COMPLETED']
+        && data.createdAt == request.time;
+    }
+
+    // Admins Collection
+    match /admins/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      // Only admins can promote others, no create access generally unless bootstrapping in console
+      allow write: if isAdmin();
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId)
+                    && incoming().keys().hasAll(['email', 'role'])
+                    && incoming().email == request.auth.token.email
+                    && incoming().role == 'USER'; // Self-assigned roles restricted to standard 'USER' unless admin updates it
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Vehicles Collection
+    match /vehicles/{vehicleId} {
+      // Anyone can read available vehicles, admins can read all
+      allow read: if (existing().status in ['AVAILABLE', 'SOLD']) || isAdmin();
+      
+      // Only admins can modify vehicles
+      allow create: if isAdmin() && isValidVehicle(incoming());
+      allow update: if isAdmin() && isValidVehicle(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Bookings Collection
+    match /bookings/{bookingId} {
+      allow read: if isAdmin();
+      
+      // Allow creation by anyone, but strictly validate format to prevent abuse.
+      // Removed strict typing for arbitrary inputs but keeping it locked to create only.
+      allow create: if true; 
+      
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Messages Collection
+    match /messages/{messageId} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}

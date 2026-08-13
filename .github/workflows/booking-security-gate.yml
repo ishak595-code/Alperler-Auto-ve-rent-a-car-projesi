@@ -1,0 +1,63 @@
+name: Booking and Integration Security Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - agent/v33-booking-notifications-security
+    paths:
+      - "src/services/booking.service.ts"
+      - "src/services/persistent-car.service.ts"
+      - "src/pages/admin/admin-reservations.component.ts"
+      - "src/pages/appointment.component.ts"
+      - "api/notifications/**"
+      - "api/_lib/firestore-rest.ts"
+      - "api/_lib/sms.ts"
+      - "api/_lib/booking-notification-template.ts"
+      - "firestore.rules"
+      - "firebase.json"
+      - ".vercelignore"
+      - ".github/workflows/booking-security-gate.yml"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  invariants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify cloud and deployment safety invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f firebase.json
+          grep -Fq '"rules": "firestore.rules"' firebase.json
+          ! grep -Eq 'allow[[:space:]]+create:[[:space:]]*if[[:space:]]+true' firestore.rules
+          grep -Fq 'public/*.zip' .vercelignore
+          grep -Fq '*.zip' .vercelignore
+          test -f api/notifications/booking.ts
+          test -f api/_lib/firestore-rest.ts
+          test -f api/_lib/sms.ts
+          test -f api/_lib/booking-notification-template.ts
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Type-check browser booking integration
+        run: npm run lint
+
+      - name: Type-check transactional APIs
+        run: npx tsc --noEmit -p tsconfig.api.json

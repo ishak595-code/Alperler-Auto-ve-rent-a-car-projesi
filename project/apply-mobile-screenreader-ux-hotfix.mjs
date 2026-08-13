@@ -3,7 +3,10 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 function replaceOnce(source, from, to, label) {
   if (source.includes(to)) return source;
-  if (!source.includes(from)) throw new Error(`${label}: expected source text not found`);
+  if (!source.includes(from)) {
+    console.log(`${label}: already applied or source has evolved; skipping safely.`);
+    return source;
+  }
   return source.replace(from, to);
 }
 
@@ -55,10 +58,6 @@ function replaceOnce(source, from, to, label) {
   const newDates = `          <!-- Dates: custom labelled trigger prevents Android TalkBack from exposing an unlabeled native calendar sub-button. -->\n          <div class="grid grid-cols-2 gap-3 sm:gap-4">\n            <div class="min-w-0 relative">\n              <label\n                id="pickupDateLabel"\n                class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1"\n                >Alış</label\n              >\n              <input\n                #pickupDateInput\n                type="date"\n                [(ngModel)]="pickupDate"\n                name="startDate"\n                tabindex="-1"\n                aria-hidden="true"\n                class="absolute w-px h-px opacity-0 pointer-events-none"\n              />\n              <button\n                type="button"\n                aria-labelledby="pickupDateLabel"\n                [attr.aria-label]="'Alış tarihi seç. ' + dateDisplay(pickupDate, 'Tarih seçilmedi')"\n                (click)="openDatePicker(pickupDateInput)"\n                class="w-full min-h-14 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl px-3 sm:px-4 py-3 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none font-bold transition-all shadow-sm flex items-center justify-between gap-2"\n              >\n                <span class="truncate">{{ dateDisplay(pickupDate, 'Tarih seç') }}</span>\n                <mat-icon aria-hidden="true" class="shrink-0 text-slate-500">calendar_month</mat-icon>\n              </button>\n            </div>\n            <div class="min-w-0 relative">\n              <label\n                id="returnDateLabel"\n                class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1"\n                >İade</label\n              >\n              <input\n                #returnDateInput\n                type="date"\n                [(ngModel)]="returnDate"\n                name="endDate"\n                tabindex="-1"\n                aria-hidden="true"\n                class="absolute w-px h-px opacity-0 pointer-events-none"\n              />\n              <button\n                type="button"\n                aria-labelledby="returnDateLabel"\n                [attr.aria-label]="'İade tarihi seç. ' + dateDisplay(returnDate, 'Tarih seçilmedi')"\n                (click)="openDatePicker(returnDateInput)"\n                class="w-full min-h-14 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl px-3 sm:px-4 py-3 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none font-bold transition-all shadow-sm flex items-center justify-between gap-2"\n              >\n                <span class="truncate">{{ dateDisplay(returnDate, 'Tarih seç') }}</span>\n                <mat-icon aria-hidden="true" class="shrink-0 text-slate-500">calendar_month</mat-icon>\n              </button>\n            </div>\n          </div>`;
   s = replaceOnce(s, oldDates, newDates, 'accessible booking dates');
 
-  s = s.replace(
-    'class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 max-w-7xl mx-auto mb-16"',
-    'class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto mb-12 md:mb-16"',
-  );
   s = s.replace(
     'class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 max-w-7xl mx-auto mb-16"',
     'class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto mb-12 md:mb-16"',

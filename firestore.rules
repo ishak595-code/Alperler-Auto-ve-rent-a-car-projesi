@@ -1,88 +1,113 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 0. Global Safety Net
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // Primitives
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
     function isSignedIn() { return request.auth != null; }
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'ishak595@gmail.com' ||
+        request.auth.token.email == 'ramcofero.yt@gmail.com' ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
     function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
-    function isValidId(id) { return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
-
-    // Blueprint Validators
-    function isValidVehicle(data) {
-      return data.keys().hasAll(['brand', 'model', 'category', 'price', 'status'])
-        && data.brand is string && data.brand.size() <= 100
-        && data.model is string && data.model.size() <= 100
-        && data.category is string && data.category in ['RENTAL', 'SALE', 'TOUR']
-        && (data.price is number)
-        && data.status is string && data.status in ['AVAILABLE', 'UNAVAILABLE', 'SOLD', 'RESERVED'];
+    function validId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128
+        && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
-
-    function isValidBooking(data) {
-       return data.keys().hasAll(['type', 'customer', 'status', 'createdAt'])
-        && data.type is string && data.type.size() <= 50
-        && data.status is string && data.status in ['PENDING', 'APPROVED', 'REJECTED', 'COMPLETED']
+    function validText(value, minSize, maxSize) {
+      return value is string && value.size() >= minSize && value.size() <= maxSize;
+    }
+    function validVehicle(data) {
+      return data.keys().hasAll(['brand','model','category','price','status'])
+        && validText(data.brand, 1, 100)
+        && validText(data.model, 1, 120)
+        && data.category in ['RENTAL','SALE','TOUR']
+        && data.price is number && data.price >= 0
+        && data.status in ['AVAILABLE','UNAVAILABLE','SOLD','RESERVED'];
+    }
+    function validBooking(data) {
+      return data.keys().hasAll(['type','carId','customerName','customerPhone','startDate','endDate','status','createdAt'])
+        && data.keys().hasOnly(['type','carId','customerName','customerPhone','startDate','endDate','status','createdAt'])
+        && data.type in ['RENTAL','TOUR','SALE_INQUIRY','APPOINTMENT']
+        && validText(data.carId, 1, 128)
+        && validText(data.customerName, 2, 160)
+        && validText(data.customerPhone, 7, 60)
+        && validText(data.startDate, 1, 80)
+        && validText(data.endDate, 1, 80)
+        && data.status == 'PENDING'
+        && data.createdAt == request.time;
+    }
+    function validPartnerMessage(data) {
+      return data.keys().hasAll(['type','name','phone','email','carBrand','modelYear','km','description','status','createdAt'])
+        && data.keys().hasOnly(['type','name','phone','email','carBrand','modelYear','km','description','status','createdAt'])
+        && data.type == 'PARTNER_REQUEST'
+        && validText(data.name, 2, 120)
+        && validText(data.phone, 7, 40)
+        && data.email is string && data.email.size() <= 160
+        && validText(data.carBrand, 1, 160)
+        && data.modelYear is number && data.modelYear >= 1900 && data.modelYear <= 2100
+        && data.km is number && data.km >= 0 && data.km <= 5000000
+        && data.description is string && data.description.size() <= 4000
+        && data.status == 'NEW'
+        && data.createdAt == request.time;
+    }
+    function validContactMessage(data) {
+      return data.keys().hasAll(['name','email','message','createdAt'])
+        && data.keys().hasOnly(['name','email','message','createdAt'])
+        && validText(data.name, 2, 160)
+        && data.email is string && data.email.size() <= 160
+        && validText(data.message, 1, 4000)
         && data.createdAt == request.time;
     }
 
-    // Admins Collection
     match /admins/{userId} {
       allow read: if isOwner(userId) || isAdmin();
-      // Only admins can promote others, no create access generally unless bootstrapping in console
       allow write: if isAdmin();
     }
-
-    // Users Collection
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId)
-                    && incoming().keys().hasAll(['email', 'role'])
-                    && incoming().email == request.auth.token.email
-                    && incoming().role == 'USER'; // Self-assigned roles restricted to standard 'USER' unless admin updates it
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+        && incoming().keys().hasAll(['email','role'])
+        && incoming().email == request.auth.token.email
+        && incoming().role == 'USER';
+      allow update, delete: if isAdmin();
     }
-
-    // Vehicles Collection
     match /vehicles/{vehicleId} {
-      // Anyone can read available vehicles, admins can read all
-      allow read: if (existing().status in ['AVAILABLE', 'SOLD']) || isAdmin();
-      
-      // Only admins can modify vehicles
-      allow create: if isAdmin() && isValidVehicle(incoming());
-      allow update: if isAdmin() && isValidVehicle(incoming());
+      allow read: if existing().status in ['AVAILABLE','SOLD'] || isAdmin();
+      allow create, update: if isAdmin() && validId(vehicleId) && validVehicle(incoming());
       allow delete: if isAdmin();
     }
-
-    // Bookings Collection
+    match /site_config/{configId} {
+      allow read: if configId == 'main';
+      allow write: if isAdmin() && configId == 'main';
+    }
+    match /tours/{tourId} {
+      allow read: if true;
+      allow write: if isAdmin() && validId(tourId);
+    }
+    match /blog_posts/{postId} {
+      allow read: if true;
+      allow write: if isAdmin() && validId(postId);
+    }
+    match /faqs/{faqId} {
+      allow read: if true;
+      allow write: if isAdmin() && validId(faqId);
+    }
     match /bookings/{bookingId} {
       allow read: if isAdmin();
-      
-      // Allow creation by anyone, but strictly validate format to prevent abuse.
-      // Removed strict typing for arbitrary inputs but keeping it locked to create only.
-      allow create: if true; 
-      
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create: if validId(bookingId) && validBooking(incoming());
+      allow update, delete: if isAdmin();
     }
-
-    // Messages Collection
     match /messages/{messageId} {
       allow read: if isAdmin();
-      allow create: if true;
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create: if validId(messageId)
+        && (validPartnerMessage(incoming()) || validContactMessage(incoming()));
+      allow update, delete: if isAdmin();
+    }
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

@@ -35,11 +35,12 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
       <!-- Background Image -->
       <div class="absolute inset-0 z-0 bg-slate-900">
         <img
-          ngSrc="https://images.unsplash.com/photo-1503376713028-98e6cd35549d?q=80&w=2500&auto=format&fit=crop"
-          fill
-          priority
-          alt="Hero Image"
-          class="object-cover opacity-80"
+          src="https://images.unsplash.com/photo-1503376713028-98e6cd35549d?q=80&w=2500&auto=format&fit=crop"
+          fetchpriority="high"
+          alt=""
+          aria-hidden="true"
+          (error)="hideBrokenImage($event)"
+          class="absolute inset-0 w-full h-full object-cover opacity-80"
         />
         <div
           class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent"
@@ -483,37 +484,59 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
             </div>
           </div>
 
-          <!-- Dates -->
-          <div class="flex gap-4">
-            <div class="w-1/2">
+          <!-- Dates: custom labelled trigger prevents Android TalkBack from exposing an unlabeled native calendar sub-button. -->
+          <div class="grid grid-cols-2 gap-3 sm:gap-4">
+            <div class="min-w-0 relative">
               <label
-                for="startDateInput"
+                id="pickupDateLabel"
                 class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1"
                 >Alış</label
               >
               <input
-                id="startDateInput"
+                #pickupDateInput
                 type="date"
                 [(ngModel)]="pickupDate"
                 name="startDate"
-                aria-label="Alış tarihi"
-                class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl px-4 py-4 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none font-bold transition-all shadow-sm"
+                tabindex="-1"
+                aria-hidden="true"
+                class="absolute w-px h-px opacity-0 pointer-events-none"
               />
+              <button
+                type="button"
+                aria-labelledby="pickupDateLabel"
+                [attr.aria-label]="'Alış tarihi seç. ' + dateDisplay(pickupDate, 'Tarih seçilmedi')"
+                (click)="openDatePicker(pickupDateInput)"
+                class="w-full min-h-14 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl px-3 sm:px-4 py-3 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none font-bold transition-all shadow-sm flex items-center justify-between gap-2"
+              >
+                <span class="truncate">{{ dateDisplay(pickupDate, 'Tarih seç') }}</span>
+                <mat-icon aria-hidden="true" class="shrink-0 text-slate-500">calendar_month</mat-icon>
+              </button>
             </div>
-            <div class="w-1/2">
+            <div class="min-w-0 relative">
               <label
-                for="endDateInput"
+                id="returnDateLabel"
                 class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1"
                 >İade</label
               >
               <input
-                id="endDateInput"
+                #returnDateInput
                 type="date"
                 [(ngModel)]="returnDate"
                 name="endDate"
-                aria-label="İade tarihi"
-                class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl px-4 py-4 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none font-bold transition-all shadow-sm"
+                tabindex="-1"
+                aria-hidden="true"
+                class="absolute w-px h-px opacity-0 pointer-events-none"
               />
+              <button
+                type="button"
+                aria-labelledby="returnDateLabel"
+                [attr.aria-label]="'İade tarihi seç. ' + dateDisplay(returnDate, 'Tarih seçilmedi')"
+                (click)="openDatePicker(returnDateInput)"
+                class="w-full min-h-14 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl px-3 sm:px-4 py-3 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none font-bold transition-all shadow-sm flex items-center justify-between gap-2"
+              >
+                <span class="truncate">{{ dateDisplay(returnDate, 'Tarih seç') }}</span>
+                <mat-icon aria-hidden="true" class="shrink-0 text-slate-500">calendar_month</mat-icon>
+              </button>
             </div>
           </div>
 
@@ -598,7 +621,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
     </div>
 
     <!-- Featured Vehicles (Rental) -->
-    <section class="py-24 bg-slate-50/50">
+    <section class="py-16 sm:py-20 md:py-24 bg-slate-50/50">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div
           class="mb-20 text-center md:text-left flex flex-col md:flex-row justify-between items-end gap-6"
@@ -609,11 +632,11 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
               >{{ config()?.homeContent?.featuredBadge || t().home.featured.badge }}</span
             >
             <h2
-              class="text-4xl md:text-6xl font-serif font-bold text-slate-900 leading-tight"
+              class="text-3xl sm:text-4xl md:text-6xl font-serif font-bold text-slate-900 leading-tight text-balance"
             >
               {{ config()?.homeContent?.featuredTitle || t().home.featured.title }}
             </h2>
-            <p class="text-slate-500 mt-6 text-xl font-light">
+            <p class="text-slate-500 mt-4 sm:mt-6 text-base sm:text-lg md:text-xl font-light leading-relaxed text-pretty">
               {{ config()?.homeContent?.featuredSubtitle || t().home.featured.subtitle }}
             </p>
           </div>
@@ -644,7 +667,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
         </div>
 
         <div
-          class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 max-w-7xl mx-auto mb-16"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto mb-12 md:mb-16"
         >
           @for (car of featuredCars(); track car.id) {
             <app-vehicle-card [car]="car" variant="rental"></app-vehicle-card>
@@ -690,11 +713,11 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
               >{{ config()?.homeContent?.salesBadge || t().home.sales.badge }}</span
             >
             <h2
-              class="text-4xl md:text-6xl font-serif font-bold text-slate-900 leading-tight"
+              class="text-3xl sm:text-4xl md:text-6xl font-serif font-bold text-slate-900 leading-tight text-balance"
             >
               {{ config()?.homeContent?.salesTitle || t().home.sales.title }}
             </h2>
-            <p class="text-slate-500 mt-6 text-xl font-light">
+            <p class="text-slate-500 mt-4 sm:mt-6 text-base sm:text-lg md:text-xl font-light leading-relaxed text-pretty">
               {{ config()?.homeContent?.salesDescription || t().home.sales.description }}
             </p>
           </div>
@@ -724,7 +747,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
         </div>
 
         <div
-          class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 max-w-7xl mx-auto mb-16"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto mb-12 md:mb-16"
         >
           @for (car of featuredSaleCars(); track car.id) {
             <app-vehicle-card [car]="car" variant="sale"></app-vehicle-card>
@@ -938,6 +961,28 @@ export class HomeComponent implements OnInit {
   router = inject(Router);
   rentCarFormSent = signal(false);
   favorites = signal<number[]>([]);
+
+  hideBrokenImage(event: Event) {
+    const image = event.target as HTMLImageElement;
+    image.style.display = 'none';
+  }
+
+  openDatePicker(input: HTMLInputElement) {
+    const picker = input as HTMLInputElement & { showPicker?: () => void };
+    if (typeof picker.showPicker === 'function') {
+      picker.showPicker();
+    } else {
+      input.focus();
+      input.click();
+    }
+  }
+
+  dateDisplay(value: string, fallback: string): string {
+    if (!value) return fallback;
+    const [year, month, day] = value.split('-');
+    if (!year || !month || !day) return value;
+    return `${day}.${month}.${year}`;
+  }
 
   scrollToRecommended() {
     const el = document.getElementById('recommended-cars');

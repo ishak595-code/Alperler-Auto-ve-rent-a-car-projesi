@@ -24,7 +24,7 @@ import { MatIconModule } from "@angular/material/icon";
       <div class="relative max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-[72px] md:h-24 gap-2">
           <a
-            class="flex items-center min-w-0 group rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            class="inline-flex flex-none items-center w-auto max-w-[150px] sm:max-w-[210px] md:max-w-[280px] group rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             routerLink="/"
             (click)="closeMenu(); closeLangMenu()"
             aria-label="Alperler Auto ana sayfa"
@@ -34,7 +34,8 @@ import { MatIconModule } from "@angular/material/icon";
             @if (config().logoUrl) {
               <img
                 [src]="config().logoUrl"
-                alt="Alperler Auto"
+                alt=""
+                aria-hidden="true"
                 class="w-[var(--logo-width-mobile)] max-w-[112px] sm:max-w-[160px] md:max-w-[220px] xl:w-[var(--logo-width-desktop)] xl:max-w-[220px] h-auto max-h-[54px] md:max-h-[76px] object-contain transition-all"
               />
             } @else {
@@ -61,9 +62,9 @@ import { MatIconModule } from "@angular/material/icon";
                   />
                 </svg>
               </div>
-              <div class="flex flex-col justify-center min-w-0 max-w-[110px] sm:max-w-[180px] md:max-w-[240px]">
+              <div class="flex flex-col justify-center min-w-0 max-w-[96px] sm:max-w-[150px] md:max-w-[220px] pointer-events-none">
                 <span
-                  class="font-serif font-bold text-lg md:text-2xl text-white tracking-wider leading-none group-hover:text-blue-500 transition-colors truncate"
+                  class="font-serif font-bold text-[15px] sm:text-base md:text-xl text-white tracking-wide leading-none group-hover:text-blue-500 transition-colors whitespace-nowrap"
                   >{{ config().companyName | uppercase }}</span
                 >
                 @if (config().tagline) {

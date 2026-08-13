@@ -4,6 +4,13 @@ import { readFile, writeFile } from 'node:fs/promises';
 const path = 'src/services/car.service.ts';
 let s = await readFile(path, 'utf8');
 
+if (s.includes('import { db, auth } from "../firebase";')) {
+  s = s.replace(
+    'import { db, auth } from "../firebase";',
+    'import { db } from "../firebase";',
+  );
+}
+
 const safeHandler = `function handleFirestoreError(
   error: unknown,
   operationType: OperationType,

@@ -27,12 +27,13 @@ import { Language, UiService } from "../services/ui.service";
             }
           </a>
 
-          <div class="hidden xl:flex items-center gap-4 2xl:gap-6">
+          <div class="hidden xl:flex items-center gap-3 2xl:gap-5">
             <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="!text-white !border-blue-400" class="nav-link">Ana Sayfa</a>
             <a routerLink="/fleet" routerLinkActive="!text-white !border-blue-400" class="nav-link">{{ t().nav.fleet }}</a>
             <a routerLink="/sales" routerLinkActive="!text-white !border-blue-400" class="nav-link">{{ t().nav.sales }}</a>
             <a routerLink="/list-your-car" routerLinkActive="!text-white !border-blue-400" class="nav-link">{{ t().nav.earn }}</a>
             <a routerLink="/tours" routerLinkActive="!text-white !border-blue-400" class="nav-link">{{ t().nav.tours }}</a>
+            <a routerLink="/branches" routerLinkActive="!text-white !border-blue-400" class="nav-link">Şubeler</a>
             <a routerLink="/blog" routerLinkActive="!text-white !border-blue-400" class="nav-link">{{ t().nav.blog }}</a>
             <a routerLink="/contact" routerLinkActive="!text-white !border-blue-400" class="nav-link">{{ t().nav.contact }}</a>
           </div>
@@ -67,6 +68,7 @@ import { Language, UiService } from "../services/ui.service";
             <a routerLink="/sales" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">directions_car</mat-icon><span>{{ t().nav.sales }}</span></a>
             <a routerLink="/list-your-car" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">sell</mat-icon><span>{{ t().nav.earn }}</span></a>
             <a routerLink="/tours" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">explore</mat-icon><span>{{ t().nav.tours }}</span></a>
+            <a routerLink="/branches" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">storefront</mat-icon><span>Şubeler</span></a>
             <a routerLink="/blog" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">article</mat-icon><span>{{ t().nav.blog }}</span></a>
             <a routerLink="/contact" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">support_agent</mat-icon><span>{{ t().nav.contact }}</span></a>
             <a routerLink="/about" (click)="closeMenu(false)" class="menu-row last"><mat-icon aria-hidden="true">info</mat-icon><span>{{ t().nav.about }}</span></a>
@@ -95,7 +97,7 @@ import { Language, UiService } from "../services/ui.service";
     }
   `,
   styles: [`
-    .nav-link{border-bottom:2px solid transparent;padding:.5rem 0;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#cbd5e1}
+    .nav-link{border-bottom:2px solid transparent;padding:.5rem 0;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#cbd5e1;white-space:nowrap}
     .menu-row{display:flex;min-height:56px;align-items:center;gap:16px;border-bottom:1px solid rgba(255,255,255,.1);padding:0 16px;font-size:16px;font-weight:700;color:#f1f5f9;text-decoration:none}.menu-row span{flex:1}.menu-row.last{border-bottom:0}.menu-row:focus-visible{background:rgba(255,255,255,.08);outline:none}
     .quick-link{display:flex;min-height:56px;align-items:center;justify-content:center;gap:8px;border-radius:16px;border:1px solid rgba(255,255,255,.1);padding:0 12px;font-size:14px;font-weight:900;color:white;text-decoration:none}
     summary::-webkit-details-marker{display:none}

@@ -10,9 +10,15 @@ import {
 } from "./mock-data";
 import { db } from "../firebase";
 import {
-  setDoc,
+  collection,
+  deleteDoc,
   doc,
+  getDocs,
+  onSnapshot,
+  query,
   serverTimestamp,
+  setDoc,
+  where,
 } from "firebase/firestore";
 
 enum OperationType {
@@ -332,11 +338,14 @@ Araçlarımızda 7/24 GPS bazlı telemetri kontrolü mevcuttur. Raporlardaki hı
     (typeof process !== "undefined" && process.env && process.env["API_KEY"]) ||
     "";
 
+  private cloudInventoryActivated = false;
+
   constructor() {
     if (this.apiKey) {
       this.genAI = new GoogleGenAI({ apiKey: this.apiKey });
     }
     this.loadFromStorage();
+    this.listenForCloudVehicles();
 
     // Increment Visit Counter
     this.incrementVisitCount();
@@ -413,6 +422,96 @@ Araçlarımızda 7/24 GPS bazlı telemetri kontrolü mevcuttur. Raporlardaki hı
         this.loadFromStorage();
       }
     });
+  }
+
+  private listenForCloudVehicles() {
+    const publicVehicleQuery = query(
+      collection(db, "vehicles"),
+      where("status", "in", ["AVAILABLE", "SOLD"]),
+    );
+
+    onSnapshot(
+      publicVehicleQuery,
+      (snapshot) => {
+        if (snapshot.empty && !this.cloudInventoryActivated) return;
+
+        const cloudVehicles = snapshot.docs
+          .map((snapshotDoc) => {
+            const data = snapshotDoc.data() as Record<string, unknown>;
+            const { status: _status, updatedAt: _updatedAt, ...vehicleData } = data;
+            const numericId = Number(snapshotDoc.id);
+            return {
+              ...vehicleData,
+              id: Number.isNaN(numericId) ? snapshotDoc.id : numericId,
+            } as Vehicle;
+          })
+          .filter((vehicle) =>
+            vehicle.category === "RENTAL" || vehicle.category === "SALE",
+          );
+
+        this.cloudInventoryActivated = true;
+        this._inventory.update((inventory) => [
+          ...inventory.filter((vehicle) => vehicle.category === "TOUR"),
+          ...cloudVehicles,
+        ]);
+      },
+      (error) => {
+        console.warn(
+          "Cloud vehicle listener is unavailable; local inventory remains active.",
+          error,
+        );
+      },
+    );
+  }
+
+  async ensureVehicleCloudInventory(): Promise<void> {
+    const cloudSnapshot = await getDocs(collection(db, "vehicles"));
+    if (!cloudSnapshot.empty) {
+      this.cloudInventoryActivated = true;
+      return;
+    }
+
+    const initialVehicles = this._inventory().filter(
+      (vehicle) => vehicle.category === "RENTAL" || vehicle.category === "SALE",
+    );
+
+    await Promise.all(
+      initialVehicles.map((vehicle) => this.persistVehicleToCloud(vehicle)),
+    );
+    this.cloudInventoryActivated = true;
+  }
+
+  private async persistVehicleToCloud(vehicle: Vehicle): Promise<void> {
+    const status =
+      vehicle.category === "SALE" &&
+      vehicle.availability?.toLocaleLowerCase("tr-TR").includes("sat")
+        ? "SOLD"
+        : "AVAILABLE";
+
+    const serialized = JSON.parse(
+      JSON.stringify({
+        ...vehicle,
+        brand: vehicle.brand || "",
+        model: vehicle.model || "",
+        status,
+      }),
+    ) as Record<string, unknown>;
+
+    const estimatedSize = new TextEncoder().encode(JSON.stringify(serialized)).length;
+    if (estimatedSize > 850_000) {
+      throw new Error(
+        "Araç kaydı bulut sınırını aşıyor. Fotoğrafları URL olarak ekleyin veya görsel boyutlarını küçültün.",
+      );
+    }
+
+    await setDoc(doc(db, "vehicles", String(vehicle.id)), {
+      ...serialized,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  private async removeVehicleFromCloud(id: number | string): Promise<void> {
+    await deleteDoc(doc(db, "vehicles", String(id)));
   }
 
   private loadFromStorage() {
@@ -976,34 +1075,60 @@ Araçlarımızda 7/24 GPS bazlı telemetri kontrolü mevcuttur. Raporlardaki hı
     this._config.set(newConfig);
   }
 
-  addCar(car: Car) {
-    this._inventory.update((inv) => {
-      if (car.id && inv.find((x) => x.id === car.id)) {
-        return inv.map((x) =>
-          x.id === car.id ? { ...car, category: "RENTAL" } : x,
-        );
-      } else {
-        return [{ ...car, id: Date.now(), category: "RENTAL" }, ...inv];
-      }
-    });
-  }
-  deleteCar(id: number | string) {
-    this._inventory.update((inv) => inv.filter((c) => c.id != id));
+  async addCar(car: Car): Promise<Car> {
+    const exists = Boolean(
+      car.id && this._inventory().some((vehicle) => vehicle.id === car.id),
+    );
+    const savedCar: Car = {
+      ...car,
+      id: exists ? car.id : Date.now(),
+      category: "RENTAL",
+    };
+
+    await this.persistVehicleToCloud(savedCar);
+    this._inventory.update((inventory) =>
+      exists
+        ? inventory.map((vehicle) =>
+            vehicle.id === savedCar.id ? savedCar : vehicle,
+          )
+        : [savedCar, ...inventory],
+    );
+    return savedCar;
   }
 
-  addSaleCar(car: SaleCar) {
-    this._inventory.update((inv) => {
-      if (car.id && inv.find((x) => x.id === car.id)) {
-        return inv.map((x) =>
-          x.id === car.id ? { ...car, category: "SALE" } : x,
-        );
-      } else {
-        return [{ ...car, id: Date.now(), category: "SALE" }, ...inv];
-      }
-    });
+  async deleteCar(id: number | string): Promise<void> {
+    await this.removeVehicleFromCloud(id);
+    this._inventory.update((inventory) =>
+      inventory.filter((vehicle) => vehicle.id != id),
+    );
   }
-  deleteSaleCar(id: number | string) {
-    this._inventory.update((inv) => inv.filter((c) => c.id != id));
+
+  async addSaleCar(car: SaleCar): Promise<SaleCar> {
+    const exists = Boolean(
+      car.id && this._inventory().some((vehicle) => vehicle.id === car.id),
+    );
+    const savedCar: SaleCar = {
+      ...car,
+      id: exists ? car.id : Date.now(),
+      category: "SALE",
+    };
+
+    await this.persistVehicleToCloud(savedCar);
+    this._inventory.update((inventory) =>
+      exists
+        ? inventory.map((vehicle) =>
+            vehicle.id === savedCar.id ? savedCar : vehicle,
+          )
+        : [savedCar, ...inventory],
+    );
+    return savedCar;
+  }
+
+  async deleteSaleCar(id: number | string): Promise<void> {
+    await this.removeVehicleFromCloud(id);
+    this._inventory.update((inventory) =>
+      inventory.filter((vehicle) => vehicle.id != id),
+    );
   }
 
   addBlogPost(post: BlogPost) {

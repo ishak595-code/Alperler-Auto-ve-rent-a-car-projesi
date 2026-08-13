@@ -545,6 +545,14 @@ export class AdminCarsComponent implements OnInit {
               this.activeTab.set('SALES');
           }
       });
+
+      void this.carService.ensureVehicleCloudInventory().catch((error) => {
+          console.error('Vehicle cloud initialization failed', error);
+          this.toastService.show(
+              'Bulut araç veritabanına bağlanılamadı. İlan değişiklikleri buluta yazılmadan yayınlanmayacak.',
+              'error'
+          );
+      });
   }
 
   // Default Models
@@ -695,31 +703,40 @@ export class AdminCarsComponent implements OnInit {
       this.currentCar.detailedFeatures[category] = value.split(',').map(s => s.trim()).filter(s => s);
   }
 
-  saveCar() {
+  async saveCar() {
       if (!this.currentCar.brand || !this.currentCar.model || !this.currentCar.price) {
           this.toastService.show('Lütfen Marka, Model ve Fiyat alanlarını doldurun.', 'error');
           return;
       }
-      
-      // Ensure main image is set from images array
+
       if (this.currentCar.images && this.currentCar.images.length > 0) {
           this.currentCar.image = this.currentCar.images[0];
       } else if (!this.currentCar.image) {
-          // Fallback placeholder
           this.currentCar.image = `https://picsum.photos/seed/${this.currentCar.brand}/800/600`;
           this.currentCar.images = [this.currentCar.image];
       }
 
-      if (this.formType() === 'RENTAL') {
-          this.currentCar.category = 'RENTAL';
-          this.carService.addCar(this.currentCar);
-      } else {
-          this.currentCar.category = 'SALE';
-          this.carService.addSaleCar(this.currentCar);
+      try {
+          if (this.formType() === 'RENTAL') {
+              this.currentCar.category = 'RENTAL';
+              this.currentCar = await this.carService.addCar(this.currentCar);
+          } else {
+              this.currentCar.category = 'SALE';
+              this.currentCar = await this.carService.addSaleCar(this.currentCar);
+          }
+
+          this.toastService.show(
+              this.isEditing ? 'Araç güncellendi ve canlı siteye kaydedildi.' : 'Yeni ilan canlı siteye kaydedildi.',
+              'success'
+          );
+          this.closeForm();
+      } catch (error) {
+          console.error('Vehicle save failed', error);
+          this.toastService.show(
+              error instanceof Error ? error.message : 'Araç kaydedilemedi. Lütfen tekrar deneyin.',
+              'error'
+          );
       }
-      
-      this.toastService.show(this.isEditing ? 'Araç güncellendi.' : 'Yeni araç eklendi.', 'success');
-      this.closeForm();
   }
 
   async deleteCar(id: number) {
@@ -728,12 +745,17 @@ export class AdminCarsComponent implements OnInit {
           message: 'Bu aracı silmek istediğinize emin misiniz?'
       });
       if(confirmed) {
-          if (this.activeTab() === 'RENTAL') {
-              this.carService.deleteCar(id);
-          } else {
-              this.carService.deleteSaleCar(id);
+          try {
+              if (this.activeTab() === 'RENTAL') {
+                  await this.carService.deleteCar(id);
+              } else {
+                  await this.carService.deleteSaleCar(id);
+              }
+              this.toastService.show('Araç buluttan ve canlı siteden silindi.', 'info');
+          } catch (error) {
+              console.error('Vehicle delete failed', error);
+              this.toastService.show('Araç silinemedi. Bulut bağlantısını kontrol edip tekrar deneyin.', 'error');
           }
-          this.toastService.show('Araç silindi.', 'info');
       }
   }
 }

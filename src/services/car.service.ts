@@ -416,9 +416,8 @@ Araçlarımızda 7/24 GPS bazlı telemetri kontrolü mevcuttur. Raporlardaki hı
   }
 
   private loadFromStorage() {
-    // Clean up old keys
+    // Clean up legacy keys only. Never delete the active admin configuration.
     localStorage.removeItem("db_config");
-    localStorage.removeItem("db_config_v12");
     localStorage.removeItem("db_faqs");
 
     const config = localStorage.getItem("db_config_v12");

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - "project/apply-professional-hotfix.mjs"
+      - "project/apply-*-hotfix.mjs"
 
 permissions:
   contents: write
@@ -30,8 +30,19 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - name: Apply professional hotfixes
-        run: node project/apply-professional-hotfix.mjs
+      - name: Apply professional hotfix modules
+        shell: bash
+        run: |
+          shopt -s nullglob
+          scripts=(project/apply-*-hotfix.mjs)
+          if [ ${#scripts[@]} -eq 0 ]; then
+            echo "No hotfix modules found."
+            exit 1
+          fi
+          for script in "${scripts[@]}"; do
+            echo "Running $script"
+            node "$script"
+          done
 
       - name: Install and reconcile dependencies
         run: npm install --no-audit --no-fund

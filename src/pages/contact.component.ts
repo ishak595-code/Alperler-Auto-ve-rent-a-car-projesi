@@ -46,7 +46,8 @@ function handleFirestoreError(
     operationType,
     path,
   };
-  throw new Error(JSON.stringify(errInfo));
+  console.error("Firestore operation failed", { error: errInfo.error, operationType, path });
+  throw new Error(errInfo.error);
 }
 
 @Component({
@@ -54,21 +55,21 @@ function handleFirestoreError(
   standalone: true,
   imports: [CommonModule, FormsModule, MatIconModule],
   template: `
-    <div class="font-sans min-h-screen bg-slate-950 text-slate-300 pb-20">
+    <div class="font-sans min-h-screen bg-slate-950 text-slate-300 pb-20 overflow-x-hidden">
       <!-- Sticky Module Header -->
       <div
-        class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg"
+        class="bg-slate-900 border-b border-slate-800 sticky top-[72px] md:top-[96px] z-40 shadow-lg"
       >
         <div class="max-w-7xl mx-auto px-4">
-          <div class="h-16 flex items-center gap-3">
+          <div class="min-h-16 flex items-center gap-2 sm:gap-3 py-2">
             <button
               (click)="goBack()"
-              class="p-2 -ml-2 hover:bg-slate-800 hover:text-white rounded-full transition-colors text-slate-400 shrink-0"
+              class="w-11 h-11 -ml-2 hover:bg-slate-800 hover:text-white rounded-full transition-colors text-slate-400 shrink-0 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               aria-label="Geri Dön"
             >
               <mat-icon>arrow_back</mat-icon>
             </button>
-            <h1 class="text-lg font-bold text-white">
+            <h1 class="text-base sm:text-lg font-bold text-white min-w-0 break-words">
               {{
                 bookingData()
                   ? bookingData()?.type === "RENTAL"
@@ -95,25 +96,25 @@ function handleFirestoreError(
                   class="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in"
                 >
                   <div
-                    class="bg-slate-900 text-white p-6 flex justify-between items-center"
+                    class="bg-slate-900 text-white p-4 sm:p-6 flex justify-between items-center gap-3"
                   >
-                    <h2 class="text-2xl font-bold font-serif">
+                    <h2 class="text-xl sm:text-2xl font-bold font-serif leading-tight">
                       1. Kiralama Detayları
                     </h2>
-                    <span class="text-blue-500 font-bold">Adım 1/3</span>
+                    <span class="text-blue-500 text-xs sm:text-base font-bold shrink-0">Adım 1/3</span>
                   </div>
 
-                  <div class="p-8">
+                  <div class="p-4 sm:p-8">
                     <div
-                      class="flex items-center gap-6 mb-8 pb-8 border-b border-slate-100"
+                      class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-8 pb-8 border-b border-slate-100"
                     >
                       <img
                         [src]="bookingData()?.image"
-                        class="w-32 h-24 object-cover rounded-lg shadow-md"
+                        class="w-full sm:w-32 h-44 sm:h-24 object-cover rounded-xl shadow-md"
                         alt="Kiralık Araç/Ürün Resmi"
                       />
                       <div>
-                        <h3 class="text-2xl font-bold text-slate-900">
+                        <h3 class="text-xl sm:text-2xl font-bold text-slate-900 break-words">
                           {{ bookingData()?.itemName }}
                         </h3>
                         <p class="text-slate-500">
@@ -134,7 +135,7 @@ function handleFirestoreError(
                             id="rental_duration_select"
                             [(ngModel)]="rentalDuration"
                             (change)="calculatePrice()"
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                            class="w-full min-h-12 bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
                           >
                             <option value="hourly">Saatlik</option>
                             <option value="daily">Günlük</option>
@@ -154,7 +155,7 @@ function handleFirestoreError(
                               type="date"
                               [(ngModel)]="startDate"
                               (change)="calculatePrice()"
-                              class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                              class="w-full min-h-12 bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
                             />
                           </div>
                           <div>
@@ -167,7 +168,7 @@ function handleFirestoreError(
                                 max="23"
                                 [(ngModel)]="selectedHours"
                                 (change)="calculatePrice()"
-                                class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                                class="w-full min-h-12 bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
                               />
                             </div>
                           </div>
@@ -179,7 +180,7 @@ function handleFirestoreError(
                               type="date"
                               [(ngModel)]="startDate"
                               (change)="calculatePrice()"
-                              class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                              class="w-full min-h-12 bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
                             />
                           </div>
                           <div>
@@ -189,7 +190,7 @@ function handleFirestoreError(
                               type="date"
                               [(ngModel)]="endDate"
                               (change)="calculatePrice()"
-                              class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                              class="w-full min-h-12 bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
                             />
                           </div>
                         }
@@ -197,7 +198,7 @@ function handleFirestoreError(
                     </div>
 
                     <!-- NOTES & DRIVER OPTIONS -->
-                    <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
+                    <div class="bg-slate-50 p-4 sm:p-6 rounded-xl border border-slate-200 mb-8">
                       <h4 class="text-sm font-bold text-slate-800 uppercase mb-4 border-b border-slate-200 pb-2 flex items-center gap-2">
                         <mat-icon class="text-blue-500 text-[18px] w-[18px] h-[18px]">add_circle</mat-icon> Notlar
                       </h4>
@@ -208,14 +209,14 @@ function handleFirestoreError(
                               id="reservation_notes"
                               [(ngModel)]="reservationNotes"
                               rows="3"
-                              class="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                              class="w-full min-h-28 bg-white border border-slate-200 rounded-xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none resize-y"
                               placeholder="Örn: Araç havalimanına teslim edilsin."
                             ></textarea>
                          </div>
                       </div>
                     </div>
 
-                    <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
+                    <div class="bg-slate-50 p-4 sm:p-6 rounded-xl border border-slate-200 mb-8">
                       <h4 class="text-sm font-bold text-slate-800 uppercase mb-4 border-b border-slate-200 pb-2 flex items-center gap-2">
                         <mat-icon class="text-blue-500 text-[18px] w-[18px] h-[18px]">add_circle</mat-icon> Ek Hizmetler (İsteğe Bağlı)
                       </h4>
@@ -223,7 +224,7 @@ function handleFirestoreError(
                         <button 
                           type="button"
                           (click)="extrasDropdownOpen.set(!extrasDropdownOpen())" 
-                          class="w-full bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between font-bold text-sm hover:border-blue-500 transition-colors"
+                          class="w-full min-h-12 bg-white border border-slate-200 rounded-xl p-3 sm:p-4 flex items-center justify-between font-bold text-sm hover:border-blue-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                           aria-label="Ekstra seçenekleri aç/kapat"
                           aria-haspopup="listbox"
                           [attr.aria-expanded]="extrasDropdownOpen()"
@@ -233,7 +234,7 @@ function handleFirestoreError(
                         </button>
                         
                         @if (extrasDropdownOpen()) {
-                          <div class="absolute z-20 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+                          <div class="absolute z-20 mt-2 w-full max-h-[min(60dvh,24rem)] bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2">
                             <ul role="listbox" aria-label="Ekstra seçenekler" class="max-h-60 overflow-y-auto">
                               <li>
                                 <label class="flex items-center justify-between cursor-pointer p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors">
@@ -269,13 +270,13 @@ function handleFirestoreError(
                            @if (wantsChildSeat) {
                              <div class="flex justify-between items-center text-sm font-medium text-slate-700">
                                <div class="flex items-center gap-2"><mat-icon class="text-blue-500 text-[16px] w-[16px] h-[16px]">child_care</mat-icon> Bebek Koltuğu</div>
-                               <button (click)="wantsChildSeat = false; calculatePrice()" aria-label="Bebek Koltuğunu Çıkar" class="text-red-500 hover:text-red-700"><mat-icon class="text-[16px] w-[16px] h-[16px]">close</mat-icon></button>
+                               <button (click)="wantsChildSeat = false; calculatePrice()" aria-label="Bebek Koltuğunu Çıkar" class="w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-full text-red-500 hover:text-red-700 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"><mat-icon class="text-[16px] w-[16px] h-[16px]">close</mat-icon></button>
                              </div>
                            }
                            @if (wantsInsurance) {
                              <div class="flex justify-between items-center text-sm font-medium text-slate-700">
                                <div class="flex items-center gap-2"><mat-icon class="text-blue-500 text-[16px] w-[16px] h-[16px]">security</mat-icon> Tam Kapsamlı Sigorta</div>
-                               <button (click)="wantsInsurance = false; calculatePrice()" aria-label="Sigortayı Çıkar" class="text-red-500 hover:text-red-700"><mat-icon class="text-[16px] w-[16px] h-[16px]">close</mat-icon></button>
+                               <button (click)="wantsInsurance = false; calculatePrice()" aria-label="Sigortayı Çıkar" class="w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-full text-red-500 hover:text-red-700 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"><mat-icon class="text-[16px] w-[16px] h-[16px]">close</mat-icon></button>
                              </div>
                            }
                         </div>
@@ -308,8 +309,8 @@ function handleFirestoreError(
 
                     <button
                       (click)="currentStep.set(2)"
-                      [disabled]="!startDate || !endDate"
-                      class="w-full bg-slate-900 text-white py-5 rounded-xl font-bold text-lg uppercase tracking-widest hover:bg-blue-500 hover:text-slate-900 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                      [disabled]="!startDate || (rentalDuration !== 'hourly' && !endDate) || (rentalDuration === 'hourly' && selectedHours < 1)"
+                      class="w-full min-h-14 bg-slate-900 text-white px-4 py-4 rounded-xl font-bold text-base sm:text-lg uppercase tracking-widest hover:bg-blue-500 hover:text-slate-900 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                     >
                       Devam Et
                     </button>
@@ -323,15 +324,15 @@ function handleFirestoreError(
                   class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in"
                 >
                   <div
-                    class="bg-slate-900 text-white p-6 flex justify-between items-center"
+                    class="bg-slate-900 text-white p-4 sm:p-6 flex justify-between items-center gap-3"
                   >
-                    <h2 class="text-2xl font-bold font-serif">
+                    <h2 class="text-xl sm:text-2xl font-bold font-serif leading-tight">
                       2. Ödeme ve Onay
                     </h2>
-                    <span class="text-blue-500 font-bold">Adım 2/3</span>
+                    <span class="text-blue-500 text-xs sm:text-base font-bold shrink-0">Adım 2/3</span>
                   </div>
 
-                  <div class="p-8">
+                  <div class="p-4 sm:p-8">
                     <h3 class="text-xl font-bold text-slate-900 mb-6">
                       Kişisel Bilgiler
                     </h3>
@@ -761,7 +762,7 @@ function handleFirestoreError(
                     </p>
                   </div>
 
-                  <div class="p-8">
+                  <div class="p-4 sm:p-8">
                     <!-- Receipt / Dekont -->
                     <div
                       class="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-8 relative"

@@ -1,4 +1,4 @@
-# Validates the complete latest main tree, including mobile navigation, cloud admin CRUD and account security changes.
+# Validates the complete latest main tree, including frontend, Vercel Functions and cloud rules.
 name: Alperler Professional Quality Gate
 
 on:
@@ -8,6 +8,7 @@ on:
       - main
     paths:
       - "src/**"
+      - "api/**"
       - "project/**"
       - "index.html"
       - "package.json"
@@ -20,12 +21,14 @@ on:
       - main
     paths:
       - "src/**"
+      - "api/**"
       - "project/**"
       - "index.html"
       - "package.json"
       - "package-lock.json"
       - "angular.json"
       - "firestore.rules"
+      - ".github/workflows/alperler-quality-gate.yml"
 
 permissions:
   contents: read

@@ -68,6 +68,21 @@ index = index.replace(
 );
 writeFileSync(indexPath, index, "utf8");
 
+// Legacy domain migration for production bundles. These two legal-copy references
+// predate PUBLIC_APP_URL and must not pin deployed contracts to an obsolete host.
+const carServicePath = resolve(process.cwd(), "src/services/car.service.ts");
+let carService = readFileSync(carServicePath, "utf8");
+carService = carService
+  .replace(
+    "web sitemiz (alperrentacar.online), çağrı merkezimiz",
+    "web sitemiz, çağrı merkezimiz",
+  )
+  .replace(
+    "ALICI'nın SATICI'ya ait alperrentacar.online adresinden elektronik ortamda siparişini (rezervasyon) verdiği",
+    "ALICI'nın SATICI'nın çevrimiçi hizmet kanalları üzerinden elektronik ortamda siparişini (rezervasyon) verdiği",
+  );
+writeFileSync(carServicePath, carService, "utf8");
+
 console.log(
   siteUrl
     ? `[seo] Prepared domain-aware SEO files for ${siteUrl}`

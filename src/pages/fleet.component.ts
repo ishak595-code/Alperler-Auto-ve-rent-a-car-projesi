@@ -4,39 +4,42 @@ import { MatIconModule } from "@angular/material/icon";
 import { CarService } from "../services/car.service";
 import { UiService } from "../services/ui.service";
 import { FormsModule } from "@angular/forms";
-import { Router, ActivatedRoute } from "@angular/router";
+import { Router, ActivatedRoute, RouterLink } from "@angular/router";
 import { Car } from "../models/car.model";
 import { VehicleCardComponent } from "../components/vehicle-card.component";
 
 @Component({
   selector: "app-fleet",
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, VehicleCardComponent],
+  imports: [CommonModule, FormsModule, MatIconModule, VehicleCardComponent, RouterLink],
   template: `
     <div class="bg-slate-950 text-slate-300 min-h-screen font-sans pb-20">
       <!-- Sticky Module Header -->
       <div
-        class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg"
+        class="bg-slate-900 border-b border-slate-800 sticky top-[72px] md:top-[96px] z-40 shadow-lg"
       >
-        <div class="max-w-7xl mx-auto px-4">
+        <div class="max-w-7xl mx-auto px-2 sm:px-4">
           <!-- Top Row: Back + Search + Filter/Sort -->
-          <div class="h-16 flex items-center gap-3">
+          <div class="min-h-16 flex items-center gap-2 sm:gap-3 py-2">
             <button
               (click)="goBack()"
-              class="p-2 -ml-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              class="w-11 h-11 shrink-0 -ml-1 sm:-ml-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               aria-label="Geri Dön"
             >
               <mat-icon>arrow_back</mat-icon>
             </button>
-            <div class="relative flex-grow">
+            <div class="relative flex-grow min-w-0">
               <input
-                type="text"
+                type="search"
+                inputmode="search"
+                autocomplete="off"
+                aria-label="Araçlarda ara"
                 [(ngModel)]="searchQuery"
                 [placeholder]="
                   t().fleet.searchPlaceholder ||
                   'Marka, model veya İlan No ara...'
                 "
-                class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-700 text-sm text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all bg-slate-800"
+                class="w-full min-h-11 pl-10 pr-3 py-2.5 rounded-xl border border-slate-700 text-sm text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all bg-slate-800 outline-none"
               />
               <svg
                 class="w-5 h-5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"
@@ -55,7 +58,9 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
 
             <button
               (click)="showFilterModal.set(true)"
-              class="p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 transition-all relative"
+              aria-haspopup="dialog"
+              [attr.aria-expanded]="showFilterModal()"
+              class="w-11 h-11 shrink-0 bg-slate-800 border border-slate-700 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 relative"
               [attr.aria-label]="t().fleet.filterBtn || 'Filtrele'"
             >
               <svg
@@ -81,7 +86,9 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
 
             <button
               (click)="showSortModal.set(true)"
-              class="p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
+              aria-haspopup="dialog"
+              [attr.aria-expanded]="showSortModal()"
+              class="w-11 h-11 shrink-0 bg-slate-800 border border-slate-700 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               [attr.aria-label]="t().fleet.sortBtn || 'Sırala'"
             >
               <svg
@@ -105,11 +112,11 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
       <!-- Filter Modal -->
       @if (showFilterModal()) {
         <div
-          class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in"
+          class="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" role="dialog" aria-modal="true"
           (click)="showFilterModal.set(false)"
         >
           <div
-            class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-slide-up"
+            class="bg-white w-full max-w-lg max-h-[calc(100dvh-72px)] sm:max-h-[min(90dvh,52rem)] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-slide-up"
             (click)="$event.stopPropagation()"
           >
             <div
@@ -118,7 +125,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
               <h2 class="text-xl font-bold text-slate-900">Filtrele</h2>
               <button
                 (click)="showFilterModal.set(false)"
-                class="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                class="w-11 h-11 flex items-center justify-center hover:bg-slate-100 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Pencereyi kapat"
               >
                 <svg
                   class="w-6 h-6 text-slate-400"
@@ -136,7 +143,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
               </button>
             </div>
 
-            <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+            <div class="p-6 space-y-6 max-h-[min(70dvh,44rem)] overflow-y-auto overscroll-contain">
               <!-- Brand -->
               <div class="space-y-3">
                 <label
@@ -149,7 +156,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
                     [class.bg-blue-500]="tempFilterBrand() === 'All'"
                     [class.text-white]="tempFilterBrand() === 'All'"
                     [class.bg-slate-50]="tempFilterBrand() !== 'All'"
-                    class="py-2 px-4 rounded-xl text-sm font-medium transition-all border border-transparent"
+                    class="min-h-11 py-2 px-4 rounded-xl text-sm font-medium transition-all border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   >
                     Tümü
                   </button>
@@ -159,7 +166,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
                       [class.bg-blue-500]="tempFilterBrand() === brand"
                       [class.text-white]="tempFilterBrand() === brand"
                       [class.bg-slate-50]="tempFilterBrand() !== brand"
-                      class="py-2 px-4 rounded-xl text-sm font-medium transition-all border border-transparent"
+                      class="min-h-11 py-2 px-4 rounded-xl text-sm font-medium transition-all border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
                       {{ brand }}
                     </button>
@@ -188,7 +195,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
                       [class.bg-blue-500]="tempFilterPrice() === range.id"
                       [class.text-white]="tempFilterPrice() === range.id"
                       [class.bg-slate-50]="tempFilterPrice() !== range.id"
-                      class="py-2 px-4 rounded-xl text-sm font-medium transition-all border border-transparent"
+                      class="min-h-11 py-2 px-4 rounded-xl text-sm font-medium transition-all border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
                       {{ range.label }}
                     </button>
@@ -212,7 +219,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
                       [class.bg-blue-500]="tempFilterFuel() === fuel"
                       [class.text-white]="tempFilterFuel() === fuel"
                       [class.bg-slate-50]="tempFilterFuel() !== fuel"
-                      class="py-2 px-4 rounded-xl text-sm font-medium transition-all border border-transparent"
+                      class="min-h-11 py-2 px-4 rounded-xl text-sm font-medium transition-all border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
                       {{
                         fuel === "All"
@@ -237,7 +244,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
                       [class.bg-blue-500]="tempFilterTransmission() === trans"
                       [class.text-white]="tempFilterTransmission() === trans"
                       [class.bg-slate-50]="tempFilterTransmission() !== trans"
-                      class="py-2 px-4 rounded-xl text-sm font-medium transition-all border border-transparent"
+                      class="min-h-11 py-2 px-4 rounded-xl text-sm font-medium transition-all border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
                       {{
                         trans === "All"
@@ -274,7 +281,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
                       [class.bg-blue-500]="tempFilterType() === type"
                       [class.text-white]="tempFilterType() === type"
                       [class.bg-slate-50]="tempFilterType() !== type"
-                      class="py-2 px-4 rounded-xl text-sm font-medium transition-all border border-transparent"
+                      class="min-h-11 py-2 px-4 rounded-xl text-sm font-medium transition-all border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
                       {{
                         type === "All"
@@ -290,7 +297,8 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
               <div class="pt-4 border-t border-slate-100">
                 <button
                   (click)="tempWithDriver.set(!tempWithDriver())"
-                  class="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-all border border-slate-200"
+                  [attr.aria-pressed]="tempWithDriver()"
+                  class="w-full min-h-14 flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-all border border-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   <div class="flex items-center gap-3">
                     <div
@@ -334,16 +342,16 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
               </div>
             </div>
 
-            <div class="p-6 border-t border-slate-100 flex gap-3">
+            <div class="p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t border-slate-100 flex gap-3">
               <button
                 (click)="resetTempFilters()"
-                class="flex-1 py-4 rounded-2xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all"
+                class="flex-1 min-h-12 py-3 rounded-2xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
                 Sıfırla
               </button>
               <button
                 (click)="applyFilters()"
-                class="flex-[2] py-4 rounded-2xl font-bold text-white bg-slate-900 hover:bg-blue-500 hover:text-slate-900 transition-all shadow-lg shadow-slate-200"
+                class="flex-[2] min-h-12 py-3 rounded-2xl font-bold text-white bg-slate-900 hover:bg-blue-500 hover:text-slate-900 transition-all shadow-lg shadow-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
                 Uygula
               </button>
@@ -355,11 +363,11 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
       <!-- Sort Modal -->
       @if (showSortModal()) {
         <div
-          class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in"
+          class="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" role="dialog" aria-modal="true"
           (click)="showSortModal.set(false)"
         >
           <div
-            class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-slide-up"
+            class="bg-white w-full max-w-sm max-h-[calc(100dvh-72px)] sm:max-h-[min(90dvh,40rem)] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-slide-up"
             (click)="$event.stopPropagation()"
           >
             <div
@@ -368,7 +376,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
               <h2 class="text-xl font-bold text-slate-900">Sırala</h2>
               <button
                 (click)="showSortModal.set(false)"
-                class="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                class="w-11 h-11 flex items-center justify-center hover:bg-slate-100 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Pencereyi kapat"
               >
                 <svg
                   class="w-6 h-6 text-slate-400"
@@ -399,7 +407,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
                   (click)="applySort(opt.id)"
                   [class.bg-blue-50]="sortOption() === opt.id"
                   [class.text-blue-600]="sortOption() === opt.id"
-                  class="w-full text-left p-4 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all flex justify-between items-center"
+                  class="w-full min-h-12 text-left p-4 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all flex justify-between items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   {{ opt.label }}
                   @if (sortOption() === opt.id) {
@@ -427,7 +435,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
       <div class="max-w-7xl mx-auto md:px-4 sm:px-6 lg:px-8 mt-6 pb-20">
         <!-- Header Section -->
         <div class="mb-8 px-4 md:px-0">
-          <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
+          <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">
             @if (showFavoritesOnly()) {
               Favorilerim ({{ sortedCars().length }})
             } @else {
@@ -468,7 +476,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
             {{ t().filters.driverActive }}
             <button
               (click)="withDriver.set(false)"
-              class="ml-4 text-xs underline text-blue-700 hover:text-blue-900"
+              class="ml-4 min-h-11 px-2 text-xs underline text-blue-700 hover:text-blue-900 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               {{ t().buttons.remove }}
             </button>
@@ -477,7 +485,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
 
         <!-- Car List -->
         @if (sortedCars().length > 0) {
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 px-4 md:px-0">
             @for (car of sortedCars(); track car.id) {
               <app-vehicle-card
                 [car]="car"
@@ -489,7 +497,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
           </div>
         } @else {
           <div
-            class="flex flex-col items-center justify-center py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200 mt-6"
+            class="flex flex-col items-center justify-center py-16 sm:py-20 px-5 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200 mt-6 mx-4 md:mx-0"
           >
             <div
               class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6"
@@ -520,14 +528,14 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
             @if (showFavoritesOnly()) {
               <a
                 routerLink="/fleet"
-                class="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors"
+                class="min-h-12 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
               >
                 Araçları İncele
               </a>
             } @else {
               <button
                 (click)="resetFilters()"
-                class="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors"
+                class="min-h-12 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
               >
                 Filtreleri Temizle
               </button>
@@ -624,7 +632,7 @@ export class FleetComponent implements OnInit {
     }
 
     // 1. Text Search (Brand, Model, or Ad ID)
-    const query = this.searchQuery().toLowerCase();
+    const query = this.searchQuery().trim().toLocaleLowerCase("tr-TR");
     if (query) {
       cars = cars.filter(
         (c) =>
@@ -694,7 +702,7 @@ export class FleetComponent implements OnInit {
 
   goBack() {
     if (window.history.length > 1) {
-      window.history.back();
+      this.location.back();
     } else {
       this.router.navigate(["/"]);
     }

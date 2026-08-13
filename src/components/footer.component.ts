@@ -11,17 +11,18 @@ import { UiService } from "../services/ui.service";
   imports: [RouterLink, FormsModule, CommonModule],
   template: `
     <footer
-      class="bg-slate-950 text-slate-400 pt-16 border-t border-slate-900 font-sans"
+      class="bg-slate-950 text-slate-300 pt-12 sm:pt-16 border-t border-slate-900 font-sans overflow-x-hidden"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div
-          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12"
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12 mb-12"
         >
           <!-- Brand Info -->
           <div class="col-span-1">
-            <div
-              class="flex items-center mb-6 group cursor-pointer"
+            <a
+              class="flex items-center mb-6 group cursor-pointer rounded-lg w-fit focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               routerLink="/"
+              aria-label="Alperler Auto ana sayfa"
             >
               @if (config().logoUrl) {
                 <img
@@ -70,12 +71,12 @@ import { UiService } from "../services/ui.service";
                   }
                 </div>
               }
-            </div>
-            <p class="text-slate-500 mb-4 leading-relaxed text-sm">
+            </a>
+            <p class="text-slate-400 mb-4 leading-relaxed text-sm">
               {{ t().footer.footerText }}
             </p>
             <p
-              class="text-slate-700 text-[10px] mb-6 leading-relaxed font-medium italic"
+              class="text-slate-500 text-xs mb-6 leading-relaxed font-medium italic"
             >
               *Zamanınızın ve konforunuzun değerini biliyoruz. Size sadece bir araç değil, ayrıcalıklı bir ulaşım deneyimi vadediyoruz.
             </p>
@@ -90,8 +91,9 @@ import { UiService } from "../services/ui.service";
                 <a
                   [href]="'https://wa.me/' + config().whatsapp"
                   target="_blank"
+                  rel="noopener noreferrer"
                   aria-label="WhatsApp"
-                  class="text-slate-400 hover:text-green-500 transition-all flex items-center group bg-slate-900/50 hover:bg-slate-900 px-3 py-2 rounded-lg border border-slate-800 hover:border-green-500/30"
+                  class="text-slate-300 hover:text-green-500 transition-all flex items-center justify-center group bg-slate-900/50 hover:bg-slate-900 min-w-11 min-h-11 px-3 py-2 rounded-lg border border-slate-800 hover:border-green-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
                 >
                   <svg
                     class="w-4 h-4 group-hover:scale-110 transition-transform"
@@ -107,8 +109,9 @@ import { UiService } from "../services/ui.service";
                 <a
                   [href]="config().instagramUrl"
                   target="_blank"
+                  rel="noopener noreferrer"
                   aria-label="Instagram"
-                  class="text-slate-400 hover:text-pink-500 transition-all flex items-center group bg-slate-900/50 hover:bg-slate-900 px-3 py-2 rounded-lg border border-slate-800 hover:border-pink-500/30"
+                  class="text-slate-300 hover:text-pink-500 transition-all flex items-center justify-center group bg-slate-900/50 hover:bg-slate-900 min-w-11 min-h-11 px-3 py-2 rounded-lg border border-slate-800 hover:border-pink-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
                 >
                   <svg
                     class="w-4 h-4 group-hover:scale-110 transition-transform"
@@ -122,7 +125,7 @@ import { UiService } from "../services/ui.service";
                   <span class="sr-only font-bold">Instagram</span>
                 </a>
                 <a
-                  href="javascript:void(0)"
+                  href="#" (click)="$event.preventDefault()" aria-disabled="true" tabindex="-1"
                   aria-label="X (Twitter)"
                   class="text-slate-400 hover:text-white transition-all flex items-center group bg-slate-900/50 hover:bg-slate-900 px-3 py-2 rounded-lg border border-slate-800 hover:border-slate-500/30"
                 >
@@ -132,7 +135,7 @@ import { UiService } from "../services/ui.service";
                   <span class="sr-only font-bold">X</span>
                 </a>
                 <a
-                  href="javascript:void(0)"
+                  href="#" (click)="$event.preventDefault()" aria-disabled="true" tabindex="-1"
                   aria-label="Facebook"
                   class="text-slate-400 hover:text-blue-500 transition-all flex items-center group bg-slate-900/50 hover:bg-slate-900 px-3 py-2 rounded-lg border border-slate-800 hover:border-blue-500/30"
                 >
@@ -142,7 +145,7 @@ import { UiService } from "../services/ui.service";
                   <span class="sr-only font-bold">Facebook</span>
                 </a>
                 <a
-                  href="javascript:void(0)"
+                  href="#" (click)="$event.preventDefault()" aria-disabled="true" tabindex="-1"
                   aria-label="YouTube"
                   class="text-slate-400 hover:text-red-500 transition-all flex items-center group bg-slate-900/50 hover:bg-slate-900 px-3 py-2 rounded-lg border border-slate-800 hover:border-red-500/30"
                 >
@@ -152,7 +155,7 @@ import { UiService } from "../services/ui.service";
                   <span class="sr-only font-bold">YouTube</span>
                 </a>
                 <a
-                  href="javascript:void(0)"
+                  href="#" (click)="$event.preventDefault()" aria-disabled="true" tabindex="-1"
                   aria-label="TikTok"
                   class="text-slate-400 hover:text-white transition-all flex items-center group bg-slate-900/50 hover:bg-slate-900 px-3 py-2 rounded-lg border border-slate-800 hover:border-slate-500/30"
                 >
@@ -176,7 +179,7 @@ import { UiService } from "../services/ui.service";
               <li>
                 <a
                   routerLink="/about"
-                  class="text-slate-400 hover:text-white transition-colors flex items-center group"
+                  class="text-slate-300 hover:text-white transition-colors flex items-center group min-h-11 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   <span
                     class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -187,7 +190,7 @@ import { UiService } from "../services/ui.service";
               <li>
                 <a
                   routerLink="/fleet"
-                  class="text-slate-400 hover:text-white transition-colors flex items-center group"
+                  class="text-slate-300 hover:text-white transition-colors flex items-center group min-h-11 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   ><span
                     class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   ></span
@@ -197,7 +200,7 @@ import { UiService } from "../services/ui.service";
               <li>
                 <a
                   routerLink="/sales"
-                  class="text-slate-400 hover:text-white transition-colors flex items-center group"
+                  class="text-slate-300 hover:text-white transition-colors flex items-center group min-h-11 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   ><span
                     class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   ></span
@@ -207,7 +210,7 @@ import { UiService } from "../services/ui.service";
               <li>
                 <a
                   routerLink="/list-your-car"
-                  class="text-slate-400 hover:text-white transition-colors flex items-center group"
+                  class="text-slate-300 hover:text-white transition-colors flex items-center group min-h-11 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   ><span
                     class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   ></span
@@ -217,7 +220,7 @@ import { UiService } from "../services/ui.service";
               <li>
                 <a
                   routerLink="/blog"
-                  class="text-slate-400 hover:text-white transition-colors flex items-center group"
+                  class="text-slate-300 hover:text-white transition-colors flex items-center group min-h-11 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   ><span
                     class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   ></span
@@ -239,7 +242,7 @@ import { UiService } from "../services/ui.service";
                 <a
                   routerLink="/legal"
                   [queryParams]="{ type: 'terms' }"
-                  class="text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center group"
+                  class="text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center group min-h-11 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   ><span
                     class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   ></span
@@ -250,7 +253,7 @@ import { UiService } from "../services/ui.service";
                 <a
                   routerLink="/legal"
                   [queryParams]="{ type: 'distance-selling' }"
-                  class="text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center group"
+                  class="text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center group min-h-11 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   ><span
                     class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   ></span
@@ -261,7 +264,7 @@ import { UiService } from "../services/ui.service";
                 <a
                   routerLink="/legal"
                   [queryParams]="{ type: 'cancellation' }"
-                  class="text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center group"
+                  class="text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center group min-h-11 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   ><span
                     class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   ></span
@@ -272,7 +275,7 @@ import { UiService } from "../services/ui.service";
                 <a
                   routerLink="/legal"
                   [queryParams]="{ type: 'insurance' }"
-                  class="text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center group"
+                  class="text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center group min-h-11 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   ><span
                     class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   ></span
@@ -283,7 +286,7 @@ import { UiService } from "../services/ui.service";
                 <a
                   routerLink="/legal"
                   [queryParams]="{ type: 'kvkk' }"
-                  class="text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center group"
+                  class="text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center group min-h-11 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   ><span
                     class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   ></span
@@ -294,7 +297,7 @@ import { UiService } from "../services/ui.service";
                 <a
                   routerLink="/legal"
                   [queryParams]="{ type: 'privacy' }"
-                  class="text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center group"
+                  class="text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center group min-h-11 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   ><span
                     class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   ></span
@@ -305,7 +308,7 @@ import { UiService } from "../services/ui.service";
                 <a
                   routerLink="/legal"
                   [queryParams]="{ type: 'cookies' }"
-                  class="text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center group"
+                  class="text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center group min-h-11 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   ><span
                     class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   ></span
@@ -315,7 +318,7 @@ import { UiService } from "../services/ui.service";
               <li>
                 <a
                   routerLink="/faq"
-                  class="text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center group"
+                  class="text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center group min-h-11 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   ><span
                     class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   ></span
@@ -326,7 +329,7 @@ import { UiService } from "../services/ui.service";
               <li>
                 <button
                   (click)="openFeedback()"
-                  class="text-blue-500 hover:text-blue-400 transition-colors font-medium flex items-center mt-2 bg-blue-500/10 px-3 py-2 rounded border border-blue-500/20 w-fit"
+                  class="text-blue-400 hover:text-blue-300 transition-colors font-medium flex items-center min-h-11 mt-2 bg-blue-500/10 px-3 py-2 rounded border border-blue-500/20 w-fit focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   <svg
                     class="w-4 h-4 mr-1.5"
@@ -362,16 +365,20 @@ import { UiService } from "../services/ui.service";
               <div class="flex flex-col space-y-2">
                 <input
                   type="email"
+                  inputmode="email"
+                  autocomplete="email"
+                  autocapitalize="none"
+                  spellcheck="false"
                   [(ngModel)]="email"
                   name="email"
                   [attr.aria-label]="t().footer.emailPlaceholder"
                   [placeholder]="t().footer.emailPlaceholder"
                   required
-                  class="w-full bg-slate-900 border border-slate-800 text-slate-300 text-sm rounded-lg px-4 py-3 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                  class="w-full min-h-12 bg-slate-900 border border-slate-700 text-white placeholder:text-slate-500 text-sm rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                 />
                 <button
                   type="submit"
-                  class="bg-blue-500 hover:bg-blue-600 text-slate-900 font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center"
+                  class="min-h-12 bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                 >
                   {{ t().footer.subscribeBtn }}
                   <svg
@@ -391,7 +398,7 @@ import { UiService } from "../services/ui.service";
               </div>
               @if (subscribed()) {
                 <div
-                  class="mt-3 bg-green-500/10 border border-green-500/20 rounded-lg p-3 flex items-start animate-fade-in"
+                  class="mt-3 bg-green-500/10 border border-green-500/20 rounded-lg p-3 flex items-start animate-fade-in" role="status" aria-live="polite"
                 >
                   <svg
                     class="w-5 h-5 text-green-500 mr-2 flex-shrink-0"
@@ -420,7 +427,7 @@ import { UiService } from "../services/ui.service";
             </h3>
             <button
               (click)="openContact()"
-              class="inline-flex items-center justify-center bg-slate-800 hover:bg-white hover:text-slate-900 text-slate-300 font-bold py-3 px-6 rounded-lg transition-all duration-300 w-full border border-slate-700 hover:border-white"
+              class="inline-flex min-h-12 items-center justify-center bg-slate-800 hover:bg-white hover:text-slate-900 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 w-full border border-slate-700 hover:border-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               {{ t().footer.contactBtn }}
             </button>
@@ -429,7 +436,7 @@ import { UiService } from "../services/ui.service";
 
         <!-- Bottom Bar -->
         <div
-          class="border-t border-slate-900 py-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-600 relative"
+          class="border-t border-slate-800 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] flex flex-col md:flex-row justify-between items-center text-xs text-slate-500 relative"
         >
           <div class="mb-4 md:mb-0 text-center md:text-left w-full md:w-auto">
             <span
@@ -438,7 +445,7 @@ import { UiService } from "../services/ui.service";
             >
             <a
               routerLink="/admin/login"
-              class="ml-2 text-slate-800 hover:text-slate-600 transition-colors"
+              class="ml-2 inline-flex min-w-11 min-h-11 items-center justify-center text-slate-500 hover:text-white transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               aria-label="Yönetici Girişi"
             >
               <svg
@@ -479,12 +486,14 @@ export class FooterComponent {
 
   subscribe(e: Event) {
     e.preventDefault();
-    if (this.email) {
-      this.carService.addSubscriber(this.email);
-      this.subscribed.set(true);
-      this.email = "";
-      setTimeout(() => this.subscribed.set(false), 3000);
-    }
+    const normalizedEmail = this.email.trim().toLocaleLowerCase("tr-TR");
+    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
+    if (!isValid) return;
+
+    this.carService.addSubscriber(normalizedEmail);
+    this.subscribed.set(true);
+    this.email = "";
+    setTimeout(() => this.subscribed.set(false), 3000);
   }
 
   openAbout() {

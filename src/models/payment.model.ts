@@ -10,13 +10,15 @@ export interface PaymentIntegrationStatus {
   officeEnabled: boolean;
 }
 
+export interface EmailIntegrationStatus {
+  configured: boolean;
+}
+
 export interface IntegrationStatusResponse {
   environment: "development" | "preview" | "production" | "unknown";
   appUrl: string | null;
   payment: PaymentIntegrationStatus;
-  email: {
-    configured: boolean;
-  };
+  email: EmailIntegrationStatus;
   database: {
     configured: boolean;
   };

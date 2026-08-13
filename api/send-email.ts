@@ -95,7 +95,8 @@ export default {
       return json({ success: false, code: "INVALID_JSON" }, 400);
     }
 
-    const to = email(body.to);
+    const requestedRecipient = body.to === undefined ? null : email(body.to);
+    const to = requestedRecipient || config.adminTo;
     const subject = text(body.subject, 180);
     const bodyText = text(body.text, 20_000);
     const html =
@@ -103,7 +104,7 @@ export default {
         ? body.html
         : undefined;
 
-    if (!to || !subject || !bodyText) {
+    if (!to || !subject || !bodyText || (body.to !== undefined && !requestedRecipient)) {
       return json({ success: false, code: "INVALID_EMAIL_REQUEST" }, 400);
     }
 

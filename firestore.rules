@@ -3,6 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
+    function changedKeys() { return incoming().diff(existing()).affectedKeys(); }
     function isSignedIn() { return request.auth != null; }
     function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
     function isAdmin() {
@@ -107,12 +108,12 @@ service cloud.firestore {
     }
 
     function isValidAdminBookingUpdate() {
-      return incoming().diff(existing()).affectedKeys().hasOnly([
+      return changedKeys().hasOnly([
           'status', 'paymentStatus', 'externalPaymentReference', 'updatedAt'
         ])
-        && validBookingStatus(incoming().status)
-        && validPaymentStatus(incoming().paymentStatus)
-        && validShortText(incoming().externalPaymentReference, 200)
+        && (!changedKeys().hasAny(['status']) || validBookingStatus(incoming().status))
+        && (!changedKeys().hasAny(['paymentStatus']) || validPaymentStatus(incoming().paymentStatus))
+        && (!changedKeys().hasAny(['externalPaymentReference']) || validShortText(incoming().externalPaymentReference, 200))
         && incoming().updatedAt == request.time;
     }
 

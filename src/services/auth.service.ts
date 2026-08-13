@@ -174,6 +174,14 @@ export class AuthService {
     }
   }
 
+  hasPasswordProvider(): boolean {
+    return Boolean(
+      auth.currentUser?.providerData.some(
+        (provider) => provider.providerId === "password",
+      ),
+    );
+  }
+
   async createStrongPasswordForCurrentUser(): Promise<string | null> {
     this.clearError();
     const user = auth.currentUser;

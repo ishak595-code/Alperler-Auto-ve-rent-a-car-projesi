@@ -8,7 +8,7 @@ import {
   fallbackBlogPosts,
   fallbackFaqs,
 } from "./mock-data";
-import { db, auth } from "../firebase";
+import { db } from "../firebase";
 import {
   setDoc,
   doc,
@@ -24,47 +24,18 @@ enum OperationType {
   WRITE = "write",
 }
 
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string | null;
-    email?: string | null;
-    emailVerified?: boolean | null;
-    isAnonymous?: boolean | null;
-    tenantId?: string | null;
-    providerInfo?: {
-      providerId?: string | null;
-      email?: string | null;
-    }[];
-  };
-}
-
 function handleFirestoreError(
   error: unknown,
   operationType: OperationType,
   path: string | null,
 ) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo:
-        auth.currentUser?.providerData?.map((provider) => ({
-          providerId: provider.providerId,
-          email: provider.email,
-        })) || [],
-    },
+  const message = error instanceof Error ? error.message : String(error);
+  console.error("Firestore operation failed", {
     operationType,
     path,
-  };
-  console.error("Firestore Error: ", JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+    message,
+  });
+  throw new Error(message);
 }
 
 export interface BlogPost {
@@ -85,7 +56,7 @@ export interface BookingRequest {
   customerEmail?: string;
   customerPhone?: string;
 
-  type: "RENTAL" | "TOUR" | "SALE_INQUIRY";
+  type: "RENTAL" | "TOUR" | "SALE_INQUIRY" | "APPOINTMENT";
   item: Car | SaleCar | Tour | null;
   itemName: string;
   image?: string;
@@ -883,29 +854,58 @@ Araçlarımızda 7/24 GPS bazlı telemetri kontrolü mevcuttur. Raporlardaki hı
     return this._notifications.asReadonly();
   }
 
-  submitPartnerRequest(request: Omit<PartnerRequest, "id" | "date">) {
+  async submitPartnerRequest(request: Omit<PartnerRequest, "id" | "date">) {
     const newRequest: PartnerRequest = {
       ...request,
       id: Date.now(),
       date: new Date(),
     };
-    this._partnerRequests.update((reqs) => [newRequest, ...reqs]);
-    localStorage.setItem(
-      "db_partnerRequests_v2",
-      JSON.stringify(this._partnerRequests()),
-    );
-    
-    // Notify Admin
-    const adminMsg = `Yeni bir filo / araç değerlendirme başvurusu geldi.\n\nİsim: ${newRequest.name}\nTelefon: ${newRequest.phone}\nE-posta: ${newRequest.email}\nAraç: ${newRequest.carBrand} (${newRequest.modelYear}) - ${newRequest.km} km\nAçıklama: ${newRequest.description}`;
-    this.sendNotification("alperlerauto@gmail.com", adminMsg, undefined, "Yeni Araç Değerlendirme Başvurusu");
 
-    // Notify Customer
-    if (newRequest.email && newRequest.email.includes("@")) {
-      const customerMsg = `Sayın ${newRequest.name},\n\nAraç değerlendirme / filo ortaklığı başvurunuz tarafımıza başarıyla ulaşmıştır. Uzman ekibimiz aracınız (${newRequest.carBrand}) ile ilgili değerlendirmeleri tamamladıktan sonra belirtmiş olduğunuz iletişim numarası (${newRequest.phone}) üzerinden en kısa sürede dönüş sağlayacaktır.\n\nBizi tercih ettiğiniz için teşekkür ederiz.\n\nAlperler Auto`;
-      this.sendNotification(newRequest.email, customerMsg, undefined, "Başvurunuz Alındı - Alperler Auto");
+    const cloudId = `PARTNER-${newRequest.id}`;
+    try {
+      await setDoc(doc(db, "messages", cloudId), {
+        type: "PARTNER_REQUEST",
+        name: newRequest.name.trim().slice(0, 120),
+        phone: newRequest.phone.trim().slice(0, 40),
+        email: newRequest.email?.trim().toLowerCase().slice(0, 160) || "",
+        carBrand: newRequest.carBrand.trim().slice(0, 160),
+        modelYear: newRequest.modelYear,
+        km: newRequest.km,
+        description: newRequest.description.slice(0, 4000),
+        status: "NEW",
+        createdAt: serverTimestamp(),
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, "messages");
     }
 
-    return Promise.resolve(newRequest);
+    this._partnerRequests.update((reqs) => [newRequest, ...reqs]);
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(
+        "db_partnerRequests_v2",
+        JSON.stringify(this._partnerRequests()),
+      );
+    }
+
+    const adminMsg = `Yeni bir filo / araç değerlendirme başvurusu geldi.\n\nİsim: ${newRequest.name}\nTelefon: ${newRequest.phone}\nE-posta: ${newRequest.email}\nAraç: ${newRequest.carBrand} (${newRequest.modelYear}) - ${newRequest.km} km\nAçıklama: ${newRequest.description}`;
+    this.sendNotification(
+      "alperlerauto@gmail.com",
+      adminMsg,
+      undefined,
+      "Yeni Araç Değerlendirme Başvurusu",
+    );
+
+    if (newRequest.email && newRequest.email.includes("@")) {
+      const customerMsg = `Sayın ${newRequest.name},\n\nAraç değerlendirme / filo ortaklığı başvurunuz tarafımıza başarıyla ulaşmıştır. Uzman ekibimiz aracınız (${newRequest.carBrand}) ile ilgili değerlendirmeleri tamamladıktan sonra belirtmiş olduğunuz iletişim numarası (${newRequest.phone}) üzerinden en kısa sürede dönüş sağlayacaktır.\n\nBizi tercih ettiğiniz için teşekkür ederiz.\n\nAlperler Auto`;
+      this.sendNotification(
+        newRequest.email,
+        customerMsg,
+        undefined,
+        "Başvurunuz Alındı - Alperler Auto",
+      );
+    }
+
+    return newRequest;
   }
 
   deletePartnerRequest(id: number) {
@@ -1033,6 +1033,7 @@ Araçlarımızda 7/24 GPS bazlı telemetri kontrolü mevcuttur. Raporlardaki hı
     try {
       const path = "bookings";
       await setDoc(doc(db, path, newRes.id!), {
+        type: newRes.type,
         carId: req.item?.id ? String(req.item.id) : "unknown",
         customerName: newRes.customerName || "Unknown",
         customerPhone: newRes.customerPhone || "Unknown",

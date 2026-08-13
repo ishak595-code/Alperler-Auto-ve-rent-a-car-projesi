@@ -1,5 +1,5 @@
 import { Component, inject, signal } from "@angular/core";
-import { CommonModule } from "@angular/common";
+import { CommonModule, Location } from "@angular/common";
 import { FormBuilder, ReactiveFormsModule, Validators } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { CarService } from "../services/car.service";
@@ -11,16 +11,16 @@ import { Router } from "@angular/router";
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, MatIconModule],
   template: `
-    <div class="bg-slate-950 text-slate-300 min-h-screen font-sans pb-20">
+    <div class="bg-slate-950 text-slate-300 min-h-screen font-sans pb-20 overflow-x-hidden">
       <!-- Sticky Module Header -->
       <div
-        class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg"
+        class="bg-slate-900 border-b border-slate-800 sticky top-[72px] md:top-[96px] z-40 shadow-lg"
       >
         <div class="max-w-7xl mx-auto px-4">
-          <div class="h-16 flex items-center gap-3">
+          <div class="min-h-16 flex items-center gap-2 sm:gap-3 py-2">
             <button
               (click)="goBack()"
-              class="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors shrink-0"
+              class="w-11 h-11 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors shrink-0 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               aria-label="Geri Dön"
             >
               <mat-icon>arrow_back</mat-icon>
@@ -32,19 +32,19 @@ import { Router } from "@angular/router";
         </div>
       </div>
 
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12">
         <div class="text-center mb-10">
-          <h1 class="text-4xl font-serif font-bold text-slate-100 mb-4">
+          <h1 class="text-3xl sm:text-4xl font-serif font-bold text-slate-100 mb-4 text-balance leading-tight">
             Randevu Talep Et
           </h1>
-          <p class="text-slate-400 text-lg">
+          <p class="text-slate-400 text-base sm:text-lg text-pretty leading-relaxed">
             Araç kiralama, satın alma, VIP tur veya diğer hizmetlerimiz için
             hemen randevu oluşturun.
           </p>
         </div>
 
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div class="p-8">
+          <div class="p-4 sm:p-8">
             @if (submitSuccess()) {
               <div
                 class="bg-emerald-50 text-emerald-800 p-8 rounded-xl text-center"
@@ -61,7 +61,7 @@ import { Router } from "@angular/router";
                 </p>
                 <button
                   (click)="goHome()"
-                  class="mt-8 px-8 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-blue-500 hover:text-slate-900 transition-colors"
+                  class="mt-8 min-h-12 px-8 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-blue-500 hover:text-slate-900 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   Geri Dön
                 </button>
@@ -88,7 +88,7 @@ import { Router } from "@angular/router";
                           class="peer sr-only"
                         />
                         <div
-                          class="p-4 border-2 border-slate-200 rounded-xl text-center hover:bg-slate-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all flex items-center justify-center gap-2"
+                          class="min-h-14 p-4 border-2 border-slate-200 rounded-xl text-center hover:bg-slate-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all flex items-center justify-center gap-2"
                         >
                           <mat-icon
                             class="text-slate-400 peer-checked:text-blue-500"
@@ -113,8 +113,10 @@ import { Router } from "@angular/router";
                     >
                     <input
                       type="text"
+                      autocomplete="name"
+                      aria-label="Ad Soyad"
                       formControlName="name"
-                      class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50"
+                      class="w-full min-h-12 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50 outline-none"
                       placeholder="Adınız Soyadınız"
                     />
                   </div>
@@ -125,8 +127,11 @@ import { Router } from "@angular/router";
                     >
                     <input
                       type="tel"
+                      inputmode="tel"
+                      autocomplete="tel"
+                      aria-label="Telefon"
                       formControlName="phone"
-                      class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50"
+                      class="w-full min-h-12 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50 outline-none"
                       placeholder="05XX XXX XX XX"
                     />
                   </div>
@@ -141,8 +146,10 @@ import { Router } from "@angular/router";
                     >
                     <input
                       type="date"
+                      [min]="minDate"
+                      aria-label="Randevu tarihi"
                       formControlName="date"
-                      class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50"
+                      class="w-full min-h-12 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50 outline-none"
                     />
                   </div>
                   <div>
@@ -152,8 +159,9 @@ import { Router } from "@angular/router";
                     >
                     <input
                       type="time"
+                      aria-label="Randevu saati"
                       formControlName="time"
-                      class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50"
+                      class="w-full min-h-12 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50 outline-none"
                     />
                   </div>
                 </div>
@@ -166,17 +174,23 @@ import { Router } from "@angular/router";
                   >
                   <textarea
                     formControlName="message"
+                    aria-label="Randevu notu"
                     rows="4"
-                    class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50"
+                    class="w-full min-h-12 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50 outline-none"
                     placeholder="Eklemek istediğiniz detaylar..."
                   ></textarea>
                 </div>
 
                 <div class="pt-6">
+                  @if (hasFormErrors()) {
+                    <div role="alert" aria-live="assertive" class="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-800">
+                      Lütfen ad-soyad, telefon, konu, tarih ve saat alanlarını geçerli biçimde doldurun.
+                    </div>
+                  }
                   <button
                     type="submit"
-                    [disabled]="!appointmentForm.valid || isSubmitting()"
-                    class="w-full flex justify-center items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-xl font-bold uppercase tracking-wider hover:bg-blue-500 hover:text-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xl"
+                    [disabled]="isSubmitting()"
+                    class="w-full min-h-14 flex justify-center items-center gap-2 px-5 sm:px-8 py-4 bg-slate-900 text-white rounded-xl font-bold uppercase tracking-wider hover:bg-blue-500 hover:text-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   >
                     @if (isSubmitting()) {
                       <mat-icon class="animate-spin">refresh</mat-icon>
@@ -200,9 +214,12 @@ export class AppointmentComponent {
   private carService = inject(CarService);
   private toastService = inject(ToastService);
   private router = inject(Router);
+  private location = inject(Location);
 
   isSubmitting = signal(false);
   submitSuccess = signal(false);
+  hasFormErrors = signal(false);
+  minDate = new Date().toISOString().slice(0, 10);
 
   topics = [
     { id: "rent", label: "Araç Kiralama", icon: "car_rental" },
@@ -214,16 +231,16 @@ export class AppointmentComponent {
 
   appointmentForm = this.fb.group({
     topic: ["rent", Validators.required],
-    name: ["", Validators.required],
-    phone: ["", Validators.required],
+    name: ["", [Validators.required, Validators.minLength(2), Validators.maxLength(120)]],
+    phone: ["", [Validators.required, Validators.pattern(/^[+0-9()\s-]{7,24}$/)]],
     date: ["", Validators.required],
     time: ["", Validators.required],
-    message: [""],
+    message: ["", Validators.maxLength(1000)],
   });
 
   goBack() {
     if (window.history.length > 1) {
-      window.history.back();
+      this.location.back();
     } else {
       this.router.navigate(["/"]);
     }
@@ -233,7 +250,8 @@ export class AppointmentComponent {
     this.router.navigate(["/"]);
   }
 
-  onSubmit() {
+  async onSubmit() {
+    this.hasFormErrors.set(!this.appointmentForm.valid);
     if (this.appointmentForm.valid) {
       this.isSubmitting.set(true);
 
@@ -254,20 +272,27 @@ export class AppointmentComponent {
         totalPrice: 0,
         status: "PENDING" as const,
         dateCreated: new Date(),
-        type: "TOUR" as any, // Mismatch workaround while type doesn't have APPOINTMENT
+        type: "APPOINTMENT" as const,
         notes: `Saat: ${formValue.time}\nMesaj: ${formValue.message || "Belirtilmedi"}`,
       };
 
-      // Simulate API call
-      setTimeout(() => {
-        this.carService.addReservation(newRequest);
-        this.isSubmitting.set(false);
+      try {
+        await this.carService.addReservation(newRequest);
+        this.hasFormErrors.set(false);
         this.submitSuccess.set(true);
         this.toastService.show(
           "Randevu talebiniz başarıyla gönderildi.",
           "success",
         );
-      }, 1500);
+      } catch (error) {
+        console.error("Appointment submission failed", error);
+        this.toastService.show(
+          "Randevu talebi gönderilemedi. Lütfen tekrar deneyin veya bizimle iletişime geçin.",
+          "error",
+        );
+      } finally {
+        this.isSubmitting.set(false);
+      }
     } else {
       this.toastService.show("Lütfen zorunlu alanları doldurunuz.", "error");
       this.appointmentForm.markAllAsTouched();

@@ -11,16 +11,16 @@ import { Router, RouterModule } from "@angular/router";
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, MatIconModule, RouterModule],
   template: `
-    <div class="min-h-screen bg-slate-950 text-slate-300 font-sans pb-20">
+    <div class="min-h-screen bg-slate-950 text-slate-300 font-sans pb-20 overflow-x-hidden">
       <!-- Sticky Module Header -->
       <div
-        class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg"
+        class="bg-slate-900 border-b border-slate-800 sticky top-[72px] md:top-[96px] z-40 shadow-lg"
       >
         <div class="max-w-7xl mx-auto px-4">
-          <div class="h-16 flex items-center gap-3">
+          <div class="min-h-16 flex items-center gap-2 sm:gap-3 py-2">
             <button
               (click)="goBack()"
-              class="p-2 -ml-2 hover:bg-slate-800 hover:text-white rounded-full transition-colors text-slate-400 shrink-0"
+              class="w-11 h-11 -ml-2 hover:bg-slate-800 hover:text-white rounded-full transition-colors text-slate-400 shrink-0 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               aria-label="Geri Dön"
             >
               <mat-icon>arrow_back</mat-icon>
@@ -33,17 +33,17 @@ import { Router, RouterModule } from "@angular/router";
       </div>
 
       <!-- Hero Section -->
-      <div class="bg-slate-900 text-white py-16 mb-12">
+      <div class="bg-slate-900 text-white py-10 sm:py-16 mb-8 sm:mb-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 class="text-4xl md:text-5xl font-bold mb-6">
+          <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 text-balance leading-tight">
             Aracınızı Satın veya Kiraya Verin
           </h1>
-          <p class="text-xl text-slate-300 max-w-3xl mx-auto mb-8">
+          <p class="text-base sm:text-lg md:text-xl text-slate-300 max-w-3xl mx-auto mb-8 text-pretty leading-relaxed">
             Aracınızı Alperler güvencesiyle en iyi fiyata satın veya
             kullanmadığınız zamanlarda kiraya vererek ek gelir elde edin. Tüm
             süreçleri biz yönetelim, siz kazancınıza odaklanın.
           </p>
-          <div class="flex justify-center gap-8 text-slate-300">
+          <div class="grid grid-cols-1 min-[360px]:grid-cols-3 justify-center gap-5 sm:gap-8 text-slate-300 text-sm sm:text-base">
             <div class="flex flex-col items-center">
               <mat-icon
                 class="text-blue-500 mb-2"
@@ -74,7 +74,7 @@ import { Router, RouterModule } from "@angular/router";
 
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div class="p-8">
+          <div class="p-4 sm:p-8">
             <h2 class="text-2xl font-bold text-slate-900 mb-6">
               Başvuru Formu
             </h2>
@@ -114,7 +114,7 @@ import { Router, RouterModule } from "@angular/router";
                   >
                     İşlem Tipi
                   </h3>
-                  <div class="flex gap-4">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <label class="flex-1 relative cursor-pointer">
                       <input
                         type="radio"
@@ -123,7 +123,7 @@ import { Router, RouterModule } from "@angular/router";
                         class="peer sr-only"
                       />
                       <div
-                        class="p-4 border-2 border-slate-200 rounded-xl text-center hover:bg-slate-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all"
+                        class="min-h-28 p-4 border-2 border-slate-200 rounded-xl text-center hover:bg-slate-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all flex flex-col items-center justify-center"
                       >
                         <mat-icon
                           class="text-slate-400 peer-checked:text-blue-500 mb-2"
@@ -145,7 +145,7 @@ import { Router, RouterModule } from "@angular/router";
                         class="peer sr-only"
                       />
                       <div
-                        class="p-4 border-2 border-slate-200 rounded-xl text-center hover:bg-slate-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all"
+                        class="min-h-28 p-4 border-2 border-slate-200 rounded-xl text-center hover:bg-slate-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all flex flex-col items-center justify-center"
                       >
                         <mat-icon
                           class="text-slate-400 peer-checked:text-blue-500 mb-2"
@@ -177,8 +177,10 @@ import { Router, RouterModule } from "@angular/router";
                       >
                       <input
                         type="text"
+                        autocomplete="name"
+                        aria-label="Ad Soyad"
                         formControlName="name"
-                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        class="w-full min-h-12 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         placeholder="Adınız Soyadınız"
                       />
                     </div>
@@ -189,8 +191,11 @@ import { Router, RouterModule } from "@angular/router";
                       >
                       <input
                         type="tel"
+                        inputmode="tel"
+                        autocomplete="tel"
+                        aria-label="Telefon"
                         formControlName="phone"
-                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        class="w-full min-h-12 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         placeholder="05XX XXX XX XX"
                       />
                     </div>
@@ -201,8 +206,12 @@ import { Router, RouterModule } from "@angular/router";
                     >
                     <input
                       type="email"
+                      inputmode="email"
+                      autocomplete="email"
+                      autocapitalize="none"
+                      aria-label="E-posta"
                       formControlName="email"
-                      class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      class="w-full min-h-12 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                       placeholder="ornek@email.com"
                     />
                   </div>
@@ -223,8 +232,10 @@ import { Router, RouterModule } from "@angular/router";
                       >
                       <input
                         type="text"
+                        autocomplete="off"
+                        aria-label="Araç markası"
                         formControlName="carBrand"
-                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        class="w-full min-h-12 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         placeholder="Örn: Renault"
                       />
                     </div>
@@ -235,8 +246,10 @@ import { Router, RouterModule } from "@angular/router";
                       >
                       <input
                         type="text"
+                        autocomplete="off"
+                        aria-label="Araç modeli"
                         formControlName="carModel"
-                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        class="w-full min-h-12 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         placeholder="Örn: Megane"
                       />
                     </div>
@@ -247,8 +260,10 @@ import { Router, RouterModule } from "@angular/router";
                       >
                       <input
                         type="number"
+                        inputmode="numeric"
+                        aria-label="Araç yılı"
                         formControlName="carYear"
-                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        class="w-full min-h-12 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         placeholder="Örn: 2022"
                       />
                     </div>
@@ -259,8 +274,11 @@ import { Router, RouterModule } from "@angular/router";
                       >
                       <input
                         type="number"
+                        inputmode="numeric"
+                        min="0"
+                        aria-label="Araç kilometresi"
                         formControlName="carMileage"
-                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        class="w-full min-h-12 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         placeholder="Örn: 45000"
                       />
                     </div>
@@ -294,8 +312,13 @@ import { Router, RouterModule } from "@angular/router";
                       >Araç Fotoğrafları, Video veya Belgeler</label
                     >
                     <div
-                      class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors cursor-pointer bg-slate-50 relative group"
+                      class="border-2 border-dashed border-slate-300 rounded-xl p-6 sm:p-8 text-center hover:border-blue-500 transition-colors cursor-pointer bg-slate-50 relative group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      role="button"
+                      tabindex="0"
+                      aria-label="Araçla ilgili dosya listesini seç"
                       (click)="fileInput.click()"
+                      (keydown.enter)="fileInput.click()"
+                      (keydown.space)="$event.preventDefault(); fileInput.click()"
                     >
                       <input
                         #fileInput
@@ -311,10 +334,10 @@ import { Router, RouterModule } from "@angular/router";
                         >cloud_upload</mat-icon
                       >
                       <p class="text-slate-600 font-medium">
-                        Dosyaları buraya bırakın veya tıklayın
+                        Dosyaları seçmek için dokunun veya tıklayın
                       </p>
                       <p class="text-xs text-slate-400 mt-1">
-                        Görsel, Video veya PDF (Maks. 50MB)
+                        En fazla 10 dosya, dosya başına 50 MB. Dosya adları başvuruya eklenir; medya içeriği ekibimiz tarafından güvenli kanaldan ayrıca istenir.
                       </p>
                     </div>
 
@@ -336,7 +359,8 @@ import { Router, RouterModule } from "@angular/router";
                               (click)="
                                 removeFile($index); $event.stopPropagation()
                               "
-                              class="text-rose-500 hover:bg-rose-50 rounded-full p-1"
+                              class="w-11 h-11 shrink-0 text-rose-500 hover:bg-rose-50 rounded-full flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                              [attr.aria-label]="file.name + ' dosyasını listeden çıkar'"
                             >
                               <mat-icon class="text-sm">close</mat-icon>
                             </button>
@@ -352,8 +376,9 @@ import { Router, RouterModule } from "@angular/router";
                     >
                     <textarea
                       formControlName="notes"
-                      rows="3"
-                      class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      rows="4"
+                      aria-label="Ek notlar"
+                      class="w-full min-h-12 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                       placeholder="Aracınız hakkında eklemek istedikleriniz..."
                     ></textarea>
                   </div>
@@ -365,13 +390,14 @@ import { Router, RouterModule } from "@angular/router";
                     <input
                       type="checkbox"
                       formControlName="acceptTerms"
-                      class="mt-1 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                      class="mt-0.5 w-5 h-5 shrink-0 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
                     />
                     <span class="text-sm text-slate-600">
                       <a
                         routerLink="/legal"
                         [queryParams]="{ type: 'terms' }"
                         target="_blank"
+                        rel="noopener noreferrer"
                         class="text-blue-500 hover:text-blue-400 font-bold ml-1 hover:underline"
                         >Kullanım Şartları</a
                       >'nı okudum ve kabul ediyorum. *
@@ -381,13 +407,14 @@ import { Router, RouterModule } from "@angular/router";
                     <input
                       type="checkbox"
                       formControlName="acceptKvkk"
-                      class="mt-1 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                      class="mt-0.5 w-5 h-5 shrink-0 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
                     />
                     <span class="text-sm text-slate-600">
                       <a
                         routerLink="/legal"
                         [queryParams]="{ type: 'kvkk' }"
                         target="_blank"
+                        rel="noopener noreferrer"
                         class="text-blue-500 hover:text-blue-400 font-bold ml-1 hover:underline"
                         >KVKK Aydınlatma Metni</a
                       >'ni okudum ve kişisel verilerimin işlenmesini
@@ -397,10 +424,15 @@ import { Router, RouterModule } from "@angular/router";
                 </div>
 
                 <div class="pt-6">
+                  @if (hasFormErrors()) {
+                    <div role="alert" aria-live="assertive" class="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-800">
+                      Lütfen zorunlu alanları kontrol edin, geçerli iletişim ve araç bilgilerini girin ve yasal onay kutularını işaretleyin.
+                    </div>
+                  }
                   <button
                     type="submit"
-                    [disabled]="!partnerForm.valid || isSubmitting()"
-                    class="w-full flex justify-center items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    [disabled]="isSubmitting()"
+                    class="w-full min-h-14 flex justify-center items-center gap-2 px-6 sm:px-8 py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   >
                     @if (isSubmitting()) {
                       <mat-icon class="animate-spin">refresh</mat-icon>
@@ -428,6 +460,7 @@ export class ListYourCarComponent {
 
   isSubmitting = signal(false);
   submitSuccess = signal(false);
+  hasFormErrors = signal(false);
   selectedFiles = signal<File[]>([]);
 
   goBack() {
@@ -440,9 +473,9 @@ export class ListYourCarComponent {
 
   partnerForm = this.fb.group({
     intent: ["rent", Validators.required],
-    name: ["", Validators.required],
-    phone: ["", Validators.required],
-    email: [""],
+    name: ["", [Validators.required, Validators.minLength(2), Validators.maxLength(120)]],
+    phone: ["", [Validators.required, Validators.pattern(/^[+0-9()\s-]{7,24}$/)]],
+    email: ["", Validators.email],
     carBrand: ["", Validators.required],
     carModel: ["", Validators.required],
     carYear: [
@@ -453,20 +486,35 @@ export class ListYourCarComponent {
         Validators.max(new Date().getFullYear() + 1),
       ],
     ],
-    carMileage: ["", Validators.required],
+    carMileage: ["", [Validators.required, Validators.min(0), Validators.max(3000000)]],
     withDriver: [false],
     notes: [""],
     acceptTerms: [false, Validators.requiredTrue],
     acceptKvkk: [false, Validators.requiredTrue],
   });
 
-  onFileSelected(event: any) {
-    const files = event.target.files;
-    if (files) {
-      this.selectedFiles.update((current) => [
-        ...current,
-        ...(Array.from(files) as File[]),
-      ]);
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const incoming = Array.from(input.files || []);
+    const maxBytes = 50 * 1024 * 1024;
+    const current = this.selectedFiles();
+    const availableSlots = Math.max(0, 10 - current.length);
+    const withinSize = incoming.filter((file) => file.size <= maxBytes);
+    const accepted = withinSize.slice(0, availableSlots);
+    const oversizedCount = incoming.length - withinSize.length;
+    const overflowCount = withinSize.length - accepted.length;
+
+    this.selectedFiles.set([...current, ...accepted]);
+    input.value = "";
+
+    if (oversizedCount > 0) {
+      this.toastService.show(
+        `${oversizedCount} dosya 50 MB sınırını aştığı için eklenmedi.`,
+        "error",
+      );
+    }
+    if (overflowCount > 0) {
+      this.toastService.show("En fazla 10 dosya seçebilirsiniz.", "error");
     }
   }
 
@@ -484,6 +532,7 @@ export class ListYourCarComponent {
   }
 
   async onSubmit() {
+    this.hasFormErrors.set(!this.partnerForm.valid);
     if (this.partnerForm.valid) {
       this.isSubmitting.set(true);
       try {
@@ -495,11 +544,12 @@ export class ListYourCarComponent {
           carBrand: `${formValue.carBrand} ${formValue.carModel}`,
           modelYear: Number(formValue.carYear),
           km: Number(formValue.carMileage),
-          description: `${formValue.notes || ""} | Şoförlü: ${formValue.withDriver ? "Evet" : "Hayır"} | Dosya Sayısı: ${this.selectedFiles().length}`,
+          description: `${formValue.notes || ""} | Şoförlü: ${formValue.withDriver ? "Evet" : "Hayır"} | Seçilen Dosya Listesi: ${this.selectedFiles().map((file) => file.name).join(", ") || "Yok"}`,
         };
 
         await this.carService.submitPartnerRequest(requestData as any);
         this.submitSuccess.set(true);
+        this.hasFormErrors.set(false);
         this.selectedFiles.set([]);
       } catch (error) {
         console.error("Error submitting partner request:", error);
@@ -520,6 +570,7 @@ export class ListYourCarComponent {
   }
 
   resetForm() {
+    this.hasFormErrors.set(false);
     this.partnerForm.reset({
       withDriver: false,
       acceptTerms: false,

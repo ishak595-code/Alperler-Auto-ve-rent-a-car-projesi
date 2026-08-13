@@ -1,0 +1,81 @@
+name: One-shot cloud vehicle admin migration
+
+on:
+  push:
+    paths:
+      - '.github/workflows/cloud-vehicle-admin-migration.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate-admin-vehicles:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Patch cloud-backed vehicle administration
+        shell: python
+        run: |
+          from pathlib import Path
+
+          service_path = Path('src/services/car.service.ts')
+          service = service_path.read_text(encoding='utf-8')
+
+          old_import = '''import {\n  setDoc,\n  doc,\n  serverTimestamp,\n} from "firebase/firestore";'''
+          new_import = '''import {\n  collection,\n  deleteDoc,\n  doc,\n  getDocs,\n  onSnapshot,\n  query,\n  serverTimestamp,\n  setDoc,\n  where,\n} from "firebase/firestore";'''
+          if old_import not in service:
+              raise SystemExit('Firestore import block not found')
+          service = service.replace(old_import, new_import, 1)
+
+          old_constructor = '''  constructor() {\n    if (this.apiKey) {\n      this.genAI = new GoogleGenAI({ apiKey: this.apiKey });\n    }\n    this.loadFromStorage();\n\n    // Increment Visit Counter'''
+          new_constructor = '''  private cloudInventoryActivated = false;\n\n  constructor() {\n    if (this.apiKey) {\n      this.genAI = new GoogleGenAI({ apiKey: this.apiKey });\n    }\n    this.loadFromStorage();\n    this.listenForCloudVehicles();\n\n    // Increment Visit Counter'''
+          if old_constructor not in service:
+              raise SystemExit('Constructor anchor not found')
+          service = service.replace(old_constructor, new_constructor, 1)
+
+          anchor = '''  private loadFromStorage() {\n'''
+          cloud_methods = '''  private listenForCloudVehicles() {\n    const publicVehicleQuery = query(\n      collection(db, "vehicles"),\n      where("status", "in", ["AVAILABLE", "SOLD"]),\n    );\n\n    onSnapshot(\n      publicVehicleQuery,\n      (snapshot) => {\n        if (snapshot.empty && !this.cloudInventoryActivated) return;\n\n        const cloudVehicles = snapshot.docs\n          .map((snapshotDoc) => {\n            const data = snapshotDoc.data() as Record<string, unknown>;\n            const { status: _status, updatedAt: _updatedAt, ...vehicleData } = data;\n            const numericId = Number(snapshotDoc.id);\n            return {\n              ...vehicleData,\n              id: Number.isNaN(numericId) ? snapshotDoc.id : numericId,\n            } as Vehicle;\n          })\n          .filter((vehicle) =>\n            vehicle.category === "RENTAL" || vehicle.category === "SALE",\n          );\n\n        this.cloudInventoryActivated = true;\n        this._inventory.update((inventory) => [\n          ...inventory.filter((vehicle) => vehicle.category === "TOUR"),\n          ...cloudVehicles,\n        ]);\n      },\n      (error) => {\n        console.warn(\n          "Cloud vehicle listener is unavailable; local inventory remains active.",\n          error,\n        );\n      },\n    );\n  }\n\n  async ensureVehicleCloudInventory(): Promise<void> {\n    const cloudSnapshot = await getDocs(collection(db, "vehicles"));\n    if (!cloudSnapshot.empty) {\n      this.cloudInventoryActivated = true;\n      return;\n    }\n\n    const initialVehicles = this._inventory().filter(\n      (vehicle) => vehicle.category === "RENTAL" || vehicle.category === "SALE",\n    );\n\n    await Promise.all(\n      initialVehicles.map((vehicle) => this.persistVehicleToCloud(vehicle)),\n    );\n    this.cloudInventoryActivated = true;\n  }\n\n  private async persistVehicleToCloud(vehicle: Vehicle): Promise<void> {\n    const status =\n      vehicle.category === "SALE" &&\n      vehicle.availability?.toLocaleLowerCase("tr-TR").includes("sat")\n        ? "SOLD"\n        : "AVAILABLE";\n\n    const serialized = JSON.parse(\n      JSON.stringify({\n        ...vehicle,\n        brand: vehicle.brand || "",\n        model: vehicle.model || "",\n        status,\n      }),\n    ) as Record<string, unknown>;\n\n    const estimatedSize = new TextEncoder().encode(JSON.stringify(serialized)).length;\n    if (estimatedSize > 850_000) {\n      throw new Error(\n        "Araç kaydı bulut sınırını aşıyor. Fotoğrafları URL olarak ekleyin veya görsel boyutlarını küçültün.",\n      );\n    }\n\n    await setDoc(doc(db, "vehicles", String(vehicle.id)), {\n      ...serialized,\n      updatedAt: serverTimestamp(),\n    });\n  }\n\n  private async removeVehicleFromCloud(id: number | string): Promise<void> {\n    await deleteDoc(doc(db, "vehicles", String(id)));\n  }\n\n'''
+          if anchor not in service:
+              raise SystemExit('loadFromStorage anchor not found')
+          service = service.replace(anchor, cloud_methods + anchor, 1)
+
+          old_crud = '''  addCar(car: Car) {\n    this._inventory.update((inv) => {\n      if (car.id && inv.find((x) => x.id === car.id)) {\n        return inv.map((x) =>\n          x.id === car.id ? { ...car, category: "RENTAL" } : x,\n        );\n      } else {\n        return [{ ...car, id: Date.now(), category: "RENTAL" }, ...inv];\n      }\n    });\n  }\n  deleteCar(id: number | string) {\n    this._inventory.update((inv) => inv.filter((c) => c.id != id));\n  }\n\n  addSaleCar(car: SaleCar) {\n    this._inventory.update((inv) => {\n      if (car.id && inv.find((x) => x.id === car.id)) {\n        return inv.map((x) =>\n          x.id === car.id ? { ...car, category: "SALE" } : x,\n        );\n      } else {\n        return [{ ...car, id: Date.now(), category: "SALE" }, ...inv];\n      }\n    });\n  }\n  deleteSaleCar(id: number | string) {\n    this._inventory.update((inv) => inv.filter((c) => c.id != id));\n  }'''
+          new_crud = '''  async addCar(car: Car): Promise<Car> {\n    const exists = Boolean(\n      car.id && this._inventory().some((vehicle) => vehicle.id === car.id),\n    );\n    const savedCar: Car = {\n      ...car,\n      id: exists ? car.id : Date.now(),\n      category: "RENTAL",\n    };\n\n    await this.persistVehicleToCloud(savedCar);\n    this._inventory.update((inventory) =>\n      exists\n        ? inventory.map((vehicle) =>\n            vehicle.id === savedCar.id ? savedCar : vehicle,\n          )\n        : [savedCar, ...inventory],\n    );\n    return savedCar;\n  }\n\n  async deleteCar(id: number | string): Promise<void> {\n    await this.removeVehicleFromCloud(id);\n    this._inventory.update((inventory) =>\n      inventory.filter((vehicle) => vehicle.id != id),\n    );\n  }\n\n  async addSaleCar(car: SaleCar): Promise<SaleCar> {\n    const exists = Boolean(\n      car.id && this._inventory().some((vehicle) => vehicle.id === car.id),\n    );\n    const savedCar: SaleCar = {\n      ...car,\n      id: exists ? car.id : Date.now(),\n      category: "SALE",\n    };\n\n    await this.persistVehicleToCloud(savedCar);\n    this._inventory.update((inventory) =>\n      exists\n        ? inventory.map((vehicle) =>\n            vehicle.id === savedCar.id ? savedCar : vehicle,\n          )\n        : [savedCar, ...inventory],\n    );\n    return savedCar;\n  }\n\n  async deleteSaleCar(id: number | string): Promise<void> {\n    await this.removeVehicleFromCloud(id);\n    this._inventory.update((inventory) =>\n      inventory.filter((vehicle) => vehicle.id != id),\n    );\n  }'''
+          if old_crud not in service:
+              raise SystemExit('Vehicle CRUD block not found')
+          service = service.replace(old_crud, new_crud, 1)
+          service_path.write_text(service, encoding='utf-8')
+
+          admin_path = Path('src/pages/admin/admin-cars.component.ts')
+          admin = admin_path.read_text(encoding='utf-8')
+
+          old_init = '''  ngOnInit() {\n      this.route.queryParams.subscribe(params => {\n          if (params['tab']) {\n              this.activeTab.set(params['tab'] as 'RENTAL' | 'SALES');\n          } else if (this.router.url.includes('sales')) {\n              this.activeTab.set('SALES');\n          }\n      });\n  }'''
+          new_init = '''  ngOnInit() {\n      this.route.queryParams.subscribe(params => {\n          if (params['tab']) {\n              this.activeTab.set(params['tab'] as 'RENTAL' | 'SALES');\n          } else if (this.router.url.includes('sales')) {\n              this.activeTab.set('SALES');\n          }\n      });\n\n      void this.carService.ensureVehicleCloudInventory().catch((error) => {\n          console.error('Vehicle cloud initialization failed', error);\n          this.toastService.show(\n              'Bulut araç veritabanına bağlanılamadı. İlan değişiklikleri buluta yazılmadan yayınlanmayacak.',\n              'error'\n          );\n      });\n  }'''
+          if old_init not in admin:
+              raise SystemExit('Admin ngOnInit block not found')
+          admin = admin.replace(old_init, new_init, 1)
+
+          old_save = '''  saveCar() {\n      if (!this.currentCar.brand || !this.currentCar.model || !this.currentCar.price) {\n          this.toastService.show('Lütfen Marka, Model ve Fiyat alanlarını doldurun.', 'error');\n          return;\n      }\n      \n      // Ensure main image is set from images array\n      if (this.currentCar.images && this.currentCar.images.length > 0) {\n          this.currentCar.image = this.currentCar.images[0];\n      } else if (!this.currentCar.image) {\n          // Fallback placeholder\n          this.currentCar.image = `https://picsum.photos/seed/${this.currentCar.brand}/800/600`;\n          this.currentCar.images = [this.currentCar.image];\n      }\n\n      if (this.formType() === 'RENTAL') {\n          this.currentCar.category = 'RENTAL';\n          this.carService.addCar(this.currentCar);\n      } else {\n          this.currentCar.category = 'SALE';\n          this.carService.addSaleCar(this.currentCar);\n      }\n      \n      this.toastService.show(this.isEditing ? 'Araç güncellendi.' : 'Yeni araç eklendi.', 'success');\n      this.closeForm();\n  }'''
+          new_save = '''  async saveCar() {\n      if (!this.currentCar.brand || !this.currentCar.model || !this.currentCar.price) {\n          this.toastService.show('Lütfen Marka, Model ve Fiyat alanlarını doldurun.', 'error');\n          return;\n      }\n\n      if (this.currentCar.images && this.currentCar.images.length > 0) {\n          this.currentCar.image = this.currentCar.images[0];\n      } else if (!this.currentCar.image) {\n          this.currentCar.image = `https://picsum.photos/seed/${this.currentCar.brand}/800/600`;\n          this.currentCar.images = [this.currentCar.image];\n      }\n\n      try {\n          if (this.formType() === 'RENTAL') {\n              this.currentCar.category = 'RENTAL';\n              this.currentCar = await this.carService.addCar(this.currentCar);\n          } else {\n              this.currentCar.category = 'SALE';\n              this.currentCar = await this.carService.addSaleCar(this.currentCar);\n          }\n\n          this.toastService.show(\n              this.isEditing ? 'Araç güncellendi ve canlı siteye kaydedildi.' : 'Yeni ilan canlı siteye kaydedildi.',\n              'success'\n          );\n          this.closeForm();\n      } catch (error) {\n          console.error('Vehicle save failed', error);\n          this.toastService.show(\n              error instanceof Error ? error.message : 'Araç kaydedilemedi. Lütfen tekrar deneyin.',\n              'error'\n          );\n      }\n  }'''
+          if old_save not in admin:
+              raise SystemExit('Admin saveCar block not found')
+          admin = admin.replace(old_save, new_save, 1)
+
+          old_delete = '''      if(confirmed) {\n          if (this.activeTab() === 'RENTAL') {\n              this.carService.deleteCar(id);\n          } else {\n              this.carService.deleteSaleCar(id);\n          }\n          this.toastService.show('Araç silindi.', 'info');\n      }'''
+          new_delete = '''      if(confirmed) {\n          try {\n              if (this.activeTab() === 'RENTAL') {\n                  await this.carService.deleteCar(id);\n              } else {\n                  await this.carService.deleteSaleCar(id);\n              }\n              this.toastService.show('Araç buluttan ve canlı siteden silindi.', 'info');\n          } catch (error) {\n              console.error('Vehicle delete failed', error);\n              this.toastService.show('Araç silinemedi. Bulut bağlantısını kontrol edip tekrar deneyin.', 'error');\n          }\n      }'''
+          if old_delete not in admin:
+              raise SystemExit('Admin delete block not found')
+          admin = admin.replace(old_delete, new_delete, 1)
+          admin_path.write_text(admin, encoding='utf-8')
+
+      - name: Commit migration
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/services/car.service.ts src/pages/admin/admin-cars.component.ts
+          git commit -m 'feat: sync admin vehicle CRUD with Firestore' || exit 0
+          git push origin HEAD:main

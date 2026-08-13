@@ -98,6 +98,8 @@ export class AuthService {
       case "auth/wrong-password":
       case "auth/user-not-found":
         return "E-posta veya şifre doğrulanamadı.";
+      case "auth/weak-password":
+        return "Şifre Firebase güvenlik gereksinimlerini karşılamıyor. Daha uzun ve karmaşık bir şifre kullanın.";
       case "auth/too-many-requests":
         return "Çok fazla başarısız giriş denemesi yapıldı. Güvenlik nedeniyle kısa süre sonra tekrar deneyin.";
       case "auth/network-request-failed":
@@ -175,7 +177,10 @@ export class AuthService {
   async createStrongPasswordForCurrentUser(): Promise<string | null> {
     this.clearError();
     const user = auth.currentUser;
-    if (!user?.email) return null;
+    if (!user?.email) {
+      this._lastErrorMessage.set("Şifre oluşturmak için önce yönetici hesabıyla giriş yapın.");
+      return null;
+    }
 
     const password = this.generateStrongPassword();
     try {
@@ -185,6 +190,38 @@ export class AuthService {
       this.captureError(error, "Yönetici şifresi oluşturulamadı.");
       return null;
     }
+  }
+
+  async changeCurrentPassword(newPassword: string): Promise<boolean> {
+    this.clearError();
+    const user = auth.currentUser;
+    if (!user?.email) {
+      this._lastErrorMessage.set("Şifre değiştirmek için önce yönetici hesabıyla giriş yapın.");
+      return false;
+    }
+
+    const validationError = this.validateStrongPassword(newPassword);
+    if (validationError) {
+      this._lastErrorMessage.set(validationError);
+      return false;
+    }
+
+    try {
+      await updatePassword(user, newPassword);
+      return true;
+    } catch (error) {
+      this.captureError(error, "Yönetici şifresi değiştirilemedi.");
+      return false;
+    }
+  }
+
+  validateStrongPassword(password: string): string | null {
+    if (password.length < 16) return "Şifre en az 16 karakter olmalı.";
+    if (!/[a-z]/.test(password)) return "Şifrede en az bir küçük harf bulunmalı.";
+    if (!/[A-Z]/.test(password)) return "Şifrede en az bir büyük harf bulunmalı.";
+    if (!/[0-9]/.test(password)) return "Şifrede en az bir rakam bulunmalı.";
+    if (!/[^A-Za-z0-9]/.test(password)) return "Şifrede en az bir özel karakter bulunmalı.";
+    return null;
   }
 
   private generateStrongPassword(): string {

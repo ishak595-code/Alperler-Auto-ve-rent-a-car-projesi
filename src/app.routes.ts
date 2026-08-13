@@ -26,9 +26,10 @@ import { AdminPartnerRequestsComponent } from './pages/admin/admin-partner-reque
 import { AdminToursComponent } from './pages/admin/admin-tours.component';
 import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
 
-const adminGuard: CanActivateFn = () => {
+const adminGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
   const router = inject(Router);
+  await auth.waitUntilReady();
   if (auth.isLoggedIn()) {
     return true;
   }

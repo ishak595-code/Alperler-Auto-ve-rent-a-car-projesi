@@ -47,7 +47,20 @@ import { CarService } from '../../services/car.service';
                   <p class="text-slate-500 mt-2 text-sm">Devam etmek için yetkili hesap bilgilerinizle oturum açın.</p>
               </div>
 
-              @if (!showForgotPass) {
+              @if (generatedPassword()) {
+                  <div role="status" aria-live="polite" class="space-y-5">
+                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
+                      <h3 class="font-bold text-lg mb-2">Güçlü yönetici şifreniz oluşturuldu</h3>
+                      <p class="text-sm leading-relaxed">Bu şifre Firebase hesabınıza güvenli biçimde bağlandı. Şifre GitHub koduna veya tarayıcı localStorage alanına kaydedilmedi. Aşağıdaki şifreyi şimdi güvenli bir yere kaydedin.</p>
+                    </div>
+                    <label for="generatedAdminPassword" class="block text-xs font-bold text-slate-600 uppercase tracking-wider">Yeni yönetici şifresi</label>
+                    <div class="flex gap-2">
+                      <input id="generatedAdminPassword" [value]="generatedPassword()" readonly aria-label="Yeni yönetici şifresi" class="min-w-0 flex-1 p-4 rounded-xl bg-slate-50 border border-slate-200 font-mono text-sm text-slate-900" />
+                      <button type="button" (click)="copyGeneratedPassword()" class="min-h-12 px-4 rounded-xl bg-slate-100 text-slate-800 font-bold hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Kopyala</button>
+                    </div>
+                    <button type="button" (click)="continueToDashboard()" class="w-full min-h-14 py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Şifreyi Kaydettim, Panele Geç</button>
+                  </div>
+              } @else if (!showForgotPass) {
                   <form (submit)="onLogin($event)" class="space-y-5">
                       
                       <div class="space-y-4">
@@ -55,16 +68,16 @@ import { CarService } from '../../services/car.service';
                               <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                   <svg class="h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                               </div>
-                              <input type="email" [(ngModel)]="username" name="username" class="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500 rounded-xl outline-none font-bold text-slate-900 transition-all placeholder-slate-400" placeholder="Kullanıcı Adı / E-Posta">
+                              <input type="email" [(ngModel)]="username" name="username" autocomplete="username" inputmode="email" aria-label="Yönetici e-posta adresi" class="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500 rounded-xl outline-none font-bold text-slate-900 transition-all placeholder-slate-400" placeholder="Kullanıcı Adı / E-Posta">
                           </div>
 
                           <div class="relative group">
                               <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                   <svg class="h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                               </div>
-                              <input [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" name="password" class="w-full pl-12 pr-12 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500 rounded-xl outline-none font-bold text-slate-900 transition-all placeholder-slate-400" placeholder="Şifre">
+                              <input [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" name="password" autocomplete="current-password" aria-label="Yönetici şifresi" class="w-full pl-12 pr-12 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-blue-500 rounded-xl outline-none font-bold text-slate-900 transition-all placeholder-slate-400" placeholder="Şifre">
                               
-                              <button type="button" (click)="togglePasswordVisibility()" class="absolute right-0 top-0 h-full px-4 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none">
+                              <button type="button" (click)="togglePasswordVisibility()" [attr.aria-label]="showPassword() ? 'Şifreyi gizle' : 'Şifreyi göster'" class="absolute right-0 top-0 h-full px-4 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none">
                                   @if(showPassword()) {
                                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
                                   } @else {
@@ -168,6 +181,7 @@ export class AdminLoginComponent implements OnInit {
   showForgotPass = false;
   resetEmail = '';
   resetSuccess = signal(false);
+  generatedPassword = signal('');
 
   ngOnInit() {
     if (this.authService.isLoggedIn()) {
@@ -208,10 +222,34 @@ export class AdminLoginComponent implements OnInit {
     this.isLoading.set(false);
 
     if (success) {
+      try {
+        const generated = await this.authService.createStrongPasswordForCurrentUser();
+        if (generated) {
+          this.generatedPassword.set(generated);
+          return;
+        }
+      } catch (error) {
+        console.warn('Strong password creation is unavailable; Google login remains active.', error);
+      }
       this.router.navigate(['/admin/dashboard']);
     } else {
       this.errorMsg.set('Yetkisiz giriş denemesi veya işlem iptal edildi.');
     }
+  }
+
+  async copyGeneratedPassword() {
+    const value = this.generatedPassword();
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      this.errorMsg.set('Şifre kopyalanamadı. Metni seçip kopyalayabilirsiniz.');
+    }
+  }
+
+  continueToDashboard() {
+    this.generatedPassword.set('');
+    this.router.navigate(['/admin/dashboard']);
   }
 
   toggleForgot() {

@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from "@angular/core";
-import { CommonModule, NgOptimizedImage } from "@angular/common";
+import { CommonModule } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { CarService } from "../services/car.service";
 import { Car } from "../models/car.model";
@@ -20,7 +20,6 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
   imports: [
     CommonModule,
     RouterLink,
-    NgOptimizedImage,
     FormsModule,
     MatIconModule,
     LightboxComponent,

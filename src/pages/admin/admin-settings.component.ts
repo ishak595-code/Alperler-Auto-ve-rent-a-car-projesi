@@ -1560,65 +1560,101 @@ import { SiteConfig, TeamMember } from "../../models/site-config.model";
         <!-- ACCOUNT TAB -->
         @if (activeTab() === "account") {
           <div class="space-y-6">
-            <h3 class="font-bold text-lg border-b pb-2 text-slate-700">
-              Admin Hesap Bilgileri ve Yönetimi
-            </h3>
-            <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
-              <p class="text-sm text-slate-500 mb-6">
-                Admin paneline giriş yapabilecek kişileri (Google E-posta Adreslerini) buradan ekleyebilir ve çıkarabilirsiniz.
+            <div>
+              <h3 class="text-lg font-black text-slate-900">Admin Hesabı ve Güvenlik</h3>
+              <p class="mt-1 text-sm leading-relaxed text-slate-500">
+                Yönetici erişimi Firebase Authentication ile doğrulanır. Görsel ayar listeleri güvenlik yetkisi vermez.
               </p>
-              
-              <div class="mb-6">
-                  <h4 class="font-bold text-sm text-slate-700 mb-4">Yetkili E-posta Adresleri</h4>
-                  <div class="space-y-2 mb-4">
-                     @for(email of formConfig.adminEmails; track email; let i = $index) {
-                         <div class="flex items-center justify-between bg-white border border-slate-200 p-3 rounded-lg">
-                            <span class="font-medium text-slate-800 text-sm">{{email}}</span>
-                            <button type="button" (click)="removeAdminEmail(i)" class="text-red-500 hover:text-red-700 p-1">
-                                <mat-icon class="text-[18px] w-[18px] h-[18px]">delete</mat-icon>
-                            </button>
-                         </div>
-                     }
-                  </div>
-                  
-                  <div class="flex gap-2">
-                     <input type="email" [(ngModel)]="newAdminEmail" name="newAdminEmail" placeholder="ornek@gmail.com" class="flex-1 p-3 bg-white border rounded text-sm" />
-                     <button type="button" (click)="addAdminEmail()" class="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700 transition">Ekle</button>
-                  </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Aktif yönetici</span>
+                <p class="mt-2 break-all text-sm font-black text-slate-900">{{ authService.getCurrentEmail() }}</p>
+              </div>
+              <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                <span class="text-[10px] font-black uppercase tracking-wider text-emerald-600">Birincil yetkili hesap</span>
+                <p class="mt-2 break-all text-sm font-black text-emerald-900">{{ authService.getPrimaryAdminEmail() }}</p>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-relaxed text-amber-900">
+              <strong>Güvenlik notu:</strong> Ek yönetici yetkisi yalnızca güvenli Firestore <code>admins</code> kaydıyla verilir. Bu ekranda yalnızca bir e-posta yazarak yönetici yetkisi oluşturulmaz.
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+              <div class="mb-5">
+                <h4 class="font-black text-slate-900">Şifreyi Değiştir</h4>
+                <p class="mt-1 text-xs leading-relaxed text-slate-500">En az 16 karakter, büyük harf, küçük harf, rakam ve özel karakter gerekir.</p>
               </div>
 
-              <div class="pt-6 border-t border-slate-200">
-                  <h4 class="font-bold text-sm text-slate-700 mb-4">Mevcut Admin Genel Fotoğrafı</h4>
-                  <div class="flex items-center gap-6">
-                    <div
-                      class="w-24 h-24 bg-white border border-slate-300 rounded-full flex items-center justify-center overflow-hidden relative shadow-sm"
-                    >
-                      @if (formConfig.adminProfileUrl) {
-                        <img
-                          [src]="formConfig.adminProfileUrl"
-                          class="w-full h-full object-cover"
-                        />
-                      } @else {
-                        <div class="text-center text-slate-400">
-                          <mat-icon class="text-[32px] w-[32px] h-[32px]">person</mat-icon>
-                        </div>
-                      }
-                    </div>
-                    <div class="flex-1">
-                      <label
-                        class="block text-[10px] font-bold text-slate-500 uppercase mb-1"
-                        >Profil Fotoğrafı URL</label
-                      >
-                      <div class="flex gap-2 mb-1">
-                        <input
-                          [(ngModel)]="formConfig.adminProfileUrl"
-                          name="adminProfileUrl"
-                          class="w-full p-2 bg-white border rounded text-xs text-slate-600"
-                          placeholder="https://..."
-                        />
-                      </div>
-                    </div>
+              <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <label class="block">
+                  <span class="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-slate-500">Yeni şifre</span>
+                  <input
+                    [type]="showAdminPassword() ? 'text' : 'password'"
+                    [(ngModel)]="newAdminPassword"
+                    name="newAdminPassword"
+                    autocomplete="new-password"
+                    class="w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-3.5 font-mono text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white"
+                  />
+                </label>
+                <label class="block">
+                  <span class="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-slate-500">Yeni şifre tekrar</span>
+                  <input
+                    [type]="showAdminPassword() ? 'text' : 'password'"
+                    [(ngModel)]="confirmAdminPassword"
+                    name="confirmAdminPassword"
+                    autocomplete="new-password"
+                    class="w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-3.5 font-mono text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white"
+                  />
+                </label>
+              </div>
+
+              <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+                <button type="button" (click)="showAdminPassword.update(v => !v)" class="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-black text-slate-600 transition hover:bg-slate-50">
+                  {{ showAdminPassword() ? 'Şifreyi Gizle' : 'Şifreyi Göster' }}
+                </button>
+                <button type="button" (click)="changeAdminPassword()" [disabled]="changingAdminPassword()" class="min-h-11 flex-1 rounded-xl bg-slate-950 px-4 text-sm font-black text-white transition hover:bg-blue-600 disabled:opacity-50">
+                  {{ changingAdminPassword() ? 'Güncelleniyor...' : 'Yeni Şifreyi Kaydet' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-blue-200 bg-blue-50 p-5 sm:p-6">
+              <h4 class="font-black text-blue-950">Otomatik Güçlü Şifre</h4>
+              <p class="mt-1 text-xs leading-relaxed text-blue-800">Sistem 24 karakterlik kriptografik güçlü bir şifre üretir ve doğrudan Firebase hesabınıza kaydeder. Şifre yalnızca bu ekranda gösterilir.</p>
+
+              <button type="button" (click)="generateAdminPassword()" [disabled]="changingAdminPassword()" class="mt-4 min-h-11 rounded-xl bg-blue-600 px-5 text-sm font-black text-white transition hover:bg-blue-700 disabled:opacity-50">
+                Güçlü Şifre Oluştur ve Kaydet
+              </button>
+
+              @if (generatedAdminPassword()) {
+                <div class="mt-4 rounded-xl border border-blue-200 bg-white p-4">
+                  <label class="block text-[10px] font-black uppercase tracking-wider text-slate-500">Yeni yönetici şifreniz</label>
+                  <div class="mt-2 flex flex-col gap-2 sm:flex-row">
+                    <input [value]="generatedAdminPassword()" readonly class="min-w-0 flex-1 rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-sm font-black text-slate-950" />
+                    <button type="button" (click)="copyGeneratedAdminPassword()" class="min-h-11 rounded-lg bg-slate-100 px-4 text-sm font-black text-slate-700 hover:bg-slate-200">Kopyala</button>
                   </div>
+                  <p class="mt-2 text-xs font-bold text-red-600">Bu şifreyi güvenli bir yere kaydedin. Sayfadan ayrıldıktan sonra tekrar gösterilmez.</p>
+                </div>
+              }
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <h4 class="mb-4 font-black text-slate-800">Admin Profil Fotoğrafı</h4>
+              <div class="flex items-center gap-5">
+                <div class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-300 bg-white shadow-sm">
+                  @if (formConfig.adminProfileUrl) {
+                    <img [src]="formConfig.adminProfileUrl" alt="Admin profil" class="h-full w-full object-cover" />
+                  } @else {
+                    <mat-icon class="text-slate-400">person</mat-icon>
+                  }
+                </div>
+                <label class="min-w-0 flex-1">
+                  <span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Profil fotoğrafı URL</span>
+                  <input [(ngModel)]="formConfig.adminProfileUrl" name="adminProfileUrl" class="w-full rounded-lg border bg-white p-3 text-sm text-slate-700" placeholder="https://..." />
+                </label>
               </div>
             </div>
           </div>
@@ -1823,30 +1859,69 @@ export class AdminSettingsComponent implements OnInit {
 
 
 
-  newAdminEmail = "";
+  newAdminPassword = "";
+  confirmAdminPassword = "";
+  showAdminPassword = signal(false);
+  changingAdminPassword = signal(false);
+  generatedAdminPassword = signal("");
 
-  addAdminEmail() {
-    if (this.newAdminEmail && this.newAdminEmail.includes('@')) {
-        if (!this.formConfig.adminEmails) {
-            this.formConfig.adminEmails = [];
-        }
-        if (!this.formConfig.adminEmails.includes(this.newAdminEmail)) {
-            this.formConfig.adminEmails.push(this.newAdminEmail);
-            this.newAdminEmail = "";
-            this.toastService.show("Admin yetkisi eklendi. (Kaydedince geçerli olur).", "success");
-        } else {
-            this.toastService.show("Bu e-posta zaten ekli.", "error");
-        }
-    } else {
-        this.toastService.show("Geçerli bir e-posta girin.", "error");
+  async changeAdminPassword() {
+    this.generatedAdminPassword.set("");
+    if (this.newAdminPassword !== this.confirmAdminPassword) {
+      this.toastService.show("Yeni şifreler birbiriyle eşleşmiyor.", "error");
+      return;
     }
+
+    const validationError = this.authService.validateStrongPassword(this.newAdminPassword);
+    if (validationError) {
+      this.toastService.show(validationError, "error");
+      return;
+    }
+
+    this.changingAdminPassword.set(true);
+    const success = await this.authService.changeCurrentPassword(this.newAdminPassword);
+    this.changingAdminPassword.set(false);
+
+    if (success) {
+      this.newAdminPassword = "";
+      this.confirmAdminPassword = "";
+      this.toastService.show("Yönetici şifresi Firebase hesasında güncellendi.", "success");
+      return;
+    }
+
+    this.toastService.show(
+      this.authService.lastErrorMessage() || "Şifre değiştirilemedi.",
+      "error",
+    );
   }
 
-  removeAdminEmail(index: number) {
-     if (this.formConfig.adminEmails && this.formConfig.adminEmails.length > index) {
-         this.formConfig.adminEmails.splice(index, 1);
-         this.toastService.show("Admin yetkisi silindi. (Kaydedince geçerli olur).", "success");
-     }
+  async generateAdminPassword() {
+    this.generatedAdminPassword.set("");
+    this.changingAdminPassword.set(true);
+    const password = await this.authService.createStrongPasswordForCurrentUser();
+    this.changingAdminPassword.set(false);
+
+    if (password) {
+      this.generatedAdminPassword.set(password);
+      this.toastService.show("Güçlü şifre oluşturuldu ve Firebase hesabına kaydedildi.", "success");
+      return;
+    }
+
+    this.toastService.show(
+      this.authService.lastErrorMessage() || "Güçlü şifre oluşturulamadı.",
+      "error",
+    );
+  }
+
+  async copyGeneratedAdminPassword() {
+    const password = this.generatedAdminPassword();
+    if (!password) return;
+    try {
+      await navigator.clipboard.writeText(password);
+      this.toastService.show("Şifre panoya kopyalandı.", "success");
+    } catch {
+      this.toastService.show("Otomatik kopyalama engellendi. şifreyi seçerek kopyalayın.", "error");
+    }
   }
 
   saveConfig(event: Event) {

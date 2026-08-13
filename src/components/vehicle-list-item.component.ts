@@ -10,101 +10,128 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
   selector: "app-vehicle-list-item",
   standalone: true,
   imports: [CommonModule, RouterLink, MatIconModule, TurkishCurrencyPipe],
-  host: { class: "block" },
+  host: { class: "block min-w-0" },
   template: `
     <article
-      class="group relative w-full min-w-0 border-b border-slate-200 bg-white transition-colors hover:bg-slate-50 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-500"
+      class="group relative flex h-full min-w-0 flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-within:ring-2 focus-within:ring-blue-600"
     >
       <a
         [routerLink]="detailRoute"
         [attr.aria-label]="detailAriaLabel"
-        class="absolute inset-0 z-10 focus:outline-none"
+        class="absolute inset-0 z-10 rounded-[18px] focus:outline-none"
       >
         <span class="sr-only">{{ detailAriaLabel }}</span>
       </a>
 
-      <div
-        class="grid min-h-[104px] grid-cols-[124px_minmax(0,1fr)_44px] sm:min-h-[116px] sm:grid-cols-[148px_minmax(0,1fr)_48px]"
-      >
-        <div class="relative overflow-hidden bg-slate-100 pointer-events-none">
-          <img
-            [src]="car.images?.[0] || car.image"
-            (error)="handleImageError($event)"
-            alt=""
-            aria-hidden="true"
-            loading="lazy"
-            decoding="async"
-            class="absolute inset-0 h-full w-full object-cover"
-          />
-          @if (car.badge) {
-            <span
-              class="absolute left-1.5 top-1.5 max-w-[calc(100%-0.75rem)] truncate bg-slate-950/90 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide text-white shadow-sm"
-            >
-              {{ car.badge }}
-            </span>
-          }
-        </div>
+      <div class="relative m-2 mb-0 aspect-[4/3] overflow-hidden rounded-[14px] bg-slate-100 sm:m-2.5 sm:mb-0">
+        <img
+          [src]="car.images?.[0] || car.image"
+          (error)="handleImageError($event)"
+          [alt]="displayTitle"
+          loading="lazy"
+          decoding="async"
+          class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+        />
 
-        <div class="pointer-events-none flex min-w-0 flex-col px-3 py-2.5 sm:px-4 sm:py-3">
-          <h3
-            class="line-clamp-2 break-words text-[16px] font-semibold leading-[1.24] text-slate-900 sm:text-[18px]"
+        @if (car.badge) {
+          <span
+            class="absolute left-2 top-2 z-20 max-w-[calc(100%-3.75rem)] truncate rounded-md px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-white shadow-md"
+            [class.bg-amber-500]="car.badge === 'FIRSAT'"
+            [class.bg-slate-900]="car.badge !== 'FIRSAT'"
           >
-            {{ displayTitle }}
-          </h3>
+            {{ car.badge }}
+          </span>
+        }
 
-          <div
-            class="mt-1.5 flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-[11px] font-medium text-slate-500 sm:text-xs"
-            aria-hidden="true"
-          >
-            @if (car.year) {
-              <span class="shrink-0">{{ car.year }}</span>
-            }
-            @if (car.transmission) {
-              <span class="shrink-0 text-slate-300">•</span>
-              <span class="truncate">{{ car.transmission }}</span>
-            }
-            @if (car.fuel) {
-              <span class="shrink-0 text-slate-300">•</span>
-              <span class="truncate">{{ car.fuel }}</span>
-            }
-            <span class="shrink-0 text-slate-300">•</span>
-            <span
-              class="truncate font-semibold"
-              [class.text-emerald-700]="car.isAvailable !== false"
-              [class.text-red-700]="car.isAvailable === false"
-            >
-              {{ statusText }}
-            </span>
-          </div>
-
-          <div class="mt-auto flex min-w-0 items-end justify-between gap-2 pt-2">
-            <div class="truncate text-[17px] font-extrabold leading-none text-blue-700 sm:text-xl">
-              {{ car.price | turkishCurrency }}
-              @if (variant === "rental") {
-                <span class="text-[10px] font-semibold text-slate-500 sm:text-xs">/ gün</span>
-              }
-            </div>
-            <mat-icon
-              aria-hidden="true"
-              class="!h-5 !w-5 shrink-0 !text-[20px] text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-700"
-            >
-              chevron_right
-            </mat-icon>
-          </div>
-        </div>
-
-        <div class="relative z-20 flex items-start justify-center pt-1.5 sm:pt-2">
+        <div class="absolute right-1.5 top-1.5 z-30 flex flex-col gap-1.5">
           <button
             type="button"
             (click)="toggleFavorite($event)"
             [attr.aria-label]="isFavorite() ? 'Favorilerden çıkar' : 'Favorilere ekle'"
             [attr.aria-pressed]="isFavorite()"
-            class="pointer-events-auto flex h-11 w-11 items-center justify-center text-slate-500 transition-colors hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            class="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-md backdrop-blur-sm transition hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
-            <mat-icon [class.text-red-500]="isFavorite()" aria-hidden="true">
+            <mat-icon
+              aria-hidden="true"
+              class="!h-5 !w-5 !text-[20px]"
+              [class.text-red-500]="isFavorite()"
+            >
               {{ isFavorite() ? "favorite" : "favorite_border" }}
             </mat-icon>
           </button>
+
+          <button
+            type="button"
+            (click)="shareVehicle($event)"
+            aria-label="İlanı paylaş"
+            class="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-md backdrop-blur-sm transition hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          >
+            <mat-icon aria-hidden="true" class="!h-5 !w-5 !text-[20px]">share</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex min-w-0 flex-1 flex-col p-3 pt-2.5 sm:p-3.5 sm:pt-3">
+        <h3
+          class="line-clamp-3 min-h-[3.7rem] break-words font-serif text-[15px] font-extrabold leading-[1.22] text-slate-950 sm:min-h-[4.15rem] sm:text-[17px]"
+        >
+          {{ displayTitle }}
+        </h3>
+
+        <div class="mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold text-slate-600 sm:text-[11px]">
+          @if (car.year) {
+            <span class="rounded bg-slate-100 px-2 py-1.5">{{ car.year }}</span>
+          }
+          @if (variant === "sale" && car.km != null) {
+            <span class="rounded bg-slate-100 px-2 py-1.5">{{ car.km | number }} km</span>
+          }
+          @if (car.transmission) {
+            <span class="rounded bg-slate-100 px-2 py-1.5">{{ car.transmission }}</span>
+          }
+        </div>
+
+        @if (variant === "sale" && car.damageStatus) {
+          <div
+            class="mt-2 flex min-h-10 items-center gap-1.5 rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-2 text-[10px] font-extrabold leading-tight text-emerald-700 sm:text-[11px]"
+          >
+            <mat-icon aria-hidden="true" class="!h-4 !w-4 shrink-0 !text-[16px]">verified</mat-icon>
+            <span class="line-clamp-2">{{ car.damageStatus }}</span>
+          </div>
+        }
+
+        <div class="mt-auto pt-3">
+          <div
+            class="mb-2 inline-flex max-w-full items-center rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide text-slate-700"
+          >
+            {{ variant === "rental" ? driverOptionText : "Premium Galeri" }}
+          </div>
+
+          <div class="mb-3 flex min-w-0 items-center gap-1 text-[10px] text-slate-500 sm:text-[11px]">
+            <mat-icon aria-hidden="true" class="!h-4 !w-4 shrink-0 !text-[16px] text-slate-400">location_on</mat-icon>
+            <span class="truncate">{{ car.location || "Hakkari / Yüksekova" }}</span>
+          </div>
+
+          <div class="mb-3 min-w-0 whitespace-nowrap text-[18px] font-black leading-none text-slate-950 sm:text-[22px]">
+            {{ car.price | turkishCurrency }}
+            @if (variant === "rental") {
+              <span class="text-[10px] font-semibold text-slate-500 sm:text-xs">/ gün</span>
+            }
+          </div>
+
+          <div class="relative z-30 grid grid-cols-2 gap-2">
+            <a
+              [routerLink]="detailRoute"
+              class="pointer-events-auto flex min-h-10 items-center justify-center rounded-lg bg-slate-950 px-2 text-center text-[10px] font-extrabold text-white transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 sm:text-[11px]"
+            >
+              {{ variant === "rental" ? "Kirala" : "Satın Al" }}
+            </a>
+            <a
+              [routerLink]="detailRoute"
+              class="pointer-events-auto flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-center text-[10px] font-extrabold text-slate-800 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 sm:text-[11px]"
+            >
+              Detay
+            </a>
+          </div>
         </div>
       </div>
     </article>
@@ -121,44 +148,92 @@ export class VehicleListItemComponent {
   }
 
   get displayTitle(): string {
-    const fallback = [this.car.year, this.car.brand, this.car.model]
+    const fallback = [
+      this.car.year,
+      this.car.brand,
+      this.car.model,
+      this.car.series,
+    ]
       .filter(Boolean)
       .join(" ");
     return this.car.title?.trim() || fallback || "Araç ilanı";
   }
 
-  get statusText(): string {
-    if (this.car.isAvailable === false) {
-      return this.variant === "rental" ? "Müsait değil" : "Satıldı";
+  get driverOptionText(): string {
+    switch (this.car.driverOption) {
+      case "WITH_DRIVER":
+        return "Şoförlü";
+      case "WITHOUT_DRIVER":
+        return "Şoförsüz";
+      case "BOTH":
+        return "Şoförlü & Şoförsüz";
+      default:
+        return "Kiralık Araç";
     }
-    return this.variant === "rental" ? "Müsait" : "İlan aktif";
   }
 
   get detailAriaLabel(): string {
     const type = this.variant === "rental" ? "kiralık araç" : "satılık araç";
-    const meta = [
+    const details = [
       this.car.year,
+      this.variant === "sale" && this.car.km != null
+        ? `${this.car.km} kilometre`
+        : null,
       this.car.transmission,
       this.car.fuel,
-      this.statusText,
     ]
       .filter(Boolean)
       .join(", ");
 
-    return `${this.displayTitle}, ${type}${meta ? `, ${meta}` : ""}, fiyat ${this.car.price} Türk lirası${this.variant === "rental" ? " günlük" : ""}. Detayları aç`;
+    return `${this.displayTitle}, ${type}${details ? `, ${details}` : ""}, fiyat ${this.car.price} Türk lirası${this.variant === "rental" ? " günlük" : ""}. Detayları aç`;
   }
 
   isFavorite(): boolean {
     return this.carService.isFavorite(this.car.id);
   }
 
-  toggleFavorite(event: Event) {
+  toggleFavorite(event: Event): void {
     event.preventDefault();
     event.stopPropagation();
     this.carService.toggleFavorite(this.car.id);
   }
 
-  handleImageError(event: Event) {
+  async shareVehicle(event: Event): Promise<void> {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const path =
+      this.variant === "rental"
+        ? `/fleet/${this.car.id}`
+        : `/sales/${this.car.id}`;
+    const url =
+      typeof window !== "undefined"
+        ? `${window.location.origin}${path}`
+        : path;
+
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: this.displayTitle,
+          text: `${this.displayTitle} - Alperler Auto`,
+          url,
+        });
+        return;
+      } catch {
+        return;
+      }
+    }
+
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        // Clipboard can be blocked by browser permissions. The card remains usable.
+      }
+    }
+  }
+
+  handleImageError(event: Event): void {
     const image = event.target as HTMLImageElement;
     image.onerror = null;
     image.src =

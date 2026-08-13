@@ -3,27 +3,45 @@ name: Alperler Professional Quality Gate
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
-      - "project/apply-*-hotfix.mjs"
+      - "src/**"
+      - "project/**"
+      - "index.html"
+      - "package.json"
+      - "package-lock.json"
+      - "angular.json"
+      - "firestore.rules"
+      - ".github/workflows/alperler-quality-gate.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "project/**"
+      - "index.html"
+      - "package.json"
+      - "package-lock.json"
+      - "angular.json"
+      - "firestore.rules"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: alperler-professional-hotfix
-  cancel-in-progress: false
+  group: alperler-quality-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  patch-test-commit:
+  quality:
+    name: lint-build
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
-      - name: Checkout latest main
+      - name: Checkout source
         uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
@@ -31,21 +49,7 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - name: Apply professional hotfix modules
-        shell: bash
-        run: |
-          shopt -s nullglob
-          scripts=(project/apply-*-hotfix.mjs)
-          if [ ${#scripts[@]} -eq 0 ]; then
-            echo "No hotfix modules found."
-            exit 1
-          fi
-          for script in "${scripts[@]}"; do
-            echo "Running $script"
-            node "$script"
-          done
-
-      - name: Install and reconcile dependencies
+      - name: Install dependencies
         run: npm install --no-audit --no-fund
 
       - name: TypeScript quality check
@@ -53,18 +57,3 @@ jobs:
 
       - name: Production build
         run: npm run build
-
-      - name: Commit verified changes
-        shell: bash
-        run: |
-          git config user.name "alperler-quality-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add src index.html package.json package-lock.json firestore.rules
-          if git diff --cached --quiet; then
-            echo "No verified source changes to commit."
-            exit 0
-          fi
-          git commit -m "fix: professional responsive accessibility and admin security hardening"
-          git fetch origin main
-          git rebase origin/main
-          git push origin HEAD:main

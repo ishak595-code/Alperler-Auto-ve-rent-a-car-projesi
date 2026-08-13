@@ -4,7 +4,6 @@ import { inject } from '@angular/core';
 import { AuthService } from './services/auth.service';
 import { HomeComponent } from './pages/home.component';
 import { FleetComponent } from './pages/fleet.component';
-import { SalesComponent } from './pages/sales.component';
 import { AboutComponent } from './pages/about.component';
 import { BlogDetailComponent } from './pages/blog-detail.component';
 import { BlogListComponent } from './pages/blog-list.component';
@@ -43,7 +42,7 @@ export const routes: Routes = [
 
   { path: 'fleet', component: FleetComponent },
   { path: 'fleet/:id', component: CarDetailComponent },
-  { path: 'sales', component: SalesComponent },
+  { path: 'sales', loadComponent: () => import('./pages/sales-results.component').then(m => m.SalesResultsComponent) },
   { path: 'sales/:id', component: SaleCarDetailComponent },
   { path: 'tours', loadComponent: () => import('./pages/tours.component').then(m => m.ToursComponent) },
   { path: 'tour/:id', loadComponent: () => import('./pages/tour-detail.component').then(m => m.TourDetailComponent) },

@@ -19,6 +19,7 @@
             "index": "index.html",
             "browser": "index.tsx",
             "assets": ["public"],
+            "styles": ["src/mobile-target-fixes.css"],
             "tsConfig": "tsconfig.json"
           },
           "configurations": {

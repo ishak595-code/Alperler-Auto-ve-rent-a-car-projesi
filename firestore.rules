@@ -1,88 +1,193 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 0. Global Safety Net
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // Primitives
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
     function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'ishak595@gmail.com' ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
-    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
-    function isValidId(id) { return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
-
-    // Blueprint Validators
-    function isValidVehicle(data) {
-      return data.keys().hasAll(['brand', 'model', 'category', 'price', 'status'])
-        && data.brand is string && data.brand.size() <= 100
-        && data.model is string && data.model.size() <= 100
-        && data.category is string && data.category in ['RENTAL', 'SALE', 'TOUR']
-        && (data.price is number)
-        && data.status is string && data.status in ['AVAILABLE', 'UNAVAILABLE', 'SOLD', 'RESERVED'];
+    function isValidId(id) {
+      return id is string
+        && id.size() > 0
+        && id.size() <= 128
+        && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function validShortText(value, maxLength) {
+      return value is string && value.size() <= maxLength;
+    }
+    function validRequiredText(value, maxLength) {
+      return value is string && value.size() > 0 && value.size() <= maxLength;
+    }
+    function validEmail(value) {
+      return value is string
+        && value.size() <= 160
+        && (value == '' || value.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$'));
+    }
+    function validAmount(value) {
+      return value is number && value >= 0 && value <= 50000000;
+    }
+    function validBookingStatus(value) {
+      return value is string
+        && value in ['PENDING', 'APPROVED', 'REJECTED', 'COMPLETED', 'CANCELLED'];
+    }
+    function validPaymentStatus(value) {
+      return value is string
+        && value in ['NOT_REQUIRED', 'PENDING', 'PAID', 'FAILED', 'REFUNDED'];
     }
 
-    function isValidBooking(data) {
-       return data.keys().hasAll(['type', 'customer', 'status', 'createdAt'])
-        && data.type is string && data.type.size() <= 50
-        && data.status is string && data.status in ['PENDING', 'APPROVED', 'REJECTED', 'COMPLETED']
+    function isValidVehicle(data) {
+      return data.keys().hasAll(['brand', 'model', 'category', 'price', 'status'])
+        && validRequiredText(data.brand, 100)
+        && validRequiredText(data.model, 100)
+        && data.category is string
+        && data.category in ['RENTAL', 'SALE', 'TOUR']
+        && validAmount(data.price)
+        && data.status is string
+        && data.status in ['AVAILABLE', 'UNAVAILABLE', 'SOLD', 'RESERVED'];
+    }
+
+    function isValidPublicBookingCreate(bookingId, data) {
+      return isValidId(bookingId)
+        && bookingId.matches('^RES-[0-9]{13}-[A-Z0-9]{8}$')
+        && data.keys().hasAll([
+          'schemaVersion', 'type', 'itemId', 'itemName', 'image',
+          'customerName', 'customerEmail', 'customerPhone',
+          'basePrice', 'totalPrice', 'currency', 'personCount',
+          'startDate', 'endDate', 'days', 'withDriver',
+          'pickupLocation', 'dropoffLocation', 'rentalDuration', 'notes',
+          'paymentMethod', 'paymentStatus', 'externalPaymentReference',
+          'source', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'schemaVersion', 'type', 'itemId', 'itemName', 'image',
+          'customerName', 'customerEmail', 'customerPhone',
+          'basePrice', 'totalPrice', 'currency', 'personCount',
+          'startDate', 'endDate', 'days', 'withDriver',
+          'pickupLocation', 'dropoffLocation', 'rentalDuration', 'notes',
+          'paymentMethod', 'paymentStatus', 'externalPaymentReference',
+          'source', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.schemaVersion == 3
+        && data.type is string
+        && data.type in ['RENTAL', 'TOUR', 'SALE_INQUIRY', 'APPOINTMENT']
+        && validShortText(data.itemId, 128)
+        && validRequiredText(data.itemName, 240)
+        && validShortText(data.image, 2048)
+        && validRequiredText(data.customerName, 160)
+        && validEmail(data.customerEmail)
+        && validRequiredText(data.customerPhone, 40)
+        && validAmount(data.basePrice)
+        && validAmount(data.totalPrice)
+        && data.currency is string
+        && data.currency in ['TRY', 'EUR', 'USD', 'CHF']
+        && data.personCount is int && data.personCount >= 0 && data.personCount <= 100
+        && validShortText(data.startDate, 64)
+        && validShortText(data.endDate, 64)
+        && data.days is int && data.days >= 0 && data.days <= 3650
+        && data.withDriver is bool
+        && validShortText(data.pickupLocation, 240)
+        && validShortText(data.dropoffLocation, 240)
+        && validShortText(data.rentalDuration, 40)
+        && validShortText(data.notes, 4000)
+        && data.paymentMethod is string
+        && data.paymentMethod in ['NONE', 'CARD', 'EFT', 'OFFICE']
+        && validPaymentStatus(data.paymentStatus)
+        && data.paymentStatus in ['NOT_REQUIRED', 'PENDING']
+        && validShortText(data.externalPaymentReference, 200)
+        && data.externalPaymentReference == ''
+        && data.source == 'WEB'
+        && data.status == 'PENDING'
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function isValidAdminBookingUpdate() {
+      return incoming().diff(existing()).affectedKeys().hasOnly([
+          'status', 'paymentStatus', 'externalPaymentReference', 'updatedAt'
+        ])
+        && validBookingStatus(incoming().status)
+        && validPaymentStatus(incoming().paymentStatus)
+        && validShortText(incoming().externalPaymentReference, 200)
+        && incoming().updatedAt == request.time;
+    }
+
+    function isValidContactMessage(data) {
+      return data.keys().hasAll(['name', 'email', 'message', 'createdAt'])
+        && data.keys().hasOnly(['name', 'email', 'message', 'createdAt'])
+        && validRequiredText(data.name, 160)
+        && validEmail(data.email)
+        && data.email != ''
+        && validRequiredText(data.message, 4000)
         && data.createdAt == request.time;
     }
 
-    // Admins Collection
+    function isValidPartnerRequest(data) {
+      return data.keys().hasAll([
+          'type', 'name', 'phone', 'email', 'carBrand', 'modelYear',
+          'km', 'description', 'status', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'type', 'name', 'phone', 'email', 'carBrand', 'modelYear',
+          'km', 'description', 'status', 'createdAt'
+        ])
+        && data.type == 'PARTNER_REQUEST'
+        && validRequiredText(data.name, 120)
+        && validRequiredText(data.phone, 40)
+        && validEmail(data.email)
+        && validRequiredText(data.carBrand, 160)
+        && data.modelYear is int && data.modelYear >= 1950 && data.modelYear <= 2100
+        && data.km is int && data.km >= 0 && data.km <= 5000000
+        && validShortText(data.description, 4000)
+        && data.status == 'NEW'
+        && data.createdAt == request.time;
+    }
+
     match /admins/{userId} {
       allow read: if isOwner(userId) || isAdmin();
-      // Only admins can promote others, no create access generally unless bootstrapping in console
       allow write: if isAdmin();
     }
 
-    // Users Collection
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId)
-                    && incoming().keys().hasAll(['email', 'role'])
-                    && incoming().email == request.auth.token.email
-                    && incoming().role == 'USER'; // Self-assigned roles restricted to standard 'USER' unless admin updates it
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+        && incoming().keys().hasAll(['email', 'role'])
+        && incoming().email == request.auth.token.email
+        && incoming().role == 'USER';
+      allow update, delete: if isAdmin();
     }
 
-    // Vehicles Collection
     match /vehicles/{vehicleId} {
-      // Anyone can read available vehicles, admins can read all
       allow read: if (existing().status in ['AVAILABLE', 'SOLD']) || isAdmin();
-      
-      // Only admins can modify vehicles
       allow create: if isAdmin() && isValidVehicle(incoming());
       allow update: if isAdmin() && isValidVehicle(incoming());
       allow delete: if isAdmin();
     }
 
-    // Bookings Collection
     match /bookings/{bookingId} {
       allow read: if isAdmin();
-      
-      // Allow creation by anyone, but strictly validate format to prevent abuse.
-      // Removed strict typing for arbitrary inputs but keeping it locked to create only.
-      allow create: if true; 
-      
-      allow update: if isAdmin();
+      allow create: if isValidPublicBookingCreate(bookingId, incoming());
+      allow update: if isAdmin() && isValidAdminBookingUpdate();
       allow delete: if isAdmin();
+
+      match /notificationEvents/{eventId} {
+        allow read, write: if false;
+      }
     }
 
-    // Messages Collection
     match /messages/{messageId} {
       allow read: if isAdmin();
-      allow create: if true;
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create: if isValidId(messageId)
+        && (isValidContactMessage(incoming()) || isValidPartnerRequest(incoming()));
+      allow update, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

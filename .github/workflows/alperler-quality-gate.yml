@@ -57,13 +57,14 @@ jobs:
       - name: Commit verified changes
         shell: bash
         run: |
-          if git diff --quiet; then
-            echo "No source changes to commit."
-            exit 0
-          fi
           git config user.name "alperler-quality-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add src index.html package.json package-lock.json
-          git commit -m "fix: professional responsive and accessibility hardening"
-          git pull --rebase origin main
+          git add src index.html package.json package-lock.json firestore.rules
+          if git diff --cached --quiet; then
+            echo "No verified source changes to commit."
+            exit 0
+          fi
+          git commit -m "fix: professional responsive accessibility and admin security hardening"
+          git fetch origin main
+          git rebase origin/main
           git push origin HEAD:main

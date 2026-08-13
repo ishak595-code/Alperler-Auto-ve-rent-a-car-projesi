@@ -1,0 +1,53 @@
+name: V20 latest cloud migration verifier
+
+on:
+  push:
+    branches:
+      - feature/v20-mobile-stability
+    paths:
+      - ".github/workflows/v20-apply-latest.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  migrate-test-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/v20-mobile-stability
+          fetch-depth: 0
+
+      - name: Apply idempotent content cloud patch
+        run: python project/v20-content-cloud-patch.py
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript quality check
+        run: npx tsc --noEmit
+
+      - name: Production build
+        run: npm run build
+
+      - name: Commit verified migration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/services/car.service.ts src/pages/admin/admin-dashboard.component.ts
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: sync admin managed content with Firestore"
+          fi
+
+      - name: Integrate latest remote head and push
+        run: |
+          git pull --rebase origin feature/v20-mobile-stability
+          git push origin HEAD:feature/v20-mobile-stability

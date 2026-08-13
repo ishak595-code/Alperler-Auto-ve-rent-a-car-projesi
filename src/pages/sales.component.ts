@@ -15,7 +15,7 @@ import { Router, RouterModule, ActivatedRoute } from "@angular/router";
 import { UiService } from "../services/ui.service";
 import { MatIconModule } from "@angular/material/icon";
 import { LightboxComponent } from "../components/lightbox.component";
-import { VehicleCardComponent } from "../components/vehicle-card.component";
+import { VehicleListItemComponent } from "../components/vehicle-list-item.component";
 
 @Component({
   selector: "app-sales",
@@ -26,7 +26,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
     RouterModule,
     MatIconModule,
     LightboxComponent,
-    VehicleCardComponent,
+    VehicleListItemComponent,
   ],
   template: `
     <div class="bg-slate-950 text-slate-300 min-h-screen font-sans pb-20">
@@ -385,7 +385,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
       <!-- Car List -->
       <div class="max-w-7xl mx-auto px-4 md:px-0 py-8 md:py-8">
         <div class="mb-8">
-          <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
+          <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">
             @if (showFavoritesOnly()) {
               Favorilerim ({{ filteredCars().length }})
             } @else {
@@ -415,9 +415,9 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
         </div>
 
         @if (filteredCars().length > 0) {
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+          <div class="mx-auto flex max-w-5xl flex-col gap-3 sm:gap-4">
             @for (car of filteredCars(); track car.id) {
-              <app-vehicle-card [car]="car" variant="sale"></app-vehicle-card>
+              <app-vehicle-list-item [car]="car" variant="sale"></app-vehicle-list-item>
             }
           </div>
         } @else {

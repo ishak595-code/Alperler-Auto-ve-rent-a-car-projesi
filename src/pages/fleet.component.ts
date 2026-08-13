@@ -6,17 +6,17 @@ import { UiService } from "../services/ui.service";
 import { FormsModule } from "@angular/forms";
 import { Router, ActivatedRoute, RouterLink } from "@angular/router";
 import { Car } from "../models/car.model";
-import { VehicleCardComponent } from "../components/vehicle-card.component";
+import { VehicleListItemComponent } from "../components/vehicle-list-item.component";
 
 @Component({
   selector: "app-fleet",
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, VehicleCardComponent, RouterLink],
+  imports: [CommonModule, FormsModule, MatIconModule, VehicleListItemComponent, RouterLink],
   template: `
     <div class="bg-slate-950 text-slate-300 min-h-screen font-sans pb-20">
       <!-- Sticky Module Header -->
       <div
-        class="bg-slate-900 border-b border-slate-800 sticky top-[72px] md:top-[96px] z-40 shadow-lg"
+        class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 shadow-lg"
       >
         <div class="max-w-7xl mx-auto px-2 sm:px-4">
           <!-- Top Row: Back + Search + Filter/Sort -->
@@ -439,7 +439,7 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
             @if (showFavoritesOnly()) {
               Favorilerim ({{ sortedCars().length }})
             } @else {
-              Filomuz
+              Kiralık Araçlar
               <span class="text-xl md:text-2xl text-slate-400 font-medium ml-2"
                 >({{ sortedCars().length }} Araç)</span
               >
@@ -485,14 +485,12 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
 
         <!-- Car List -->
         @if (sortedCars().length > 0) {
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 px-4 md:px-0">
+          <div class="mx-auto flex max-w-5xl flex-col gap-3 px-3 sm:gap-4 sm:px-4 md:px-0">
             @for (car of sortedCars(); track car.id) {
-              <app-vehicle-card
+              <app-vehicle-list-item
                 [car]="car"
                 [variant]="car.category === 'SALE' ? 'sale' : 'rental'"
-                [withDriver]="withDriver()"
-              >
-              </app-vehicle-card>
+              ></app-vehicle-list-item>
             }
           </div>
         } @else {

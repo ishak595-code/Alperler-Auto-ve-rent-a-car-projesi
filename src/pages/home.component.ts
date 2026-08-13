@@ -600,7 +600,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
         @for (car of recommendedCars(); track car.id) {
           <a [routerLink]="['/fleet', car.id]" class="snap-start flex-shrink-0 w-[240px] md:w-[280px] bg-white border border-slate-100 rounded-2xl p-3 hover:bg-slate-50 transition-all flex flex-col gap-3 group shadow-sm hover:shadow-md">
             <div class="w-full h-[120px] md:h-[140px] rounded-xl bg-slate-100 overflow-hidden relative">
-              <img [src]="car.images?.[0] || car.image" [alt]="car.brand + ' ' + car.model" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <img [src]="car.images?.[0] || car.image" (error)="handleRecommendedImageError($event)" [alt]="car.brand + ' ' + car.model" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               @if (car.badge) {
                 <span class="absolute top-2 left-2 bg-slate-900 text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase shadow-sm">
                   {{ car.badge }}
@@ -666,7 +666,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
         </div>
 
         <div
-          class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 max-w-7xl mx-auto mb-12 md:mb-16"
+          class="mx-auto flex max-w-5xl flex-col gap-3 sm:gap-4 mb-12 md:mb-16"
         >
           @for (car of featuredCars(); track car.id) {
             <app-vehicle-list-item [car]="car" variant="rental"></app-vehicle-list-item>
@@ -746,7 +746,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
         </div>
 
         <div
-          class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 max-w-7xl mx-auto mb-12 md:mb-16"
+          class="mx-auto flex max-w-5xl flex-col gap-3 sm:gap-4 mb-12 md:mb-16"
         >
           @for (car of featuredSaleCars(); track car.id) {
             <app-vehicle-list-item [car]="car" variant="sale"></app-vehicle-list-item>
@@ -964,6 +964,12 @@ export class HomeComponent implements OnInit {
   hideBrokenImage(event: Event) {
     const image = event.target as HTMLImageElement;
     image.style.display = 'none';
+  }
+
+  handleRecommendedImageError(event: Event) {
+    const image = event.target as HTMLImageElement;
+    image.onerror = null;
+    image.src = "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?q=80&w=1000&auto=format&fit=crop";
   }
 
   openDatePicker(input: HTMLInputElement) {

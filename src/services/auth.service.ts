@@ -1,8 +1,10 @@
 import { Injectable, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import {
+  EmailAuthProvider,
   GoogleAuthProvider,
   User,
+  linkWithCredential,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
@@ -98,6 +100,11 @@ export class AuthService {
       case "auth/wrong-password":
       case "auth/user-not-found":
         return "E-posta veya şifre doğrulanamadı.";
+      case "auth/provider-already-linked":
+        return "E-posta/şifre yöntemi bu yönetici hesabına zaten bağlı. Yönetim panelinden mevcut şifreyi değiştirebilirsiniz.";
+      case "auth/credential-already-in-use":
+      case "auth/email-already-in-use":
+        return "Bu e-posta/şifre kimliği başka bir Firebase kullanıcı kaydıyla ilişkili. Hesapların Firebase Authentication içinde birleştirilmesi gerekiyor.";
       case "auth/weak-password":
         return "Şifre Firebase güvenlik gereksinimlerini karşılamıyor. Daha uzun ve karmaşık bir şifre kullanın.";
       case "auth/too-many-requests":
@@ -184,41 +191,39 @@ export class AuthService {
 
   async createStrongPasswordForCurrentUser(): Promise<string | null> {
     this.clearError();
-    const user = auth.currentUser;
-    if (!user?.email) {
-      this._lastErrorMessage.set("Şifre oluşturmak için önce yönetici hesabıyla giriş yapın.");
-      return null;
-    }
-
     const password = this.generateStrongPassword();
-    try {
-      await updatePassword(user, password);
-      return password;
-    } catch (error) {
-      this.captureError(error, "Yönetici şifresi oluşturulamadı.");
-      return null;
-    }
+    const success = await this.setOrLinkPassword(password);
+    return success ? password : null;
   }
 
   async changeCurrentPassword(newPassword: string): Promise<boolean> {
     this.clearError();
-    const user = auth.currentUser;
-    if (!user?.email) {
-      this._lastErrorMessage.set("Şifre değiştirmek için önce yönetici hesabıyla giriş yapın.");
-      return false;
-    }
-
     const validationError = this.validateStrongPassword(newPassword);
     if (validationError) {
       this._lastErrorMessage.set(validationError);
       return false;
     }
+    return this.setOrLinkPassword(newPassword);
+  }
+
+  private async setOrLinkPassword(newPassword: string): Promise<boolean> {
+    const user = auth.currentUser;
+    if (!user?.email) {
+      this._lastErrorMessage.set("Şifre işlemi için önce yönetici hesabıyla giriş yapın.");
+      return false;
+    }
 
     try {
-      await updatePassword(user, newPassword);
+      if (this.hasPasswordProvider()) {
+        await updatePassword(user, newPassword);
+      } else {
+        const credential = EmailAuthProvider.credential(user.email, newPassword);
+        await linkWithCredential(user, credential);
+        await user.reload();
+      }
       return true;
     } catch (error) {
-      this.captureError(error, "Yönetici şifresi değiştirilemedi.");
+      this.captureError(error, "Yönetici e-posta/şifre kimliği oluşturulamadı veya güncellenemedi.");
       return false;
     }
   }

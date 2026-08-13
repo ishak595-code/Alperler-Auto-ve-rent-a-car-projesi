@@ -1,0 +1,45 @@
+name: One-shot admin storage hotfix
+
+on:
+  push:
+    paths:
+      - '.github/workflows/admin-storage-hotfix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-admin-storage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Preserve admin site configuration
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('src/services/car.service.ts')
+          text = path.read_text(encoding='utf-8')
+          target = '''    // Clean up old keys\n    localStorage.removeItem("db_config");\n    localStorage.removeItem("db_config_v12");\n    localStorage.removeItem("db_faqs");'''
+          replacement = '''    // Clean up legacy keys only. Never delete the active admin configuration.\n    localStorage.removeItem("db_config");\n    localStorage.removeItem("db_faqs");'''
+
+          if target not in text:
+              raise SystemExit('Expected CarService storage block was not found; refusing unsafe patch.')
+
+          path.write_text(text.replace(target, replacement, 1), encoding='utf-8')
+
+      - name: Commit hotfix
+        run: |
+          if git diff --quiet; then
+            echo 'No change required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/services/car.service.ts
+          git commit -m 'fix: preserve admin site configuration across reloads'
+          git push origin HEAD:main

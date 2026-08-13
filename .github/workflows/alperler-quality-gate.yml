@@ -1,4 +1,4 @@
-# Validates the complete latest main tree, including frontend, Vercel Functions and cloud rules.
+# Validates frontend, Vercel Functions, SEO build inputs and cloud rules on every development branch and main.
 name: Alperler Professional Quality Gate
 
 on:
@@ -6,9 +6,12 @@ on:
   push:
     branches:
       - main
+      - "feature/**"
     paths:
       - "src/**"
       - "api/**"
+      - "scripts/**"
+      - "public/**"
       - "project/**"
       - "index.html"
       - "package.json"
@@ -16,6 +19,7 @@ on:
       - "angular.json"
       - "tsconfig.api.json"
       - "firestore.rules"
+      - "vercel.json"
       - ".github/workflows/alperler-quality-gate.yml"
   pull_request:
     branches:
@@ -23,6 +27,8 @@ on:
     paths:
       - "src/**"
       - "api/**"
+      - "scripts/**"
+      - "public/**"
       - "project/**"
       - "index.html"
       - "package.json"
@@ -30,6 +36,7 @@ on:
       - "angular.json"
       - "tsconfig.api.json"
       - "firestore.rules"
+      - "vercel.json"
       - ".github/workflows/alperler-quality-gate.yml"
 
 permissions:
@@ -66,3 +73,10 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+      - name: Reject stale production SEO markers
+        run: |
+          if grep -R "alperrentacar.online\|picsum.photos/id/1072\|+905320000000" dist public -n 2>/dev/null; then
+            echo "Stale or unverified SEO marker found in build output."
+            exit 1
+          fi

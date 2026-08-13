@@ -8,7 +8,7 @@ import { SeoService } from "../services/seo.service";
 import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { LightboxComponent } from "../components/lightbox.component";
-import { VehicleCardComponent } from "../components/vehicle-card.component";
+import { VehicleListItemComponent } from "../components/vehicle-list-item.component";
 import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
 
 @Component({
@@ -23,7 +23,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
     FormsModule,
     MatIconModule,
     LightboxComponent,
-    VehicleCardComponent,
+    VehicleListItemComponent,
     DragToScrollDirective,
   ],
   template: `
@@ -666,10 +666,10 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
         </div>
 
         <div
-          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto mb-12 md:mb-16"
+          class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 max-w-7xl mx-auto mb-12 md:mb-16"
         >
           @for (car of featuredCars(); track car.id) {
-            <app-vehicle-card [car]="car" variant="rental"></app-vehicle-card>
+            <app-vehicle-list-item [car]="car" variant="rental"></app-vehicle-list-item>
           }
         </div>
 
@@ -746,10 +746,10 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
         </div>
 
         <div
-          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto mb-12 md:mb-16"
+          class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 max-w-7xl mx-auto mb-12 md:mb-16"
         >
           @for (car of featuredSaleCars(); track car.id) {
-            <app-vehicle-card [car]="car" variant="sale"></app-vehicle-card>
+            <app-vehicle-list-item [car]="car" variant="sale"></app-vehicle-list-item>
           }
         </div>
 

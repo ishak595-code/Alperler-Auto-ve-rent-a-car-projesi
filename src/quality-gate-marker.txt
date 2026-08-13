@@ -1,1 +1,0 @@
-Temporary quality gate marker. Safe to remove after verification.

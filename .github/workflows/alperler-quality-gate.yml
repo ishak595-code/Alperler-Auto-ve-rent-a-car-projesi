@@ -1,3 +1,4 @@
+# Validates the complete latest main tree, including automated migration commits.
 name: Alperler Professional Quality Gate
 
 on:

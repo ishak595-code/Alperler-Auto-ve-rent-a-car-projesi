@@ -6,7 +6,6 @@ import { HomeComponent } from './pages/home.component';
 import { FleetComponent } from './pages/fleet.component';
 import { SalesComponent } from './pages/sales.component';
 import { AboutComponent } from './pages/about.component';
-import { ContactComponent } from './pages/contact.component';
 import { BlogDetailComponent } from './pages/blog-detail.component';
 import { BlogListComponent } from './pages/blog-list.component';
 import { FaqComponent } from './pages/faq.component';
@@ -37,13 +36,11 @@ const adminGuard: CanActivateFn = async () => {
 };
 
 export const routes: Routes = [
-  // Standalone Admin Login (No Main Layout)
   { 
     path: 'admin/login', 
     loadComponent: () => import('./pages/admin/admin-login.component').then(m => m.AdminLoginComponent)
   },
 
-  // Standalone Detail Routes (No Main Layout)
   { path: 'fleet', component: FleetComponent },
   { path: 'fleet/:id', component: CarDetailComponent },
   { path: 'sales', component: SalesComponent },
@@ -53,7 +50,7 @@ export const routes: Routes = [
   { path: 'blog', component: BlogListComponent },
   { path: 'blog/:id', component: BlogDetailComponent },
   { path: 'about', component: AboutComponent },
-  { path: 'contact', component: ContactComponent },
+  { path: 'contact', loadComponent: () => import('./pages/contact-entry.component').then(m => m.ContactEntryComponent) },
   { path: 'faq', component: FaqComponent },
   { path: 'legal', component: LegalComponent },
   { path: 'appointment', loadComponent: () => import('./pages/appointment.component').then(m => m.AppointmentComponent) },
@@ -61,7 +58,6 @@ export const routes: Routes = [
   { path: 'track-car/:id', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
   { path: 'track-car', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
 
-  // Public Routes (Wrapped in MainLayout)
   {
     path: '',
     component: MainLayoutComponent,
@@ -70,7 +66,6 @@ export const routes: Routes = [
     ]
   },
   
-  // Admin Routes (Separate Layout)
   { 
     path: 'admin', 
     component: AdminLayoutComponent,

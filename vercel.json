@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/fleet", "destination": "/index.html" },
+    { "source": "/fleet/:path*", "destination": "/index.html" },
+    { "source": "/sales", "destination": "/index.html" },
+    { "source": "/sales/:path*", "destination": "/index.html" },
+    { "source": "/tours", "destination": "/index.html" },
+    { "source": "/tour/:path*", "destination": "/index.html" },
+    { "source": "/branches", "destination": "/index.html" },
+    { "source": "/blog", "destination": "/index.html" },
+    { "source": "/blog/:path*", "destination": "/index.html" },
+    { "source": "/about", "destination": "/index.html" },
+    { "source": "/contact", "destination": "/index.html" },
+    { "source": "/faq", "destination": "/index.html" },
+    { "source": "/legal", "destination": "/index.html" },
+    { "source": "/appointment", "destination": "/index.html" },
+    { "source": "/list-your-car", "destination": "/index.html" },
+    { "source": "/track-car", "destination": "/index.html" },
+    { "source": "/track-car/:path*", "destination": "/index.html" },
+    { "source": "/admin", "destination": "/index.html" },
+    { "source": "/admin/:path*", "destination": "/index.html" }
+  ]
+}

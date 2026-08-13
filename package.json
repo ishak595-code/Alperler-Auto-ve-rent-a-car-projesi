@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "ng build && node --import tsx server.ts",
     "start": "node --import tsx server.ts",
+    "prebuild": "node scripts/generate-seo-files.mjs",
     "build": "ng build",
     "lint": "tsc --noEmit",
     "preview": "ng serve --configuration=production"

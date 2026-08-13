@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 function normalizeOrigin(value) {
@@ -49,8 +49,27 @@ const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://w
 writeFileSync(resolve(publicDir, "robots.txt"), robots, "utf8");
 writeFileSync(resolve(publicDir, "sitemap.xml"), sitemap, "utf8");
 
+const indexPath = resolve(process.cwd(), "index.html");
+let index = readFileSync(indexPath, "utf8");
+index = index
+  .replace(/\s*<link\s+rel=["']canonical["'][^>]*>\s*/gi, "\n")
+  .replace(/\s*<meta\s+property=["']og:url["'][^>]*>\s*/gi, "\n")
+  .replace(/\s*<meta\s+property=["']og:image(?::width|:height)?["'][^>]*>\s*/gi, "\n")
+  .replace(/\s*<meta\s+name=["']twitter:image["'][^>]*>\s*/gi, "\n")
+  .replace(/\s*<meta\s+name=["']twitter:site["'][^>]*>\s*/gi, "\n")
+  .replace(/\s*<!-- AI Discovery & Knowledge Graph JSON-LD -->\s*<script\s+type=["']application\/ld\+json["']>[\s\S]*?<\/script>\s*/i, "\n");
+
+const robotsContent = siteUrl
+  ? "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+  : "noindex, nofollow";
+index = index.replace(
+  /<meta\s+name=["']robots["'][^>]*>/i,
+  `<meta name="robots" content="${robotsContent}">`,
+);
+writeFileSync(indexPath, index, "utf8");
+
 console.log(
   siteUrl
-    ? `[seo] Generated robots.txt and sitemap.xml for ${siteUrl}`
+    ? `[seo] Prepared domain-aware SEO files for ${siteUrl}`
     : "[seo] PUBLIC_APP_URL is not configured; generated no-index SEO files.",
 );

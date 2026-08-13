@@ -27,10 +27,12 @@ export class BookingService {
   private readonly http = inject(HttpClient);
   private readonly bookings = signal<BookingRecord[]>([]);
   private readonly adminError = signal<string | null>(null);
+  private readonly adminLoaded = signal(false);
   private adminUnsubscribe: Unsubscribe | null = null;
 
   readonly records = this.bookings.asReadonly();
   readonly lastAdminError = this.adminError.asReadonly();
+  readonly isAdminLoaded = this.adminLoaded.asReadonly();
 
   async create(input: CreateBookingInput): Promise<BookingRecord> {
     const normalized = this.normalizeInput(input);
@@ -60,6 +62,7 @@ export class BookingService {
   startAdminListener(): void {
     if (this.adminUnsubscribe) return;
     this.adminError.set(null);
+    this.adminLoaded.set(false);
 
     this.adminUnsubscribe = onSnapshot(
       collection(db, "bookings"),
@@ -73,12 +76,14 @@ export class BookingService {
           );
         this.bookings.set(records);
         this.adminError.set(null);
+        this.adminLoaded.set(true);
       },
       (error) => {
         console.error("Booking admin listener failed.", error);
         this.adminError.set(
           "Rezervasyon kayıtları Firestore üzerinden okunamadı. Yönetici yetkisi ve Firestore kurallarını kontrol edin.",
         );
+        this.adminLoaded.set(true);
       },
     );
   }

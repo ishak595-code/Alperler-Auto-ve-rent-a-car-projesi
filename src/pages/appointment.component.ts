@@ -1,206 +1,166 @@
-import { Component, inject, signal } from "@angular/core";
 import { CommonModule, Location } from "@angular/common";
+import { Component, inject, signal } from "@angular/core";
 import { FormBuilder, ReactiveFormsModule, Validators } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
-import { CarService } from "../services/car.service";
-import { ToastService } from "../services/toast.service";
 import { Router } from "@angular/router";
+import { BookingService } from "../services/booking.service";
+import { ToastService } from "../services/toast.service";
 
 @Component({
   selector: "app-appointment",
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, MatIconModule],
   template: `
-    <div class="bg-slate-950 text-slate-300 min-h-screen font-sans pb-20 overflow-x-hidden">
-      <!-- Sticky Module Header -->
-      <div
-        class="bg-slate-900 border-b border-slate-800 sticky top-[72px] md:top-[96px] z-40 shadow-lg"
-      >
-        <div class="max-w-7xl mx-auto px-4">
-          <div class="min-h-16 flex items-center gap-2 sm:gap-3 py-2">
+    <div class="min-h-screen overflow-x-hidden bg-slate-950 pb-20 font-sans text-slate-300">
+      <div class="sticky top-[72px] z-40 border-b border-slate-800 bg-slate-900 shadow-lg md:top-[96px]">
+        <div class="mx-auto max-w-7xl px-4">
+          <div class="flex min-h-16 items-center gap-2 py-2 sm:gap-3">
             <button
+              type="button"
               (click)="goBack()"
-              class="w-11 h-11 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors shrink-0 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              class="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               aria-label="Geri Dön"
             >
               <mat-icon>arrow_back</mat-icon>
             </button>
-            <h1 class="text-lg font-bold text-white">
-              Randevu Talebi
-            </h1>
+            <h1 class="text-lg font-bold text-white">Randevu Talebi</h1>
           </div>
         </div>
       </div>
 
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12">
-        <div class="text-center mb-10">
-          <h1 class="text-3xl sm:text-4xl font-serif font-bold text-slate-100 mb-4 text-balance leading-tight">
-            Randevu Talep Et
-          </h1>
-          <p class="text-slate-400 text-base sm:text-lg text-pretty leading-relaxed">
-            Araç kiralama, satın alma, VIP tur veya diğer hizmetlerimiz için
-            hemen randevu oluşturun.
+      <div class="mx-auto max-w-3xl px-4 pt-8 sm:px-6 sm:pt-12 lg:px-8">
+        <div class="mb-10 text-center">
+          <h1 class="mb-4 text-balance font-serif text-3xl font-bold leading-tight text-slate-100 sm:text-4xl">Randevu Talep Et</h1>
+          <p class="text-pretty text-base leading-relaxed text-slate-400 sm:text-lg">
+            Araç kiralama, satın alma, VIP tur veya diğer hizmetlerimiz için talebinizi oluşturun. Kayıt sonrası size referans numarası verilir.
           </p>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div class="overflow-hidden rounded-2xl bg-white shadow-xl">
           <div class="p-4 sm:p-8">
             @if (submitSuccess()) {
-              <div
-                class="bg-emerald-50 text-emerald-800 p-8 rounded-xl text-center"
-              >
-                <mat-icon
-                  class="text-emerald-500 mb-4"
-                  style="transform: scale(2.5);"
-                  >check_circle</mat-icon
-                >
-                <h3 class="text-2xl font-bold mb-3">Talebiniz Alındı!</h3>
-                <p class="text-lg">
-                  Randevu talebiniz başarıyla bize ulaştı. Müşteri temsilcimiz
-                  en kısa sürede sizinle iletişime geçecektir.
+              <div class="rounded-xl bg-emerald-50 p-8 text-center text-emerald-900" role="status">
+                <mat-icon class="mb-4 !h-12 !w-12 !text-[48px] text-emerald-500">check_circle</mat-icon>
+                <h2 class="text-2xl font-bold">Randevu Talebiniz Kaydedildi</h2>
+                <p class="mt-3 text-base leading-relaxed">
+                  Talebiniz Firestore sistemimize başarıyla kaydedildi. Kesin randevu onayı ayrıca bildirilecektir.
                 </p>
+                <div class="mx-auto mt-5 max-w-md rounded-xl border border-emerald-200 bg-white p-4 text-left">
+                  <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Referans Numarası</div>
+                  <div class="mt-1 break-all font-mono text-sm font-black text-slate-900">{{ bookingReference() }}</div>
+                  <div class="mt-4 text-xs font-bold uppercase tracking-wider text-slate-500">Bildirim Durumu</div>
+                  <p class="mt-1 text-sm font-medium text-slate-700">{{ deliveryMessage() }}</p>
+                </div>
                 <button
+                  type="button"
                   (click)="goHome()"
-                  class="mt-8 min-h-12 px-8 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-blue-500 hover:text-slate-900 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  class="mt-8 min-h-12 rounded-xl bg-slate-900 px-8 py-3 font-bold text-white transition-colors hover:bg-blue-500 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
-                  Geri Dön
+                  Ana Sayfaya Dön
                 </button>
               </div>
             } @else {
-              <form
-                [formGroup]="appointmentForm"
-                (ngSubmit)="onSubmit()"
-                class="space-y-6"
-              >
-                <!-- Konu Seçimi -->
+              <form [formGroup]="appointmentForm" (ngSubmit)="onSubmit()" class="space-y-6">
                 <div class="space-y-3">
-                  <label
-                    class="block text-sm font-bold text-slate-700 uppercase tracking-wider"
-                    >Randevu Konusu *</label
-                  >
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label class="block text-sm font-bold uppercase tracking-wider text-slate-700">Randevu Konusu *</label>
+                  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     @for (topic of topics; track topic.id) {
                       <label class="relative cursor-pointer">
-                        <input
-                          type="radio"
-                          formControlName="topic"
-                          [value]="topic.id"
-                          class="peer sr-only"
-                        />
-                        <div
-                          class="min-h-14 p-4 border-2 border-slate-200 rounded-xl text-center hover:bg-slate-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all flex items-center justify-center gap-2"
-                        >
-                          <mat-icon
-                            class="text-slate-400 peer-checked:text-blue-500"
-                            >{{ topic.icon }}</mat-icon
-                          >
-                          <span
-                            class="font-bold text-slate-700 peer-checked:text-blue-700"
-                            >{{ topic.label }}</span
-                          >
+                        <input type="radio" formControlName="topic" [value]="topic.id" class="peer sr-only" />
+                        <div class="flex min-h-14 items-center justify-center gap-2 rounded-xl border-2 border-slate-200 p-4 text-center transition-all hover:bg-slate-50 peer-checked:border-blue-500 peer-checked:bg-blue-50">
+                          <mat-icon class="text-slate-400">{{ topic.icon }}</mat-icon>
+                          <span class="font-bold text-slate-700">{{ topic.label }}</span>
                         </div>
                       </label>
                     }
                   </div>
                 </div>
 
-                <!-- Kişisel Bilgiler -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                  <div>
-                    <label
-                      class="block text-sm font-bold text-slate-700 uppercase tracking-wider mb-2"
-                      >Ad Soyad *</label
-                    >
+                <div class="grid grid-cols-1 gap-6 pt-4 md:grid-cols-2">
+                  <label class="block">
+                    <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">Ad Soyad *</span>
                     <input
                       type="text"
                       autocomplete="name"
-                      aria-label="Ad Soyad"
                       formControlName="name"
-                      class="w-full min-h-12 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50 outline-none"
+                      class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                       placeholder="Adınız Soyadınız"
                     />
-                  </div>
-                  <div>
-                    <label
-                      class="block text-sm font-bold text-slate-700 uppercase tracking-wider mb-2"
-                      >Telefon *</label
-                    >
+                  </label>
+                  <label class="block">
+                    <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">Telefon *</span>
                     <input
                       type="tel"
                       inputmode="tel"
                       autocomplete="tel"
-                      aria-label="Telefon"
                       formControlName="phone"
-                      class="w-full min-h-12 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50 outline-none"
+                      class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                       placeholder="05XX XXX XX XX"
                     />
-                  </div>
+                  </label>
+                  <label class="block md:col-span-2">
+                    <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">E-posta *</span>
+                    <input
+                      type="email"
+                      inputmode="email"
+                      autocomplete="email"
+                      formControlName="email"
+                      class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      placeholder="ornek@email.com"
+                    />
+                    <span class="mt-1 block text-xs text-slate-500">Randevu kaydı ve durum değişiklikleri bu adrese gönderilir.</span>
+                  </label>
                 </div>
 
-                <!-- Tarih ve Saat -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label
-                      class="block text-sm font-bold text-slate-700 uppercase tracking-wider mb-2"
-                      >Tarih *</label
-                    >
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <label class="block">
+                    <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">Tarih *</span>
                     <input
                       type="date"
                       [min]="minDate"
-                      aria-label="Randevu tarihi"
                       formControlName="date"
-                      class="w-full min-h-12 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50 outline-none"
+                      class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                     />
-                  </div>
-                  <div>
-                    <label
-                      class="block text-sm font-bold text-slate-700 uppercase tracking-wider mb-2"
-                      >Saat *</label
-                    >
+                  </label>
+                  <label class="block">
+                    <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">Saat *</span>
                     <input
                       type="time"
-                      aria-label="Randevu saati"
                       formControlName="time"
-                      class="w-full min-h-12 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50 outline-none"
+                      class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                     />
-                  </div>
+                  </label>
                 </div>
 
-                <!-- Mesaj -->
-                <div>
-                  <label
-                    class="block text-sm font-bold text-slate-700 uppercase tracking-wider mb-2"
-                    >Mesajınız / Notunuz</label
-                  >
+                <label class="block">
+                  <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">Mesajınız / Notunuz</span>
                   <textarea
                     formControlName="message"
-                    aria-label="Randevu notu"
                     rows="4"
-                    class="w-full min-h-12 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50 outline-none"
+                    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                     placeholder="Eklemek istediğiniz detaylar..."
                   ></textarea>
-                </div>
+                </label>
 
-                <div class="pt-6">
-                  @if (hasFormErrors()) {
-                    <div role="alert" aria-live="assertive" class="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-800">
-                      Lütfen ad-soyad, telefon, konu, tarih ve saat alanlarını geçerli biçimde doldurun.
-                    </div>
+                @if (hasFormErrors()) {
+                  <div role="alert" aria-live="assertive" class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-800">
+                    Lütfen ad-soyad, telefon, e-posta, konu, tarih ve saat alanlarını geçerli biçimde doldurun.
+                  </div>
+                }
+
+                <button
+                  type="submit"
+                  [disabled]="isSubmitting()"
+                  class="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-4 font-bold uppercase tracking-wider text-white shadow-xl transition-colors hover:bg-blue-500 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:px-8"
+                >
+                  @if (isSubmitting()) {
+                    <mat-icon class="animate-spin">progress_activity</mat-icon>
+                    Kaydediliyor...
+                  } @else {
+                    <mat-icon>event_available</mat-icon>
+                    Randevu Talebini Gönder
                   }
-                  <button
-                    type="submit"
-                    [disabled]="isSubmitting()"
-                    class="w-full min-h-14 flex justify-center items-center gap-2 px-5 sm:px-8 py-4 bg-slate-900 text-white rounded-xl font-bold uppercase tracking-wider hover:bg-blue-500 hover:text-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                  >
-                    @if (isSubmitting()) {
-                      <mat-icon class="animate-spin">refresh</mat-icon>
-                      Gönderiliyor...
-                    } @else {
-                      <mat-icon>event_available</mat-icon>
-                      Randevu Talebini Gönder
-                    }
-                  </button>
-                </div>
+                </button>
               </form>
             }
           </div>
@@ -210,18 +170,20 @@ import { Router } from "@angular/router";
   `,
 })
 export class AppointmentComponent {
-  private fb = inject(FormBuilder);
-  private carService = inject(CarService);
-  private toastService = inject(ToastService);
-  private router = inject(Router);
-  private location = inject(Location);
+  private readonly fb = inject(FormBuilder);
+  private readonly bookingService = inject(BookingService);
+  private readonly toastService = inject(ToastService);
+  private readonly router = inject(Router);
+  private readonly location = inject(Location);
 
-  isSubmitting = signal(false);
-  submitSuccess = signal(false);
-  hasFormErrors = signal(false);
-  minDate = new Date().toISOString().slice(0, 10);
+  readonly isSubmitting = signal(false);
+  readonly submitSuccess = signal(false);
+  readonly hasFormErrors = signal(false);
+  readonly bookingReference = signal("");
+  readonly deliveryMessage = signal("");
+  readonly minDate = new Date().toISOString().slice(0, 10);
 
-  topics = [
+  readonly topics = [
     { id: "rent", label: "Araç Kiralama", icon: "car_rental" },
     { id: "buy", label: "Araç Satın Alma", icon: "directions_car" },
     { id: "sell", label: "Aracımı Satmak/Kiralamak İstiyorum", icon: "sell" },
@@ -229,73 +191,102 @@ export class AppointmentComponent {
     { id: "other", label: "Diğer", icon: "more_horiz" },
   ];
 
-  appointmentForm = this.fb.group({
+  readonly appointmentForm = this.fb.group({
     topic: ["rent", Validators.required],
-    name: ["", [Validators.required, Validators.minLength(2), Validators.maxLength(120)]],
-    phone: ["", [Validators.required, Validators.pattern(/^[+0-9()\s-]{7,24}$/)]],
+    name: [
+      "",
+      [Validators.required, Validators.minLength(2), Validators.maxLength(120)],
+    ],
+    phone: [
+      "",
+      [Validators.required, Validators.pattern(/^[+0-9()\s-]{7,24}$/)],
+    ],
+    email: [
+      "",
+      [Validators.required, Validators.email, Validators.maxLength(160)],
+    ],
     date: ["", Validators.required],
     time: ["", Validators.required],
     message: ["", Validators.maxLength(1000)],
   });
 
-  goBack() {
-    if (window.history.length > 1) {
-      this.location.back();
-    } else {
-      this.router.navigate(["/"]);
-    }
+  goBack(): void {
+    if (window.history.length > 1) this.location.back();
+    else void this.router.navigate(["/"]);
   }
 
-  goHome() {
-    this.router.navigate(["/"]);
+  goHome(): void {
+    void this.router.navigate(["/"]);
   }
 
-  async onSubmit() {
+  async onSubmit(): Promise<void> {
     this.hasFormErrors.set(!this.appointmentForm.valid);
-    if (this.appointmentForm.valid) {
-      this.isSubmitting.set(true);
-
-      const formValue = this.appointmentForm.value;
-      const topicLabel =
-        this.topics.find((t) => t.id === formValue.topic)?.label || "Randevu";
-
-      // We will save this as a special type of reservation/request in the admin panel
-      const newRequest = {
-        id: Date.now().toString(),
-        customerName: formValue.name ?? undefined,
-        customerPhone: formValue.phone ?? undefined,
-        customerEmail: "",
-        item: null,
-        itemName: `Randevu Talebi: ${topicLabel}`,
-        startDate: formValue.date ?? undefined,
-        endDate: formValue.date ?? undefined,
-        totalPrice: 0,
-        status: "PENDING" as const,
-        dateCreated: new Date(),
-        type: "APPOINTMENT" as const,
-        notes: `Saat: ${formValue.time}\nMesaj: ${formValue.message || "Belirtilmedi"}`,
-      };
-
-      try {
-        await this.carService.addReservation(newRequest);
-        this.hasFormErrors.set(false);
-        this.submitSuccess.set(true);
-        this.toastService.show(
-          "Randevu talebiniz başarıyla gönderildi.",
-          "success",
-        );
-      } catch (error) {
-        console.error("Appointment submission failed", error);
-        this.toastService.show(
-          "Randevu talebi gönderilemedi. Lütfen tekrar deneyin veya bizimle iletişime geçin.",
-          "error",
-        );
-      } finally {
-        this.isSubmitting.set(false);
-      }
-    } else {
-      this.toastService.show("Lütfen zorunlu alanları doldurunuz.", "error");
+    if (!this.appointmentForm.valid || this.isSubmitting()) {
       this.appointmentForm.markAllAsTouched();
+      if (!this.appointmentForm.valid) {
+        this.toastService.show("Lütfen zorunlu alanları kontrol edin.", "error");
+      }
+      return;
     }
+
+    this.isSubmitting.set(true);
+    const value = this.appointmentForm.getRawValue();
+    const topicLabel =
+      this.topics.find((topic) => topic.id === value.topic)?.label || "Randevu";
+    const appointmentDateTime = `${value.date}T${value.time}`;
+
+    try {
+      const record = await this.bookingService.create({
+        type: "APPOINTMENT",
+        itemName: `Randevu: ${topicLabel}`,
+        customerName: value.name.trim(),
+        customerPhone: value.phone.trim(),
+        customerEmail: value.email.trim(),
+        startDate: appointmentDateTime,
+        endDate: appointmentDateTime,
+        totalPrice: 0,
+        currency: "TRY",
+        notes: [
+          `Saat: ${value.time}`,
+          value.message?.trim() ? `Mesaj: ${value.message.trim()}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        paymentMethod: "NONE",
+        source: "WEB",
+      });
+
+      this.bookingReference.set(record.id);
+      this.deliveryMessage.set(this.describeDelivery(record.notification));
+      this.hasFormErrors.set(false);
+      this.submitSuccess.set(true);
+      this.toastService.show("Randevu talebiniz kaydedildi.", "success");
+    } catch (error) {
+      console.error("Appointment submission failed.", error);
+      this.toastService.show(
+        "Randevu talebi kaydedilemedi. Lütfen tekrar deneyin veya bizimle iletişime geçin.",
+        "error",
+      );
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  private describeDelivery(
+    delivery: Awaited<ReturnType<BookingService["create"]>>["notification"],
+  ): string {
+    if (!delivery) return "Bildirim sonucu alınamadı. Rezervasyon kaydı korunmaktadır.";
+    const emailSent = delivery.email.state === "sent";
+    const smsSent = delivery.sms.state === "sent";
+    if (emailSent && smsSent) return "Onay e-postası ve SMS gönderildi.";
+    if (emailSent) return "E-posta gönderildi. SMS kanalı henüz tamamlanmadı.";
+    if (smsSent) return "SMS gönderildi. E-posta kanalı henüz tamamlanmadı.";
+    if (
+      delivery.email.state === "not_configured" ||
+      delivery.sms.state === "not_configured"
+    ) {
+      return "Talebiniz kaydedildi. Bildirim sağlayıcılarından en az biri henüz yapılandırılmamış.";
+    }
+    return "Talebiniz kaydedildi ancak otomatik bildirim gönderimi tamamlanamadı. Kaydınız kaybolmadı.";
   }
 }

@@ -32,11 +32,11 @@ import { VehicleListItemComponent } from "../components/vehicle-list-item.compon
     <div class="bg-slate-950 text-slate-300 min-h-screen font-sans pb-20">
       <!-- Sticky Module Header -->
       <div
-        class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg"
+        class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 shadow-lg"
       >
-        <div class="max-w-7xl mx-auto px-4">
+        <div class="max-w-7xl mx-auto px-2 sm:px-4">
           <!-- Top Row: Back + Search + Filter/Sort -->
-          <div class="h-16 flex items-center gap-3">
+          <div class="min-h-16 flex items-center gap-2 sm:gap-3 py-2">
             <button
               (click)="goBack()"
               class="p-2 -ml-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -44,9 +44,12 @@ import { VehicleListItemComponent } from "../components/vehicle-list-item.compon
             >
               <mat-icon>arrow_back</mat-icon>
             </button>
-            <div class="relative flex-grow">
+            <div class="relative flex-grow min-w-0">
               <input
-                type="text"
+                type="search"
+                inputmode="search"
+                autocomplete="off"
+                aria-label="Satılık araçlarda ara"
                 [(ngModel)]="searchQuery"
                 [placeholder]="
                   t().sales.searchPlaceholder ||
@@ -415,7 +418,7 @@ import { VehicleListItemComponent } from "../components/vehicle-list-item.compon
         </div>
 
         @if (filteredCars().length > 0) {
-          <div class="mx-auto flex max-w-5xl flex-col gap-3 sm:gap-4">
+          <div class="mx-auto max-w-5xl overflow-hidden border-y border-slate-200 bg-white md:rounded-xl md:border">
             @for (car of filteredCars(); track car.id) {
               <app-vehicle-list-item [car]="car" variant="sale"></app-vehicle-list-item>
             }

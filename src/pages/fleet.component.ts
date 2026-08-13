@@ -485,7 +485,7 @@ import { VehicleListItemComponent } from "../components/vehicle-list-item.compon
 
         <!-- Car List -->
         @if (sortedCars().length > 0) {
-          <div class="mx-auto flex max-w-5xl flex-col gap-3 px-3 sm:gap-4 sm:px-4 md:px-0">
+          <div class="mx-auto max-w-5xl overflow-hidden border-y border-slate-200 bg-white md:rounded-xl md:border">
             @for (car of sortedCars(); track car.id) {
               <app-vehicle-list-item
                 [car]="car"

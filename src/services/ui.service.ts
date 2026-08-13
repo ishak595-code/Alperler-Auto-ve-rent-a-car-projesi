@@ -2,7 +2,24 @@ import { Injectable, signal, computed, inject } from "@angular/core";
 import { Router } from "@angular/router";
 import { CarService } from "./car.service";
 
-export type Language = "TR" | "EN" | "DE" | "FR" | "ES" | "RU" | "ZH" | "AR";
+export type Language = "TR" | "EN" | "DE" | "FR" | "KU" | "ES" | "RU" | "ZH" | "AR";
+
+function mergeTranslationObjects(base: any, override: any): any {
+  if (!override || typeof override !== "object" || Array.isArray(override)) {
+    return override ?? base;
+  }
+  const result: any = {
+    ...(base && typeof base === "object" && !Array.isArray(base) ? base : {}),
+  };
+  for (const [key, value] of Object.entries(override)) {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      result[key] = mergeTranslationObjects(result[key] || {}, value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
 
 @Injectable({
   providedIn: "root",
@@ -27,6 +44,15 @@ export class UiService {
 
   // --- LANGUAGE STATE ---
   currentLang = signal<Language>("TR");
+
+  constructor() {
+    if (typeof localStorage !== "undefined") {
+      const saved = localStorage.getItem("alperler-language") as Language | null;
+      const supported: Language[] = ["TR", "EN", "DE", "FR", "KU", "ES", "RU", "ZH", "AR"];
+      if (saved && supported.includes(saved)) this.currentLang.set(saved);
+    }
+    this.syncDocumentLanguage(this.currentLang());
+  }
 
   // --- ACTIONS ---
   toggleAbout(isOpen: boolean) {
@@ -84,6 +110,15 @@ export class UiService {
 
   setLanguage(lang: Language) {
     this.currentLang.set(lang);
+    if (typeof localStorage !== "undefined") localStorage.setItem("alperler-language", lang);
+    this.syncDocumentLanguage(lang);
+  }
+
+  private syncDocumentLanguage(lang: Language) {
+    if (typeof document === "undefined") return;
+    const languageCodes: Record<Language, string> = { TR: "tr", EN: "en", DE: "de", FR: "fr", KU: "ku", ES: "es", RU: "ru", ZH: "zh", AR: "ar" };
+    document.documentElement.lang = languageCodes[lang];
+    document.documentElement.dir = lang === "AR" ? "rtl" : "ltr";
   }
 
   translateDbValue(
@@ -124,7 +159,7 @@ export class UiService {
   }
 
   // --- TRANSLATIONS ---
-  private dictionary: Record<Language, any> = {
+  private dictionary: Partial<Record<Language, any>> = {
     TR: {
       nav: {
         home: "Ana Sayfa",
@@ -2250,6 +2285,20 @@ export class UiService {
         },
       },
     },
+    KU: {
+      nav: { home: "Malper", fleet: "Fîloya Wesayîtan", sales: "Firotina Destê Duyem", tours: "Tûr", earn: "Wesayîta Xwe Nirxîne", about: "Derbarê Me", contact: "Têkilî", blog: "Blog", corporate: "Korporatîf" },
+      hero: { title: "Li Bendê Neme: Di 5 Deqîqeyan de Pejirandin, Tavilê Bikeve Rê", subtitle: "Prosedurên dirêj û lêçûnên veşartî tune. Wesayîta xwe hilbijêre û bi ewlehî bikeve rê.", trustLine: "1001+ MÛŞTERIYÊN KÊFXWEŞ • LÊÇÛNA VEŞARTÎ TUNE • FÎLOYA EWLE", ctaSubtext: "Çareseriya bilez û hêsan", cta: "Niha Kirê Bike" },
+      buttons: { back: "Vegere", close: "Bigire", book: "Rezervasyon Bike", details: "Hûrgulî", call: "Niha Telefon Bike", send: "Bişîne", rent: "Niha Kirê Bike", rentDriver: "Bi Şofêr Kirê Bike", notAvailable: "Ne Amade Ye", remove: "Rake", apply: "Daxwazê Bişîne", viewAll: "Hemûyan Bibîne", viewAllFleet: "HEMÛ WESAYÎTÊN KIRÊKÎ", viewAllSales: "HEMÛ WESAYÎTÊN FIROTINÊ", viewTours: "Hemû Tûran Bibîne", backHome: "Vegere Malperê", complete: "Temam Bike", pay: "Bide û Temam Bike", appointment: "Daxwaza Randevûyê" },
+      common: { close: "Bigire", favorites: "Favorî", menuToggle: "Menûyê Veke an Bigire", addToFav: "Bike Favorî", removeFromFav: "Ji Favoriyan Rake", searchPlaceholder: "Wesayît bigere..." },
+      filters: { all: "Hemû", pickup: "Pikap", sedan: "Sedan", hatchback: "Ekonomîk", luxury: "Luks", minibus: "Mînîbus", vip: "VIP", driverActive: "Vebijarka Kirêkirina bi Şofêr Çalak e", rented: "HATIYE KIRÊKIRIN", brand: "Marka û Model", series: "Serî", priceRange: "Navbera Biha", kmRange: "Navbera Kilometreyê", color: "Reng", engine: "Hêza / Hecma Motorê", fuel: "Cureyê Sotemeniyê", transmission: "Cureyê Vitesê", year: "Sala Modelê", damage: "Rewşa Ziyanê" },
+      sort: { label: "Rêzkirin", default: "Pêşniyarkirî", priceAsc: "Biha: Ji Kêm ber Bi Zêde", priceDesc: "Biha: Ji Zêde ber Bi Kêm" },
+      car: { day: "roj", transmission: "Vites", seats: "Kes", fuel: "Sotemenî", auto: "Otomatîk", manual: "Manuel", diesel: "Dîzel", gasoline: "Benzîn", hybrid: "Hîbrît", electric: "Elektrîk", year: "Model", km: "KM", overview: "Nêrîna Giştî", availability: "Rewşa Amadeyiyê", available: "Amade", similarCars: "Wesayîtên Wekhev", description: "Danasîn", features: "Taybetmendî", details: "Hûrgulî", rentNow: "Niha Kirê Bike", buyNow: "Bikire", listingNo: "Hejmara Îlanê", location: "Hakkari / Yüksekova", callNow: "Niha Telefon Bike", sendMessage: "Peyam Bişîne", whatsappAsk: "Ji WhatsAppê Bipirse" },
+      fleet: { subtitle: "Wesayîtên bihêz, rehet û guncaw ji bo rêyên Yüksekova.", searchPlaceholder: "Wesayît Bigere (Marka, Model...)", filterType: "Parzûnên Cureyê Wesayîtê", filterBtn: "Parzûn Bike", sortBtn: "Rêz Bike" },
+      home: { booking: { title: "Bi Bilez Wesayît Kirê Bike", type: "Cureyê Xizmetê", types: { individual: "Kirêkirina Kesane", driver: "Kirêkirina bi Şofêr" }, pickup: "Cihê Teslîmgirtinê", locations: { center: "Navenda Yüksekova", airport: "Balafirgeha Yüksekova", bus: "Otogara Yüksekova" }, startDate: "Dîroka Girtinê", endDate: "Dîroka Vegerandinê", searchBtn: "Wesayît Bibîne" }, featured: { badge: "WESAYÎTÊN KIRÊKÎ", title: "Wesayîtên Ewle û Paqij", subtitle: "Wesayîtên ku bakımên wan hatine kirin û ji bo rêwîtiyê amade ne.", viewAll: "Hemû Fîloyê Bibîne", perDay: "/ roj", person: "Kes", rentNow: "Niha Kirê Bike" }, sales: { badge: "WESAYÎTÊN DESTÊ DUYEM", title: "Wesayîtên Destê Duyem ên Bêpirsgirêk û Bi Garantî", description: "Bi dîroka vekirî, ekspertîz û kontrolên temam wesayîta xwe bi ewlehî bikire.", cta: "Wesayîtên Firotinê Bibîne", viewAll: "Hemû Wesayîtên Firotinê Bibîne" }, tours: { title: "Tûrên Keşfê yên Yüksekova", subtitle: "Rêyên taybet ji çiyayên Cîlo heta geliyên Hakkari li benda we ne.", bookBtn: "Niha Rezervasyon Bike", viewAll: "Hemû Tûran Bibîne" }, whyUs: { title: "Çima Alperler Auto?", subtitle: "Ewlehî, şefafî û xizmeta bilez di her gavê de." } },
+      sales: { headerTitle: "Wesayîtên Destê Duyem ên Ewle", headerSubtitle: "Wesayîtên bi ekspertîz û kontrolkirî.", badge: "Firotina Wesayîtan", appointment: "Randevû", buy: "Bikire", status: { forSale: "Tê Firotin" } },
+      contact: { title: "Têkilî", subtitle: "24/7 Em Li Gel We Ne", infoTitle: "Agahiyên Têkiliyê", formTitle: "Bi Me Re Têkilî Daynin", formSubtitle: "Ji bo pirs û daxwazên xwe formê dagirin.", name: "Nav", surname: "Paşnav", phone: "Telefon", email: "E-Posta", message: "Peyam", send: "Bişîne", successTitle: "Daxwaza We Hate Wergirtin!", successText: "Daxwaza we gihîşt me. Em ê di demeke nêzîk de bi we re têkilî daynin." },
+      footer: { rights: "Hemû Maf Parastî Ne.", support: "Piştgiriya 24/7", corporate: "Korporatîf", legal: "Yasayî", newsletter: "Abonetiya Nûçenameyê", newsletterSub: "Ji kampanya û wesayîtên nû agahdar bibin.", emailPlaceholder: "Navnîşana e-postayê", subscribeBtn: "Belaş Abone Bibe", contactUs: "Bi Me Re Têkilî Daynin", contactBtn: "Têkilî", contactText: "Pirsên we hene? Xeta piştgiriyê 24/7 li xizmeta we ye.", links: { privacy: "Polîtîkaya Nepenîtiyê", cookies: "Polîtîkaya Çerezan", terms: "Mercên Kirêkirinê", faq: "Pirsên Pir Tên Pirsîn" } }
+    },
     ZH: {
       nav: {
         home: "首页",
@@ -2796,14 +2845,14 @@ export class UiService {
 
   translations = computed(() => {
     // Deep clone the base dictionary for the current language
-    const base = JSON.parse(
-      JSON.stringify(this.dictionary[this.currentLang()]),
-    );
+    const trBase = JSON.parse(JSON.stringify(this.dictionary.TR || {}));
+    const selected = JSON.parse(JSON.stringify(this.dictionary[this.currentLang()] || {}));
+    const base = this.currentLang() === "TR" ? trBase : mergeTranslationObjects(trBase, selected);
     const configSignal = this.carService.getConfig();
     const config = configSignal(); // Get the actual value
     const homeContent = config.homeContent;
 
-    if (homeContent) {
+    if (homeContent && this.currentLang() === "TR") {
       // Safely apply overrides directly into the specific path in the cloned dictionary
 
       // Hero

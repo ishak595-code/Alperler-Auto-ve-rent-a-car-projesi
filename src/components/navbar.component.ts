@@ -276,7 +276,7 @@ export class NavbarComponent implements OnDestroy {
   favCount = this.carService.getFavoriteCount;
   t = this.uiService.translations;
 
-  languages: Language[] = ["TR", "EN", "DE", "FR", "ES", "RU", "ZH", "AR"];
+  languages: Language[] = ["TR", "EN", "DE", "FR", "KU", "ES", "RU", "ZH", "AR"];
 
   toggleMenu() {
     const next = !this.isMenuOpen();
@@ -334,6 +334,7 @@ export class NavbarComponent implements OnDestroy {
       EN: "English",
       DE: "Deutsch",
       FR: "Français",
+      KU: "Kurdî",
       ES: "Español",
       RU: "Русский",
       ZH: "中文",

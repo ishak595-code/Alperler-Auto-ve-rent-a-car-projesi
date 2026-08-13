@@ -666,7 +666,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
         </div>
 
         <div
-          class="mx-auto flex max-w-5xl flex-col gap-3 sm:gap-4 mb-12 md:mb-16"
+          class="mx-auto max-w-5xl overflow-hidden border-y border-slate-200 bg-white md:rounded-xl md:border mb-10 md:mb-14"
         >
           @for (car of featuredCars(); track car.id) {
             <app-vehicle-list-item [car]="car" variant="rental"></app-vehicle-list-item>
@@ -746,7 +746,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
         </div>
 
         <div
-          class="mx-auto flex max-w-5xl flex-col gap-3 sm:gap-4 mb-12 md:mb-16"
+          class="mx-auto max-w-5xl overflow-hidden border-y border-slate-200 bg-white md:rounded-xl md:border mb-10 md:mb-14"
         >
           @for (car of featuredSaleCars(); track car.id) {
             <app-vehicle-list-item [car]="car" variant="sale"></app-vehicle-list-item>

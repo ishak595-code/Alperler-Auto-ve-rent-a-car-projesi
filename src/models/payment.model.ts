@@ -14,13 +14,20 @@ export interface EmailIntegrationStatus {
   configured: boolean;
 }
 
+export interface SmsIntegrationStatus {
+  provider: "none" | "twilio";
+  configured: boolean;
+}
+
 export interface IntegrationStatusResponse {
   environment: "development" | "preview" | "production" | "unknown";
   appUrl: string | null;
   payment: PaymentIntegrationStatus;
   email: EmailIntegrationStatus;
+  sms: SmsIntegrationStatus;
   database: {
     configured: boolean;
+    serverVerified?: boolean;
   };
 }
 

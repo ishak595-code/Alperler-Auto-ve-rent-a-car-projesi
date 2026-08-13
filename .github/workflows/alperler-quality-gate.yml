@@ -1,4 +1,4 @@
-# Validates the complete latest main tree, including frontend, Vercel Functions and cloud rules.
+# Validates the complete latest tree, including frontend, Vercel Functions and cloud rules.
 name: Alperler Professional Quality Gate
 
 on:
@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - main
+      - agent/v33-booking-notifications-security
     paths:
       - "src/**"
       - "api/**"

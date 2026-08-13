@@ -10,46 +10,116 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
   selector: "app-vehicle-list-item",
   standalone: true,
   imports: [CommonModule, RouterLink, MatIconModule, TurkishCurrencyPipe],
-  host: { class: "block min-w-0" },
+  host: { class: "block w-full min-w-0" },
   template: `
     <article
-      class="group relative flex h-full min-w-0 flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-within:ring-2 focus-within:ring-blue-600"
+      class="group relative w-full min-w-0 border-b border-slate-200 bg-white transition-colors last:border-b-0 hover:bg-slate-50 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600"
     >
       <a
         [routerLink]="detailRoute"
         [attr.aria-label]="detailAriaLabel"
-        class="absolute inset-0 z-10 rounded-[18px] focus:outline-none"
+        class="absolute inset-0 z-10 focus:outline-none"
       >
         <span class="sr-only">{{ detailAriaLabel }}</span>
       </a>
 
-      <div class="relative m-2 mb-0 aspect-[4/3] overflow-hidden rounded-[14px] bg-slate-100 sm:m-2.5 sm:mb-0">
-        <img
-          [src]="car.images?.[0] || car.image"
-          (error)="handleImageError($event)"
-          [alt]="displayTitle"
-          loading="lazy"
-          decoding="async"
-          class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-        />
+      <div
+        class="grid min-h-[126px] grid-cols-[118px_minmax(0,1fr)_44px] sm:min-h-[138px] sm:grid-cols-[148px_minmax(0,1fr)_48px]"
+      >
+        <div class="relative m-2 mr-0 overflow-hidden rounded-xl bg-slate-100 sm:m-2.5 sm:mr-0">
+          <img
+            [src]="car.images?.[0] || car.image"
+            (error)="handleImageError($event)"
+            [alt]="displayTitle"
+            loading="lazy"
+            decoding="async"
+            class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.025]"
+          />
 
-        @if (car.badge) {
-          <span
-            class="absolute left-2 top-2 z-20 max-w-[calc(100%-3.75rem)] truncate rounded-md px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-white shadow-md"
-            [class.bg-amber-500]="car.badge === 'FIRSAT'"
-            [class.bg-slate-900]="car.badge !== 'FIRSAT'"
+          @if (car.badge) {
+            <span
+              class="absolute left-1.5 top-1.5 z-20 max-w-[calc(100%-0.75rem)] truncate rounded-md bg-slate-950/90 px-1.5 py-1 text-[8px] font-black uppercase tracking-wide text-white shadow-sm sm:text-[9px]"
+            >
+              {{ car.badge }}
+            </span>
+          }
+        </div>
+
+        <div class="pointer-events-none flex min-w-0 flex-col px-3 py-2.5 sm:px-4 sm:py-3">
+          <h3
+            class="line-clamp-2 break-words font-serif text-[15px] font-extrabold leading-[1.2] text-slate-950 sm:text-[18px]"
           >
-            {{ car.badge }}
-          </span>
-        }
+            {{ displayTitle }}
+          </h3>
 
-        <div class="absolute right-1.5 top-1.5 z-30 flex flex-col gap-1.5">
+          <div
+            class="mt-1.5 flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-[10px] font-semibold text-slate-500 sm:text-xs"
+            aria-hidden="true"
+          >
+            @if (car.year) {
+              <span class="shrink-0">{{ car.year }}</span>
+            }
+            @if (variant === "sale" && car.km != null) {
+              <span class="shrink-0 text-slate-300">•</span>
+              <span class="shrink-0">{{ car.km | number }} km</span>
+            }
+            @if (car.transmission) {
+              <span class="shrink-0 text-slate-300">•</span>
+              <span class="truncate">{{ car.transmission }}</span>
+            }
+            @if (car.fuel) {
+              <span class="shrink-0 text-slate-300">•</span>
+              <span class="truncate">{{ car.fuel }}</span>
+            }
+          </div>
+
+          <div class="mt-1.5 flex min-w-0 items-center gap-1.5 text-[10px] font-semibold sm:text-[11px]">
+            @if (variant === "rental") {
+              <span class="truncate text-blue-700">{{ driverOptionText }}</span>
+              @if (car.seats) {
+                <span class="shrink-0 text-slate-300">•</span>
+                <span class="shrink-0 text-slate-500">{{ car.seats }} kişilik</span>
+              }
+            } @else {
+              @if (car.damageStatus) {
+                <mat-icon aria-hidden="true" class="!h-4 !w-4 shrink-0 !text-[15px] text-emerald-600">verified</mat-icon>
+                <span class="truncate text-emerald-700">{{ car.damageStatus }}</span>
+              } @else {
+                <span class="truncate text-slate-500">Premium Galeri</span>
+              }
+            }
+          </div>
+
+          <div class="mt-auto flex min-w-0 items-end justify-between gap-2 pt-2">
+            <div class="min-w-0">
+              <div class="truncate text-[17px] font-black leading-none text-slate-950 sm:text-xl">
+                {{ car.price | turkishCurrency }}
+                @if (variant === "rental") {
+                  <span class="text-[10px] font-semibold text-slate-500 sm:text-xs">/ gün</span>
+                }
+              </div>
+              <div class="mt-1 flex min-w-0 items-center gap-1 text-[9px] text-slate-500 sm:text-[10px]">
+                <mat-icon aria-hidden="true" class="!h-3.5 !w-3.5 shrink-0 !text-[14px]">location_on</mat-icon>
+                <span class="truncate">{{ car.location || "Hakkari / Yüksekova" }}</span>
+              </div>
+            </div>
+
+            <mat-icon
+              aria-hidden="true"
+              class="!h-5 !w-5 shrink-0 !text-[20px] text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-700"
+            >
+              chevron_right
+            </mat-icon>
+          </div>
+        </div>
+
+        <div class="relative z-20 flex flex-col items-center gap-1 pt-1.5 sm:pt-2">
           <button
             type="button"
             (click)="toggleFavorite($event)"
             [attr.aria-label]="isFavorite() ? 'Favorilerden çıkar' : 'Favorilere ekle'"
             [attr.aria-pressed]="isFavorite()"
-            class="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-md backdrop-blur-sm transition hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            class="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
             <mat-icon
               aria-hidden="true"
@@ -64,92 +134,10 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
             type="button"
             (click)="shareVehicle($event)"
             aria-label="İlanı paylaş"
-            class="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-md backdrop-blur-sm transition hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            class="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
-            <mat-icon aria-hidden="true" class="!h-5 !w-5 !text-[20px]">share</mat-icon>
+            <mat-icon aria-hidden="true" class="!h-5 !w-5 !text-[19px]">share</mat-icon>
           </button>
-        </div>
-      </div>
-
-      <div class="flex min-w-0 flex-1 flex-col p-3 pt-2.5 sm:p-3.5 sm:pt-3">
-        <h3
-          class="line-clamp-3 min-h-[3.7rem] break-words font-serif text-[15px] font-extrabold leading-[1.22] text-slate-950 sm:min-h-[4.15rem] sm:text-[17px]"
-        >
-          {{ displayTitle }}
-        </h3>
-
-        <div class="mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold text-slate-600 sm:text-[11px]">
-          @if (car.year) {
-            <span class="rounded bg-slate-100 px-2 py-1.5">{{ car.year }}</span>
-          }
-          @if (variant === "sale" && car.km != null) {
-            <span class="rounded bg-slate-100 px-2 py-1.5">{{ car.km | number }} km</span>
-          }
-          @if (car.transmission) {
-            <span class="rounded bg-slate-100 px-2 py-1.5">{{ car.transmission }}</span>
-          }
-          @if (variant === "rental" && car.seats) {
-            <span class="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1.5">
-              <mat-icon aria-hidden="true" class="!h-3.5 !w-3.5 !text-[14px]">person</mat-icon>
-              {{ car.seats }} Kişilik
-            </span>
-          }
-        </div>
-
-        @if (variant === "sale" && car.damageStatus) {
-          <div
-            class="mt-2 flex min-h-10 items-center gap-1.5 rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-2 text-[10px] font-extrabold leading-tight text-emerald-700 sm:text-[11px]"
-          >
-            <mat-icon aria-hidden="true" class="!h-4 !w-4 shrink-0 !text-[16px]">verified</mat-icon>
-            <span class="line-clamp-2">{{ car.damageStatus }}</span>
-          </div>
-        }
-
-        <div class="mt-2 flex min-h-9 items-center gap-1.5 rounded-lg bg-blue-50 px-2 py-2 text-[9px] font-extrabold leading-tight text-blue-800 sm:text-[10px]">
-          <mat-icon aria-hidden="true" class="!h-4 !w-4 shrink-0 !text-[16px] text-blue-600">shield</mat-icon>
-          <span>{{ variant === "rental" ? "%100 Kaskolu & Yol Yardım" : "101 Nokta Ekspertizli" }}</span>
-        </div>
-
-        <div class="mt-auto pt-3">
-          <div
-            class="mb-2 inline-flex max-w-full items-center rounded px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide"
-            [class.border]="true"
-            [class.border-blue-200]="variant === 'rental'"
-            [class.bg-blue-50]="variant === 'rental'"
-            [class.text-blue-700]="variant === 'rental'"
-            [class.border-slate-200]="variant === 'sale'"
-            [class.bg-slate-50]="variant === 'sale'"
-            [class.text-slate-700]="variant === 'sale'"
-          >
-            {{ variant === "rental" ? driverOptionText : "Premium Galeri" }}
-          </div>
-
-          <div class="mb-3 flex min-w-0 items-center gap-1.5 text-[11px] text-slate-500 sm:text-xs">
-            <mat-icon aria-hidden="true" class="!h-4 !w-4 shrink-0 !text-[16px] text-slate-500">location_on</mat-icon>
-            <span class="truncate">{{ car.location || "Hakkari / Yüksekova" }}</span>
-          </div>
-
-          <div class="mb-3 min-w-0 whitespace-nowrap text-[18px] font-black leading-none text-slate-950 sm:text-[22px]">
-            {{ car.price | turkishCurrency }}
-            @if (variant === "rental") {
-              <span class="text-[10px] font-semibold text-slate-500 sm:text-xs">/ gün</span>
-            }
-          </div>
-
-          <div class="relative z-30 grid grid-cols-2 gap-2">
-            <a
-              [routerLink]="detailRoute"
-              class="pointer-events-auto flex min-h-10 items-center justify-center rounded-lg bg-slate-950 px-2 text-center text-[10px] font-extrabold text-white transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 sm:text-[11px]"
-            >
-              {{ variant === "rental" ? "Kirala" : "Satın Al" }}
-            </a>
-            <a
-              [routerLink]="detailRoute"
-              class="pointer-events-auto flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-center text-[10px] font-extrabold text-slate-800 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 sm:text-[11px]"
-            >
-              Detay
-            </a>
-          </div>
         </div>
       </div>
     </article>
@@ -249,7 +237,7 @@ export class VehicleListItemComponent {
       try {
         await navigator.clipboard.writeText(url);
       } catch {
-        // Clipboard can be blocked by browser permissions. The card remains usable.
+        // Clipboard permissions may be unavailable. The listing remains usable.
       }
     }
   }

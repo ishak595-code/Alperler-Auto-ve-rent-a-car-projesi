@@ -62,6 +62,12 @@ export interface NotificationLease {
   acquired: boolean;
   alreadyProcessed: boolean;
   eventKey: string;
+  previousEmailStatus?: string;
+  previousSmsStatus?: string;
+  previousAdminEmailStatus?: string;
+  previousEmailMessageId?: string;
+  previousSmsMessageId?: string;
+  previousAdminEmailMessageId?: string;
 }
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
@@ -121,7 +127,7 @@ async function getAccessToken(): Promise<string> {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      grant_type: "urn:ietf:params:oauth-type:jwt-bearer",
       assertion,
     }),
     signal: AbortSignal.timeout(8_000),
@@ -274,6 +280,20 @@ async function getNotificationEvent(
   return (await response.json()) as FirestoreDocumentResponse;
 }
 
+function previousLeaseState(
+  document: FirestoreDocumentResponse,
+): Omit<NotificationLease, "acquired" | "alreadyProcessed" | "eventKey"> {
+  const data = decodeFields(document.fields);
+  return {
+    previousEmailStatus: String(data.emailStatus || ""),
+    previousSmsStatus: String(data.smsStatus || ""),
+    previousAdminEmailStatus: String(data.adminEmailStatus || ""),
+    previousEmailMessageId: String(data.emailMessageId || ""),
+    previousSmsMessageId: String(data.smsMessageId || ""),
+    previousAdminEmailMessageId: String(data.adminEmailMessageId || ""),
+  };
+}
+
 async function retryExistingLease(input: {
   token: string;
   bookingId: string;
@@ -287,7 +307,11 @@ async function retryExistingLease(input: {
     status === "PROCESSING" &&
     Number.isFinite(startedAt) &&
     Date.now() - startedAt > LEASE_STALE_MS;
-  const retryable = status === "FAILED" || status === "SKIPPED" || processingIsStale;
+  const retryable =
+    status === "FAILED" ||
+    status === "SKIPPED" ||
+    status === "PARTIAL" ||
+    processingIsStale;
   if (!retryable || !input.existingDocument.updateTime) return false;
 
   const fields = asFirestoreFields({
@@ -344,6 +368,12 @@ export async function acquireNotificationLease(input: {
           bookingVersion: input.bookingVersion || "",
           startedAt: now,
           completedAt: "",
+          emailStatus: "",
+          smsStatus: "",
+          adminEmailStatus: "",
+          emailMessageId: "",
+          smsMessageId: "",
+          adminEmailMessageId: "",
         }),
       }),
       signal: AbortSignal.timeout(8_000),
@@ -359,13 +389,19 @@ export async function acquireNotificationLease(input: {
     if (!existingDocument) {
       throw new Error("NOTIFICATION_LEDGER_CONFLICT_WITHOUT_DOCUMENT");
     }
+    const previous = previousLeaseState(existingDocument);
     const acquired = await retryExistingLease({
       token,
       bookingId: input.bookingId,
       eventKey,
       existingDocument,
     });
-    return { acquired, alreadyProcessed: !acquired, eventKey };
+    return {
+      acquired,
+      alreadyProcessed: !acquired,
+      eventKey,
+      ...previous,
+    };
   }
   if (!response.ok) throw new Error(`NOTIFICATION_LEASE_FAILED_${response.status}`);
   return { acquired: true, alreadyProcessed: false, eventKey };

@@ -1,10 +1,45 @@
 import { PaymentMethod } from "./payment.model";
 
 export type BookingType = "RENTAL" | "TOUR" | "SALE_INQUIRY" | "APPOINTMENT";
-export type BookingStatus = "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED";
+export type BookingStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "COMPLETED"
+  | "CANCELLED";
 export type PaymentStatus = "NOT_REQUIRED" | "PENDING" | "PAID" | "FAILED" | "REFUNDED";
 export type BookingSource = "WEB" | "ADMIN" | "PHONE";
 export type BookingCurrency = "TRY" | "EUR" | "USD" | "CHF";
+
+export type BookingNotificationEvent =
+  | "booking_created"
+  | "booking_pending"
+  | "booking_approved"
+  | "booking_rejected"
+  | "booking_completed"
+  | "booking_cancelled";
+
+export type NotificationChannelState =
+  | "sent"
+  | "skipped"
+  | "not_configured"
+  | "failed";
+
+export interface NotificationChannelReport {
+  state: NotificationChannelState;
+  providerMessageId?: string;
+  reason?: string;
+}
+
+export interface NotificationDeliveryReport {
+  ok: boolean;
+  event: BookingNotificationEvent;
+  bookingId: string;
+  alreadyProcessed?: boolean;
+  email: NotificationChannelReport;
+  sms: NotificationChannelReport;
+  adminEmail?: NotificationChannelReport;
+}
 
 export interface CreateBookingInput {
   type: BookingType;
@@ -37,4 +72,5 @@ export interface BookingRecord extends CreateBookingInput {
   status: BookingStatus;
   createdAt: Date;
   updatedAt: Date;
+  notification?: NotificationDeliveryReport;
 }

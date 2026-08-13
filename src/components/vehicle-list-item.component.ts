@@ -88,6 +88,12 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
           @if (car.transmission) {
             <span class="rounded bg-slate-100 px-2 py-1.5">{{ car.transmission }}</span>
           }
+          @if (variant === "rental" && car.seats) {
+            <span class="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1.5">
+              <mat-icon aria-hidden="true" class="!h-3.5 !w-3.5 !text-[14px]">person</mat-icon>
+              {{ car.seats }} Kişilik
+            </span>
+          }
         </div>
 
         @if (variant === "sale" && car.damageStatus) {
@@ -99,15 +105,27 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
           </div>
         }
 
+        <div class="mt-2 flex min-h-9 items-center gap-1.5 rounded-lg bg-blue-50 px-2 py-2 text-[9px] font-extrabold leading-tight text-blue-800 sm:text-[10px]">
+          <mat-icon aria-hidden="true" class="!h-4 !w-4 shrink-0 !text-[16px] text-blue-600">shield</mat-icon>
+          <span>{{ variant === "rental" ? "%100 Kaskolu & Yol Yardım" : "101 Nokta Ekspertizli" }}</span>
+        </div>
+
         <div class="mt-auto pt-3">
           <div
-            class="mb-2 inline-flex max-w-full items-center rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide text-slate-700"
+            class="mb-2 inline-flex max-w-full items-center rounded px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide"
+            [class.border]="true"
+            [class.border-blue-200]="variant === 'rental'"
+            [class.bg-blue-50]="variant === 'rental'"
+            [class.text-blue-700]="variant === 'rental'"
+            [class.border-slate-200]="variant === 'sale'"
+            [class.bg-slate-50]="variant === 'sale'"
+            [class.text-slate-700]="variant === 'sale'"
           >
             {{ variant === "rental" ? driverOptionText : "Premium Galeri" }}
           </div>
 
-          <div class="mb-3 flex min-w-0 items-center gap-1 text-[10px] text-slate-500 sm:text-[11px]">
-            <mat-icon aria-hidden="true" class="!h-4 !w-4 shrink-0 !text-[16px] text-slate-400">location_on</mat-icon>
+          <div class="mb-3 flex min-w-0 items-center gap-1.5 text-[11px] text-slate-500 sm:text-xs">
+            <mat-icon aria-hidden="true" class="!h-4 !w-4 shrink-0 !text-[16px] text-slate-500">location_on</mat-icon>
             <span class="truncate">{{ car.location || "Hakkari / Yüksekova" }}</span>
           </div>
 
@@ -181,6 +199,9 @@ export class VehicleListItemComponent {
         : null,
       this.car.transmission,
       this.car.fuel,
+      this.variant === "rental" && this.car.seats
+        ? `${this.car.seats} kişilik`
+        : null,
     ]
       .filter(Boolean)
       .join(", ");

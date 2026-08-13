@@ -213,4 +213,14 @@ s = replaceOnce(
 );
 
 await writeFile(path, s, 'utf8');
+
+const packagePath = 'package.json';
+const pkg = JSON.parse(await readFile(packagePath, 'utf8'));
+pkg.devDependencies ??= {};
+if (pkg.devDependencies.typescript !== '~5.9.3') {
+  pkg.devDependencies.typescript = '~5.9.3';
+  await writeFile(packagePath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
+  console.log('TypeScript aligned to Angular 21 peer range.');
+}
+
 console.log('Fleet professional responsive/accessibility hotfix applied.');

@@ -116,7 +116,7 @@ import { CarService } from "../../services/car.service";
                 Google ile Yönetici Girişi
               </button>
 
-              <p class="text-center text-[11px] leading-relaxed text-slate-400">Google girişi başarılı olduğunda sistem hesabınıza 24 karakterlik güçlü bir şifre oluşturur ve size yalnızca bir kez gösterir.</p>
+              <p class="text-center text-[11px] leading-relaxed text-slate-400">İlk Google kurulumunda e-posta/şifre yöntemi yoksa sistem 24 karakterlik güçlü bir şifre oluşturur. Sonraki Google girişlerinde mevcut şifreniz değiştirilmez.</p>
             </form>
           }
         </div>
@@ -177,6 +177,12 @@ export class AdminLoginComponent implements OnInit {
       return;
     }
 
+    if (this.authService.hasPasswordProvider()) {
+      this.isLoading.set(false);
+      this.router.navigate(["/admin/dashboard"]);
+      return;
+    }
+
     const generated = await this.authService.createStrongPasswordForCurrentUser();
     this.isLoading.set(false);
 
@@ -185,7 +191,7 @@ export class AdminLoginComponent implements OnInit {
       return;
     }
 
-    this.syncAuthError("Google girişi başarılı oldu ancak e-posta/şifre yöntemi oluşturulamadı. Google ile panele girebilirsiniz; Firebase içinde Email/Password sağlayıcısının açık olduğunu kontrol edin.");
+    this.syncAuthError("Google girişi başarılı oldu ancak ilk e-posta/şifre kurulumu tamamlanamadı. Panele Google ile erişebilirsiniz; Firebase içinde Email/Password sağlayıcısının açık olduğunu kontrol edin.");
   }
 
   async copyGeneratedPassword() {

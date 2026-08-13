@@ -482,9 +482,10 @@ Araçlarımızda 7/24 GPS bazlı telemetri kontrolü mevcuttur. Raporlardaki hı
   }
 
   private async persistVehicleToCloud(vehicle: Vehicle): Promise<void> {
+    const normalizedAvailability =
+      vehicle.availability?.trim().toLocaleLowerCase("tr-TR") || "";
     const status =
-      vehicle.category === "SALE" &&
-      vehicle.availability?.toLocaleLowerCase("tr-TR").includes("sat")
+      vehicle.category === "SALE" && normalizedAvailability === "satıldı"
         ? "SOLD"
         : "AVAILABLE";
 

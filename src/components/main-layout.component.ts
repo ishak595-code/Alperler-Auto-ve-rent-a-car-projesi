@@ -46,9 +46,14 @@ import { MatIconModule } from "@angular/material/icon";
             '?text=' +
             getWhatsappMessage()
           "
+          [style.bottom]="
+            isVehicleDetailPage()
+              ? 'calc(max(1rem, env(safe-area-inset-bottom)) + 4.75rem)'
+              : 'max(1rem, env(safe-area-inset-bottom))'
+          "
           target="_blank"
           rel="noopener noreferrer"
-          class="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[90] w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 md:hover:scale-110 hover:shadow-lg transition-all hover:bg-green-600 animate-fade-in-up focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-green-600"
+          class="fixed right-[max(1rem,env(safe-area-inset-right))] z-[90] w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 md:hover:scale-110 hover:shadow-lg transition-all hover:bg-green-600 animate-fade-in-up focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-green-600"
           aria-label="WhatsApp destek hattını yeni sekmede aç"
         >
           <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -97,6 +102,11 @@ export class MainLayoutComponent {
   private updatePageState() {
     const url = this.router.url.split("?")[0];
     this.isHomePage.set(url === "/");
+  }
+
+  isVehicleDetailPage(): boolean {
+    const url = this.router.url.split("?")[0];
+    return /^\/(fleet|sales)\/[^/]+$/.test(url);
   }
 
   goBack() {

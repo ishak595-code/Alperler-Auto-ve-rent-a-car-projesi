@@ -6,6 +6,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { AppComponent } from './src/app.component';
 import { routes } from './src/app.routes';
 import { APP_BASE_HREF } from '@angular/common';
+import { provideLegacyWebhookSafety } from './src/providers/legacy-webhook-safety.provider';
 
 // AI Studio önizleme ekranında (iframe) sayfa yenilendiğinde her zaman ana sayfadan başlaması için:
 if (window.self !== window.top) {
@@ -16,6 +17,7 @@ bootstrapApplication(AppComponent, {
   providers: [
     provideZonelessChangeDetection(),
     provideHttpClient(),
+    provideLegacyWebhookSafety(),
     { provide: APP_BASE_HREF, useValue: '/' },
     provideRouter(
       routes, 

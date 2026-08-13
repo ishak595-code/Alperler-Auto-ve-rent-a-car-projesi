@@ -30,7 +30,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
   template: `
     <!-- Hero Section -->
     <div
-      class="relative h-[85vh] min-h-[600px] flex flex-col items-center justify-center overflow-hidden group"
+      class="relative min-h-[calc(100dvh-72px)] md:h-[85vh] md:min-h-[600px] flex flex-col items-center justify-center overflow-hidden group py-8 md:py-0"
     >
       <!-- Background Image -->
       <div class="absolute inset-0 z-0 bg-slate-900">
@@ -55,14 +55,14 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
       >
         <div class="animate-fade-in-up space-y-6 flex flex-col items-center">
           <h1
-            class="font-serif text-[28px] md:text-4xl lg:text-5xl font-bold tracking-tight text-white drop-shadow-xl max-w-4xl mx-auto truncate"
+            class="font-serif text-[28px] sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white drop-shadow-xl max-w-4xl mx-auto text-balance break-words leading-tight"
           >
             {{ config()?.homeContent?.heroTitle || t().hero.title }}
           </h1>
 
           @if (config()?.homeContent?.heroSubtitle || t().hero.subtitle) {
             <p
-              class="text-sm md:text-lg text-slate-100 mt-2 max-w-2xl mx-auto font-medium drop-shadow-md leading-relaxed text-center opacity-90 truncate"
+              class="text-sm md:text-lg text-slate-100 mt-2 max-w-2xl mx-auto font-medium drop-shadow-md leading-relaxed text-center opacity-90 text-pretty break-words"
             >
               {{ config()?.homeContent?.heroSubtitle || t().hero.subtitle }}
             </p>
@@ -81,7 +81,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
           >
             <!-- Search Bar -->
             <div
-              class="relative flex items-center bg-white/95 backdrop-blur-xl rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.15)] p-2 transition-all duration-300 ring-8 ring-white/10 focus-within:ring-white/20 focus-within:bg-white focus-within:shadow-[0_30px_60px_rgba(0,0,0,0.3)] hover:ring-white/20 group"
+              class="relative flex items-center bg-white/95 backdrop-blur-xl rounded-3xl md:rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.15)] p-2 transition-all duration-300 ring-4 sm:ring-8 ring-white/10 focus-within:ring-white/20 focus-within:bg-white focus-within:shadow-[0_30px_60px_rgba(0,0,0,0.3)] hover:ring-white/20 group"
             >
               <div
                 class="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center pl-2 md:pl-4 shrink-0 text-slate-400 group-focus-within:text-blue-600 transition-colors duration-300"
@@ -90,24 +90,31 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
               </div>
               <input
                 #searchInput
-                type="text"
+                type="search"
+                inputmode="search"
+                autocomplete="off"
+                aria-label="Araç, model veya tur ara"
                 [(ngModel)]="searchQuery"
                 (focus)="isSearchFocused.set(true)"
+                (keyup.enter)="submitSearch()"
                 placeholder="Araç, model veya tur arayın..."
-                class="flex-1 bg-transparent border-none text-slate-800 px-4 py-4 md:py-5 text-[16px] md:text-[20px] font-medium focus:ring-0 outline-none placeholder:text-slate-400 placeholder:font-light w-full cursor-text"
+                class="flex-1 min-w-0 bg-transparent border-none text-slate-800 px-2 sm:px-4 py-4 md:py-5 text-[16px] md:text-[20px] font-medium focus:ring-0 outline-none placeholder:text-slate-400 placeholder:font-light w-full cursor-text"
               />
               @if (searchQuery().length > 0) {
                 <button
                   (click)="searchQuery.set(''); searchInput.focus()"
-                  class="mr-2 shrink-0 flex items-center justify-center w-10 h-10 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                  class="mr-1 sm:mr-2 shrink-0 flex items-center justify-center w-11 h-11 hover:bg-slate-100 rounded-full transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   title="Aramayı Temizle"
                   aria-label="Aramayı Temizle"
                 >
                   <mat-icon class="text-slate-400 hover:text-slate-700 transition-colors">close</mat-icon>
                 </button>
               }
-              <button 
-                class="bg-slate-900 text-white font-bold text-sm md:text-base px-6 md:px-8 h-12 md:h-16 rounded-full hover:bg-slate-800 transition-colors shadow-sm shrink-0"
+              <button
+                type="button"
+                (click)="submitSearch()"
+                aria-label="Aramayı çalıştır"
+                class="bg-slate-900 text-white font-bold text-sm md:text-base px-4 sm:px-6 md:px-8 h-12 md:h-16 rounded-2xl md:rounded-full hover:bg-slate-800 transition-colors shadow-sm shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 Bul
               </button>
@@ -130,7 +137,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
                      [class.bg-white]="searchCategory() !== 'all'" 
                      [class.text-slate-600]="searchCategory() !== 'all'"
                      [class.hover:bg-slate-100]="searchCategory() !== 'all'"
-                     class="px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center shrink-0 border border-slate-200"
+                     class="min-h-11 px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center shrink-0 border border-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                    >
                      Tümü
                    </button>
@@ -143,7 +150,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
                      [class.bg-white]="searchCategory() !== 'rental'" 
                      [class.text-slate-600]="searchCategory() !== 'rental'"
                      [class.hover:bg-slate-100]="searchCategory() !== 'rental'"
-                     class="px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center shrink-0 border border-slate-200"
+                     class="min-h-11 px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center shrink-0 border border-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                    >
                      <mat-icon class="mr-2 text-[18px] w-[18px] h-[18px]" [class.text-orange-500]="searchCategory() !== 'rental'">key</mat-icon> Kiralık ({{ carService.getRentalCars()().length }})
                    </button>
@@ -156,7 +163,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
                      [class.bg-white]="searchCategory() !== 'sale'" 
                      [class.text-slate-600]="searchCategory() !== 'sale'"
                      [class.hover:bg-slate-100]="searchCategory() !== 'sale'"
-                     class="px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center shrink-0 border border-slate-200"
+                     class="min-h-11 px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center shrink-0 border border-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                    >
                      <mat-icon class="mr-2 text-[18px] w-[18px] h-[18px]" [class.text-green-500]="searchCategory() !== 'sale'">sell</mat-icon> Satılık ({{ carService.getSaleCars()().length }})
                    </button>
@@ -169,16 +176,16 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
                      [class.bg-white]="searchCategory() !== 'tour'" 
                      [class.text-slate-600]="searchCategory() !== 'tour'"
                      [class.hover:bg-slate-100]="searchCategory() !== 'tour'"
-                     class="px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center shrink-0 border border-slate-200"
+                     class="min-h-11 px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center shrink-0 border border-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                    >
                      <mat-icon class="mr-2 text-[18px] w-[18px] h-[18px]" [class.text-purple-500]="searchCategory() !== 'tour'">explore</mat-icon> Turlar ({{ tours().length }})
                    </button>
                 </div>
 
-                <div class="max-h-[60vh] overflow-y-auto">
+                <div class="max-h-[min(60dvh,36rem)] overflow-y-auto overscroll-contain">
                   @if (searchQuery().length > 1) {
                     @if (searchResults().length > 0) {
-                      <div class="max-h-[60vh] overflow-y-auto custom-scrollbar">
+                      <div class="max-h-[min(60dvh,36rem)] overflow-y-auto overscroll-contain custom-scrollbar">
                         @for (group of groupedSearchResults(); track group.title) {
                           <div class="bg-slate-50 px-5 py-2 border-y border-slate-100 flex items-center gap-2">
                              @if (group.title === 'Kiralık Araçlar') { <mat-icon class="text-orange-500 text-sm">key</mat-icon> }
@@ -197,7 +204,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
                               <a
                                 [routerLink]="result.url"
                                 (click)="isSearchFocused.set(false)"
-                                class="flex items-center p-4 md:p-5 hover:bg-blue-50/80 transition-colors cursor-pointer group"
+                                class="flex items-center p-3 sm:p-4 md:p-5 hover:bg-blue-50/80 transition-colors cursor-pointer group min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
                               >
                                 <div
                                   class="w-20 h-14 md:w-24 md:h-16 bg-slate-100 rounded-xl overflow-hidden shrink-0 shadow-[0_5px_15px_rgba(0,0,0,0.1)]"
@@ -209,9 +216,9 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
                                     class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                   />
                                 </div>
-                                <div class="ml-4 md:ml-6 flex-1">
+                                <div class="ml-3 sm:ml-4 md:ml-6 flex-1 min-w-0">
                                   <h4
-                                    class="text-slate-900 font-bold text-base md:text-xl group-hover:text-blue-600 transition-colors"
+                                    class="text-slate-900 font-bold text-sm sm:text-base md:text-xl group-hover:text-blue-600 transition-colors break-words line-clamp-2"
                                   >
                                     {{ result.title }}
                                   </h4>
@@ -223,7 +230,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
                                 </div>
                                 <div class="text-right ml-4 shrink-0">
                                   <span
-                                    class="text-blue-600 font-extrabold text-base md:text-lg bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 shadow-sm"
+                                    class="text-blue-600 font-extrabold text-xs sm:text-sm md:text-lg bg-blue-50 px-2 sm:px-3 md:px-4 py-2 rounded-xl border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 shadow-sm whitespace-nowrap"
                                     >{{ result.price }}</span
                                   >
                                 </div>
@@ -237,7 +244,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
                       <span class="text-xs text-slate-500 font-bold tracking-wider">Alperler Auto Hızlı Arama</span>
                     </div>
                   } @else {
-                    <div class="p-16 text-center text-slate-500">
+                    <div class="px-5 py-10 sm:p-16 text-center text-slate-500">
                       <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
                         <mat-icon class="text-slate-300 text-4xl w-10 h-10">search_off</mat-icon>
                       </div>
@@ -248,7 +255,7 @@ import { DragToScrollDirective } from "../directives/drag-to-scroll.directive";
                     </div>
                   }
                   } @else {
-                    <div class="p-16 text-center text-slate-500">
+                    <div class="px-5 py-10 sm:p-16 text-center text-slate-500">
                       <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
                         <mat-icon class="text-blue-500 text-4xl w-10 h-10">travel_explore</mat-icon>
                       </div>
@@ -958,7 +965,7 @@ export class HomeComponent implements OnInit {
       }
     });
   }
-  windowOrigin = window.location.origin;
+  windowOrigin = typeof window !== "undefined" ? window.location.origin : "";
 
   // Global Search Signals
   searchQuery = signal("");
@@ -973,7 +980,7 @@ export class HomeComponent implements OnInit {
   }
 
   searchResults = computed(() => {
-    const query = this.searchQuery().toLowerCase().trim();
+    const query = this.searchQuery().trim().toLocaleLowerCase("tr-TR");
     if (!query || query.length < 2) return [];
 
     const results: any[] = [];
@@ -1082,6 +1089,17 @@ export class HomeComponent implements OnInit {
 
     return Object.values(groups).filter(g => g.items.length > 0);
   });
+
+  submitSearch() {
+    const firstResult = this.searchResults()[0];
+    if (!firstResult?.url) {
+      this.isSearchFocused.set(true);
+      return;
+    }
+
+    this.isSearchFocused.set(false);
+    this.router.navigateByUrl(firstResult.url);
+  }
 
   closeSearch() {
     this.isSearchFocused.set(false);

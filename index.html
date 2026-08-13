@@ -3,34 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Alperler Auto | Rent a Car - Tur - Araç Alım Satım</title>
   
   <!-- Polyfill for process (Fixes ReferenceError: process is not defined) -->
   <script>
     window.process = { env: { NODE_ENV: 'production' } };
-  </script>
-
-  <!-- Global Error Logger (For Debugging White Screen) -->
-  <script>
-    window.onerror = function(message, source, lineno, colno, error) {
-      const errorContainer = document.createElement('div');
-      errorContainer.style.position = 'fixed';
-      errorContainer.style.top = '0';
-      errorContainer.style.left = '0';
-      errorContainer.style.width = '100%';
-      errorContainer.style.backgroundColor = '#fee2e2'; // red-100
-      errorContainer.style.color = '#991b1b'; // red-800
-      errorContainer.style.padding = '20px';
-      errorContainer.style.zIndex = '9999';
-      errorContainer.style.fontFamily = 'monospace';
-      errorContainer.style.borderBottom = '1px solid #b91c1c';
-      errorContainer.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-      errorContainer.innerHTML = '<strong>Application Error:</strong><br>' + 
-        message + '<br><small>' + source + ':' + lineno + '</small>';
-      document.body.appendChild(errorContainer);
-      console.error('Global Error Caught:', error);
-    };
   </script>
 
   <!-- Advanced SEO & Meta Tags for Maximum AI & Search Engine Discovery -->
@@ -116,7 +94,88 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', sans-serif; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: clip;
+    }
+
+    @supports not (overflow: clip) {
+      html,
+      body {
+        overflow-x: hidden;
+      }
+    }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      scroll-padding-top: 7rem;
+    }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      min-height: 100dvh;
+      font-family: 'Inter', sans-serif;
+    }
+
+    img,
+    video,
+    svg,
+    canvas {
+      max-width: 100%;
+    }
+
+    button,
+    a,
+    input,
+    select,
+    textarea {
+      -webkit-tap-highlight-color: transparent;
+      font: inherit;
+    }
+
+    button,
+    a {
+      touch-action: manipulation;
+    }
+
+    p,
+    li,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    span {
+      overflow-wrap: anywhere;
+    }
+
+    :focus-visible {
+      outline: 3px solid #3b82f6;
+      outline-offset: 3px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
     h1, h2, h3, .serif-font { font-family: 'Playfair Display', serif; }
     
     /* Custom Scrollbar */
@@ -165,14 +224,14 @@
 
     /* Luxury Theme (Black & Gold) */
     body.theme-luxury {
-        background-color: #1c1917 !important; /* stone-900 */
+        background-color: #1c1917 !important;
         color: #e7e5e4 !important;
     }
     body.theme-luxury .bg-slate-900 {
-        background-color: #0c0a09 !important; /* stone-950 */
+        background-color: #0c0a09 !important;
     }
     body.theme-luxury .bg-white {
-        background-color: #292524 !important; /* stone-800 */
+        background-color: #292524 !important;
         color: #e7e5e4 !important;
     }
     body.theme-luxury .bg-slate-50 {
@@ -182,28 +241,28 @@
         color: #e7e5e4 !important;
     }
     body.theme-luxury .text-slate-600 {
-        color: #a8a29e !important; /* stone-400 */
+        color: #a8a29e !important;
     }
     body.theme-luxury .text-blue-600 {
-        color: #d4af37 !important; /* gold */
+        color: #d4af37 !important;
     }
     body.theme-luxury .bg-blue-600 {
         background-color: #d4af37 !important;
     }
     body.theme-luxury .border-slate-200 {
-        border-color: #44403c !important; /* stone-700 */
+        border-color: #44403c !important;
     }
 
     /* Corporate Theme (Blue & White) */
     body.theme-corporate {
-        background-color: #f0f9ff !important; /* sky-50 */
-        color: #0c4a6e !important; /* sky-900 */
+        background-color: #f0f9ff !important;
+        color: #0c4a6e !important;
     }
     body.theme-corporate .bg-slate-900 {
-        background-color: #0c4a6e !important; /* sky-900 */
+        background-color: #0c4a6e !important;
     }
     body.theme-corporate .text-blue-600 {
-        color: #0284c7 !important; /* sky-600 */
+        color: #0284c7 !important;
     }
     body.theme-corporate .bg-blue-600 {
         background-color: #0284c7 !important;
@@ -231,8 +290,6 @@
       to { transform: translateY(0); }
     }
   </style>
-
-
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-900 selection:text-white">
   <app-root></app-root>

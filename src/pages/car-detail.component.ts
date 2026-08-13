@@ -38,21 +38,21 @@ register();
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <div class="min-h-screen bg-white pb-24 lg:pb-0 font-sans text-[#212121]">
+    <div class="min-h-screen bg-white pb-28 lg:pb-0 font-sans text-[#212121] overflow-x-hidden">
       @if (car()) {
         <!-- 1. Header -->
         <div
-          class="sticky top-0 left-0 right-0 z-[60] bg-[#005c8d] text-white flex items-center justify-between px-4 h-14 shadow-md pointer-events-auto"
+          class="sticky top-[72px] md:top-[96px] left-0 right-0 z-40 bg-[#005c8d] text-white flex items-center justify-between px-2 sm:px-4 min-h-14 shadow-md pointer-events-auto"
         >
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <button
               (click)="goBack()"
-              class="p-1 hover:bg-white/10 rounded-full transition-colors"
+              class="w-11 h-11 shrink-0 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               [attr.aria-label]="t().buttons.back"
             >
               <mat-icon>arrow_back</mat-icon>
             </button>
-            <h1 class="text-lg font-bold tracking-tight line-clamp-1">
+            <h1 class="text-sm sm:text-lg font-bold tracking-tight line-clamp-1 min-w-0">
               {{ car()!.brand }} {{ car()!.model }}
             </h1>
           </div>
@@ -71,7 +71,7 @@ register();
               </div>
             }
             <div
-              class="flex items-center gap-1 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full text-white shadow-[0_2px_10px_rgba(0,0,0,0.3)]"
+              class="hidden md:flex items-center gap-1 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full text-white shadow-[0_2px_10px_rgba(0,0,0,0.3)]"
             >
               <div class="w-2 h-2 rounded-full bg-green-400 animate-ping"></div>
               <span class="text-xs font-medium"
@@ -83,14 +83,14 @@ register();
           <div class="flex items-center gap-2 pointer-events-auto">
             <button
               (click)="shareCar(car())"
-              class="p-2 rounded-full bg-black/20 backdrop-blur-sm text-white shadow-[0_2px_10px_rgba(0,0,0,0.3)]"
+              class="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-sm text-white shadow-[0_2px_10px_rgba(0,0,0,0.3)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               aria-label="Paylaş"
             >
               <mat-icon class="drop-shadow-lg">share</mat-icon>
             </button>
             <button
               (click)="toggleFav(car()?.id)"
-              class="p-2 rounded-full bg-black/20 backdrop-blur-sm text-white shadow-[0_2px_10px_rgba(0,0,0,0.3)]"
+              class="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-sm text-white shadow-[0_2px_10px_rgba(0,0,0,0.3)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               [attr.aria-label]="
                 isFav(car()?.id)
                   ? t().common.removeFromFav
@@ -122,8 +122,13 @@ register();
           >
             @for (img of allImages(); track $index) {
               <swiper-slide
-                class="w-full h-full cursor-zoom-in"
+                class="w-full h-full cursor-zoom-in focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-blue-500"
+                role="button"
+                tabindex="0"
+                [attr.aria-label]="(car()?.brand || 'Araç') + ' ' + (car()?.model || '') + ' görselini büyüt'"
                 (click)="openLightbox($index)"
+                (keydown.enter)="openLightbox($index)"
+                (keydown.space)="$event.preventDefault(); openLightbox($index)"
               >
                 <img
                   [src]="img"
@@ -156,7 +161,7 @@ register();
             <span
               class="bg-blue-600 text-white px-3 py-1 rounded font-black uppercase tracking-widest text-[10px] shadow-lg"
             >
-              KİRALIK
+              {{ car()?.category === "SALE" ? "SATILIK" : "KİRALIK" }}
             </span>
           </div>
         </div>
@@ -166,22 +171,22 @@ register();
           <!-- 3. Araç Bilgileri (Specs List) -->
           <section class="space-y-4">
             <div
-              class="flex justify-between items-end border-b border-slate-100 pb-4"
+              class="flex justify-between items-end gap-4 border-b border-slate-100 pb-4"
             >
-              <h1 class="text-xl font-bold text-[#212121]">
+              <h1 class="text-xl font-bold text-[#212121] min-w-0 break-words">
                 {{ car()?.brand }} {{ car()?.model }}
                 <span class="block text-sm font-normal text-[#757575] mt-1">{{
                   car()?.type
                 }}</span>
               </h1>
-              <div class="text-right">
+              <div class="text-right shrink-0">
                 <div class="text-2xl font-black text-blue-600">
                   {{ car()?.price | turkishCurrency }}
                 </div>
                 <div
                   class="text-[10px] font-bold text-[#757575] uppercase tracking-widest"
                 >
-                  GÜNLÜK
+                  {{ car()?.category === "SALE" ? "SATIŞ FİYATI" : "GÜNLÜK" }}
                 </div>
               </div>
             </div>
@@ -280,13 +285,14 @@ register();
           </section>
 
           <!-- 4. Kiralama Hesaplayıcı -->
-          <section class="bg-slate-50 rounded-2xl p-6 space-y-4">
+          @if (car()?.category === "RENTAL") {
+          <section class="bg-slate-50 rounded-2xl p-4 sm:p-6 space-y-4">
             <h2
               class="text-lg font-bold text-[#212121] border-l-4 border-blue-500 pl-3"
             >
               Kiralama Hesapla
             </h2>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-1">
                 <label
                   for="pickupDate"
@@ -299,7 +305,7 @@ register();
                   aria-label="Araç alış tarihini seçin"
                   title="Alış Tarihi"
                   [(ngModel)]="startDate"
-                  class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  class="w-full min-h-12 bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                 />
               </div>
               <div class="space-y-1">
@@ -314,7 +320,7 @@ register();
                   aria-label="Araç dönüş tarihini seçin"
                   title="Dönüş Tarihi"
                   [(ngModel)]="endDate"
-                  class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  class="w-full min-h-12 bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                 />
               </div>
             </div>
@@ -389,6 +395,7 @@ register();
               }
             </div>
           </section>
+          }
 
           <!-- 5. Özellikler & Açıklama -->
           <section class="space-y-4">
@@ -579,11 +586,11 @@ register();
 
         <!-- 6. Sabit Alt Bar (Sticky Bottom Bar) -->
         <div
-          class="fixed bottom-0 left-0 right-0 z-[70] bg-white/95 backdrop-blur-xl border-t border-slate-100 p-3 lg:px-8 flex items-center gap-2 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] pb-safe"
+          class="fixed bottom-0 left-0 right-0 z-[70] bg-white/95 backdrop-blur-xl border-t border-slate-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:px-8 flex items-stretch gap-2 shadow-[0_-10px_30px_rgba(0,0,0,0.08)]"
         >
           <a
             [href]="'tel:' + carService.getConfig()().phone?.replace(' ', '')"
-            class="flex-1 bg-red-600 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-red-600/20"
+            class="flex-1 min-w-0 min-h-12 bg-red-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-1 sm:gap-2 active:scale-95 transition-all shadow-lg shadow-red-600/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
           >
             <mat-icon class="text-sm">call</mat-icon>
             <span class="text-xs uppercase tracking-wider">Hemen Ara</span>
@@ -601,10 +608,12 @@ register();
           </button>
           <button
             (click)="rentCar(car())"
-            class="flex-1 bg-[#212121] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-black/20"
+            [disabled]="car()?.isAvailable === false"
+            [attr.aria-label]="car()?.category === 'SALE' ? 'Araç hakkında bilgi al' : 'Aracı rezerve et'"
+            class="flex-1 min-w-0 min-h-12 bg-[#212121] disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl flex items-center justify-center gap-1 sm:gap-2 active:scale-95 transition-all shadow-lg shadow-black/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-700"
           >
             <mat-icon class="text-sm">calendar_month</mat-icon>
-            <span class="text-xs uppercase tracking-wider">Rezerve Et</span>
+            <span class="text-[10px] sm:text-xs uppercase tracking-wider">{{ car()?.category === "SALE" ? "Bilgi Al" : "Rezerve Et" }}</span>
           </button>
         </div>
 
@@ -928,18 +937,19 @@ export class CarDetailComponent implements OnInit, OnDestroy {
   }
 
   rentCar(car: Car | null) {
-    if (!car) return;
+    if (!car || car.isAvailable === false) return;
 
+    const isSale = car.category === "SALE";
     this.carService.setBookingRequest({
-      type: "RENTAL",
+      type: isSale ? ("SALE_INQUIRY" as const) : ("RENTAL" as const),
       item: car,
       itemName: `${car.brand} ${car.model}`,
       image: car.image,
       basePrice: car.price,
-      startDate: this.startDate(),
-      endDate: this.endDate(),
-      rentalDuration: "daily",
-      withDriver: car.driverOption === "WITH_DRIVER" || this.wantsDriver(),
+      startDate: isSale ? undefined : this.startDate(),
+      endDate: isSale ? undefined : this.endDate(),
+      rentalDuration: isSale ? undefined : "daily",
+      withDriver: !isSale && (car.driverOption === "WITH_DRIVER" || this.wantsDriver()),
     });
     this.router.navigate(["/contact"]);
   }

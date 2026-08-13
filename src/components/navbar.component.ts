@@ -1,135 +1,76 @@
 import { Component, HostListener, OnDestroy, inject, signal } from "@angular/core";
-import { RouterLink, RouterLinkActive, Router } from "@angular/router";
 import { CommonModule } from "@angular/common";
-import { CarService } from "../services/car.service";
-import { UiService, Language } from "../services/ui.service";
-import { FormsModule } from "@angular/forms";
+import { Router, RouterLink, RouterLinkActive } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
+import { CarService } from "../services/car.service";
+import { Language, UiService } from "../services/ui.service";
 
 @Component({
   selector: "app-navbar",
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterLink,
-    RouterLinkActive,
-    FormsModule,
-    MatIconModule,
-  ],
+  imports: [CommonModule, RouterLink, RouterLinkActive, MatIconModule],
   template: `
     <nav
-      class="fixed top-0 z-50 w-full transition-all duration-300 bg-slate-900/95 backdrop-blur-md border-b border-white/5 shadow-2xl"
+      class="fixed inset-x-0 top-0 z-[100] border-b border-white/10 bg-[#07101f] shadow-xl"
       aria-label="Ana navigasyon"
     >
-      <div class="relative max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-[72px] md:h-24 gap-2">
+      <div class="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
+        <div class="flex h-[72px] items-center justify-between gap-2 md:h-24">
           <a
-            class="inline-flex flex-none items-center w-auto max-w-[150px] sm:max-w-[210px] md:max-w-[280px] group rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             routerLink="/"
             (click)="closeMenu(); closeLangMenu()"
             aria-label="Alperler Auto ana sayfa"
-            [style.--logo-width-mobile]="(config().logoWidthMobile || 150) + 'px'"
-            [style.--logo-width-desktop]="(config().logoWidthDesktop || 200) + 'px'"
+            class="inline-flex min-w-0 max-w-[210px] items-center rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 md:max-w-[280px]"
           >
             @if (config().logoUrl) {
               <img
                 [src]="config().logoUrl"
-                alt=""
-                aria-hidden="true"
-                class="w-[var(--logo-width-mobile)] max-w-[112px] sm:max-w-[160px] md:max-w-[220px] xl:w-[var(--logo-width-desktop)] xl:max-w-[220px] h-auto max-h-[54px] md:max-h-[76px] object-contain transition-all"
+                alt="Alperler Auto"
+                class="max-h-[54px] w-auto max-w-[185px] object-contain md:max-h-[72px] md:max-w-[250px]"
               />
             } @else {
-              <div
-                class="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center mr-2 md:mr-3 drop-shadow-xl group-hover:scale-105 transition-transform duration-500"
-                aria-hidden="true"
-              >
-                <svg
-                  class="w-full h-full text-blue-500"
-                  viewBox="0 0 100 100"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M50 5L15 85H30L50 40L70 85H85L50 5Z" fill="currentColor" />
-                  <path d="M35 70H65V85H35V70Z" fill="white" />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-dasharray="10 4"
-                    opacity="0.3"
-                  />
-                </svg>
-              </div>
-              <div class="flex flex-col justify-center min-w-0 max-w-[96px] sm:max-w-[150px] md:max-w-[220px] pointer-events-none">
-                <span
-                  class="font-serif font-bold text-[15px] sm:text-base md:text-xl text-white tracking-wide leading-none group-hover:text-blue-500 transition-colors whitespace-nowrap"
-                  >{{ config().companyName | uppercase }}</span
-                >
-                @if (config().tagline) {
-                  <span
-                    class="hidden sm:block text-[0.5rem] text-slate-400 font-bold tracking-widest uppercase mt-1 truncate"
-                    >{{ config().tagline }}</span
-                  >
-                }
+              <div class="flex min-w-0 items-center gap-3">
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-xl font-black text-white">A</div>
+                <div class="min-w-0">
+                  <div class="truncate font-serif text-base font-black tracking-wide text-white md:text-xl">{{ config().companyName | uppercase }}</div>
+                  <div class="mt-0.5 truncate text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400 md:text-[10px]">{{ config().tagline }}</div>
+                </div>
               </div>
             }
           </a>
 
-          <div class="hidden xl:flex items-center gap-4 2xl:gap-6 min-w-0">
-            <div class="relative group hidden 2xl:block">
-              <div
-                class="flex items-center bg-slate-800/50 border border-slate-700 rounded-full px-4 py-2 focus-within:border-blue-500 transition-all w-56"
-              >
-                <mat-icon class="text-slate-400 mr-2 text-[18px] w-[18px] h-[18px]">search</mat-icon>
-                <input
-                  type="search"
-                  [placeholder]="t().common.searchPlaceholder || 'Araç Ara...'"
-                  aria-label="Araç ara"
-                  class="bg-transparent border-none outline-none text-xs text-white placeholder-slate-500 w-full min-w-0"
-                  (keyup.enter)="onGlobalSearch($event)"
-                />
-              </div>
-            </div>
-
-            <a routerLink="/" [routerLinkActiveOptions]="{exact: true}" (click)="uiService.closeAllOverlays()" routerLinkActive="text-white border-white" class="text-slate-400 hover:text-white font-medium text-[11px] uppercase tracking-[0.1em] transition-all py-2 border-b-2 border-transparent whitespace-nowrap">Ana Sayfa</a>
-            <a routerLink="/fleet" (click)="uiService.closeAllOverlays()" routerLinkActive="text-white border-white" class="text-slate-400 hover:text-white font-medium text-[11px] uppercase tracking-[0.1em] transition-all py-2 border-b-2 border-transparent whitespace-nowrap">{{ t().nav.fleet }}</a>
-            <a routerLink="/sales" (click)="uiService.closeAllOverlays()" routerLinkActive="text-white border-white" class="text-slate-400 hover:text-white font-medium text-[11px] uppercase tracking-[0.1em] transition-all py-2 border-b-2 border-transparent whitespace-nowrap">{{ t().nav.sales }}</a>
-            <a routerLink="/list-your-car" (click)="uiService.closeAllOverlays()" routerLinkActive="text-white border-white" class="text-slate-400 hover:text-white font-medium text-[11px] uppercase tracking-[0.1em] transition-all py-2 border-b-2 border-transparent whitespace-nowrap">{{ t().nav.earn }}</a>
-            <a routerLink="/tours" (click)="uiService.closeAllOverlays()" routerLinkActive="text-white border-white" class="text-slate-400 hover:text-white font-medium text-[11px] uppercase tracking-[0.1em] transition-all py-2 border-b-2 border-transparent whitespace-nowrap">{{ t().nav.tours }}</a>
-            <a routerLink="/blog" (click)="uiService.closeAllOverlays()" routerLinkActive="text-white border-white" class="text-slate-400 hover:text-white font-medium text-[11px] uppercase tracking-[0.1em] transition-all py-2 border-b-2 border-transparent whitespace-nowrap">{{ t().nav.blog }}</a>
-            <a routerLink="/contact" (click)="uiService.closeAllOverlays()" routerLinkActive="text-white border-white" class="text-slate-400 hover:text-white font-medium text-[11px] uppercase tracking-[0.1em] transition-all py-2 border-b-2 border-transparent whitespace-nowrap">{{ t().nav.contact }}</a>
-            <a routerLink="/about" (click)="uiService.closeAllOverlays()" routerLinkActive="text-white border-white" class="hidden 2xl:inline-flex text-slate-400 hover:text-white font-medium text-[11px] uppercase tracking-[0.1em] transition-all py-2 border-b-2 border-transparent whitespace-nowrap">{{ t().nav.about }}</a>
+          <div class="hidden xl:flex items-center gap-4 2xl:gap-6">
+            <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="!text-white !border-blue-400" class="border-b-2 border-transparent py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-300 transition hover:text-white">Ana Sayfa</a>
+            <a routerLink="/fleet" routerLinkActive="!text-white !border-blue-400" class="border-b-2 border-transparent py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-300 transition hover:text-white">{{ t().nav.fleet }}</a>
+            <a routerLink="/sales" routerLinkActive="!text-white !border-blue-400" class="border-b-2 border-transparent py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-300 transition hover:text-white">{{ t().nav.sales }}</a>
+            <a routerLink="/list-your-car" routerLinkActive="!text-white !border-blue-400" class="border-b-2 border-transparent py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-300 transition hover:text-white">{{ t().nav.earn }}</a>
+            <a routerLink="/tours" routerLinkActive="!text-white !border-blue-400" class="border-b-2 border-transparent py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-300 transition hover:text-white">{{ t().nav.tours }}</a>
+            <a routerLink="/blog" routerLinkActive="!text-white !border-blue-400" class="border-b-2 border-transparent py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-300 transition hover:text-white">{{ t().nav.blog }}</a>
+            <a routerLink="/contact" routerLinkActive="!text-white !border-blue-400" class="border-b-2 border-transparent py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-300 transition hover:text-white">{{ t().nav.contact }}</a>
+            <a routerLink="/about" routerLinkActive="!text-white !border-blue-400" class="hidden 2xl:block border-b-2 border-transparent py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-300 transition hover:text-white">{{ t().nav.about }}</a>
           </div>
 
-          <div class="hidden xl:flex items-center gap-3 shrink-0">
+          <div class="flex shrink-0 items-center gap-1 sm:gap-2">
             <div class="relative">
               <button
                 type="button"
                 (click)="toggleLangMenu()"
-                class="min-h-10 flex items-center text-xs font-bold text-slate-300 hover:text-white border border-slate-700 px-3 py-2 rounded transition-colors uppercase focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 aria-label="Dil seçimi"
                 aria-haspopup="menu"
                 [attr.aria-expanded]="isLangMenuOpen()"
+                class="flex h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 px-2 text-xs font-black uppercase text-slate-200 transition hover:border-slate-500 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
               >
                 {{ uiService.currentLang() }}
-                <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
               </button>
               @if (isLangMenuOpen()) {
-                <div
-                  class="absolute right-0 mt-2 w-36 bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 py-1"
-                  role="menu"
-                >
+                <div role="menu" class="absolute right-0 z-[140] mt-2 max-h-[70dvh] w-40 overflow-y-auto rounded-xl border border-slate-700 bg-[#0b1526] py-1 shadow-2xl">
                   @for (lang of languages; track lang) {
                     <button
                       type="button"
                       role="menuitem"
-                      (click)="setLang(lang); closeLangMenu()"
-                      class="block w-full text-left px-4 py-3 text-xs text-slate-300 hover:bg-slate-800 hover:text-white transition-colors focus:outline-none focus-visible:bg-slate-800"
-                      [class.text-blue-400]="uiService.currentLang() === lang"
+                      (click)="setLang(lang)"
+                      class="block min-h-11 w-full px-4 py-2 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:bg-white/10"
+                      [class.text-blue-300]="uiService.currentLang() === lang"
                     >
                       {{ langName(lang) }}
                     </button>
@@ -139,85 +80,33 @@ import { MatIconModule } from "@angular/material/icon";
             </div>
 
             <a
-              class="relative group w-11 h-11 rounded-full hover:bg-slate-800 transition-colors flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               routerLink="/fleet"
               [queryParams]="{ favs: 'true' }"
               [attr.aria-label]="t().common.favorites || 'Favoriler'"
+              class="relative flex h-11 w-11 items-center justify-center rounded-xl text-slate-200 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
             >
-              <mat-icon class="text-slate-300 group-hover:text-blue-500 transition-colors">star_border</mat-icon>
+              <mat-icon aria-hidden="true">star_border</mat-icon>
               @if (favCount() > 0) {
-                <span class="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-bold min-w-4 h-4 px-1 flex items-center justify-center rounded-full">{{ favCount() }}</span>
+                <span class="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[9px] font-black text-white">{{ favCount() }}</span>
               }
             </a>
 
             <a
               routerLink="/appointment"
-              [attr.aria-label]="t().buttons.appointment"
-              class="bg-white hover:bg-blue-500 text-slate-900 px-5 py-3 rounded-sm font-bold text-xs uppercase tracking-widest transition-all shadow-lg border border-transparent hover:border-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              class="hidden xl:inline-flex min-h-11 items-center rounded-lg bg-white px-4 text-xs font-black uppercase tracking-wider text-slate-950 transition hover:bg-blue-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
             >
               {{ t().buttons.appointment }}
-            </a>
-          </div>
-
-          <div class="xl:hidden flex items-center gap-1 sm:gap-2 shrink-0">
-            <div class="relative">
-              <button
-                type="button"
-                (click)="toggleLangMenu()"
-                class="min-w-10 h-11 px-2 flex items-center justify-center text-[11px] sm:text-xs font-bold text-slate-300 hover:text-white border border-slate-700 rounded-lg uppercase focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                aria-label="Dil seçimi"
-                aria-haspopup="menu"
-                [attr.aria-expanded]="isLangMenuOpen()"
-              >
-                {{ uiService.currentLang() }}
-              </button>
-              @if (isLangMenuOpen()) {
-                <div
-                  class="absolute right-0 mt-2 w-36 bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-[70] py-1"
-                  role="menu"
-                >
-                  @for (lang of languages; track lang) {
-                    <button
-                      type="button"
-                      role="menuitem"
-                      (click)="setLang(lang); closeLangMenu()"
-                      class="block w-full text-left px-4 py-3 text-xs text-slate-300 hover:bg-slate-800 hover:text-white transition-colors focus:outline-none focus-visible:bg-slate-800"
-                      [class.text-blue-400]="uiService.currentLang() === lang"
-                    >
-                      {{ langName(lang) }}
-                    </button>
-                  }
-                </div>
-              }
-            </div>
-
-            <a
-              class="relative w-11 h-11 rounded-full hover:bg-slate-800 transition-colors flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              routerLink="/fleet"
-              [queryParams]="{ favs: 'true' }"
-              [attr.aria-label]="t().common.favorites || 'Favoriler'"
-            >
-              <mat-icon class="text-slate-300">star_border</mat-icon>
-              @if (favCount() > 0) {
-                <span class="absolute top-0 right-0 bg-blue-500 text-white text-[9px] font-bold min-w-4 h-4 px-1 flex items-center justify-center rounded-full">{{ favCount() }}</span>
-              }
             </a>
 
             <button
               type="button"
               (click)="toggleMenu()"
-              class="w-11 h-11 flex items-center justify-center text-white hover:text-blue-400 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors"
               [attr.aria-label]="isMenuOpen() ? 'Menüyü kapat' : 'Menüyü aç'"
               [attr.aria-expanded]="isMenuOpen()"
               aria-controls="mobile-navigation"
+              class="xl:hidden flex h-11 w-11 items-center justify-center rounded-xl text-white transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
             >
-              <svg class="h-7 w-7" stroke="currentColor" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                @if (!isMenuOpen()) {
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6h16M4 12h16M4 18h16" />
-                } @else {
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 18L18 6M6 6l12 12" />
-                }
-              </svg>
+              <mat-icon aria-hidden="true" class="!h-7 !w-7 !text-[28px]">{{ isMenuOpen() ? 'close' : 'menu' }}</mat-icon>
             </button>
           </div>
         </div>
@@ -226,38 +115,77 @@ import { MatIconModule } from "@angular/material/icon";
       @if (isMenuOpen()) {
         <div
           id="mobile-navigation"
-          class="xl:hidden fixed left-0 right-0 top-[72px] md:top-[96px] h-[calc(100dvh-72px)] md:h-[calc(100dvh-96px)] bg-slate-900/98 backdrop-blur-xl border-t border-white/10 shadow-2xl z-40 overflow-y-auto overscroll-contain"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobil menü"
+          class="xl:hidden fixed inset-x-0 bottom-0 top-[72px] z-[120] bg-[#050b16] md:top-[96px]"
         >
-          <div class="px-4 sm:px-6 py-5 sm:py-7 flex flex-col items-center text-center">
-            <div class="w-full mb-3">
-              <div class="flex items-center bg-slate-800/60 border border-slate-700 rounded-xl px-4 min-h-12 focus-within:border-blue-500 transition-all">
-                <mat-icon class="text-slate-400 mr-2" aria-hidden="true">search</mat-icon>
+          <div class="h-full overflow-y-auto overscroll-contain px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5 sm:px-6">
+            <div class="mx-auto w-full max-w-xl">
+              <div class="mb-5 flex items-center justify-between">
+                <div>
+                  <p class="text-[10px] font-black uppercase tracking-[0.22em] text-blue-400">Alperler Auto</p>
+                  <h2 class="mt-1 text-xl font-black text-white">Menü</h2>
+                </div>
+                <button
+                  type="button"
+                  (click)="closeMenu()"
+                  aria-label="Menüyü kapat"
+                  class="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                >
+                  <mat-icon aria-hidden="true">close</mat-icon>
+                </button>
+              </div>
+
+              <div class="mb-5 flex min-h-13 items-center rounded-2xl border border-slate-700 bg-[#0b1526] px-4 shadow-inner focus-within:border-blue-500">
+                <mat-icon aria-hidden="true" class="mr-3 text-slate-400">search</mat-icon>
                 <input
                   type="search"
                   [placeholder]="t().common.searchPlaceholder || 'Araç Ara...'"
                   aria-label="Araç ara"
-                  class="bg-transparent border-none outline-none text-sm text-white placeholder-slate-500 w-full min-w-0 py-3"
+                  class="min-w-0 flex-1 bg-transparent py-4 text-base font-semibold text-white outline-none placeholder:text-slate-500"
                   (keyup.enter)="onGlobalSearch($event); closeMenu()"
                 />
               </div>
+
+              <div class="overflow-hidden rounded-2xl border border-white/10 bg-[#0b1526] shadow-2xl">
+                <a (click)="closeMenu()" routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="!bg-white/10 !text-white" class="flex min-h-14 items-center gap-4 border-b border-white/10 px-4 text-base font-bold text-slate-100 transition hover:bg-white/10 focus:outline-none focus-visible:bg-white/10">
+                  <mat-icon aria-hidden="true" class="text-blue-400">home</mat-icon><span class="flex-1">Ana Sayfa</span><mat-icon aria-hidden="true" class="text-slate-500">chevron_right</mat-icon>
+                </a>
+                <a (click)="closeMenu()" routerLink="/fleet" routerLinkActive="!bg-white/10 !text-white" class="flex min-h-14 items-center gap-4 border-b border-white/10 px-4 text-base font-bold text-slate-100 transition hover:bg-white/10 focus:outline-none focus-visible:bg-white/10">
+                  <mat-icon aria-hidden="true" class="text-blue-400">key</mat-icon><span class="flex-1">{{ t().nav.fleet }}</span><mat-icon aria-hidden="true" class="text-slate-500">chevron_right</mat-icon>
+                </a>
+                <a (click)="closeMenu()" routerLink="/sales" routerLinkActive="!bg-white/10 !text-white" class="flex min-h-14 items-center gap-4 border-b border-white/10 px-4 text-base font-bold text-slate-100 transition hover:bg-white/10 focus:outline-none focus-visible:bg-white/10">
+                  <mat-icon aria-hidden="true" class="text-emerald-400">directions_car</mat-icon><span class="flex-1">{{ t().nav.sales }}</span><mat-icon aria-hidden="true" class="text-slate-500">chevron_right</mat-icon>
+                </a>
+                <a (click)="closeMenu()" routerLink="/list-your-car" routerLinkActive="!bg-white/10 !text-white" class="flex min-h-14 items-center gap-4 border-b border-white/10 px-4 text-base font-bold text-slate-100 transition hover:bg-white/10 focus:outline-none focus-visible:bg-white/10">
+                  <mat-icon aria-hidden="true" class="text-violet-400">sell</mat-icon><span class="flex-1">{{ t().nav.earn }}</span><mat-icon aria-hidden="true" class="text-slate-500">chevron_right</mat-icon>
+                </a>
+                <a (click)="closeMenu()" routerLink="/tours" routerLinkActive="!bg-white/10 !text-white" class="flex min-h-14 items-center gap-4 border-b border-white/10 px-4 text-base font-bold text-slate-100 transition hover:bg-white/10 focus:outline-none focus-visible:bg-white/10">
+                  <mat-icon aria-hidden="true" class="text-amber-400">explore</mat-icon><span class="flex-1">{{ t().nav.tours }}</span><mat-icon aria-hidden="true" class="text-slate-500">chevron_right</mat-icon>
+                </a>
+                <a (click)="closeMenu()" routerLink="/blog" routerLinkActive="!bg-white/10 !text-white" class="flex min-h-14 items-center gap-4 border-b border-white/10 px-4 text-base font-bold text-slate-100 transition hover:bg-white/10 focus:outline-none focus-visible:bg-white/10">
+                  <mat-icon aria-hidden="true" class="text-sky-400">article</mat-icon><span class="flex-1">{{ t().nav.blog }}</span><mat-icon aria-hidden="true" class="text-slate-500">chevron_right</mat-icon>
+                </a>
+                <a (click)="closeMenu()" routerLink="/contact" routerLinkActive="!bg-white/10 !text-white" class="flex min-h-14 items-center gap-4 border-b border-white/10 px-4 text-base font-bold text-slate-100 transition hover:bg-white/10 focus:outline-none focus-visible:bg-white/10">
+                  <mat-icon aria-hidden="true" class="text-rose-400">support_agent</mat-icon><span class="flex-1">{{ t().nav.contact }}</span><mat-icon aria-hidden="true" class="text-slate-500">chevron_right</mat-icon>
+                </a>
+                <a (click)="closeMenu()" routerLink="/about" routerLinkActive="!bg-white/10 !text-white" class="flex min-h-14 items-center gap-4 px-4 text-base font-bold text-slate-100 transition hover:bg-white/10 focus:outline-none focus-visible:bg-white/10">
+                  <mat-icon aria-hidden="true" class="text-slate-300">info</mat-icon><span class="flex-1">{{ t().nav.about }}</span><mat-icon aria-hidden="true" class="text-slate-500">chevron_right</mat-icon>
+                </a>
+              </div>
+
+              <a
+                (click)="closeMenu()"
+                routerLink="/appointment"
+                class="mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 px-5 text-center text-sm font-black uppercase tracking-wider text-white shadow-lg transition hover:bg-blue-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <mat-icon aria-hidden="true">event_available</mat-icon>
+                {{ t().buttons.appointment }}
+              </a>
+
+              <p class="mt-5 text-center text-xs leading-relaxed text-slate-500">Güvenli araç kiralama, ikinci el araç ve tur hizmetleri.</p>
             </div>
-
-            <a (click)="closeMenu(); uiService.closeAllOverlays()" routerLink="/" [routerLinkActiveOptions]="{exact: true}" class="text-base sm:text-lg font-medium text-slate-200 hover:text-white transition-colors min-h-12 flex items-center justify-center w-full border-b border-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Ana Sayfa</a>
-            <a (click)="closeMenu(); uiService.closeAllOverlays()" routerLink="/fleet" class="text-base sm:text-lg font-medium text-slate-200 hover:text-white transition-colors min-h-12 flex items-center justify-center w-full border-b border-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">{{ t().nav.fleet }}</a>
-            <a (click)="closeMenu(); uiService.closeAllOverlays()" routerLink="/sales" class="text-base sm:text-lg font-medium text-slate-200 hover:text-white transition-colors min-h-12 flex items-center justify-center w-full border-b border-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">{{ t().nav.sales }}</a>
-            <a (click)="closeMenu(); uiService.closeAllOverlays()" routerLink="/list-your-car" class="text-base sm:text-lg font-medium text-slate-200 hover:text-white transition-colors min-h-12 flex items-center justify-center w-full border-b border-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">{{ t().nav.earn }}</a>
-            <a (click)="closeMenu(); uiService.closeAllOverlays()" routerLink="/tours" class="text-base sm:text-lg font-medium text-slate-200 hover:text-white transition-colors min-h-12 flex items-center justify-center w-full border-b border-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">{{ t().nav.tours }}</a>
-            <a (click)="closeMenu(); uiService.closeAllOverlays()" routerLink="/blog" class="text-base sm:text-lg font-medium text-slate-200 hover:text-white transition-colors min-h-12 flex items-center justify-center w-full border-b border-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">{{ t().nav.blog }}</a>
-            <a (click)="closeMenu(); uiService.closeAllOverlays()" routerLink="/contact" class="text-base sm:text-lg font-medium text-slate-200 hover:text-white transition-colors min-h-12 flex items-center justify-center w-full border-b border-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">{{ t().nav.contact }}</a>
-            <a (click)="closeMenu(); uiService.closeAllOverlays()" routerLink="/about" class="text-base sm:text-lg font-medium text-slate-200 hover:text-white transition-colors min-h-12 flex items-center justify-center w-full border-b border-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">{{ t().nav.about }}</a>
-
-            <a
-              (click)="closeMenu(); uiService.closeAllOverlays()"
-              routerLink="/appointment"
-              class="mt-5 flex items-center justify-center w-full min-h-12 bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold px-4 rounded-lg shadow-lg text-sm sm:text-base uppercase tracking-wider focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-            >
-              {{ t().buttons.appointment }}
-            </a>
           </div>
         </div>
       }
@@ -266,13 +194,13 @@ import { MatIconModule } from "@angular/material/icon";
 })
 export class NavbarComponent implements OnDestroy {
   private previousBodyOverflow: string | null = null;
+
   carService = inject(CarService);
   uiService = inject(UiService);
   router = inject(Router);
   config = this.carService.getConfig();
   isMenuOpen = signal(false);
   isLangMenuOpen = signal(false);
-
   favCount = this.carService.getFavoriteCount;
   t = this.uiService.translations;
 
@@ -288,27 +216,21 @@ export class NavbarComponent implements OnDestroy {
   closeMenu() {
     this.isMenuOpen.set(false);
     this.setBodyScrollLock(false);
+    this.uiService.closeAllOverlays();
   }
 
-  openAbout() {
-    this.router.navigate(["/about"]);
+  toggleLangMenu() {
+    this.isLangMenuOpen.update((value) => !value);
+    if (this.isLangMenuOpen() && this.isMenuOpen()) this.closeMenu();
   }
 
-  openContact() {
-    this.router.navigate(["/contact"]);
+  closeLangMenu() {
+    this.isLangMenuOpen.set(false);
   }
 
   setLang(lang: Language) {
     this.uiService.setLanguage(lang);
     this.closeLangMenu();
-  }
-
-  toggleLangMenu() {
-    this.isLangMenuOpen.update((v) => !v);
-  }
-
-  closeLangMenu() {
-    this.isLangMenuOpen.set(false);
   }
 
   onGlobalSearch(event: Event) {
@@ -318,13 +240,10 @@ export class NavbarComponent implements OnDestroy {
 
     const vehicle = this.carService.getVehicleByAdId(query);
     if (vehicle) {
-      const type = vehicle.category === "SALE" ? "sales" : "fleet";
-      this.router.navigate([`/${type}`, vehicle.id]);
-      input.value = "";
-      return;
+      this.router.navigate([vehicle.category === "SALE" ? "/sales" : "/fleet", vehicle.id]);
+    } else {
+      this.router.navigate(["/fleet"], { queryParams: { search: query } });
     }
-
-    this.router.navigate(["/fleet"], { queryParams: { search: query } });
     input.value = "";
   }
 
@@ -347,6 +266,13 @@ export class NavbarComponent implements OnDestroy {
   onEscape() {
     this.closeLangMenu();
     if (this.isMenuOpen()) this.closeMenu();
+  }
+
+  @HostListener("window:resize")
+  onResize() {
+    if (typeof window !== "undefined" && window.innerWidth >= 1280 && this.isMenuOpen()) {
+      this.closeMenu();
+    }
   }
 
   ngOnDestroy() {

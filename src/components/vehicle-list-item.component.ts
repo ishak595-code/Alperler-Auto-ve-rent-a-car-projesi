@@ -13,7 +13,7 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
   host: { class: "block w-full min-w-0" },
   template: `
     <article
-      class="group relative w-full min-w-0 border-b border-slate-200 bg-white transition-colors last:border-b-0 hover:bg-slate-50 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600"
+      class="group relative w-full min-w-0 border-b border-slate-200 bg-white transition-colors hover:bg-slate-50 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600"
     >
       <a
         [routerLink]="detailRoute"

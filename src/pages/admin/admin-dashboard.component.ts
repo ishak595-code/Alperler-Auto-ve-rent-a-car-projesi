@@ -1,5 +1,5 @@
 
-import { Component, inject, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, computed, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CarService } from '../../services/car.service';
@@ -177,8 +177,18 @@ import { TurkishCurrencyPipe } from '../../pipes/turkish-currency.pipe';
     </div>
   `
 })
-export class AdminDashboardComponent {
+export class AdminDashboardComponent implements OnInit {
   carService = inject(CarService);
+
+  async ngOnInit() {
+    try {
+      await this.carService.ensureVehicleCloudInventory();
+      await this.carService.ensureContentCloud();
+    } catch (error) {
+      console.error("Admin cloud bootstrap failed", error);
+      this.toastService.show("Bulut verileri hazırlanamadı. Firebase yetkilerini kontrol edin.", "error");
+    }
+  }
   toastService = inject(ToastService);
   confirmService = inject(ConfirmService);
   

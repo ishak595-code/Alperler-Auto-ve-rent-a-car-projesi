@@ -2,6 +2,7 @@ import { Injectable, signal, computed, effect, inject } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Vehicle, Car, SaleCar, Tour } from "../models/car.model";
 import { SiteConfig } from "../models/site-config.model";
+import { ContentCloudService, CloudBlogPost, CloudFaqItem } from "./content-cloud.service";
 import { GoogleGenAI } from "@google/genai";
 import {
   fallbackInventory,
@@ -111,6 +112,7 @@ export interface Feedback {
 })
 export class CarService {
   private http = inject(HttpClient);
+  private contentCloud = inject(ContentCloudService);
 
   // --- STATE SIGNALS ---
   private _bookingRequest = signal<BookingRequest | null>(null);
@@ -346,6 +348,7 @@ Araçlarımızda 7/24 GPS bazlı telemetri kontrolü mevcuttur. Raporlardaki hı
     }
     this.loadFromStorage();
     this.listenForCloudVehicles();
+    this.listenForCloudContent();
 
     // Increment Visit Counter
     this.incrementVisitCount();
@@ -421,6 +424,24 @@ Araçlarımızda 7/24 GPS bazlı telemetri kontrolü mevcuttur. Raporlardaki hı
       if (event.key && event.key.startsWith("db_")) {
         this.loadFromStorage();
       }
+    });
+  }
+
+  private listenForCloudContent() {
+    this.contentCloud.watchSiteConfig((config) => {
+      this._config.set({ ...this._config(), ...config });
+    });
+
+    this.contentCloud.watchTours((items) => {
+      this._tours.set(items);
+    });
+
+    this.contentCloud.watchBlogPosts((items) => {
+      this._blogPosts.set(items as BlogPost[]);
+    });
+
+    this.contentCloud.watchFaqs((items) => {
+      this._faqs.set(items as FaqItem[]);
     });
   }
 
@@ -882,6 +903,15 @@ Araçlarımızda 7/24 GPS bazlı telemetri kontrolü mevcuttur. Raporlardaki hı
 
   // --- PUBLIC METHODS ---
 
+  async ensureContentCloud(): Promise<void> {
+    await this.contentCloud.seedMissingContent(
+      this._config(),
+      this._tours(),
+      this._blogPosts() as CloudBlogPost[],
+      this._faqs() as CloudFaqItem[],
+    );
+  }
+
   resetStats() {
     this._visitCount.set(0);
     localStorage.removeItem("db_visits");
@@ -1038,29 +1068,41 @@ Araçlarımızda 7/24 GPS bazlı telemetri kontrolü mevcuttur. Raporlardaki hı
   }
 
   addFaq(faq: FaqItem) {
-    this._faqs.update((f) => {
-      if (faq.id && f.find((x) => x.id === faq.id)) {
-        return f.map((x) => (x.id === faq.id ? faq : x));
-      } else {
-        return [{ ...faq, id: Date.now() }, ...f];
-      }
-    });
+    const exists = Boolean(faq.id && this._faqs().some((item) => item.id === faq.id));
+    const savedFaq: FaqItem = { ...faq, id: exists ? faq.id : Date.now() };
+    this._faqs.update((items) =>
+      exists
+        ? items.map((item) => (item.id === savedFaq.id ? savedFaq : item))
+        : [savedFaq, ...items],
+    );
+    void this.contentCloud.saveFaq(savedFaq as CloudFaqItem).catch((error) =>
+      console.error("FAQ cloud save failed", error),
+    );
   }
   deleteFaq(id: number) {
-    this._faqs.update((f) => f.filter((x) => x.id !== id));
+    this._faqs.update((items) => items.filter((item) => item.id !== id));
+    void this.contentCloud.deleteFaq(id).catch((error) =>
+      console.error("FAQ cloud delete failed", error),
+    );
   }
 
   addTour(tour: Tour) {
-    this._tours.update((t) => {
-      if (tour.id && t.find((x) => x.id === tour.id)) {
-        return t.map((x) => (x.id === tour.id ? tour : x));
-      } else {
-        return [{ ...tour, id: Date.now() }, ...t];
-      }
-    });
+    const exists = Boolean(tour.id && this._tours().some((item) => item.id === tour.id));
+    const savedTour: Tour = { ...tour, id: exists ? tour.id : Date.now() };
+    this._tours.update((items) =>
+      exists
+        ? items.map((item) => (item.id === savedTour.id ? savedTour : item))
+        : [savedTour, ...items],
+    );
+    void this.contentCloud.saveTour(savedTour).catch((error) =>
+      console.error("Tour cloud save failed", error),
+    );
   }
   deleteTour(id: number) {
-    this._tours.update((t) => t.filter((x) => x.id !== id));
+    this._tours.update((items) => items.filter((item) => item.id !== id));
+    void this.contentCloud.deleteTour(id).catch((error) =>
+      console.error("Tour cloud delete failed", error),
+    );
   }
 
   addPartnerRequest(req: Omit<PartnerRequest, "id" | "date">) {
@@ -1074,6 +1116,9 @@ Araçlarımızda 7/24 GPS bazlı telemetri kontrolü mevcuttur. Raporlardaki hı
 
   updateConfig(newConfig: SiteConfig) {
     this._config.set(newConfig);
+    void this.contentCloud.saveSiteConfig(newConfig).catch((error) =>
+      console.error("Site config cloud save failed", error),
+    );
   }
 
   async addCar(car: Car): Promise<Car> {
@@ -1133,16 +1178,22 @@ Araçlarımızda 7/24 GPS bazlı telemetri kontrolü mevcuttur. Raporlardaki hı
   }
 
   addBlogPost(post: BlogPost) {
-    this._blogPosts.update((posts) => {
-      if (post.id && posts.find((p) => p.id === post.id)) {
-        return posts.map((p) => (p.id === post.id ? post : p));
-      } else {
-        return [{ ...post, id: Date.now() }, ...posts];
-      }
-    });
+    const exists = Boolean(post.id && this._blogPosts().some((item) => item.id === post.id));
+    const savedPost: BlogPost = { ...post, id: exists ? post.id : Date.now() };
+    this._blogPosts.update((items) =>
+      exists
+        ? items.map((item) => (item.id === savedPost.id ? savedPost : item))
+        : [savedPost, ...items],
+    );
+    void this.contentCloud.saveBlogPost(savedPost as CloudBlogPost).catch((error) =>
+      console.error("Blog cloud save failed", error),
+    );
   }
   deleteBlogPost(id: number) {
-    this._blogPosts.update((posts) => posts.filter((p) => p.id !== id));
+    this._blogPosts.update((items) => items.filter((item) => item.id !== id));
+    void this.contentCloud.deleteBlogPost(id).catch((error) =>
+      console.error("Blog cloud delete failed", error),
+    );
   }
 
   async addReservation(req: BookingRequest) {

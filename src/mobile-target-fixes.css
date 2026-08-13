@@ -1,8 +1,7 @@
 /* Mobile visual parity fixes derived from the approved AI Studio reference. */
 
-app-home div:has(> app-vehicle-list-item),
-app-fleet div:has(> app-vehicle-list-item),
-app-sales div:has(> app-vehicle-list-item) {
+/* Keep the approved homepage vehicle showcase exactly as-is. */
+app-home div:has(> app-vehicle-list-item) {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   gap: 12px !important;
@@ -13,9 +12,7 @@ app-sales div:has(> app-vehicle-list-item) {
 }
 
 @media (min-width: 640px) {
-  app-home div:has(> app-vehicle-list-item),
-  app-fleet div:has(> app-vehicle-list-item),
-  app-sales div:has(> app-vehicle-list-item) {
+  app-home div:has(> app-vehicle-list-item) {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 16px !important;
     padding-left: 0 !important;
@@ -24,11 +21,18 @@ app-sales div:has(> app-vehicle-list-item) {
 }
 
 @media (min-width: 1024px) {
-  app-home div:has(> app-vehicle-list-item),
-  app-fleet div:has(> app-vehicle-list-item),
-  app-sales div:has(> app-vehicle-list-item) {
+  app-home div:has(> app-vehicle-list-item) {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
+}
+
+/* Fleet and sales pages intentionally stay as full-width, readable result lists.
+   Do not force their VehicleListItem containers into a grid. */
+app-fleet app-vehicle-list-item,
+app-sales app-vehicle-list-item {
+  display: block;
+  width: 100%;
+  min-width: 0;
 }
 
 /* The reference detail page uses a landscape gallery on mobile, not a square one. */
@@ -52,5 +56,18 @@ app-sale-car-detail .aspect-square {
     font-size: 7px !important;
     line-height: 1.1 !important;
     letter-spacing: 0.13em !important;
+  }
+}
+
+/* Respect users who request less motion. This also prevents unnecessary visual
+   movement while navigating with accessibility tools. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

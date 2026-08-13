@@ -1,0 +1,6 @@
+# Never ship source/project archives as public deployment files.
+*.zip
+public/*.zip
+
+# Local Angular build cache is not a production artifact.
+.angular

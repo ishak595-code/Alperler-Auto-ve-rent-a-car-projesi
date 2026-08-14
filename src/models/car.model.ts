@@ -16,6 +16,7 @@ export interface Vehicle {
   transmission?: 'Otomatik' | 'Manuel' | string;
   fuel?: 'Benzin' | 'Dizel' | 'Hibrit' | 'Elektrik' | string;
   price: number;
+  oldPrice?: number;
   image?: string;
   images?: string[];
   gallery?: string[];
@@ -28,6 +29,7 @@ export interface Vehicle {
   seats?: number;
   isAvailable?: boolean;
   driverOption?: 'WITH_DRIVER' | 'WITHOUT_DRIVER' | 'BOTH';
+  driverDailyFee?: number;
   bookedDates?: {start: string, end: string}[];
   deposit?: number;
   minAge?: number;

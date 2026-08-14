@@ -51,6 +51,7 @@ export class PwaInstallComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     if (typeof window === "undefined") return;
+    this.ensureMobileWebAppMetadata();
     if (this.isStandalone()) return;
     window.addEventListener("beforeinstallprompt", this.promptHandler);
     window.addEventListener("appinstalled", this.installedHandler);
@@ -81,6 +82,30 @@ export class PwaInstallComponent implements OnInit, OnDestroy {
   dismiss(): void {
     this.visible.set(false);
     if (typeof localStorage !== "undefined") localStorage.setItem("alperler-pwa-dismissed-until", String(Date.now() + 7 * 24 * 60 * 60 * 1000));
+  }
+
+  private ensureMobileWebAppMetadata(): void {
+    if (typeof document === "undefined") return;
+    this.ensureMeta("theme-color", "#0f172a");
+    this.ensureMeta("apple-mobile-web-app-capable", "yes");
+    this.ensureMeta("apple-mobile-web-app-status-bar-style", "black-translucent");
+    this.ensureMeta("apple-mobile-web-app-title", "Alperler");
+    if (!document.querySelector("link[rel='apple-touch-icon']")) {
+      const link = document.createElement("link");
+      link.rel = "apple-touch-icon";
+      link.href = "/icons/icon-192.png";
+      document.head.appendChild(link);
+    }
+  }
+
+  private ensureMeta(name: string, content: string): void {
+    let meta = document.querySelector(`meta[name='${name}']`) as HTMLMetaElement | null;
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.name = name;
+      document.head.appendChild(meta);
+    }
+    meta.content = content;
   }
 
   private isStandalone(): boolean {

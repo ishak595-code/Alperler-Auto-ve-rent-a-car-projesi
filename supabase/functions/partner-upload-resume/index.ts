@@ -14,6 +14,13 @@ interface FileInput {
   size?: unknown;
 }
 
+interface ManifestItem {
+  path: string;
+  originalName: string;
+  type: string;
+  size: number;
+}
+
 function json(body: unknown, status = 200): Response {
   return Response.json(body, {
     status,
@@ -185,9 +192,9 @@ Deno.serve(async (request) => {
       return json({ ok: false, code: "RESUME_NOT_FOUND" }, 404);
     }
 
-    const manifest = Array.isArray(existing.media_paths)
+    const manifest: ManifestItem[] = Array.isArray(existing.media_paths)
       ? existing.media_paths
-          .map((item: unknown) => {
+          .map((item: unknown): ManifestItem => {
             const row = item as Record<string, unknown>;
             return {
               path: clean(row.path, 400),
@@ -197,10 +204,10 @@ Deno.serve(async (request) => {
             };
           })
           .filter(
-            (item: { path: string; originalName: string; type: string; size: number }) =>
-              item.path &&
-              item.originalName &&
-              item.type &&
+            (item: ManifestItem) =>
+              item.path.length > 0 &&
+              item.originalName.length > 0 &&
+              item.type.length > 0 &&
               Number.isInteger(item.size) &&
               item.size > 0,
           )
@@ -208,7 +215,7 @@ Deno.serve(async (request) => {
 
     if (
       !sameManifest(
-        manifest.map((item) => ({
+        manifest.map((item: ManifestItem) => ({
           originalName: item.originalName,
           type: item.type,
           size: item.size,

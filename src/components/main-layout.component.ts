@@ -4,6 +4,7 @@ import { filter } from "rxjs/operators";
 import { NavbarComponent } from "./navbar.component";
 import { FooterComponent } from "./footer.component";
 import { FeedbackComponent } from "./feedback.component";
+import { HomeCampaignShowcaseComponent } from "./home-campaign-showcase.component";
 import { UiService } from "../services/ui.service";
 import { CarService } from "../services/car.service";
 import { CommonModule, Location } from "@angular/common";
@@ -18,6 +19,7 @@ import { MatIconModule } from "@angular/material/icon";
     NavbarComponent,
     FooterComponent,
     FeedbackComponent,
+    HomeCampaignShowcaseComponent,
     MatIconModule,
   ],
   template: `
@@ -33,19 +35,17 @@ import { MatIconModule } from "@angular/material/icon";
 
       <main id="main-content" tabindex="-1" class="flex-grow pt-[72px] md:pt-[96px] min-w-0">
         <router-outlet></router-outlet>
+        @if (isHomePage()) {
+          <app-home-campaign-showcase></app-home-campaign-showcase>
+        }
       </main>
 
       <app-footer></app-footer>
       <app-feedback></app-feedback>
 
-      @if (showWhatsapp()) {
+      @if (showWhatsapp() && getWhatsappNumber()) {
         <a
-          [href]="
-            'https://wa.me/' +
-            carService.getConfig()().whatsapp +
-            '?text=' +
-            getWhatsappMessage()
-          "
+          [href]="getWhatsappHref()"
           [style.bottom]="
             isVehicleDetailPage()
               ? 'calc(max(1rem, env(safe-area-inset-bottom)) + 4.75rem)'
@@ -54,7 +54,7 @@ import { MatIconModule } from "@angular/material/icon";
           target="_blank"
           rel="noopener noreferrer"
           class="fixed right-[max(1rem,env(safe-area-inset-right))] z-[90] w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 md:hover:scale-110 hover:shadow-lg transition-all hover:bg-green-600 animate-fade-in-up focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-green-600"
-          aria-label="WhatsApp destek hattını yeni sekmede aç"
+          [attr.aria-label]="getWhatsappAriaLabel()"
         >
           <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path
@@ -91,12 +91,25 @@ export class MainLayoutComponent {
     }
   }
 
+  getWhatsappNumber(): string {
+    const config = this.carService.getConfig()();
+    return String(config.whatsapp || config.phone || "").replace(/\D/g, "");
+  }
+
   getWhatsappMessage(): string {
     const customMsg = this.carService.getConfig()().whatsappMessage;
-    if (customMsg) {
-      return encodeURIComponent(customMsg);
-    }
-    return encodeURIComponent("Merhaba, detaylı bilgi almak istiyorum.");
+    return customMsg?.trim() || "Merhaba, detaylı bilgi almak istiyorum.";
+  }
+
+  getWhatsappHref(): string {
+    return `https://wa.me/${this.getWhatsappNumber()}?text=${encodeURIComponent(this.getWhatsappMessage())}`;
+  }
+
+  getWhatsappAriaLabel(): string {
+    const username = this.carService.getConfig()().whatsappUsername?.trim().replace(/^@/, "");
+    return username
+      ? `WhatsApp destek hattını yeni sekmede aç. Kullanıcı adı @${username}`
+      : "WhatsApp destek hattını yeni sekmede aç";
   }
 
   private updatePageState() {

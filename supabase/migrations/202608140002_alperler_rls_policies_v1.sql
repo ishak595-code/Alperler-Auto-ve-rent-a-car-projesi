@@ -56,4 +56,4 @@ create policy audit_admin_read on public.audit_logs for select to authenticated 
 create policy media_public_read on public.media_assets for select to anon, authenticated using (is_public = true or public.is_admin());
 create policy media_admin_insert on public.media_assets for insert to authenticated with check (public.is_admin());
 create policy media_admin_update on public.media_assets for update to authenticated using (public.is_admin()) with check (public.is_admin());
-create policy media_admin_delete on public.media_assets for delete to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy media_admin_delete on public.media_assets for delete to authenticated using (public.is_admin());

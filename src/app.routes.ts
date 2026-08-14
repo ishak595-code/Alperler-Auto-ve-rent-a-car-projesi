@@ -13,7 +13,7 @@ import { RentalDetailShellComponent, SaleDetailShellComponent, TourDetailShellCo
 
 // Admin Pages
 import { AdminLayoutComponent } from './pages/admin/admin-layout.component';
-import { AdminDashboardComponent } from './pages/admin/admin-dashboard.component';
+import { AdminDashboardShellComponent } from './pages/admin/admin-dashboard-shell.component';
 import { AdminCarsComponent } from './pages/admin/admin-cars.component';
 import { AdminReservationsComponent } from './pages/admin/admin-reservations.component';
 import { AdminBlogComponent } from './pages/admin/admin-blog.component';
@@ -68,7 +68,7 @@ export const routes: Routes = [
     canActivate: [adminGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'dashboard', component: AdminDashboardComponent },
+      { path: 'dashboard', component: AdminDashboardShellComponent },
       { path: 'homepage', component: AdminHomepageComponent },
       { path: 'campaigns', component: AdminCampaignsComponent },
       { path: 'media', component: AdminMediaComponent },

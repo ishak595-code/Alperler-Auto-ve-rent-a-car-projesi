@@ -23,7 +23,6 @@ import { AdminToursComponent } from './pages/admin/admin-tours.component';
 import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
 import { AdminHomepageComponent } from './pages/admin/admin-homepage.component';
 import { AdminTeamComponent } from './pages/admin/admin-team.component';
-import { AdminMediaComponent } from './pages/admin/admin-media.component';
 import { AdminCampaignsComponent } from './pages/admin/admin-campaigns.component';
 import { AdminCatalogEditorComponent } from './pages/admin/admin-catalog-editor.component';
 import { AdminWhatsappSettingsComponent } from './pages/admin/admin-whatsapp-settings.component';
@@ -72,7 +71,7 @@ export const routes: Routes = [
       { path: 'dashboard', component: AdminDashboardShellComponent },
       { path: 'homepage', component: AdminHomepageComponent },
       { path: 'campaigns', component: AdminCampaignsComponent },
-      { path: 'media', component: AdminMediaComponent },
+      { path: 'media', redirectTo: 'catalog-editor', pathMatch: 'full' },
       { path: 'catalog-editor', component: AdminCatalogEditorComponent },
       { path: 'whatsapp', component: AdminWhatsappSettingsComponent },
       { path: 'team', component: AdminTeamComponent },

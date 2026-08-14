@@ -2,6 +2,10 @@ import { Injectable, inject } from "@angular/core";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { AuthService } from "./auth.service";
 
+export type CatalogOrigin = "REAL" | "DEMO";
+export type CatalogQuality = "UNVERIFIED" | "RESEARCHED" | "BUSINESS_VERIFIED";
+export type PublicationStatus = "DRAFT" | "SCHEDULED" | "PUBLISHED" | "ARCHIVED";
+
 export interface VehicleAdminRecord {
   id: string;
   stockCode: string;
@@ -28,9 +32,15 @@ export interface VehicleAdminRecord {
   isActive: boolean;
   availabilityStatus: string;
   seoSlug?: string;
-  publicationStatus: "DRAFT" | "SCHEDULED" | "PUBLISHED" | "ARCHIVED";
+  publicationStatus: PublicationStatus;
   publishedAt?: string;
   scheduledAt?: string;
+  recordOrigin: CatalogOrigin;
+  dataQualityStatus: CatalogQuality;
+  specSourceUrl?: string;
+  specSourceName?: string;
+  actualVehicleVerified: boolean;
+  branchId?: string;
   metadata: Record<string, unknown>;
 }
 
@@ -52,9 +62,18 @@ export interface TourAdminRecord {
   coverImage?: string;
   isFeatured: boolean;
   isActive: boolean;
-  publicationStatus: "DRAFT" | "SCHEDULED" | "PUBLISHED" | "ARCHIVED";
+  publicationStatus: PublicationStatus;
   publishedAt?: string;
   scheduledAt?: string;
+  recordOrigin: CatalogOrigin;
+  dataQualityStatus: CatalogQuality;
+  sourceUrl?: string;
+  sourceName?: string;
+  locationName?: string;
+  latitude?: number;
+  longitude?: number;
+  mapUrl?: string;
+  branchId?: string;
   metadata: Record<string, unknown>;
 }
 
@@ -74,6 +93,61 @@ export class CatalogAdminEditorService {
     return rows.map((row) => this.tourFromRow(row));
   }
 
+  async createVehicle(category: "RENTAL" | "SALE"): Promise<VehicleAdminRecord> {
+    const token = await this.requiredToken();
+    const suffix = crypto.randomUUID().slice(0, 8).toUpperCase();
+    const stockCode = `${category === "RENTAL" ? "RENT" : "SALE"}-${suffix}`;
+    const body = {
+      stock_code: stockCode,
+      category,
+      brand: "Yeni",
+      model: category === "RENTAL" ? "Kiralık Araç" : "Satılık Araç",
+      price: 0,
+      rental_price_daily: category === "RENTAL" ? 0 : null,
+      mileage_km: category === "SALE" ? 0 : null,
+      features: [],
+      images: [],
+      is_featured: false,
+      is_active: false,
+      availability_status: "AVAILABLE",
+      seo_slug: stockCode.toLowerCase(),
+      publication_status: "DRAFT",
+      record_origin: "REAL",
+      data_quality_status: "BUSINESS_VERIFIED",
+      actual_vehicle_verified: true,
+      metadata: {
+        title: category === "RENTAL" ? "Yeni Kiralık Araç" : "Yeni Satılık Araç",
+        createdFrom: "ADMIN_V37",
+      },
+    };
+    const rows = await this.rest<any[]>("POST", "vehicles?select=*", body, token);
+    if (!rows?.[0]) throw new Error("VEHICLE_CREATE_EMPTY_RESPONSE");
+    return this.vehicleFromRow(rows[0]);
+  }
+
+  async createTour(): Promise<TourAdminRecord> {
+    const token = await this.requiredToken();
+    const suffix = crypto.randomUUID().slice(0, 8).toLowerCase();
+    const body = {
+      title: "Yeni Tur",
+      seo_slug: `tur-${suffix}`,
+      price_per_person: 0,
+      itinerary: [],
+      included_items: [],
+      excluded_items: [],
+      images: [],
+      is_featured: false,
+      is_active: false,
+      publication_status: "DRAFT",
+      record_origin: "REAL",
+      data_quality_status: "BUSINESS_VERIFIED",
+      metadata: { createdFrom: "ADMIN_V37" },
+    };
+    const rows = await this.rest<any[]>("POST", "tours?select=*", body, token);
+    if (!rows?.[0]) throw new Error("TOUR_CREATE_EMPTY_RESPONSE");
+    return this.tourFromRow(rows[0]);
+  }
+
   async saveVehicle(record: VehicleAdminRecord): Promise<void> {
     const token = await this.requiredToken();
     const body = {
@@ -84,7 +158,7 @@ export class CatalogAdminEditorService {
       model_year: record.modelYear ?? null,
       price: Math.max(0, Number(record.price) || 0),
       rental_price_daily: record.category === "RENTAL" ? Math.max(0, Number(record.rentalPriceDaily ?? record.price) || 0) : null,
-      mileage_km: record.category === "SALE" ? record.mileageKm ?? null : null,
+      mileage_km: record.category === "SALE" ? Math.max(0, Number(record.mileageKm) || 0) : null,
       fuel_type: record.fuelType?.trim() || null,
       transmission: record.transmission?.trim() || null,
       body_type: record.bodyType?.trim() || null,
@@ -104,6 +178,12 @@ export class CatalogAdminEditorService {
       publication_status: record.publicationStatus,
       published_at: record.publicationStatus === "PUBLISHED" ? (record.publishedAt || new Date().toISOString()) : record.publishedAt || null,
       scheduled_at: record.publicationStatus === "SCHEDULED" ? record.scheduledAt || null : null,
+      record_origin: record.recordOrigin || "REAL",
+      data_quality_status: record.dataQualityStatus || "BUSINESS_VERIFIED",
+      spec_source_url: record.specSourceUrl?.trim() || null,
+      spec_source_name: record.specSourceName?.trim() || null,
+      actual_vehicle_verified: record.actualVehicleVerified,
+      branch_id: record.branchId || null,
       metadata: record.metadata || {},
       updated_at: new Date().toISOString(),
     };
@@ -132,47 +212,126 @@ export class CatalogAdminEditorService {
       publication_status: record.publicationStatus,
       published_at: record.publicationStatus === "PUBLISHED" ? (record.publishedAt || new Date().toISOString()) : record.publishedAt || null,
       scheduled_at: record.publicationStatus === "SCHEDULED" ? record.scheduledAt || null : null,
+      record_origin: record.recordOrigin || "REAL",
+      data_quality_status: record.dataQualityStatus || "BUSINESS_VERIFIED",
+      source_url: record.sourceUrl?.trim() || null,
+      source_name: record.sourceName?.trim() || null,
+      location_name: record.locationName?.trim() || null,
+      latitude: this.optionalNumber(record.latitude),
+      longitude: this.optionalNumber(record.longitude),
+      map_url: record.mapUrl?.trim() || null,
+      branch_id: record.branchId || null,
       metadata: record.metadata || {},
       updated_at: new Date().toISOString(),
     };
     await this.rest("PATCH", `tours?id=eq.${encodeURIComponent(record.id)}`, body, token);
   }
 
+  async archiveVehicle(record: VehicleAdminRecord): Promise<void> {
+    record.publicationStatus = "ARCHIVED";
+    record.isActive = false;
+    await this.saveVehicle(record);
+  }
+
+  async archiveTour(record: TourAdminRecord): Promise<void> {
+    record.publicationStatus = "ARCHIVED";
+    record.isActive = false;
+    await this.saveTour(record);
+  }
+
   private vehicleFromRow(row: any): VehicleAdminRecord {
     return {
-      id: String(row.id), stockCode: String(row.stock_code || ""), category: row.category === "SALE" ? "SALE" : "RENTAL",
-      brand: String(row.brand || ""), model: String(row.model || ""), modelYear: row.model_year ?? undefined,
-      price: Number(row.price || 0), rentalPriceDaily: row.rental_price_daily == null ? undefined : Number(row.rental_price_daily),
-      mileageKm: row.mileage_km ?? undefined, fuelType: row.fuel_type || undefined, transmission: row.transmission || undefined,
-      bodyType: row.body_type || undefined, color: row.color || undefined, engine: row.engine || undefined,
-      seats: row.seats ?? undefined, doors: row.doors ?? undefined, location: row.location || undefined,
-      description: row.description || undefined, features: Array.isArray(row.features) ? row.features : [],
-      images: Array.isArray(row.images) ? row.images : [], coverImage: row.cover_image || undefined,
-      isFeatured: Boolean(row.is_featured), isActive: row.is_active !== false, availabilityStatus: row.availability_status || "AVAILABLE",
-      seoSlug: row.seo_slug || undefined, publicationStatus: row.publication_status || "PUBLISHED",
-      publishedAt: row.published_at || undefined, scheduledAt: row.scheduled_at || undefined,
+      id: String(row.id),
+      stockCode: String(row.stock_code || ""),
+      category: row.category === "SALE" ? "SALE" : "RENTAL",
+      brand: String(row.brand || ""),
+      model: String(row.model || ""),
+      modelYear: row.model_year ?? undefined,
+      price: Number(row.price || 0),
+      rentalPriceDaily: row.rental_price_daily == null ? undefined : Number(row.rental_price_daily),
+      mileageKm: row.mileage_km ?? undefined,
+      fuelType: row.fuel_type || undefined,
+      transmission: row.transmission || undefined,
+      bodyType: row.body_type || undefined,
+      color: row.color || undefined,
+      engine: row.engine || undefined,
+      seats: row.seats ?? undefined,
+      doors: row.doors ?? undefined,
+      location: row.location || undefined,
+      description: row.description || undefined,
+      features: Array.isArray(row.features) ? row.features : [],
+      images: Array.isArray(row.images) ? row.images : [],
+      coverImage: row.cover_image || undefined,
+      isFeatured: Boolean(row.is_featured),
+      isActive: row.is_active !== false,
+      availabilityStatus: row.availability_status || "AVAILABLE",
+      seoSlug: row.seo_slug || undefined,
+      publicationStatus: row.publication_status || "PUBLISHED",
+      publishedAt: row.published_at || undefined,
+      scheduledAt: row.scheduled_at || undefined,
+      recordOrigin: row.record_origin === "DEMO" ? "DEMO" : "REAL",
+      dataQualityStatus: this.quality(row.data_quality_status),
+      specSourceUrl: row.spec_source_url || undefined,
+      specSourceName: row.spec_source_name || undefined,
+      actualVehicleVerified: row.actual_vehicle_verified !== false,
+      branchId: row.branch_id || undefined,
       metadata: row.metadata || {},
     };
   }
 
   private tourFromRow(row: any): TourAdminRecord {
     return {
-      id: String(row.id), title: String(row.title || ""), seoSlug: String(row.seo_slug || ""), category: row.category || undefined,
-      shortDescription: row.short_description || undefined, description: row.description || undefined,
-      pricePerPerson: Number(row.price_per_person || 0), duration: row.duration || undefined, capacity: row.capacity ?? undefined,
-      meetingPoint: row.meeting_point || undefined, itinerary: Array.isArray(row.itinerary) ? row.itinerary : [],
-      includedItems: Array.isArray(row.included_items) ? row.included_items : [], excludedItems: Array.isArray(row.excluded_items) ? row.excluded_items : [],
-      images: Array.isArray(row.images) ? row.images : [], coverImage: row.cover_image || undefined,
-      isFeatured: Boolean(row.is_featured), isActive: row.is_active !== false,
-      publicationStatus: row.publication_status || "PUBLISHED", publishedAt: row.published_at || undefined, scheduledAt: row.scheduled_at || undefined,
+      id: String(row.id),
+      title: String(row.title || ""),
+      seoSlug: String(row.seo_slug || ""),
+      category: row.category || undefined,
+      shortDescription: row.short_description || undefined,
+      description: row.description || undefined,
+      pricePerPerson: Number(row.price_per_person || 0),
+      duration: row.duration || undefined,
+      capacity: row.capacity ?? undefined,
+      meetingPoint: row.meeting_point || undefined,
+      itinerary: Array.isArray(row.itinerary) ? row.itinerary : [],
+      includedItems: Array.isArray(row.included_items) ? row.included_items : [],
+      excludedItems: Array.isArray(row.excluded_items) ? row.excluded_items : [],
+      images: Array.isArray(row.images) ? row.images : [],
+      coverImage: row.cover_image || undefined,
+      isFeatured: Boolean(row.is_featured),
+      isActive: row.is_active !== false,
+      publicationStatus: row.publication_status || "PUBLISHED",
+      publishedAt: row.published_at || undefined,
+      scheduledAt: row.scheduled_at || undefined,
+      recordOrigin: row.record_origin === "DEMO" ? "DEMO" : "REAL",
+      dataQualityStatus: this.quality(row.data_quality_status),
+      sourceUrl: row.source_url || undefined,
+      sourceName: row.source_name || undefined,
+      locationName: row.location_name || undefined,
+      latitude: row.latitude == null ? undefined : Number(row.latitude),
+      longitude: row.longitude == null ? undefined : Number(row.longitude),
+      mapUrl: row.map_url || undefined,
+      branchId: row.branch_id || undefined,
       metadata: row.metadata || {},
     };
+  }
+
+  private quality(value: unknown): CatalogQuality {
+    return value === "RESEARCHED" || value === "BUSINESS_VERIFIED" ? value : "UNVERIFIED";
+  }
+
+  private optionalNumber(value: unknown): number | null {
+    if (value === undefined || value === null || value === "") return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
   private async rest<T = unknown>(method: "GET" | "POST" | "PATCH" | "DELETE", path: string, body: unknown, token: string): Promise<T> {
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
       method,
-      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}`, ...(method === "GET" ? {} : { "content-type": "application/json" }) },
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        authorization: `Bearer ${token}`,
+        ...(method === "GET" ? {} : { "content-type": "application/json", Prefer: "return=representation" }),
+      },
       body: method === "GET" || method === "DELETE" ? undefined : JSON.stringify(body),
     });
     if (!response.ok) {

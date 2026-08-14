@@ -19,7 +19,7 @@ export interface HomepageSection {
 export interface HomepagePlacement {
   id: string;
   sectionKey: string;
-  entityType: "VEHICLE" | "TOUR" | "BLOG";
+  entityType: "VEHICLE" | "TOUR" | "BLOG" | "CAMPAIGN";
   entityId: string;
   label?: string;
   sortOrder: number;

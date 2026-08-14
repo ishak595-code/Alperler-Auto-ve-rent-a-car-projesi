@@ -35,7 +35,7 @@ import { CarService } from "../services/car.service";
           <div class="grid gap-5 lg:grid-cols-3">
             @for (campaign of campaigns(); track campaign.id; let i = $index) {
               <article
-                class="campaign-card group relative flex min-h-[540px] flex-col overflow-hidden rounded-[30px] border border-white/10 bg-white shadow-2xl transition-transform duration-300 hover:-translate-y-2 focus-within:ring-4 focus-within:ring-blue-400/40"
+                class="campaign-card group relative flex min-h-[560px] flex-col overflow-hidden rounded-[30px] border border-white/10 bg-white shadow-2xl transition-transform duration-300 hover:-translate-y-2 focus-within:ring-4 focus-within:ring-blue-400/40"
                 [style.animation-delay.ms]="i * 110"
               >
                 <div class="relative h-56 overflow-hidden bg-slate-800">
@@ -58,6 +58,20 @@ import { CarService } from "../services/car.service";
                 </div>
 
                 <div class="flex flex-1 flex-col p-5 sm:p-6">
+                  @if (imageCredit(campaign)) {
+                    <div class="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold text-slate-400">
+                      <span>{{ isRepresentative(campaign) ? 'Temsili model görseli' : 'Doğrulanmış rota görseli' }}</span>
+                      <span aria-hidden="true">•</span>
+                      @if (imageSourceUrl(campaign)) {
+                        <a [href]="imageSourceUrl(campaign)" target="_blank" rel="noopener noreferrer" class="underline decoration-slate-300 underline-offset-2 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                          {{ imageCredit(campaign) }}
+                        </a>
+                      } @else {
+                        <span>{{ imageCredit(campaign) }}</span>
+                      }
+                    </div>
+                  }
+
                   <p class="text-sm leading-relaxed text-slate-600">{{ campaign.shortDescription }}</p>
 
                   <div class="mt-5 space-y-2.5">
@@ -148,6 +162,20 @@ export class HomeCampaignShowcaseComponent implements OnInit, AfterViewInit, OnD
 
   trustLine(campaign: CampaignRecord): string {
     return typeof campaign.metadata?.["trustLine"] === "string" ? campaign.metadata["trustLine"] as string : "Şeffaf fiyat • Hızlı talep • Açık koşullar";
+  }
+
+  imageCredit(campaign: CampaignRecord): string {
+    const attribution = typeof campaign.metadata?.["imageAttribution"] === "string" ? campaign.metadata["imageAttribution"] as string : "";
+    const license = typeof campaign.metadata?.["imageLicense"] === "string" ? campaign.metadata["imageLicense"] as string : "";
+    return [attribution, license].filter(Boolean).join(" • ");
+  }
+
+  imageSourceUrl(campaign: CampaignRecord): string {
+    return typeof campaign.metadata?.["imageSourceUrl"] === "string" ? campaign.metadata["imageSourceUrl"] as string : "";
+  }
+
+  isRepresentative(campaign: CampaignRecord): boolean {
+    return campaign.metadata?.["representativeImage"] === true;
   }
 
   intentLabel(campaign: CampaignRecord): string {

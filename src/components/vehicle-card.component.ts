@@ -314,6 +314,12 @@ export class VehicleCardComponent {
       this.carService.setBookingRequest(request);
       this.router.navigate(["/contact"]);
     } else if (action === "whatsapp") {
+      const number = String(
+        this.carService.getConfig()().whatsapp ||
+          this.carService.getConfig()().phone ||
+          "",
+      ).replace(/\D/g, "");
+      if (!number || typeof window === "undefined") return;
       const url =
         window.location.origin +
         (this.variant === "rental" ? "/fleet/" : "/sales/") +
@@ -324,7 +330,7 @@ export class VehicleCardComponent {
         .replace("{year}", (this.car.year || "").toString())
         .replace("{url}", url);
       window.open(
-        `https://wa.me/905320000000?text=${encodeURIComponent(msg)}`,
+        `https://wa.me/${number}?text=${encodeURIComponent(msg)}`,
         "_blank",
         "noopener,noreferrer",
       );

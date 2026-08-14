@@ -1,4 +1,4 @@
-# Validates the complete latest tree, including frontend, Vercel Functions and cloud rules.
+# Validates the complete latest tree, including frontend, Vercel Functions and Supabase runtime.
 name: Alperler Professional Quality Gate
 
 on:
@@ -10,6 +10,7 @@ on:
     paths:
       - "src/**"
       - "api/**"
+      - "supabase/**"
       - "project/**"
       - "index.html"
       - "package.json"
@@ -24,6 +25,7 @@ on:
     paths:
       - "src/**"
       - "api/**"
+      - "supabase/**"
       - "project/**"
       - "index.html"
       - "package.json"
@@ -44,7 +46,7 @@ jobs:
   quality:
     name: lint-build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout source
@@ -64,6 +66,14 @@ jobs:
 
       - name: API TypeScript quality check
         run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Set up Deno 2
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Supabase Edge Function type check
+        run: deno check supabase/functions/*/index.ts
 
       - name: Production build
         run: npm run build

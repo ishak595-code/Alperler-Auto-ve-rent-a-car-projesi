@@ -29,7 +29,7 @@ import { ToastService } from "../../services/toast.service";
           <div class="mt-2 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div class="max-w-4xl">
               <h1 class="text-2xl font-black md:text-4xl">Araç & Tur Yayın Stüdyosu</h1>
-              <p class="mt-2 text-sm leading-relaxed text-slate-300">Kiralık araç, satılık araç ve tur içerikleri birbirinden ayrı tutulur. Yeni kayıtlar gerçek kayıt olarak oluşturulur. Kart, detay, medya, konum, yayın ve vitrin bilgileri tek merkezden yönetilir.</p>
+              <p class="mt-2 text-sm leading-relaxed text-slate-300">Kiralık araç, satılık araç ve turlar birbirinden ayrı gerçek kayıtlar olarak yönetilir. Yeni kayıt önce taslak açılır, bilgileri ve medyası tamamlandıktan sonra tek tuşla canlıya alınır.</p>
             </div>
             <div class="grid gap-2 sm:grid-cols-3">
               <button type="button" (click)="createVehicle('RENTAL')" [disabled]="saving()" class="min-h-12 rounded-xl bg-blue-600 px-4 font-black text-white disabled:opacity-40">+ Yeni Kiralık</button>
@@ -82,9 +82,9 @@ import { ToastService } from "../../services/toast.service";
                 <div class="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_390px]">
                   <div class="space-y-5">
                     <section class="panel">
-                      <header><h2>{{ car.category === 'RENTAL' ? 'Kiralık Araç' : 'Satılık Araç' }} Kart Bilgileri</h2><p>Müşteri kartında görülen bilgilerle aynı veri kaynağı.</p></header>
+                      <header><h2>{{ car.category === 'RENTAL' ? 'Kiralık Araç' : 'Satılık Araç' }} Kart Bilgileri</h2><p>Kartta hangi bilgiler görünüyorsa aynı bilgiler burada yönetilir.</p></header>
                       <div class="form-grid">
-                        <label class="field md:col-span-2"><span>İlan başlığı</span><input [ngModel]="meta(car,'title')" (ngModelChange)="setMeta(car,'title',$event)" name="title" placeholder="Örn: 2023 Volkswagen Amarok Aventura" /></label>
+                        <label class="field md:col-span-2"><span>İlan başlığı</span><input [ngModel]="meta(car,'title')" (ngModelChange)="setMeta(car,'title',$event)" name="title" /></label>
                         <label class="field"><span>Marka</span><input [(ngModel)]="car.brand" name="brand" required /></label>
                         <label class="field"><span>Model / Paket</span><input [(ngModel)]="car.model" name="model" required /></label>
                         <label class="field"><span>Seri</span><input [ngModel]="meta(car,'series')" (ngModelChange)="setMeta(car,'series',$event)" name="series" /></label>
@@ -107,7 +107,7 @@ import { ToastService } from "../../services/toast.service";
                     </section>
 
                     <section class="panel">
-                      <header><h2>Detay & Teknik Bilgiler</h2><p>Karttan detay sayfasına geçildiğinde kullanılan gerçek araç bilgileri.</p></header>
+                      <header><h2>Teknik & Detay Bilgileri</h2></header>
                       <div class="form-grid">
                         <label class="field"><span>Motor</span><input [(ngModel)]="car.engine" name="engine" /></label>
                         <label class="field"><span>Motor gücü</span><input [ngModel]="meta(car,'enginePower')" (ngModelChange)="setMeta(car,'enginePower',$event)" name="enginePower" /></label>
@@ -138,11 +138,11 @@ import { ToastService } from "../../services/toast.service";
                     </section>
 
                     <section class="panel">
-                      <header><h2>Gerçek Kayıt, Kaynak & Şube</h2><p>Bu kayıt işletmenin gerçek envanteridir. Araştırma kaynağı kullanıldıysa ayrıca saklanır.</p></header>
+                      <header><h2>Gerçek Kayıt, Kaynak & Şube</h2></header>
                       <div class="form-grid">
                         <div class="rounded-xl bg-emerald-50 p-4 text-sm font-black text-emerald-800">GERÇEK ARAÇ</div>
                         <label class="field"><span>Veri doğrulama</span><select [(ngModel)]="car.dataQualityStatus" name="quality"><option value="BUSINESS_VERIFIED">İşletme doğruladı</option><option value="RESEARCHED">Araştırma ile tamamlandı</option><option value="UNVERIFIED">Henüz kontrol edilmedi</option></select></label>
-                        <label class="field"><span>Teknik kaynak adı</span><input [(ngModel)]="car.specSourceName" name="sourceName" placeholder="Üretici, katalog, ruhsat…" /></label>
+                        <label class="field"><span>Teknik kaynak adı</span><input [(ngModel)]="car.specSourceName" name="sourceName" /></label>
                         <label class="field"><span>Teknik kaynak URL</span><input [(ngModel)]="car.specSourceUrl" name="sourceUrl" type="url" /></label>
                         <label class="field"><span>Şube</span><select [(ngModel)]="car.branchId" name="branch"><option [ngValue]="undefined">Şube seçilmedi</option>@for (branch of branches(); track branch.id) { <option [ngValue]="branch.id">{{ branch.name }} · {{ branch.city }}</option> }</select></label>
                         <label class="field"><span>Müsaitlik</span><select [(ngModel)]="car.availabilityStatus" name="availability"><option value="AVAILABLE">Müsait / Satışta</option><option value="RESERVED">Rezerve</option><option value="RENTED">Kirada</option><option value="SOLD">Satıldı</option><option value="MAINTENANCE">Bakımda</option></select></label>
@@ -160,7 +160,7 @@ import { ToastService } from "../../services/toast.service";
                 </div>
 
                 <section class="panel">
-                  <header><h2>Yayın Kontrolü</h2><p>Yeni kayıt önce taslak kalabilir. Canlı yayın, müşteriye görünmesi için hem aktif hem PUBLISHED yapar.</p></header>
+                  <header><h2>Yayın Kontrolü</h2></header>
                   <div class="form-grid">
                     <label class="field"><span>Yayın durumu</span><select [(ngModel)]="car.publicationStatus" name="publication"><option value="DRAFT">Taslak</option><option value="SCHEDULED">Planlandı</option><option value="PUBLISHED">Yayınlandı</option><option value="ARCHIVED">Arşiv</option></select></label>
                     <label class="field"><span>Planlanan tarih</span><input [(ngModel)]="car.scheduledAt" name="scheduled" type="datetime-local" /></label>
@@ -179,7 +179,7 @@ import { ToastService } from "../../services/toast.service";
                 <div class="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_390px]">
                   <div class="space-y-5">
                     <section class="panel">
-                      <header><h2>Gerçek Tur Kartı</h2><p>Kart ve tur detay sayfasının ana bilgileri.</p></header>
+                      <header><h2>Gerçek Tur Kartı</h2></header>
                       <div class="form-grid">
                         <label class="field md:col-span-2"><span>Tur adı</span><input [(ngModel)]="tour.title" name="tourTitle" required /></label>
                         <label class="field"><span>Kategori</span><input [(ngModel)]="tour.category" name="tourCategory" /></label>
@@ -197,9 +197,9 @@ import { ToastService } from "../../services/toast.service";
                     </section>
 
                     <section class="panel">
-                      <header><h2>GPS, Google Harita & Rota</h2><p>Turun gerçek konumu ve müşterinin haritada açacağı adres.</p></header>
+                      <header><h2>GPS, Google Harita & Rota</h2></header>
                       <div class="form-grid">
-                        <label class="field md:col-span-2"><span>Konum adı</span><input [(ngModel)]="tour.locationName" name="locationName" placeholder="Örn: Sat Gölleri, Yüksekova, Hakkari" /></label>
+                        <label class="field md:col-span-2"><span>Konum adı</span><input [(ngModel)]="tour.locationName" name="locationName" /></label>
                         <label class="field"><span>Enlem</span><input [(ngModel)]="tour.latitude" name="latitude" type="number" step="0.000001" min="-90" max="90" /></label>
                         <label class="field"><span>Boylam</span><input [(ngModel)]="tour.longitude" name="longitude" type="number" step="0.000001" min="-180" max="180" /></label>
                         <label class="field md:col-span-2"><span>Google Maps / Harita URL</span><input [(ngModel)]="tour.mapUrl" name="mapUrl" type="url" /></label>
@@ -244,7 +244,6 @@ import { ToastService } from "../../services/toast.service";
             } @else {
               <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center">
                 <h2 class="text-xl font-black text-slate-900">Düzenlemek için soldan bir kayıt seç</h2>
-                <p class="mt-2 text-sm text-slate-500">Ya da yukarıdaki butonlardan yeni gerçek kiralık, satılık veya tur kaydı oluştur.</p>
               </div>
             }
           </section>
@@ -253,12 +252,11 @@ import { ToastService } from "../../services/toast.service";
 
       <ng-template #mediaPanel let-entityType let-id="id">
         <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div class="flex items-center justify-between gap-3"><div><h2 class="text-lg font-black text-slate-900">Fotoğraf & Video</h2><p class="text-xs text-slate-500">Yüklenen medya otomatik olarak canlı karta ve detay sayfasına bağlanır.</p></div><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-black">{{ media().length }}</span></div>
+          <div class="flex items-center justify-between gap-3"><div><h2 class="text-lg font-black text-slate-900">Fotoğraf & Video</h2><p class="text-xs text-slate-500">Yüklenen medya canlı karta ve detay sayfasına otomatik bağlanır.</p></div><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-black">{{ media().length }}</span></div>
           <label class="mt-4 flex min-h-12 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 px-4 text-sm font-black text-blue-700">
             <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm" class="sr-only" (change)="uploadFiles($event, entityType, id)" />
             {{ uploading() ? 'Yükleniyor %' + mediaService.uploadProgress() : 'Fotoğraf / Video Yükle' }}
           </label>
-
           <div class="mt-4 grid grid-cols-2 gap-2">
             <select [(ngModel)]="externalKind" class="min-h-11 rounded-xl border border-slate-200 px-2 text-xs font-bold"><option value="IMAGE">Dış görsel</option><option value="VIDEO">Dış video</option></select>
             <input [(ngModel)]="externalUrl" type="url" placeholder="https://…" class="min-h-11 rounded-xl border border-slate-200 px-3 text-xs" />
@@ -266,7 +264,6 @@ import { ToastService } from "../../services/toast.service";
             <input [(ngModel)]="externalAttribution" placeholder="Atıf / lisans sahibi" class="min-h-11 rounded-xl border border-slate-200 px-3 text-xs" />
             <button type="button" (click)="addExternalMedia(entityType,id)" [disabled]="!externalUrl.trim() || uploading()" class="col-span-2 min-h-11 rounded-xl bg-slate-900 px-4 text-xs font-black text-white disabled:opacity-40">Kaynaklı Medyayı Ekle</button>
           </div>
-
           <div class="mt-4 space-y-2">
             @for (item of media(); track item.id) {
               <article class="rounded-2xl border border-slate-200 p-2">
@@ -292,7 +289,6 @@ import { ToastService } from "../../services/toast.service";
     .panel { border: 1px solid rgb(226 232 240); background: white; border-radius: 1.5rem; padding: 1rem; box-shadow: 0 1px 2px rgb(15 23 42 / .04); }
     .panel > header { margin-bottom: 1rem; }
     .panel > header h2 { font-size: 1.1rem; font-weight: 900; color: rgb(15 23 42); }
-    .panel > header p { margin-top: .2rem; font-size: .75rem; line-height: 1.45; color: rgb(100 116 139); }
     .form-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: .9rem; }
     .field { display: flex; min-width: 0; flex-direction: column; gap: .35rem; font-size: .75rem; font-weight: 800; color: rgb(71 85 105); }
     .field input, .field select, .field textarea { width: 100%; min-height: 2.75rem; border: 1px solid rgb(226 232 240); border-radius: .75rem; background: rgb(248 250 252); padding: .7rem .8rem; color: rgb(15 23 42); outline: none; font-weight: 600; }
@@ -327,7 +323,9 @@ export class AdminCatalogEditorComponent implements OnInit {
   readonly branches = computed(() => this.management.branches().filter((branch) => branch.isActive));
   readonly filteredVehicles = computed(() => {
     const q = this.search.trim().toLocaleLowerCase("tr-TR");
-    return this.vehicles().filter((item) => item.category === this.filter()).filter((item) => !q || `${item.brand} ${item.model} ${item.stockCode}`.toLocaleLowerCase("tr-TR").includes(q));
+    const category = this.filter();
+    if (category === "TOUR") return [];
+    return this.vehicles().filter((item) => item.category === category).filter((item) => !q || `${item.brand} ${item.model} ${item.stockCode}`.toLocaleLowerCase("tr-TR").includes(q));
   });
   readonly filteredTours = computed(() => {
     const q = this.search.trim().toLocaleLowerCase("tr-TR");
@@ -339,10 +337,15 @@ export class AdminCatalogEditorComponent implements OnInit {
   async refresh(): Promise<void> {
     this.loading.set(true); this.error.set("");
     try {
-      const [vehicles, tours] = await Promise.all([this.editor.vehicles(), this.editor.tours(), this.management.refreshPeople().then(() => undefined)]).then((values) => [values[0] as VehicleAdminRecord[], values[1] as TourAdminRecord[]]);
-      this.vehicles.set(vehicles); this.tours.set(tours);
+      await this.management.refreshPeople();
+      const [vehicles, tours] = await Promise.all([
+        this.editor.vehicles(),
+        this.editor.tours(),
+      ]);
+      this.vehicles.set(vehicles);
+      this.tours.set(tours);
       if (!this.selectedVehicle() && !this.selectedTour()) {
-        const first = vehicles.find((item) => item.category === this.filter()) || vehicles[0];
+        const first = vehicles.find((item) => item.category === "RENTAL") || vehicles[0];
         if (first) await this.selectVehicle(first);
       }
     } catch (error) { this.error.set(this.message(error)); }
@@ -356,7 +359,7 @@ export class AdminCatalogEditorComponent implements OnInit {
       this.vehicles.update((rows) => [item, ...rows]);
       this.filter.set(category);
       await this.selectVehicle(item);
-      this.toast.show(`${category === 'RENTAL' ? 'Kiralık' : 'Satılık'} gerçek araç kaydı oluşturuldu. Bilgileri doldurup yayınlayabilirsin.`, "success");
+      this.toast.show(`${category === 'RENTAL' ? 'Kiralık' : 'Satılık'} gerçek araç kaydı oluşturuldu.`, "success");
     } catch (error) { this.toast.show(this.message(error), "error"); }
     finally { this.saving.set(false); }
   }
@@ -368,18 +371,20 @@ export class AdminCatalogEditorComponent implements OnInit {
       this.tours.update((rows) => [item, ...rows]);
       this.filter.set("TOUR");
       await this.selectTour(item);
-      this.toast.show("Gerçek tur kaydı oluşturuldu. Konum, medya ve içerikleri doldurup yayınlayabilirsin.", "success");
+      this.toast.show("Gerçek tur kaydı oluşturuldu.", "success");
     } catch (error) { this.toast.show(this.message(error), "error"); }
     finally { this.saving.set(false); }
   }
 
   async selectVehicle(item: VehicleAdminRecord): Promise<void> {
-    this.selectedTour.set(null); this.selectedVehicle.set(this.clone(item));
+    this.selectedTour.set(null);
+    this.selectedVehicle.set(this.clone(item));
     await this.loadMedia("VEHICLE", item.id);
   }
 
   async selectTour(item: TourAdminRecord): Promise<void> {
-    this.selectedVehicle.set(null); this.selectedTour.set(this.clone(item));
+    this.selectedVehicle.set(null);
+    this.selectedTour.set(this.clone(item));
     await this.loadMedia("TOUR", item.id);
   }
 
@@ -416,13 +421,15 @@ export class AdminCatalogEditorComponent implements OnInit {
     this.uploading.set(true);
     try {
       let hasCover = this.media().some((item) => item.kind === "IMAGE" && item.isCover);
+      let sortOrder = this.media().length + 1;
       for (const file of files) {
         const isImage = file.type.startsWith("image/");
-        await this.mediaService.upload(entityType, id, file, { altText: file.name, isCover: isImage && !hasCover, sortOrder: this.media().length + 1 });
+        await this.mediaService.upload(entityType, id, file, { altText: file.name, isCover: isImage && !hasCover, sortOrder });
         if (isImage && !hasCover) hasCover = true;
+        sortOrder += 1;
       }
       await this.loadMedia(entityType, id); await this.reloadCurrent();
-      this.toast.show("Medya yüklendi ve canlı katalog kaydına bağlandı.", "success");
+      this.toast.show("Medya yüklendi ve katalog kaydına bağlandı.", "success");
     } catch (error) { this.toast.show(this.message(error), "error"); }
     finally { this.uploading.set(false); input.value = ""; }
   }

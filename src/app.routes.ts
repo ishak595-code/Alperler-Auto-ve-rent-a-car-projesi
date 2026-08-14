@@ -24,6 +24,7 @@ import { AdminToursComponent } from './pages/admin/admin-tours.component';
 import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
 import { AdminHomepageComponent } from './pages/admin/admin-homepage.component';
 import { AdminTeamComponent } from './pages/admin/admin-team.component';
+import { AdminMediaComponent } from './pages/admin/admin-media.component';
 
 const adminGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
@@ -38,7 +39,6 @@ export const routes: Routes = [
     path: 'admin/login',
     loadComponent: () => import('./pages/admin/admin-login.component').then(m => m.AdminLoginComponent)
   },
-
   { path: 'fleet', component: FleetComponent },
   { path: 'fleet/:id', component: CarDetailComponent },
   { path: 'sales', loadComponent: () => import('./pages/sales-results.component').then(m => m.SalesResultsComponent) },
@@ -56,13 +56,11 @@ export const routes: Routes = [
   { path: 'list-your-car', loadComponent: () => import('./pages/list-your-car.component').then(m => m.ListYourCarComponent) },
   { path: 'track-car/:id', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
   { path: 'track-car', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
-
   {
     path: '',
     component: MainLayoutComponent,
     children: [{ path: '', component: HomeComponent }]
   },
-
   {
     path: 'admin',
     component: AdminLayoutComponent,
@@ -71,6 +69,7 @@ export const routes: Routes = [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: AdminDashboardComponent },
       { path: 'homepage', component: AdminHomepageComponent },
+      { path: 'media', component: AdminMediaComponent },
       { path: 'team', component: AdminTeamComponent },
       { path: 'cars', component: AdminCarsComponent },
       { path: 'reservations', component: AdminReservationsComponent },
@@ -83,7 +82,6 @@ export const routes: Routes = [
       { path: 'settings', component: AdminSettingsComponent }
     ]
   },
-
   {
     path: '**',
     component: MainLayoutComponent,

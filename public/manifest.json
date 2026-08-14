@@ -1,16 +1,46 @@
 {
-  "name": "Alperler Auto",
+  "id": "/",
+  "name": "Alperler Auto & Rent A Car",
   "short_name": "Alperler",
-  "description": "Araç Kiralama, 2. El Satış ve Turlar",
-  "start_url": "/",
+  "description": "Araç kiralama, ikinci el araç satışı ve Hakkari turları için Alperler Auto uygulaması.",
+  "lang": "tr",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#0f172a",
   "theme_color": "#0f172a",
+  "categories": ["travel", "business", "automotive"],
+  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Kiralık Araçlar",
+      "short_name": "Kiralık",
+      "url": "/fleet?source=pwa-shortcut"
+    },
+    {
+      "name": "Satılık Araçlar",
+      "short_name": "Satılık",
+      "url": "/sales?source=pwa-shortcut"
+    },
+    {
+      "name": "Turlar",
+      "short_name": "Turlar",
+      "url": "/tours?source=pwa-shortcut"
     }
   ]
 }

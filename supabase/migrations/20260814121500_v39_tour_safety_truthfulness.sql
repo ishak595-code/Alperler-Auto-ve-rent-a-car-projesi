@@ -8,8 +8,8 @@ set data_quality_status = 'RESEARCHED',
     short_description = 'Cilo dağları ve buzul manzaralarını güvenli seyir noktalarından, profesyonel rehberli doğa yürüyüşü ile keşfetmeye yönelik araştırılmış rota.',
     description = 'Cilo Dağları ve çevresindeki yüksek dağ peyzajını, buzul göllerini ve seyir noktalarını rehberli doğa yürüyüşü ile keşfetmeye yönelik programdır. Buzul yüzeyine çıkış programın parçası değildir. Rota; mevsim, yol, hava ve yetkili makamların güncel güvenlik koşullarına göre kesinleştirilir.',
     itinerary = '[{"time":"07:00","title":"Yüksekova buluşma","description":"Katılımcı kontrolü, hava ve rota güvenlik bilgilendirmesi."},{"time":"08:30","title":"Cilo bölgesine kontrollü transfer","description":"Uygun arazi aracıyla izin verilen erişim güzergâhına geçiş."},{"time":"10:00","title":"Rehberli doğa yürüyüşü","description":"Buzul yüzeyine çıkmadan, güvenli seyir ve fotoğraf noktalarına yürüyüş."},{"time":"13:00","title":"Dinlenme ve öğle molası","description":"Hava ve saha koşullarına uygun güvenli noktada mola."},{"time":"15:00","title":"Buzul gölleri ve panoramik seyir","description":"İzin verilen seyir alanlarından doğa gözlemi ve fotoğraf."},{"time":"18:30","title":"Yüksekova dönüş","description":"Kontrollü dönüş ve turun tamamlanması."}]'::jsonb,
-    included_items = array['Bölge içi gidiş-dönüş transfer organizasyonu','Profesyonel bölge rehberi organizasyonu','Su ve temel tur koordinasyonu'],
-    excluded_items = array['Buzul üzerine çıkış','Teknik tırmanış','Kişisel outdoor ekipmanı','Seyahat sağlık sigortası','Program dışı yiyecek ve içecekler'],
+    included_items = '["Bölge içi gidiş-dönüş transfer organizasyonu","Profesyonel bölge rehberi organizasyonu","Su ve temel tur koordinasyonu"]'::jsonb,
+    excluded_items = '["Buzul üzerine çıkış","Teknik tırmanış","Kişisel outdoor ekipmanı","Seyahat sağlık sigortası","Program dışı yiyecek ve içecekler"]'::jsonb,
     metadata = coalesce(metadata, '{}'::jsonb)
       - 'demoDataReady'
       || jsonb_build_object(
@@ -29,8 +29,8 @@ set title = 'Sümbül Dağı Panoramik 4x4 Seyir Turu',
     short_description = 'Sümbül Dağı çevresinde uygun erişim yolları ve güvenli seyir noktaları üzerinden planlanan panoramik 4x4 keşif rotası.',
     description = 'Sümbül Dağı çevresinde, araç erişimine uygun güzergâhlar ve güvenli panoramik duraklar üzerinden planlanan küçük grup keşif rotasıdır. Zirveye araçla çıkış garantisi verilmez. Kullanılacak araç, sürücü, rota ve mola noktaları rezervasyon öncesinde güncel yol ve hava koşullarına göre kesinleştirilir.',
     itinerary = '[{"time":"08:00","title":"Hakkari merkez buluşma","description":"Araç, yol ve hava koşullarının son kontrolü."},{"time":"09:00","title":"Sümbül Dağı çevresi seyir rotası","description":"Araç erişimine uygun kontrollü güzergâhta panoramik duraklar."},{"time":"11:00","title":"Fotoğraf ve manzara molası","description":"Güvenli seyir noktasında serbest zaman."},{"time":"12:30","title":"Öğle molası","description":"Saha koşullarına göre belirlenen uygun noktada mola."},{"time":"14:00","title":"Dönüş rotası","description":"Kontrollü dönüş ve turun tamamlanması."}]'::jsonb,
-    included_items = array['4x4 transfer organizasyonu','Bölge rehberi organizasyonu','Temel tur koordinasyonu'],
-    excluded_items = array['Zirve tırmanışı','Araçla zirveye çıkış garantisi','Kişisel outdoor ekipmanı','Özel drone çekimi','Kişisel harcamalar'],
+    included_items = '["4x4 transfer organizasyonu","Bölge rehberi organizasyonu","Temel tur koordinasyonu"]'::jsonb,
+    excluded_items = '["Zirve tırmanışı","Araçla zirveye çıkış garantisi","Kişisel outdoor ekipmanı","Özel drone çekimi","Kişisel harcamalar"]'::jsonb,
     metadata = coalesce(metadata, '{}'::jsonb)
       - 'demoDataReady'
       || jsonb_build_object(
@@ -45,10 +45,10 @@ where title = 'Sümbül Dağı Panoramik 4x4 Zirve Turu';
 update public.tours
 set source_name = 'Hakkari İl Kültür ve Turizm Müdürlüğü',
     source_url = 'https://hakkari.ktb.gov.tr/TR-158464/hakkari39de-doga-sporlari.html',
-    short_description = 'Zap Vadisi için araştırılmış rafting deneyimi taslağı. Parkur ve uygulama ancak lisanslı/uygun operatör, debi ve güvenlik şartları doğrulandıktan sonra kesinleşir.',
-    description = 'Zap Suyu üzerinde rafting yapılabilen bölgesel parkurlara dayalı araştırılmış tur ürünüdür. Ticari operasyon; uygun rehber/operatör, ekipman, sigorta, su seviyesi, hava ve güncel saha izinleri doğrulandıktan sonra kesinleştirilmelidir. Rezervasyon ekranındaki program bu koşullar sağlanmadan kesin faaliyet garantisi sayılmaz.',
-    included_items = array['Rezervasyon sonrası operasyon teyidi','Uygun operatör doğrulanırsa güvenlik brifingi ve rafting ekipmanı','Parkur içi tur koordinasyonu'],
-    excluded_items = array['Koşullar doğrulanmadan rafting garantisi','Kişisel su geçirmez kamera','Özel video montaj paketi','Kişisel harcamalar','Program dışı transferler'],
+    short_description = 'Zap Vadisi için araştırılmış rafting deneyimi taslağı. Parkur ve uygulama ancak lisanslı veya uygun operatör, debi ve güvenlik şartları doğrulandıktan sonra kesinleşir.',
+    description = 'Zap Suyu üzerinde rafting yapılabilen bölgesel parkurlara dayalı araştırılmış tur ürünüdür. Ticari operasyon; uygun rehber veya operatör, ekipman, sigorta, su seviyesi, hava ve güncel saha izinleri doğrulandıktan sonra kesinleştirilmelidir. Rezervasyon ekranındaki program bu koşullar sağlanmadan kesin faaliyet garantisi sayılmaz.',
+    included_items = '["Rezervasyon sonrası operasyon teyidi","Uygun operatör doğrulanırsa güvenlik brifingi ve rafting ekipmanı","Parkur içi tur koordinasyonu"]'::jsonb,
+    excluded_items = '["Koşullar doğrulanmadan rafting garantisi","Kişisel su geçirmez kamera","Özel video montaj paketi","Kişisel harcamalar","Program dışı transferler"]'::jsonb,
     metadata = coalesce(metadata, '{}'::jsonb)
       - 'demoDataReady'
       || jsonb_build_object(

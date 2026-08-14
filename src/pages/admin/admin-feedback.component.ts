@@ -45,11 +45,11 @@ import { ToastService } from "../../services/toast.service";
       </header>
 
       <section class="mx-auto max-w-7xl space-y-5 p-4 md:p-8">
-        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           @for (item of statusCards; track item.value) {
             <button
               type="button"
-              (click)="filter.set(item.value)"
+              (click)="setFilter(item.value)"
               [class.ring-2]="filter() === item.value"
               [class.ring-blue-500]="filter() === item.value"
               class="min-h-20 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-300"
@@ -64,7 +64,8 @@ import { ToastService } from "../../services/toast.service";
           <label class="block">
             <span class="sr-only">Mesajlarda ara</span>
             <input
-              [(ngModel)]="searchQuery"
+              [ngModel]="searchQuery()"
+              (ngModelChange)="searchQuery.set($event)"
               type="search"
               autocomplete="off"
               placeholder="Referans, ad, telefon, e-posta veya mesaj içinde ara..."
@@ -72,7 +73,7 @@ import { ToastService } from "../../services/toast.service";
             />
           </label>
           <select
-            [(ngModel)]="filterValue"
+            [ngModel]="filter()"
             (ngModelChange)="setFilter($event)"
             aria-label="Mesaj durumuna göre filtrele"
             class="min-h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black"
@@ -178,9 +179,8 @@ export class AdminFeedbackComponent implements OnInit {
   private readonly router = inject(Router);
 
   readonly filter = signal<"ALL" | ContactStatus>("ALL");
+  readonly searchQuery = signal("");
   readonly savingReference = signal("");
-  searchQuery = "";
-  filterValue: "ALL" | ContactStatus = "ALL";
 
   readonly statusCards: Array<{ value: "ALL" | ContactStatus; label: string }> = [
     { value: "ALL", label: "Toplam" },
@@ -192,7 +192,7 @@ export class AdminFeedbackComponent implements OnInit {
 
   readonly filteredMessages = computed(() => {
     const status = this.filter();
-    const query = this.searchQuery.trim().toLocaleLowerCase("tr-TR");
+    const query = this.searchQuery().trim().toLocaleLowerCase("tr-TR");
     return this.contactService.records().filter((item) => {
       if (status !== "ALL" && item.status !== status) return false;
       if (!query) return true;
@@ -215,7 +215,6 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   setFilter(value: "ALL" | ContactStatus): void {
-    this.filterValue = value;
     this.filter.set(value);
   }
 

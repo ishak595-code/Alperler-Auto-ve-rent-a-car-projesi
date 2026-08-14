@@ -61,15 +61,29 @@ export class SaleDetailShellComponent {
   standalone: true,
   imports: [TourDetailComponent, CatalogMixedGalleryComponent],
   template: `
-    <app-tour-detail />
-    @if (tour()) {
-      <app-catalog-mixed-gallery
-        entityType="TOUR"
-        [entityId]="tour()!.cloudId || ''"
-        [fallbackImages]="tourImages()"
-        [fallbackAlt]="tour()!.title || 'Tur galerisi'"
-      />
-    }
+    <div class="relative">
+      <app-tour-detail />
+      @if (tour()) {
+        <app-catalog-mixed-gallery
+          #tourGallery
+          entityType="TOUR"
+          [entityId]="tour()!.cloudId || ''"
+          [fallbackImages]="tourImages()"
+          [fallbackAlt]="tour()!.title || 'Tur galerisi'"
+          [hideLauncher]="true"
+        />
+        <button
+          type="button"
+          (click)="tourGallery.open(0, $event)"
+          class="absolute left-0 right-0 top-16 z-30 h-[40vh] min-h-[300px] cursor-zoom-in bg-transparent focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-blue-500 sm:h-[50vh]"
+          [attr.aria-label]="(tour()!.title || 'Tur') + ' fotoğraf ve video galerisini tam ekran aç'"
+        >
+          <span class="absolute bottom-5 right-4 inline-flex min-h-11 items-center rounded-full border border-white/30 bg-black/65 px-4 text-xs font-black text-white shadow-xl backdrop-blur sm:right-8">
+            Galeriyi Tam Ekran Aç
+          </span>
+        </button>
+      }
+    </div>
   `,
 })
 export class TourDetailShellComponent {

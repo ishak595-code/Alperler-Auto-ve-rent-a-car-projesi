@@ -27,7 +27,7 @@ import { ToastService } from "../../services/toast.service";
 
       <div class="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(360px,480px)]">
         <section class="space-y-3" aria-label="Şube listesi">
-          @for (branch of branchService.allBranches(); track branch.id) {
+          @for (branch of branchService.managedBranches(); track branch.id) {
             <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" [class.opacity-70]="!branch.isActive">
               <div class="flex items-start justify-between gap-4">
                 <div class="min-w-0">
@@ -93,9 +93,7 @@ export class AdminBranchesComponent implements OnInit {
   readonly serviceOptions: BranchServiceType[] = ["RENTAL", "SALES", "TOUR", "TRANSFER", "PICKUP", "RETURN"];
   draft: Branch = this.emptyBranch();
 
-  ngOnInit(): void {
-    void this.loadAdminBranches();
-  }
+  ngOnInit(): void { void this.loadAdminBranches(); }
 
   private async loadAdminBranches(): Promise<void> {
     try {

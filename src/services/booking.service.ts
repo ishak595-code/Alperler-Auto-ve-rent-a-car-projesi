@@ -9,6 +9,7 @@ import {
   NotificationDeliveryReport,
   PaymentStatus,
 } from "../models/booking.model";
+import { AuthService } from "./auth.service";
 
 interface BookingApiResponse {
   ok: boolean;
@@ -27,6 +28,7 @@ interface ApiBooking extends Omit<BookingRecord, "createdAt" | "updatedAt"> {
 @Injectable({ providedIn: "root" })
 export class BookingService {
   private readonly http = inject(HttpClient);
+  private readonly authService = inject(AuthService);
   private readonly bookings = signal<BookingRecord[]>([]);
   private readonly adminError = signal<string | null>(null);
   private readonly adminLoaded = signal(false);
@@ -136,7 +138,7 @@ export class BookingService {
     } catch (error) {
       console.error("Booking data source is unavailable.", error);
       this.adminError.set(
-        "Rezervasyon veri kaynağı henüz bağlı değil veya şu anda erişilemiyor.",
+        "Rezervasyon veri kaynağına ulaşılamadı. Oturumunuzu ve bağlantınızı kontrol edip tekrar deneyin.",
       );
     } finally {
       this.adminLoaded.set(true);
@@ -148,13 +150,27 @@ export class BookingService {
     body?: unknown,
   ): Promise<T> {
     try {
+      if (method === "POST") {
+        return await firstValueFrom(
+          this.http.post<T>("/api/bookings", body),
+        );
+      }
+
+      const accessToken = await this.authService.getAccessToken();
+      if (!accessToken) throw new Error("ADMIN_SESSION_REQUIRED");
+      const headers = { Authorization: `Bearer ${accessToken}` };
       if (method === "GET") {
-        return await firstValueFrom(this.http.get<T>("/api/bookings"));
+        return await firstValueFrom(
+          this.http.get<T>("/api/bookings", { headers }),
+        );
       }
       return await firstValueFrom(
-        this.http.request<T>(method, "/api/bookings", { body }),
+        this.http.request<T>(method, "/api/bookings", { body, headers }),
       );
     } catch (error) {
+      if (error instanceof Error && error.message === "ADMIN_SESSION_REQUIRED") {
+        throw error;
+      }
       if (
         error instanceof HttpErrorResponse &&
         error.error &&

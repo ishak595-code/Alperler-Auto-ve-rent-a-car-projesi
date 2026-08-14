@@ -9,12 +9,20 @@ on:
     paths:
       - "src/services/booking.service.ts"
       - "src/services/persistent-car.service.ts"
+      - "src/services/car.service.ts"
+      - "src/services/catalog.service.ts"
+      - "src/services/partner-request.service.ts"
       - "src/pages/admin/admin-reservations.component.ts"
+      - "src/pages/admin/admin-partner-requests.component.ts"
       - "src/pages/appointment.component.ts"
+      - "api/catalog.ts"
+      - "api/partner-requests.ts"
+      - "api/partner-upload-resume.ts"
       - "api/notifications/**"
       - "api/_lib/firestore-rest.ts"
       - "api/_lib/sms.ts"
       - "api/_lib/booking-notification-template.ts"
+      - "supabase/**"
       - "firestore.rules"
       - "firebase.json"
       - ".vercelignore"
@@ -29,7 +37,7 @@ permissions:
 jobs:
   invariants:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -37,15 +45,43 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
+          # Legacy Firebase artifacts remain until the final cleanup migration,
+          # but must not fall back to blanket public writes.
           test -f firebase.json
           grep -Fq '"rules": "firestore.rules"' firebase.json
           ! grep -Eq 'allow[[:space:]]+create:[[:space:]]*if[[:space:]]+true' firestore.rules
+
+          # Deployment hygiene.
           grep -Fq 'public/*.zip' .vercelignore
           grep -Fq '*.zip' .vercelignore
+
+          # Transactional runtime must exist.
           test -f api/notifications/booking.ts
           test -f api/_lib/firestore-rest.ts
           test -f api/_lib/sms.ts
           test -f api/_lib/booking-notification-template.ts
+          test -f api/catalog.ts
+          test -f api/partner-upload-resume.ts
+          test -f src/services/catalog.service.ts
+          test -f supabase/functions/booking-gateway/index.ts
+          test -f supabase/functions/partner-request-gateway/index.ts
+          test -f supabase/functions/partner-upload-resume/index.ts
+          test -f supabase/migrations/202608140002_alperler_rls_policies_v1.sql
+
+          # Never send booking/customer payloads to public test endpoints.
+          ! grep -R --line-number --fixed-string 'httpbin.org' src api supabase/functions
+
+          # Service-role secrets are server-side only. The browser source may
+          # reference publishable Supabase configuration, never the service key.
+          ! grep -R --line-number --fixed-string 'SUPABASE_SERVICE_ROLE_KEY' src
+          ! grep -R --line-number --fixed-string 'sb_secret_' src api supabase
+
+          # CarService must not regress to Firestore or direct Firebase writes.
+          ! grep -Fq 'firebase/firestore' src/services/car.service.ts
+          ! grep -Fq '../firebase' src/services/car.service.ts
+          grep -Fq 'CatalogService' src/services/car.service.ts
+          grep -Fq 'BookingService' src/services/car.service.ts
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v4

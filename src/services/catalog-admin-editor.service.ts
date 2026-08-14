@@ -182,7 +182,7 @@ export class CatalogAdminEditorService {
       data_quality_status: record.dataQualityStatus || "UNVERIFIED",
       spec_source_url: record.specSourceUrl?.trim() || null,
       spec_source_name: record.specSourceName?.trim() || null,
-      actual_vehicle_verified: record.actualVehicleVerified === true,
+      actual_vehicle_verified: record.dataQualityStatus === "UNVERIFIED" ? false : record.actualVehicleVerified === true,
       branch_id: record.branchId || null,
       metadata: record.metadata || {},
       updated_at: new Date().toISOString(),

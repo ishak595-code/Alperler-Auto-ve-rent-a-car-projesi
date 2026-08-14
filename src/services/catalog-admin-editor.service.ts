@@ -113,11 +113,11 @@ export class CatalogAdminEditorService {
       seo_slug: stockCode.toLowerCase(),
       publication_status: "DRAFT",
       record_origin: "REAL",
-      data_quality_status: "BUSINESS_VERIFIED",
-      actual_vehicle_verified: true,
+      data_quality_status: "UNVERIFIED",
+      actual_vehicle_verified: false,
       metadata: {
         title: category === "RENTAL" ? "Yeni Kiralık Araç" : "Yeni Satılık Araç",
-        createdFrom: "ADMIN_V37",
+        createdFrom: "ADMIN_V39",
       },
     };
     const rows = await this.rest<any[]>("POST", "vehicles?select=*", body, token);
@@ -140,8 +140,8 @@ export class CatalogAdminEditorService {
       is_active: false,
       publication_status: "DRAFT",
       record_origin: "REAL",
-      data_quality_status: "BUSINESS_VERIFIED",
-      metadata: { createdFrom: "ADMIN_V37" },
+      data_quality_status: "UNVERIFIED",
+      metadata: { createdFrom: "ADMIN_V39" },
     };
     const rows = await this.rest<any[]>("POST", "tours?select=*", body, token);
     if (!rows?.[0]) throw new Error("TOUR_CREATE_EMPTY_RESPONSE");
@@ -177,12 +177,12 @@ export class CatalogAdminEditorService {
       seo_slug: record.seoSlug?.trim() || null,
       publication_status: record.publicationStatus,
       published_at: record.publicationStatus === "PUBLISHED" ? (record.publishedAt || new Date().toISOString()) : record.publishedAt || null,
-      scheduled_at: record.publicationStatus === "SCHEDULED" ? record.scheduledAt || null : null,
+      scheduled_at: record.publicationStatus === "SCHEDULED" ? this.toIsoDateTime(record.scheduledAt) : null,
       record_origin: record.recordOrigin || "REAL",
-      data_quality_status: record.dataQualityStatus || "BUSINESS_VERIFIED",
+      data_quality_status: record.dataQualityStatus || "UNVERIFIED",
       spec_source_url: record.specSourceUrl?.trim() || null,
       spec_source_name: record.specSourceName?.trim() || null,
-      actual_vehicle_verified: record.actualVehicleVerified,
+      actual_vehicle_verified: record.dataQualityStatus === "UNVERIFIED" ? false : record.actualVehicleVerified === true,
       branch_id: record.branchId || null,
       metadata: record.metadata || {},
       updated_at: new Date().toISOString(),
@@ -211,9 +211,9 @@ export class CatalogAdminEditorService {
       is_active: record.isActive,
       publication_status: record.publicationStatus,
       published_at: record.publicationStatus === "PUBLISHED" ? (record.publishedAt || new Date().toISOString()) : record.publishedAt || null,
-      scheduled_at: record.publicationStatus === "SCHEDULED" ? record.scheduledAt || null : null,
+      scheduled_at: record.publicationStatus === "SCHEDULED" ? this.toIsoDateTime(record.scheduledAt) : null,
       record_origin: record.recordOrigin || "REAL",
-      data_quality_status: record.dataQualityStatus || "BUSINESS_VERIFIED",
+      data_quality_status: record.dataQualityStatus || "UNVERIFIED",
       source_url: record.sourceUrl?.trim() || null,
       source_name: record.sourceName?.trim() || null,
       location_name: record.locationName?.trim() || null,
@@ -268,12 +268,12 @@ export class CatalogAdminEditorService {
       seoSlug: row.seo_slug || undefined,
       publicationStatus: row.publication_status || "PUBLISHED",
       publishedAt: row.published_at || undefined,
-      scheduledAt: row.scheduled_at || undefined,
+      scheduledAt: this.toLocalDateTimeInput(row.scheduled_at),
       recordOrigin: row.record_origin === "DEMO" ? "DEMO" : "REAL",
       dataQualityStatus: this.quality(row.data_quality_status),
       specSourceUrl: row.spec_source_url || undefined,
       specSourceName: row.spec_source_name || undefined,
-      actualVehicleVerified: row.actual_vehicle_verified !== false,
+      actualVehicleVerified: row.actual_vehicle_verified === true,
       branchId: row.branch_id || undefined,
       metadata: row.metadata || {},
     };
@@ -300,7 +300,7 @@ export class CatalogAdminEditorService {
       isActive: row.is_active !== false,
       publicationStatus: row.publication_status || "PUBLISHED",
       publishedAt: row.published_at || undefined,
-      scheduledAt: row.scheduled_at || undefined,
+      scheduledAt: this.toLocalDateTimeInput(row.scheduled_at),
       recordOrigin: row.record_origin === "DEMO" ? "DEMO" : "REAL",
       dataQualityStatus: this.quality(row.data_quality_status),
       sourceUrl: row.source_url || undefined,
@@ -322,6 +322,20 @@ export class CatalogAdminEditorService {
     if (value === undefined || value === null || value === "") return null;
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private toIsoDateTime(value: unknown): string | null {
+    if (typeof value !== "string" || !value.trim()) return null;
+    const parsed = new Date(value);
+    return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : null;
+  }
+
+  private toLocalDateTimeInput(value: unknown): string | undefined {
+    if (typeof value !== "string" || !value.trim()) return undefined;
+    const parsed = new Date(value);
+    if (!Number.isFinite(parsed.getTime())) return undefined;
+    const offsetMs = parsed.getTimezoneOffset() * 60_000;
+    return new Date(parsed.getTime() - offsetMs).toISOString().slice(0, 16);
   }
 
   private async rest<T = unknown>(method: "GET" | "POST" | "PATCH" | "DELETE", path: string, body: unknown, token: string): Promise<T> {

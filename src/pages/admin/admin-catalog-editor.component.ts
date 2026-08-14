@@ -29,7 +29,7 @@ import { ToastService } from "../../services/toast.service";
           <div class="mt-2 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div class="max-w-4xl">
               <h1 class="text-2xl font-black md:text-4xl">Araç & Tur Yayın Stüdyosu</h1>
-              <p class="mt-2 text-sm leading-relaxed text-slate-300">Kiralık araç, satılık araç ve turlar birbirinden ayrı gerçek kayıtlar olarak yönetilir. Yeni kayıt önce taslak açılır, bilgileri ve medyası tamamlandıktan sonra tek tuşla canlıya alınır.</p>
+              <p class="mt-2 text-sm leading-relaxed text-slate-300">Kiralık araç, satılık araç ve turlar birbirinden ayrı gerçek kayıtlar olarak yönetilir. Yeni kayıt önce taslak açılır, bilgileri ve medyası tamamlandıktan sonra canlıya alınır veya ileri bir tarihe planlanır.</p>
             </div>
             <div class="grid gap-2 sm:grid-cols-3">
               <button type="button" (click)="createVehicle('RENTAL')" [disabled]="saving()" class="min-h-12 rounded-xl bg-blue-600 px-4 font-black text-white disabled:opacity-40">+ Yeni Kiralık</button>
@@ -167,8 +167,9 @@ import { ToastService } from "../../services/toast.service";
                     <label class="check"><input type="checkbox" [(ngModel)]="car.isFeatured" name="featured" /> Ana sayfada öne çıkarılabilir</label>
                     <label class="check"><input type="checkbox" [(ngModel)]="car.isActive" name="active" /> Kayıt aktif</label>
                   </div>
-                  <div class="mt-5 grid gap-2 sm:grid-cols-3">
+                  <div class="mt-5 grid gap-2 sm:grid-cols-4">
                     <button type="button" (click)="saveAsVehicleDraft()" [disabled]="saving()" class="min-h-12 rounded-xl border border-slate-300 bg-white px-4 font-black">Taslak Kaydet</button>
+                    <button type="button" (click)="scheduleVehicle()" [disabled]="saving()" class="min-h-12 rounded-xl bg-amber-500 px-4 font-black text-slate-950">Planla</button>
                     <button type="button" (click)="publishVehicle()" [disabled]="saving()" class="min-h-12 rounded-xl bg-blue-600 px-4 font-black text-white">Canlı Yayınla</button>
                     <button type="button" (click)="archiveVehicle()" [disabled]="saving()" class="min-h-12 rounded-xl bg-slate-900 px-4 font-black text-white">Arşivle</button>
                   </div>
@@ -234,8 +235,9 @@ import { ToastService } from "../../services/toast.service";
                     <label class="check"><input type="checkbox" [(ngModel)]="tour.isFeatured" name="tourFeatured" /> Ana sayfada öne çıkarılabilir</label>
                     <label class="check"><input type="checkbox" [(ngModel)]="tour.isActive" name="tourActive" /> Kayıt aktif</label>
                   </div>
-                  <div class="mt-5 grid gap-2 sm:grid-cols-3">
+                  <div class="mt-5 grid gap-2 sm:grid-cols-4">
                     <button type="button" (click)="saveAsTourDraft()" [disabled]="saving()" class="min-h-12 rounded-xl border border-slate-300 bg-white px-4 font-black">Taslak Kaydet</button>
+                    <button type="button" (click)="scheduleTour()" [disabled]="saving()" class="min-h-12 rounded-xl bg-amber-500 px-4 font-black text-slate-950">Planla</button>
                     <button type="button" (click)="publishTour()" [disabled]="saving()" class="min-h-12 rounded-xl bg-violet-600 px-4 font-black text-white">Canlı Yayınla</button>
                     <button type="button" (click)="archiveTour()" [disabled]="saving()" class="min-h-12 rounded-xl bg-slate-900 px-4 font-black text-white">Arşivle</button>
                   </div>
@@ -390,19 +392,51 @@ export class AdminCatalogEditorComponent implements OnInit {
 
   async saveVehicle(): Promise<void> {
     const car = this.selectedVehicle(); if (!car) return;
-    car.recordOrigin = "REAL"; car.actualVehicleVerified = true;
+    if (car.publicationStatus === "SCHEDULED" && !this.validFutureSchedule(car.scheduledAt)) {
+      this.toast.show("Planlı yayın için gelecekte bir tarih ve saat seçin.", "error");
+      return;
+    }
+    car.recordOrigin = "REAL";
     this.saving.set(true);
     try { await this.editor.saveVehicle(car); await this.reloadCurrent(); this.toast.show("Araç bilgileri kaydedildi.", "success"); }
     catch (error) { this.toast.show(this.message(error), "error"); }
     finally { this.saving.set(false); }
   }
 
-  async saveAsVehicleDraft(): Promise<void> { const car = this.selectedVehicle(); if (!car) return; car.publicationStatus = "DRAFT"; car.isActive = false; await this.saveVehicle(); }
-  async publishVehicle(): Promise<void> { const car = this.selectedVehicle(); if (!car) return; car.publicationStatus = "PUBLISHED"; car.isActive = true; car.publishedAt = new Date().toISOString(); await this.saveVehicle(); }
-  async archiveVehicle(): Promise<void> { const car = this.selectedVehicle(); if (!car) return; car.publicationStatus = "ARCHIVED"; car.isActive = false; await this.saveVehicle(); }
+  async saveAsVehicleDraft(): Promise<void> {
+    const car = this.selectedVehicle(); if (!car) return;
+    car.publicationStatus = "DRAFT"; car.isActive = false; car.scheduledAt = undefined;
+    await this.saveVehicle();
+  }
+
+  async scheduleVehicle(): Promise<void> {
+    const car = this.selectedVehicle(); if (!car) return;
+    if (!this.validFutureSchedule(car.scheduledAt)) {
+      this.toast.show("Planlamak için gelecekte bir tarih ve saat seçin.", "error");
+      return;
+    }
+    car.publicationStatus = "SCHEDULED"; car.isActive = true; car.publishedAt = undefined;
+    await this.saveVehicle();
+  }
+
+  async publishVehicle(): Promise<void> {
+    const car = this.selectedVehicle(); if (!car) return;
+    car.publicationStatus = "PUBLISHED"; car.isActive = true; car.publishedAt = new Date().toISOString(); car.scheduledAt = undefined;
+    await this.saveVehicle();
+  }
+
+  async archiveVehicle(): Promise<void> {
+    const car = this.selectedVehicle(); if (!car) return;
+    car.publicationStatus = "ARCHIVED"; car.isActive = false; car.scheduledAt = undefined;
+    await this.saveVehicle();
+  }
 
   async saveTour(): Promise<void> {
     const tour = this.selectedTour(); if (!tour) return;
+    if (tour.publicationStatus === "SCHEDULED" && !this.validFutureSchedule(tour.scheduledAt)) {
+      this.toast.show("Planlı tur yayını için gelecekte bir tarih ve saat seçin.", "error");
+      return;
+    }
     tour.recordOrigin = "REAL";
     this.saving.set(true);
     try { await this.editor.saveTour(tour); await this.reloadCurrent(); this.toast.show("Tur bilgileri kaydedildi.", "success"); }
@@ -410,9 +444,33 @@ export class AdminCatalogEditorComponent implements OnInit {
     finally { this.saving.set(false); }
   }
 
-  async saveAsTourDraft(): Promise<void> { const tour = this.selectedTour(); if (!tour) return; tour.publicationStatus = "DRAFT"; tour.isActive = false; await this.saveTour(); }
-  async publishTour(): Promise<void> { const tour = this.selectedTour(); if (!tour) return; tour.publicationStatus = "PUBLISHED"; tour.isActive = true; tour.publishedAt = new Date().toISOString(); await this.saveTour(); }
-  async archiveTour(): Promise<void> { const tour = this.selectedTour(); if (!tour) return; tour.publicationStatus = "ARCHIVED"; tour.isActive = false; await this.saveTour(); }
+  async saveAsTourDraft(): Promise<void> {
+    const tour = this.selectedTour(); if (!tour) return;
+    tour.publicationStatus = "DRAFT"; tour.isActive = false; tour.scheduledAt = undefined;
+    await this.saveTour();
+  }
+
+  async scheduleTour(): Promise<void> {
+    const tour = this.selectedTour(); if (!tour) return;
+    if (!this.validFutureSchedule(tour.scheduledAt)) {
+      this.toast.show("Planlamak için gelecekte bir tarih ve saat seçin.", "error");
+      return;
+    }
+    tour.publicationStatus = "SCHEDULED"; tour.isActive = true; tour.publishedAt = undefined;
+    await this.saveTour();
+  }
+
+  async publishTour(): Promise<void> {
+    const tour = this.selectedTour(); if (!tour) return;
+    tour.publicationStatus = "PUBLISHED"; tour.isActive = true; tour.publishedAt = new Date().toISOString(); tour.scheduledAt = undefined;
+    await this.saveTour();
+  }
+
+  async archiveTour(): Promise<void> {
+    const tour = this.selectedTour(); if (!tour) return;
+    tour.publicationStatus = "ARCHIVED"; tour.isActive = false; tour.scheduledAt = undefined;
+    await this.saveTour();
+  }
 
   async uploadFiles(event: Event, entityType: "VEHICLE" | "TOUR", id: string): Promise<void> {
     const input = event.target as HTMLInputElement;
@@ -491,6 +549,12 @@ export class AdminCatalogEditorComponent implements OnInit {
   setMetaNumber(record: { metadata: Record<string, unknown> }, key: string, value: unknown): void { const parsed = Number(value); this.setMeta(record, key, Number.isFinite(parsed) ? parsed : null); }
   splitLines(value: unknown): string[] { return String(value || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(0, 100); }
   statusLabel(status: string): string { return status === "PUBLISHED" ? "CANLI" : status === "DRAFT" ? "TASLAK" : status === "SCHEDULED" ? "PLANLI" : "ARŞİV"; }
+
+  private validFutureSchedule(value?: string): boolean {
+    if (!value) return false;
+    const timestamp = new Date(value).getTime();
+    return Number.isFinite(timestamp) && timestamp > Date.now() + 60_000;
+  }
 
   private async loadMedia(type: "VEHICLE" | "TOUR", id: string): Promise<void> {
     try { this.media.set(await this.mediaService.load(type, id)); }

@@ -81,6 +81,16 @@ async function audit(actor: { id: string; email: string }, action: string, entit
   }).catch(() => undefined);
 }
 
+async function ensureAdminBranchAccess(userId: string, branchId: string | null): Promise<void> {
+  if (!branchId) return;
+  const response = await rest("admin_user_branches?on_conflict=user_id,branch_id", {
+    method: "POST",
+    headers: { Prefer: "return=minimal,resolution=ignore-duplicates" },
+    body: JSON.stringify({ user_id: userId, branch_id: branchId }),
+  });
+  if (!response.ok) throw new Error("ADMIN_BRANCH_ACCESS_SAVE_FAILED");
+}
+
 async function findAuthUser(targetEmail: string) {
   for (let page = 1; page <= 10; page += 1) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 100 });
@@ -137,12 +147,11 @@ async function invite(actor: { id: string; email: string }, input: Record<string
   }
   const rows = await upsert.json();
 
-  if (branchId) {
-    await rest("admin_user_branches?on_conflict=user_id,branch_id", {
-      method: "POST",
-      headers: { Prefer: "return=minimal,resolution=ignore-duplicates" },
-      body: JSON.stringify({ user_id: user.id, branch_id: branchId }),
-    }).catch(() => undefined);
+  try {
+    await ensureAdminBranchAccess(user.id, branchId);
+  } catch (error) {
+    console.error("admin branch access save failed", error);
+    return json({ ok: false, code: "ADMIN_BRANCH_ACCESS_SAVE_FAILED" }, 500);
   }
 
   await audit(actor, invited ? "admin_invited" : "admin_access_granted", user.id, {
@@ -165,6 +174,13 @@ async function updateAdmin(actor: { id: string; email: string }, input: Record<s
   if (!current) return json({ ok: false, code: "ADMIN_NOT_FOUND" }, 404);
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  let requestedPrimaryBranch: string | null | undefined;
+  const hasPrimaryBranch = Object.prototype.hasOwnProperty.call(input, "primaryBranchId");
+  const fullUiUpdate =
+    Object.prototype.hasOwnProperty.call(input, "role") &&
+    Object.prototype.hasOwnProperty.call(input, "isActive") &&
+    Object.prototype.hasOwnProperty.call(input, "permissions");
+
   if (input["role"] !== undefined) {
     const role = clean(input["role"], 30).toLowerCase();
     if (!allowedRoles.has(role)) return json({ ok: false, code: "INVALID_ADMIN_ROLE" }, 400);
@@ -172,7 +188,10 @@ async function updateAdmin(actor: { id: string; email: string }, input: Record<s
   }
   if (input["displayName"] !== undefined) patch["display_name"] = clean(input["displayName"], 160) || null;
   if (input["isActive"] !== undefined) patch["is_active"] = input["isActive"] === true;
-  if (input["primaryBranchId"] !== undefined) patch["primary_branch_id"] = clean(input["primaryBranchId"], 80) || null;
+  if (hasPrimaryBranch || fullUiUpdate) {
+    requestedPrimaryBranch = hasPrimaryBranch ? clean(input["primaryBranchId"], 80) || null : null;
+    patch["primary_branch_id"] = requestedPrimaryBranch;
+  }
   if (input["permissions"] !== undefined && input["permissions"] && typeof input["permissions"] === "object") patch["permissions"] = input["permissions"];
 
   const update = await rest(`admin_users?user_id=eq.${encodeURIComponent(userId)}&select=*`, {
@@ -186,6 +205,16 @@ async function updateAdmin(actor: { id: string; email: string }, input: Record<s
     console.error("admin update failed", update.status, body.slice(0, 500));
     return json({ ok: false, code: "ADMIN_UPDATE_FAILED" }, 500);
   }
+
+  if (requestedPrimaryBranch !== undefined) {
+    try {
+      await ensureAdminBranchAccess(userId, requestedPrimaryBranch);
+    } catch (error) {
+      console.error("admin primary branch access sync failed", error);
+      return json({ ok: false, code: "ADMIN_BRANCH_ACCESS_SAVE_FAILED" }, 500);
+    }
+  }
+
   const rows = await update.json();
   await audit(actor, "admin_access_updated", userId, patch);
   return json({ ok: true, admin: Array.isArray(rows) ? rows[0] : null });

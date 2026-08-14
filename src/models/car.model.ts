@@ -1,22 +1,29 @@
 export interface Vehicle {
   id: string | number;
   category: 'RENTAL' | 'SALE' | 'TOUR';
+  cloudId?: string;
+  cloudStockCode?: string;
+  cloudSlug?: string;
+  publicationStatus?: 'DRAFT' | 'SCHEDULED' | 'PUBLISHED' | 'ARCHIVED';
+  publishedAt?: string;
+  scheduledAt?: string;
   title?: string;
   brand?: string;
   model?: string;
   series?: string;
   year?: number;
-  type?: 'SUV' | 'Sedan' | 'Hatchback' | 'Luxury' | 'Sport' | 'Pickup' | 'Minibus' | 'VIP';
-  transmission?: 'Otomatik' | 'Manuel';
-  fuel?: 'Benzin' | 'Dizel' | 'Hibrit' | 'Elektrik';
-  price: number; // Daily price for rental, total price for sale, price per person for tour
+  type?: 'SUV' | 'Sedan' | 'Hatchback' | 'Luxury' | 'Sport' | 'Pickup' | 'Minibus' | 'Minibüs' | 'VIP' | string;
+  transmission?: 'Otomatik' | 'Manuel' | string;
+  fuel?: 'Benzin' | 'Dizel' | 'Hibrit' | 'Elektrik' | string;
+  price: number;
   image?: string;
   images?: string[];
   gallery?: string[];
+  videos?: { url: string; posterUrl?: string; title?: string; attribution?: string }[];
   location?: string;
   description?: string;
   features?: string[];
-  
+
   // Rental specific
   seats?: number;
   isAvailable?: boolean;
@@ -26,6 +33,8 @@ export interface Vehicle {
   minAge?: number;
   minLicenseYears?: number;
   dailyMileageLimit?: number;
+  luggage?: number;
+  group?: string;
 
   // Sale specific
   km?: number;
@@ -42,12 +51,17 @@ export interface Vehicle {
   expertReport?: string;
   color?: string;
   warranty?: string;
-  
+
   // Tour specific
   duration?: string;
   highlights?: string[];
   mapIframeUrl?: string;
-  
+  capacity?: number;
+  meetingPoint?: string;
+  itinerary?: unknown[];
+  includedItems?: string[];
+  excludedItems?: string[];
+
   // Badges & Status
   badge?: 'FIRSAT' | 'YENİ' | 'ACİL' | 'POPÜLER' | 'PREMIUM' | 'UYGUN FİYAT' | 'YENİ GİRİŞ' | '' | string;
   viewers?: number;
@@ -60,6 +74,7 @@ export interface Vehicle {
   isCampaign?: boolean;
   discountRate?: number;
   createdAt?: string;
+  updatedAt?: string;
   isPaintless?: boolean;
   isReplaceFree?: boolean;
   isDamageFree?: boolean;
@@ -99,13 +114,12 @@ export interface Vehicle {
     rearLeftFender?: 'original' | 'painted' | 'changed';
     rearRightFender?: 'original' | 'painted' | 'changed';
   };
-  
+
   // Showcase flags
   popularityScore?: number;
   displayPriority?: number;
 }
 
-// Keep Car, SaleCar, and Tour as aliases for backward compatibility during refactoring
 export type Car = Vehicle;
 export type SaleCar = Vehicle;
 export type Tour = Vehicle;

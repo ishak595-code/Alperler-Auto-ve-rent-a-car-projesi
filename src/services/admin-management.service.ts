@@ -184,7 +184,7 @@ export class AdminManagementService {
     this._placements.update((rows) => rows.filter((row) => row.id !== id));
   }
 
-  async reorderPlacements(sectionKey: string, orderedIds: string[]): Promise<void> {
+  async reorderPlacements(_sectionKey: string, orderedIds: string[]): Promise<void> {
     const token = await this.requiredToken();
     await Promise.all(orderedIds.map((id, index) =>
       this.rest("PATCH", `homepage_placements?id=eq.${encodeURIComponent(id)}`, {

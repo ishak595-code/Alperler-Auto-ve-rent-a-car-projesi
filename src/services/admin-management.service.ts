@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from "@angular/core";
 import {
   SUPABASE_PROJECT_URL,
   SUPABASE_PUBLISHABLE_KEY,
+  supabaseFunctionUrl,
 } from "../supabase.config";
 import { AuthService } from "./auth.service";
 
@@ -55,6 +56,7 @@ export interface BranchRecord {
 
 export interface AdminUserRecord {
   userId: string;
+  email: string;
   role: "owner" | "admin" | "editor" | "support";
   displayName?: string;
   phone?: string;
@@ -147,7 +149,7 @@ export class AdminManagementService {
 
   async addPlacement(input: Omit<HomepagePlacement, "id">): Promise<void> {
     const token = await this.requiredToken();
-    await this.rest("POST", "homepage_placements", {
+    await this.rest("POST", "homepage_placements?on_conflict=section_key,entity_type,entity_id", {
       section_key: input.sectionKey,
       entity_type: input.entityType,
       entity_id: input.entityId,
@@ -204,14 +206,13 @@ export class AdminManagementService {
       ]);
       this._staff.set(staffRows.map((row) => this.staffFromRow(row)));
       this._branches.set(branchRows.map((row) => ({
-        id: String(row.id), code: String(row.code || ""), name: String(row.name || ""),
-        city: String(row.city || ""), district: row.district || undefined, address: row.address || undefined,
-        phone: row.phone || undefined, email: row.email || undefined, isActive: row.is_active !== false,
-        sortOrder: Number(row.sort_order || 0),
+        id: String(row.id), code: String(row.code || ""), name: String(row.name || ""), city: String(row.city || ""),
+        district: row.district || undefined, address: row.address_line || undefined, phone: row.phone || undefined,
+        email: row.email || undefined, isActive: row.is_active !== false, sortOrder: Number(row.sort_order || 0),
       })));
       this._admins.set(adminRows.map((row) => ({
-        userId: String(row.user_id), role: row.role, displayName: row.display_name || undefined,
-        phone: row.phone || undefined, isActive: row.is_active !== false,
+        userId: String(row.user_id), email: String(row.email || ""), role: row.role,
+        displayName: row.display_name || undefined, phone: row.phone || undefined, isActive: row.is_active !== false,
         permissions: row.permissions || {}, primaryBranchId: row.primary_branch_id || undefined,
       })));
     } finally {
@@ -222,21 +223,14 @@ export class AdminManagementService {
   async saveStaff(staff: Partial<StaffProfile> & Pick<StaffProfile, "displayName" | "department">): Promise<StaffProfile> {
     const token = await this.requiredToken();
     const body = {
-      display_name: staff.displayName.trim(),
-      email: staff.email?.trim().toLowerCase() || null,
-      phone: staff.phone?.trim() || null,
-      job_title: staff.jobTitle?.trim() || null,
-      department: staff.department,
-      is_active: staff.isActive !== false,
-      metadata: staff.metadata || {},
+      display_name: staff.displayName.trim(), email: staff.email?.trim().toLowerCase() || null,
+      phone: staff.phone?.trim() || null, job_title: staff.jobTitle?.trim() || null,
+      department: staff.department, is_active: staff.isActive !== false, metadata: staff.metadata || {},
       updated_at: new Date().toISOString(),
     };
-    let rows: DbStaffRow[];
-    if (staff.id) {
-      rows = await this.rest<DbStaffRow[]>("PATCH", `staff_profiles?id=eq.${encodeURIComponent(staff.id)}&select=*`, body, token, "return=representation");
-    } else {
-      rows = await this.rest<DbStaffRow[]>("POST", "staff_profiles?select=*", body, token, "return=representation");
-    }
+    const rows = staff.id
+      ? await this.rest<DbStaffRow[]>("PATCH", `staff_profiles?id=eq.${encodeURIComponent(staff.id)}&select=*`, body, token, "return=representation")
+      : await this.rest<DbStaffRow[]>("POST", "staff_profiles?select=*", body, token, "return=representation");
     const saved = this.staffFromRow(rows[0]);
     await this.refreshPeople();
     return saved;
@@ -244,23 +238,14 @@ export class AdminManagementService {
 
   async setStaffActive(id: string, active: boolean): Promise<void> {
     const token = await this.requiredToken();
-    await this.rest("PATCH", `staff_profiles?id=eq.${encodeURIComponent(id)}`, {
-      is_active: active,
-      updated_at: new Date().toISOString(),
-    }, token);
+    await this.rest("PATCH", `staff_profiles?id=eq.${encodeURIComponent(id)}`, { is_active: active, updated_at: new Date().toISOString() }, token);
     await this.refreshPeople();
   }
 
   async assignStaffToBranch(staffId: string, branchId: string, primary = false): Promise<void> {
     const token = await this.requiredToken();
-    if (primary) {
-      await this.rest("PATCH", `staff_branch_assignments?staff_id=eq.${encodeURIComponent(staffId)}&is_primary=eq.true`, { is_primary: false }, token);
-    }
-    await this.rest("POST", "staff_branch_assignments", {
-      staff_id: staffId,
-      branch_id: branchId,
-      is_primary: primary,
-    }, token, "resolution=merge-duplicates");
+    if (primary) await this.rest("PATCH", `staff_branch_assignments?staff_id=eq.${encodeURIComponent(staffId)}&is_primary=eq.true`, { is_primary: false }, token);
+    await this.rest("POST", "staff_branch_assignments?on_conflict=staff_id,branch_id", { staff_id: staffId, branch_id: branchId, is_primary: primary }, token, "resolution=merge-duplicates");
   }
 
   async unassignStaffFromBranch(staffId: string, branchId: string): Promise<void> {
@@ -276,80 +261,60 @@ export class AdminManagementService {
 
   async assignStaffToVehicle(vehicleId: string, staffId: string, responsibility: "RESPONSIBLE" | "SALES" | "FLEET" | "DELIVERY" | "MAINTENANCE"): Promise<void> {
     const token = await this.requiredToken();
-    await this.rest("POST", "vehicle_staff_assignments", {
-      vehicle_id: vehicleId,
-      staff_id: staffId,
-      responsibility,
-    }, token, "resolution=ignore-duplicates");
+    await this.rest("POST", "vehicle_staff_assignments?on_conflict=vehicle_id,staff_id,responsibility", { vehicle_id: vehicleId, staff_id: staffId, responsibility }, token, "resolution=ignore-duplicates");
   }
 
   async assignStaffToTour(tourId: string, staffId: string, responsibility: "COORDINATOR" | "GUIDE" | "DRIVER" | "CONTENT"): Promise<void> {
     const token = await this.requiredToken();
-    await this.rest("POST", "tour_staff_assignments", {
-      tour_id: tourId,
-      staff_id: staffId,
-      responsibility,
-    }, token, "resolution=ignore-duplicates");
+    await this.rest("POST", "tour_staff_assignments?on_conflict=tour_id,staff_id,responsibility", { tour_id: tourId, staff_id: staffId, responsibility }, token, "resolution=ignore-duplicates");
   }
 
   async saveBranch(branch: Partial<BranchRecord> & Pick<BranchRecord, "code" | "name" | "city">): Promise<BranchRecord> {
     const token = await this.requiredToken();
     const body = {
-      code: branch.code.trim().toUpperCase(), name: branch.name.trim(), city: branch.city.trim(),
-      district: branch.district?.trim() || null, address: branch.address?.trim() || null,
+      code: branch.code.trim().toUpperCase() || null, name: branch.name.trim(), city: branch.city.trim() || null,
+      district: branch.district?.trim() || null, address_line: branch.address?.trim() || null,
       phone: branch.phone?.trim() || null, email: branch.email?.trim().toLowerCase() || null,
-      is_active: branch.isActive !== false, sort_order: branch.sortOrder || 0,
+      is_active: branch.isActive !== false, sort_order: branch.sortOrder || 0, updated_at: new Date().toISOString(),
     };
     const rows = branch.id
       ? await this.rest<any[]>("PATCH", `branches?id=eq.${encodeURIComponent(branch.id)}&select=*`, body, token, "return=representation")
       : await this.rest<any[]>("POST", "branches?select=*", body, token, "return=representation");
     await this.refreshPeople();
     const row = rows[0];
-    return { id: row.id, code: row.code, name: row.name, city: row.city, district: row.district || undefined, address: row.address || undefined, phone: row.phone || undefined, email: row.email || undefined, isActive: row.is_active !== false, sortOrder: Number(row.sort_order || 0) };
+    return { id: String(row.id), code: String(row.code || ""), name: String(row.name || ""), city: String(row.city || ""), district: row.district || undefined, address: row.address_line || undefined, phone: row.phone || undefined, email: row.email || undefined, isActive: row.is_active !== false, sortOrder: Number(row.sort_order || 0) };
   }
 
-  async updateAdmin(userId: string, patch: Partial<Pick<AdminUserRecord, "role" | "displayName" | "phone" | "isActive" | "permissions" | "primaryBranchId">>): Promise<void> {
+  async inviteAdmin(input: { email: string; displayName: string; role: AdminUserRecord["role"]; primaryBranchId?: string; permissions?: Record<string, unknown> }): Promise<void> {
     const token = await this.requiredToken();
-    const body: Record<string, unknown> = {};
-    if (patch.role !== undefined) body["role"] = patch.role;
-    if (patch.displayName !== undefined) body["display_name"] = patch.displayName || null;
-    if (patch.phone !== undefined) body["phone"] = patch.phone || null;
-    if (patch.isActive !== undefined) body["is_active"] = patch.isActive;
-    if (patch.permissions !== undefined) body["permissions"] = patch.permissions;
-    if (patch.primaryBranchId !== undefined) body["primary_branch_id"] = patch.primaryBranchId || null;
-    await this.rest("PATCH", `admin_users?user_id=eq.${encodeURIComponent(userId)}`, body, token);
+    await this.teamGateway("POST", token, input);
     await this.refreshPeople();
   }
 
-  private staffFromRow(row: DbStaffRow): StaffProfile {
-    return {
-      id: row.id,
-      authUserId: row.auth_user_id || undefined,
-      displayName: row.display_name,
-      email: row.email || undefined,
-      phone: row.phone || undefined,
-      jobTitle: row.job_title || undefined,
-      department: row.department,
-      isActive: row.is_active !== false,
-      metadata: row.metadata || {},
-    };
+  async updateAdmin(userId: string, patch: Partial<Pick<AdminUserRecord, "role" | "displayName" | "isActive" | "permissions" | "primaryBranchId">>): Promise<void> {
+    const token = await this.requiredToken();
+    await this.teamGateway("PATCH", token, { userId, ...patch });
+    await this.refreshPeople();
   }
 
-  private async rest<T = unknown>(
-    method: "GET" | "POST" | "PATCH" | "DELETE",
-    path: string,
-    body: unknown,
-    token: string,
-    prefer?: string,
-  ): Promise<T> {
+  private async teamGateway(method: "POST" | "PATCH", token: string, body: unknown): Promise<void> {
+    const response = await fetch(supabaseFunctionUrl("admin-team"), {
+      method,
+      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; code?: string };
+    if (!response.ok || !payload.ok) throw new Error(payload.code || `ADMIN_TEAM_${response.status}`);
+  }
+
+  private staffFromRow(row: DbStaffRow): StaffProfile {
+    return { id: row.id, authUserId: row.auth_user_id || undefined, displayName: row.display_name, email: row.email || undefined, phone: row.phone || undefined, jobTitle: row.job_title || undefined, department: row.department, isActive: row.is_active !== false, metadata: row.metadata || {} };
+  }
+
+  private async rest<T = unknown>(method: "GET" | "POST" | "PATCH" | "DELETE", path: string, body: unknown, token: string, prefer?: string): Promise<T> {
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
       method,
-      headers: {
-        apikey: SUPABASE_PUBLISHABLE_KEY,
-        authorization: `Bearer ${token}`,
-        ...(method === "GET" ? {} : { "content-type": "application/json" }),
-        ...(prefer ? { Prefer: prefer } : {}),
-      },
+      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}`, ...(method === "GET" ? {} : { "content-type": "application/json" }), ...(prefer ? { Prefer: prefer } : {}) },
       body: method === "GET" || method === "DELETE" ? undefined : JSON.stringify(body),
     });
     if (!response.ok) {

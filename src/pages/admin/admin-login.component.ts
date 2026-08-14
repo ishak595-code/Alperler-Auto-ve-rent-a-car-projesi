@@ -1,5 +1,5 @@
-import { Component, OnInit, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { Component, OnInit, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
 import { AuthService } from "../../services/auth.service";
@@ -25,86 +25,110 @@ import { CarService } from "../../services/car.service";
           }
           <p class="text-xs font-black uppercase tracking-[0.28em] text-blue-400">Güvenli Yönetim Alanı</p>
           <h1 class="mt-5 font-serif text-5xl font-black text-white">Alperler Auto Yönetim</h1>
-          <p class="mx-auto mt-5 max-w-lg text-base leading-relaxed text-slate-300">Araçlar, satış ilanları, turlar, içerikler ve site ayarları için yetkili yönetici girişi.</p>
+          <p class="mx-auto mt-5 max-w-lg text-base leading-relaxed text-slate-300">
+            Araçlar, rezervasyonlar, satış talepleri, turlar, içerikler ve site ayarları için yetkili yönetim alanı.
+          </p>
+          <div class="mx-auto mt-8 grid max-w-lg grid-cols-3 gap-3 text-left text-xs text-slate-300">
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4"><strong class="block text-white">Supabase Auth</strong><span>Tek kimlik katmanı</span></div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4"><strong class="block text-white">RLS</strong><span>Rol tabanlı erişim</span></div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4"><strong class="block text-white">Audit</strong><span>İşlem kayıtları</span></div>
+          </div>
         </div>
       </section>
 
       <section class="relative flex min-h-screen items-center justify-center px-4 py-10 sm:px-6 lg:px-10">
-        <a routerLink="/" class="absolute right-4 top-4 rounded-xl px-4 py-3 text-sm font-bold text-slate-500 transition hover:bg-white hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:right-8 sm:top-8">Siteye Dön</a>
+        <a routerLink="/" class="absolute right-4 top-4 min-h-11 rounded-xl px-4 py-3 text-sm font-bold text-slate-500 transition hover:bg-white hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:right-8 sm:top-8">Siteye Dön</a>
 
         <div class="w-full max-w-md rounded-[28px] border border-slate-200 bg-white p-6 shadow-2xl sm:p-9">
-          <div class="mb-8 text-center">
+          <div class="mb-7 text-center">
             <div class="mx-auto mb-4 inline-flex rounded-full bg-slate-900 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white">Yönetici Paneli</div>
-            <h2 class="text-3xl font-black tracking-tight text-slate-950">Giriş Yap</h2>
-            <p class="mt-2 text-sm leading-relaxed text-slate-500">Yalnızca yetkili yönetici hesabı kabul edilir.</p>
+            <h2 class="text-3xl font-black tracking-tight text-slate-950">
+              {{ mode() === 'setup' ? 'İlk Yönetici Kurulumu' : mode() === 'forgot' ? 'Şifreyi Yenile' : 'Giriş Yap' }}
+            </h2>
+            <p class="mt-2 text-sm leading-relaxed text-slate-500">
+              {{ mode() === 'setup'
+                ? 'Bu işlem yalnızca doğrulanmış birincil yönetici e-postasını owner olarak yetkilendirir.'
+                : mode() === 'forgot'
+                  ? 'Şifre yenileme bağlantısı yönetici e-posta adresine gönderilir.'
+                  : 'Yalnızca yetkili Supabase yönetici hesabı kabul edilir.' }}
+            </p>
           </div>
 
-          @if (generatedPassword()) {
-            <div class="space-y-5" role="status" aria-live="polite">
-              <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-                <h3 class="font-black text-emerald-900">Çalışan yönetici şifresi oluşturuldu</h3>
-                <p class="mt-2 text-sm leading-relaxed text-emerald-800">Şifre Firebase hesabınıza kaydedildi. GitHub koduna veya localStorage alanına yazılmadı. Bunu şimdi güvenli bir yere kaydedin.</p>
-              </div>
-
-              <label for="generatedPassword" class="block text-xs font-black uppercase tracking-wider text-slate-500">Yeni şifre</label>
-              <div class="flex gap-2">
-                <input id="generatedPassword" [value]="generatedPassword()" readonly class="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 p-4 font-mono text-sm font-bold text-slate-950" />
-                <button type="button" (click)="copyGeneratedPassword()" class="min-h-12 rounded-xl bg-slate-100 px-4 font-black text-slate-800 transition hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Kopyala</button>
-              </div>
-
-              <button type="button" (click)="continueToDashboard()" class="min-h-14 w-full rounded-xl bg-slate-950 px-5 font-black text-white transition hover:bg-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Şifreyi Kaydettim, Panele Geç</button>
+          @if (successMsg()) {
+            <div role="status" aria-live="polite" class="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold leading-relaxed text-emerald-800">
+              {{ successMsg() }}
             </div>
-          } @else if (showForgotPass()) {
-            <div class="space-y-5">
-              <div>
-                <h3 class="text-lg font-black text-slate-950">Şifreyi Yenile</h3>
-                <p class="mt-1 text-sm leading-relaxed text-slate-500">Firebase kayıtlı e-posta adresinize güvenli sıfırlama bağlantısı gönderilir.</p>
-              </div>
+          }
+          @if (errorMsg()) {
+            <div role="alert" aria-live="assertive" class="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold leading-relaxed text-red-700">
+              {{ errorMsg() }}
+            </div>
+          }
 
+          @if (mode() === 'forgot') {
+            <div class="space-y-5">
               <label class="block">
                 <span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Yönetici e-postası</span>
-                <input type="email" [(ngModel)]="resetEmail" autocomplete="email" class="w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 font-bold text-slate-950 outline-none transition focus:border-blue-500 focus:bg-white" />
+                <input type="email" [(ngModel)]="resetEmail" autocomplete="email" inputmode="email" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 font-bold text-slate-950 outline-none transition focus:border-blue-500 focus:bg-white" />
               </label>
-
-              @if (resetSuccess()) {
-                <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold leading-relaxed text-emerald-800">Şifre sıfırlama e-postası gönderildi. E-postadaki bağlantıyı açıp yeni şifrenizi belirleyin.</div>
-              }
-
-              @if (errorMsg()) {
-                <div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold leading-relaxed text-red-700">{{ errorMsg() }}</div>
-              }
-
-              <button type="button" (click)="doReset()" [disabled]="isLoading()" class="min-h-14 w-full rounded-xl bg-slate-950 px-5 font-black text-white disabled:opacity-50">{{ isLoading() ? 'Gönderiliyor...' : 'Sıfırlama Bağlantısı Gönder' }}</button>
-              <button type="button" (click)="toggleForgot()" class="min-h-12 w-full rounded-xl border border-slate-200 font-bold text-slate-600 transition hover:bg-slate-50">Giriş Ekranına Dön</button>
+              <button type="button" (click)="doReset()" [disabled]="isLoading()" class="min-h-14 w-full rounded-xl bg-slate-950 px-5 font-black text-white transition hover:bg-blue-600 disabled:opacity-50">
+                {{ isLoading() ? 'Gönderiliyor...' : 'Şifre Yenileme Bağlantısı Gönder' }}
+              </button>
+              <button type="button" (click)="setMode('login')" class="min-h-12 w-full rounded-xl border border-slate-200 font-bold text-slate-600 transition hover:bg-slate-50">Giriş Ekranına Dön</button>
             </div>
           } @else {
-            <form (submit)="onLogin($event)" class="space-y-5">
+            <form (submit)="mode() === 'setup' ? onSetup($event) : onLogin($event)" class="space-y-5">
               <label class="block">
                 <span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Yönetici e-postası</span>
-                <input type="email" [(ngModel)]="username" name="username" autocomplete="username" inputmode="email" class="w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 font-bold text-slate-950 outline-none transition focus:border-blue-500 focus:bg-white" />
+                <input
+                  type="email"
+                  [(ngModel)]="username"
+                  name="username"
+                  autocomplete="username"
+                  inputmode="email"
+                  [readonly]="mode() === 'setup'"
+                  class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 font-bold text-slate-950 outline-none transition focus:border-blue-500 focus:bg-white read-only:text-slate-500"
+                />
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Şifre</span>
+                <span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">{{ mode() === 'setup' ? 'Yeni güçlü şifre' : 'Şifre' }}</span>
                 <div class="relative">
-                  <input [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" name="password" autocomplete="current-password" class="w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 pr-14 font-bold text-slate-950 outline-none transition focus:border-blue-500 focus:bg-white" />
-                  <button type="button" (click)="showPassword.update(v => !v)" [attr.aria-label]="showPassword() ? 'Şifreyi gizle' : 'Şifreyi göster'" class="absolute inset-y-0 right-0 flex w-14 items-center justify-center text-sm font-black text-slate-500">{{ showPassword() ? 'Gizle' : 'Göster' }}</button>
+                  <input
+                    [type]="showPassword() ? 'text' : 'password'"
+                    [(ngModel)]="password"
+                    name="password"
+                    [autocomplete]="mode() === 'setup' ? 'new-password' : 'current-password'"
+                    class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 pr-16 font-bold text-slate-950 outline-none transition focus:border-blue-500 focus:bg-white"
+                  />
+                  <button type="button" (click)="showPassword.update(v => !v)" [attr.aria-label]="showPassword() ? 'Şifreyi gizle' : 'Şifreyi göster'" class="absolute inset-y-0 right-0 flex min-w-14 items-center justify-center px-3 text-xs font-black text-slate-500">
+                    {{ showPassword() ? 'Gizle' : 'Göster' }}
+                  </button>
                 </div>
               </label>
 
-              @if (errorMsg()) {
-                <div role="alert" aria-live="assertive" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold leading-relaxed text-red-700">{{ errorMsg() }}</div>
+              @if (mode() === 'setup') {
+                <label class="block">
+                  <span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Şifre tekrar</span>
+                  <input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" autocomplete="new-password" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 font-bold text-slate-950 outline-none transition focus:border-blue-500 focus:bg-white" />
+                </label>
+                <div class="rounded-xl border border-blue-100 bg-blue-50 p-4 text-xs font-semibold leading-relaxed text-blue-900">
+                  Şifre en az 16 karakter olmalı ve büyük harf, küçük harf, rakam ile özel karakter içermelidir. Hesap oluşturulduktan sonra Supabase e-posta doğrulaması isteyebilir.
+                </div>
               }
 
-              <div class="flex justify-end">
-                <button type="button" (click)="toggleForgot()" class="text-xs font-black text-blue-700 hover:underline">Şifremi unuttum</button>
+              <button type="submit" [disabled]="isLoading()" class="min-h-14 w-full rounded-xl bg-slate-950 px-5 font-black text-white shadow-lg transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                {{ isLoading() ? 'Kontrol ediliyor...' : mode() === 'setup' ? 'Owner Hesabını Oluştur' : 'Güvenli Giriş Yap' }}
+              </button>
+            </form>
+
+            @if (mode() === 'login') {
+              <div class="mt-4 flex justify-between gap-4 text-xs font-black">
+                <button type="button" (click)="setMode('forgot')" class="min-h-11 text-blue-700 hover:underline">Şifremi unuttum</button>
+                <button type="button" (click)="setMode('setup')" class="min-h-11 text-slate-600 hover:underline">İlk yönetici kurulumu</button>
               </div>
 
-              <button type="submit" [disabled]="isLoading()" class="min-h-14 w-full rounded-xl bg-slate-950 px-5 font-black text-white shadow-lg transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-                {{ isLoading() ? 'Kontrol ediliyor...' : 'E-posta ve Şifre ile Giriş' }}
-              </button>
-
-              <div class="flex items-center gap-4 py-1 text-xs font-bold uppercase tracking-wider text-slate-400"><span class="h-px flex-1 bg-slate-200"></span>veya<span class="h-px flex-1 bg-slate-200"></span></div>
+              <div class="my-5 flex items-center gap-4 text-xs font-bold uppercase tracking-wider text-slate-400"><span class="h-px flex-1 bg-slate-200"></span>veya<span class="h-px flex-1 bg-slate-200"></span></div>
 
               <button type="button" (click)="onGoogleLogin()" [disabled]="isLoading()" class="flex min-h-14 w-full items-center justify-center gap-3 rounded-xl border-2 border-slate-200 bg-white px-5 font-black text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                 <svg class="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -115,9 +139,8 @@ import { CarService } from "../../services/car.service";
                 </svg>
                 Google ile Yönetici Girişi
               </button>
-
-              <p class="text-center text-[11px] leading-relaxed text-slate-400">İlk Google kurulumunda e-posta/şifre yöntemi yoksa sistem 24 karakterlik güçlü bir şifre oluşturur. Sonraki Google girişlerinde mevcut şifreniz değiştirilmez.</p>
-            </form>
+              <p class="mt-3 text-center text-[11px] leading-relaxed text-slate-400">Google sağlayıcısı Supabase tarafında etkinleştirildiğinde bu düğme aynı kodla çalışır. Service-role anahtarı tarayıcıya gönderilmez.</p>
+            }
           }
         </div>
       </section>
@@ -125,113 +148,108 @@ import { CarService } from "../../services/car.service";
   `,
 })
 export class AdminLoginComponent implements OnInit {
-  authService = inject(AuthService);
-  carService = inject(CarService);
-  router = inject(Router);
-  config = this.carService.getConfig();
+  readonly authService = inject(AuthService);
+  readonly carService = inject(CarService);
+  readonly router = inject(Router);
+  readonly config = this.carService.getConfig();
 
   username = this.authService.getPrimaryAdminEmail();
   password = "";
+  confirmPassword = "";
   resetEmail = this.authService.getPrimaryAdminEmail();
+  readonly mode = signal<"login" | "setup" | "forgot">("login");
+  readonly errorMsg = signal("");
+  readonly successMsg = signal("");
+  readonly showPassword = signal(false);
+  readonly isLoading = signal(false);
 
-  errorMsg = signal("");
-  showPassword = signal(false);
-  isLoading = signal(false);
-  showForgotPass = signal(false);
-  resetSuccess = signal(false);
-  generatedPassword = signal("");
-
-  async ngOnInit() {
+  async ngOnInit(): Promise<void> {
     await this.authService.waitUntilReady();
     if (this.authService.isLoggedIn()) {
-      this.router.navigate(["/admin/dashboard"]);
+      void this.router.navigate(["/admin/dashboard"]);
     }
   }
 
-  private syncAuthError(fallback: string) {
-    this.errorMsg.set(this.authService.lastErrorMessage() || fallback);
-  }
-
-  async onLogin(event: Event) {
-    event.preventDefault();
+  setMode(mode: "login" | "setup" | "forgot"): void {
+    this.mode.set(mode);
     this.errorMsg.set("");
-    this.isLoading.set(true);
-    const success = await this.authService.login(this.username, this.password);
-    this.isLoading.set(false);
-
-    if (success) {
-      this.router.navigate(["/admin/dashboard"]);
-      return;
-    }
-    this.syncAuthError("Kullanıcı adı veya şifre doğrulanamadı.");
-  }
-
-  async onGoogleLogin() {
-    this.errorMsg.set("");
-    this.isLoading.set(true);
-    const success = await this.authService.loginWithGoogle();
-
-    if (!success) {
-      this.isLoading.set(false);
-      this.syncAuthError("Google ile giriş tamamlanamadı.");
-      return;
-    }
-
-    if (this.authService.hasPasswordProvider()) {
-      this.isLoading.set(false);
-      this.router.navigate(["/admin/dashboard"]);
-      return;
-    }
-
-    const generated = await this.authService.createStrongPasswordForCurrentUser();
-    this.isLoading.set(false);
-
-    if (generated) {
-      this.generatedPassword.set(generated);
-      return;
-    }
-
-    this.syncAuthError("Google girişi başarılı oldu ancak ilk e-posta/şifre kurulumu tamamlanamadı. Panele Google ile erişebilirsiniz; Firebase içinde Email/Password sağlayıcısının açık olduğunu kontrol edin.");
-  }
-
-  async copyGeneratedPassword() {
-    const value = this.generatedPassword();
-    if (!value) return;
-    try {
-      await navigator.clipboard.writeText(value);
-    } catch {
-      this.errorMsg.set("Şifre otomatik kopyalanamadı. Şifre alanındaki metni seçerek kopyalayın.");
-    }
-  }
-
-  continueToDashboard() {
-    this.generatedPassword.set("");
-    this.router.navigate(["/admin/dashboard"]);
-  }
-
-  toggleForgot() {
-    this.showForgotPass.update((value) => !value);
-    this.resetSuccess.set(false);
-    this.errorMsg.set("");
+    this.successMsg.set("");
+    this.password = "";
+    this.confirmPassword = "";
+    this.username = this.authService.getPrimaryAdminEmail();
     this.resetEmail = this.authService.getPrimaryAdminEmail();
   }
 
-  async doReset() {
+  async onLogin(event: Event): Promise<void> {
+    event.preventDefault();
     this.errorMsg.set("");
-    this.resetSuccess.set(false);
-    if (!this.resetEmail.includes("@")) {
-      this.errorMsg.set("Geçerli bir e-posta adresi girin.");
+    this.successMsg.set("");
+    this.isLoading.set(true);
+    const success = await this.authService.login(this.username, this.password);
+    this.isLoading.set(false);
+    if (success) {
+      void this.router.navigate(["/admin/dashboard"]);
+      return;
+    }
+    this.syncError("Yönetici girişi tamamlanamadı.");
+  }
+
+  async onSetup(event: Event): Promise<void> {
+    event.preventDefault();
+    this.errorMsg.set("");
+    this.successMsg.set("");
+    if (this.password !== this.confirmPassword) {
+      this.errorMsg.set("Yeni şifreler birbiriyle eşleşmiyor.");
+      return;
+    }
+    const validation = this.authService.validateStrongPassword(this.password);
+    if (validation) {
+      this.errorMsg.set(validation);
       return;
     }
 
     this.isLoading.set(true);
-    const success = await this.authService.resetPassword(this.resetEmail);
+    const result = await this.authService.registerPrimaryAdmin(this.password);
     this.isLoading.set(false);
-
-    if (success) {
-      this.resetSuccess.set(true);
+    if (!result.created) {
+      this.syncError("İlk yönetici hesabı oluşturulamadı.");
       return;
     }
-    this.syncAuthError("Şifre sıfırlama bağlantısı gönderilemedi.");
+    if (this.authService.isLoggedIn()) {
+      void this.router.navigate(["/admin/dashboard"]);
+      return;
+    }
+    this.successMsg.set(
+      result.confirmationRequired
+        ? "Hesap oluşturuldu. E-posta doğrulama bağlantısını açtıktan sonra bu ekrandan giriş yapın."
+        : "Yönetici hesabı oluşturuldu. Şimdi giriş yapabilirsiniz.",
+    );
+    this.mode.set("login");
+    this.password = "";
+    this.confirmPassword = "";
+  }
+
+  async onGoogleLogin(): Promise<void> {
+    this.errorMsg.set("");
+    this.successMsg.set("");
+    const started = await this.authService.loginWithGoogle();
+    if (!started) this.syncError("Google ile giriş başlatılamadı.");
+  }
+
+  async doReset(): Promise<void> {
+    this.errorMsg.set("");
+    this.successMsg.set("");
+    this.isLoading.set(true);
+    const success = await this.authService.resetPassword(this.resetEmail);
+    this.isLoading.set(false);
+    if (success) {
+      this.successMsg.set("Şifre yenileme bağlantısı e-posta adresine gönderildi.");
+      return;
+    }
+    this.syncError("Şifre yenileme bağlantısı gönderilemedi.");
+  }
+
+  private syncError(fallback: string): void {
+    this.errorMsg.set(this.authService.lastErrorMessage() || fallback);
   }
 }

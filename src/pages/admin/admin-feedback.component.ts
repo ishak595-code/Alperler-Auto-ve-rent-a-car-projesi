@@ -1,158 +1,276 @@
-
-import { Component, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { CarService } from '../../services/car.service';
-import { FormsModule } from '@angular/forms';
-import { ToastService } from '../../services/toast.service';
-import { ConfirmService } from '../../services/confirm.service';
+import { CommonModule } from "@angular/common";
+import { Component, OnInit, computed, inject, signal } from "@angular/core";
+import { FormsModule } from "@angular/forms";
+import { Router } from "@angular/router";
+import {
+  ContactAdminRecord,
+  ContactAdminService,
+  ContactStatus,
+} from "../../services/contact-admin.service";
+import { ToastService } from "../../services/toast.service";
 
 @Component({
-  selector: 'app-admin-feedback',
+  selector: "app-admin-feedback",
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="px-4 py-6 md:px-8 bg-white border-b border-slate-200 shadow-sm sticky top-0 z-20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div class="flex items-center gap-4">
-            <button (click)="goBack()" aria-label="Kontrol Paneline Dön" class="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+    <main class="min-h-screen bg-slate-50 text-slate-900">
+      <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-5 shadow-sm backdrop-blur md:px-8">
+        <div class="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              (click)="goBack()"
+              aria-label="Kontrol paneline dön"
+              class="flex min-h-12 min-w-12 items-center justify-center rounded-xl bg-slate-100 font-black text-slate-700 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
+              ←
             </button>
-            <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Geri Bildirimler</h2>
-        </div>
-        <div class="flex gap-2">
-            <button (click)="filter.set('ALL')" [class.bg-slate-800]="filter() === 'ALL'" [class.text-white]="filter() === 'ALL'" class="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-100 transition-colors">Tümü</button>
-            <button (click)="filter.set('NEW')" [class.bg-blue-600]="filter() === 'NEW'" [class.text-white]="filter() === 'NEW'" class="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium hover:bg-blue-50 transition-colors">Yeni</button>
-            <button (click)="filter.set('REVIEWED')" [class.bg-green-600]="filter() === 'REVIEWED'" [class.text-white]="filter() === 'REVIEWED'" class="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium hover:bg-green-50 transition-colors">İncelendi</button>
-            <button (click)="filter.set('ARCHIVED')" [class.bg-gray-600]="filter() === 'ARCHIVED'" [class.text-white]="filter() === 'ARCHIVED'" class="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium hover:bg-gray-50 transition-colors">Arşiv</button>
-        </div>
-    </div>
-    <div class="w-full bg-slate-50 min-h-[calc(100vh-10rem)] p-4 md:p-8 space-y-6">
-
-      <!-- AI Analysis Summary -->
-      <div class="bg-gradient-to-r from-indigo-50 to-blue-50 p-6 rounded-xl border border-indigo-100 shadow-sm">
-        <div class="flex justify-between items-start mb-4">
             <div>
-                <h3 class="text-lg font-bold text-indigo-900 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    Yapay Zeka Analizi
-                </h3>
-                <p class="text-sm text-indigo-600 mt-1">Tüm geri bildirimlerin otomatik özeti.</p>
+              <p class="text-[10px] font-black uppercase tracking-[0.18em] text-blue-600">Müşteri İletişimi</p>
+              <h1 class="text-2xl font-black tracking-tight text-slate-950">Mesaj Kutusu</h1>
+              <p class="mt-1 text-xs text-slate-500">Web iletişim formundan Supabase'e güvenli kaydedilen gerçek mesajlar.</p>
             </div>
-            <button (click)="analyze()" [disabled]="isAnalyzing()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2">
-                @if (isAnalyzing()) {
-                    <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    Analiz Ediliyor...
-                } @else {
-                    Analiz Et
-                }
-            </button>
+          </div>
+
+          <button
+            type="button"
+            (click)="refresh()"
+            [disabled]="contactService.loading()"
+            class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white hover:bg-blue-600 disabled:opacity-50"
+          >
+            {{ contactService.loading() ? "Yenileniyor..." : "Mesajları Yenile" }}
+          </button>
         </div>
-        
-        @if (analysisResult()) {
-            <div class="bg-white/80 p-4 rounded-lg text-slate-700 text-sm whitespace-pre-line border border-indigo-100">
-                {{ analysisResult() }}
-            </div>
-        }
-      </div>
+      </header>
 
-      <!-- Feedback List -->
-      <div class="grid gap-4">
-        @for (item of filteredFeedbacks(); track item.id) {
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="flex items-center gap-3">
-                        <span [class]="getCategoryClass(item.category)" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                            {{ getCategoryLabel(item.category) }}
-                        </span>
-                        <div class="flex text-blue-400 text-sm">
-                            @for (star of [1,2,3,4,5]; track star) {
-                                <span>{{ star <= item.rating ? '★' : '☆' }}</span>
-                            }
-                        </div>
-                        <span class="text-xs text-slate-400">{{ item.date | date:'medium' }}</span>
+      <section class="mx-auto max-w-7xl space-y-5 p-4 md:p-8">
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          @for (item of statusCards; track item.value) {
+            <button
+              type="button"
+              (click)="setFilter(item.value)"
+              [class.ring-2]="filter() === item.value"
+              [class.ring-blue-500]="filter() === item.value"
+              class="min-h-20 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-300"
+            >
+              <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">{{ item.label }}</span>
+              <strong class="mt-1 block text-2xl font-black text-slate-950">{{ countFor(item.value) }}</strong>
+            </button>
+          }
+        </div>
+
+        <div class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_auto]">
+          <label class="block">
+            <span class="sr-only">Mesajlarda ara</span>
+            <input
+              [ngModel]="searchQuery()"
+              (ngModelChange)="searchQuery.set($event)"
+              type="search"
+              autocomplete="off"
+              placeholder="Referans, ad, telefon, e-posta veya mesaj içinde ara..."
+              class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-white"
+            />
+          </label>
+          <select
+            [ngModel]="filter()"
+            (ngModelChange)="setFilter($event)"
+            aria-label="Mesaj durumuna göre filtrele"
+            class="min-h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black"
+          >
+            <option value="ALL">Tüm durumlar</option>
+            <option value="NEW">Yeni</option>
+            <option value="READ">Okundu</option>
+            <option value="REPLIED">Yanıtlandı</option>
+            <option value="ARCHIVED">Arşiv</option>
+          </select>
+        </div>
+
+        @if (contactService.error()) {
+          <div role="alert" class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-800">
+            Mesaj kaynağına ulaşılamadı: {{ contactService.error() }}
+          </div>
+        }
+
+        @if (contactService.loading() && contactService.records().length === 0) {
+          <div class="rounded-2xl border border-slate-200 bg-white p-12 text-center font-bold text-slate-500">Mesajlar yükleniyor...</div>
+        } @else {
+          <div class="grid gap-4">
+            @for (item of filteredMessages(); track item.id) {
+              <article
+                class="rounded-2xl border bg-white p-5 shadow-sm transition md:p-6"
+                [class.border-blue-300]="item.status === 'NEW'"
+                [class.border-slate-200]="item.status !== 'NEW'"
+              >
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span [class]="statusClass(item.status)" class="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider">{{ statusLabel(item.status) }}</span>
+                      <span class="font-mono text-xs font-black text-slate-500">{{ item.reference }}</span>
+                      <span class="text-xs text-slate-400">{{ item.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
                     </div>
-                    
-                    <div class="flex items-center gap-2">
-                        <select [ngModel]="item.status" (ngModelChange)="updateStatus(item.id, $event)" class="text-xs border-slate-200 rounded-lg py-1 px-2 focus:ring-blue-500">
-                            <option value="NEW">Yeni</option>
-                            <option value="REVIEWED">İncelendi</option>
-                            <option value="ARCHIVED">Arşiv</option>
-                        </select>
-                        <button (click)="deleteFeedback(item.id)" class="text-red-400 hover:text-red-600 p-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                        </button>
+
+                    <h2 class="mt-4 break-words text-lg font-black text-slate-950">{{ item.name }}</h2>
+                    <div class="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                      <a [href]="'mailto:' + item.email" class="font-bold text-blue-700 hover:underline">{{ item.email }}</a>
+                      @if (item.phone) {
+                        <a [href]="'tel:' + item.phone" class="font-bold text-slate-700 hover:underline">{{ item.phone }}</a>
+                      }
                     </div>
+                    @if (item.subject) {
+                      <p class="mt-3 text-xs font-black uppercase tracking-wider text-slate-400">{{ item.subject }}</p>
+                    }
+                    <p class="mt-4 whitespace-pre-wrap break-words rounded-xl bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">{{ item.message }}</p>
+                  </div>
+
+                  <div class="w-full space-y-3 lg:w-72">
+                    <label class="block">
+                      <span class="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-slate-500">Durum</span>
+                      <select
+                        [ngModel]="item.status"
+                        (ngModelChange)="changeStatus(item, $event)"
+                        [disabled]="savingReference() === item.reference"
+                        class="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-black disabled:opacity-50"
+                      >
+                        <option value="NEW">Yeni</option>
+                        <option value="READ">Okundu</option>
+                        <option value="REPLIED">Yanıtlandı</option>
+                        <option value="ARCHIVED">Arşiv</option>
+                      </select>
+                    </label>
+
+                    <label class="block">
+                      <span class="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-slate-500">İç not</span>
+                      <textarea
+                        #noteBox
+                        rows="3"
+                        [value]="item.internalNotes || ''"
+                        maxlength="2000"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-blue-500 focus:bg-white"
+                        placeholder="Müşteriye gösterilmez"
+                      ></textarea>
+                    </label>
+                    <button
+                      type="button"
+                      (click)="saveNote(item, noteBox.value)"
+                      [disabled]="savingReference() === item.reference"
+                      class="min-h-12 w-full rounded-xl bg-slate-100 px-4 text-sm font-black text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+                    >
+                      {{ savingReference() === item.reference ? "Kaydediliyor..." : "Notu Kaydet" }}
+                    </button>
+                  </div>
                 </div>
-
-                <p class="text-slate-700 leading-relaxed">{{ item.message }}</p>
-            </div>
-        } @empty {
-            <div class="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                <p class="text-slate-500">Bu kategoride geri bildirim bulunmuyor.</p>
-            </div>
+              </article>
+            } @empty {
+              <div class="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-12 text-center">
+                <h2 class="text-lg font-black text-slate-800">Mesaj bulunamadı</h2>
+                <p class="mt-2 text-sm text-slate-500">Seçili filtre veya arama için kayıt yok.</p>
+              </div>
+            }
+          </div>
         }
-      </div>
-    </div>
-  `
+      </section>
+    </main>
+  `,
 })
-export class AdminFeedbackComponent {
-  carService = inject(CarService);
-  toastService = inject(ToastService);
-  confirmService = inject(ConfirmService);
-  router = inject(Router);
-  
-  filter = signal<'ALL' | 'NEW' | 'REVIEWED' | 'ARCHIVED'>('ALL');
-  isAnalyzing = signal(false);
-  analysisResult = signal<string | null>(null);
+export class AdminFeedbackComponent implements OnInit {
+  readonly contactService = inject(ContactAdminService);
+  private readonly toastService = inject(ToastService);
+  private readonly router = inject(Router);
 
-  feedbacks = this.carService.getFeedbacks();
+  readonly filter = signal<"ALL" | ContactStatus>("ALL");
+  readonly searchQuery = signal("");
+  readonly savingReference = signal("");
 
-  goBack() {
-      this.router.navigate(['/admin/dashboard']);
-  }
+  readonly statusCards: Array<{ value: "ALL" | ContactStatus; label: string }> = [
+    { value: "ALL", label: "Toplam" },
+    { value: "NEW", label: "Yeni" },
+    { value: "READ", label: "Okundu" },
+    { value: "REPLIED", label: "Yanıtlandı" },
+    { value: "ARCHIVED", label: "Arşiv" },
+  ];
 
-  filteredFeedbacks = computed(() => {
-      const all = this.feedbacks();
-      const f = this.filter();
-      if (f === 'ALL') return all;
-      return all.filter(x => x.status === f);
+  readonly filteredMessages = computed(() => {
+    const status = this.filter();
+    const query = this.searchQuery().trim().toLocaleLowerCase("tr-TR");
+    return this.contactService.records().filter((item) => {
+      if (status !== "ALL" && item.status !== status) return false;
+      if (!query) return true;
+      return `${item.reference} ${item.name} ${item.email} ${item.phone || ""} ${item.subject || ""} ${item.message}`
+        .toLocaleLowerCase("tr-TR")
+        .includes(query);
+    });
   });
 
-  getCategoryLabel(cat: string) {
-      const labels: any = { 'BUG': 'Hata', 'FEATURE': 'Özellik', 'GENERAL': 'Genel', 'CONTENT': 'İçerik', 'OTHER': 'Diğer' };
-      return labels[cat] || cat;
+  async ngOnInit(): Promise<void> {
+    await this.refresh();
   }
 
-  getCategoryClass(cat: string) {
-      const classes: any = {
-          'BUG': 'bg-red-100 text-red-700',
-          'FEATURE': 'bg-purple-100 text-purple-700',
-          'GENERAL': 'bg-blue-100 text-blue-700',
-          'CONTENT': 'bg-orange-100 text-orange-700',
-          'OTHER': 'bg-gray-100 text-gray-700'
-      };
-      return classes[cat] || 'bg-gray-100 text-gray-700';
+  async refresh(): Promise<void> {
+    try {
+      await this.contactService.refresh();
+    } catch {
+      this.toastService.show("Mesaj kutusu yenilenemedi.", "error");
+    }
   }
 
-  updateStatus(id: number, status: any) {
-      this.carService.updateFeedbackStatus(id, status);
+  setFilter(value: "ALL" | ContactStatus): void {
+    this.filter.set(value);
   }
 
-  async deleteFeedback(id: number) {
-      const confirmed = await this.confirmService.confirm({
-          title: 'Geri Bildirimi Sil',
-          message: 'Bu geri bildirimi silmek istediğinize emin misiniz?'
-      });
-      if(confirmed) {
-          this.carService.deleteFeedback(id);
-          this.toastService.show('Geri bildirim silindi.', 'info');
-      }
+  countFor(status: "ALL" | ContactStatus): number {
+    const records = this.contactService.records();
+    return status === "ALL" ? records.length : records.filter((item) => item.status === status).length;
   }
 
-  async analyze() {
-      this.isAnalyzing.set(true);
-      const result = await this.carService.analyzeFeedback();
-      this.analysisResult.set(result);
-      this.isAnalyzing.set(false);
+  async changeStatus(item: ContactAdminRecord, status: ContactStatus): Promise<void> {
+    if (item.status === status || this.savingReference()) return;
+    this.savingReference.set(item.reference);
+    try {
+      await this.contactService.update(item.reference, status, item.internalNotes || "");
+      this.toastService.show(`Mesaj durumu ${this.statusLabel(status).toLocaleLowerCase("tr-TR")} olarak kaydedildi.`, "success");
+    } catch {
+      this.toastService.show("Mesaj durumu güncellenemedi.", "error");
+    } finally {
+      this.savingReference.set("");
+    }
+  }
+
+  async saveNote(item: ContactAdminRecord, internalNotes: string): Promise<void> {
+    if (this.savingReference()) return;
+    this.savingReference.set(item.reference);
+    try {
+      const nextStatus: ContactStatus = item.status === "NEW" ? "READ" : item.status;
+      await this.contactService.update(item.reference, nextStatus, internalNotes.trim().slice(0, 2000));
+      this.toastService.show("İç not güvenli şekilde kaydedildi.", "success");
+    } catch {
+      this.toastService.show("İç not kaydedilemedi.", "error");
+    } finally {
+      this.savingReference.set("");
+    }
+  }
+
+  statusLabel(status: ContactStatus): string {
+    const labels: Record<ContactStatus, string> = {
+      NEW: "Yeni",
+      READ: "Okundu",
+      REPLIED: "Yanıtlandı",
+      ARCHIVED: "Arşiv",
+    };
+    return labels[status];
+  }
+
+  statusClass(status: ContactStatus): string {
+    const classes: Record<ContactStatus, string> = {
+      NEW: "bg-blue-100 text-blue-800",
+      READ: "bg-amber-100 text-amber-800",
+      REPLIED: "bg-emerald-100 text-emerald-800",
+      ARCHIVED: "bg-slate-200 text-slate-700",
+    };
+    return classes[status];
+  }
+
+  goBack(): void {
+    void this.router.navigate(["/admin/dashboard"]);
   }
 }

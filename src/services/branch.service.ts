@@ -1,22 +1,23 @@
-import { computed, effect, inject, Injectable, signal } from "@angular/core";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
-import { db } from "../firebase";
+import { computed, inject, Injectable, signal } from "@angular/core";
 import { Branch } from "../models/branch.model";
+import { AuthService } from "./auth.service";
 import { CarService } from "./car.service";
+
+interface BranchApiResponse {
+  ok: boolean;
+  branches?: Branch[];
+  branch?: Branch;
+  code?: string;
+}
 
 @Injectable({ providedIn: "root" })
 export class BranchService {
   private readonly carService = inject(CarService);
-  private readonly cloudBranches = signal<Branch[]>([]);
-  private readonly cloudAvailable = signal(false);
+  private readonly authService = inject(AuthService);
+  private readonly remoteBranches = signal<Branch[]>([]);
+  private readonly remoteAvailable = signal(false);
   private readonly syncError = signal<string | null>(null);
+  private readonly refreshMs = 5 * 60 * 1000;
 
   private readonly fallbackBranches = computed<Branch[]>(() => {
     const config = this.carService.getConfig()();
@@ -43,7 +44,7 @@ export class BranchService {
   });
 
   readonly branches = computed(() =>
-    (this.cloudAvailable() ? this.cloudBranches() : this.fallbackBranches())
+    (this.remoteAvailable() ? this.remoteBranches() : this.fallbackBranches())
       .filter((branch) => branch.isActive)
       .sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name, "tr")),
   );
@@ -52,10 +53,8 @@ export class BranchService {
   readonly cloudSyncError = this.syncError.asReadonly();
 
   constructor() {
-    this.startPublicSync();
-    effect(() => {
-      void this.branches();
-    });
+    void this.refreshPublic();
+    setInterval(() => void this.refreshPublic(false), this.refreshMs);
   }
 
   getById(id: string): Branch | undefined {
@@ -64,51 +63,72 @@ export class BranchService {
 
   async save(branch: Branch): Promise<void> {
     const normalized = this.normalize(branch);
-    await setDoc(doc(db, "branches", normalized.id), {
-      ...normalized,
-      updatedAt: serverTimestamp(),
+    const accessToken = await this.authService.getAccessToken();
+    if (!accessToken) throw new Error("Yönetici oturumu gerekli.");
+
+    const response = await fetch("/api/branches", {
+      method: "PUT",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(normalized),
     });
+    const payload = (await response.json().catch(() => ({}))) as BranchApiResponse;
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.code || "Şube kaydedilemedi.");
+    }
+    await this.refreshPublic();
   }
 
   async remove(id: string): Promise<void> {
     if (!/^[a-z0-9_-]{2,80}$/.test(id)) {
       throw new Error("Geçersiz şube kimliği.");
     }
-    await deleteDoc(doc(db, "branches", id));
+    const accessToken = await this.authService.getAccessToken();
+    if (!accessToken) throw new Error("Yönetici oturumu gerekli.");
+
+    const response = await fetch("/api/branches", {
+      method: "DELETE",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ id }),
+    });
+    const payload = (await response.json().catch(() => ({}))) as BranchApiResponse;
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.code || "Şube pasife alınamadı.");
+    }
+    await this.refreshPublic();
   }
 
-  private startPublicSync(): void {
-    onSnapshot(
-      collection(db, "branches"),
-      (snapshot) => {
-        if (snapshot.empty) {
-          this.cloudBranches.set([]);
-          this.cloudAvailable.set(false);
-          return;
-        }
-
-        const records = snapshot.docs
-          .map((snapshotDoc) => ({
-            ...(snapshotDoc.data() as Omit<Branch, "id">),
-            id: snapshotDoc.id,
-          }))
-          .filter((branch): branch is Branch => this.isUsable(branch));
-
-        if (records.length > 0) {
-          this.cloudBranches.set(records);
-          this.cloudAvailable.set(true);
-          this.syncError.set(null);
-        } else {
-          this.cloudBranches.set([]);
-          this.cloudAvailable.set(false);
-        }
-      },
-      (error) => {
-        console.info("Cloud branch collection is not available yet; verified fallback remains active.", error);
-        this.cloudAvailable.set(false);
-        this.syncError.set("Şube bulut kaynağı henüz aktif değil.");
-      },
-    );
+  async refreshPublic(showError = true): Promise<void> {
+    try {
+      const response = await fetch("/api/branches", {
+        headers: { accept: "application/json" },
+        cache: "no-store",
+      });
+      const payload = (await response.json().catch(() => ({}))) as BranchApiResponse;
+      if (!response.ok || !payload.ok || !Array.isArray(payload.branches)) {
+        throw new Error(payload.code || "BRANCH_SOURCE_UNAVAILABLE");
+      }
+      const records = payload.branches
+        .map((branch) => this.normalize(branch))
+        .filter((branch) => this.isUsable(branch));
+      if (records.length > 0) {
+        this.remoteBranches.set(records);
+        this.remoteAvailable.set(true);
+      } else {
+        this.remoteBranches.set([]);
+        this.remoteAvailable.set(false);
+      }
+      this.syncError.set(null);
+    } catch (error) {
+      console.info("Branch source unavailable; verified fallback remains active.", error);
+      this.remoteAvailable.set(false);
+      if (showError) this.syncError.set("Şube veri kaynağına şu anda ulaşılamıyor.");
+    }
   }
 
   private normalize(branch: Branch): Branch {

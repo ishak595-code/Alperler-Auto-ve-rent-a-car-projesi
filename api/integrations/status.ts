@@ -1,14 +1,33 @@
-import { getFirebaseServerConfig } from "../_lib/firestore-rest";
 import { getAppUrl, getPaymentConfig } from "../_lib/integration-config";
-import { getMailerConfig } from "../_lib/mailer";
-import { getSmsConfig } from "../_lib/sms";
+
+const SUPABASE_URL = "https://hrztrgjvgdnaurejnsgs.supabase.co";
+
+interface SupabaseHealth {
+  ok?: boolean;
+  database?: { provider?: string; configured?: boolean; serverVerified?: boolean };
+  auth?: { provider?: string; configured?: boolean };
+  email?: { provider?: string; configured?: boolean };
+  sms?: { provider?: string; configured?: boolean };
+  notifications?: { workerConfigured?: boolean };
+}
+
+async function getSupabaseHealth(): Promise<SupabaseHealth> {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/integration-status`, {
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!response.ok) return {};
+    return (await response.json()) as SupabaseHealth;
+  } catch {
+    return {};
+  }
+}
 
 export default {
-  fetch(): Response {
+  async fetch(): Promise<Response> {
     const payment = getPaymentConfig();
-    const mail = getMailerConfig();
-    const sms = getSmsConfig();
-    const firebaseServer = getFirebaseServerConfig();
+    const supabase = await getSupabaseHealth();
     const environment = process.env.VERCEL_ENV;
 
     return Response.json(
@@ -28,15 +47,24 @@ export default {
           officeEnabled: payment.officeEnabled,
         },
         email: {
-          configured: mail.configured,
+          provider: supabase.email?.provider || "none",
+          configured: Boolean(supabase.email?.configured),
         },
         sms: {
-          provider: sms.provider,
-          configured: sms.configured,
+          provider: supabase.sms?.provider || "none",
+          configured: Boolean(supabase.sms?.configured),
         },
         database: {
-          configured: firebaseServer.configured,
-          serverVerified: firebaseServer.configured,
+          provider: "supabase",
+          configured: Boolean(supabase.database?.configured),
+          serverVerified: Boolean(supabase.database?.serverVerified),
+        },
+        auth: {
+          provider: "supabase",
+          configured: Boolean(supabase.auth?.configured),
+        },
+        notifications: {
+          workerConfigured: Boolean(supabase.notifications?.workerConfigured),
         },
       },
       {

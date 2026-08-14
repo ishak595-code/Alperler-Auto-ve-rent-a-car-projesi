@@ -38,7 +38,7 @@ import { ToastService } from "../services/toast.service";
               <div class="rounded-xl bg-emerald-50 p-8 text-center text-emerald-900" role="status">
                 <mat-icon class="mb-4 !h-12 !w-12 !text-[48px] text-emerald-500">check_circle</mat-icon>
                 <h2 class="text-2xl font-bold">Randevu Talebiniz Kaydedildi</h2>
-                <p class="mt-3 text-base leading-relaxed">Talebiniz Firestore sistemimize başarıyla kaydedildi. Kesin randevu onayı ayrıca bildirilecektir.</p>
+                <p class="mt-3 text-base leading-relaxed">Talebiniz başarıyla kaydedildi. Kesin randevu onayı ayrıca bildirilecektir.</p>
                 <div class="mx-auto mt-5 max-w-md rounded-xl border border-emerald-200 bg-white p-4 text-left">
                   <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Referans Numarası</div>
                   <div class="mt-1 break-all font-mono text-sm font-black text-slate-900">{{ bookingReference() }}</div>

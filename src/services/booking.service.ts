@@ -1,18 +1,6 @@
 import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { Injectable, inject, signal } from "@angular/core";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  serverTimestamp,
-  setDoc,
-  Timestamp,
-  Unsubscribe,
-  updateDoc,
-} from "firebase/firestore";
 import { firstValueFrom } from "rxjs";
-import { db } from "../firebase";
 import {
   BookingNotificationEvent,
   BookingRecord,
@@ -21,14 +9,30 @@ import {
   NotificationDeliveryReport,
   PaymentStatus,
 } from "../models/booking.model";
+import { AuthService } from "./auth.service";
+
+interface BookingApiResponse {
+  ok: boolean;
+  booking?: ApiBooking;
+  bookings?: ApiBooking[];
+  notification?: NotificationDeliveryReport;
+  code?: string;
+  message?: string;
+}
+
+interface ApiBooking extends Omit<BookingRecord, "createdAt" | "updatedAt"> {
+  createdAt: string;
+  updatedAt: string;
+}
 
 @Injectable({ providedIn: "root" })
 export class BookingService {
   private readonly http = inject(HttpClient);
+  private readonly authService = inject(AuthService);
   private readonly bookings = signal<BookingRecord[]>([]);
   private readonly adminError = signal<string | null>(null);
   private readonly adminLoaded = signal(false);
-  private adminUnsubscribe: Unsubscribe | null = null;
+  private adminRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
   readonly records = this.bookings.asReadonly();
   readonly lastAdminError = this.adminError.asReadonly();
@@ -36,61 +40,32 @@ export class BookingService {
 
   async create(input: CreateBookingInput): Promise<BookingRecord> {
     const normalized = this.normalizeInput(input);
-    const id = `RES-${Date.now()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-    const now = new Date();
-    const record: BookingRecord = {
+    const response = await this.request<BookingApiResponse>("POST", {
       ...normalized,
-      source: "WEB",
-      externalPaymentReference: undefined,
-      id,
-      status: "PENDING",
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    await setDoc(doc(db, "bookings", id), this.serializeForCreate(record));
-
-    const notification = await this.dispatchNotification(
-      id,
-      "booking_created",
-    );
-    const enriched: BookingRecord = { ...record, notification };
-    this.upsertLocal(enriched);
-    return enriched;
+      idempotencyKey: crypto.randomUUID(),
+    });
+    if (!response.ok || !response.booking) {
+      throw new Error(response.code || "BOOKING_CREATE_FAILED");
+    }
+    const record = this.fromApi(response.booking);
+    if (response.notification) record.notification = response.notification;
+    this.upsertLocal(record);
+    return record;
   }
 
   startAdminListener(): void {
-    if (this.adminUnsubscribe) return;
+    if (this.adminRefreshTimer) return;
     this.adminError.set(null);
     this.adminLoaded.set(false);
-
-    this.adminUnsubscribe = onSnapshot(
-      collection(db, "bookings"),
-      (snapshot) => {
-        const records = snapshot.docs
-          .map((snapshotDoc) =>
-            this.fromFirestore(snapshotDoc.id, snapshotDoc.data()),
-          )
-          .sort(
-            (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-          );
-        this.bookings.set(records);
-        this.adminError.set(null);
-        this.adminLoaded.set(true);
-      },
-      (error) => {
-        console.error("Booking admin listener failed.", error);
-        this.adminError.set(
-          "Rezervasyon kayıtları Firestore üzerinden okunamadı. Yönetici yetkisi ve Firestore kurallarını kontrol edin.",
-        );
-        this.adminLoaded.set(true);
-      },
-    );
+    void this.refreshAdminRecords();
+    this.adminRefreshTimer = setInterval(() => {
+      void this.refreshAdminRecords(false);
+    }, 30_000);
   }
 
   stopAdminListener(): void {
-    this.adminUnsubscribe?.();
-    this.adminUnsubscribe = null;
+    if (this.adminRefreshTimer) clearInterval(this.adminRefreshTimer);
+    this.adminRefreshTimer = null;
   }
 
   async updateStatus(
@@ -98,33 +73,26 @@ export class BookingService {
     status: BookingStatus,
   ): Promise<NotificationDeliveryReport> {
     const existing = this.bookings().find((record) => record.id === id);
-    if (!existing) throw new Error("BOOKING_NOT_FOUND");
-    if (existing.status === status) {
+    if (existing?.status === status) {
       return this.duplicateReport(id, this.eventForStatus(status));
     }
 
-    await updateDoc(doc(db, "bookings", id), {
-      status,
-      updatedAt: serverTimestamp(),
-    });
-
-    const updatedAt = new Date();
-    this.bookings.update((records) =>
-      records.map((record) =>
-        record.id === id ? { ...record, status, updatedAt } : record,
-      ),
-    );
-
-    const notification = await this.dispatchNotification(
+    const response = await this.request<BookingApiResponse>("PATCH", {
       id,
-      this.eventForStatus(status),
+      operation: "status",
+      status,
+    });
+    if (!response.ok || !response.booking) {
+      throw new Error(response.code || "BOOKING_STATUS_UPDATE_FAILED");
+    }
+
+    const record = this.fromApi(response.booking);
+    if (response.notification) record.notification = response.notification;
+    this.upsertLocal(record);
+    return (
+      response.notification ||
+      this.duplicateReport(id, this.eventForStatus(status))
     );
-    this.bookings.update((records) =>
-      records.map((record) =>
-        record.id === id ? { ...record, notification } : record,
-      ),
-    );
-    return notification;
   }
 
   async updatePayment(input: {
@@ -132,145 +100,100 @@ export class BookingService {
     paymentStatus: PaymentStatus;
     externalPaymentReference?: string;
   }): Promise<void> {
-    const externalPaymentReference =
-      input.externalPaymentReference?.trim().slice(0, 200) || "";
-    await updateDoc(doc(db, "bookings", input.id), {
+    const response = await this.request<BookingApiResponse>("PATCH", {
+      id: input.id,
+      operation: "payment",
       paymentStatus: input.paymentStatus,
-      externalPaymentReference,
-      updatedAt: serverTimestamp(),
+      externalPaymentReference:
+        input.externalPaymentReference?.trim().slice(0, 200) || "",
     });
-    this.bookings.update((records) =>
-      records.map((record) =>
-        record.id === input.id
-          ? {
-              ...record,
-              paymentStatus: input.paymentStatus,
-              externalPaymentReference,
-              updatedAt: new Date(),
-            }
-          : record,
-      ),
-    );
+    if (!response.ok || !response.booking) {
+      throw new Error(response.code || "BOOKING_PAYMENT_UPDATE_FAILED");
+    }
+    this.upsertLocal(this.fromApi(response.booking));
   }
 
   async delete(id: string): Promise<void> {
-    await deleteDoc(doc(db, "bookings", id));
+    const response = await this.request<BookingApiResponse>("DELETE", { id });
+    if (!response.ok) {
+      throw new Error(response.code || "BOOKING_DELETE_FAILED");
+    }
     this.bookings.update((records) =>
       records.filter((record) => record.id !== id),
     );
   }
 
-  private serializeForCreate(record: BookingRecord): Record<string, unknown> {
-    return {
-      schemaVersion: 3,
-      type: record.type,
-      itemId: record.itemId === undefined ? "" : String(record.itemId),
-      itemName: record.itemName,
-      image: record.image ?? "",
-      customerName: record.customerName,
-      customerEmail: record.customerEmail ?? "",
-      customerPhone: record.customerPhone,
-      basePrice: record.basePrice ?? 0,
-      totalPrice: record.totalPrice ?? 0,
-      currency: record.currency ?? "TRY",
-      personCount: record.personCount ?? 0,
-      startDate: record.startDate ?? "",
-      endDate: record.endDate ?? "",
-      days: record.days ?? 0,
-      withDriver: record.withDriver ?? false,
-      pickupLocation: record.pickupLocation ?? "",
-      dropoffLocation: record.dropoffLocation ?? "",
-      rentalDuration: record.rentalDuration ?? "",
-      notes: record.notes ?? "",
-      paymentMethod: record.paymentMethod ?? "NONE",
-      paymentStatus: record.paymentStatus ?? "NOT_REQUIRED",
-      externalPaymentReference: "",
-      source: "WEB",
-      status: "PENDING",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-  }
-
-  private fromFirestore(
-    id: string,
-    data: Record<string, unknown>,
-  ): BookingRecord {
-    const status = this.bookingStatus(data["status"]);
-    const type = this.bookingType(data["type"]);
-    const createdAt = this.asDate(data["createdAt"]);
-    const updatedAt = this.asDate(data["updatedAt"], createdAt);
-
-    return {
-      id,
-      type,
-      itemId: this.optionalString(data["itemId"] || data["carId"]),
-      itemName:
-        this.optionalString(data["itemName"]) ||
-        this.optionalString(data["carName"]) ||
-        "İsimsiz Talep",
-      image: this.optionalString(data["image"]),
-      customerName:
-        this.optionalString(data["customerName"]) || "İsimsiz Müşteri",
-      customerEmail: this.optionalString(data["customerEmail"]),
-      customerPhone: this.optionalString(data["customerPhone"]) || "",
-      basePrice: this.optionalNumber(data["basePrice"]),
-      totalPrice: this.optionalNumber(data["totalPrice"]),
-      currency: this.currency(data["currency"]),
-      personCount: this.optionalNumber(data["personCount"]),
-      startDate: this.optionalString(data["startDate"]),
-      endDate: this.optionalString(data["endDate"]),
-      days: this.optionalNumber(data["days"]),
-      withDriver: Boolean(data["withDriver"]),
-      pickupLocation: this.optionalString(data["pickupLocation"]),
-      dropoffLocation: this.optionalString(data["dropoffLocation"]),
-      rentalDuration: this.optionalString(data["rentalDuration"]),
-      notes: this.optionalString(data["notes"]),
-      paymentMethod: this.paymentMethod(data["paymentMethod"]),
-      paymentStatus: this.paymentStatus(data["paymentStatus"]),
-      externalPaymentReference: this.optionalString(
-        data["externalPaymentReference"],
-      ),
-      source: this.source(data["source"]),
-      status,
-      createdAt,
-      updatedAt,
-    };
-  }
-
-  private async dispatchNotification(
-    bookingId: string,
-    event: BookingNotificationEvent,
-  ): Promise<NotificationDeliveryReport> {
+  private async refreshAdminRecords(showLoading = true): Promise<void> {
+    if (showLoading) this.adminLoaded.set(false);
     try {
+      const response = await this.request<BookingApiResponse>("GET");
+      if (!response.ok || !response.bookings) {
+        throw new Error(response.code || "BOOKING_LIST_FAILED");
+      }
+      const records = response.bookings
+        .map((record) => this.fromApi(record))
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      this.bookings.set(records);
+      this.adminError.set(null);
+    } catch (error) {
+      console.error("Booking data source is unavailable.", error);
+      this.adminError.set(
+        "Rezervasyon veri kaynağına ulaşılamadı. Oturumunuzu ve bağlantınızı kontrol edip tekrar deneyin.",
+      );
+    } finally {
+      this.adminLoaded.set(true);
+    }
+  }
+
+  private async request<T>(
+    method: "GET" | "POST" | "PATCH" | "DELETE",
+    body?: unknown,
+  ): Promise<T> {
+    try {
+      if (method === "POST") {
+        return await firstValueFrom(
+          this.http.post<T>("/api/bookings", body),
+        );
+      }
+
+      const accessToken = await this.authService.getAccessToken();
+      if (!accessToken) throw new Error("ADMIN_SESSION_REQUIRED");
+      const headers = { Authorization: `Bearer ${accessToken}` };
+      if (method === "GET") {
+        return await firstValueFrom(
+          this.http.get<T>("/api/bookings", { headers }),
+        );
+      }
       return await firstValueFrom(
-        this.http.post<NotificationDeliveryReport>(
-          "/api/notifications/booking",
-          { bookingId, event },
-        ),
+        this.http.request<T>(method, "/api/bookings", { body, headers }),
       );
     } catch (error) {
-      const code =
+      if (error instanceof Error && error.message === "ADMIN_SESSION_REQUIRED") {
+        throw error;
+      }
+      if (
         error instanceof HttpErrorResponse &&
         error.error &&
-        typeof error.error === "object" &&
-        "code" in error.error
-          ? String((error.error as { code?: unknown }).code || "")
-          : "NOTIFICATION_REQUEST_FAILED";
-      console.warn("Booking saved, but notification dispatch did not complete.", {
-        bookingId,
-        event,
-        code,
-      });
-      return {
-        ok: false,
-        event,
-        bookingId,
-        email: { state: "failed", reason: code },
-        sms: { state: "failed", reason: code },
-        adminEmail: { state: "failed", reason: code },
-      };
+        typeof error.error === "object"
+      ) {
+        const payload = error.error as {
+          code?: unknown;
+          message?: unknown;
+        };
+        const code = String(payload.code || "BOOKING_BACKEND_UNAVAILABLE");
+        const message = String(payload.message || code);
+        throw new Error(`${code}:${message}`);
+      }
+      throw error;
     }
+  }
+
+  private fromApi(record: ApiBooking): BookingRecord {
+    return {
+      ...record,
+      createdAt: this.asDate(record.createdAt),
+      updatedAt: this.asDate(record.updatedAt),
+    };
   }
 
   private normalizeInput(input: CreateBookingInput): CreateBookingInput {
@@ -367,82 +290,12 @@ export class BookingService {
   }
 
   private asDate(value: unknown, fallback = new Date(0)): Date {
-    if (value instanceof Timestamp) return value.toDate();
     if (value instanceof Date) return value;
     if (typeof value === "string" || typeof value === "number") {
       const date = new Date(value);
       if (!Number.isNaN(date.getTime())) return date;
     }
-    if (
-      value &&
-      typeof value === "object" &&
-      "toDate" in value &&
-      typeof (value as { toDate?: unknown }).toDate === "function"
-    ) {
-      try {
-        return (value as { toDate: () => Date }).toDate();
-      } catch {
-        return fallback;
-      }
-    }
     return fallback;
-  }
-
-  private optionalString(value: unknown): string | undefined {
-    return typeof value === "string" && value.trim()
-      ? value.trim()
-      : undefined;
-  }
-
-  private optionalNumber(value: unknown): number | undefined {
-    const numberValue = typeof value === "number" ? value : Number(value);
-    return Number.isFinite(numberValue) ? numberValue : undefined;
-  }
-
-  private bookingType(value: unknown): BookingRecord["type"] {
-    return ["RENTAL", "TOUR", "SALE_INQUIRY", "APPOINTMENT"].includes(
-      String(value),
-    )
-      ? (value as BookingRecord["type"])
-      : "APPOINTMENT";
-  }
-
-  private bookingStatus(value: unknown): BookingStatus {
-    return [
-      "PENDING",
-      "APPROVED",
-      "REJECTED",
-      "COMPLETED",
-      "CANCELLED",
-    ].includes(String(value))
-      ? (value as BookingStatus)
-      : "PENDING";
-  }
-
-  private currency(value: unknown): BookingRecord["currency"] {
-    return ["TRY", "EUR", "USD", "CHF"].includes(String(value))
-      ? (value as BookingRecord["currency"])
-      : "TRY";
-  }
-
-  private paymentMethod(value: unknown): BookingRecord["paymentMethod"] {
-    return ["NONE", "CARD", "EFT", "OFFICE"].includes(String(value))
-      ? (value as BookingRecord["paymentMethod"])
-      : "NONE";
-  }
-
-  private paymentStatus(value: unknown): PaymentStatus {
-    return ["NOT_REQUIRED", "PENDING", "PAID", "FAILED", "REFUNDED"].includes(
-      String(value),
-    )
-      ? (value as PaymentStatus)
-      : "NOT_REQUIRED";
-  }
-
-  private source(value: unknown): BookingRecord["source"] {
-    return ["WEB", "ADMIN", "PHONE"].includes(String(value))
-      ? (value as BookingRecord["source"])
-      : "WEB";
   }
 
   private optionalAmount(value: number | undefined): number | undefined {
@@ -460,22 +313,18 @@ export class BookingService {
   ): number | undefined {
     if (value === undefined) return undefined;
     if (!Number.isInteger(value) || value < min || value > max) {
-      throw new Error("Sayısal alan izin verilen aralığın dışında.");
+      throw new Error("Sayısal alan geçerli değil.");
     }
     return value;
   }
 
   private requiredText(
-    value: string,
+    value: string | undefined,
     field: string,
-    maxLength: number,
+    max: number,
   ): string {
-    const normalized = value?.trim();
-    if (!normalized || normalized.length > maxLength) {
-      throw new Error(
-        `${field} alanı zorunludur veya izin verilen uzunluğu aşıyor.`,
-      );
-    }
-    return normalized;
+    const result = value?.trim().slice(0, max) || "";
+    if (!result) throw new Error(`${field} alanı zorunludur.`);
+    return result;
   }
 }

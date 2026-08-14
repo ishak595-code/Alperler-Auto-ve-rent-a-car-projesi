@@ -20,6 +20,7 @@ export interface SiteConfig {
   email: string;
   address: string;
   whatsapp: string;
+  whatsappUsername?: string;
   whatsappMessage?: string;
   instagramUrl: string;
   twitterUrl: string;

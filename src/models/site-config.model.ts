@@ -10,17 +10,17 @@ export interface SiteConfig {
   logoUrl: string;
   logoWidthDesktop?: number;
   logoWidthMobile?: number;
-  adminProfileUrl?: string; // Appears in the top right / layout
+  adminProfileUrl?: string;
 
-  adminEmails?: string[]; // Allowed admin emails
+  adminEmails?: string[];
 
   companyName: string;
   tagline?: string;
   phone: string;
   email: string;
   address: string;
-  whatsapp: string; // Just the number
-  whatsappMessage?: string; // Pre-filled message
+  whatsapp: string;
+  whatsappMessage?: string;
   instagramUrl: string;
   twitterUrl: string;
   facebookUrl: string;
@@ -36,9 +36,9 @@ export interface SiteConfig {
   seoOgDescription?: string;
   seoOgImage?: string;
   seoTwitterHandle?: string;
-  googleAnalyticsId?: string; // e.g. G-XXXXXXX
-  googleAdsId?: string; // e.g. AW-XXXXXXX
-  metaPixelId?: string; // e.g. 123456789012345
+  googleAnalyticsId?: string;
+  googleAdsId?: string;
+  metaPixelId?: string;
 
   // About Section
   aboutTitle: string;
@@ -56,6 +56,27 @@ export interface SiteConfig {
 
   // Theme
   theme: "light" | "dark" | "luxury" | "corporate";
+
+  // Legacy compatibility fields. New home editing uses homeContent below.
+  heroTitle?: string;
+  heroSubtitle?: string;
+  campaignEarlyBooking?: string;
+  campaignRoadside?: string;
+  campaignFreeDelivery?: string;
+  whyUsTitle?: string;
+  whyUsSubtitle?: string;
+  whyUsTrustTitle?: string;
+  whyUsTrustDesc?: string;
+  whyUsSupportTitle?: string;
+  whyUsSupportDesc?: string;
+  whyUsComfortTitle?: string;
+  whyUsComfortDesc?: string;
+  salesTitle?: string;
+  salesDesc?: string;
+  salesCta?: string;
+  partnerTitle?: string;
+  partnerSubtitle?: string;
+  partnerRequirementYear?: string;
 
   // Home Content Editor
   homeContent?: {

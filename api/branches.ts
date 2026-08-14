@@ -89,34 +89,47 @@ function toApi(row: any) {
   };
 }
 
+function bearer(request: Request): string | null {
+  const value = request.headers.get("authorization") || "";
+  return /^Bearer\s+\S+/i.test(value) ? value : null;
+}
+
 export default {
   async fetch(request: Request): Promise<Response> {
     const method = request.method.toUpperCase();
+    const requestUrl = new URL(request.url);
+
     if (method === "GET") {
+      const includeInactive = requestUrl.searchParams.get("includeInactive") === "1";
+      const authorization = bearer(request);
+      if (includeInactive && !authorization) {
+        return Response.json({ ok: false, code: "UNAUTHORIZED" }, { status: 401, headers: { "cache-control": "no-store" } });
+      }
+      const filter = includeInactive ? "" : "is_active=eq.true&";
       const response = await fetch(
-        `${SUPABASE_PROJECT_URL}/rest/v1/branches?is_active=eq.true&select=*&order=sort_order.asc,name.asc`,
+        `${SUPABASE_PROJECT_URL}/rest/v1/branches?${filter}select=*&order=sort_order.asc,name.asc`,
         {
-          headers: supabaseRestHeaders(),
+          headers: supabaseRestHeaders(includeInactive ? authorization! : undefined),
           signal: AbortSignal.timeout(8_000),
         },
       ).catch(() => null);
       if (!response?.ok) {
-        return Response.json({ ok: false, code: "BRANCH_SOURCE_UNAVAILABLE", branches: [] }, { status: 503, headers: { "cache-control": "no-store" } });
+        return Response.json({ ok: false, code: "BRANCH_SOURCE_UNAVAILABLE", branches: [] }, { status: response?.status || 503, headers: { "cache-control": "no-store" } });
       }
       const rows = await response.json();
       return Response.json(
         { ok: true, branches: Array.isArray(rows) ? rows.map(toApi) : [] },
         {
           headers: {
-            "cache-control": "public, max-age=60, s-maxage=300, stale-while-revalidate=86400",
+            "cache-control": includeInactive ? "no-store" : "public, max-age=60, s-maxage=300, stale-while-revalidate=86400",
             "content-type": "application/json; charset=utf-8",
           },
         },
       );
     }
 
-    const authorization = request.headers.get("authorization");
-    if (!authorization?.startsWith("Bearer ")) {
+    const authorization = bearer(request);
+    if (!authorization) {
       return Response.json({ ok: false, code: "UNAUTHORIZED" }, { status: 401 });
     }
 

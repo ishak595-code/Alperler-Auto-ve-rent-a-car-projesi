@@ -71,6 +71,20 @@ export class CampaignService {
     return Math.max(0, end - at);
   }
 
+  hasRealDiscount(campaign: Pick<CampaignRecord, "oldPrice" | "newPrice">): boolean {
+    return typeof campaign.oldPrice === "number" && typeof campaign.newPrice === "number" && campaign.oldPrice > campaign.newPrice && campaign.newPrice >= 0;
+  }
+
+  discountPercentOf(campaign: Pick<CampaignRecord, "oldPrice" | "newPrice">): number | undefined {
+    if (!this.hasRealDiscount(campaign)) return undefined;
+    return Math.max(1, Math.min(99, Math.round(((campaign.oldPrice! - campaign.newPrice!) / campaign.oldPrice!) * 100)));
+  }
+
+  savingsAmountOf(campaign: Pick<CampaignRecord, "oldPrice" | "newPrice">): number | undefined {
+    if (!this.hasRealDiscount(campaign)) return undefined;
+    return Math.max(0, campaign.oldPrice! - campaign.newPrice!);
+  }
+
   async refreshAdmin(): Promise<void> {
     const token = await this.requiredToken();
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=*&order=sort_order.asc,created_at.desc`, {
@@ -89,6 +103,12 @@ export class CampaignService {
     if (input.endsAt && Number.isNaN(endMs)) throw new Error("Geçerli bir kampanya bitiş tarihi girin.");
     if (input.startsAt && input.endsAt && endMs <= startMs) throw new Error("Kampanya bitiş tarihi başlangıç tarihinden sonra olmalıdır.");
 
+    const oldPrice = input.oldPrice == null ? undefined : Number(input.oldPrice);
+    const newPrice = input.newPrice == null ? undefined : Number(input.newPrice);
+    if (oldPrice != null && (!Number.isFinite(oldPrice) || oldPrice < 0)) throw new Error("Eski fiyat geçerli bir tutar olmalıdır.");
+    if (newPrice != null && (!Number.isFinite(newPrice) || newPrice < 0)) throw new Error("Kampanya fiyatı geçerli bir tutar olmalıdır.");
+    const computedDiscount = this.discountPercentOf({ oldPrice, newPrice });
+
     const body = {
       title: input.title.trim(),
       slug: (input.slug || this.slugify(input.title)).trim(),
@@ -97,9 +117,9 @@ export class CampaignService {
       badge: input.badge?.trim() || null,
       campaign_type: input.campaignType,
       cover_image: input.coverImage?.trim() || null,
-      old_price: input.oldPrice ?? null,
-      new_price: input.newPrice ?? null,
-      discount_percent: input.discountPercent ?? null,
+      old_price: oldPrice ?? null,
+      new_price: newPrice ?? null,
+      discount_percent: computedDiscount ?? null,
       target_type: input.targetType || null,
       target_id: input.targetId || null,
       cta_label: input.ctaLabel.trim() || "Detayları Gör",
@@ -169,9 +189,10 @@ export class CampaignService {
     const currentRows = (await currentResponse.json()) as Array<{ value?: Record<string, unknown> }>;
     const current = currentRows[0]?.value && typeof currentRows[0].value === "object" ? currentRows[0].value : {};
     const currentHome = current["homeContent"] && typeof current["homeContent"] === "object" ? current["homeContent"] as Record<string, unknown> : {};
+    const realDiscount = primary ? this.discountPercentOf(primary) : undefined;
 
     const banner = primary ? {
-      campaignBannerBadge: primary.badge || (primary.discountPercent != null ? `%${primary.discountPercent} İNDİRİM` : "KAMPANYA"),
+      campaignBannerBadge: primary.badge || (realDiscount != null ? `%${realDiscount} İNDİRİM` : "KAMPANYA"),
       campaignBannerTitle: primary.title,
       campaignBannerSubtitle: primary.shortDescription || primary.description || "",
       campaignBannerButtonText: primary.ctaLabel || "Kampanyayı İncele",
@@ -190,13 +211,7 @@ export class CampaignService {
       campaignId: null,
     };
 
-    const value = {
-      ...current,
-      homeContent: {
-        ...currentHome,
-        ...banner,
-      },
-    };
+    const value = { ...current, homeContent: { ...currentHome, ...banner } };
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/site_config?on_conflict=key`, {
       method: "POST",
       headers: { ...this.authHeaders(token), Prefer: "resolution=merge-duplicates,return=minimal" },
@@ -206,6 +221,9 @@ export class CampaignService {
   }
 
   private fromRow(row: any): CampaignRecord {
+    const oldPrice = row.old_price == null ? undefined : Number(row.old_price);
+    const newPrice = row.new_price == null ? undefined : Number(row.new_price);
+    const computedDiscount = this.discountPercentOf({ oldPrice, newPrice });
     return {
       id: String(row.id),
       title: String(row.title || ""),
@@ -215,9 +233,9 @@ export class CampaignService {
       badge: row.badge || undefined,
       campaignType: row.campaign_type || "CUSTOM",
       coverImage: row.cover_image || undefined,
-      oldPrice: row.old_price == null ? undefined : Number(row.old_price),
-      newPrice: row.new_price == null ? undefined : Number(row.new_price),
-      discountPercent: row.discount_percent == null ? undefined : Number(row.discount_percent),
+      oldPrice,
+      newPrice,
+      discountPercent: computedDiscount,
       targetType: row.target_type || undefined,
       targetId: row.target_id || undefined,
       ctaLabel: String(row.cta_label || "Detayları Gör"),

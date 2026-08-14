@@ -9,8 +9,7 @@ import { BlogListComponent } from './pages/blog-list.component';
 import { FaqComponent } from './pages/faq.component';
 import { LegalComponent } from './pages/legal.component';
 import { MainLayoutComponent } from './components/main-layout.component';
-import { CarDetailComponent } from './pages/car-detail.component';
-import { SaleCarDetailComponent } from './pages/sale-car-detail.component';
+import { RentalDetailShellComponent, SaleDetailShellComponent, TourDetailShellComponent } from './pages/catalog-detail-shells.component';
 
 // Admin Pages
 import { AdminLayoutComponent } from './pages/admin/admin-layout.component';
@@ -40,11 +39,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/admin/admin-login.component').then(m => m.AdminLoginComponent)
   },
   { path: 'fleet', component: FleetComponent },
-  { path: 'fleet/:id', component: CarDetailComponent },
+  { path: 'fleet/:id', component: RentalDetailShellComponent },
   { path: 'sales', loadComponent: () => import('./pages/sales-results.component').then(m => m.SalesResultsComponent) },
-  { path: 'sales/:id', component: SaleCarDetailComponent },
+  { path: 'sales/:id', component: SaleDetailShellComponent },
   { path: 'tours', loadComponent: () => import('./pages/tours.component').then(m => m.ToursComponent) },
-  { path: 'tour/:id', loadComponent: () => import('./pages/tour-detail.component').then(m => m.TourDetailComponent) },
+  { path: 'tour/:id', component: TourDetailShellComponent },
   { path: 'branches', loadComponent: () => import('./pages/branches.component').then(m => m.BranchesComponent) },
   { path: 'blog', component: BlogListComponent },
   { path: 'blog/:id', component: BlogDetailComponent },

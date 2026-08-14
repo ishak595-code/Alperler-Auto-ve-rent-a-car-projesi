@@ -2,7 +2,7 @@ import { Routes, CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthService } from './services/auth.service';
 import { AdminAccessService, AdminArea } from './services/admin-access.service';
-import { HomeComponent } from './pages/home.component';
+import { HomeV39Component } from './pages/home-v39.component';
 import { FleetComponent } from './pages/fleet.component';
 import { AboutComponent } from './pages/about.component';
 import { BlogDetailComponent } from './pages/blog-detail.component';
@@ -71,7 +71,7 @@ export const routes: Routes = [
   {
     path: '',
     component: MainLayoutComponent,
-    children: [{ path: '', component: HomeComponent }]
+    children: [{ path: '', component: HomeV39Component }]
   },
   {
     path: 'admin',

@@ -175,6 +175,12 @@ async function updateAdmin(actor: { id: string; email: string }, input: Record<s
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   let requestedPrimaryBranch: string | null | undefined;
+  const hasPrimaryBranch = Object.prototype.hasOwnProperty.call(input, "primaryBranchId");
+  const fullUiUpdate =
+    Object.prototype.hasOwnProperty.call(input, "role") &&
+    Object.prototype.hasOwnProperty.call(input, "isActive") &&
+    Object.prototype.hasOwnProperty.call(input, "permissions");
+
   if (input["role"] !== undefined) {
     const role = clean(input["role"], 30).toLowerCase();
     if (!allowedRoles.has(role)) return json({ ok: false, code: "INVALID_ADMIN_ROLE" }, 400);
@@ -182,8 +188,8 @@ async function updateAdmin(actor: { id: string; email: string }, input: Record<s
   }
   if (input["displayName"] !== undefined) patch["display_name"] = clean(input["displayName"], 160) || null;
   if (input["isActive"] !== undefined) patch["is_active"] = input["isActive"] === true;
-  if (Object.prototype.hasOwnProperty.call(input, "primaryBranchId")) {
-    requestedPrimaryBranch = clean(input["primaryBranchId"], 80) || null;
+  if (hasPrimaryBranch || fullUiUpdate) {
+    requestedPrimaryBranch = hasPrimaryBranch ? clean(input["primaryBranchId"], 80) || null : null;
     patch["primary_branch_id"] = requestedPrimaryBranch;
   }
   if (input["permissions"] !== undefined && input["permissions"] && typeof input["permissions"] === "object") patch["permissions"] = input["permissions"];

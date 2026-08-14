@@ -1,4 +1,3 @@
-
 import { Routes, CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthService } from './services/auth.service';
@@ -23,20 +22,20 @@ import { AdminSettingsComponent } from './pages/admin/admin-settings.component';
 import { AdminPartnerRequestsComponent } from './pages/admin/admin-partner-requests.component';
 import { AdminToursComponent } from './pages/admin/admin-tours.component';
 import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
+import { AdminHomepageComponent } from './pages/admin/admin-homepage.component';
+import { AdminTeamComponent } from './pages/admin/admin-team.component';
 
 const adminGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
   const router = inject(Router);
   await auth.waitUntilReady();
-  if (auth.isLoggedIn()) {
-    return true;
-  }
+  if (auth.isLoggedIn()) return true;
   return router.parseUrl('/admin/login');
 };
 
 export const routes: Routes = [
-  { 
-    path: 'admin/login', 
+  {
+    path: 'admin/login',
     loadComponent: () => import('./pages/admin/admin-login.component').then(m => m.AdminLoginComponent)
   },
 
@@ -61,18 +60,18 @@ export const routes: Routes = [
   {
     path: '',
     component: MainLayoutComponent,
-    children: [
-      { path: '', component: HomeComponent }
-    ]
+    children: [{ path: '', component: HomeComponent }]
   },
-  
-  { 
-    path: 'admin', 
+
+  {
+    path: 'admin',
     component: AdminLayoutComponent,
     canActivate: [adminGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: AdminDashboardComponent },
+      { path: 'homepage', component: AdminHomepageComponent },
+      { path: 'team', component: AdminTeamComponent },
       { path: 'cars', component: AdminCarsComponent },
       { path: 'reservations', component: AdminReservationsComponent },
       { path: 'sales', component: AdminCarsComponent },
@@ -84,12 +83,12 @@ export const routes: Routes = [
       { path: 'settings', component: AdminSettingsComponent }
     ]
   },
-  
-  { 
-    path: '**', 
+
+  {
+    path: '**',
     component: MainLayoutComponent,
     children: [
-       { path: '', loadComponent: () => import('./pages/not-found.component').then(m => m.NotFoundComponent) }
+      { path: '', loadComponent: () => import('./pages/not-found.component').then(m => m.NotFoundComponent) }
     ]
   }
 ];

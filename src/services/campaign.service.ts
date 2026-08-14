@@ -2,6 +2,8 @@ import { Injectable, inject, signal } from "@angular/core";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { AuthService } from "./auth.service";
 
+export type CampaignIntent = "WEDDING" | "RENTAL" | "SALE" | "TOUR" | "GENERAL";
+
 export interface CampaignRecord {
   id: string;
   title: string;
@@ -33,18 +35,47 @@ export class CampaignService {
   private readonly _campaigns = signal<CampaignRecord[]>([]);
   readonly campaigns = this._campaigns.asReadonly();
 
-  async loadPublic(): Promise<CampaignRecord[]> {
+  async loadPublic(at = new Date()): Promise<CampaignRecord[]> {
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?is_active=eq.true&publication_status=eq.PUBLISHED&select=*&order=sort_order.asc,created_at.desc`, {
       headers: this.publicHeaders(),
+      cache: "no-store",
     });
     if (!response.ok) throw new Error(`CAMPAIGNS_PUBLIC_${response.status}`);
-    return ((await response.json()) as any[]).map((row) => this.fromRow(row));
+    const now = at.getTime();
+    return ((await response.json()) as any[])
+      .map((row) => this.fromRow(row))
+      .filter((campaign) => this.isLive(campaign, now))
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
+  isLive(campaign: CampaignRecord, at: number | Date = Date.now()): boolean {
+    const now = at instanceof Date ? at.getTime() : at;
+    if (!campaign.isActive || campaign.publicationStatus !== "PUBLISHED") return false;
+    const start = campaign.startsAt ? Date.parse(campaign.startsAt) : Number.NEGATIVE_INFINITY;
+    const end = campaign.endsAt ? Date.parse(campaign.endsAt) : Number.POSITIVE_INFINITY;
+    if (Number.isNaN(start) || Number.isNaN(end)) return false;
+    return start <= now && end > now;
+  }
+
+  intentOf(campaign: CampaignRecord): CampaignIntent {
+    const value = String(campaign.metadata?.["intent"] || "").toUpperCase();
+    if (value === "WEDDING" || value === "RENTAL" || value === "SALE" || value === "TOUR") return value;
+    if (campaign.targetType === "TOUR") return "TOUR";
+    return "GENERAL";
+  }
+
+  remainingMs(campaign: CampaignRecord, at = Date.now()): number | null {
+    if (!campaign.endsAt) return null;
+    const end = Date.parse(campaign.endsAt);
+    if (Number.isNaN(end)) return null;
+    return Math.max(0, end - at);
   }
 
   async refreshAdmin(): Promise<void> {
     const token = await this.requiredToken();
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=*&order=sort_order.asc,created_at.desc`, {
       headers: this.authHeaders(token),
+      cache: "no-store",
     });
     if (!response.ok) throw new Error(`CAMPAIGNS_ADMIN_${response.status}`);
     this._campaigns.set(((await response.json()) as any[]).map((row) => this.fromRow(row)));
@@ -52,6 +83,12 @@ export class CampaignService {
 
   async save(input: Partial<CampaignRecord> & Pick<CampaignRecord, "title" | "campaignType" | "ctaLabel" | "publicationStatus">): Promise<CampaignRecord> {
     const token = await this.requiredToken();
+    const startMs = input.startsAt ? Date.parse(input.startsAt) : Number.NaN;
+    const endMs = input.endsAt ? Date.parse(input.endsAt) : Number.NaN;
+    if (input.startsAt && Number.isNaN(startMs)) throw new Error("Geçerli bir kampanya başlangıç tarihi girin.");
+    if (input.endsAt && Number.isNaN(endMs)) throw new Error("Geçerli bir kampanya bitiş tarihi girin.");
+    if (input.startsAt && input.endsAt && endMs <= startMs) throw new Error("Kampanya bitiş tarihi başlangıç tarihinden sonra olmalıdır.");
+
     const body = {
       title: input.title.trim(),
       slug: (input.slug || this.slugify(input.title)).trim(),
@@ -120,33 +157,44 @@ export class CampaignService {
   }
 
   private async syncHomepageBanner(token: string): Promise<void> {
-    const now = Date.now();
     const primary = [...this._campaigns()]
-      .filter((item) => item.isActive && item.publicationStatus === "PUBLISHED")
-      .filter((item) => !item.startsAt || new Date(item.startsAt).getTime() <= now)
-      .filter((item) => !item.endsAt || new Date(item.endsAt).getTime() > now)
+      .filter((item) => this.isLive(item))
       .sort((a, b) => a.sortOrder - b.sortOrder)[0];
-    if (!primary) return;
 
     const currentResponse = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/site_config?key=eq.site_settings&select=value&limit=1`, {
       headers: this.authHeaders(token),
+      cache: "no-store",
     });
     if (!currentResponse.ok) throw new Error(`SITE_CONFIG_CAMPAIGN_READ_${currentResponse.status}`);
     const currentRows = (await currentResponse.json()) as Array<{ value?: Record<string, unknown> }>;
     const current = currentRows[0]?.value && typeof currentRows[0].value === "object" ? currentRows[0].value : {};
     const currentHome = current["homeContent"] && typeof current["homeContent"] === "object" ? current["homeContent"] as Record<string, unknown> : {};
+
+    const banner = primary ? {
+      campaignBannerBadge: primary.badge || (primary.discountPercent != null ? `%${primary.discountPercent} İNDİRİM` : "KAMPANYA"),
+      campaignBannerTitle: primary.title,
+      campaignBannerSubtitle: primary.shortDescription || primary.description || "",
+      campaignBannerButtonText: primary.ctaLabel || "Kampanyayı İncele",
+      campaignBannerImage: primary.coverImage || "",
+      campaignBannerUrl: primary.ctaUrl || "",
+      campaignBannerWhatsappMessage: primary.whatsappMessage || "",
+      campaignId: primary.id,
+    } : {
+      campaignBannerBadge: "",
+      campaignBannerTitle: "",
+      campaignBannerSubtitle: "",
+      campaignBannerButtonText: "",
+      campaignBannerImage: "",
+      campaignBannerUrl: "",
+      campaignBannerWhatsappMessage: "",
+      campaignId: null,
+    };
+
     const value = {
       ...current,
       homeContent: {
         ...currentHome,
-        campaignBannerBadge: primary.badge || (primary.discountPercent != null ? `%${primary.discountPercent} İNDİRİM` : "KAMPANYA"),
-        campaignBannerTitle: primary.title,
-        campaignBannerSubtitle: primary.shortDescription || primary.description || "",
-        campaignBannerButtonText: primary.ctaLabel || "Kampanyayı İncele",
-        campaignBannerImage: primary.coverImage || "",
-        campaignBannerUrl: primary.ctaUrl || "",
-        campaignBannerWhatsappMessage: primary.whatsappMessage || "",
-        campaignId: primary.id,
+        ...banner,
       },
     };
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/site_config?on_conflict=key`, {

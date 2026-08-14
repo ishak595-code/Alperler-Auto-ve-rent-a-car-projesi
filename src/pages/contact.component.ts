@@ -9,9 +9,14 @@ import { CarService } from "../services/car.service";
 
 interface ContactResponse {
   ok: boolean;
-  status?: string;
+  stored?: boolean;
+  reference?: string;
   code?: string;
   message?: string;
+  delivery?: {
+    adminEmail?: { state?: string };
+    customerEmail?: { state?: string };
+  };
 }
 
 @Component({
@@ -37,41 +42,33 @@ interface ContactResponse {
           <div>
             <span class="text-xs font-black uppercase tracking-[.18em] text-blue-400">Bize Ulaşın</span>
             <h2 class="mt-2 font-serif text-3xl font-black text-white sm:text-4xl">Sorunuzu doğrudan ekibimize iletin</h2>
-            <p class="mt-3 max-w-xl leading-relaxed text-slate-400">Araç kiralama, satılık araçlar, tur, randevu veya diğer konular için bize yazın. Sistem yalnızca sunucu teslimatı doğrulandığında başarı mesajı gösterir.</p>
+            <p class="mt-3 max-w-xl leading-relaxed text-slate-400">Araç kiralama, satılık araçlar, tur, randevu veya diğer konular için bize yazın. Başarı ekranı yalnız mesaj kalıcı olarak kaydedildiğinde gösterilir.</p>
           </div>
 
           <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            <a [href]="'tel:' + config().phone" class="contact-card">
-              <mat-icon>call</mat-icon><span><strong>Telefon</strong><small>{{ config().phone }}</small></span>
-            </a>
-            <a [href]="'mailto:' + config().email" class="contact-card">
-              <mat-icon>mail</mat-icon><span><strong>E-posta</strong><small>{{ config().email }}</small></span>
-            </a>
-            <a [href]="whatsappUrl()" target="_blank" rel="noopener" class="contact-card">
-              <mat-icon>chat</mat-icon><span><strong>WhatsApp</strong><small>Hızlı bilgi ve destek</small></span>
-            </a>
-            <div class="contact-card">
-              <mat-icon>location_on</mat-icon><span><strong>Adres</strong><small>{{ config().address }}</small></span>
-            </div>
+            <a [href]="'tel:' + config().phone" class="contact-card"><mat-icon>call</mat-icon><span><strong>Telefon</strong><small>{{ config().phone }}</small></span></a>
+            <a [href]="'mailto:' + config().email" class="contact-card"><mat-icon>mail</mat-icon><span><strong>E-posta</strong><small>{{ config().email }}</small></span></a>
+            <a [href]="whatsappUrl()" target="_blank" rel="noopener" class="contact-card"><mat-icon>chat</mat-icon><span><strong>WhatsApp</strong><small>Hızlı bilgi ve destek</small></span></a>
+            <div class="contact-card"><mat-icon>location_on</mat-icon><span><strong>Adres</strong><small>{{ config().address }}</small></span></div>
           </div>
         </section>
 
         <section class="rounded-3xl bg-white p-5 text-slate-900 shadow-2xl sm:p-8">
           @if (sent()) {
-            <div role="status" class="flex min-h-[28rem] flex-col items-center justify-center text-center">
-              <div class="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                <mat-icon class="!h-9 !w-9 !text-[36px]">check_circle</mat-icon>
-              </div>
-              <h2 class="mt-5 text-2xl font-black">Mesajınız iletildi</h2>
-              <p class="mt-2 max-w-md text-sm leading-relaxed text-slate-600">Sunucu mesaj teslimatını doğruladı. Ekibimiz verdiğiniz iletişim bilgileri üzerinden sizinle bağlantı kuracaktır.</p>
+            <div role="status" aria-live="polite" class="flex min-h-[28rem] flex-col items-center justify-center text-center">
+              <div class="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><mat-icon class="!h-9 !w-9 !text-[36px]">check_circle</mat-icon></div>
+              <h2 class="mt-5 text-2xl font-black">Mesajınız kaydedildi</h2>
+              <p class="mt-2 max-w-md text-sm leading-relaxed text-slate-600">Mesajınız güvenli şekilde kayıt altına alındı. Ekibimiz gerekli olduğunda verdiğiniz iletişim bilgileri üzerinden sizinle bağlantı kuracaktır.</p>
+              @if (reference()) {
+                <div class="mt-5 rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-800">Referans: {{ reference() }}</div>
+              }
+              @if (!customerEmailSent()) {
+                <p class="mt-4 max-w-md text-xs leading-relaxed text-slate-500">Mesaj kaydınız tamamlandı. Otomatik e-posta sağlayıcısı henüz aktif değilse ayrıca e-posta gelmeyebilir.</p>
+              }
               <button type="button" (click)="reset()" class="mt-6 min-h-12 rounded-xl bg-slate-900 px-6 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Yeni Mesaj Gönder</button>
             </div>
           } @else {
-            <div class="mb-6">
-              <h2 class="text-2xl font-black">Mesaj Gönder</h2>
-              <p class="mt-1 text-sm text-slate-500">Zorunlu alanları eksiksiz doldurun.</p>
-            </div>
-
+            <div class="mb-6"><h2 class="text-2xl font-black">Mesaj Gönder</h2><p class="mt-1 text-sm text-slate-500">Zorunlu alanları eksiksiz doldurun.</p></div>
             <form (ngSubmit)="submit()" class="space-y-5" novalidate>
               <div class="grid gap-4 sm:grid-cols-2">
                 <label class="field"><span>Ad *</span><input autocomplete="given-name" [(ngModel)]="name" name="name" maxlength="80" required /></label>
@@ -81,22 +78,12 @@ interface ContactResponse {
                 <label class="field"><span>Telefon *</span><input type="tel" inputmode="tel" autocomplete="tel" [(ngModel)]="phone" name="phone" maxlength="40" required /></label>
                 <label class="field"><span>E-posta *</span><input type="email" inputmode="email" autocomplete="email" [(ngModel)]="email" name="email" maxlength="160" required /></label>
               </div>
-              <label class="field">
-                <span>Mesajınız *</span>
-                <textarea rows="6" [(ngModel)]="message" name="message" maxlength="4000" required placeholder="Size nasıl yardımcı olabiliriz?"></textarea>
-                <small class="mt-1 text-right text-xs text-slate-400">{{ message.length }}/4000</small>
-              </label>
-
+              <label class="field"><span>Mesajınız *</span><textarea rows="6" [(ngModel)]="message" name="message" maxlength="4000" required placeholder="Size nasıl yardımcı olabiliriz?"></textarea><small class="mt-1 text-right text-xs text-slate-400">{{ message.length }}/4000</small></label>
               @if (errorMessage()) {
                 <div role="alert" aria-live="assertive" class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800">{{ errorMessage() }}</div>
               }
-
               <button type="submit" [disabled]="submitting() || !isValid()" class="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 font-black text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-45 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-                @if (submitting()) {
-                  <mat-icon class="animate-spin">progress_activity</mat-icon>Gönderiliyor...
-                } @else {
-                  <mat-icon>send</mat-icon>Mesajı Gönder
-                }
+                @if (submitting()) { <mat-icon class="animate-spin">progress_activity</mat-icon>Gönderiliyor... } @else { <mat-icon>send</mat-icon>Mesajı Gönder }
               </button>
             </form>
           }
@@ -118,12 +105,15 @@ export class ContactComponent {
   readonly submitting = signal(false);
   readonly sent = signal(false);
   readonly errorMessage = signal("");
+  readonly reference = signal("");
+  readonly customerEmailSent = signal(false);
 
   name = "";
   surname = "";
   phone = "";
   email = "";
   message = "";
+  private submissionKey = crypto.randomUUID();
 
   whatsappUrl(): string {
     const raw = this.config().whatsapp || this.config().phone || "";
@@ -133,44 +123,29 @@ export class ContactComponent {
   }
 
   isValid(): boolean {
-    return Boolean(
-      this.name.trim().length >= 2 &&
-        this.surname.trim().length >= 2 &&
-        /^[+0-9()\s-]{7,24}$/.test(this.phone.trim()) &&
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email.trim()) &&
-        this.message.trim().length >= 2,
-    );
+    return Boolean(this.name.trim().length >= 2 && this.surname.trim().length >= 2 && /^[+0-9()\s-]{7,24}$/.test(this.phone.trim()) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email.trim()) && this.message.trim().length >= 2);
   }
 
   async submit(): Promise<void> {
     if (!this.isValid() || this.submitting()) return;
     this.errorMessage.set("");
     this.submitting.set(true);
-
     try {
       const response = await firstValueFrom(
         this.http.post<ContactResponse>("/api/contact", {
-          name: this.name.trim(),
-          surname: this.surname.trim(),
-          phone: this.phone.trim(),
-          email: this.email.trim(),
-          message: this.message.trim(),
+          name: this.name.trim(), surname: this.surname.trim(), phone: this.phone.trim(), email: this.email.trim(), message: this.message.trim(), idempotencyKey: this.submissionKey,
         }),
       );
-
-      if (!response.ok) throw new Error(response.code || "CONTACT_DELIVERY_FAILED");
+      if (!response.ok || !response.stored) throw new Error(response.code || "CONTACT_STORE_FAILED");
+      this.reference.set(response.reference || "");
+      this.customerEmailSent.set(response.delivery?.customerEmail?.state === "sent");
       this.sent.set(true);
     } catch (error) {
-      const code =
-        error instanceof HttpErrorResponse && error.error?.code
-          ? String(error.error.code)
-          : error instanceof Error
-            ? error.message
-            : "CONTACT_DELIVERY_FAILED";
+      const code = error instanceof HttpErrorResponse && error.error?.code ? String(error.error.code) : error instanceof Error ? error.message : "CONTACT_STORE_FAILED";
       this.errorMessage.set(
-        code === "CONTACT_DELIVERY_NOT_CONFIGURED"
-          ? "İletişim e-posta servisi henüz bağlanmamış. Lütfen telefon veya WhatsApp üzerinden bize ulaşın."
-          : "Mesaj sunucu tarafından doğrulanamadı. Lütfen tekrar deneyin veya telefon/WhatsApp kanalını kullanın.",
+        code === "RATE_LIMITED"
+          ? "Kısa sürede çok fazla mesaj gönderildi. Lütfen biraz sonra tekrar deneyin."
+          : "Mesaj kalıcı olarak kaydedilemedi. Lütfen tekrar deneyin veya telefon/WhatsApp kanalını kullanın.",
       );
     } finally {
       this.submitting.set(false);
@@ -178,13 +153,9 @@ export class ContactComponent {
   }
 
   reset(): void {
-    this.name = "";
-    this.surname = "";
-    this.phone = "";
-    this.email = "";
-    this.message = "";
-    this.errorMessage.set("");
-    this.sent.set(false);
+    this.name = ""; this.surname = ""; this.phone = ""; this.email = ""; this.message = "";
+    this.errorMessage.set(""); this.reference.set(""); this.customerEmailSent.set(false); this.sent.set(false);
+    this.submissionKey = crypto.randomUUID();
   }
 
   goBack(): void {

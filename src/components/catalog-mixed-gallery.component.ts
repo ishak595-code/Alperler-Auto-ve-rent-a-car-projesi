@@ -17,7 +17,7 @@ type GalleryItem = {
   standalone: true,
   imports: [CommonModule, MatIconModule],
   template: `
-    @if (items().length && inlineLauncher) {
+    @if (items().length && inlineLauncher && !hideLauncher) {
       <button type="button" (click)="open(0, $event)" class="group relative block h-full w-full overflow-hidden bg-slate-950 text-left focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-blue-500" [attr.aria-label]="fallbackAlt + ' galerisini tam ekran aç. ' + items().length + ' medya.'">
         @if (items()[0].type === 'VIDEO') {
           @if (items()[0].posterUrl) { <img [src]="items()[0].posterUrl" [alt]="items()[0].alt" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" /> }
@@ -28,7 +28,7 @@ type GalleryItem = {
         <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"></div>
         <span class="absolute bottom-4 right-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 bg-black/70 px-4 text-xs font-black text-white backdrop-blur"><mat-icon class="!h-5 !w-5 !text-[20px]">photo_library</mat-icon>{{ items().length }} Medya · Tam Ekran</span>
       </button>
-    } @else if (items().length) {
+    } @else if (items().length && !hideLauncher) {
       <button type="button" (click)="open(0, $event)" class="fixed bottom-24 right-4 z-40 flex min-h-12 items-center gap-2 rounded-full bg-slate-950 px-4 font-black text-white shadow-2xl ring-1 ring-white/20 hover:bg-slate-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500 lg:bottom-8 lg:right-8" [attr.aria-label]="items().length + ' fotoğraf ve videoyu aç'"><mat-icon>photo_library</mat-icon>Medya {{ items().length }}/30</button>
     }
 
@@ -72,6 +72,7 @@ export class CatalogMixedGalleryComponent implements OnChanges, OnDestroy {
   @Input() fallbackImages: string[] = [];
   @Input() fallbackAlt = "Galeri görseli";
   @Input() inlineLauncher = false;
+  @Input() hideLauncher = false;
 
   private readonly media = inject(CatalogMediaService);
   private readonly host = inject(ElementRef) as ElementRef<HTMLElement>;

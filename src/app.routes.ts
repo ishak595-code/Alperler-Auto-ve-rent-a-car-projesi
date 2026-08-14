@@ -24,6 +24,7 @@ import { AdminToursComponent } from './pages/admin/admin-tours.component';
 import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
 import { AdminHomepageComponent } from './pages/admin/admin-homepage.component';
 import { AdminTeamComponent } from './pages/admin/admin-team.component';
+import { AdminBranchesComponent } from './pages/admin/admin-branches.component';
 import { AdminCampaignsComponent } from './pages/admin/admin-campaigns.component';
 import { AdminCatalogEditorComponent } from './pages/admin/admin-catalog-editor.component';
 import { AdminWhatsappSettingsComponent } from './pages/admin/admin-whatsapp-settings.component';
@@ -47,10 +48,7 @@ const adminAreaGuard = (area: AdminArea): CanActivateFn => async () => {
 };
 
 export const routes: Routes = [
-  {
-    path: 'admin/login',
-    loadComponent: () => import('./pages/admin/admin-login.component').then(m => m.AdminLoginComponent)
-  },
+  { path: 'admin/login', loadComponent: () => import('./pages/admin/admin-login.component').then(m => m.AdminLoginComponent) },
   { path: 'fleet', component: FleetComponent },
   { path: 'fleet/:id', component: RentalDetailShellComponent },
   { path: 'sales', loadComponent: () => import('./pages/sales-results.component').then(m => m.SalesResultsComponent) },
@@ -68,11 +66,7 @@ export const routes: Routes = [
   { path: 'list-your-car', loadComponent: () => import('./pages/list-your-car.component').then(m => m.ListYourCarComponent) },
   { path: 'track-car/:id', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
   { path: 'track-car', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
-  {
-    path: '',
-    component: MainLayoutComponent,
-    children: [{ path: '', component: HomeV39Component }]
-  },
+  { path: '', component: MainLayoutComponent, children: [{ path: '', component: HomeV39Component }] },
   {
     path: 'admin',
     component: AdminLayoutComponent,
@@ -86,6 +80,7 @@ export const routes: Routes = [
       { path: 'catalog-editor', component: AdminCatalogEditorComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'whatsapp', component: AdminWhatsappSettingsComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'team', component: AdminTeamComponent, canActivate: [adminAreaGuard('team')] },
+      { path: 'branches', component: AdminBranchesComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'cars', component: AdminCarsComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'reservations', component: AdminReservationsComponent, canActivate: [adminAreaGuard('operations')] },
       { path: 'sales', component: AdminCarsComponent, canActivate: [adminAreaGuard('content')] },
@@ -97,11 +92,5 @@ export const routes: Routes = [
       { path: 'settings', component: AdminSettingsComponent, canActivate: [adminAreaGuard('settings')] }
     ]
   },
-  {
-    path: '**',
-    component: MainLayoutComponent,
-    children: [
-      { path: '', loadComponent: () => import('./pages/not-found.component').then(m => m.NotFoundComponent) }
-    ]
-  }
+  { path: '**', component: MainLayoutComponent, children: [{ path: '', loadComponent: () => import('./pages/not-found.component').then(m => m.NotFoundComponent) }] }
 ];

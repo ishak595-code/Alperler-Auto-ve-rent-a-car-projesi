@@ -14,8 +14,10 @@ interface BranchApiResponse {
 export class BranchService {
   private readonly carService = inject(CarService);
   private readonly authService = inject(AuthService);
-  private readonly remoteBranches = signal<Branch[]>([]);
-  private readonly remoteAvailable = signal(false);
+  private readonly publicRemoteBranches = signal<Branch[]>([]);
+  private readonly publicRemoteAvailable = signal(false);
+  private readonly adminRemoteBranches = signal<Branch[]>([]);
+  private readonly adminLoaded = signal(false);
   private readonly syncError = signal<string | null>(null);
   private readonly refreshMs = 5 * 60 * 1000;
 
@@ -39,12 +41,17 @@ export class BranchService {
     }];
   });
 
-  readonly allBranches = computed(() =>
-    (this.remoteAvailable() ? this.remoteBranches() : this.fallbackBranches())
+  readonly branches = computed(() =>
+    (this.publicRemoteAvailable() ? this.publicRemoteBranches() : this.fallbackBranches())
+      .filter((branch) => branch.isActive)
       .slice()
       .sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name, "tr")),
   );
-  readonly branches = computed(() => this.allBranches().filter((branch) => branch.isActive));
+  readonly managedBranches = computed(() =>
+    (this.adminLoaded() ? this.adminRemoteBranches() : [])
+      .slice()
+      .sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name, "tr")),
+  );
   readonly pickupPoints = computed(() => this.branches().filter((branch) => branch.isPickupPoint));
   readonly returnPoints = computed(() => this.branches().filter((branch) => branch.isReturnPoint));
   readonly cloudSyncError = this.syncError.asReadonly();
@@ -55,7 +62,7 @@ export class BranchService {
   }
 
   getById(id: string): Branch | undefined {
-    return this.allBranches().find((branch) => branch.id === id);
+    return this.branches().find((branch) => branch.id === id) || this.managedBranches().find((branch) => branch.id === id);
   }
 
   async save(branch: Branch): Promise<void> {
@@ -73,7 +80,7 @@ export class BranchService {
     });
     const payload = (await response.json().catch(() => ({}))) as BranchApiResponse;
     if (!response.ok || !payload.ok) throw new Error(payload.code || "Şube kaydedilemedi.");
-    await this.refreshAdmin();
+    await Promise.allSettled([this.refreshAdmin(), this.refreshPublic(false)]);
   }
 
   async remove(id: string): Promise<void> {
@@ -91,46 +98,50 @@ export class BranchService {
     });
     const payload = (await response.json().catch(() => ({}))) as BranchApiResponse;
     if (!response.ok || !payload.ok) throw new Error(payload.code || "Şube pasife alınamadı.");
-    await this.refreshAdmin();
+    await Promise.allSettled([this.refreshAdmin(), this.refreshPublic(false)]);
   }
 
   async refreshAdmin(): Promise<void> {
     const accessToken = await this.authService.getAccessToken();
     if (!accessToken) throw new Error("Yönetici oturumu gerekli.");
-    await this.refresh(`/api/branches?includeInactive=1`, accessToken, true);
+    try {
+      const records = await this.fetchBranches("/api/branches?includeInactive=1", accessToken);
+      this.adminRemoteBranches.set(records);
+      this.adminLoaded.set(true);
+      this.syncError.set(null);
+    } catch (error) {
+      this.adminLoaded.set(true);
+      this.syncError.set("Şube veri kaynağına şu anda ulaşılamıyor.");
+      throw error;
+    }
   }
 
   async refreshPublic(showError = true): Promise<void> {
     try {
-      await this.refresh("/api/branches", undefined, showError);
-    } catch {
+      const records = await this.fetchBranches("/api/branches");
+      this.publicRemoteBranches.set(records);
+      this.publicRemoteAvailable.set(records.length > 0);
+      this.syncError.set(null);
+    } catch (error) {
+      console.info("Branch source unavailable; verified fallback remains active.", error);
+      this.publicRemoteAvailable.set(false);
       if (showError) this.syncError.set("Şube veri kaynağına şu anda ulaşılamıyor.");
     }
   }
 
-  private async refresh(url: string, accessToken?: string, showError = true): Promise<void> {
-    try {
-      const response = await fetch(url, {
-        headers: {
-          accept: "application/json",
-          ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
-        },
-        cache: "no-store",
-      });
-      const payload = (await response.json().catch(() => ({}))) as BranchApiResponse;
-      if (!response.ok || !payload.ok || !Array.isArray(payload.branches)) {
-        throw new Error(payload.code || "BRANCH_SOURCE_UNAVAILABLE");
-      }
-      const records = payload.branches.map((branch) => this.normalize(branch)).filter((branch) => this.isUsable(branch));
-      this.remoteBranches.set(records);
-      this.remoteAvailable.set(records.length > 0);
-      this.syncError.set(null);
-    } catch (error) {
-      console.info("Branch source unavailable; verified fallback remains active.", error);
-      if (!accessToken) this.remoteAvailable.set(false);
-      if (showError) this.syncError.set("Şube veri kaynağına şu anda ulaşılamıyor.");
-      throw error;
+  private async fetchBranches(url: string, accessToken?: string): Promise<Branch[]> {
+    const response = await fetch(url, {
+      headers: {
+        accept: "application/json",
+        ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
+      },
+      cache: "no-store",
+    });
+    const payload = (await response.json().catch(() => ({}))) as BranchApiResponse;
+    if (!response.ok || !payload.ok || !Array.isArray(payload.branches)) {
+      throw new Error(payload.code || "BRANCH_SOURCE_UNAVAILABLE");
     }
+    return payload.branches.map((branch) => this.normalize(branch)).filter((branch) => this.isUsable(branch));
   }
 
   private normalize(branch: Branch): Branch {

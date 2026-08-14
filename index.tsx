@@ -9,7 +9,6 @@ import { provideLegacyWebhookSafety } from './src/providers/legacy-webhook-safet
 import { CarService } from './src/services/car.service';
 import { PersistentCarService } from './src/services/persistent-car.service';
 
-// AI Studio önizleme ekranında (iframe) sayfa yenilendiğinde her zaman ana sayfadan başlaması için:
 if (window.self !== window.top) {
   window.location.hash = '';
 }
@@ -28,4 +27,10 @@ bootstrapApplication(AppComponent, {
   ]
 }).catch(err => console.error(err));
 
-// AI Studio always uses an `index.tsx` file for all project types.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((error) => {
+      console.warn('PWA service worker registration failed', error);
+    });
+  }, { once: true });
+}

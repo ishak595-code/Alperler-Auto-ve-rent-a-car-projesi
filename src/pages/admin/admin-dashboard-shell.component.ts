@@ -38,6 +38,6 @@ export class AdminDashboardShellComponent {
     { route: "/admin/media", icon: "perm_media", label: "Fotoğraf & Video" },
     { route: "/admin/catalog-editor", icon: "tune", label: "Tam Katalog Editörü" },
     { route: "/admin/team", icon: "groups", label: "Ekip & Şubeler" },
-    { route: "/admin/settings", icon: "settings", label: "İletişim & WhatsApp" },
+    { route: "/admin/whatsapp", icon: "chat", label: "WhatsApp Ayarları" },
   ];
 }

@@ -89,17 +89,6 @@ function toApi(row: any) {
   };
 }
 
-async function upstream(path: string, init: RequestInit = {}) {
-  return fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      ...supabaseRestHeaders(init.headers instanceof Headers ? init.headers.get("authorization") : null),
-      ...(init.headers || {}),
-    },
-    signal: AbortSignal.timeout(10_000),
-  });
-}
-
 export default {
   async fetch(request: Request): Promise<Response> {
     const method = request.method.toUpperCase();

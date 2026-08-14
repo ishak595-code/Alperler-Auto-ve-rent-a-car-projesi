@@ -7,11 +7,12 @@ import {
   HomepagePlacement,
   HomepageSection,
 } from "../../services/admin-management.service";
+import { CampaignService } from "../../services/campaign.service";
 import { ToastService } from "../../services/toast.service";
 
 interface Candidate {
   id: string;
-  type: "VEHICLE" | "TOUR" | "BLOG";
+  type: "VEHICLE" | "TOUR" | "BLOG" | "CAMPAIGN";
   label: string;
   image?: string;
   meta?: string;
@@ -78,7 +79,7 @@ interface Candidate {
                   <div class="flex min-w-0 flex-1 gap-2 md:max-w-xl">
                     <select [ngModel]="candidateSelection()[section.sectionKey] || ''" (ngModelChange)="selectCandidate(section.sectionKey,$event)" class="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold">
                       <option value="">İçerik seç…</option>
-                      @for (candidate of candidatesFor(section); track candidate.id) {
+                      @for (candidate of candidatesFor(section); track candidate.type + candidate.id) {
                         <option [value]="candidate.type + ':' + candidate.id">{{ candidate.label }}</option>
                       }
                     </select>
@@ -119,6 +120,7 @@ interface Candidate {
 export class AdminHomepageComponent implements OnInit {
   private readonly management = inject(AdminManagementService);
   private readonly cars = inject(CarService);
+  private readonly campaigns = inject(CampaignService);
   private readonly toast = inject(ToastService);
 
   readonly loading = signal(false);
@@ -130,8 +132,9 @@ export class AdminHomepageComponent implements OnInit {
 
   async refresh(): Promise<void> {
     this.loading.set(true); this.error.set("");
-    try { await this.management.refreshHomepage(); }
-    catch (error) { this.error.set(this.message(error)); }
+    try {
+      await Promise.all([this.management.refreshHomepage(), this.campaigns.refreshAdmin()]);
+    } catch (error) { this.error.set(this.message(error)); }
     finally { this.loading.set(false); }
   }
 
@@ -193,7 +196,7 @@ export class AdminHomepageComponent implements OnInit {
   }
 
   async removePlacement(placement: HomepagePlacement): Promise<void> {
-    try { await this.management.removePlacement(placement.id); this.toast.show("İçerik vitrinden çıkarıldı.", "info"); }
+    try { await this.management.removePlacement(placement.id); this.toast.show("İçerik vitrinden çıkarıldı ve sıra otomatik sıkıştırıldı.", "info"); }
     catch (error) { this.toast.show(this.message(error), "error"); }
   }
 
@@ -204,9 +207,11 @@ export class AdminHomepageComponent implements OnInit {
     }));
     const tours = this.cars.getTours()().filter((item) => item.cloudId).map((item) => ({ id: item.cloudId!, type: "TOUR" as const, label: item.title || "Tur", image: item.image, meta: item.duration || "Tur" }));
     const blogs = this.cars.getBlogPosts()().map((item: any) => ({ id: String(item.cloudId || ""), type: "BLOG" as const, label: item.title, image: item.image, meta: item.date })).filter((item) => item.id);
-    if (!section) return [...vehicles, ...tours, ...blogs];
+    const campaigns = this.campaigns.campaigns().map((item) => ({ id: item.id, type: "CAMPAIGN" as const, label: item.title, image: item.coverImage, meta: `${item.publicationStatus} · ${item.campaignType}` }));
+    if (!section) return [...vehicles, ...tours, ...blogs, ...campaigns];
     if (section.sectionType === "TOURS") return tours;
     if (section.sectionType === "BLOG") return blogs;
+    if (section.sectionType === "CAMPAIGN" || section.sectionKey === "campaigns") return [...campaigns, ...vehicles.filter((item) => item.meta?.startsWith("Kiralık") || item.meta?.startsWith("Satılık"))];
     const category = String(section.settings?.["category"] || "");
     if (category === "RENTAL" || section.sectionKey === "rental_featured") return vehicles.filter((item) => item.meta?.startsWith("Kiralık"));
     if (category === "SALE" || section.sectionKey === "sale_featured") return vehicles.filter((item) => item.meta?.startsWith("Satılık"));

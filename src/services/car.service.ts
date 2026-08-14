@@ -132,29 +132,24 @@ export class CarService {
       this.catalogService.loadConfig(),
     ]);
 
-    if (vehicles.status === "fulfilled" && vehicles.value.length > 0) {
-      const mergedVehicles = vehicles.value.map((vehicle) =>
-        this.mergeVehicleWithFallback(vehicle),
-      );
-      this.replaceVehicleCatalog(mergedVehicles);
+    if (vehicles.status === "fulfilled") {
+      this.replaceVehicleCatalog(vehicles.value);
     }
 
-    if (tours.status === "fulfilled" && tours.value.length > 0) {
-      const mergedTours = tours.value.map((tour) =>
-        this.mergeVehicleWithFallback(tour) as Tour,
-      );
-      this._tours.set(mergedTours);
+    if (tours.status === "fulfilled") {
+      const cloudTours = tours.value as Tour[];
+      this._tours.set(cloudTours);
       this._inventory.update((inventory) => [
         ...inventory.filter((vehicle) => vehicle.category !== "TOUR"),
-        ...mergedTours,
+        ...cloudTours,
       ]);
     }
 
-    if (blog.status === "fulfilled" && blog.value.length > 0) {
+    if (blog.status === "fulfilled") {
       this._blogPosts.set(blog.value.map((post) => this.catalogBlogToBlogPost(post)));
     }
 
-    if (faqs.status === "fulfilled" && faqs.value.length > 0) {
+    if (faqs.status === "fulfilled") {
       this._faqs.set(faqs.value.map((faq) => this.catalogFaqToFaq(faq)));
     }
 
@@ -355,7 +350,7 @@ export class CarService {
     this.setTourLocally(candidate);
     void this.catalogService
       .saveTour(candidate)
-      .then((saved) => this.setTourLocally(this.mergeVehicleWithFallback(saved) as Tour))
+      .then((saved) => this.setTourLocally(saved as Tour))
       .catch((error) => {
         console.error("Tour cloud save failed", error);
         this._tours.set(previous);
@@ -402,9 +397,7 @@ export class CarService {
       id: car.id || Date.now(),
       category: "RENTAL",
     };
-    const saved = this.mergeVehicleWithFallback(
-      await this.catalogService.saveVehicle(candidate),
-    ) as Car;
+    const saved = (await this.catalogService.saveVehicle(candidate)) as Car;
     this._inventory.update((items) => this.upsertById(items, saved));
     return saved;
   }
@@ -426,9 +419,7 @@ export class CarService {
       id: car.id || Date.now(),
       category: "SALE",
     };
-    const saved = this.mergeVehicleWithFallback(
-      await this.catalogService.saveVehicle(candidate),
-    ) as SaleCar;
+    const saved = (await this.catalogService.saveVehicle(candidate)) as SaleCar;
     this._inventory.update((items) => this.upsertById(items, saved));
     return saved;
   }
@@ -699,17 +690,6 @@ export class CarService {
     }
   }
 
-  private mergeVehicleWithFallback(vehicle: Vehicle): Vehicle {
-    const fallback = fallbackInventory.find(
-      (candidate) => String(candidate.id) === String(vehicle.id),
-    );
-    return {
-      ...(fallback || {}),
-      ...vehicle,
-      category: vehicle.category || fallback?.category,
-    } as Vehicle;
-  }
-
   private replaceVehicleCatalog(vehicles: Vehicle[]): void {
     this._inventory.update((inventory) => [
       ...inventory.filter((vehicle) => vehicle.category === "TOUR"),
@@ -730,26 +710,18 @@ export class CarService {
   }
 
   private catalogBlogToBlogPost(post: CatalogBlogPost): BlogPost {
-    const fallback = fallbackBlogPosts.find(
-      (candidate) => String(candidate.id) === String(post.id),
-    );
     const numericId = Number(post.id);
     return {
-      ...(fallback || {}),
       ...post,
-      id: Number.isFinite(numericId) ? numericId : fallback?.id || Date.now(),
+      id: Number.isFinite(numericId) ? numericId : Date.now(),
     } as BlogPost;
   }
 
   private catalogFaqToFaq(faq: CatalogFaqItem): FaqItem {
     const numericId = Number(faq.id);
-    const fallback = fallbackFaqs.find(
-      (candidate) => String(candidate.id) === String(faq.id),
-    );
     return {
-      ...(fallback || {}),
       ...faq,
-      id: Number.isFinite(numericId) ? numericId : fallback?.id || Date.now(),
+      id: Number.isFinite(numericId) ? numericId : Date.now(),
     } as FaqItem;
   }
 

@@ -24,6 +24,7 @@ import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
 import { AdminHomepageComponent } from './pages/admin/admin-homepage.component';
 import { AdminTeamComponent } from './pages/admin/admin-team.component';
 import { AdminMediaComponent } from './pages/admin/admin-media.component';
+import { AdminCampaignsComponent } from './pages/admin/admin-campaigns.component';
 
 const adminGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
@@ -68,6 +69,7 @@ export const routes: Routes = [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: AdminDashboardComponent },
       { path: 'homepage', component: AdminHomepageComponent },
+      { path: 'campaigns', component: AdminCampaignsComponent },
       { path: 'media', component: AdminMediaComponent },
       { path: 'team', component: AdminTeamComponent },
       { path: 'cars', component: AdminCarsComponent },

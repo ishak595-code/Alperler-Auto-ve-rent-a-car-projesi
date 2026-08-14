@@ -38,7 +38,10 @@ export class BookingService {
 
   async create(input: CreateBookingInput): Promise<BookingRecord> {
     const normalized = this.normalizeInput(input);
-    const response = await this.request<BookingApiResponse>("POST", normalized);
+    const response = await this.request<BookingApiResponse>("POST", {
+      ...normalized,
+      idempotencyKey: crypto.randomUUID(),
+    });
     if (!response.ok || !response.booking) {
       throw new Error(response.code || "BOOKING_CREATE_FAILED");
     }

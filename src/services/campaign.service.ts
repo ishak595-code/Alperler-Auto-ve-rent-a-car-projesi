@@ -91,6 +91,7 @@ export class CampaignService {
     }
     const saved = this.fromRow(((await response.json()) as any[])[0]);
     await this.refreshAdmin();
+    await this.syncHomepageBanner(token);
     return saved;
   }
 
@@ -102,6 +103,7 @@ export class CampaignService {
     });
     if (!response.ok) throw new Error(`CAMPAIGN_DELETE_${response.status}`);
     await this.refreshAdmin();
+    await this.syncHomepageBanner(token);
   }
 
   async reorder(ids: string[]): Promise<void> {
@@ -114,6 +116,45 @@ export class CampaignService {
       if (!response.ok) throw new Error(`CAMPAIGN_REORDER_${response.status}`);
     })));
     await this.refreshAdmin();
+    await this.syncHomepageBanner(token);
+  }
+
+  private async syncHomepageBanner(token: string): Promise<void> {
+    const now = Date.now();
+    const primary = [...this._campaigns()]
+      .filter((item) => item.isActive && item.publicationStatus === "PUBLISHED")
+      .filter((item) => !item.startsAt || new Date(item.startsAt).getTime() <= now)
+      .filter((item) => !item.endsAt || new Date(item.endsAt).getTime() > now)
+      .sort((a, b) => a.sortOrder - b.sortOrder)[0];
+    if (!primary) return;
+
+    const currentResponse = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/site_config?key=eq.site_settings&select=value&limit=1`, {
+      headers: this.authHeaders(token),
+    });
+    if (!currentResponse.ok) throw new Error(`SITE_CONFIG_CAMPAIGN_READ_${currentResponse.status}`);
+    const currentRows = (await currentResponse.json()) as Array<{ value?: Record<string, unknown> }>;
+    const current = currentRows[0]?.value && typeof currentRows[0].value === "object" ? currentRows[0].value : {};
+    const currentHome = current["homeContent"] && typeof current["homeContent"] === "object" ? current["homeContent"] as Record<string, unknown> : {};
+    const value = {
+      ...current,
+      homeContent: {
+        ...currentHome,
+        campaignBannerBadge: primary.badge || (primary.discountPercent != null ? `%${primary.discountPercent} İNDİRİM` : "KAMPANYA"),
+        campaignBannerTitle: primary.title,
+        campaignBannerSubtitle: primary.shortDescription || primary.description || "",
+        campaignBannerButtonText: primary.ctaLabel || "Kampanyayı İncele",
+        campaignBannerImage: primary.coverImage || "",
+        campaignBannerUrl: primary.ctaUrl || "",
+        campaignBannerWhatsappMessage: primary.whatsappMessage || "",
+        campaignId: primary.id,
+      },
+    };
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/site_config?on_conflict=key`, {
+      method: "POST",
+      headers: { ...this.authHeaders(token), Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ key: "site_settings", value, is_public: true, updated_at: new Date().toISOString() }),
+    });
+    if (!response.ok) throw new Error(`SITE_CONFIG_CAMPAIGN_SAVE_${response.status}`);
   }
 
   private fromRow(row: any): CampaignRecord {

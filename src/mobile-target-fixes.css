@@ -21,6 +21,20 @@ app-sales-results app-vehicle-list-item {
   min-width: 0;
 }
 
+/* Top-level customer result pages live outside MainLayout. Reserve safe space
+   for the global mobile customer dock without affecting desktop or admin UI. */
+@media (max-width: 1279px) {
+  app-rental-results > main,
+  app-sales-results > main,
+  app-tour-results > main,
+  app-blog-list > main,
+  app-branches > main,
+  app-contact-entry > main,
+  app-list-your-car > main {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom)) !important;
+  }
+}
+
 @media (min-width: 640px) {
   app-home div:has(> app-vehicle-list-item) {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;

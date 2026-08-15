@@ -46,9 +46,9 @@ interface AuditRow {
         }
 
         <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div class="border-b border-slate-100 px-5 py-4 text-sm font-bold text-slate-600">{{ filtered().length }} kayıt gösteriliyor</div>
+          <div class="border-b border-slate-100 px-5 py-4 text-sm font-bold text-slate-600">{{ filteredRows().length }} kayıt gösteriliyor</div>
           <div class="divide-y divide-slate-100">
-            @for (row of filtered(); track row.id) {
+            @for (row of filteredRows(); track row.id) {
               <article class="grid gap-4 p-5 lg:grid-cols-[150px_180px_1fr_190px] lg:items-start">
                 <div><span class="inline-flex rounded-full px-3 py-1 text-[10px] font-black" [class.bg-emerald-100]="row.action==='INSERT'" [class.text-emerald-800]="row.action==='INSERT'" [class.bg-blue-100]="row.action==='UPDATE'" [class.text-blue-800]="row.action==='UPDATE'" [class.bg-rose-100]="row.action==='DELETE'" [class.text-rose-800]="row.action==='DELETE'">{{ actionLabel(row.action) }}</span><strong class="mt-2 block text-sm text-slate-900">{{ entityLabel(row.entity_type) }}</strong><small class="block break-all text-slate-400">{{ shortId(row.entity_id) }}</small></div>
                 <div><span class="block text-[10px] font-black uppercase tracking-wide text-slate-400">Yönetici</span><strong class="mt-1 block break-all text-xs text-slate-800">{{ row.actor_email || 'Kimliği doğrulanmış yönetici' }}</strong></div>
@@ -77,7 +77,10 @@ export class AdminAuditComponent implements OnInit {
   actionFilter = "";
 
   readonly entityTypes = computed(() => [...new Set(this.rows().map((row) => row.entity_type))].sort());
-  readonly filtered = computed(() => {
+
+  ngOnInit(): void { void this.refresh(); }
+
+  filteredRows(): AuditRow[] {
     const needle = this.query.trim().toLocaleLowerCase("tr-TR");
     return this.rows().filter((row) => {
       if (this.entityFilter && row.entity_type !== this.entityFilter) return false;
@@ -86,9 +89,7 @@ export class AdminAuditComponent implements OnInit {
       const searchable = [row.actor_email, row.entity_type, row.entity_id, this.changeSummary(row)].filter(Boolean).join(" ").toLocaleLowerCase("tr-TR");
       return searchable.includes(needle);
     });
-  });
-
-  ngOnInit(): void { void this.refresh(); }
+  }
 
   async refresh(): Promise<void> {
     this.loading.set(true); this.error.set("");

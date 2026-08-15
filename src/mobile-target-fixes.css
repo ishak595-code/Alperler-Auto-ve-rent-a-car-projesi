@@ -1,9 +1,8 @@
-/* Mobile visual parity fixes derived from the approved AI Studio reference. */
+/* Responsive visual and accessibility guardrails. */
 
-/* Home, rental fleet and sales all use the same compact vehicle card system. */
-app-home div:has(> app-vehicle-list-item),
-app-fleet div:has(> app-vehicle-list-item),
-app-sales div:has(> app-vehicle-list-item) {
+/* Homepage keeps the compact showcase card grid. Fleet and sales result pages
+   intentionally stay full-width lists with their own search/filter/sort UX. */
+app-home div:has(> app-vehicle-list-item) {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   gap: 12px !important;
@@ -13,10 +12,15 @@ app-sales div:has(> app-vehicle-list-item) {
   padding: 0 12px 12px !important;
 }
 
+app-fleet app-vehicle-list-item,
+app-sales app-vehicle-list-item {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
 @media (min-width: 640px) {
-  app-home div:has(> app-vehicle-list-item),
-  app-fleet div:has(> app-vehicle-list-item),
-  app-sales div:has(> app-vehicle-list-item) {
+  app-home div:has(> app-vehicle-list-item) {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 16px !important;
     padding-left: 0 !important;
@@ -25,19 +29,17 @@ app-sales div:has(> app-vehicle-list-item) {
 }
 
 @media (min-width: 1024px) {
-  app-home div:has(> app-vehicle-list-item),
-  app-fleet div:has(> app-vehicle-list-item),
-  app-sales div:has(> app-vehicle-list-item) {
+  app-home div:has(> app-vehicle-list-item) {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
 }
 
-/* The reference detail page uses a landscape gallery on mobile, not a square one. */
+/* Detail pages use a landscape gallery on mobile. */
 app-sale-car-detail .aspect-square {
   aspect-ratio: 16 / 9 !important;
 }
 
-/* Keep the premium brand subtitle visible on phones, as in the reference UI. */
+/* Keep the premium brand subtitle visible on phones. */
 @media (max-width: 639px) {
   app-navbar a[aria-label="Alperler Auto ana sayfa"] {
     max-width: 190px !important;
@@ -56,8 +58,39 @@ app-sale-car-detail .aspect-square {
   }
 }
 
-/* Respect users who request less motion. This also prevents unnecessary visual
-   movement while navigating with accessibility tools. */
+/* Interactive controls must have a usable touch target without changing
+   intentionally larger component sizing. Inline text links are excluded. */
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+select,
+summary,
+a[role="button"] {
+  min-height: 44px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  min-width: 20px;
+  min-height: 20px;
+}
+
+/* A clear keyboard focus ring is a site-wide safety net. Components can still
+   provide their own stronger focus-visible styling. */
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 3px;
+}
+
+/* Avoid focus rings for programmatic status regions unless they receive focus
+   after an error/success announcement. */
+[tabindex="-1"]:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Respect reduced-motion users and reduce visual movement while navigating
+   with screen readers, keyboard controls or switch access. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

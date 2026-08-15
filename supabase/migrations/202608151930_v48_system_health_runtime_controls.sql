@@ -24,37 +24,21 @@ create table if not exists public.system_events (
   constraint system_events_client_family_length check (client_family is null or char_length(client_family) <= 80)
 );
 
-create index if not exists system_events_unresolved_last_seen_idx
-  on public.system_events (last_seen desc)
-  where resolved_at is null;
-
-create index if not exists system_events_severity_last_seen_idx
-  on public.system_events (severity, last_seen desc);
-
-create index if not exists system_events_source_last_seen_idx
-  on public.system_events (source, last_seen desc);
+create index if not exists system_events_unresolved_last_seen_idx on public.system_events (last_seen desc) where resolved_at is null;
+create index if not exists system_events_severity_last_seen_idx on public.system_events (severity, last_seen desc);
+create index if not exists system_events_source_last_seen_idx on public.system_events (source, last_seen desc);
 
 alter table public.system_events enable row level security;
 
--- Recreate policies idempotently.
 drop policy if exists system_events_admin_read on public.system_events;
-create policy system_events_admin_read
-  on public.system_events
-  for select
-  to authenticated
+create policy system_events_admin_read on public.system_events for select to authenticated
   using (private.can_manage_operations() or private.can_manage_settings());
 
 drop policy if exists system_events_admin_update on public.system_events;
-create policy system_events_admin_update
-  on public.system_events
-  for update
-  to authenticated
+create policy system_events_admin_update on public.system_events for update to authenticated
   using (private.can_manage_operations() or private.can_manage_settings())
   with check (private.can_manage_operations() or private.can_manage_settings());
 
--- No public INSERT/DELETE policy is intentional. Browser clients cannot create,
--- delete or tamper with monitoring records directly. Server-side service_role
--- writes through the constrained function below.
 create or replace function public.record_system_event(
   p_severity text,
   p_source text,
@@ -84,14 +68,9 @@ declare
   v_recovery text := nullif(left(coalesce(p_recovery_action, ''), 200), '');
   v_release text := nullif(left(coalesce(p_release_sha, ''), 80), '');
   v_client text := nullif(left(coalesce(p_client_family, ''), 80), '');
-  v_details jsonb := case
-    when p_details is null or jsonb_typeof(p_details) <> 'object' then '{}'::jsonb
-    else p_details
-  end;
+  v_details jsonb := case when p_details is null or jsonb_typeof(p_details) <> 'object' then '{}'::jsonb else p_details end;
 begin
-  if v_severity not in ('INFO','WARN','ERROR','CRITICAL') then
-    v_severity := 'ERROR';
-  end if;
+  if v_severity not in ('INFO','WARN','ERROR','CRITICAL') then v_severity := 'ERROR'; end if;
 
   insert into public.system_events (
     severity, source, code, message, route, fingerprint,
@@ -116,7 +95,6 @@ begin
       resolved_at = null,
       resolved_by = null
   returning id into v_id;
-
   return v_id;
 end;
 $$;
@@ -143,5 +121,43 @@ values (
   now()
 )
 on conflict (key) do nothing;
+
+-- Service-role-only decision point used by public transactional Edge Functions.
+-- The UI may be bypassed, so maintenance/read-only rules must also be enforced
+-- on the server. Unknown operation names fail closed.
+create or replace function public.runtime_operation_allowed(p_operation text)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = 'pg_catalog', 'public'
+as $$
+declare
+  v jsonb;
+  op text := upper(left(coalesce(p_operation, ''), 40));
+begin
+  select value into v from public.site_config where key = 'runtime_controls' limit 1;
+  if v is null then return true; end if;
+  if coalesce((v->>'maintenanceMode')::boolean, false) then return false; end if;
+
+  if op = 'BOOKING' then
+    if coalesce((v->>'readOnlyMode')::boolean, false) then return false; end if;
+    return coalesce((v->>'allowBookings')::boolean, true);
+  elsif op = 'APPOINTMENT' then
+    if coalesce((v->>'readOnlyMode')::boolean, false) then return false; end if;
+    return coalesce((v->>'allowAppointments')::boolean, true);
+  elsif op = 'PARTNER_REQUEST' then
+    if coalesce((v->>'readOnlyMode')::boolean, false) then return false; end if;
+    return coalesce((v->>'allowPartnerRequests')::boolean, true);
+  elsif op = 'CONTACT' then
+    return coalesce((v->>'allowContact')::boolean, true);
+  end if;
+
+  return false;
+end;
+$$;
+
+revoke all on function public.runtime_operation_allowed(text) from public, anon, authenticated;
+grant execute on function public.runtime_operation_allowed(text) to service_role;
 
 commit;

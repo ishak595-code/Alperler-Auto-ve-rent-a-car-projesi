@@ -29,16 +29,26 @@ type GalleryItem = {
         class="fixed bottom-24 right-4 z-40 flex min-h-12 items-center gap-2 rounded-full bg-slate-950 px-4 font-black text-white shadow-2xl ring-1 ring-white/20 hover:bg-slate-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500 lg:bottom-8 lg:right-8"
         [attr.aria-label]="items().length + ' fotoğraf ve videoyu aç'"
       >
-        <mat-icon>photo_library</mat-icon>
+        <mat-icon aria-hidden="true">photo_library</mat-icon>
         Medya {{ items().length }}/30
       </button>
     }
 
     @if (isOpen()) {
       <div class="fixed inset-0 z-[200] flex flex-col bg-black text-white" role="dialog" aria-modal="true" aria-label="Fotoğraf ve video galerisi">
-        <header class="flex min-h-16 items-center justify-between gap-4 border-b border-white/10 bg-black/90 px-4 backdrop-blur">
-          <div class="min-w-0"><strong class="block truncate text-sm">Fotoğraf & Video Galerisi</strong><span class="text-xs text-white/60">{{ activeIndex() + 1 }} / {{ items().length }}</span></div>
-          <button type="button" (click)="close()" class="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Galeriyi kapat"><mat-icon>close</mat-icon></button>
+        <header class="flex min-h-16 items-center gap-2 border-b border-white/10 bg-black/90 px-3 backdrop-blur sm:px-4">
+          <button
+            id="catalog-gallery-back"
+            type="button"
+            (click)="close()"
+            class="flex min-h-11 shrink-0 items-center gap-1 rounded-full bg-white/10 px-3 font-bold text-white hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            aria-label="Tam ekran galeriden geri dön"
+          >
+            <mat-icon aria-hidden="true">arrow_back</mat-icon>
+            <span class="hidden sm:inline">Geri</span>
+          </button>
+          <div class="min-w-0 flex-1 px-1 sm:px-2"><strong class="block truncate text-sm">Fotoğraf & Video Galerisi</strong><span class="text-xs text-white/60">{{ activeIndex() + 1 }} / {{ items().length }}</span></div>
+          <button type="button" (click)="close()" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Galeriyi kapat"><mat-icon aria-hidden="true">close</mat-icon></button>
         </header>
 
         <div #scroller class="flex flex-1 snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth" (scroll)="onScroll($event)">
@@ -86,7 +96,7 @@ type GalleryItem = {
               <button type="button" (click)="goTo(i)" class="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400" [class.border-blue-500]="activeIndex() === i" [class.border-transparent]="activeIndex() !== i" [attr.aria-label]="(i + 1) + '. medyaya git, ' + (verificationLabel(item) || 'galeri medyası')">
                 @if (item.type === 'VIDEO') {
                   @if (item.posterUrl) { <img [src]="item.posterUrl" alt="" class="h-full w-full object-cover" /> }
-                  <span class="absolute inset-0 flex items-center justify-center bg-black/55"><mat-icon>play_circle</mat-icon></span>
+                  <span class="absolute inset-0 flex items-center justify-center bg-black/55"><mat-icon aria-hidden="true">play_circle</mat-icon></span>
                 } @else { <img [src]="item.url" alt="" class="h-full w-full object-cover" referrerpolicy="no-referrer" /> }
               </button>
             }
@@ -108,10 +118,25 @@ export class CatalogMixedGalleryComponent implements OnChanges {
   readonly isOpen = signal(false);
   readonly activeIndex = signal(0);
   private readonly youtubeCache = new Map<string, SafeResourceUrl>();
+  private previousFocus: HTMLElement | null = null;
 
   ngOnChanges(changes: SimpleChanges): void { if (changes["entityId"] || changes["entityType"] || changes["fallbackImages"]) void this.reload(); }
-  open(index: number): void { this.activeIndex.set(Math.max(0, Math.min(index, this.items().length - 1))); this.isOpen.set(true); queueMicrotask(() => this.goTo(this.activeIndex(), false)); }
-  close(): void { this.pauseVideos(); this.isOpen.set(false); }
+  open(index: number): void {
+    if (typeof document !== "undefined") this.previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.activeIndex.set(Math.max(0, Math.min(index, this.items().length - 1)));
+    this.isOpen.set(true);
+    queueMicrotask(() => {
+      this.goTo(this.activeIndex(), false);
+      (document.getElementById("catalog-gallery-back") as HTMLElement | null)?.focus({ preventScroll: true });
+    });
+  }
+  close(): void {
+    this.pauseVideos();
+    this.isOpen.set(false);
+    const focusTarget = this.previousFocus;
+    this.previousFocus = null;
+    queueMicrotask(() => focusTarget?.focus({ preventScroll: true }));
+  }
   goTo(index: number, smooth = true): void { this.activeIndex.set(index); this.pauseVideos(index); const scroller = document.querySelector<HTMLElement>("app-catalog-mixed-gallery [role='dialog'] .snap-x"); if (!scroller) return; scroller.scrollTo({ left: scroller.clientWidth * index, behavior: smooth ? "smooth" : "auto" }); }
   onScroll(event: Event): void { const target = event.target as HTMLElement; if (!target.clientWidth) return; const index = Math.round(target.scrollLeft / target.clientWidth); if (index !== this.activeIndex()) { this.activeIndex.set(index); this.pauseVideos(index); } }
   @HostListener("document:keydown.escape") onEscape(): void { if (this.isOpen()) this.close(); }

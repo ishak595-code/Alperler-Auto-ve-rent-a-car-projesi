@@ -9,6 +9,7 @@ import { VehicleListItemComponent } from "./vehicle-list-item.component";
 
 type ResultMode = "rental" | "sale";
 type SortKey = "default" | "priceAsc" | "priceDesc" | "yearDesc" | "yearAsc" | "kmAsc" | "kmDesc" | "powerDesc";
+type MultiKey = "brands" | "colors" | "fuels" | "transmissions" | "bodyTypes" | "drivetrains";
 
 interface AdvancedFilters {
   brands: string[];
@@ -29,13 +30,14 @@ interface AdvancedFilters {
   minPower: number | null;
   maxPower: number | null;
   minSeats: number | null;
+  maxSeats: number | null;
+  minDoors: number | null;
   maxDoors: number | null;
   maxDeposit: number | null;
   driverOption: "" | "WITH_DRIVER" | "WITHOUT_DRIVER" | "BOTH";
   cleanOnly: boolean;
   warrantyOnly: boolean;
   availableOnly: boolean;
-  videoOnly: boolean;
 }
 
 function emptyFilters(): AdvancedFilters {
@@ -44,8 +46,9 @@ function emptyFilters(): AdvancedFilters {
     modelQuery: "", locationQuery: "", engineQuery: "",
     minPrice: null, maxPrice: null, minYear: null, maxYear: null,
     minKm: null, maxKm: null, minPower: null, maxPower: null,
-    minSeats: null, maxDoors: null, maxDeposit: null, driverOption: "",
-    cleanOnly: false, warrantyOnly: false, availableOnly: false, videoOnly: false,
+    minSeats: null, maxSeats: null, minDoors: null, maxDoors: null,
+    maxDeposit: null, driverOption: "", cleanOnly: false, warrantyOnly: false,
+    availableOnly: false,
   };
 }
 
@@ -92,10 +95,9 @@ function emptyFilters(): AdvancedFilters {
             <div>
               <h1 class="font-serif text-3xl font-black text-white sm:text-5xl">{{ mode === 'rental' ? 'Kiralık Araçlar' : 'Satılık Araçlar' }}</h1>
               <p class="mt-3 max-w-3xl text-sm leading-relaxed text-slate-400 sm:text-base">{{ mode === 'rental' ? 'Bütçe, model yılı, renk, motor gücü, kasa, yakıt, şanzıman ve kiralama koşullarını kendiniz belirleyin.' : 'Fiyat, kilometre, model yılı, renk, motor gücü, hasar ve donanım kriterlerini kendiniz belirleyin.' }}</p>
+              @if(mode==='rental' && requestedStart && requestedEnd){<p class="mt-2 inline-flex rounded-full border border-blue-400/20 bg-blue-400/10 px-3 py-1.5 text-xs font-black text-blue-200">Tarih: {{ requestedStart }} → {{ requestedEnd }}</p>}
             </div>
-            <div class="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-              <span class="text-2xl font-black text-white">{{ filteredVehicles().length }}</span><span class="text-xs font-bold text-slate-400">eşleşen araç</span>
-            </div>
+            <div class="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3"><span class="text-2xl font-black text-white">{{ filteredVehicles().length }}</span><span class="text-xs font-bold text-slate-400">eşleşen araç</span></div>
           </div>
         </div>
       </section>
@@ -112,18 +114,11 @@ function emptyFilters(): AdvancedFilters {
 
       <section class="bg-slate-100 px-3 py-5 sm:px-5" [attr.aria-label]="mode === 'rental' ? 'Kiralık araç sonuçları' : 'Satılık araç sonuçları'">
         <div class="mx-auto max-w-7xl">
-          <div class="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-            <div class="min-w-0"><strong class="block truncate text-sm text-slate-900">{{ sortLabel() }}</strong><span class="text-xs text-slate-500">Filtreler yalnızca seçtiğiniz değerleri uygular.</span></div>
-            <button type="button" (click)="openFilterDialog()" class="min-h-11 shrink-0 rounded-xl bg-slate-900 px-4 text-xs font-black text-white">Filtrele</button>
-          </div>
+          <div class="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"><div class="min-w-0"><strong class="block truncate text-sm text-slate-900">{{ sortLabel() }}</strong><span class="text-xs text-slate-500">Filtreler yalnızca seçtiğiniz değerleri uygular.</span></div><button type="button" (click)="openFilterDialog()" class="min-h-11 shrink-0 rounded-xl bg-slate-900 px-4 text-xs font-black text-white">Filtrele</button></div>
           @if(filteredVehicles().length){
-            <div class="grid gap-4 lg:grid-cols-2">
-              @for(car of filteredVehicles(); track car.id){<app-vehicle-list-item [car]="car" [variant]="mode"></app-vehicle-list-item>}
-            </div>
+            <div class="grid gap-4 lg:grid-cols-2">@for(car of filteredVehicles(); track car.id){<app-vehicle-list-item [car]="car" [variant]="mode"></app-vehicle-list-item>}</div>
           } @else {
-            <div class="flex min-h-80 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white px-6 text-center shadow-sm">
-              <mat-icon class="!h-14 !w-14 !text-[56px] text-slate-300">search_off</mat-icon><h2 class="mt-4 text-xl font-black text-slate-900">Bu kriterlerde araç bulunamadı</h2><p class="mt-2 max-w-md text-sm text-slate-500">Bir veya birkaç kriteri gevşeterek tekrar deneyin.</p><button type="button" (click)="clearAll()" class="mt-5 min-h-11 rounded-xl bg-blue-600 px-5 font-black text-white">Filtreleri Temizle</button>
-            </div>
+            <div class="flex min-h-80 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white px-6 text-center shadow-sm"><mat-icon class="!h-14 !w-14 !text-[56px] text-slate-300">search_off</mat-icon><h2 class="mt-4 text-xl font-black text-slate-900">Bu kriterlerde araç bulunamadı</h2><p class="mt-2 max-w-md text-sm text-slate-500">Bir veya birkaç kriteri gevşeterek tekrar deneyin.</p><button type="button" (click)="clearAll()" class="mt-5 min-h-11 rounded-xl bg-blue-600 px-5 font-black text-white">Filtreleri Temizle</button></div>
           }
         </div>
       </section>
@@ -141,9 +136,7 @@ function emptyFilters(): AdvancedFilters {
             <label><span class="field-label">Maksimum fiyat</span><input [(ngModel)]="draft.maxPrice" class="field-control" type="number" min="0" inputmode="numeric" /></label>
             <label><span class="field-label">Minimum model yılı</span><input [(ngModel)]="draft.minYear" class="field-control" type="number" min="1950" max="2100" /></label>
             <label><span class="field-label">Maksimum model yılı</span><input [(ngModel)]="draft.maxYear" class="field-control" type="number" min="1950" max="2100" /></label>
-            @if(mode==='sale'){
-              <label><span class="field-label">Minimum kilometre</span><input [(ngModel)]="draft.minKm" class="field-control" type="number" min="0" /></label><label><span class="field-label">Maksimum kilometre</span><input [(ngModel)]="draft.maxKm" class="field-control" type="number" min="0" /></label>
-            }
+            @if(mode==='sale'){<label><span class="field-label">Minimum kilometre</span><input [(ngModel)]="draft.minKm" class="field-control" type="number" min="0" /></label><label><span class="field-label">Maksimum kilometre</span><input [(ngModel)]="draft.maxKm" class="field-control" type="number" min="0" /></label>}
           </div></section>
 
           <section class="section-card"><h3 class="font-black">Marka ve gövde</h3><div class="mt-4"><span class="field-label">Marka, birden fazla seçilebilir</span><div class="grid grid-cols-2 gap-2 sm:grid-cols-3">@for(value of brands(); track value){<label class="choice"><input type="checkbox" [checked]="draft.brands.includes(value)" (change)="toggleDraft('brands',value,$event)" />{{ value }}</label>}</div></div><div class="mt-4"><span class="field-label">Kasa tipi</span><div class="grid grid-cols-2 gap-2 sm:grid-cols-3">@for(value of bodyTypes(); track value){<label class="choice"><input type="checkbox" [checked]="draft.bodyTypes.includes(value)" (change)="toggleDraft('bodyTypes',value,$event)" />{{ value }}</label>}</div></div></section>
@@ -152,13 +145,14 @@ function emptyFilters(): AdvancedFilters {
 
           <section class="section-card"><h3 class="font-black">Motor ve aktarma</h3><div class="mt-4 grid gap-3 sm:grid-cols-2"><label><span class="field-label">Motor / hacim içerir</span><input [(ngModel)]="draft.engineQuery" class="field-control" placeholder="Örn. 1.5, 2.0, TDI, TCe" /></label><div></div><label><span class="field-label">Minimum motor gücü (bg)</span><input [(ngModel)]="draft.minPower" class="field-control" type="number" min="0" /></label><label><span class="field-label">Maksimum motor gücü (bg)</span><input [(ngModel)]="draft.maxPower" class="field-control" type="number" min="0" /></label></div><div class="mt-4"><span class="field-label">Yakıt</span><div class="grid grid-cols-2 gap-2 sm:grid-cols-4">@for(value of fuels(); track value){<label class="choice"><input type="checkbox" [checked]="draft.fuels.includes(value)" (change)="toggleDraft('fuels',value,$event)" />{{ value }}</label>}</div></div><div class="mt-4"><span class="field-label">Şanzıman</span><div class="grid grid-cols-2 gap-2 sm:grid-cols-3">@for(value of transmissions(); track value){<label class="choice"><input type="checkbox" [checked]="draft.transmissions.includes(value)" (change)="toggleDraft('transmissions',value,$event)" />{{ value }}</label>}</div></div>@if(drivetrains().length){<div class="mt-4"><span class="field-label">Çekiş</span><div class="grid grid-cols-2 gap-2 sm:grid-cols-3">@for(value of drivetrains(); track value){<label class="choice"><input type="checkbox" [checked]="draft.drivetrains.includes(value)" (change)="toggleDraft('drivetrains',value,$event)" />{{ value }}</label>}</div></div>}</section>
 
+          <section class="section-card"><h3 class="font-black">Kapasite ve yapı</h3><div class="mt-4 grid gap-3 sm:grid-cols-2"><label><span class="field-label">Minimum koltuk</span><input [(ngModel)]="draft.minSeats" class="field-control" type="number" min="1" max="30" /></label><label><span class="field-label">Maksimum koltuk</span><input [(ngModel)]="draft.maxSeats" class="field-control" type="number" min="1" max="30" /></label><label><span class="field-label">Minimum kapı</span><input [(ngModel)]="draft.minDoors" class="field-control" type="number" min="1" max="10" /></label><label><span class="field-label">Maksimum kapı</span><input [(ngModel)]="draft.maxDoors" class="field-control" type="number" min="1" max="10" /></label></div></section>
+
           <section class="section-card"><h3 class="font-black">{{ mode==='rental' ? 'Kiralama koşulları' : 'Araç durumu' }}</h3><div class="mt-4 grid gap-3 sm:grid-cols-2">
             @if(mode==='rental'){
-              <label><span class="field-label">Minimum koltuk</span><input [(ngModel)]="draft.minSeats" class="field-control" type="number" min="1" max="30" /></label><label><span class="field-label">Maksimum depozito</span><input [(ngModel)]="draft.maxDeposit" class="field-control" type="number" min="0" /></label><label><span class="field-label">Şoför seçeneği</span><select [(ngModel)]="draft.driverOption" class="field-control"><option value="">Farketmez</option><option value="WITH_DRIVER">Şoförlü</option><option value="WITHOUT_DRIVER">Şoförsüz</option><option value="BOTH">Her ikisini sunan</option></select></label><label class="choice mt-5"><input type="checkbox" [(ngModel)]="draft.availableOnly" />Yalnız müsait araçlar</label>
+              <label><span class="field-label">Maksimum depozito</span><input [(ngModel)]="draft.maxDeposit" class="field-control" type="number" min="0" /></label><label><span class="field-label">Şoför seçeneği</span><select [(ngModel)]="draft.driverOption" class="field-control"><option value="">Farketmez</option><option value="WITH_DRIVER">Şoförlü</option><option value="WITHOUT_DRIVER">Şoförsüz</option><option value="BOTH">Her ikisini sunan</option></select></label><label class="choice"><input type="checkbox" [(ngModel)]="draft.availableOnly" />Yalnız müsait araçlar</label>
             } @else {
-              <label><span class="field-label">Maksimum kapı sayısı</span><input [(ngModel)]="draft.maxDoors" class="field-control" type="number" min="1" max="10" /></label><label class="choice mt-5"><input type="checkbox" [(ngModel)]="draft.cleanOnly" />Hatasız / hasarsız</label><label class="choice"><input type="checkbox" [(ngModel)]="draft.warrantyOnly" />Garantili</label>
+              <label class="choice"><input type="checkbox" [(ngModel)]="draft.cleanOnly" />Hatasız / hasarsız</label><label class="choice"><input type="checkbox" [(ngModel)]="draft.warrantyOnly" />Garantili</label>
             }
-            <label class="choice"><input type="checkbox" [(ngModel)]="draft.videoOnly" />Yalnız videolu ilanlar</label>
           </div></section>
         </div>
 
@@ -188,7 +182,11 @@ export class PremiumVehicleResultsComponent {
   readonly sortBy = signal<SortKey>("default");
   draft: AdvancedFilters = emptyFilters();
 
+  readonly requestedStart = this.route.snapshot.queryParamMap.get("startDate")?.trim() || "";
+  readonly requestedEnd = this.route.snapshot.queryParamMap.get("endDate")?.trim() || "";
+
   readonly source = computed(() => this.mode === "sale" ? this.cars.getSaleCars()() : this.cars.getCars()());
+  readonly datedSource = computed(() => this.withRequestedAvailability(this.source()));
   readonly brands = computed(() => this.unique("brand"));
   readonly colors = computed(() => this.unique("color"));
   readonly fuels = computed(() => this.unique("fuel"));
@@ -199,12 +197,10 @@ export class PremiumVehicleResultsComponent {
   readonly activeFilterCount = computed(() => {
     const f = this.applied();
     return f.brands.length + f.colors.length + f.fuels.length + f.transmissions.length + f.bodyTypes.length + f.drivetrains.length +
-      [f.modelQuery, f.locationQuery, f.engineQuery, f.minPrice, f.maxPrice, f.minYear, f.maxYear, f.minKm, f.maxKm, f.minPower, f.maxPower, f.minSeats, f.maxDoors, f.maxDeposit, f.driverOption, f.cleanOnly, f.warrantyOnly, f.availableOnly, f.videoOnly].filter((value) => value !== "" && value !== null && value !== false).length;
+      [f.modelQuery, f.locationQuery, f.engineQuery, f.minPrice, f.maxPrice, f.minYear, f.maxYear, f.minKm, f.maxKm, f.minPower, f.maxPower, f.minSeats, f.maxSeats, f.minDoors, f.maxDoors, f.maxDeposit, f.driverOption, f.cleanOnly, f.warrantyOnly, f.availableOnly].filter((value) => value !== "" && value !== null && value !== false).length;
   });
 
-  readonly filteredVehicles = computed(() => this.sort(this.filter(this.source(), this.applied(), this.searchQuery())));
-  readonly previewCount = computed(() => this.filter(this.source(), this.draft, this.searchQuery()).length);
-
+  readonly filteredVehicles = computed(() => this.sort(this.filter(this.datedSource(), this.applied(), this.searchQuery())));
   readonly sortOptions = computed(() => {
     const base: Array<{id: SortKey; label: string}> = [
       { id: "default", label: "Önerilen sıralama" }, { id: "priceAsc", label: "Fiyat: düşükten yükseğe" }, { id: "priceDesc", label: "Fiyat: yüksekten düşüğe" }, { id: "yearDesc", label: "Model yılı: en yeni" }, { id: "yearAsc", label: "Model yılı: en eski" }, { id: "powerDesc", label: "Motor gücü: yüksekten düşüğe" },
@@ -221,7 +217,7 @@ export class PremiumVehicleResultsComponent {
   submitSearch(): void {
     const q = this.normalize(this.searchQuery());
     if (!q) return;
-    const exact = this.source().find((car) => this.normalize(car.cloudStockCode) === q || this.normalize(String(car.id)) === q || this.normalize(car.cloudId) === q);
+    const exact = this.datedSource().find((car) => this.normalize(car.cloudStockCode) === q || this.normalize(String(car.id)) === q || this.normalize(car.cloudId) === q);
     if (exact) void this.router.navigate([this.mode === "sale" ? "/sales" : "/fleet", exact.id]);
   }
 
@@ -233,11 +229,12 @@ export class PremiumVehicleResultsComponent {
   restoreSortFocus(): void { this.sortTrigger?.nativeElement.focus({ preventScroll: true }); }
   applyFilters(): void { this.applied.set(this.clone(this.draft)); this.closeFilterDialog(); }
   resetDraft(): void { this.draft = emptyFilters(); }
+  previewCount(): number { return this.filter(this.datedSource(), this.draft, this.searchQuery()).length; }
   applySort(value: SortKey): void { this.sortBy.set(value); this.closeSortDialog(); }
   clearAll(): void { this.searchQuery.set(""); this.applied.set(emptyFilters()); this.sortBy.set("default"); }
   goBack(): void { if (typeof window !== "undefined" && window.history.length > 1) this.location.back(); else void this.router.navigateByUrl("/"); }
 
-  toggleDraft(key: "brands" | "colors" | "fuels" | "transmissions" | "bodyTypes" | "drivetrains", value: string, event: Event): void {
+  toggleDraft(key: MultiKey, value: string, event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
     const current = this.draft[key];
     this.draft = { ...this.draft, [key]: checked ? Array.from(new Set([...current, value])) : current.filter((item) => item !== value) };
@@ -250,18 +247,34 @@ export class PremiumVehicleResultsComponent {
     if (f.fuels.length) labels.push(`Yakıt: ${f.fuels.join(", ")}`);
     if (f.transmissions.length) labels.push(`Vites: ${f.transmissions.join(", ")}`);
     if (f.bodyTypes.length) labels.push(`Kasa: ${f.bodyTypes.join(", ")}`);
+    if (f.drivetrains.length) labels.push(`Çekiş: ${f.drivetrains.join(", ")}`);
     if (f.minPrice != null || f.maxPrice != null) labels.push(`Fiyat: ${f.minPrice ?? 0} - ${f.maxPrice ?? "∞"}`);
     if (f.minYear != null || f.maxYear != null) labels.push(`Yıl: ${f.minYear ?? "…"} - ${f.maxYear ?? "…"}`);
     if (this.mode === "sale" && (f.minKm != null || f.maxKm != null)) labels.push(`KM: ${f.minKm ?? 0} - ${f.maxKm ?? "∞"}`);
     if (f.minPower != null || f.maxPower != null) labels.push(`Güç: ${f.minPower ?? 0} - ${f.maxPower ?? "∞"} bg`);
-    if (f.cleanOnly) labels.push("Hatasız / hasarsız"); if (f.warrantyOnly) labels.push("Garantili"); if (f.availableOnly) labels.push("Müsait"); if (f.videoOnly) labels.push("Videolu");
+    if (f.cleanOnly) labels.push("Hatasız / hasarsız"); if (f.warrantyOnly) labels.push("Garantili"); if (f.availableOnly) labels.push("Müsait");
     return labels;
   }
 
   sortLabel(): string { return this.sortOptions().find((item) => item.id === this.sortBy())?.label || "Önerilen sıralama"; }
   colorCss(value: string): string {
-    const text = this.normalize(value); const map: Record<string,string> = { siyah: "#111827", beyaz: "#f8fafc", gri: "#94a3b8", gumus: "#cbd5e1", gümüş: "#cbd5e1", mavi: "#2563eb", lacivert: "#1e3a8a", kirmizi: "#dc2626", kırmızı: "#dc2626", yesil: "#16a34a", yeşil: "#16a34a", bej: "#d6c7a1", kahverengi: "#78350f" };
+    const text = this.normalize(value); const map: Record<string,string> = { siyah: "#111827", beyaz: "#f8fafc", gri: "#94a3b8", gumus: "#cbd5e1", mavi: "#2563eb", lacivert: "#1e3a8a", kirmizi: "#dc2626", yesil: "#16a34a", bej: "#d6c7a1", kahverengi: "#78350f" };
     return map[text] || "#e2e8f0";
+  }
+
+  private withRequestedAvailability(rows: Vehicle[]): Vehicle[] {
+    if (this.mode !== "rental" || !this.requestedStart || !this.requestedEnd) return rows;
+    const requestedStart = new Date(this.requestedStart);
+    const requestedEnd = new Date(this.requestedEnd);
+    if (Number.isNaN(requestedStart.getTime()) || Number.isNaN(requestedEnd.getTime())) return rows;
+    return rows.map((car) => {
+      const overlaps = (car.bookedDates || []).some((booking) => {
+        const bookingStart = new Date(booking.start);
+        const bookingEnd = new Date(booking.end);
+        return requestedStart < bookingEnd && requestedEnd > bookingStart;
+      });
+      return { ...car, isAvailable: car.isAvailable !== false && !overlaps };
+    });
   }
 
   private filter(rows: Vehicle[], f: AdvancedFilters, rawSearch: string): Vehicle[] {
@@ -285,8 +298,8 @@ export class PremiumVehicleResultsComponent {
       if (this.mode === "sale" && !this.inRange(car.km, f.minKm, f.maxKm)) return false;
       const power = this.numeric(car.enginePower);
       if ((f.minPower != null || f.maxPower != null) && !this.inRange(power, f.minPower, f.maxPower)) return false;
-      if (f.minSeats != null && (car.seats ?? 0) < f.minSeats) return false;
-      if (f.maxDoors != null && (car.doors ?? 0) > f.maxDoors) return false;
+      if (!this.inRange(car.seats, f.minSeats, f.maxSeats)) return false;
+      if (!this.inRange(car.doors, f.minDoors, f.maxDoors)) return false;
       if (f.maxDeposit != null && Number(car.deposit ?? Number.MAX_SAFE_INTEGER) > f.maxDeposit) return false;
       if (f.driverOption) {
         if (f.driverOption === "WITH_DRIVER" && !["WITH_DRIVER","BOTH"].includes(car.driverOption || "")) return false;
@@ -296,7 +309,6 @@ export class PremiumVehicleResultsComponent {
       if (f.cleanOnly && !this.isClean(car)) return false;
       if (f.warrantyOnly && !(car.hasWarranty || this.normalize(car.warranty).includes("garanti"))) return false;
       if (f.availableOnly && car.isAvailable === false) return false;
-      if (f.videoOnly && !(car.videos?.length)) return false;
       return true;
     });
   }
@@ -314,7 +326,7 @@ export class PremiumVehicleResultsComponent {
     return result;
   }
 
-  private unique(key: "brand" | "color" | "fuel" | "transmission" | "type" | "drivetrain"): string[] { return Array.from(new Set(this.source().map((car) => car[key]).filter((value): value is string => typeof value === "string" && Boolean(value.trim())))).sort((a,b) => a.localeCompare(b,"tr")); }
+  private unique(key: "brand" | "color" | "fuel" | "transmission" | "type" | "drivetrain"): string[] { return Array.from(new Set(this.datedSource().map((car) => car[key]).filter((value): value is string => typeof value === "string" && Boolean(value.trim())))).sort((a,b) => a.localeCompare(b,"tr")); }
   private inRange(value: number | undefined, min: number | null, max: number | null): boolean { if (min == null && max == null) return true; if (value == null || !Number.isFinite(Number(value))) return false; const n=Number(value); return (min==null||n>=min)&&(max==null||n<=max); }
   private numeric(value: unknown): number | undefined { if (typeof value === "number" && Number.isFinite(value)) return value; const match=String(value??"").replace(",",".").match(/\d+(?:\.\d+)?/); const n=match?Number(match[0]):NaN; return Number.isFinite(n)?n:undefined; }
   private isClean(car: Vehicle): boolean { const text=this.normalize(`${car.damageStatus||""} ${car.tramer||""}`); return car.isDamageFree===true || car.isPaintless===true || text.includes("hatasiz") || text.includes("hasarsiz") || text.includes("boyasiz"); }

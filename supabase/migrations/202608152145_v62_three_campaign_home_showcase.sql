@@ -1,7 +1,8 @@
 begin;
 
--- The homepage campaign showroom intentionally contains exactly three live items:
--- 1) 7-day rental bundle, 2) wedding/special-day package, 3) Cilo tour.
+-- Canonical initial campaign showroom: three live offers. From this point on,
+-- Admin Campaigns is the operational source of truth and keeps homepage
+-- placements synchronized automatically.
 update public.campaigns
 set
   is_active = case
@@ -40,16 +41,25 @@ set
   end,
   metadata = case slug
     when '7-gun-kirala-6-gun-ode-renault-megane' then coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
+      'intent', 'RENTAL',
       'benefits', jsonb_build_array('7 gün kullanım, 6 gün ücret', 'Net 2.800 TL avantaj', '31 Ekim 2026’ya kadar geçerli'),
-      'trustLine', 'Gerçek fiyat avantajı • Araç müsaitliğine tabi • Gizli ücret yok'
+      'trustLine', 'Gerçek fiyat avantajı • Araç müsaitliğine tabi • Gizli ücret yok',
+      'priceLabel', '7 günlük kampanya fiyatı',
+      'priceSuffix', '7 günlük paket'
     )
     when 'gelin-arabasi-ozel-gun-paketi' then coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
+      'intent', 'WEDDING',
       'benefits', jsonb_build_array('Şoförlü premium hizmet', 'Profesyonel araç süslemesi', '1.500 TL paket avantajı'),
-      'trustLine', 'Başlangıç fiyatı açık • Kapsam net • Tarih uygunluğuna tabi'
+      'trustLine', 'Başlangıç fiyatı açık • Kapsam net • Tarih uygunluğuna tabi',
+      'priceLabel', 'Özel gün paket fiyatı',
+      'priceSuffix', 'özel gün paketi'
     )
     when 'cilo-daglari-buzullar-uzman-tur-deneyimi' then coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
+      'intent', 'TOUR',
       'benefits', jsonb_build_array('Profesyonel rehberli rota', 'Bölgesel öğle yemeği dahil', '1.000 TL kişi başı avantaj'),
-      'trustLine', 'Gerçek rota • Şeffaf kişi başı fiyat • Hava ve güvenlik koşullarına tabi'
+      'trustLine', 'Gerçek rota • Şeffaf kişi başı fiyat • Hava ve güvenlik koşullarına tabi',
+      'priceLabel', 'Tur fırsat fiyatı',
+      'priceSuffix', 'kişi başı'
     )
     else metadata
   end,
@@ -72,7 +82,10 @@ insert into public.homepage_placements (
   entity_id,
   label,
   sort_order,
-  is_active
+  is_active,
+  starts_at,
+  ends_at,
+  metadata
 )
 select
   'campaigns',
@@ -88,7 +101,10 @@ select
     when 'gelin-arabasi-ozel-gun-paketi' then 2
     else 3
   end,
-  true
+  true,
+  starts_at,
+  ends_at,
+  jsonb_build_object('managedBy', 'admin_campaigns')
 from public.campaigns
 where slug in (
   '7-gun-kirala-6-gun-ode-renault-megane',
@@ -98,7 +114,7 @@ where slug in (
 
 update public.homepage_sections
 set
-  title = 'Sadece Şimdi: Seçilmiş 3 Fırsat',
+  title = 'Avantajı Şimdi Yakalayın',
   max_items = 3,
   settings = jsonb_set(
     jsonb_set(
@@ -119,17 +135,52 @@ set
   value = jsonb_set(
     jsonb_set(
       jsonb_set(
-        coalesce(value, '{}'::jsonb),
-        '{homeContent,campaignBannerBadge}',
-        to_jsonb('3 Seçilmiş Fırsat'::text),
+        jsonb_set(
+          jsonb_set(
+            jsonb_set(
+              jsonb_set(
+                jsonb_set(
+                  jsonb_set(
+                    jsonb_set(
+                      coalesce(value, '{}'::jsonb),
+                      '{homeContent,heroTrustLine}',
+                      to_jsonb('ŞEFFAF FİYAT • DOĞRU ARAÇ • YEREL DESTEK'::text),
+                      true
+                    ),
+                    '{homeContent,heroTitle}',
+                    to_jsonb('Yüksekova’da Doğru Aracı Bulun, Yolculuğunuza Güvenle Başlayın'::text),
+                    true
+                  ),
+                  '{homeContent,heroSubtitle}',
+                  to_jsonb('Kiralama, satış ve seçili Cilo rotalarını tek yerde karşılaştırın. Tarihinizi seçin, net fiyatı görün ve size uygun seçeneğe hızlıca ulaşın.'::text),
+                  true
+                ),
+                '{homeContent,heroCta}',
+                to_jsonb('Uygun Seçenekleri Bul'::text),
+                true
+              ),
+              '{homeContent,heroCtaSubtext}',
+              to_jsonb('Tarih ve teslim noktanızı seçin; müsait seçenekleri doğrudan karşılaştırın.'::text),
+              true
+            ),
+            '{homeContent,campaignBannerBadge}',
+            to_jsonb('SEÇİLMİŞ FIRSATLAR'::text),
+            true
+          ),
+          '{homeContent,campaignBannerSubtitle}',
+          to_jsonb('Gerçek indirimleri, özel gün paketlerini ve Cilo tur fırsatlarını tek bakışta karşılaştırın. Süresi dolmadan size uygun avantajı değerlendirin.'::text),
+          true
+        ),
+        '{homeContent,campaignBannerButtonText}',
+        to_jsonb('Fırsatı İncele'::text),
         true
       ),
-      '{homeContent,campaignBannerSubtitle}',
-      to_jsonb('Kiralama, özel gün ve Cilo tur fırsatlarını şeffaf fiyatlarla inceleyin. Süreli avantajları kaçırmadan size uygun seçeneği değerlendirin.'::text),
+      '{homeContent,partnerTitle}',
+      to_jsonb('Aracınız beklemesin, kazanca dönüşsün'::text),
       true
     ),
-    '{homeContent,campaignBannerButtonText}',
-    to_jsonb('Fırsatı İncele'::text),
+    '{homeContent,partnerSubtitle}',
+    to_jsonb('Aracınız için değerlendirme veya iş ortaklığı başvurusu oluşturun; süreci ekibimiz sizinle birlikte netleştirsin.'::text),
     true
   ),
   updated_at = now()

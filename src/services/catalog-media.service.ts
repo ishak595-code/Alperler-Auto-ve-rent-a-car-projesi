@@ -8,6 +8,16 @@ import { AuthService } from "./auth.service";
 export type CatalogMediaKind = "IMAGE" | "VIDEO";
 export type CatalogEntityType = "VEHICLE" | "TOUR" | "BLOG";
 
+export interface CatalogMediaPolicy {
+  maxFileBytes: number;
+  maxItemsPerEntity: number;
+  maxBatchFiles: number;
+  acceptedMimeTypes: string[];
+  preserveOriginalQuality: boolean;
+  resumableThresholdBytes: number;
+  tusChunkBytes: number;
+}
+
 export interface CatalogMediaItem {
   id: string;
   vehicleId?: string;
@@ -66,14 +76,73 @@ interface CatalogMediaRow {
   metadata?: Record<string, unknown> | null;
 }
 
+interface SiteConfigRow {
+  value?: Partial<CatalogMediaPolicy> | null;
+}
+
+const DEFAULT_POLICY: CatalogMediaPolicy = {
+  maxFileBytes: 50 * 1024 * 1024,
+  maxItemsPerEntity: 30,
+  maxBatchFiles: 20,
+  acceptedMimeTypes: [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/avif",
+    "video/mp4",
+    "video/webm",
+  ],
+  preserveOriginalQuality: true,
+  resumableThresholdBytes: 6 * 1024 * 1024,
+  tusChunkBytes: 6 * 1024 * 1024,
+};
+
 @Injectable({ providedIn: "root" })
 export class CatalogMediaService {
   private readonly auth = inject(AuthService);
   private readonly bucket = "catalog-media";
-  private readonly tusThreshold = 6 * 1024 * 1024;
-  private readonly tusChunkSize = 6 * 1024 * 1024;
+  private readonly projectRef = new URL(SUPABASE_PROJECT_URL).hostname.split(".")[0];
+  private readonly resumableEndpoint = `https://${this.projectRef}.storage.supabase.co/storage/v1/upload/resumable`;
   private readonly _uploadProgress = signal(0);
+  private readonly _policy = signal<CatalogMediaPolicy>({ ...DEFAULT_POLICY });
+
   readonly uploadProgress = this._uploadProgress.asReadonly();
+  readonly policy = this._policy.asReadonly();
+
+  async refreshPolicy(): Promise<CatalogMediaPolicy> {
+    try {
+      const response = await fetch(
+        `${SUPABASE_PROJECT_URL}/rest/v1/site_config?key=eq.catalog_media_policy&select=value&limit=1`,
+        { headers: this.publicHeaders() },
+      );
+      if (!response.ok) return this._policy();
+      const rows = (await response.json()) as SiteConfigRow[];
+      const value = rows[0]?.value || {};
+      const accepted = Array.isArray(value.acceptedMimeTypes)
+        ? value.acceptedMimeTypes.filter((entry): entry is string => typeof entry === "string")
+        : DEFAULT_POLICY.acceptedMimeTypes;
+      const next: CatalogMediaPolicy = {
+        maxFileBytes: this.safePositiveInt(value.maxFileBytes, DEFAULT_POLICY.maxFileBytes),
+        maxItemsPerEntity: this.safePositiveInt(value.maxItemsPerEntity, DEFAULT_POLICY.maxItemsPerEntity),
+        maxBatchFiles: this.safePositiveInt(value.maxBatchFiles, DEFAULT_POLICY.maxBatchFiles),
+        acceptedMimeTypes: accepted.length ? accepted : DEFAULT_POLICY.acceptedMimeTypes,
+        preserveOriginalQuality: value.preserveOriginalQuality !== false,
+        resumableThresholdBytes: this.safePositiveInt(value.resumableThresholdBytes, DEFAULT_POLICY.resumableThresholdBytes),
+        tusChunkBytes: this.safePositiveInt(value.tusChunkBytes, DEFAULT_POLICY.tusChunkBytes),
+      };
+      this._policy.set(next);
+      return next;
+    } catch {
+      return this._policy();
+    }
+  }
+
+  validateSelection(file: File): string | null {
+    const policy = this._policy();
+    if (!policy.acceptedMimeTypes.includes(file.type)) return "CATALOG_MEDIA_TYPE_NOT_ALLOWED";
+    if (file.size < 1 || file.size > policy.maxFileBytes) return "CATALOG_MEDIA_SIZE_NOT_ALLOWED";
+    return null;
+  }
 
   async load(entityType: CatalogEntityType, entityId: string): Promise<CatalogMediaItem[]> {
     const column = this.ownerColumn(entityType);
@@ -100,14 +169,16 @@ export class CatalogMediaService {
     file: File,
     options: { altText?: string; isCover?: boolean; sortOrder?: number; posterUrl?: string } = {},
   ): Promise<CatalogMediaItem> {
+    await this.refreshPolicy();
     this.validateFile(file);
     const token = await this.requiredToken();
     const kind: CatalogMediaKind = file.type.startsWith("video/") ? "VIDEO" : "IMAGE";
     const extension = this.extension(file);
     const objectPath = `${entityType.toLowerCase()}/${entityId}/${crypto.randomUUID()}.${extension}`;
+    const technicalMetadata = await this.readTechnicalMetadata(file);
     this._uploadProgress.set(0);
     try {
-      if (file.size >= this.tusThreshold) {
+      if (file.size >= this._policy().resumableThresholdBytes) {
         await this.uploadTus(file, objectPath, token);
       } else {
         await this.uploadStandard(file, objectPath, token);
@@ -134,6 +205,9 @@ export class CatalogMediaService {
           originalName: file.name,
           mimeType: file.type,
           fileSize: file.size,
+          lastModified: file.lastModified,
+          originalQualityPreserved: true,
+          ...technicalMetadata,
         },
       };
       const response = await fetch(
@@ -158,7 +232,7 @@ export class CatalogMediaService {
   async addExternal(input: ExternalMediaInput): Promise<CatalogMediaItem> {
     const token = await this.requiredToken();
     const parsed = new URL(input.url);
-    if (!["https:"].includes(parsed.protocol)) throw new Error("MEDIA_URL_MUST_BE_HTTPS");
+    if (parsed.protocol !== "https:") throw new Error("MEDIA_URL_MUST_BE_HTTPS");
     if (input.isCover) await this.clearExistingCover(input.entityType, input.entityId, token);
     const row = {
       ...this.ownerPayload(input.entityType, input.entityId),
@@ -234,7 +308,7 @@ export class CatalogMediaService {
           apikey: SUPABASE_PUBLISHABLE_KEY,
           authorization: `Bearer ${token}`,
           "content-type": file.type,
-          "cache-control": "3600",
+          "cache-control": "31536000",
           "x-upsert": "false",
         },
         body: file,
@@ -244,15 +318,16 @@ export class CatalogMediaService {
   }
 
   private async uploadTus(file: File, objectPath: string, token: string): Promise<void> {
+    const policy = this._policy();
     const metadata = [
       ["bucketName", this.bucket],
       ["objectName", objectPath],
       ["contentType", file.type],
-      ["cacheControl", "3600"],
+      ["cacheControl", "31536000"],
     ]
       .map(([key, value]) => `${key} ${btoa(unescape(encodeURIComponent(value)))}`)
       .join(",");
-    const create = await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/upload/resumable`, {
+    const create = await fetch(this.resumableEndpoint, {
       method: "POST",
       headers: {
         apikey: SUPABASE_PUBLISHABLE_KEY,
@@ -266,14 +341,14 @@ export class CatalogMediaService {
     if (!create.ok) throw new Error(`CATALOG_TUS_CREATE_${create.status}`);
     const location = create.headers.get("location");
     if (!location) throw new Error("CATALOG_TUS_LOCATION_MISSING");
-    const uploadUrl = new URL(location, SUPABASE_PROJECT_URL).toString();
+    const uploadUrl = new URL(location, this.resumableEndpoint).toString();
     let offset = Number(create.headers.get("upload-offset") || 0);
     while (offset < file.size) {
-      const end = Math.min(offset + this.tusChunkSize, file.size);
+      const end = Math.min(offset + policy.tusChunkBytes, file.size);
       const chunk = file.slice(offset, end, file.type);
       let response: Response | null = null;
       let lastError: unknown;
-      for (const delay of [0, 1500, 4000, 8000]) {
+      for (const delay of [0, 1500, 4000, 8000, 15000]) {
         if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
         try {
           response = await fetch(uploadUrl, {
@@ -326,16 +401,8 @@ export class CatalogMediaService {
   }
 
   private validateFile(file: File): void {
-    const allowed = new Set([
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-      "image/avif",
-      "video/mp4",
-      "video/webm",
-    ]);
-    if (!allowed.has(file.type)) throw new Error("CATALOG_MEDIA_TYPE_NOT_ALLOWED");
-    if (file.size < 1 || file.size > 150 * 1024 * 1024) throw new Error("CATALOG_MEDIA_SIZE_NOT_ALLOWED");
+    const error = this.validateSelection(file);
+    if (error) throw new Error(error);
   }
 
   private extension(file: File): string {
@@ -348,6 +415,37 @@ export class CatalogMediaService {
       "video/webm": "webm",
     };
     return byType[file.type] || "bin";
+  }
+
+  private async readTechnicalMetadata(file: File): Promise<Record<string, unknown>> {
+    if (typeof document === "undefined") return {};
+    const objectUrl = URL.createObjectURL(file);
+    try {
+      if (file.type.startsWith("image/")) {
+        return await new Promise<Record<string, unknown>>((resolve) => {
+          const image = new Image();
+          image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+          image.onerror = () => resolve({});
+          image.src = objectUrl;
+        });
+      }
+      if (file.type.startsWith("video/")) {
+        return await new Promise<Record<string, unknown>>((resolve) => {
+          const video = document.createElement("video");
+          video.preload = "metadata";
+          video.onloadedmetadata = () => resolve({
+            width: video.videoWidth,
+            height: video.videoHeight,
+            durationSeconds: Number.isFinite(video.duration) ? Math.round(video.duration * 100) / 100 : undefined,
+          });
+          video.onerror = () => resolve({});
+          video.src = objectUrl;
+        });
+      }
+      return {};
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
   }
 
   private ownerColumn(type: CatalogEntityType): string {
@@ -408,5 +506,10 @@ export class CatalogMediaService {
     const token = await this.auth.getAccessToken();
     if (!token) throw new Error("ADMIN_SESSION_REQUIRED");
     return token;
+  }
+
+  private safePositiveInt(value: unknown, fallback: number): number {
+    const numeric = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(numeric) && numeric > 0 ? Math.floor(numeric) : fallback;
   }
 }

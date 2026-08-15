@@ -19,7 +19,7 @@
             "index": "index.html",
             "browser": "index.tsx",
             "assets": ["public"],
-            "styles": ["src/mobile-target-fixes.css", "src/v62-home-marketing.css"],
+            "styles": ["src/mobile-target-fixes.css", "src/v62-home-marketing.css", "src/v63-premium-depth.css"],
             "tsConfig": "tsconfig.json"
           },
           "configurations": {

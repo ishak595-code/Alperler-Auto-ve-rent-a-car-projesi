@@ -25,6 +25,18 @@ interface ApiBooking extends Omit<BookingRecord, "createdAt" | "updatedAt"> {
   updatedAt: string;
 }
 
+export interface BookingDetailsUpdate {
+  id: string;
+  startDate?: string;
+  endDate?: string;
+  personCount?: number;
+  pickupLocation?: string;
+  dropoffLocation?: string;
+  notes?: string;
+  withDriver?: boolean;
+  rentalDuration?: string;
+}
+
 @Injectable({ providedIn: "root" })
 export class BookingService {
   private readonly http = inject(HttpClient);
@@ -75,6 +87,25 @@ export class BookingService {
     return response.notification || this.duplicateReport(id, this.eventForStatus(status));
   }
 
+  async updateDetails(input: BookingDetailsUpdate): Promise<BookingRecord> {
+    const response = await this.request<BookingApiResponse>("PATCH", {
+      id: input.id,
+      operation: "details",
+      startDate: input.startDate,
+      endDate: input.endDate,
+      personCount: input.personCount,
+      pickupLocation: input.pickupLocation,
+      dropoffLocation: input.dropoffLocation,
+      notes: input.notes,
+      withDriver: input.withDriver,
+      rentalDuration: input.rentalDuration,
+    });
+    if (!response.ok || !response.booking) throw new Error(response.code || "BOOKING_DETAILS_UPDATE_FAILED");
+    const record = this.fromApi(response.booking);
+    this.upsertLocal(record);
+    return record;
+  }
+
   async updatePayment(input: { id: string; paymentStatus: PaymentStatus; externalPaymentReference?: string }): Promise<void> {
     const response = await this.request<BookingApiResponse>("PATCH", {
       id: input.id,
@@ -86,10 +117,14 @@ export class BookingService {
     this.upsertLocal(this.fromApi(response.booking));
   }
 
-  async delete(id: string): Promise<void> {
+  async archive(id: string): Promise<void> {
     const response = await this.request<BookingApiResponse>("DELETE", { id });
-    if (!response.ok) throw new Error(response.code || "BOOKING_DELETE_FAILED");
+    if (!response.ok) throw new Error(response.code || "BOOKING_ARCHIVE_FAILED");
     this.bookings.update((records) => records.filter((record) => record.id !== id));
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.archive(id);
   }
 
   private async refreshAdminRecords(showLoading = true): Promise<void> {

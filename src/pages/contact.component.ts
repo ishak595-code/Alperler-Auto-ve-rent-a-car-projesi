@@ -6,6 +6,8 @@ import { MatIconModule } from "@angular/material/icon";
 import { Router } from "@angular/router";
 import { firstValueFrom } from "rxjs";
 import { CarService } from "../services/car.service";
+import { AnalyticsIdentityService } from "../services/analytics-identity.service";
+import { VisitorAnalyticsService } from "../services/visitor-analytics.service";
 
 interface ContactResponse {
   ok: boolean;
@@ -27,7 +29,7 @@ interface ContactResponse {
     <main class="min-h-screen bg-slate-950 pb-20 text-slate-200">
       <header class="sticky top-0 z-40 border-b border-slate-800 bg-slate-900/95 shadow-lg backdrop-blur">
         <div class="mx-auto flex min-h-16 max-w-7xl items-center gap-3 px-4">
-          <button type="button" (click)="goBack()" class="flex h-11 w-11 items-center justify-center rounded-xl text-slate-300 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Geri dön">
+          <button type="button" (click)="goBack()" data-analytics-key="contact-back" class="flex h-11 w-11 items-center justify-center rounded-xl text-slate-300 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Geri dön">
             <mat-icon>arrow_back</mat-icon>
           </button>
           <div class="min-w-0">
@@ -46,9 +48,9 @@ interface ContactResponse {
           </div>
 
           <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            <a [href]="'tel:' + config().phone" class="contact-card"><mat-icon>call</mat-icon><span><strong>Telefon</strong><small>{{ config().phone }}</small></span></a>
-            <a [href]="'mailto:' + config().email" class="contact-card"><mat-icon>mail</mat-icon><span><strong>E-posta</strong><small>{{ config().email }}</small></span></a>
-            <a [href]="whatsappUrl()" target="_blank" rel="noopener" class="contact-card"><mat-icon>chat</mat-icon><span><strong>WhatsApp</strong><small>Hızlı bilgi ve destek</small></span></a>
+            <a [href]="'tel:' + config().phone" data-analytics-key="contact-phone" class="contact-card"><mat-icon>call</mat-icon><span><strong>Telefon</strong><small>{{ config().phone }}</small></span></a>
+            <a [href]="'mailto:' + config().email" data-analytics-key="contact-email" class="contact-card"><mat-icon>mail</mat-icon><span><strong>E-posta</strong><small>{{ config().email }}</small></span></a>
+            <a [href]="whatsappUrl()" data-analytics-key="contact-whatsapp" target="_blank" rel="noopener" class="contact-card"><mat-icon>chat</mat-icon><span><strong>WhatsApp</strong><small>Hızlı bilgi ve destek</small></span></a>
             <div class="contact-card"><mat-icon>location_on</mat-icon><span><strong>Adres</strong><small>{{ config().address }}</small></span></div>
           </div>
         </section>
@@ -65,11 +67,11 @@ interface ContactResponse {
               @if (!customerEmailSent()) {
                 <p class="mt-4 max-w-md text-xs leading-relaxed text-slate-500">Mesaj kaydınız tamamlandı. Otomatik e-posta sağlayıcısı henüz aktif değilse ayrıca e-posta gelmeyebilir.</p>
               }
-              <button type="button" (click)="reset()" class="mt-6 min-h-12 rounded-xl bg-slate-900 px-6 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Yeni Mesaj Gönder</button>
+              <button type="button" (click)="reset()" data-analytics-key="contact-new-message" class="mt-6 min-h-12 rounded-xl bg-slate-900 px-6 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Yeni Mesaj Gönder</button>
             </div>
           } @else {
             <div class="mb-6"><h2 class="text-2xl font-black">Mesaj Gönder</h2><p class="mt-1 text-sm text-slate-500">Zorunlu alanları eksiksiz doldurun.</p></div>
-            <form (ngSubmit)="submit()" class="space-y-5" novalidate>
+            <form (ngSubmit)="submit()" data-analytics-form="contact" class="space-y-5" novalidate>
               <div class="grid gap-4 sm:grid-cols-2">
                 <label class="field"><span>Ad *</span><input autocomplete="given-name" [(ngModel)]="name" name="name" maxlength="80" required /></label>
                 <label class="field"><span>Soyad *</span><input autocomplete="family-name" [(ngModel)]="surname" name="surname" maxlength="80" required /></label>
@@ -82,7 +84,7 @@ interface ContactResponse {
               @if (errorMessage()) {
                 <div role="alert" aria-live="assertive" class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800">{{ errorMessage() }}</div>
               }
-              <button type="submit" [disabled]="submitting() || !isValid()" class="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 font-black text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-45 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+              <button type="submit" data-analytics-key="contact-submit" [disabled]="submitting() || !isValid()" class="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 font-black text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-45 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                 @if (submitting()) { <mat-icon class="animate-spin">progress_activity</mat-icon>Gönderiliyor... } @else { <mat-icon>send</mat-icon>Mesajı Gönder }
               </button>
             </form>
@@ -100,6 +102,8 @@ export class ContactComponent {
   private readonly location = inject(Location);
   private readonly router = inject(Router);
   private readonly carService = inject(CarService);
+  private readonly analyticsIdentity = inject(AnalyticsIdentityService);
+  private readonly analytics = inject(VisitorAnalyticsService);
 
   readonly config = this.carService.getConfig();
   readonly submitting = signal(false);
@@ -137,9 +141,12 @@ export class ContactComponent {
         }),
       );
       if (!response.ok || !response.stored) throw new Error(response.code || "CONTACT_STORE_FAILED");
-      this.reference.set(response.reference || "");
+      const savedReference = response.reference || "";
+      this.reference.set(savedReference);
       this.customerEmailSent.set(response.delivery?.customerEmail?.state === "sent");
       this.sent.set(true);
+      if (savedReference) void this.analyticsIdentity.link({ entityType: "CONTACT", reference: savedReference, phone: this.phone, email: this.email });
+      this.analytics.trackFormSuccess('contact');
     } catch (error) {
       const code = error instanceof HttpErrorResponse && error.error?.code ? String(error.error.code) : error instanceof Error ? error.message : "CONTACT_STORE_FAILED";
       this.errorMessage.set(

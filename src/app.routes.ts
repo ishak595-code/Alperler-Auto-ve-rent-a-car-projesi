@@ -15,12 +15,10 @@ import { RentalDetailShellComponent, SaleDetailShellComponent, TourDetailShellCo
 // Admin Pages
 import { AdminLayoutComponent } from './pages/admin/admin-layout.component';
 import { AdminDashboardShellComponent } from './pages/admin/admin-dashboard-shell.component';
-import { AdminCarsComponent } from './pages/admin/admin-cars.component';
 import { AdminReservationsComponent } from './pages/admin/admin-reservations.component';
 import { AdminBlogComponent } from './pages/admin/admin-blog.component';
 import { AdminSettingsComponent } from './pages/admin/admin-settings.component';
 import { AdminPartnerRequestsComponent } from './pages/admin/admin-partner-requests.component';
-import { AdminToursComponent } from './pages/admin/admin-tours.component';
 import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
 import { AdminHomepageComponent } from './pages/admin/admin-homepage.component';
 import { AdminTeamComponent } from './pages/admin/admin-team.component';
@@ -84,10 +82,12 @@ export const routes: Routes = [
       { path: 'team', component: AdminTeamComponent, canActivate: [adminAreaGuard('team')] },
       { path: 'branches', component: AdminBranchesComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'audit', component: AdminAuditComponent, canActivate: [adminAreaGuard('finance')] },
-      { path: 'cars', component: AdminCarsComponent, canActivate: [adminAreaGuard('content')] },
+      // Legacy entry points now resolve to the single Supabase-backed publication studio.
+      // This prevents two editors from saving different shapes for the same vehicle/tour.
+      { path: 'cars', redirectTo: 'catalog-editor', pathMatch: 'full' },
+      { path: 'sales', redirectTo: 'catalog-editor', pathMatch: 'full' },
+      { path: 'tours', redirectTo: 'catalog-editor', pathMatch: 'full' },
       { path: 'reservations', component: AdminReservationsComponent, canActivate: [adminAreaGuard('operations')] },
-      { path: 'sales', component: AdminCarsComponent, canActivate: [adminAreaGuard('content')] },
-      { path: 'tours', component: AdminToursComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'blog', component: AdminBlogComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'partner-requests', component: AdminPartnerRequestsComponent, canActivate: [adminAreaGuard('operations')] },
       { path: 'feedback', component: AdminFeedbackComponent, canActivate: [adminAreaGuard('operations')] },

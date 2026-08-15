@@ -166,16 +166,6 @@ export class AdminAnalyticsComponent implements OnInit, OnDestroy {
   errorsOnly = false;
   private timer?: number;
 
-  readonly filteredSessions = computed(() => {
-    const q = this.search.trim().toLocaleLowerCase('tr-TR');
-    return this.sessions().filter((s) => {
-      if (this.liveOnly && !this.isLive(s)) return false;
-      if (this.errorsOnly && s.error_count < 1) return false;
-      if (!q) return true;
-      return [s.ip_address, s.city, s.country_region, s.device_model, s.os_name, s.browser_name, s.landing_path, s.exit_path, s.known_name, s.known_phone, s.known_email, s.customer_reference].some((v) => String(v || '').toLocaleLowerCase('tr-TR').includes(q));
-    });
-  });
-
   readonly summaryCards = computed(() => {
     const o = this.overview();
     const conversion = o.formStarts > 0 ? Math.round((o.formSubmits / o.formStarts) * 100) : 0;
@@ -196,6 +186,16 @@ export class AdminAnalyticsComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.timer) window.clearInterval(this.timer);
+  }
+
+  filteredSessions(): AnalyticsLiveSession[] {
+    const q = this.search.trim().toLocaleLowerCase('tr-TR');
+    return this.sessions().filter((s) => {
+      if (this.liveOnly && !this.isLive(s)) return false;
+      if (this.errorsOnly && s.error_count < 1) return false;
+      if (!q) return true;
+      return [s.ip_address, s.city, s.country_region, s.device_model, s.os_name, s.browser_name, s.landing_path, s.exit_path, s.known_name, s.known_phone, s.known_email, s.customer_reference].some((v) => String(v || '').toLocaleLowerCase('tr-TR').includes(q));
+    });
   }
 
   async refreshAll(): Promise<void> {
@@ -225,9 +225,9 @@ export class AdminAnalyticsComponent implements OnInit, OnDestroy {
   deviceLabel(session: AnalyticsLiveSession): string { return [session.device_model, session.os_name, session.device_type].filter(Boolean).join(' · ') || 'Bilinmeyen cihaz'; }
   locationLabel(session: AnalyticsLiveSession): string { return [session.city, session.country_region, session.country_code].filter(Boolean).join(' / ') || 'Konum belirlenemedi'; }
   barWidth(value: number, rows: { sessions: number }[]): number { const max = Math.max(1, ...rows.map((row) => row.sessions)); return Math.max(3, Math.round((value / max) * 100)); }
-  funnelLabel(row: AnalyticsFunnelRow): string { return row.event_type === 'form_start' ? 'Başladı' : row.event_type === 'form_submit' ? 'Gönderim' : row.event_type === 'form_abandon' ? 'Vazgeçti' : row.funnel_step; }
+  funnelLabel(row: AnalyticsFunnelRow): string { return row.event_type === 'form_start' ? 'Başladı' : row.event_type === 'form_submit' ? row.funnel_step === 'success' ? 'Başarıyla kaydedildi' : 'Gönderim denemesi' : row.event_type === 'form_abandon' ? 'Vazgeçti' : row.funnel_step; }
   eventLabel(event: AnalyticsTimelineEvent): string {
-    const labels: Record<string, string> = { session_start: 'Başlangıç', page_view: 'Sayfa', click: 'Tıklama', rage_click: 'Tekrarlı tıklama', scroll_depth: 'Scroll', form_start: 'Form başladı', form_submit: 'Form gönderim', form_abandon: 'Form vazgeçme', js_error: 'JS hata', unhandled_rejection: 'Promise hata', session_end: 'Çıkış' };
+    const labels: Record<string, string> = { session_start: 'Başlangıç', page_view: 'Sayfa', click: 'Tıklama', rage_click: 'Tekrarlı tıklama', scroll_depth: 'Scroll', form_start: 'Form başladı', form_submit: event.funnel_step === 'success' ? 'Form başarılı' : 'Form gönderim', form_abandon: 'Form vazgeçme', js_error: 'JS hata', unhandled_rejection: 'Promise hata', session_end: 'Çıkış' };
     return labels[event.event_type] || event.event_type;
   }
 }

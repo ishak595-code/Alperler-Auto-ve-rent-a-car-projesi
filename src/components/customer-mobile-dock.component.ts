@@ -12,94 +12,36 @@ import { Language, UiService } from "../services/ui.service";
   imports: [CommonModule, MatIconModule, RouterLink],
   template: `
     @if (!hidden()) {
-      <nav
-        class="customer-command-dock xl:hidden"
-        aria-label="Hızlı müşteri işlemleri"
-      >
-        <a
-          routerLink="/"
-          fragment="campaigns-heading"
-          (click)="goToCampaigns($event)"
-          class="dock-action"
-          aria-label="Kampanyalara git"
-        >
-          <mat-icon aria-hidden="true">local_offer</mat-icon>
-          <span>Kampanya</span>
+      <nav class="customer-command-dock xl:hidden" aria-label="Hızlı müşteri işlemleri">
+        <a routerLink="/" fragment="campaigns-heading" (click)="goToCampaigns($event)" class="dock-action" aria-label="Kampanyalara git">
+          <mat-icon aria-hidden="true">local_offer</mat-icon><span>Kampanya</span>
         </a>
-
-        <a
-          routerLink="/fleet"
-          [queryParams]="{ favs: 'true' }"
-          class="dock-action relative"
-          aria-label="Favori araçları aç"
-        >
-          <mat-icon aria-hidden="true">favorite_border</mat-icon>
-          <span>Favoriler</span>
-          @if (favoriteCount() > 0) {
-            <span class="dock-badge" aria-label="{{ favoriteCount() }} favori">{{ favoriteCount() > 9 ? '9+' : favoriteCount() }}</span>
-          }
+        <a routerLink="/fleet" [queryParams]="{ favs: 'true' }" class="dock-action relative" aria-label="Favori araçları aç">
+          <mat-icon aria-hidden="true">favorite_border</mat-icon><span>Favoriler</span>
+          @if (favoriteCount() > 0) { <span class="dock-badge" aria-label="{{ favoriteCount() }} favori">{{ favoriteCount() > 9 ? '9+' : favoriteCount() }}</span> }
         </a>
-
-        <button
-          type="button"
-          (click)="openSearch()"
-          class="dock-action dock-search"
-          aria-label="Araç, tur veya blog ara"
-        >
-          <span class="dock-search-icon"><mat-icon aria-hidden="true">search</mat-icon></span>
-          <span>Ara</span>
+        <button type="button" (click)="openSearch()" class="dock-action dock-search" aria-label="Araç, tur veya blog ara">
+          <span class="dock-search-icon"><mat-icon aria-hidden="true">search</mat-icon></span><span>Ara</span>
         </button>
-
-        <button
-          type="button"
-          (click)="openLanguageDialog()"
-          class="dock-action"
-          aria-label="Dil seç"
-          [attr.aria-haspopup]="'dialog'"
-        >
-          <mat-icon aria-hidden="true">language</mat-icon>
-          <span>{{ ui.currentLang() }}</span>
+        <button type="button" (click)="openLanguageDialog()" class="dock-action" aria-label="Dil seç" aria-haspopup="dialog">
+          <mat-icon aria-hidden="true">language</mat-icon><span>{{ ui.currentLang() }}</span>
         </button>
-
-        <a
-          routerLink="/appointment"
-          class="dock-action"
-          aria-label="Randevu talebi oluştur"
-        >
-          <mat-icon aria-hidden="true">event_available</mat-icon>
-          <span>Randevu</span>
+        <a routerLink="/appointment" class="dock-action" aria-label="Randevu talebi oluştur">
+          <mat-icon aria-hidden="true">event_available</mat-icon><span>Randevu</span>
         </a>
       </nav>
     }
 
-    <dialog
-      #languageDialog
-      class="language-dialog"
-      aria-labelledby="language-dialog-title"
-      (cancel)="closeLanguageDialog()"
-      (click)="closeOnBackdrop($event)"
-    >
+    <dialog #languageDialog class="language-dialog" aria-labelledby="language-dialog-title" (cancel)="closeLanguageDialog()" (click)="closeOnBackdrop($event)">
       <div class="language-sheet">
         <header class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-5">
-          <div>
-            <p class="text-[11px] font-black uppercase tracking-[.18em] text-blue-600">Dil seçimi</p>
-            <h2 id="language-dialog-title" class="mt-1 text-xl font-black text-slate-950">Site dilini değiştir</h2>
-          </div>
-          <button type="button" (click)="closeLanguageDialog()" class="dialog-close" aria-label="Dil penceresini kapat">
-            <mat-icon aria-hidden="true">close</mat-icon>
-          </button>
+          <div><p class="text-[11px] font-black uppercase tracking-[.18em] text-blue-600">Dil seçimi</p><h2 id="language-dialog-title" class="mt-1 text-xl font-black text-slate-950">Site dilini değiştir</h2></div>
+          <button type="button" (click)="closeLanguageDialog()" class="dialog-close" aria-label="Dil penceresini kapat"><mat-icon aria-hidden="true">close</mat-icon></button>
         </header>
         <div class="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
           @for (lang of languages; track lang) {
-            <button
-              type="button"
-              (click)="setLanguage(lang)"
-              [attr.aria-pressed]="ui.currentLang() === lang"
-              [class.language-selected]="ui.currentLang() === lang"
-              class="language-option"
-            >
-              <strong>{{ lang }}</strong>
-              <span>{{ languageName(lang) }}</span>
+            <button type="button" (click)="setLanguage(lang)" [attr.aria-pressed]="ui.currentLang() === lang" [class.language-selected]="ui.currentLang() === lang" class="language-option">
+              <strong>{{ lang }}</strong><span>{{ languageName(lang) }}</span>
             </button>
           }
         </div>
@@ -120,7 +62,6 @@ import { Language, UiService } from "../services/ui.service";
 })
 export class CustomerMobileDockComponent {
   @ViewChild("languageDialog") languageDialog?: ElementRef<HTMLDialogElement>;
-
   readonly router = inject(Router);
   readonly ui = inject(UiService);
   readonly carService = inject(CarService);
@@ -130,45 +71,27 @@ export class CustomerMobileDockComponent {
 
   constructor() {
     this.updateVisibility(this.router.url);
-    this.router.events
-      .pipe(filter((event) => event instanceof NavigationEnd))
-      .subscribe((event) => this.updateVisibility((event as NavigationEnd).urlAfterRedirects));
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => this.updateVisibility((event as NavigationEnd).urlAfterRedirects));
   }
 
   async openSearch(): Promise<void> {
-    const currentPath = this.router.url.split("?")[0].split("#")[0];
+    const currentPath = this.cleanPath(this.router.url);
     if (currentPath !== "/") await this.router.navigate(["/"]);
     this.focusHeroSearch();
   }
 
   async goToCampaigns(event: Event): Promise<void> {
     event.preventDefault();
-    const currentPath = this.router.url.split("?")[0].split("#")[0];
+    const currentPath = this.cleanPath(this.router.url);
     if (currentPath !== "/") await this.router.navigate(["/"]);
     if (typeof window === "undefined") return;
-    window.setTimeout(() => {
-      document.getElementById("campaigns-heading")?.scrollIntoView({ behavior: this.prefersReducedMotion() ? "auto" : "smooth", block: "start" });
-    }, 50);
+    window.setTimeout(() => document.getElementById("campaigns-heading")?.scrollIntoView({ behavior: this.prefersReducedMotion() ? "auto" : "smooth", block: "start" }), 50);
   }
 
-  openLanguageDialog(): void {
-    const dialog = this.languageDialog?.nativeElement;
-    if (dialog && !dialog.open) dialog.showModal();
-  }
-
-  closeLanguageDialog(): void {
-    const dialog = this.languageDialog?.nativeElement;
-    if (dialog?.open) dialog.close();
-  }
-
-  closeOnBackdrop(event: MouseEvent): void {
-    if (event.target === this.languageDialog?.nativeElement) this.closeLanguageDialog();
-  }
-
-  setLanguage(lang: Language): void {
-    this.ui.setLanguage(lang);
-    this.closeLanguageDialog();
-  }
+  openLanguageDialog(): void { const dialog = this.languageDialog?.nativeElement; if (dialog && !dialog.open) dialog.showModal(); }
+  closeLanguageDialog(): void { const dialog = this.languageDialog?.nativeElement; if (dialog?.open) dialog.close(); }
+  closeOnBackdrop(event: MouseEvent): void { if (event.target === this.languageDialog?.nativeElement) this.closeLanguageDialog(); }
+  setLanguage(lang: Language): void { this.ui.setLanguage(lang); this.closeLanguageDialog(); }
 
   languageName(lang: Language): string {
     return ({ TR: "Türkçe", EN: "English", DE: "Deutsch", FR: "Français", KU: "Kurdî", ES: "Español", RU: "Русский", ZH: "中文", AR: "العربية" } as Record<Language, string>)[lang];
@@ -181,20 +104,22 @@ export class CustomerMobileDockComponent {
       if (!input) return;
       input.scrollIntoView({ behavior: this.prefersReducedMotion() ? "auto" : "smooth", block: "center" });
       window.setTimeout(() => input.focus({ preventScroll: true }), this.prefersReducedMotion() ? 0 : 220);
-    }, 40);
+    }, 50);
   }
 
   private updateVisibility(rawUrl: string): void {
-    const path = rawUrl.split("?")[0].split("#")[0];
+    const path = this.cleanPath(rawUrl);
     this.hidden.set(
-      /^\/(fleet|sales|tours)\/[^/]+$/.test(path) ||
+      path.startsWith("/admin") ||
+      /^\/(fleet|sales)\/[^/]+$/.test(path) ||
+      /^\/tour\/[^/]+$/.test(path) ||
       path.startsWith("/booking") ||
       path.startsWith("/appointment") ||
       path.startsWith("/track-car")
     );
+    if (this.hidden()) this.closeLanguageDialog();
   }
 
-  private prefersReducedMotion(): boolean {
-    return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
-  }
+  private cleanPath(url: string): string { return url.split("?")[0].split("#")[0]; }
+  private prefersReducedMotion(): boolean { return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true; }
 }

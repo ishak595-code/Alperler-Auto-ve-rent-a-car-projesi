@@ -56,6 +56,7 @@ export interface CreateBookingInput {
   startDate?: string;
   endDate?: string;
   days?: number;
+  rentalHours?: number;
   withDriver?: boolean;
   pickupLocation?: string;
   dropoffLocation?: string;

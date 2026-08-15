@@ -9,7 +9,7 @@ import {
   signal,
 } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
-import { ActivatedRoute, Router } from "@angular/router";
+import { ActivatedRoute } from "@angular/router";
 import {
   BookingStatus,
   NotificationDeliveryReport,
@@ -29,14 +29,9 @@ import { ToastService } from "../../services/toast.service";
       <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
         <div class="mx-auto max-w-7xl px-4 py-4 md:px-8">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div class="flex min-w-0 items-center gap-3">
-              <button type="button" (click)="goBack()" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Kontrol paneline dön">
-                <mat-icon>arrow_back</mat-icon>
-              </button>
-              <div class="min-w-0">
-                <h1 class="truncate text-xl font-black tracking-tight sm:text-2xl">{{ pageTitle() }}</h1>
-                <p class="mt-1 text-xs font-semibold text-slate-500">Canlı operasyon kayıtları · {{ reservations().length }} toplam talep</p>
-              </div>
+            <div class="min-w-0">
+              <h1 class="truncate text-xl font-black tracking-tight sm:text-2xl">{{ pageTitle() }}</h1>
+              <p class="mt-1 text-xs font-semibold text-slate-500">Canlı operasyon kayıtları · {{ reservations().length }} toplam talep</p>
             </div>
 
             <div class="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1" aria-label="Durum filtresi">
@@ -149,7 +144,7 @@ import { ToastService } from "../../services/toast.service";
                       @if (res.status === 'APPROVED') {<button type="button" (click)="updateStatus(res.id, 'COMPLETED', $event)" [disabled]="updatingId() === res.id" class="action bg-slate-900 text-white"><mat-icon>task_alt</mat-icon>Tamamla</button>}
                       @if (res.status !== 'PENDING') {<button type="button" (click)="updateStatus(res.id, 'PENDING', $event)" [disabled]="updatingId() === res.id" class="action bg-slate-200 text-slate-800"><mat-icon>undo</mat-icon>Beklemeye Al</button>}
                       @if (res.status !== 'CANCELLED' && res.status !== 'COMPLETED') {<button type="button" (click)="updateStatus(res.id, 'CANCELLED', $event)" [disabled]="updatingId() === res.id" class="action border border-amber-300 bg-amber-50 text-amber-900"><mat-icon>event_busy</mat-icon>İptal</button>}
-                      <button type="button" (click)="deleteReservation(res.id, $event)" [disabled]="updatingId() === res.id" class="action bg-slate-800 text-white sm:ml-auto"><mat-icon>delete</mat-icon>Sil</button>
+                      <button type="button" (click)="archiveReservation(res.id, $event)" [disabled]="updatingId() === res.id" class="action bg-slate-800 text-white sm:ml-auto"><mat-icon>archive</mat-icon>Arşivle</button>
                     </div>
                   </div>
                 }
@@ -167,7 +162,6 @@ import { ToastService } from "../../services/toast.service";
 export class AdminReservationsComponent implements OnInit, OnDestroy {
   readonly bookingService = inject(BookingService);
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly confirmService = inject(ConfirmService);
   private readonly toastService = inject(ToastService);
 
@@ -247,10 +241,6 @@ export class AdminReservationsComponent implements OnInit, OnDestroy {
     }
   }
 
-  goBack(): void {
-    void this.router.navigate(["/admin/dashboard"]);
-  }
-
   toggleDetail(id: string): void {
     this.expandedId.set(this.expandedId() === id ? null : id);
   }
@@ -281,12 +271,12 @@ export class AdminReservationsComponent implements OnInit, OnDestroy {
     }
   }
 
-  async deleteReservation(id: string, event?: Event): Promise<void> {
+  async archiveReservation(id: string, event?: Event): Promise<void> {
     event?.stopPropagation();
     if (this.updatingId()) return;
     const confirmed = await this.confirmService.confirm({
-      title: "Kaydı Kalıcı Olarak Sil",
-      message: "Bu talebi kalıcı veri kaynağından tamamen silmek istediğinize emin misiniz? Operasyon geçmişini korumak istiyorsanız silmek yerine İptal seçeneğini kullanın.",
+      title: "Kaydı Arşivle",
+      message: "Bu talebi aktif operasyon listesinden kaldırıp denetim geçmişini koruyarak arşivlemek istediğinize emin misiniz?",
     });
     if (!confirmed) return;
 
@@ -294,10 +284,10 @@ export class AdminReservationsComponent implements OnInit, OnDestroy {
     try {
       await this.bookingService.delete(id);
       this.expandedId.set(null);
-      this.toastService.show("Rezervasyon kaydı silindi.", "info");
+      this.toastService.show("Rezervasyon kaydı arşivlendi.", "info");
     } catch (error) {
-      console.error("Booking delete failed.", error);
-      this.toastService.show("Rezervasyon kaydı silinemedi.", "error");
+      console.error("Booking archive failed.", error);
+      this.toastService.show("Rezervasyon kaydı arşivlenemedi.", "error");
     } finally {
       this.updatingId.set(null);
     }

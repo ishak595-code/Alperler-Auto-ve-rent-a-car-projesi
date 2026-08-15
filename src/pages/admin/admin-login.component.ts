@@ -92,13 +92,14 @@ import { CarService } from "../../services/car.service";
               </label>
 
               <label class="block">
-                <span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">{{ mode() === 'setup' ? 'Yeni güçlü şifre' : 'Şifre' }}</span>
+                <span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">{{ mode() === 'setup' ? 'Yeni şifre' : 'Şifre' }}</span>
                 <div class="relative">
                   <input
                     [type]="showPassword() ? 'text' : 'password'"
                     [(ngModel)]="password"
                     name="password"
                     [autocomplete]="mode() === 'setup' ? 'new-password' : 'current-password'"
+                    [attr.minlength]="mode() === 'setup' ? 8 : null"
                     class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 pr-16 font-bold text-slate-950 outline-none transition focus:border-blue-500 focus:bg-white"
                   />
                   <button type="button" (click)="showPassword.update(v => !v)" [attr.aria-label]="showPassword() ? 'Şifreyi gizle' : 'Şifreyi göster'" class="absolute inset-y-0 right-0 flex min-w-14 items-center justify-center px-3 text-xs font-black text-slate-500">
@@ -110,10 +111,10 @@ import { CarService } from "../../services/car.service";
               @if (mode() === 'setup') {
                 <label class="block">
                   <span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Şifre tekrar</span>
-                  <input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" autocomplete="new-password" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 font-bold text-slate-950 outline-none transition focus:border-blue-500 focus:bg-white" />
+                  <input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" autocomplete="new-password" minlength="8" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 font-bold text-slate-950 outline-none transition focus:border-blue-500 focus:bg-white" />
                 </label>
                 <div class="rounded-xl border border-blue-100 bg-blue-50 p-4 text-xs font-semibold leading-relaxed text-blue-900">
-                  Şifre en az 16 karakter olmalı ve büyük harf, küçük harf, rakam ile özel karakter içermelidir. Hesap oluşturulduktan sonra Supabase e-posta doğrulaması isteyebilir.
+                  Şifre en az 8 karakter olmalı ve en az bir harf ile bir rakam içermelidir. E-posta doğrulama bağlantısı sizi güvenli yönetici giriş ekranına geri getirir.
                 </div>
               }
 

@@ -45,10 +45,11 @@ function sanitizeMetadata(value: unknown): Record<string, unknown> {
 }
 function sanitizeEvent(raw: unknown): Record<string, unknown> | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const row = raw as Record<string, unknown>, type = clean(row.type, 40);
-  if (!EVENT_TYPES.has(type)) return null;
+  const row = raw as Record<string, unknown>, type = clean(row.type, 40), id = uuid(row.id);
+  if (!id || !EVENT_TYPES.has(type)) return null;
   const eventRaw = row.event && typeof row.event === "object" && !Array.isArray(row.event) ? row.event as Record<string, unknown> : {};
   return {
+    id,
     type,
     path: clean(row.path, 500) || "/",
     pageTitle: redactText(row.pageTitle, 300),
@@ -117,7 +118,7 @@ Deno.serve(async (request: Request) => {
 
     const { data, error } = await supabase.rpc("ingest_analytics_batch", { p_session_id: sessionId, p_visitor_id: visitorId, p_network_hash: networkHash, p_ip_address: ip || null, p_geo: geo, p_headers: requestHeaders, p_context: context, p_events: events });
     if (error) { console.error("analytics ingest rpc", error); return json(request, { ok: false, code: "INGEST_FAILED" }, 500); }
-    return json(request, { ok: true, accepted: Number(data || events.length) }, 202);
+    return json(request, { ok: true, accepted: Number(data || 0) }, 202);
   } catch (error) {
     console.error("analytics-ingest failed", error);
     return json(request, { ok: false, code: "ANALYTICS_FAILED" }, 500);

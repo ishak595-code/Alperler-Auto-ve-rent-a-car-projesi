@@ -7,9 +7,17 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependencies and build output
+node_modules/
+dist/
+dist-ssr/
+.angular/
+*.tsbuildinfo
+
+# Never commit packaged source/deployment archives
+*.zip
+public/*.zip
+
 *.local
 
 # Editor directories and files

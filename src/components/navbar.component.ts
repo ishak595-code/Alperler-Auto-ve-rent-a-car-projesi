@@ -38,63 +38,69 @@ import { Language, UiService } from "../services/ui.service";
             <a routerLink="/contact" routerLinkActive="!text-white !border-blue-400" class="nav-link">{{ t().nav.contact }}</a>
           </div>
 
-          <div class="flex shrink-0 items-center gap-1 sm:gap-2">
-            <button type="button" (click)="toggleLangMenu()" aria-label="Dil seçimi" [attr.aria-expanded]="isLangMenuOpen()" class="flex h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 px-2 text-xs font-black uppercase text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">{{ uiService.currentLang() }}</button>
+          <div class="relative flex shrink-0 items-center gap-1 sm:gap-2">
+            <button type="button" (click)="toggleLangMenu()" aria-label="Dil seçimi" [attr.aria-expanded]="isLangMenuOpen()" class="hidden xl:flex h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 px-2 text-xs font-black uppercase text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">{{ uiService.currentLang() }}</button>
             @if (isLangMenuOpen()) {
-              <div role="menu" class="absolute right-16 top-16 z-[140] max-h-96 w-40 overflow-y-auto rounded-xl border border-slate-700 bg-[#0b1526] py-1 shadow-2xl md:top-20">
+              <div role="menu" class="absolute right-12 top-14 z-[140] max-h-96 w-40 overflow-y-auto rounded-xl border border-slate-700 bg-[#0b1526] py-1 shadow-2xl">
                 @for (lang of languages; track lang) {
                   <button type="button" role="menuitem" (click)="setLang(lang)" class="block min-h-11 w-full px-4 py-2 text-left text-sm font-semibold text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:bg-white/10">{{ langName(lang) }}</button>
                 }
               </div>
             }
-            <a routerLink="/fleet" [queryParams]="{ favs: 'true' }" aria-label="Favoriler" class="relative flex h-11 w-11 items-center justify-center rounded-xl text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">star_border</mat-icon></a>
+            <a routerLink="/fleet" [queryParams]="{ favs: 'true' }" aria-label="Favoriler" class="relative hidden xl:flex h-11 w-11 items-center justify-center rounded-xl text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">star_border</mat-icon></a>
             <button id="mobile-menu-trigger" type="button" (click)="toggleMenu()" [attr.aria-label]="isMenuOpen() ? 'Menüyü kapat' : 'Menüyü aç'" [attr.aria-expanded]="isMenuOpen()" aria-controls="mobile-navigation" class="xl:hidden flex h-12 w-12 items-center justify-center rounded-xl text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">{{ isMenuOpen() ? 'close' : 'menu' }}</mat-icon></button>
           </div>
         </div>
       </div>
     </nav>
 
-    @if (isMenuOpen()) {
-      <nav id="mobile-navigation" aria-label="Mobil navigasyon" class="fixed inset-x-0 bottom-0 top-[72px] z-[95] overflow-y-auto overscroll-contain bg-[#050b16] px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 text-white md:top-[96px] sm:px-6 xl:hidden" style="touch-action: pan-y; -webkit-overflow-scrolling: touch;">
-        <div class="mx-auto w-full max-w-xl">
-          <div class="mb-4 flex min-h-14 items-center rounded-2xl border border-slate-700 bg-[#0b1526] px-4">
-            <mat-icon aria-hidden="true" class="mr-3 text-slate-400">search</mat-icon>
-            <input type="search" aria-label="Araç ara" [placeholder]="t().common.searchPlaceholder || 'Araç Ara...'" (keyup.enter)="onGlobalSearch($event)" class="min-w-0 flex-1 bg-transparent py-4 text-base font-semibold text-white outline-none placeholder:text-slate-500" />
-          </div>
-
-          <div class="mb-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0b1526]">
-            <a id="mobile-menu-first-link" routerLink="/" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">home</mat-icon><span>Ana Sayfa</span></a>
-            <a routerLink="/fleet" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">key</mat-icon><span>{{ t().nav.fleet }}</span></a>
-            <a routerLink="/sales" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">directions_car</mat-icon><span>{{ t().nav.sales }}</span></a>
-            <a routerLink="/list-your-car" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">sell</mat-icon><span>{{ t().nav.earn }}</span></a>
-            <a routerLink="/tours" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">explore</mat-icon><span>{{ t().nav.tours }}</span></a>
-            <a routerLink="/branches" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">storefront</mat-icon><span>Şubeler</span></a>
-            <a routerLink="/blog" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">article</mat-icon><span>{{ t().nav.blog }}</span></a>
-            <a routerLink="/contact" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">support_agent</mat-icon><span>{{ t().nav.contact }}</span></a>
-            <a routerLink="/about" (click)="closeMenu(false)" class="menu-row last"><mat-icon aria-hidden="true">info</mat-icon><span>{{ t().nav.about }}</span></a>
-          </div>
-
-          <details class="mb-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0b1526]">
-            <summary class="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 text-sm font-bold text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400">
-              <mat-icon aria-hidden="true" class="text-blue-300">language</mat-icon>
-              <span class="flex-1">Dil</span>
-              <span class="text-xs font-semibold text-slate-400">{{ langName(uiService.currentLang()) }}</span>
-              <mat-icon aria-hidden="true" class="text-slate-500">expand_more</mat-icon>
-            </summary>
-            <div class="grid grid-cols-2 gap-2 border-t border-white/10 p-3 sm:grid-cols-3">
-              @for (lang of languages; track lang) {
-                <button type="button" (click)="setLang(lang)" [attr.aria-pressed]="uiService.currentLang() === lang" [class.bg-blue-500]="uiService.currentLang() === lang" class="min-h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm font-bold text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">{{ langName(lang) }}</button>
-              }
-            </div>
-          </details>
-
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <a routerLink="/fleet" [queryParams]="{ favs: 'true' }" (click)="closeMenu(false)" class="quick-link"><mat-icon aria-hidden="true">star_border</mat-icon>Favoriler</a>
-            <a routerLink="/appointment" (click)="closeMenu(false)" class="quick-link bg-blue-500"><mat-icon aria-hidden="true">event_available</mat-icon>Randevu</a>
-          </div>
+    <nav
+      id="mobile-navigation"
+      aria-label="Mobil navigasyon"
+      [class.hidden]="!isMenuOpen()"
+      [attr.aria-hidden]="isMenuOpen() ? null : 'true'"
+      [attr.inert]="isMenuOpen() ? null : ''"
+      class="fixed inset-x-0 bottom-0 top-[72px] z-[95] overflow-y-auto overscroll-contain bg-[#050b16] px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 text-white md:top-[96px] sm:px-6 xl:hidden"
+      style="touch-action: pan-y; -webkit-overflow-scrolling: touch;"
+    >
+      <div class="mx-auto w-full max-w-xl">
+        <div class="mb-4 flex min-h-14 items-center rounded-2xl border border-slate-700 bg-[#0b1526] px-4">
+          <mat-icon aria-hidden="true" class="mr-3 text-slate-400">search</mat-icon>
+          <input type="search" aria-label="Araç ara" [placeholder]="t().common.searchPlaceholder || 'Araç Ara...'" (keyup.enter)="onGlobalSearch($event)" class="min-w-0 flex-1 bg-transparent py-4 text-base font-semibold text-white outline-none placeholder:text-slate-500" />
         </div>
-      </nav>
-    }
+
+        <div class="mb-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0b1526]">
+          <a id="mobile-menu-first-link" routerLink="/" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">home</mat-icon><span>Ana Sayfa</span></a>
+          <a routerLink="/fleet" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">key</mat-icon><span>{{ t().nav.fleet }}</span></a>
+          <a routerLink="/sales" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">directions_car</mat-icon><span>{{ t().nav.sales }}</span></a>
+          <a routerLink="/list-your-car" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">sell</mat-icon><span>{{ t().nav.earn }}</span></a>
+          <a routerLink="/tours" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">explore</mat-icon><span>{{ t().nav.tours }}</span></a>
+          <a routerLink="/branches" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">storefront</mat-icon><span>Şubeler</span></a>
+          <a routerLink="/blog" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">article</mat-icon><span>{{ t().nav.blog }}</span></a>
+          <a routerLink="/contact" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">support_agent</mat-icon><span>{{ t().nav.contact }}</span></a>
+          <a routerLink="/about" (click)="closeMenu(false)" class="menu-row last"><mat-icon aria-hidden="true">info</mat-icon><span>{{ t().nav.about }}</span></a>
+        </div>
+
+        <details class="mb-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0b1526]">
+          <summary class="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 text-sm font-bold text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400">
+            <mat-icon aria-hidden="true" class="text-blue-300">language</mat-icon>
+            <span class="flex-1">Dil</span>
+            <span class="text-xs font-semibold text-slate-400">{{ langName(uiService.currentLang()) }}</span>
+            <mat-icon aria-hidden="true" class="text-slate-500">expand_more</mat-icon>
+          </summary>
+          <div class="grid grid-cols-2 gap-2 border-t border-white/10 p-3 sm:grid-cols-3">
+            @for (lang of languages; track lang) {
+              <button type="button" (click)="setLang(lang)" [attr.aria-pressed]="uiService.currentLang() === lang" [class.bg-blue-500]="uiService.currentLang() === lang" class="min-h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm font-bold text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">{{ langName(lang) }}</button>
+            }
+          </div>
+        </details>
+
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <a routerLink="/fleet" [queryParams]="{ favs: 'true' }" (click)="closeMenu(false)" class="quick-link"><mat-icon aria-hidden="true">star_border</mat-icon>Favoriler</a>
+          <a routerLink="/appointment" (click)="closeMenu(false)" class="quick-link bg-blue-500"><mat-icon aria-hidden="true">event_available</mat-icon>Randevu</a>
+        </div>
+      </div>
+    </nav>
   `,
   styles: [`
     .nav-link{border-bottom:2px solid transparent;padding:.5rem 0;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#cbd5e1;white-space:nowrap}
@@ -113,9 +119,9 @@ export class NavbarComponent {
   t = this.uiService.translations;
   languages: Language[] = ["TR", "EN", "DE", "FR", "KU", "ES", "RU", "ZH", "AR"];
 
-  toggleMenu(): void { this.isMenuOpen() ? this.closeMenu() : this.openMenu(); }
-  openMenu(): void { if (this.isMenuOpen()) return; this.isLangMenuOpen.set(false); this.isMenuOpen.set(true); this.focusElement("mobile-menu-first-link"); }
-  closeMenu(restoreFocus = true): void { if (!this.isMenuOpen()) return; this.isMenuOpen.set(false); if (restoreFocus) this.focusElement("mobile-menu-trigger"); }
+  toggleMenu(): void { this.isMenuOpen() ? this.closeMenu(false) : this.openMenu(); }
+  openMenu(): void { if (this.isMenuOpen()) return; this.isLangMenuOpen.set(false); this.isMenuOpen.set(true); }
+  closeMenu(restoreFocus = false): void { if (!this.isMenuOpen()) return; this.isMenuOpen.set(false); if (restoreFocus) this.focusElement("mobile-menu-trigger"); }
   toggleLangMenu(): void { if (!this.isMenuOpen()) this.isLangMenuOpen.update(v => !v); }
   closeLangMenu(): void { this.isLangMenuOpen.set(false); }
   setLang(lang: Language): void { this.uiService.setLanguage(lang); this.closeLangMenu(); }
@@ -140,6 +146,6 @@ export class NavbarComponent {
     window.requestAnimationFrame(() => (document.getElementById(id) as HTMLElement | null)?.focus({ preventScroll: true }));
   }
 
-  @HostListener("document:keydown.escape") onEscape(): void { this.closeLangMenu(); this.closeMenu(); }
+  @HostListener("document:keydown.escape") onEscape(): void { this.closeLangMenu(); this.closeMenu(true); }
   @HostListener("window:resize") onResize(): void { if (typeof window !== "undefined" && window.innerWidth >= 1280) this.closeMenu(false); }
 }

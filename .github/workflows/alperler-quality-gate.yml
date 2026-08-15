@@ -16,6 +16,9 @@ on:
       - "package.json"
       - "package-lock.json"
       - "angular.json"
+      - "vercel.json"
+      - ".vercelignore"
+      - ".gitignore"
       - "tsconfig.api.json"
       - "firestore.rules"
       - ".github/workflows/alperler-quality-gate.yml"
@@ -31,6 +34,9 @@ on:
       - "package.json"
       - "package-lock.json"
       - "angular.json"
+      - "vercel.json"
+      - ".vercelignore"
+      - ".gitignore"
       - "tsconfig.api.json"
       - "firestore.rules"
       - ".github/workflows/alperler-quality-gate.yml"
@@ -66,6 +72,27 @@ jobs:
 
       - name: API TypeScript quality check
         run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Validate Vercel SPA deployment config
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const angular = JSON.parse(fs.readFileSync('angular.json', 'utf8'));
+          const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
+          const outputPath = angular.projects?.app?.architect?.build?.options?.outputPath;
+          const angularBase = typeof outputPath === 'string' ? outputPath : outputPath?.base;
+          const normalizedBase = String(angularBase || '').replace(/^\.\//, '').replace(/\/$/, '');
+          if (!normalizedBase || vercel.outputDirectory !== normalizedBase) {
+            throw new Error(`Vercel outputDirectory (${vercel.outputDirectory}) does not match Angular outputPath (${normalizedBase})`);
+          }
+          const spaRewrite = Array.isArray(vercel.rewrites) && vercel.rewrites.some(
+            (rule) => rule?.source === '/(.*)' && rule?.destination === '/index.html'
+          );
+          if (!spaRewrite) throw new Error('Missing SPA catch-all rewrite to /index.html');
+          if (vercel.framework !== 'angular') throw new Error('Vercel framework must remain angular');
+          console.log('Vercel/Angular deployment configuration is consistent.');
+          NODE
 
       - name: Set up Deno 2
         uses: denoland/setup-deno@v2

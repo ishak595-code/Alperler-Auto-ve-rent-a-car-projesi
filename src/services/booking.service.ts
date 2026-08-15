@@ -10,6 +10,7 @@ import {
   PaymentStatus,
 } from "../models/booking.model";
 import { AuthService } from "./auth.service";
+import { currentAnalyticsSessionId } from "./analytics-link.util";
 
 interface BookingApiResponse {
   ok: boolean;
@@ -43,6 +44,7 @@ export class BookingService {
     const response = await this.request<BookingApiResponse>("POST", {
       ...normalized,
       idempotencyKey: crypto.randomUUID(),
+      analyticsSessionId: currentAnalyticsSessionId(),
     });
     if (!response.ok || !response.booking) {
       throw new Error(response.code || "BOOKING_CREATE_FAILED");

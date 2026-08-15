@@ -14,6 +14,7 @@ import {
   fallbackFaqs,
   fallbackInventory,
 } from "./mock-data";
+import { PublicCatalogMediaService } from "./public-catalog-media.service";
 import { PublicContentRealtimeService } from "./public-content-realtime.service";
 
 export interface BlogPost {
@@ -84,6 +85,7 @@ export interface Feedback {
 @Injectable({ providedIn: "root" })
 export class CarService {
   private readonly catalogService = inject(CatalogService);
+  private readonly catalogMediaService = inject(PublicCatalogMediaService);
   private readonly bookingService = inject(BookingService);
   private readonly realtime = inject(PublicContentRealtimeService);
   private readonly destroyRef = inject(DestroyRef);
@@ -156,23 +158,30 @@ export class CarService {
     }
     this.cloudRefreshInFlight = true;
     try {
-      const [vehicles, tours, blog, faqs, config] = await Promise.allSettled([
+      const [vehicles, tours, blog, faqs, config, media] = await Promise.allSettled([
         this.catalogService.loadVehicles(fresh),
         this.catalogService.loadTours(fresh),
         this.catalogService.loadBlog(fresh),
         this.catalogService.loadFaqs(fresh),
         this.catalogService.loadConfig(fresh),
+        this.catalogMediaService.loadAll(),
       ]);
 
       if (vehicles.status === "fulfilled") {
-        const mergedVehicles = vehicles.value.map((vehicle) =>
+        const source = media.status === "fulfilled"
+          ? this.catalogMediaService.hydrate(vehicles.value, media.value)
+          : vehicles.value;
+        const mergedVehicles = source.map((vehicle) =>
           this.mergeVehicleWithFallback(vehicle),
         );
         this.replaceVehicleCatalog(mergedVehicles);
       }
 
       if (tours.status === "fulfilled") {
-        const mergedTours = tours.value.map((tour) =>
+        const source = media.status === "fulfilled"
+          ? this.catalogMediaService.hydrate(tours.value, media.value)
+          : tours.value;
+        const mergedTours = source.map((tour) =>
           this.mergeVehicleWithFallback(tour) as Tour,
         );
         this._tours.set(mergedTours);
@@ -742,8 +751,12 @@ export class CarService {
     const fallback = fallbackInventory.find(
       (candidate) => String(candidate.id) === String(vehicle.id),
     );
-    const { image: _fallbackImage, images: _fallbackImages, gallery: _fallbackGallery, ...safeFallback } = fallback || {};
-    const cloudBacked = Boolean((vehicle as Vehicle & { cloudId?: string }).cloudId);
+    const safeFallback: Partial<Vehicle> = fallback ? { ...fallback } : {};
+    delete safeFallback.image;
+    delete safeFallback.images;
+    delete safeFallback.gallery;
+    delete safeFallback.videos;
+    const cloudBacked = Boolean(vehicle.cloudId);
     const merged = {
       ...safeFallback,
       ...vehicle,
@@ -757,6 +770,7 @@ export class CarService {
         : Array.isArray(vehicle.images)
           ? vehicle.images
           : [];
+      merged.videos = Array.isArray(vehicle.videos) ? vehicle.videos : [];
     }
     return merged;
   }

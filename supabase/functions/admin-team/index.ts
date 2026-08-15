@@ -129,7 +129,6 @@ async function invite(actor: { id: string; email: string }, input: Record<string
   let invited = false;
   if (!user) {
     const { data, error } = await admin.auth.admin.inviteUserByEmail(targetEmail, {
-      data: { display_name: displayName, invited_by: actor.email },
       redirectTo: adminInviteRedirect(),
     });
     if (error || !data.user?.id) {

@@ -1,4 +1,4 @@
-/* Mobile visual parity and accessibility fixes. */
+/* Mobile visual parity, accessibility and premium depth system. */
 
 /* Homepage keeps its compact showcase grid. Fleet and sales result pages must
    stay full-width list rows with their own filters/sort controls. */
@@ -36,6 +36,78 @@ app-sales-results app-vehicle-list-item {
   }
 }
 
+/* Premium 3D language: depth comes from layered light, perspective and shadow,
+   not from exaggerated button extrusion. The search control stays flat and calm. */
+app-home-v39 main > section:first-of-type {
+  perspective: 1500px;
+  isolation: isolate;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+}
+
+app-home-v39 main > section:first-of-type::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -8;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 78% 22%, rgba(96, 165, 250, 0.2), transparent 32%),
+    radial-gradient(circle at 18% 78%, rgba(14, 116, 144, 0.14), transparent 34%);
+}
+
+app-home-v39 main > section:first-of-type > div.mx-auto {
+  transform-style: preserve-3d;
+}
+
+app-home-v39 main > section:first-of-type > div.mx-auto > div:first-child {
+  transform: translateZ(18px);
+}
+
+app-home-v39 main > section:first-of-type > div.mx-auto > section {
+  transform: translateZ(34px);
+  border-color: rgba(255, 255, 255, 0.38) !important;
+  box-shadow:
+    0 34px 80px rgba(2, 6, 23, 0.36),
+    0 10px 26px rgba(15, 23, 42, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86) !important;
+}
+
+/* Vehicle and campaign surfaces receive restrained physical depth. */
+app-vehicle-list-item article,
+app-home-v39 article {
+  box-shadow:
+    0 12px 30px rgba(15, 23, 42, 0.08),
+    0 2px 7px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  app-home-v39 main > section:first-of-type > div.mx-auto > section {
+    transition: transform 280ms ease, box-shadow 280ms ease;
+  }
+
+  app-home-v39 main > section:first-of-type > div.mx-auto > section:hover {
+    transform: translateZ(42px) translateY(-4px) rotateY(-0.7deg);
+    box-shadow:
+      0 42px 95px rgba(2, 6, 23, 0.4),
+      0 14px 32px rgba(15, 23, 42, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  }
+
+  app-vehicle-list-item article {
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+  }
+
+  app-vehicle-list-item article:hover {
+    transform: translateY(-3px);
+    border-color: rgba(148, 163, 184, 0.38) !important;
+    box-shadow:
+      0 20px 42px rgba(15, 23, 42, 0.12),
+      0 4px 12px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  }
+}
+
 /* The reference detail page uses a landscape gallery on mobile, not a square one. */
 app-sale-car-detail .aspect-square {
   aspect-ratio: 16 / 9 !important;
@@ -70,5 +142,11 @@ app-sale-car-detail .aspect-square {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  app-home-v39 main > section:first-of-type > div.mx-auto > div:first-child,
+  app-home-v39 main > section:first-of-type > div.mx-auto > section,
+  app-vehicle-list-item article {
+    transform: none !important;
   }
 }

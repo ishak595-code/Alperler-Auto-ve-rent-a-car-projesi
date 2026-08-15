@@ -61,6 +61,10 @@ export class BranchService {
     setInterval(() => void this.refreshPublic(false), this.refreshMs);
   }
 
+  async refresh(): Promise<void> {
+    await this.refreshPublic(false);
+  }
+
   getById(id: string): Branch | undefined {
     return this.branches().find((branch) => branch.id === id) || this.managedBranches().find((branch) => branch.id === id);
   }

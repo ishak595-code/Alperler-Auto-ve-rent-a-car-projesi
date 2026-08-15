@@ -88,12 +88,31 @@ jobs:
           if-no-files-found: error
           retention-days: 2
 
+      - name: Analytics ingest Edge Function type check
+        id: analytics_ingest_check
+        shell: bash
+        run: |
+          set -o pipefail
+          deno check supabase/functions/analytics-ingest/index.ts 2>&1 | tee deno-analytics-ingest.log
+
+      - name: Upload analytics ingest diagnostics
+        if: failure() && steps.analytics_ingest_check.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deno-analytics-ingest-log
+          path: deno-analytics-ingest.log
+          if-no-files-found: error
+          retention-days: 2
+
+      - name: Analytics identity Edge Function type check
+        run: deno check supabase/functions/analytics-link/index.ts
+
       - name: Existing Supabase Edge Functions type check
         run: |
           set -euo pipefail
           for file in supabase/functions/*/index.ts; do
             case "$file" in
-              supabase/functions/newsletter-gateway/index.ts) continue ;;
+              supabase/functions/newsletter-gateway/index.ts|supabase/functions/analytics-ingest/index.ts|supabase/functions/analytics-link/index.ts) continue ;;
             esac
             echo "Checking $file"
             deno check "$file"

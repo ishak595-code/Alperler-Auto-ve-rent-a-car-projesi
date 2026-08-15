@@ -3,7 +3,7 @@ import { AuthService } from "./auth.service";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 
 export type AdminRole = "owner" | "admin" | "editor" | "support";
-export type AdminArea = "content" | "operations" | "team" | "settings" | "finance";
+export type AdminArea = "content" | "operations" | "team" | "settings" | "finance" | "analytics";
 
 export interface AdminAccessProfile {
   userId: string;
@@ -82,6 +82,7 @@ export class AdminAccessService {
     if (profile.role === "owner" || profile.role === "admin") return true;
     if (area === "content" && profile.role === "editor") return true;
     if (area === "operations" && profile.role === "support") return true;
+    if (area === "analytics") return this.permission(profile.permissions, "analytics.read");
     return this.permission(profile.permissions, `${area}.manage`) ||
       (area === "finance" && this.permission(profile.permissions, "finance.read"));
   }
@@ -92,6 +93,7 @@ export class AdminAccessService {
     if (profile.role === "owner" || profile.role === "admin") return true;
     if (area === "content" && profile.role === "editor") return true;
     if (area === "operations" && profile.role === "support") return true;
+    if (area === "analytics") return this.permission(profile.permissions, "analytics.read");
     return this.permission(profile.permissions, `${area}.manage`) ||
       (area === "finance" && this.permission(profile.permissions, "finance.read"));
   }

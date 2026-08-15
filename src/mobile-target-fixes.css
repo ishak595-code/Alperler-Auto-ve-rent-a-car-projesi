@@ -1,9 +1,8 @@
-/* Mobile visual parity fixes derived from the approved AI Studio reference. */
+/* Mobile visual parity and accessibility fixes. */
 
-/* Home, rental fleet and sales all use the same compact vehicle card system. */
-app-home div:has(> app-vehicle-list-item),
-app-fleet div:has(> app-vehicle-list-item),
-app-sales div:has(> app-vehicle-list-item) {
+/* Homepage keeps its compact showcase grid. Fleet and sales result pages must
+   stay full-width list rows with their own filters/sort controls. */
+app-home div:has(> app-vehicle-list-item) {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   gap: 12px !important;
@@ -13,10 +12,17 @@ app-sales div:has(> app-vehicle-list-item) {
   padding: 0 12px 12px !important;
 }
 
+app-fleet app-vehicle-list-item,
+app-sales app-vehicle-list-item,
+app-rental-results app-vehicle-list-item,
+app-sales-results app-vehicle-list-item {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
 @media (min-width: 640px) {
-  app-home div:has(> app-vehicle-list-item),
-  app-fleet div:has(> app-vehicle-list-item),
-  app-sales div:has(> app-vehicle-list-item) {
+  app-home div:has(> app-vehicle-list-item) {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 16px !important;
     padding-left: 0 !important;
@@ -25,9 +31,7 @@ app-sales div:has(> app-vehicle-list-item) {
 }
 
 @media (min-width: 1024px) {
-  app-home div:has(> app-vehicle-list-item),
-  app-fleet div:has(> app-vehicle-list-item),
-  app-sales div:has(> app-vehicle-list-item) {
+  app-home div:has(> app-vehicle-list-item) {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
 }

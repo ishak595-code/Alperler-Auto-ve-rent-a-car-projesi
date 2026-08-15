@@ -1,0 +1,208 @@
+/* V63 premium depth system.
+   Visual depth is CSS-only so mobile performance, keyboard use and screen-reader
+   focus remain stable. Continuous motion is intentionally avoided. */
+
+app-home .hero-shell {
+  position: relative;
+  isolation: isolate;
+  perspective: 1400px;
+  background-color: #020617;
+}
+
+app-home .hero-shell::before,
+app-home .hero-shell::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+  border-radius: 9999px;
+  filter: blur(2px);
+}
+
+app-home .hero-shell::before {
+  width: min(54vw, 760px);
+  aspect-ratio: 1;
+  right: -12vw;
+  top: -28%;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.24) 0%, rgba(37, 99, 235, 0.08) 38%, transparent 70%);
+}
+
+app-home .hero-shell::after {
+  width: min(42vw, 560px);
+  aspect-ratio: 1;
+  left: -15vw;
+  bottom: -36%;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.16) 0%, rgba(14, 165, 233, 0.04) 42%, transparent 72%);
+}
+
+app-home .hero-overlay {
+  background:
+    linear-gradient(180deg, rgba(2, 6, 23, 0.72), rgba(2, 6, 23, 0.96)),
+    radial-gradient(circle at 72% 30%, rgba(59, 130, 246, 0.13), transparent 42%);
+}
+
+app-home .glass {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(148, 163, 184, 0.2) !important;
+  background:
+    linear-gradient(145deg, rgba(30, 41, 59, 0.88), rgba(2, 6, 23, 0.82));
+  box-shadow:
+    0 30px 80px rgba(2, 6, 23, 0.42),
+    0 10px 30px rgba(2, 6, 23, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.8);
+}
+
+app-home .glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(125deg, rgba(255, 255, 255, 0.07), transparent 28%, transparent 72%, rgba(59, 130, 246, 0.06));
+}
+
+app-home .glass > * {
+  position: relative;
+  z-index: 1;
+}
+
+app-home .campaign-grid article,
+app-home .tour-grid > a,
+app-home .blog-grid > a,
+app-home .section-grid > div,
+app-home section[aria-labelledby="partner-title"] > div {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  box-shadow:
+    0 18px 45px rgba(15, 23, 42, 0.1),
+    0 3px 10px rgba(15, 23, 42, 0.06);
+}
+
+app-home .campaign-grid article,
+app-home .tour-grid > a,
+app-home .blog-grid > a {
+  position: relative;
+  isolation: isolate;
+}
+
+app-home .campaign-grid article::after,
+app-home .tour-grid > a::after,
+app-home .blog-grid > a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+app-home .section-grid {
+  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+}
+
+app-home .section-grid > div {
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 1024px) {
+  app-home .hero-overlay {
+    background:
+      linear-gradient(90deg, rgba(2, 6, 23, 0.97) 0%, rgba(2, 6, 23, 0.83) 47%, rgba(2, 6, 23, 0.52) 100%),
+      radial-gradient(circle at 78% 24%, rgba(59, 130, 246, 0.16), transparent 40%);
+  }
+
+  app-home .hero-shell > div.mx-auto > div:first-child {
+    transform: translateZ(22px);
+  }
+
+  app-home .hero-shell aside.glass {
+    transform: translateZ(38px);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  app-home .campaign-grid article,
+  app-home .tour-grid > a,
+  app-home .blog-grid > a,
+  app-home .section-grid > div {
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  }
+
+  app-home .campaign-grid article:hover,
+  app-home .tour-grid > a:hover,
+  app-home .blog-grid > a:hover {
+    transform: translate3d(0, -5px, 14px) rotateX(0.35deg);
+    box-shadow:
+      0 26px 60px rgba(15, 23, 42, 0.16),
+      0 8px 18px rgba(15, 23, 42, 0.08);
+  }
+
+  app-home .section-grid > div:hover {
+    z-index: 2;
+    transform: translate3d(0, -3px, 10px);
+    box-shadow: 0 24px 55px rgba(15, 23, 42, 0.15);
+  }
+}
+
+/* Phones use the persistent bottom navigation, so the duplicate quick-action
+   rail stays hidden and the booking panel moves into the first screen sooner. */
+@media (max-width: 767px) {
+  app-home .mobile-scroll {
+    display: none !important;
+  }
+
+  app-home .hero-shell > div.mx-auto {
+    min-height: auto !important;
+    gap: 1rem !important;
+    padding-top: 1.25rem !important;
+    padding-bottom: 1.5rem !important;
+    align-items: start !important;
+  }
+
+  app-home .hero-shell > div.mx-auto > div:first-child {
+    padding-top: 0 !important;
+  }
+
+  app-home .hero-shell h1 {
+    margin-top: 0.9rem !important;
+  }
+
+  app-home .hero-shell [role="search"] {
+    margin-top: 1.15rem !important;
+  }
+
+  app-home .hero-shell aside.glass {
+    margin-top: 0.15rem;
+    border-radius: 22px !important;
+    box-shadow:
+      0 18px 44px rgba(2, 6, 23, 0.34),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  app-home .hero-shell::before {
+    width: 78vw;
+    right: -36vw;
+    top: -8%;
+    opacity: 0.7;
+  }
+
+  app-home .hero-shell::after {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  app-home .hero-shell > div.mx-auto > div:first-child,
+  app-home .hero-shell aside.glass,
+  app-home .campaign-grid article,
+  app-home .tour-grid > a,
+  app-home .blog-grid > a,
+  app-home .section-grid > div {
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}

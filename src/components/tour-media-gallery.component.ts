@@ -24,7 +24,7 @@ interface GallerySlide {
             <p class="text-[10px] font-black uppercase tracking-[.18em] text-blue-600">Gerçek Rota Medyası</p>
             <h3 id="tour-gallery-title" class="mt-1 text-xl font-black text-slate-950 sm:text-2xl">Fotoğraf & Video Galerisi</h3>
           </div>
-          <span class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">{{ activeIndex() + 1 }} / {{ slides().length }}</span>
+          <span class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">{{ safeActiveIndex() + 1 }} / {{ slides().length }}</span>
         </div>
 
         @if (activeSlide(); as slide) {
@@ -59,10 +59,10 @@ interface GallerySlide {
                 type="button"
                 (click)="activeIndex.set(index)"
                 [attr.aria-label]="(slide.kind === 'VIDEO' ? 'Videoyu aç: ' : 'Fotoğrafı aç: ') + slide.title"
-                [attr.aria-current]="activeIndex() === index ? 'true' : null"
+                [attr.aria-current]="safeActiveIndex() === index ? 'true' : null"
                 class="relative min-h-16 min-w-24 snap-start overflow-hidden rounded-xl border-2 bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                [class.border-blue-600]="activeIndex() === index"
-                [class.border-transparent]="activeIndex() !== index"
+                [class.border-blue-600]="safeActiveIndex() === index"
+                [class.border-transparent]="safeActiveIndex() !== index"
               >
                 @if (slide.kind === 'VIDEO') {
                   @if (slide.posterUrl) {
@@ -117,12 +117,10 @@ export class TourMediaGalleryComponent {
     return slides;
   });
 
-  readonly activeSlide = computed(() => {
-    const slides = this.slides();
-    const index = Math.min(this.activeIndex(), Math.max(0, slides.length - 1));
-    if (index !== this.activeIndex()) this.activeIndex.set(index);
-    return slides[index] || null;
-  });
+  readonly safeActiveIndex = computed(() =>
+    Math.min(this.activeIndex(), Math.max(0, this.slides().length - 1)),
+  );
 
+  readonly activeSlide = computed(() => this.slides()[this.safeActiveIndex()] || null);
   readonly hasVideo = computed(() => this.slides().some((slide) => slide.kind === "VIDEO"));
 }

@@ -145,11 +145,12 @@ export class VisitorAnalyticsService {
     const label = this.elementLabel(target);
     const href = target instanceof HTMLAnchorElement ? this.safeInternalHref(target.href) : '';
     const role = target.getAttribute('role') || target.tagName.toLowerCase();
+    const pointerType = typeof PointerEvent !== 'undefined' && event instanceof PointerEvent ? event.pointerType || 'pointer' : 'mouse';
     const now = Date.now();
     if (this.lastClick.key === key && now - this.lastClick.at < 2000) this.lastClick.count += 1;
     else this.lastClick = { key, at: now, count: 1 };
     this.lastClick.at = now;
-    this.enqueue('click', { elementKey: key, elementLabel: label, elementRole: role, metadata: { href, pointerType: event.pointerType || 'mouse' } });
+    this.enqueue('click', { elementKey: key, elementLabel: label, elementRole: role, metadata: { href, pointerType } });
     if (this.lastClick.count === 3) this.enqueue('rage_click', { elementKey: key, elementLabel: label, elementRole: role, metadata: { href } });
   };
 

@@ -18,6 +18,7 @@ type AnalyticsEventType =
   | 'session_end';
 
 interface QueuedEvent {
+  id: string;
   type: AnalyticsEventType;
   path: string;
   pageTitle: string;
@@ -217,7 +218,7 @@ export class VisitorAnalyticsService {
 
   private enqueue(type: AnalyticsEventType, event: Record<string, unknown>): void {
     if (this._consent() !== 'accepted' || !this.sessionId || !this.visitorId || !this.isTrackingPath()) return;
-    this.queue.push({ type, path: this.currentPath, pageTitle: this.clean(document.title, 300), event });
+    this.queue.push({ id: crypto.randomUUID(), type, path: this.currentPath, pageTitle: this.clean(document.title, 300), event });
     if (this.queue.length >= 10) void this.flush();
   }
 

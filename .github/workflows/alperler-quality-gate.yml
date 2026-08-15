@@ -72,8 +72,32 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Supabase Edge Function type check
-        run: deno check supabase/functions/*/index.ts
+      - name: Newsletter Edge Function type check
+        id: newsletter_check
+        shell: bash
+        run: |
+          set -o pipefail
+          deno check supabase/functions/newsletter-gateway/index.ts 2>&1 | tee deno-newsletter.log
+
+      - name: Upload newsletter diagnostics
+        if: failure() && steps.newsletter_check.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deno-newsletter-log
+          path: deno-newsletter.log
+          if-no-files-found: error
+          retention-days: 2
+
+      - name: Existing Supabase Edge Functions type check
+        run: |
+          set -euo pipefail
+          for file in supabase/functions/*/index.ts; do
+            case "$file" in
+              supabase/functions/newsletter-gateway/index.ts) continue ;;
+            esac
+            echo "Checking $file"
+            deno check "$file"
+          done
 
       - name: Production build
         run: npm run build

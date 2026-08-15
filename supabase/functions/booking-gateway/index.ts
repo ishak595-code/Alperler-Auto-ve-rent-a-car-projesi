@@ -23,6 +23,7 @@ function integerValue(value: unknown, min: number, max: number): number | null {
 function emailValue(value: unknown): string | null { const email = clean(value, 160).toLowerCase(); if (!email) return null; if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("INVALID_EMAIL"); return email; }
 function dateValue(value: unknown): string | null { const raw = clean(value, 64); if (!raw) return null; const d = new Date(raw); if (Number.isNaN(d.getTime())) throw new Error("INVALID_DATE"); return d.toISOString(); }
 function uuid(value: string): boolean { return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value); }
+function hasOwn(value: unknown, key: string): boolean { return Boolean(value && typeof value === "object" && Object.prototype.hasOwnProperty.call(value, key)); }
 function serviceHeaders(extra: Record<string, string> = {}) { return { apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}`, "content-type": "application/json", ...extra }; }
 async function db(path: string, init: RequestInit = {}): Promise<Response> { return fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...init, headers: { ...serviceHeaders(), ...(init.headers || {}) } }); }
 async function sha256(value: string): Promise<string> { const bytes = new TextEncoder().encode(value); const digest = await crypto.subtle.digest("SHA-256", bytes); return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join(""); }
@@ -224,6 +225,7 @@ async function patchBooking(request: Request): Promise<Response> {
     const operation = clean(body?.operation, 20);
     let update: Record<string, unknown> = {};
     let event: BookingEvent | null = null;
+
     if (operation === "status") {
       const status = required(body?.status, "status", 30);
       if (!["PENDING", "APPROVED", "REJECTED", "COMPLETED", "CANCELLED"].includes(status)) throw new Error("INVALID_STATUS");
@@ -238,6 +240,39 @@ async function patchBooking(request: Request): Promise<Response> {
       const paymentStatus = required(body?.paymentStatus, "paymentStatus", 30);
       if (!["NOT_REQUIRED", "PENDING", "PAID", "FAILED", "REFUNDED"].includes(paymentStatus)) throw new Error("INVALID_PAYMENT_STATUS");
       update = { payment_status: paymentStatus, external_payment_reference: clean(body?.externalPaymentReference, 200) || null };
+    } else if (operation === "details") {
+      const startAt = hasOwn(body, "startDate") ? dateValue(body?.startDate) : existing.start_at;
+      const endAt = hasOwn(body, "endDate") ? dateValue(body?.endDate) : existing.end_at;
+
+      if (existing.booking_type === "RENTAL") {
+        if (!existing.vehicle_id || !startAt || !endAt || new Date(endAt).getTime() <= new Date(startAt).getTime()) {
+          throw new Error("INVALID_RENTAL_TIME");
+        }
+      } else if (startAt && endAt && new Date(endAt).getTime() < new Date(startAt).getTime()) {
+        throw new Error("INVALID_DATE_RANGE");
+      }
+
+      if (hasOwn(body, "startDate")) update.start_at = startAt;
+      if (hasOwn(body, "endDate")) update.end_at = endAt;
+      if (hasOwn(body, "personCount")) update.person_count = integerValue(body?.personCount, 1, 100);
+      if (hasOwn(body, "pickupLocation")) update.pickup_location = clean(body?.pickupLocation, 240) || null;
+      if (hasOwn(body, "dropoffLocation")) update.dropoff_location = clean(body?.dropoffLocation, 240) || null;
+      if (hasOwn(body, "notes")) update.notes = clean(body?.notes, 4000) || null;
+      if (hasOwn(body, "withDriver")) update.with_driver = Boolean(body?.withDriver);
+      if (hasOwn(body, "rentalDuration")) update.rental_duration = clean(body?.rentalDuration, 40) || null;
+
+      if (existing.booking_type === "RENTAL" && startAt && endAt) {
+        const diffMs = new Date(endAt).getTime() - new Date(startAt).getTime();
+        const duration = clean(body?.rentalDuration, 40) || clean(existing.rental_duration, 40) || "daily";
+        if (duration === "hourly") {
+          const hours = Math.max(1, Math.min(23, Math.ceil(diffMs / 3_600_000)));
+          update.rental_hours = hours;
+          update.days = null;
+        } else {
+          update.days = Math.max(1, Math.min(3650, Math.ceil(diffMs / 86_400_000)));
+          update.rental_hours = null;
+        }
+      }
     } else {
       throw new Error("INVALID_OPERATION");
     }
@@ -245,7 +280,8 @@ async function patchBooking(request: Request): Promise<Response> {
     const res = await db(`bookings?id=eq.${encodeURIComponent(existing.id)}&select=*`, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(update) });
     if (!res.ok) {
       const detail = await res.text();
-      if (operation === "status" && update.status === "APPROVED" && (res.status === 409 || detail.includes("bookings_no_approved_rental_overlap") || detail.includes("23P01"))) {
+      const approvedRentalChange = existing.booking_type === "RENTAL" && ((operation === "status" && update.status === "APPROVED") || (operation === "details" && existing.status === "APPROVED"));
+      if (approvedRentalChange && (res.status === 409 || detail.includes("bookings_no_approved_rental_overlap") || detail.includes("23P01"))) {
         return json({ ok: false, code: "RENTAL_TIME_CONFLICT", message: "Bu araç aynı tarih/saat aralığında başka bir onaylı kiralamaya sahiptir." }, 409);
       }
       console.error("Booking update failed", res.status, detail.slice(0, 500));

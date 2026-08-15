@@ -84,8 +84,10 @@ export class CatalogMediaService {
 
   async load(entityType: CatalogEntityType, entityId: string): Promise<CatalogMediaItem[]> {
     const column = this.ownerColumn(entityType);
-    const url = `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?${column}=eq.${encodeURIComponent(entityId)}&is_active=eq.true&select=*&order=sort_order.asc,created_at.asc`;
-    const response = await fetch(url, { headers: this.publicHeaders() });
+    const adminToken = await this.auth.getAccessToken().catch(() => null);
+    const activeFilter = adminToken ? "" : "&is_active=eq.true";
+    const url = `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?${column}=eq.${encodeURIComponent(entityId)}${activeFilter}&select=*&order=sort_order.asc,created_at.asc`;
+    const response = await fetch(url, { headers: adminToken ? this.authHeaders(adminToken) : this.publicHeaders() });
     if (!response.ok) throw new Error(`CATALOG_MEDIA_LOAD_${response.status}`);
     const rows = (await response.json()) as CatalogMediaRow[];
     return rows.map((row) => this.fromRow(row));

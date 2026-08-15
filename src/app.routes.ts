@@ -80,6 +80,7 @@ export const routes: Routes = [
       { path: 'catalog-editor', component: AdminCatalogEditorComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'whatsapp', component: AdminWhatsappSettingsComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'team', component: AdminTeamComponent, canActivate: [adminAreaGuard('team')] },
+      { path: 'assignments', canActivate: [adminAreaGuard('team')], loadComponent: () => import('./pages/admin/admin-assignment-center.component').then(m => m.AdminAssignmentCenterComponent) },
       { path: 'branches', component: AdminBranchesComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'audit', component: AdminAuditComponent, canActivate: [adminAreaGuard('finance')] },
       { path: 'system-health', component: AdminSystemHealthComponent, canActivate: [adminAreaGuard('settings')] },

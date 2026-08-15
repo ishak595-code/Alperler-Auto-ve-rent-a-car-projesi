@@ -13,11 +13,15 @@
   </header>
 
   <section class="border-b border-slate-800 bg-[#020617] px-4 py-8">
-    <div class="mx-auto max-w-7xl"><h1 class="font-serif text-3xl font-black text-white sm:text-4xl">Satılık Araçlar <span class="text-lg text-slate-500">({{ filteredVehicles().length }} Araç)</span></h1><p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-400 sm:text-base">Ekspertiz bilgileri, araç detayları ve güncel ilanlarımızı tek ekranda inceleyin.</p></div>
+    <div class="mx-auto max-w-7xl">
+      <p class="text-xs font-black uppercase tracking-[.18em] text-blue-400">Alperler Auto satış galerisi</p>
+      <h1 class="mt-2 font-serif text-3xl font-black text-white sm:text-4xl">Satılık Araçlar <span class="text-lg text-slate-500">({{ filteredVehicles().length }} Araç)</span></h1>
+      <p class="mt-3 max-w-3xl text-sm leading-relaxed text-slate-400 sm:text-base">Güncel fiyatı, kilometreyi, donanımı ve mevcut ekspertiz bilgilerini karşılaştırın. Size uygun aracı bulduğunuzda detay sayfasından inceleyin ve ekibimizle doğrudan görüşün.</p>
+    </div>
   </section>
 
   @if (activeFilterCount() > 0 || searchQuery().trim()) {
-    <section class="border-b border-slate-200 bg-white px-4 py-3 text-slate-900"><div class="mx-auto flex max-w-7xl items-center justify-between gap-3"><div class="min-w-0 truncate text-sm font-bold">{{ filteredVehicles().length }} sonuç bulundu</div><button type="button" (click)="clearAll()" class="min-h-11 shrink-0 rounded-xl px-3 text-sm font-black text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Filtreleri Temizle</button></div></section>
+    <section class="border-b border-slate-200 bg-white px-4 py-3 text-slate-900"><div class="mx-auto flex max-w-7xl items-center justify-between gap-3"><div class="min-w-0 truncate text-sm font-bold">{{ filteredVehicles().length }} uygun araç bulundu</div><button type="button" (click)="clearAll()" class="min-h-11 shrink-0 rounded-xl px-3 text-sm font-black text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Filtreleri Temizle</button></div></section>
   }
 
   <section class="bg-white" aria-label="Satılık araç sonuçları">
@@ -26,14 +30,14 @@
         @for (car of filteredVehicles(); track car.id) {<div class="min-w-0 bg-white"><app-vehicle-list-item [car]="car" variant="sale"></app-vehicle-list-item></div>}
       </div>
     } @else {
-      <div class="mx-auto flex min-h-80 max-w-2xl flex-col items-center justify-center px-6 text-center text-slate-700"><mat-icon class="!h-14 !w-14 !text-[56px] text-slate-300">search_off</mat-icon><h2 class="mt-4 text-xl font-black">Eşleşen araç bulunamadı</h2><p class="mt-2 text-sm text-slate-500">Arama veya filtreleri değiştirerek tekrar deneyin.</p><button type="button" (click)="clearAll()" class="mt-5 min-h-11 rounded-xl bg-slate-900 px-5 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Tüm Araçları Göster</button></div>
+      <div class="mx-auto flex min-h-80 max-w-2xl flex-col items-center justify-center px-6 text-center text-slate-700"><mat-icon class="!h-14 !w-14 !text-[56px] text-slate-300">search_off</mat-icon><h2 class="mt-4 text-xl font-black">Aradığınız araç şu an listede görünmüyor</h2><p class="mt-2 text-sm text-slate-500">Filtreleri değiştirin veya tüm satış galerisini yeniden açarak diğer seçenekleri karşılaştırın.</p><button type="button" (click)="clearAll()" class="mt-5 min-h-11 rounded-xl bg-slate-900 px-5 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Tüm Satılık Araçları Gör</button></div>
     }
   </section>
 </main>
 
 <dialog #filterDialog id="sales-filter-dialog" aria-labelledby="sales-filter-title" (close)="restoreFilterFocus()" class="m-0 mt-auto max-h-[90dvh] w-full max-w-lg overflow-hidden rounded-t-3xl border-0 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-black/70 sm:m-auto sm:rounded-3xl">
   <div class="flex max-h-[90dvh] flex-col">
-    <div class="flex items-center justify-between border-b border-slate-200 p-5"><h2 id="sales-filter-title" class="text-xl font-black">Filtrele</h2><button type="button" (click)="closeFilterDialog()" class="flex h-11 w-11 items-center justify-center rounded-full hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Filtre penceresini kapat"><mat-icon>close</mat-icon></button></div>
+    <div class="flex items-center justify-between border-b border-slate-200 p-5"><div><p class="text-xs font-black uppercase tracking-wider text-blue-600">Doğru aracı daha hızlı bulun</p><h2 id="sales-filter-title" class="text-xl font-black">Satılık Araçları Filtrele</h2></div><button type="button" (click)="closeFilterDialog()" class="flex h-11 w-11 items-center justify-center rounded-full hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Filtre penceresini kapat"><mat-icon>close</mat-icon></button></div>
     <div class="space-y-6 overflow-y-auto p-5">
       <fieldset><legend class="filter-title">Marka</legend><div class="mt-3 grid grid-cols-2 gap-2"><button type="button" (click)="tempBrand = ''" class="filter-option" [class.selected]="tempBrand === ''">Tümü</button>@for (brand of brands(); track brand) {<button type="button" (click)="tempBrand = brand" class="filter-option" [class.selected]="tempBrand === brand">{{ brand }}</button>}</div></fieldset>
       <fieldset><legend class="filter-title">Fiyat</legend><div class="mt-3 grid grid-cols-2 gap-2">@for (option of priceOptions; track option.id) {<button type="button" (click)="tempPrice = option.id" class="filter-option" [class.selected]="tempPrice === option.id">{{ option.label }}</button>}</div></fieldset>
@@ -42,11 +46,11 @@
       <fieldset><legend class="filter-title">Renk</legend><div class="mt-3 grid grid-cols-3 gap-2"><button type="button" (click)="tempColor = ''" class="filter-option" [class.selected]="tempColor === ''">Tümü</button>@for (color of colors(); track color) {<button type="button" (click)="tempColor = color" class="filter-option" [class.selected]="tempColor === color">{{ color }}</button>}</div></fieldset>
       <fieldset><legend class="filter-title">Hasar Durumu</legend><div class="mt-3 grid grid-cols-2 gap-2"><button type="button" (click)="tempDamage = ''" class="filter-option" [class.selected]="tempDamage === ''">Tümü</button><button type="button" (click)="tempDamage = 'clean'" class="filter-option" [class.selected]="tempDamage === 'clean'">Hasarsız</button><button type="button" (click)="tempDamage = 'damaged'" class="filter-option" [class.selected]="tempDamage === 'damaged'">Hasar Kayıtlı</button></div></fieldset>
     </div>
-    <div class="grid grid-cols-[1fr_2fr] gap-3 border-t border-slate-200 p-5"><button type="button" (click)="resetTemporaryFilters()" class="min-h-12 rounded-xl bg-slate-100 px-4 font-black text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Sıfırla</button><button type="button" (click)="applyFilters()" class="min-h-12 rounded-xl bg-slate-900 px-4 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Uygula</button></div>
+    <div class="grid grid-cols-[1fr_2fr] gap-3 border-t border-slate-200 p-5"><button type="button" (click)="resetTemporaryFilters()" class="min-h-12 rounded-xl bg-slate-100 px-4 font-black text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Sıfırla</button><button type="button" (click)="applyFilters()" class="min-h-12 rounded-xl bg-slate-900 px-4 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Uygun Araçları Göster</button></div>
   </div>
 </dialog>
 
 <dialog #sortDialog id="sales-sort-dialog" aria-labelledby="sales-sort-title" (close)="restoreSortFocus()" class="m-0 mt-auto w-full max-w-sm overflow-hidden rounded-t-3xl border-0 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-black/70 sm:m-auto sm:rounded-3xl">
-  <div class="flex items-center justify-between border-b border-slate-200 p-5"><h2 id="sales-sort-title" class="text-xl font-black">Sırala</h2><button type="button" (click)="closeSortDialog()" class="flex h-11 w-11 items-center justify-center rounded-full hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Sıralama penceresini kapat"><mat-icon>close</mat-icon></button></div>
+  <div class="flex items-center justify-between border-b border-slate-200 p-5"><h2 id="sales-sort-title" class="text-xl font-black">Satılık Araçları Sırala</h2><button type="button" (click)="closeSortDialog()" class="flex h-11 w-11 items-center justify-center rounded-full hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Sıralama penceresini kapat"><mat-icon>close</mat-icon></button></div>
   <div class="space-y-2 p-4">@for (option of sortOptions; track option.id) {<button type="button" (click)="applySort(option.id)" class="flex min-h-12 w-full items-center justify-between rounded-xl px-4 text-left font-bold hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" [class.bg-blue-50]="sortBy() === option.id" [class.text-blue-800]="sortBy() === option.id"><span>{{ option.label }}</span>@if (sortBy() === option.id) {<mat-icon>check</mat-icon>}</button>}</div>
 </dialog>

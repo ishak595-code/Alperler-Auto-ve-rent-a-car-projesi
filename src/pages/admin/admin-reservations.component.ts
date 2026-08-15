@@ -8,9 +8,11 @@ import {
   inject,
   signal,
 } from "@angular/core";
+import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { ActivatedRoute } from "@angular/router";
 import {
+  BookingRecord,
   BookingStatus,
   NotificationDeliveryReport,
 } from "../../models/booking.model";
@@ -22,7 +24,7 @@ import { ToastService } from "../../services/toast.service";
 @Component({
   selector: "app-admin-reservations",
   standalone: true,
-  imports: [CommonModule, MatIconModule, TurkishCurrencyPipe],
+  imports: [CommonModule, FormsModule, MatIconModule, TurkishCurrencyPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="min-h-screen bg-slate-50 text-slate-900">
@@ -107,8 +109,8 @@ import { ToastService } from "../../services/toast.service";
                       <section class="rounded-xl border border-slate-200 bg-white p-4">
                         <h3 class="text-xs font-black uppercase tracking-wider text-slate-400">Talep Detayı</h3>
                         <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
-                          @if (res.startDate) {<div><dt class="text-xs text-slate-500">Başlangıç</dt><dd class="mt-1 break-words font-bold">{{ res.startDate }}</dd></div>}
-                          @if (res.endDate) {<div><dt class="text-xs text-slate-500">Bitiş</dt><dd class="mt-1 break-words font-bold">{{ res.endDate }}</dd></div>}
+                          @if (res.startDate) {<div><dt class="text-xs text-slate-500">Başlangıç</dt><dd class="mt-1 break-words font-bold">{{ res.startDate | date:'dd.MM.yyyy HH:mm' }}</dd></div>}
+                          @if (res.endDate) {<div><dt class="text-xs text-slate-500">Bitiş</dt><dd class="mt-1 break-words font-bold">{{ res.endDate | date:'dd.MM.yyyy HH:mm' }}</dd></div>}
                           @if (res.days) {<div><dt class="text-xs text-slate-500">Süre</dt><dd class="mt-1 font-bold">{{ res.days }} gün</dd></div>}
                           @if (res.personCount) {<div><dt class="text-xs text-slate-500">Kişi</dt><dd class="mt-1 font-bold">{{ res.personCount }}</dd></div>}
                           @if (res.pickupLocation) {<div class="col-span-2"><dt class="text-xs text-slate-500">Alış / Buluşma</dt><dd class="mt-1 font-bold">{{ res.pickupLocation }}</dd></div>}
@@ -127,6 +129,36 @@ import { ToastService } from "../../services/toast.service";
                       </section>
                     </div>
 
+                    @if (editingId() === res.id) {
+                      <section class="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 sm:p-5" aria-labelledby="booking-edit-title-{{ res.id }}">
+                        <div class="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 [id]="'booking-edit-title-' + res.id" class="font-black text-slate-950">Rezervasyon Bilgilerini Düzenle</h3>
+                            <p class="mt-1 text-xs text-slate-600">Kaydet düğmesine basılmadan hiçbir değişiklik cloud veritabanına yazılmaz.</p>
+                          </div>
+                          <button type="button" (click)="cancelEdit()" class="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-slate-700 shadow-sm" aria-label="Düzenlemeyi kapat"><mat-icon>close</mat-icon></button>
+                        </div>
+
+                        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                          <label class="block"><span class="field-label">Başlangıç tarihi ve saati</span><input type="datetime-local" [(ngModel)]="editStartDate" class="edit-control" /></label>
+                          <label class="block"><span class="field-label">Bitiş tarihi ve saati</span><input type="datetime-local" [(ngModel)]="editEndDate" class="edit-control" /></label>
+                          <label class="block"><span class="field-label">Kişi sayısı</span><input type="number" min="1" max="100" [(ngModel)]="editPersonCount" class="edit-control" /></label>
+                          <label class="block"><span class="field-label">Alış / buluşma noktası</span><input type="text" [(ngModel)]="editPickupLocation" maxlength="240" class="edit-control" /></label>
+                          <label class="block"><span class="field-label">Bırakış noktası</span><input type="text" [(ngModel)]="editDropoffLocation" maxlength="240" class="edit-control" /></label>
+                          @if (res.type === 'RENTAL') {
+                            <label class="block"><span class="field-label">Kiralama türü</span><select [(ngModel)]="editRentalDuration" class="edit-control"><option value="hourly">Saatlik</option><option value="daily">Günlük</option><option value="monthly">Aylık</option><option value="longterm">Uzun dönem</option></select></label>
+                            <label class="flex min-h-12 items-center gap-3 rounded-xl border border-blue-200 bg-white px-4 text-sm font-black text-slate-800"><input type="checkbox" [(ngModel)]="editWithDriver" class="h-5 w-5" />Şoförlü hizmet</label>
+                          }
+                          <label class="block sm:col-span-2"><span class="field-label">Operasyon notu</span><textarea rows="4" [(ngModel)]="editNotes" maxlength="4000" class="edit-control"></textarea></label>
+                        </div>
+
+                        <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                          <button type="button" (click)="cancelEdit()" class="min-h-11 rounded-xl bg-white px-4 text-sm font-black text-slate-700 shadow-sm">Vazgeç</button>
+                          <button type="button" (click)="saveDetails(res)" [disabled]="updatingId() === res.id" class="min-h-11 rounded-xl bg-blue-600 px-5 text-sm font-black text-white disabled:opacity-50">{{ updatingId() === res.id ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet' }}</button>
+                        </div>
+                      </section>
+                    }
+
                     @if (res.notification) {
                       <section class="mt-4 rounded-xl border border-slate-200 bg-white p-4">
                         <h3 class="text-xs font-black uppercase tracking-wider text-slate-400">Son Bildirim Sonucu</h3>
@@ -139,6 +171,7 @@ import { ToastService } from "../../services/toast.service";
                     }
 
                     <div class="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                      <button type="button" (click)="beginEdit(res, $event)" [disabled]="updatingId() === res.id" class="action border border-blue-200 bg-blue-50 text-blue-900"><mat-icon>edit_calendar</mat-icon>Düzenle</button>
                       @if (res.status !== 'APPROVED') {<button type="button" (click)="updateStatus(res.id, 'APPROVED', $event)" [disabled]="updatingId() === res.id" class="action bg-emerald-600 text-white"><mat-icon>check</mat-icon>Onayla</button>}
                       @if (res.status !== 'REJECTED') {<button type="button" (click)="updateStatus(res.id, 'REJECTED', $event)" [disabled]="updatingId() === res.id" class="action bg-rose-600 text-white"><mat-icon>close</mat-icon>Reddet</button>}
                       @if (res.status === 'APPROVED') {<button type="button" (click)="updateStatus(res.id, 'COMPLETED', $event)" [disabled]="updatingId() === res.id" class="action bg-slate-900 text-white"><mat-icon>task_alt</mat-icon>Tamamla</button>}
@@ -157,6 +190,7 @@ import { ToastService } from "../../services/toast.service";
   `,
   styles: [`
     .action{display:flex;min-height:44px;align-items:center;justify-content:center;gap:.4rem;border-radius:.75rem;padding:.55rem .85rem;font-size:.8rem;font-weight:900;transition:filter .15s ease,opacity .15s ease}.action:hover{filter:brightness(.95)}.action:disabled{cursor:not-allowed;opacity:.45}.action:focus-visible{outline:2px solid #3b82f6;outline-offset:2px}
+    .field-label{display:block;margin-bottom:.35rem;font-size:.68rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#475569}.edit-control{min-height:44px;width:100%;border:1px solid #bfdbfe;border-radius:.75rem;background:white;padding:.65rem .75rem;font-size:.875rem;font-weight:700;color:#0f172a;outline:none}.edit-control:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgb(37 99 235/.18)}
   `],
 })
 export class AdminReservationsComponent implements OnInit, OnDestroy {
@@ -169,7 +203,17 @@ export class AdminReservationsComponent implements OnInit, OnDestroy {
   readonly filter = signal<"ALL" | BookingStatus>("ALL");
   readonly typeFilter = signal<string | null>(null);
   readonly expandedId = signal<string | null>(null);
+  readonly editingId = signal<string | null>(null);
   readonly updatingId = signal<string | null>(null);
+
+  editStartDate = "";
+  editEndDate = "";
+  editPersonCount: number | null = null;
+  editPickupLocation = "";
+  editDropoffLocation = "";
+  editRentalDuration = "daily";
+  editWithDriver = false;
+  editNotes = "";
 
   readonly filterOptions: Array<{ value: "ALL" | BookingStatus; label: string }> = [
     { value: "ALL", label: "Tümü" },
@@ -243,6 +287,66 @@ export class AdminReservationsComponent implements OnInit, OnDestroy {
 
   toggleDetail(id: string): void {
     this.expandedId.set(this.expandedId() === id ? null : id);
+    if (this.expandedId() !== id) this.cancelEdit();
+  }
+
+  beginEdit(record: BookingRecord, event?: Event): void {
+    event?.stopPropagation();
+    this.editingId.set(record.id);
+    this.editStartDate = this.toLocalDateTime(record.startDate);
+    this.editEndDate = this.toLocalDateTime(record.endDate);
+    this.editPersonCount = record.personCount ?? null;
+    this.editPickupLocation = record.pickupLocation || "";
+    this.editDropoffLocation = record.dropoffLocation || "";
+    this.editRentalDuration = record.rentalDuration || "daily";
+    this.editWithDriver = Boolean(record.withDriver);
+    this.editNotes = record.notes || "";
+  }
+
+  cancelEdit(): void {
+    this.editingId.set(null);
+  }
+
+  async saveDetails(record: BookingRecord): Promise<void> {
+    if (this.updatingId()) return;
+    const startDate = this.toIsoDateTime(this.editStartDate);
+    const endDate = this.toIsoDateTime(this.editEndDate);
+    if (record.type === "RENTAL" && (!startDate || !endDate || new Date(endDate).getTime() <= new Date(startDate).getTime())) {
+      this.toastService.show("Kiralama başlangıç ve bitiş tarih-saat bilgilerini kontrol edin.", "error");
+      return;
+    }
+    if (startDate && endDate && new Date(endDate).getTime() < new Date(startDate).getTime()) {
+      this.toastService.show("Bitiş zamanı başlangıçtan önce olamaz.", "error");
+      return;
+    }
+
+    this.updatingId.set(record.id);
+    try {
+      await this.bookingService.updateDetails({
+        id: record.id,
+        startDate,
+        endDate,
+        personCount: this.editPersonCount ?? undefined,
+        pickupLocation: this.editPickupLocation.trim(),
+        dropoffLocation: this.editDropoffLocation.trim(),
+        notes: this.editNotes.trim(),
+        withDriver: record.type === "RENTAL" ? this.editWithDriver : undefined,
+        rentalDuration: record.type === "RENTAL" ? this.editRentalDuration : undefined,
+      });
+      this.cancelEdit();
+      this.toastService.show("Rezervasyon bilgileri cloud veritabanında güncellendi.", "success");
+    } catch (error) {
+      console.error("Booking details update failed.", error);
+      const message = error instanceof Error ? error.message : "";
+      this.toastService.show(
+        message.includes("RENTAL_TIME_CONFLICT")
+          ? "Bu tarih/saat aralığında aynı araç için başka bir onaylı rezervasyon var."
+          : "Rezervasyon bilgileri güncellenemedi. Kayıt değiştirilmedi.",
+        "error",
+      );
+    } finally {
+      this.updatingId.set(null);
+    }
   }
 
   async updateStatus(id: string, status: BookingStatus, event?: Event): Promise<void> {
@@ -265,7 +369,13 @@ export class AdminReservationsComponent implements OnInit, OnDestroy {
       this.showDeliveryResult(status, delivery);
     } catch (error) {
       console.error("Booking status update failed.", error);
-      this.toastService.show("Durum güncellenemedi. Mevcut kayıt değiştirilmedi.", "error");
+      const message = error instanceof Error ? error.message : "";
+      this.toastService.show(
+        message.includes("RENTAL_TIME_CONFLICT")
+          ? "Bu araç aynı tarih/saat aralığında başka bir onaylı kiralamaya sahip. Tarihi düzenleyip tekrar deneyin."
+          : "Durum güncellenemedi. Mevcut kayıt değiştirilmedi.",
+        "error",
+      );
     } finally {
       this.updatingId.set(null);
     }
@@ -282,8 +392,9 @@ export class AdminReservationsComponent implements OnInit, OnDestroy {
 
     this.updatingId.set(id);
     try {
-      await this.bookingService.delete(id);
+      await this.bookingService.archive(id);
       this.expandedId.set(null);
+      this.cancelEdit();
       this.toastService.show("Rezervasyon kaydı arşivlendi.", "info");
     } catch (error) {
       console.error("Booking archive failed.", error);
@@ -317,5 +428,19 @@ export class AdminReservationsComponent implements OnInit, OnDestroy {
       return;
     }
     this.toastService.show(`${statusText}. Durum başarıyla kaydedildi.`, "success");
+  }
+
+  private toLocalDateTime(value?: string): string {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    const offset = date.getTimezoneOffset() * 60_000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+  }
+
+  private toIsoDateTime(value: string): string | undefined {
+    if (!value) return undefined;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
   }
 }

@@ -11,11 +11,11 @@ import { AdminOperationsDashboardComponent } from "./admin-operations-dashboard.
     <section class="border-b border-slate-200 bg-slate-950 px-4 py-5 text-white md:px-8">
       <div class="mx-auto max-w-7xl">
         <div class="mb-4">
-          <p class="text-[10px] font-black uppercase tracking-[.2em] text-blue-400">İçerik ve Operasyon Merkezi</p>
+          <p class="text-[10px] font-black uppercase tracking-[.2em] text-blue-400">İçerik, Analitik ve Operasyon Merkezi</p>
           <h2 class="mt-1 text-xl font-black">Hızlı Yönetim</h2>
-          <p class="mt-1 text-xs text-slate-400">Production veritabanı, yayın, ekip, medya ve müşteri operasyonlarına doğrudan erişin.</p>
+          <p class="mt-1 text-xs text-slate-400">Production veritabanı, ziyaretçi davranışı, yayın, ekip, medya ve müşteri operasyonlarına doğrudan erişin.</p>
         </div>
-        <nav class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6" aria-label="Admin hızlı yönetim araçları">
+        <nav class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" aria-label="Admin hızlı yönetim araçları">
           @for (item of tools; track item.route) {
             <a
               [routerLink]="item.route"
@@ -33,6 +33,7 @@ import { AdminOperationsDashboardComponent } from "./admin-operations-dashboard.
 })
 export class AdminDashboardShellComponent {
   readonly tools = [
+    { route: "/admin/analytics", icon: "query_stats", label: "Ziyaretçi Analitiği" },
     { route: "/admin/homepage", icon: "view_quilt", label: "Ana Sayfa Vitrini" },
     { route: "/admin/campaigns", icon: "campaign", label: "Kampanyalar" },
     { route: "/admin/media", icon: "perm_media", label: "Fotoğraf & Video" },
@@ -44,6 +45,8 @@ export class AdminDashboardShellComponent {
     { route: "/admin/team", icon: "groups", label: "Ekip & Yetkiler" },
     { route: "/admin/assignments", icon: "assignment_ind", label: "Görev Merkezi" },
     { route: "/admin/branches", icon: "storefront", label: "Şubeler" },
+    { route: "/admin/whatsapp", icon: "chat", label: "WhatsApp Ayarları" },
     { route: "/admin/system-health", icon: "monitor_heart", label: "Sistem Sağlığı" },
+    { route: "/admin/audit", icon: "history", label: "İşlem Geçmişi" },
   ];
 }

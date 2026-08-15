@@ -28,6 +28,7 @@ import { AdminMediaComponent } from './pages/admin/admin-media.component';
 import { AdminAuditComponent } from './pages/admin/admin-audit.component';
 import { AdminWhatsappSettingsComponent } from './pages/admin/admin-whatsapp-settings.component';
 import { AdminSystemHealthComponent } from './pages/admin/admin-system-health.component';
+import { AdminAnalyticsComponent } from './pages/admin/admin-analytics.component';
 
 const adminGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
@@ -74,6 +75,7 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: AdminDashboardShellComponent },
+      { path: 'analytics', component: AdminAnalyticsComponent, canActivate: [adminAreaGuard('analytics')] },
       { path: 'homepage', component: AdminHomepageComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'campaigns', component: AdminCampaignsComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'media', component: AdminMediaComponent, canActivate: [adminAreaGuard('content')] },

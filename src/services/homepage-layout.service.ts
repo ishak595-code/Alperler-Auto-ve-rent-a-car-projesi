@@ -1,5 +1,6 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
+import { PublicContentRealtimeService } from './public-content-realtime.service';
 
 export interface PublicHomepageSection {
   sectionKey: string;
@@ -27,28 +28,53 @@ export interface PublicHomepagePlacement {
 @Injectable({ providedIn: 'root' })
 export class HomepageLayoutService {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly realtime = inject(PublicContentRealtimeService);
   private readonly _sections = signal<PublicHomepageSection[]>([]);
   private readonly _placements = signal<PublicHomepagePlacement[]>([]);
   private readonly _loading = signal(false);
   private readonly _loaded = signal(false);
   private readonly _error = signal('');
   private readonly _clock = signal(Date.now());
+  private refreshTimer?: number;
+  private refreshQueued = false;
 
   readonly sections = this._sections.asReadonly();
   readonly placements = this._placements.asReadonly();
   readonly loading = this._loading.asReadonly();
   readonly loaded = this._loaded.asReadonly();
   readonly error = this._error.asReadonly();
+  readonly realtimeState = this.realtime.state;
 
   constructor() {
+    const unwatch = this.realtime.watch(
+      ['homepage_sections', 'homepage_placements'],
+      () => this.queueRealtimeRefresh(),
+    );
+    this.destroyRef.onDestroy(unwatch);
+
     if (typeof window !== 'undefined') {
-      const timer = window.setInterval(() => this._clock.set(Date.now()), 60_000);
-      this.destroyRef.onDestroy(() => window.clearInterval(timer));
+      const clockTimer = window.setInterval(() => this._clock.set(Date.now()), 60_000);
+      const fallbackTimer = window.setInterval(() => {
+        if (this._loaded() && document.visibilityState === 'visible') this.queueRealtimeRefresh(0);
+      }, 60_000);
+      const onVisibility = () => {
+        if (document.visibilityState === 'visible' && this._loaded()) this.queueRealtimeRefresh(0);
+      };
+      document.addEventListener('visibilitychange', onVisibility);
+      this.destroyRef.onDestroy(() => {
+        window.clearInterval(clockTimer);
+        window.clearInterval(fallbackTimer);
+        if (this.refreshTimer !== undefined) window.clearTimeout(this.refreshTimer);
+        document.removeEventListener('visibilitychange', onVisibility);
+      });
     }
   }
 
   async load(): Promise<void> {
-    if (this._loading()) return;
+    if (this._loading()) {
+      this.refreshQueued = true;
+      return;
+    }
     this._loading.set(true);
     this._error.set('');
     try {
@@ -83,6 +109,10 @@ export class HomepageLayoutService {
       this._loaded.set(true);
     } finally {
       this._loading.set(false);
+      if (this.refreshQueued) {
+        this.refreshQueued = false;
+        this.queueRealtimeRefresh(50);
+      }
     }
   }
 
@@ -91,6 +121,18 @@ export class HomepageLayoutService {
     return this._placements()
       .filter((row) => row.sectionKey === sectionKey && row.isActive && this.isInsideWindow(row, now))
       .sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
+  private queueRealtimeRefresh(delay = 140): void {
+    if (typeof window === 'undefined') {
+      void this.load();
+      return;
+    }
+    if (this.refreshTimer !== undefined) window.clearTimeout(this.refreshTimer);
+    this.refreshTimer = window.setTimeout(() => {
+      this.refreshTimer = undefined;
+      void this.load();
+    }, delay);
   }
 
   private isInsideWindow(row: PublicHomepagePlacement, now: number): boolean {

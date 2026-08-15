@@ -1,4 +1,4 @@
-import { Injectable, computed, effect, inject, signal } from "@angular/core";
+import { DestroyRef, Injectable, computed, effect, inject, signal } from "@angular/core";
 import { GoogleGenAI } from "@google/genai";
 import { Car, SaleCar, Tour, Vehicle } from "../models/car.model";
 import { SiteConfig } from "../models/site-config.model";
@@ -14,6 +14,8 @@ import {
   fallbackFaqs,
   fallbackInventory,
 } from "./mock-data";
+import { PublicCatalogMediaService } from "./public-catalog-media.service";
+import { PublicContentRealtimeService } from "./public-content-realtime.service";
 
 export interface BlogPost {
   id: number;
@@ -83,7 +85,10 @@ export interface Feedback {
 @Injectable({ providedIn: "root" })
 export class CarService {
   private readonly catalogService = inject(CatalogService);
+  private readonly catalogMediaService = inject(PublicCatalogMediaService);
   private readonly bookingService = inject(BookingService);
+  private readonly realtime = inject(PublicContentRealtimeService);
+  private readonly destroyRef = inject(DestroyRef);
 
   private readonly _bookingRequest = signal<BookingRequest | null>(null);
   private readonly _favoriteCars = signal<(number | string)[]>([]);
@@ -104,6 +109,9 @@ export class CarService {
     ...fallbackInventory.filter((vehicle) => vehicle.category === "TOUR"),
   ]);
 
+  private cloudRefreshTimer?: number;
+  private cloudRefreshInFlight = false;
+  private cloudRefreshQueued = false;
   private genAI: GoogleGenAI | null = null;
   private readonly apiKey =
     (typeof process !== "undefined" && process.env?.["API_KEY"]) || "";
@@ -116,55 +124,95 @@ export class CarService {
     this.installLocalPersistence();
     void this.refreshCloudCatalog();
 
+    const unwatch = this.realtime.watch(
+      ["vehicles", "tours", "catalog_media", "media_assets", "blog_posts", "faqs", "site_config"],
+      () => this.queueCloudCatalogRefresh(),
+    );
+    this.destroyRef.onDestroy(unwatch);
+
     if (typeof window !== "undefined") {
-      window.addEventListener("storage", (event) => {
+      const handleStorage = (event: StorageEvent) => {
         if (event.key?.startsWith("db_")) this.loadFromStorage();
+      };
+      const onVisibility = () => {
+        if (document.visibilityState === "visible") this.queueCloudCatalogRefresh(0);
+      };
+      const fallbackTimer = window.setInterval(() => {
+        if (document.visibilityState === "visible") this.queueCloudCatalogRefresh(0);
+      }, 60_000);
+      window.addEventListener("storage", handleStorage);
+      document.addEventListener("visibilitychange", onVisibility);
+      this.destroyRef.onDestroy(() => {
+        window.removeEventListener("storage", handleStorage);
+        document.removeEventListener("visibilitychange", onVisibility);
+        window.clearInterval(fallbackTimer);
+        if (this.cloudRefreshTimer !== undefined) window.clearTimeout(this.cloudRefreshTimer);
       });
     }
   }
 
-  async refreshCloudCatalog(): Promise<void> {
-    const [vehicles, tours, blog, faqs, config] = await Promise.allSettled([
-      this.catalogService.loadVehicles(),
-      this.catalogService.loadTours(),
-      this.catalogService.loadBlog(),
-      this.catalogService.loadFaqs(),
-      this.catalogService.loadConfig(),
-    ]);
-
-    if (vehicles.status === "fulfilled" && vehicles.value.length > 0) {
-      const mergedVehicles = vehicles.value.map((vehicle) =>
-        this.mergeVehicleWithFallback(vehicle),
-      );
-      this.replaceVehicleCatalog(mergedVehicles);
+  async refreshCloudCatalog(fresh = false): Promise<void> {
+    if (this.cloudRefreshInFlight) {
+      if (fresh) this.cloudRefreshQueued = true;
+      return;
     }
-
-    if (tours.status === "fulfilled" && tours.value.length > 0) {
-      const mergedTours = tours.value.map((tour) =>
-        this.mergeVehicleWithFallback(tour) as Tour,
-      );
-      this._tours.set(mergedTours);
-      this._inventory.update((inventory) => [
-        ...inventory.filter((vehicle) => vehicle.category !== "TOUR"),
-        ...mergedTours,
+    this.cloudRefreshInFlight = true;
+    try {
+      const [vehicles, tours, blog, faqs, config, media] = await Promise.allSettled([
+        this.catalogService.loadVehicles(fresh),
+        this.catalogService.loadTours(fresh),
+        this.catalogService.loadBlog(fresh),
+        this.catalogService.loadFaqs(fresh),
+        this.catalogService.loadConfig(fresh),
+        this.catalogMediaService.loadAll(),
       ]);
-    }
 
-    if (blog.status === "fulfilled" && blog.value.length > 0) {
-      this._blogPosts.set(blog.value.map((post) => this.catalogBlogToBlogPost(post)));
-    }
+      if (vehicles.status === "fulfilled") {
+        const source = media.status === "fulfilled"
+          ? this.catalogMediaService.hydrate(vehicles.value, media.value)
+          : vehicles.value;
+        const mergedVehicles = source.map((vehicle) =>
+          this.mergeVehicleWithFallback(vehicle),
+        );
+        this.replaceVehicleCatalog(mergedVehicles);
+      }
 
-    if (faqs.status === "fulfilled" && faqs.value.length > 0) {
-      this._faqs.set(faqs.value.map((faq) => this.catalogFaqToFaq(faq)));
-    }
+      if (tours.status === "fulfilled") {
+        const source = media.status === "fulfilled"
+          ? this.catalogMediaService.hydrate(tours.value, media.value)
+          : tours.value;
+        const mergedTours = source.map((tour) =>
+          this.mergeVehicleWithFallback(tour) as Tour,
+        );
+        this._tours.set(mergedTours);
+        this._inventory.update((inventory) => [
+          ...inventory.filter((vehicle) => vehicle.category !== "TOUR"),
+          ...mergedTours,
+        ]);
+      }
 
-    if (config.status === "fulfilled" && config.value) {
-      this._config.set(this.normalizeConfig(config.value));
+      if (blog.status === "fulfilled") {
+        this._blogPosts.set(blog.value.map((post) => this.catalogBlogToBlogPost(post)));
+      }
+
+      if (faqs.status === "fulfilled") {
+        this._faqs.set(faqs.value.map((faq) => this.catalogFaqToFaq(faq)));
+      }
+
+      if (config.status === "fulfilled" && config.value) {
+        this._config.set(this.normalizeConfig(config.value));
+      }
+    } finally {
+      this.cloudRefreshInFlight = false;
+      if (this.cloudRefreshQueued) {
+        this.cloudRefreshQueued = false;
+        this.queueCloudCatalogRefresh(60);
+      }
     }
   }
 
   async ensureVehicleCloudInventory(): Promise<void> {
-    await this.refreshCloudCatalog();
+    await this.refreshCloudCatalog(true);
   }
 
   resetStats(): void {
@@ -703,11 +751,28 @@ export class CarService {
     const fallback = fallbackInventory.find(
       (candidate) => String(candidate.id) === String(vehicle.id),
     );
-    return {
-      ...(fallback || {}),
+    const safeFallback: Partial<Vehicle> = fallback ? { ...fallback } : {};
+    delete safeFallback.image;
+    delete safeFallback.images;
+    delete safeFallback.gallery;
+    delete safeFallback.videos;
+    const cloudBacked = Boolean(vehicle.cloudId);
+    const merged = {
+      ...safeFallback,
       ...vehicle,
       category: vehicle.category || fallback?.category,
     } as Vehicle;
+    if (cloudBacked) {
+      merged.image = vehicle.image;
+      merged.images = Array.isArray(vehicle.images) ? vehicle.images : [];
+      merged.gallery = Array.isArray(vehicle.gallery)
+        ? vehicle.gallery
+        : Array.isArray(vehicle.images)
+          ? vehicle.images
+          : [];
+      merged.videos = Array.isArray(vehicle.videos) ? vehicle.videos : [];
+    }
+    return merged;
   }
 
   private replaceVehicleCatalog(vehicles: Vehicle[]): void {
@@ -769,6 +834,18 @@ export class CarService {
           String(item.id) === String(value.id) ? value : item,
         )
       : [value, ...items];
+  }
+
+  private queueCloudCatalogRefresh(delay = 140): void {
+    if (typeof window === "undefined") {
+      void this.refreshCloudCatalog(true);
+      return;
+    }
+    if (this.cloudRefreshTimer !== undefined) window.clearTimeout(this.cloudRefreshTimer);
+    this.cloudRefreshTimer = window.setTimeout(() => {
+      this.cloudRefreshTimer = undefined;
+      void this.refreshCloudCatalog(true);
+    }, delay);
   }
 
   private incrementVisitCount(): void {

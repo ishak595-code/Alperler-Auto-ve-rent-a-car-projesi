@@ -1,7 +1,8 @@
-import { computed, inject, Injectable, signal } from "@angular/core";
+import { DestroyRef, computed, inject, Injectable, signal } from "@angular/core";
 import { Branch } from "../models/branch.model";
 import { AuthService } from "./auth.service";
 import { CarService } from "./car.service";
+import { PublicContentRealtimeService } from "./public-content-realtime.service";
 
 interface BranchApiResponse {
   ok: boolean;
@@ -14,12 +15,15 @@ interface BranchApiResponse {
 export class BranchService {
   private readonly carService = inject(CarService);
   private readonly authService = inject(AuthService);
+  private readonly realtime = inject(PublicContentRealtimeService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly publicRemoteBranches = signal<Branch[]>([]);
   private readonly publicRemoteAvailable = signal(false);
   private readonly adminRemoteBranches = signal<Branch[]>([]);
   private readonly adminLoaded = signal(false);
   private readonly syncError = signal<string | null>(null);
   private readonly refreshMs = 5 * 60 * 1000;
+  private realtimeRefreshTimer?: number;
 
   private readonly fallbackBranches = computed<Branch[]>(() => {
     const config = this.carService.getConfig()();
@@ -58,7 +62,22 @@ export class BranchService {
 
   constructor() {
     void this.refreshPublic();
-    setInterval(() => void this.refreshPublic(false), this.refreshMs);
+
+    const unwatch = this.realtime.watch(["branches"], () => this.queueRealtimeRefresh());
+    this.destroyRef.onDestroy(unwatch);
+
+    if (typeof window !== "undefined") {
+      const fallbackTimer = window.setInterval(() => void this.refreshPublic(false), this.refreshMs);
+      const onVisibility = () => {
+        if (document.visibilityState === "visible") this.queueRealtimeRefresh(0);
+      };
+      document.addEventListener("visibilitychange", onVisibility);
+      this.destroyRef.onDestroy(() => {
+        window.clearInterval(fallbackTimer);
+        if (this.realtimeRefreshTimer !== undefined) window.clearTimeout(this.realtimeRefreshTimer);
+        document.removeEventListener("visibilitychange", onVisibility);
+      });
+    }
   }
 
   async refresh(): Promise<void> {
@@ -122,9 +141,9 @@ export class BranchService {
 
   async refreshPublic(showError = true): Promise<void> {
     try {
-      const records = await this.fetchBranches("/api/branches");
+      const records = await this.fetchBranches(`/api/branches?fresh=${Date.now()}`);
       this.publicRemoteBranches.set(records);
-      this.publicRemoteAvailable.set(records.length > 0);
+      this.publicRemoteAvailable.set(true);
       this.syncError.set(null);
     } catch (error) {
       console.info("Branch source unavailable; verified fallback remains active.", error);
@@ -133,11 +152,24 @@ export class BranchService {
     }
   }
 
+  private queueRealtimeRefresh(delay = 120): void {
+    if (typeof window === "undefined") {
+      void this.refreshPublic(false);
+      return;
+    }
+    if (this.realtimeRefreshTimer !== undefined) window.clearTimeout(this.realtimeRefreshTimer);
+    this.realtimeRefreshTimer = window.setTimeout(() => {
+      this.realtimeRefreshTimer = undefined;
+      void this.refreshPublic(false);
+    }, delay);
+  }
+
   private async fetchBranches(url: string, accessToken?: string): Promise<Branch[]> {
     const response = await fetch(url, {
       headers: {
         accept: "application/json",
         ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
+        "cache-control": "no-cache",
       },
       cache: "no-store",
     });

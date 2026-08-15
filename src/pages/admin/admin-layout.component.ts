@@ -25,6 +25,7 @@ interface AdminNavGroup {
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, ToastComponent, ConfirmModalComponent],
   styles: [`
     @media (prefers-reduced-motion: reduce){.admin-drawer{transition:none!important}}
+    :host ::ng-deep .sticky.top-0{top:4rem!important}
   `],
   template: `
     <app-toast></app-toast>

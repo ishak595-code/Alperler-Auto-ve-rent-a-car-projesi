@@ -1,21 +1,21 @@
 import { Component } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
-import { AdminDashboardComponent } from "./admin-dashboard.component";
+import { AdminOperationsDashboardComponent } from "./admin-operations-dashboard.component";
 
 @Component({
   selector: "app-admin-dashboard-shell",
   standalone: true,
-  imports: [RouterLink, MatIconModule, AdminDashboardComponent],
+  imports: [RouterLink, MatIconModule, AdminOperationsDashboardComponent],
   template: `
     <section class="border-b border-slate-200 bg-slate-950 px-4 py-5 text-white md:px-8">
       <div class="mx-auto max-w-7xl">
         <div class="mb-4">
           <p class="text-[10px] font-black uppercase tracking-[.2em] text-blue-400">İçerik ve Operasyon Merkezi</p>
           <h2 class="mt-1 text-xl font-black">Hızlı Yönetim</h2>
-          <p class="mt-1 text-xs text-slate-400">Siteyi oluşturan canlı veritabanı modüllerine ve production sağlığına doğrudan erişin.</p>
+          <p class="mt-1 text-xs text-slate-400">Production veritabanı, yayın, ekip, medya ve müşteri operasyonlarına doğrudan erişin.</p>
         </div>
-        <nav class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-10" aria-label="Admin hızlı yönetim araçları">
+        <nav class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6" aria-label="Admin hızlı yönetim araçları">
           @for (item of tools; track item.route) {
             <a
               [routerLink]="item.route"
@@ -28,7 +28,7 @@ import { AdminDashboardComponent } from "./admin-dashboard.component";
         </nav>
       </div>
     </section>
-    <app-admin-dashboard />
+    <app-admin-operations-dashboard />
   `,
 })
 export class AdminDashboardShellComponent {
@@ -37,11 +37,13 @@ export class AdminDashboardShellComponent {
     { route: "/admin/campaigns", icon: "campaign", label: "Kampanyalar" },
     { route: "/admin/media", icon: "perm_media", label: "Fotoğraf & Video" },
     { route: "/admin/catalog-editor", icon: "tune", label: "Tam Katalog Editörü" },
+    { route: "/admin/reservations", icon: "event_note", label: "Rezervasyonlar" },
+    { route: "/admin/partner-requests", icon: "directions_car", label: "Araç Başvuruları" },
+    { route: "/admin/feedback", icon: "mark_email_unread", label: "Mesaj Kutusu" },
+    { route: "/admin/subscribers", icon: "mark_email_read", label: "Bülten Merkezi" },
     { route: "/admin/team", icon: "groups", label: "Ekip & Yetkiler" },
     { route: "/admin/assignments", icon: "assignment_ind", label: "Görev Merkezi" },
     { route: "/admin/branches", icon: "storefront", label: "Şubeler" },
-    { route: "/admin/whatsapp", icon: "chat", label: "WhatsApp Ayarları" },
     { route: "/admin/system-health", icon: "monitor_heart", label: "Sistem Sağlığı" },
-    { route: "/admin/audit", icon: "history", label: "İşlem Geçmişi" },
   ];
 }

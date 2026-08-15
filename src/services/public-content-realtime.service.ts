@@ -44,7 +44,6 @@ export class PublicContentRealtimeService {
   private reconnectAttempt = 0;
   private sequence = 0;
   private intentionalClose = false;
-  private joined = false;
 
   private readonly _state = signal<RealtimeState>('IDLE');
   readonly state = this._state.asReadonly();
@@ -108,7 +107,6 @@ export class PublicContentRealtimeService {
     this.clearReconnectTimer();
     this.closeSocket(false);
     this.intentionalClose = false;
-    this.joined = false;
     this._state.set(this.reconnectAttempt > 0 ? 'RETRYING' : 'CONNECTING');
 
     const wsBase = SUPABASE_PROJECT_URL.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
@@ -124,7 +122,6 @@ export class PublicContentRealtimeService {
     socket.onclose = () => {
       if (this.socket === socket) this.socket = undefined;
       this.stopHeartbeat();
-      this.joined = false;
       if (!this.intentionalClose && this.handlers.size > 0) this.scheduleReconnect();
     };
   }
@@ -158,7 +155,6 @@ export class PublicContentRealtimeService {
     }
 
     if (message.event === 'phx_reply' && message.payload?.status === 'ok') {
-      this.joined = true;
       this.reconnectAttempt = 0;
       this._state.set('LIVE');
       return;
@@ -243,7 +239,6 @@ export class PublicContentRealtimeService {
     const socket = this.socket;
     this.socket = undefined;
     this.stopHeartbeat();
-    this.joined = false;
     if (socket && socket.readyState !== WebSocket.CLOSED) socket.close();
   }
 

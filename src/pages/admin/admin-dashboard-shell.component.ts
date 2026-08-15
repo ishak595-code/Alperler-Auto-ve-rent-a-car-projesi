@@ -15,7 +15,7 @@ import { AdminDashboardComponent } from "./admin-dashboard.component";
           <h2 class="mt-1 text-xl font-black">Hızlı Yönetim</h2>
           <p class="mt-1 text-xs text-slate-400">Siteyi oluşturan canlı veritabanı modüllerine ve production sağlığına doğrudan erişin.</p>
         </div>
-        <nav class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9" aria-label="Admin hızlı yönetim araçları">
+        <nav class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-10" aria-label="Admin hızlı yönetim araçları">
           @for (item of tools; track item.route) {
             <a
               [routerLink]="item.route"
@@ -38,6 +38,7 @@ export class AdminDashboardShellComponent {
     { route: "/admin/media", icon: "perm_media", label: "Fotoğraf & Video" },
     { route: "/admin/catalog-editor", icon: "tune", label: "Tam Katalog Editörü" },
     { route: "/admin/team", icon: "groups", label: "Ekip & Yetkiler" },
+    { route: "/admin/assignments", icon: "assignment_ind", label: "Görev Merkezi" },
     { route: "/admin/branches", icon: "storefront", label: "Şubeler" },
     { route: "/admin/whatsapp", icon: "chat", label: "WhatsApp Ayarları" },
     { route: "/admin/system-health", icon: "monitor_heart", label: "Sistem Sağlığı" },

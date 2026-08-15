@@ -95,10 +95,10 @@ with target as (
 )
 update public.vehicles v
 set cover_image = media.external_url,
-    images = array[
+    images = jsonb_build_array(
       media.external_url,
       'https://commons.wikimedia.org/wiki/Special:Redirect/file/Mercedes-Benz%20C-Class%20%28W206%2C%20rear%29.jpg?width=1600'
-    ]::text[],
+    ),
     metadata = coalesce(v.metadata, '{}'::jsonb) || jsonb_build_object(
       'coverMediaSourceUrl', 'https://commons.wikimedia.org/wiki/File:Mercedes-Benz_C_200_(W206,_2023)_(54708506199).jpg',
       'coverMediaLicense', 'CC0 1.0',
@@ -201,7 +201,7 @@ with target as (
 )
 update public.vehicles v
 set cover_image = media.external_url,
-    images = array[media.external_url]::text[],
+    images = jsonb_build_array(media.external_url),
     metadata = coalesce(v.metadata, '{}'::jsonb) || jsonb_build_object(
       'coverMediaSourceUrl', 'https://commons.wikimedia.org/wiki/File:Toyota_HiLux_Invincible,_WAW(1).jpg',
       'coverMediaLicense', 'CC BY-SA 4.0',

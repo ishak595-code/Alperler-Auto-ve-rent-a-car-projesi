@@ -37,20 +37,41 @@ app-sales app-vehicle-list-item {
 /* Standalone detail/transaction pages do not render the public navbar.
    Their own back/navigation bar must therefore stay at the actual viewport top. */
 app-car-detail > div > div.sticky,
-app-appointment > div > div.sticky {
+app-appointment > div > div.sticky,
+app-booking-checkout header.sticky,
+app-tour-detail > div > div.sticky {
   top: 0 !important;
 }
 
-/* Icon-only controls in vehicle detail headers keep a full touch target. */
+/* Back, share, favourite and close controls keep a reliable 48px target for
+   TalkBack, VoiceOver, switch access and touch exploration. */
 app-car-detail > div > div.sticky button,
+app-sale-car-detail header.sticky button,
+app-booking-checkout header.sticky button,
+app-tour-detail > div > div.sticky button,
+app-catalog-mixed-gallery [role="dialog"] header button {
+  min-width: 48px;
+  min-height: 48px;
+  touch-action: manipulation;
+}
+
 app-sale-car-detail header.sticky button {
-  min-width: 44px;
-  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Detail pages use a landscape gallery on mobile. */
 app-sale-car-detail .aspect-square {
   aspect-ratio: 16 / 9 !important;
+}
+
+/* Native date/time controls need enough height to expose their full accessible
+   hit area on Android browsers and screen-reader touch exploration. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  min-height: 48px;
 }
 
 /* Keep the premium brand subtitle visible on phones. */
@@ -101,6 +122,14 @@ input[type="radio"] {
    after an error/success announcement. */
 [tabindex="-1"]:focus:not(:focus-visible) {
   outline: none;
+}
+
+/* Windows High Contrast / forced-colours users keep a visible focus state. */
+@media (forced-colors: active) {
+  :where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 3px solid Highlight !important;
+    outline-offset: 3px !important;
+  }
 }
 
 /* Respect reduced-motion users and reduce visual movement while navigating

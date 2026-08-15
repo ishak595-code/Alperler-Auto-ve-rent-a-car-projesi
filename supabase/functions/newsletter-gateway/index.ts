@@ -9,7 +9,7 @@ const WELCOME_CAMPAIGN_ID = "eeeeeeee-0000-4000-8000-000000000001";
 const allowedOrigin = (origin: string): string => {
   if (!origin) return "*";
   try {
-    const host = new URL(origin).hostname.toLowerCase();
+    const host = new globalThis.URL(origin).hostname.toLowerCase();
     if (host === "alperrentacar.online" || host === "www.alperrentacar.online" || host === "localhost" || host === "127.0.0.1" || host.endsWith(".vercel.app")) return origin;
   } catch { /* reject below */ }
   return "null";
@@ -52,7 +52,7 @@ async function unsubscribe(token: string): Promise<Response> {
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: responseHeaders(request) });
   if (!URL || !SERVICE_KEY) return json(request, { ok: false, code: "SERVER_CONFIG_MISSING" }, 503);
-  const parsed = new URL(request.url), unsubscribeToken = parsed.searchParams.get("unsubscribe");
+  const parsed = new globalThis.URL(request.url), unsubscribeToken = parsed.searchParams.get("unsubscribe");
   if (request.method === "GET" && unsubscribeToken) return unsubscribe(unsubscribeToken);
   if (request.method !== "POST") return json(request, { ok: false, code: "METHOD_NOT_ALLOWED" }, 405);
   if (Number(request.headers.get("content-length") || 0) > 4096) return json(request, { ok: false, code: "PAYLOAD_TOO_LARGE" }, 413);

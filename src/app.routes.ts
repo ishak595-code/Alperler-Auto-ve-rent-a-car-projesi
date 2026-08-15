@@ -24,6 +24,7 @@ import { AdminToursComponent } from './pages/admin/admin-tours.component';
 import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
 import { AdminHomepageComponent } from './pages/admin/admin-homepage.component';
 import { AdminTeamComponent } from './pages/admin/admin-team.component';
+import { AdminPermissionsComponent } from './pages/admin/admin-permissions.component';
 import { AdminBranchesComponent } from './pages/admin/admin-branches.component';
 import { AdminCampaignsComponent } from './pages/admin/admin-campaigns.component';
 import { AdminCatalogEditorComponent } from './pages/admin/admin-catalog-editor.component';
@@ -80,6 +81,7 @@ export const routes: Routes = [
       { path: 'catalog-editor', component: AdminCatalogEditorComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'whatsapp', component: AdminWhatsappSettingsComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'team', component: AdminTeamComponent, canActivate: [adminAreaGuard('team')] },
+      { path: 'permissions', component: AdminPermissionsComponent, canActivate: [adminAreaGuard('team')] },
       { path: 'branches', component: AdminBranchesComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'cars', component: AdminCarsComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'reservations', component: AdminReservationsComponent, canActivate: [adminAreaGuard('operations')] },

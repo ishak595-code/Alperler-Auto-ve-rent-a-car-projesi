@@ -138,7 +138,7 @@ interface SelectedUpload {
               }
 
               <label class="field mt-4"><span>Alt metin</span><input [(ngModel)]="uploadAlt" maxlength="300" placeholder="Örn. 2023 Renault Clio ön üç çeyrek görünüm" /></label>
-              <label class="mt-3 flex min-h-11 items-center gap-2 rounded-xl bg-slate-50 px-3 text-sm font-bold"><input type="checkbox" [(ngModel)]="uploadAsCover" /> İlk dosyayı kapak yap</label>
+              <label class="mt-3 flex min-h-11 items-center gap-2 rounded-xl bg-slate-50 px-3 text-sm font-bold"><input type="checkbox" [(ngModel)]="uploadAsCover" /> Seçilen ilk fotoğrafı kapak yap</label>
 
               @if (uploading()) {
                 <div class="mt-4 rounded-xl bg-slate-950 p-3 text-white">
@@ -159,13 +159,19 @@ interface SelectedUpload {
               <div class="mt-4 space-y-3">
                 <label class="field"><span>Tür</span><select [(ngModel)]="externalKind"><option value="IMAGE">Görsel</option><option value="VIDEO">Video</option></select></label>
                 <label class="field"><span>HTTPS medya URL</span><input [(ngModel)]="externalUrl" type="url" /></label>
+                @if (externalKind === 'VIDEO') {
+                  <label class="field"><span>Video poster görseli URL</span><input [(ngModel)]="externalPosterUrl" type="url" placeholder="https://...jpg" /></label>
+                }
                 <label class="field"><span>Kaynak sayfası</span><input [(ngModel)]="sourceUrl" type="url" /></label>
                 <label class="field"><span>Kaynak adı</span><input [(ngModel)]="sourceName" /></label>
                 <label class="field"><span>Lisans</span><input [(ngModel)]="license" /></label>
                 <label class="field"><span>Atıf</span><input [(ngModel)]="attribution" /></label>
                 <label class="field"><span>Alt metin</span><input [(ngModel)]="externalAlt" maxlength="300" /></label>
-                <label class="flex min-h-11 items-center gap-2 rounded-xl bg-slate-50 px-3 text-sm font-bold"><input type="checkbox" [(ngModel)]="externalAsCover" /> Kapak yap</label>
-                <button type="button" (click)="addExternal()" [disabled]="!selectedEntityKey() || !externalUrl.trim() || !externalAlt.trim() || remainingCapacity() < 1" class="min-h-12 w-full rounded-xl bg-slate-950 font-black text-white disabled:opacity-40">Kaynaklı Medyayı Ekle</button>
+                <label class="flex min-h-11 items-center gap-2 rounded-xl bg-slate-50 px-3 text-sm font-bold"><input type="checkbox" [(ngModel)]="externalAsCover" [disabled]="externalKind === 'VIDEO' && !externalPosterUrl.trim()" /> Kapak yap</label>
+                @if (externalKind === 'VIDEO' && externalAsCover && !externalPosterUrl.trim()) {
+                  <p class="text-xs font-bold text-amber-700">Video kapak seçilecekse poster görseli gerekir.</p>
+                }
+                <button type="button" (click)="addExternal()" [disabled]="!selectedEntityKey() || !externalUrl.trim() || !externalAlt.trim() || remainingCapacity() < 1 || (externalAsCover && externalKind === 'VIDEO' && !externalPosterUrl.trim())" class="min-h-12 w-full rounded-xl bg-slate-950 font-black text-white disabled:opacity-40">Kaynaklı Medyayı Ekle</button>
               </div>
             </div>
           </aside>
@@ -188,7 +194,7 @@ interface SelectedUpload {
                     </div>
                     <div class="space-y-3 p-4">
                       <label class="field"><span>Alt metin</span><input [(ngModel)]="item.altText" maxlength="300" /></label>
-                      <div class="grid grid-cols-2 gap-2"><label class="field"><span>Sıra</span><input type="number" [(ngModel)]="item.sortOrder" min="0" /></label><label class="flex items-end"><span class="flex min-h-11 w-full items-center gap-2 rounded-xl bg-slate-50 px-3 text-xs font-black"><input type="checkbox" [(ngModel)]="item.isCover" /> Kapak</span></label></div>
+                      <div class="grid grid-cols-2 gap-2"><label class="field"><span>Sıra</span><input type="number" [(ngModel)]="item.sortOrder" min="0" /></label><label class="flex items-end"><span class="flex min-h-11 w-full items-center gap-2 rounded-xl bg-slate-50 px-3 text-xs font-black"><input type="checkbox" [(ngModel)]="item.isCover" [disabled]="item.kind === 'VIDEO' && !item.posterUrl" /> Kapak</span></label></div>
                       @if (item.metadata?.['width'] || item.metadata?.['height'] || item.metadata?.['durationSeconds']) {
                         <div class="rounded-xl bg-slate-50 p-3 text-[11px] text-slate-600">
                           @if (item.metadata?.['width'] && item.metadata?.['height']) { <span>{{ item.metadata?.['width'] }} × {{ item.metadata?.['height'] }} px</span> }
@@ -231,6 +237,7 @@ export class AdminMediaComponent implements OnInit, OnDestroy {
   uploadAsCover = false;
   externalKind: "IMAGE" | "VIDEO" = "IMAGE";
   externalUrl = "";
+  externalPosterUrl = "";
   sourceUrl = "";
   sourceName = "";
   license = "";
@@ -254,13 +261,8 @@ export class AdminMediaComponent implements OnInit, OnDestroy {
   readonly remainingCapacity = computed(() => Math.max(0, this.mediaPolicy().maxItemsPerEntity - this.currentItems().length));
   readonly acceptedTypes = computed(() => this.mediaPolicy().acceptedMimeTypes.join(","));
 
-  ngOnInit(): void {
-    void this.initialize();
-  }
-
-  ngOnDestroy(): void {
-    this.revokeAllPreviews();
-  }
+  ngOnInit(): void { void this.initialize(); }
+  ngOnDestroy(): void { this.revokeAllPreviews(); }
 
   async initialize(): Promise<void> {
     await this.media.refreshPolicy();
@@ -275,11 +277,8 @@ export class AdminMediaComponent implements OnInit, OnDestroy {
   }
 
   async refresh(): Promise<void> {
-    try {
-      this.allItems.set(await this.media.loadAllAdmin());
-    } catch (error) {
-      this.toast.show(this.message(error), "error");
-    }
+    try { this.allItems.set(await this.media.loadAllAdmin()); }
+    catch (error) { this.toast.show(this.message(error), "error"); }
   }
 
   selectFiles(event: Event): void {
@@ -357,12 +356,13 @@ export class AdminMediaComponent implements OnInit, OnDestroy {
     try {
       const queue = [...this.selectedUploads()];
       const baseOrder = this.currentItems().length;
+      const coverCandidate = this.uploadAsCover ? queue.find((entry) => entry.kind === "IMAGE") : undefined;
       for (let index = 0; index < queue.length; index += 1) {
         const selected = queue[index];
         this.uploadStatus.set(`${index + 1} / ${queue.length}: ${selected.file.name}`);
         await this.media.upload(entity.type, entity.id, selected.file, {
           altText: this.uploadAlt || selected.file.name,
-          isCover: this.uploadAsCover && index === 0,
+          isCover: selected.key === coverCandidate?.key,
           sortOrder: baseOrder + index + 1,
         });
         this.removeSelected(selected.key);
@@ -389,6 +389,7 @@ export class AdminMediaComponent implements OnInit, OnDestroy {
         entityId: entity.id,
         kind: this.externalKind,
         url: this.externalUrl.trim(),
+        posterUrl: this.externalKind === "VIDEO" ? this.externalPosterUrl.trim() || undefined : undefined,
         sourceUrl: this.sourceUrl.trim() || undefined,
         sourceName: this.sourceName.trim() || undefined,
         license: this.license.trim() || undefined,
@@ -398,6 +399,7 @@ export class AdminMediaComponent implements OnInit, OnDestroy {
         sortOrder: this.currentItems().length + 1,
       });
       this.externalUrl = "";
+      this.externalPosterUrl = "";
       this.sourceUrl = "";
       this.sourceName = "";
       this.license = "";
@@ -416,9 +418,7 @@ export class AdminMediaComponent implements OnInit, OnDestroy {
       await this.media.update(item, { altText: item.altText, sortOrder: item.sortOrder, isCover: item.isCover });
       await this.refresh();
       this.toast.show("Medya bilgileri kaydedildi.", "success");
-    } catch (error) {
-      this.toast.show(this.message(error), "error");
-    }
+    } catch (error) { this.toast.show(this.message(error), "error"); }
   }
 
   async removeItem(item: CatalogMediaItem): Promise<void> {
@@ -426,14 +426,10 @@ export class AdminMediaComponent implements OnInit, OnDestroy {
       await this.media.remove(item);
       await this.refresh();
       this.toast.show("Medya kaldırıldı.", "info");
-    } catch (error) {
-      this.toast.show(this.message(error), "error");
-    }
+    } catch (error) { this.toast.show(this.message(error), "error"); }
   }
 
-  formatBytes(bytes: number): string {
-    return formatBytesStatic(bytes);
-  }
+  formatBytes(bytes: number): string { return formatBytesStatic(bytes); }
 
   private selectedEntity(): { type: CatalogEntityType; id: string } | null {
     const key = this.selectedEntityKey();
@@ -442,17 +438,9 @@ export class AdminMediaComponent implements OnInit, OnDestroy {
     return { type: key.slice(0, separator) as CatalogEntityType, id: key.slice(separator + 1) };
   }
 
-  private fileKey(file: File): string {
-    return `${file.name}|${file.size}|${file.type}|${file.lastModified}`;
-  }
-
-  private revokeAllPreviews(): void {
-    this.selectedUploads().forEach((entry) => URL.revokeObjectURL(entry.previewUrl));
-  }
-
-  private message(error: unknown): string {
-    return error instanceof Error ? error.message : "Medya işlemi tamamlanamadı.";
-  }
+  private fileKey(file: File): string { return `${file.name}|${file.size}|${file.type}|${file.lastModified}`; }
+  private revokeAllPreviews(): void { this.selectedUploads().forEach((entry) => URL.revokeObjectURL(entry.previewUrl)); }
+  private message(error: unknown): string { return error instanceof Error ? error.message : "Medya işlemi tamamlanamadı."; }
 }
 
 function formatBytesStatic(bytes: number): string {

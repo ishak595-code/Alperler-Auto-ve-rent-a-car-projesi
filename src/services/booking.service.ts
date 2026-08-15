@@ -11,6 +11,7 @@ import {
 } from "../models/booking.model";
 import { AuthService } from "./auth.service";
 import { currentAnalyticsSessionId } from "./analytics-link.util";
+import { AnalyticsIdentityService } from "./analytics-identity.service";
 
 interface BookingApiResponse {
   ok: boolean;
@@ -30,6 +31,7 @@ interface ApiBooking extends Omit<BookingRecord, "createdAt" | "updatedAt"> {
 export class BookingService {
   private readonly http = inject(HttpClient);
   private readonly authService = inject(AuthService);
+  private readonly analyticsIdentity = inject(AnalyticsIdentityService);
   private readonly bookings = signal<BookingRecord[]>([]);
   private readonly adminError = signal<string | null>(null);
   private readonly adminLoaded = signal(false);
@@ -52,6 +54,12 @@ export class BookingService {
     const record = this.fromApi(response.booking);
     if (response.notification) record.notification = response.notification;
     this.upsertLocal(record);
+    void this.analyticsIdentity.link({
+      entityType: "BOOKING",
+      reference: record.id,
+      phone: normalized.customerPhone,
+      email: normalized.customerEmail,
+    });
     return record;
   }
 

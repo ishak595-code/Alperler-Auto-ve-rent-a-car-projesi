@@ -34,6 +34,20 @@ app-sales app-vehicle-list-item {
   }
 }
 
+/* Standalone detail/transaction pages do not render the public navbar.
+   Their own back/navigation bar must therefore stay at the actual viewport top. */
+app-car-detail > div > div.sticky,
+app-appointment > div > div.sticky {
+  top: 0 !important;
+}
+
+/* Icon-only controls in vehicle detail headers keep a full touch target. */
+app-car-detail > div > div.sticky button,
+app-sale-car-detail header.sticky button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
 /* Detail pages use a landscape gallery on mobile. */
 app-sale-car-detail .aspect-square {
   aspect-ratio: 16 / 9 !important;

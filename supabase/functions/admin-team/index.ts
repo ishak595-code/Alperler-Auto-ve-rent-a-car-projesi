@@ -23,6 +23,19 @@ function clean(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
+function adminInviteRedirect(): string {
+  const configured = clean(Deno.env.get("ADMIN_INVITE_REDIRECT_URL"), 500);
+  if (configured) {
+    try {
+      const parsed = new globalThis.URL(configured);
+      if (parsed.protocol === "https:") return parsed.toString();
+    } catch {
+      console.warn("Ignoring invalid ADMIN_INVITE_REDIRECT_URL");
+    }
+  }
+  return "https://alperrentacar.online/admin/login";
+}
+
 function email(value: unknown): string | null {
   const normalized = clean(value, 200).toLowerCase();
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) ? normalized : null;
@@ -116,7 +129,7 @@ async function invite(actor: { id: string; email: string }, input: Record<string
   let invited = false;
   if (!user) {
     const { data, error } = await admin.auth.admin.inviteUserByEmail(targetEmail, {
-      data: { display_name: displayName, invited_by: actor.email },
+      redirectTo: adminInviteRedirect(),
     });
     if (error || !data.user?.id) {
       console.error("admin invite failed", error);

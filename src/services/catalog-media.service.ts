@@ -89,8 +89,7 @@ export class CatalogMediaService {
     const url = `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?${column}=eq.${encodeURIComponent(entityId)}${activeFilter}&select=*&order=sort_order.asc,created_at.asc`;
     const response = await fetch(url, { headers: adminToken ? this.authHeaders(adminToken) : this.publicHeaders() });
     if (!response.ok) throw new Error(`CATALOG_MEDIA_LOAD_${response.status}`);
-    const rows = (await response.json()) as CatalogMediaRow[];
-    return rows.map((row) => this.fromRow(row));
+    return ((await response.json()) as CatalogMediaRow[]).map((row) => this.fromRow(row));
   }
 
   async loadAllAdmin(): Promise<CatalogMediaItem[]> {
@@ -112,6 +111,7 @@ export class CatalogMediaService {
     this.validateFile(file);
     const token = await this.requiredToken();
     const kind: CatalogMediaKind = file.type.startsWith("video/") ? "VIDEO" : "IMAGE";
+    if (options.isCover && kind !== "IMAGE") throw new Error("CATALOG_COVER_REQUIRES_IMAGE");
     const extension = this.extension(file);
     const objectPath = `${entityType.toLowerCase()}/${entityId}/${crypto.randomUUID()}.${extension}`;
     this._uploadProgress.set(0);
@@ -123,7 +123,6 @@ export class CatalogMediaService {
         this._uploadProgress.set(100);
       }
 
-      if (options.isCover) await this.clearExistingCover(entityType, entityId, token);
       const row = {
         ...this.ownerPayload(entityType, entityId),
         kind,
@@ -137,7 +136,7 @@ export class CatalogMediaService {
         attribution: "Alperler Auto",
         alt_text: (options.altText || file.name).trim().slice(0, 300),
         sort_order: options.sortOrder ?? 0,
-        is_cover: Boolean(options.isCover),
+        is_cover: false,
         is_active: true,
         metadata: {
           originalName: file.name,
@@ -150,19 +149,21 @@ export class CatalogMediaService {
           verifiedAt: new Date().toISOString().slice(0, 10),
         },
       };
-      const response = await fetch(
-        `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?select=*`,
-        {
-          method: "POST",
-          headers: { ...this.authHeaders(token), Prefer: "return=representation" },
-          body: JSON.stringify(row),
-        },
-      );
+      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?select=*`, {
+        method: "POST",
+        headers: { ...this.authHeaders(token), Prefer: "return=representation" },
+        body: JSON.stringify(row),
+      });
       if (!response.ok) {
         await this.deleteStorageObject(objectPath, token).catch(() => undefined);
         throw new Error(`CATALOG_MEDIA_ROW_CREATE_${response.status}`);
       }
-      return this.fromRow(((await response.json()) as CatalogMediaRow[])[0]);
+      const created = this.fromRow(((await response.json()) as CatalogMediaRow[])[0]);
+      if (options.isCover) {
+        await this.setCoverRpc(created.id, token);
+        return { ...created, isCover: true };
+      }
+      return created;
     } finally {
       if (this._uploadProgress() < 100) this._uploadProgress.set(0);
     }
@@ -170,6 +171,7 @@ export class CatalogMediaService {
 
   async addExternal(input: ExternalMediaInput): Promise<CatalogMediaItem> {
     const token = await this.requiredToken();
+    if (input.isCover && input.kind !== "IMAGE") throw new Error("CATALOG_COVER_REQUIRES_IMAGE");
     const mediaUrl = this.requireHttpsUrl(input.url, "MEDIA_URL_INVALID");
     const rawSourceUrl = input.sourceUrl?.trim() || "";
     const rawSourceName = input.sourceName?.trim() || "";
@@ -191,9 +193,6 @@ export class CatalogMediaService {
     const requestedVerified = input.metadata?.["sourceVerified"] === true;
     const verified = provenanceComplete && requestedVerified;
     const active = provenanceComplete;
-    const cover = active && Boolean(input.isCover);
-    if (cover) await this.clearExistingCover(input.entityType, input.entityId, token);
-
     const row = {
       ...this.ownerPayload(input.entityType, input.entityId),
       kind: input.kind,
@@ -207,7 +206,7 @@ export class CatalogMediaService {
       attribution,
       alt_text: altText,
       sort_order: input.sortOrder ?? 0,
-      is_cover: cover,
+      is_cover: false,
       is_active: active,
       metadata: {
         ...(input.metadata || {}),
@@ -223,19 +222,20 @@ export class CatalogMediaService {
       body: JSON.stringify(row),
     });
     if (!response.ok) throw new Error(`EXTERNAL_MEDIA_CREATE_${response.status}`);
-    return this.fromRow(((await response.json()) as CatalogMediaRow[])[0]);
+    const created = this.fromRow(((await response.json()) as CatalogMediaRow[])[0]);
+    if (active && input.isCover) {
+      await this.setCoverRpc(created.id, token);
+      return { ...created, isCover: true };
+    }
+    return created;
   }
 
   async update(item: CatalogMediaItem, patch: MediaPatch): Promise<CatalogMediaItem> {
     const token = await this.requiredToken();
-    if (patch.isCover) {
-      const entity = this.entityFromItem(item);
-      await this.clearExistingCover(entity.type, entity.id, token, item.id);
-    }
+    await this.assertSafeUpdate(item, patch, token);
     const body: Record<string, unknown> = {};
     if (patch.altText !== undefined) body["alt_text"] = patch.altText.trim().slice(0, 300);
     if (patch.sortOrder !== undefined) body["sort_order"] = patch.sortOrder;
-    if (patch.isCover !== undefined) body["is_cover"] = patch.isCover;
     if (patch.isActive !== undefined) body["is_active"] = patch.isActive;
     if (patch.posterUrl !== undefined) body["poster_url"] = patch.posterUrl || null;
     if (patch.attribution !== undefined) body["attribution"] = patch.attribution?.trim() || null;
@@ -243,30 +243,108 @@ export class CatalogMediaService {
     if (patch.license !== undefined) body["license"] = patch.license?.trim() || null;
     if (patch.sourceUrl !== undefined) body["source_url"] = patch.sourceUrl ? this.requireHttpsUrl(patch.sourceUrl, "MEDIA_SOURCE_MUST_BE_HTTPS") : null;
     if (patch.metadata !== undefined) body["metadata"] = patch.metadata || {};
-    const response = await fetch(
-      `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?id=eq.${encodeURIComponent(item.id)}&select=*`,
-      {
-        method: "PATCH",
-        headers: { ...this.authHeaders(token), Prefer: "return=representation" },
-        body: JSON.stringify(body),
-      },
-    );
-    if (!response.ok) throw new Error(`CATALOG_MEDIA_UPDATE_${response.status}`);
-    return this.fromRow(((await response.json()) as CatalogMediaRow[])[0]);
+    if (patch.isCover === false) body["is_cover"] = false;
+
+    let updated = item;
+    if (Object.keys(body).length) {
+      const response = await fetch(
+        `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?id=eq.${encodeURIComponent(item.id)}&select=*`,
+        {
+          method: "PATCH",
+          headers: { ...this.authHeaders(token), Prefer: "return=representation" },
+          body: JSON.stringify(body),
+        },
+      );
+      if (!response.ok) throw new Error(`CATALOG_MEDIA_UPDATE_${response.status}`);
+      updated = this.fromRow(((await response.json()) as CatalogMediaRow[])[0]);
+    }
+    if (patch.isCover === true) {
+      await this.setCoverRpc(item.id, token);
+      updated = { ...updated, isCover: true, isActive: true };
+    }
+    return updated;
   }
 
   async remove(item: CatalogMediaItem): Promise<void> {
     const token = await this.requiredToken();
-    const response = await fetch(
-      `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?id=eq.${encodeURIComponent(item.id)}`,
-      { method: "DELETE", headers: this.authHeaders(token) },
-    );
-    if (!response.ok) throw new Error(`CATALOG_MEDIA_DELETE_${response.status}`);
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/remove_catalog_media_safe`, {
+      method: "POST",
+      headers: this.authHeaders(token),
+      body: JSON.stringify({ p_media_id: item.id }),
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const raw = String(payload?.message || `CATALOG_MEDIA_SAFE_DELETE_${response.status}`);
+      if (raw.includes("CATALOG_LIVE_LAST_IMAGE_BLOCKED")) {
+        throw new Error("Canlı ilanın son aktif görseli silinemez. Önce yeni bir görsel ekleyin.");
+      }
+      throw new Error(raw);
+    }
     if (item.storageBucket === this.bucket && item.objectPath) {
       await this.deleteStorageObject(item.objectPath, token).catch((error) => {
-        console.warn("Catalog media row deleted but storage cleanup failed", error);
+        console.warn("Catalog media database row removed but storage cleanup failed", error);
       });
     }
+  }
+
+  private async assertSafeUpdate(item: CatalogMediaItem, patch: MediaPatch, token: string): Promise<void> {
+    if (patch.isCover === true && (patch.isActive === false || item.kind !== "IMAGE")) {
+      throw new Error("Kapak yalnız aktif bir görsel olabilir.");
+    }
+    const removesCover = item.isCover && (patch.isCover === false || patch.isActive === false);
+    const deactivatesImage = item.kind === "IMAGE" && item.isActive && patch.isActive === false;
+    if (!removesCover && !deactivatesImage) return;
+    if (!(await this.isLiveOwner(item, token))) return;
+    if (removesCover) {
+      throw new Error("Canlı ilanın kapağı doğrudan kapatılamaz. Önce başka bir görseli kapak yapın veya mevcut kapağı silerek otomatik yedek kapak atamasını kullanın.");
+    }
+    const remaining = await this.otherActiveImageCount(item, token);
+    if (remaining < 1) throw new Error("Canlı ilanın son aktif görseli kapatılamaz. Önce yeni bir görsel ekleyin.");
+  }
+
+  private async setCoverRpc(mediaId: string, token: string): Promise<void> {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/set_catalog_media_cover`, {
+      method: "POST",
+      headers: this.authHeaders(token),
+      body: JSON.stringify({ p_media_id: mediaId }),
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(String(payload?.message || `CATALOG_COVER_SET_${response.status}`));
+    }
+  }
+
+  private async isLiveOwner(item: CatalogMediaItem, token: string): Promise<boolean> {
+    if (item.vehicleId) {
+      const rows = await this.getRows(`vehicles?id=eq.${encodeURIComponent(item.vehicleId)}&select=publication_status,is_active&limit=1`, token);
+      return rows[0]?.publication_status && ["PUBLISHED", "SCHEDULED"].includes(String(rows[0].publication_status)) && rows[0]?.is_active === true;
+    }
+    if (item.tourId) {
+      const rows = await this.getRows(`tours?id=eq.${encodeURIComponent(item.tourId)}&select=publication_status,is_active&limit=1`, token);
+      return rows[0]?.publication_status && ["PUBLISHED", "SCHEDULED"].includes(String(rows[0].publication_status)) && rows[0]?.is_active === true;
+    }
+    if (item.blogPostId) {
+      const rows = await this.getRows(`blog_posts?id=eq.${encodeURIComponent(item.blogPostId)}&select=status&limit=1`, token);
+      return String(rows[0]?.status || "") === "PUBLISHED";
+    }
+    return false;
+  }
+
+  private async otherActiveImageCount(item: CatalogMediaItem, token: string): Promise<number> {
+    const entity = this.entityFromItem(item);
+    const column = this.ownerColumn(entity.type);
+    const rows = await this.getRows(
+      `catalog_media?${column}=eq.${encodeURIComponent(entity.id)}&id=neq.${encodeURIComponent(item.id)}&kind=eq.IMAGE&is_active=eq.true&select=id`,
+      token,
+    );
+    return rows.length;
+  }
+
+  private async getRows(path: string, token: string): Promise<any[]> {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, { headers: this.authHeaders(token) });
+    if (!response.ok) throw new Error(`CATALOG_MEDIA_INTEGRITY_READ_${response.status}`);
+    const rows = await response.json();
+    return Array.isArray(rows) ? rows : [];
   }
 
   private requireHttpsUrl(value: string, code: string): string {
@@ -315,9 +393,7 @@ export class CatalogMediaService {
       ["objectName", objectPath],
       ["contentType", file.type],
       ["cacheControl", "3600"],
-    ]
-      .map(([key, value]) => `${key} ${btoa(unescape(encodeURIComponent(value)))}`)
-      .join(",");
+    ].map(([key, value]) => `${key} ${btoa(unescape(encodeURIComponent(value)))}`).join(",");
     const create = await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/upload/resumable`, {
       method: "POST",
       headers: {
@@ -354,9 +430,7 @@ export class CatalogMediaService {
             body: chunk,
           });
           if (response.ok) break;
-          if (![409, 412, 429, 500, 502, 503, 504].includes(response.status)) {
-            throw new Error(`CATALOG_TUS_PATCH_${response.status}`);
-          }
+          if (![409, 412, 429, 500, 502, 503, 504].includes(response.status)) throw new Error(`CATALOG_TUS_PATCH_${response.status}`);
         } catch (error) {
           lastError = error;
           response = null;
@@ -370,18 +444,6 @@ export class CatalogMediaService {
     this._uploadProgress.set(100);
   }
 
-  private async clearExistingCover(entityType: CatalogEntityType, entityId: string, token: string, exceptId?: string): Promise<void> {
-    const column = this.ownerColumn(entityType);
-    let url = `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?${column}=eq.${encodeURIComponent(entityId)}&is_cover=eq.true`;
-    if (exceptId) url += `&id=neq.${encodeURIComponent(exceptId)}`;
-    const response = await fetch(url, {
-      method: "PATCH",
-      headers: this.authHeaders(token),
-      body: JSON.stringify({ is_cover: false }),
-    });
-    if (!response.ok) throw new Error(`CATALOG_COVER_CLEAR_${response.status}`);
-  }
-
   private async deleteStorageObject(objectPath: string, token: string): Promise<void> {
     const response = await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/${this.bucket}`, {
       method: "DELETE",
@@ -392,26 +454,14 @@ export class CatalogMediaService {
   }
 
   private validateFile(file: File): void {
-    const allowed = new Set([
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-      "image/avif",
-      "video/mp4",
-      "video/webm",
-    ]);
+    const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/avif", "video/mp4", "video/webm"]);
     if (!allowed.has(file.type)) throw new Error("CATALOG_MEDIA_TYPE_NOT_ALLOWED");
     if (file.size < 1 || file.size > this.maxUploadBytes) throw new Error("CATALOG_MEDIA_SIZE_NOT_ALLOWED");
   }
 
   private extension(file: File): string {
     const byType: Record<string, string> = {
-      "image/jpeg": "jpg",
-      "image/png": "png",
-      "image/webp": "webp",
-      "image/avif": "avif",
-      "video/mp4": "mp4",
-      "video/webm": "webm",
+      "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif", "video/mp4": "mp4", "video/webm": "webm",
     };
     return byType[file.type] || "bin";
   }
@@ -432,10 +482,8 @@ export class CatalogMediaService {
   }
 
   private fromRow(row: CatalogMediaRow): CatalogMediaItem {
-    const url = row.external_url ||
-      (row.storage_bucket && row.object_path
-        ? `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${encodeURIComponent(row.storage_bucket)}/${row.object_path.split("/").map(encodeURIComponent).join("/")}`
-        : "");
+    const url = row.external_url || (row.storage_bucket && row.object_path
+      ? `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${encodeURIComponent(row.storage_bucket)}/${row.object_path.split("/").map(encodeURIComponent).join("/")}` : "");
     return {
       id: row.id,
       vehicleId: row.vehicle_id || undefined,
@@ -463,11 +511,7 @@ export class CatalogMediaService {
   }
 
   private authHeaders(token: string): Record<string, string> {
-    return {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      authorization: `Bearer ${token}`,
-      "content-type": "application/json",
-    };
+    return { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}`, "content-type": "application/json" };
   }
 
   private async requiredToken(): Promise<string> {

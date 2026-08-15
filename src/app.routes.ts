@@ -15,7 +15,6 @@ import { RentalDetailShellComponent, SaleDetailShellComponent, TourDetailShellCo
 // Admin Pages
 import { AdminLayoutComponent } from './pages/admin/admin-layout.component';
 import { AdminDashboardShellComponent } from './pages/admin/admin-dashboard-shell.component';
-import { AdminCarsComponent } from './pages/admin/admin-cars.component';
 import { AdminReservationsComponent } from './pages/admin/admin-reservations.component';
 import { AdminBlogComponent } from './pages/admin/admin-blog.component';
 import { AdminSettingsComponent } from './pages/admin/admin-settings.component';
@@ -94,9 +93,9 @@ export const routes: Routes = [
       { path: 'team', component: AdminTeamComponent, canActivate: [adminAreaGuard('team')] },
       { path: 'permissions', component: AdminPermissionsComponent, canActivate: [ownerGuard] },
       { path: 'branches', component: AdminBranchesComponent, canActivate: [adminAreaGuard('team')] },
-      { path: 'cars', component: AdminCarsComponent, canActivate: [adminAreaGuard('content')] },
+      { path: 'cars', redirectTo: 'catalog-editor', pathMatch: 'full' },
+      { path: 'sales', redirectTo: 'catalog-editor', pathMatch: 'full' },
       { path: 'reservations', component: AdminReservationsComponent, canActivate: [adminAreaGuard('operations')] },
-      { path: 'sales', component: AdminCarsComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'tours', component: AdminToursComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'blog', component: AdminBlogComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'partner-requests', component: AdminPartnerRequestsComponent, canActivate: [adminAreaGuard('operations')] },

@@ -72,8 +72,22 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Supabase Edge Function type check
-        run: deno check supabase/functions/*/index.ts
+      - name: Analytics ingest Edge Function type check
+        run: deno check supabase/functions/analytics-ingest/index.ts
+
+      - name: Analytics identity Edge Function type check
+        run: deno check supabase/functions/analytics-link/index.ts
+
+      - name: Existing Supabase Edge Functions type check
+        run: |
+          set -euo pipefail
+          for file in supabase/functions/*/index.ts; do
+            case "$file" in
+              supabase/functions/analytics-ingest/index.ts|supabase/functions/analytics-link/index.ts) continue ;;
+            esac
+            echo "Checking $file"
+            deno check "$file"
+          done
 
       - name: Production build
         run: npm run build

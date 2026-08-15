@@ -60,7 +60,7 @@ export class CampaignService {
   }
 
   async loadPublic(): Promise<CampaignRecord[]> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?is_active=eq.true&publication_status=eq.PUBLISHED&select=*&order=sort_order.asc,created_at.desc&fresh=${Date.now()}`, {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?is_active=eq.true&publication_status=eq.PUBLISHED&select=*&order=sort_order.asc,created_at.desc`, {
       headers: { ...this.publicHeaders(), "cache-control": "no-cache" },
       cache: "no-store",
     });

@@ -62,15 +62,15 @@ interface SelectedUpload {
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <h2 class="text-lg font-black text-slate-900">Fotoğraf ve Video Ekle</h2>
-                  <p class="mt-1 text-xs leading-relaxed text-slate-500">Tüm seçim yolları çoklu seçim destekler. Mobil cihazlarda galeri seçicisi, bilgisayarda dosya sistemi açılır.</p>
+                  <p class="mt-1 text-xs leading-relaxed text-slate-500">Dosya ve galeri yolları çoklu seçim destekler. Mobilde ayrıca doğrudan kamera ile çekim yapabilirsiniz.</p>
                 </div>
                 <span class="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-700">ORİJİNAL KALİTE</span>
               </div>
 
-              <div class="mt-4 grid gap-2 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
+              <div class="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                 <label class="picker-button">
                   <mat-icon>folder_open</mat-icon>
-                  <span><strong>Dosyalardan Seç</strong><small>Fotoğraf + video</small></span>
+                  <span><strong>Dosyalardan Seç</strong><small>Fotoğraf + video · çoklu</small></span>
                   <input type="file" multiple [accept]="acceptedTypes()" class="sr-only" (change)="selectFiles($event)" />
                 </label>
                 <label class="picker-button">
@@ -82,6 +82,16 @@ interface SelectedUpload {
                   <mat-icon>video_library</mat-icon>
                   <span><strong>Galeriden Video</strong><small>Çoklu seçim</small></span>
                   <input type="file" multiple accept="video/mp4,video/webm,video/*" class="sr-only" (change)="selectFiles($event)" />
+                </label>
+                <label class="picker-button">
+                  <mat-icon>photo_camera</mat-icon>
+                  <span><strong>Kamerayla Fotoğraf Çek</strong><small>Mobil/tablet arka kamera</small></span>
+                  <input type="file" accept="image/*" capture="environment" class="sr-only" (change)="selectFiles($event)" />
+                </label>
+                <label class="picker-button sm:col-span-2 xl:col-span-1 2xl:col-span-2">
+                  <mat-icon>videocam</mat-icon>
+                  <span><strong>Kamerayla Video Çek</strong><small>Çekim bittikten sonra seçime eklenir</small></span>
+                  <input type="file" accept="video/*" capture="environment" class="sr-only" (change)="selectFiles($event)" />
                 </label>
               </div>
 

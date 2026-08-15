@@ -16,59 +16,18 @@ function json(body: unknown, status = 200): Response {
     headers: { ...CORS, "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
   });
 }
-
-function clean(value: unknown, max: number): string {
-  return typeof value === "string" ? value.trim().slice(0, max) : "";
-}
-function required(value: unknown, field: string, max: number): string {
-  const result = clean(value, max);
-  if (!result) throw new Error(`INVALID_${field.toUpperCase()}`);
-  return result;
-}
-function numberValue(value: unknown, min: number, max: number): number | null {
-  if (value === undefined || value === null || value === "") return null;
-  const n = Number(value);
-  if (!Number.isFinite(n) || n < min || n > max) throw new Error("INVALID_NUMBER");
-  return Math.round(n * 100) / 100;
-}
-function integerValue(value: unknown, min: number, max: number): number | null {
-  if (value === undefined || value === null || value === "") return null;
-  const n = Number(value);
-  if (!Number.isInteger(n) || n < min || n > max) throw new Error("INVALID_INTEGER");
-  return n;
-}
-function emailValue(value: unknown): string | null {
-  const email = clean(value, 160).toLowerCase();
-  if (!email) return null;
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("INVALID_EMAIL");
-  return email;
-}
-function dateValue(value: unknown): string | null {
-  const raw = clean(value, 64);
-  if (!raw) return null;
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) throw new Error("INVALID_DATE");
-  return d.toISOString();
-}
-function uuid(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
-function serviceHeaders(extra: Record<string, string> = {}) {
-  return { apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}`, "content-type": "application/json", ...extra };
-}
-async function db(path: string, init: RequestInit = {}): Promise<Response> {
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...init, headers: { ...serviceHeaders(), ...(init.headers || {}) } });
-}
-async function sha256(value: string): Promise<string> {
-  const bytes = new TextEncoder().encode(value);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
+function clean(value: unknown, max: number): string { return typeof value === "string" ? value.trim().slice(0, max) : ""; }
+function required(value: unknown, field: string, max: number): string { const result = clean(value, max); if (!result) throw new Error(`INVALID_${field.toUpperCase()}`); return result; }
+function numberValue(value: unknown, min: number, max: number): number | null { if (value === undefined || value === null || value === "") return null; const n = Number(value); if (!Number.isFinite(n) || n < min || n > max) throw new Error("INVALID_NUMBER"); return Math.round(n * 100) / 100; }
+function integerValue(value: unknown, min: number, max: number): number | null { if (value === undefined || value === null || value === "") return null; const n = Number(value); if (!Number.isInteger(n) || n < min || n > max) throw new Error("INVALID_INTEGER"); return n; }
+function emailValue(value: unknown): string | null { const email = clean(value, 160).toLowerCase(); if (!email) return null; if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("INVALID_EMAIL"); return email; }
+function dateValue(value: unknown): string | null { const raw = clean(value, 64); if (!raw) return null; const d = new Date(raw); if (Number.isNaN(d.getTime())) throw new Error("INVALID_DATE"); return d.toISOString(); }
+function uuid(value: string): boolean { return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value); }
+function serviceHeaders(extra: Record<string, string> = {}) { return { apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}`, "content-type": "application/json", ...extra }; }
+async function db(path: string, init: RequestInit = {}): Promise<Response> { return fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...init, headers: { ...serviceHeaders(), ...(init.headers || {}) } }); }
+async function sha256(value: string): Promise<string> { const bytes = new TextEncoder().encode(value); const digest = await crypto.subtle.digest("SHA-256", bytes); return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join(""); }
 async function consumeRateLimit(keyHash: string, scope: string, seconds: number, limit: number): Promise<boolean> {
-  const res = await db("rpc/consume_rate_limit", {
-    method: "POST",
-    body: JSON.stringify({ p_key_hash: keyHash, p_scope: scope, p_window_seconds: seconds, p_limit: limit }),
-  });
+  const res = await db("rpc/consume_rate_limit", { method: "POST", body: JSON.stringify({ p_key_hash: keyHash, p_scope: scope, p_window_seconds: seconds, p_limit: limit }) });
   if (!res.ok) throw new Error(`RATE_LIMIT_BACKEND_${res.status}`);
   return Boolean(await res.json());
 }
@@ -77,10 +36,7 @@ interface AdminIdentity { id: string; email: string; role: string }
 async function requireAdmin(request: Request): Promise<AdminIdentity> {
   const authorization = request.headers.get("authorization") || "";
   if (!/^Bearer\s+\S+/i.test(authorization)) throw new Error("UNAUTHORIZED");
-  const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: { apikey: SERVICE_KEY, authorization },
-    signal: AbortSignal.timeout(8000),
-  });
+  const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: SERVICE_KEY, authorization }, signal: AbortSignal.timeout(8000) });
   if (!userRes.ok) throw new Error("UNAUTHORIZED");
   const user = await userRes.json();
   const userId = clean(user?.id, 80);
@@ -110,6 +66,7 @@ function toApi(row: any) {
     startDate: row.start_at || undefined,
     endDate: row.end_at || undefined,
     days: row.days ?? undefined,
+    rentalHours: row.rental_hours ?? undefined,
     withDriver: Boolean(row.with_driver),
     pickupLocation: row.pickup_location || undefined,
     dropoffLocation: row.dropoff_location || undefined,
@@ -133,39 +90,17 @@ async function findByReference(reference: string): Promise<any | null> {
 }
 async function notify(internalId: string, event: BookingEvent) {
   try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/booking-notify`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${SERVICE_KEY}`, "content-type": "application/json" },
-      body: JSON.stringify({ bookingId: internalId, event }),
-      signal: AbortSignal.timeout(15000),
-    });
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/booking-notify`, { method: "POST", headers: { authorization: `Bearer ${SERVICE_KEY}`, "content-type": "application/json" }, body: JSON.stringify({ bookingId: internalId, event }), signal: AbortSignal.timeout(15000) });
     if (!res.ok) throw new Error(`NOTIFY_${res.status}`);
     return await res.json();
   } catch (error) {
     console.error("Notification dispatch failed after booking persistence", error);
-    return {
-      ok: false,
-      event,
-      bookingId: internalId,
-      email: { state: "failed", reason: "NOTIFICATION_DISPATCH_FAILED" },
-      sms: { state: "failed", reason: "NOTIFICATION_DISPATCH_FAILED" },
-      adminEmail: { state: "failed", reason: "NOTIFICATION_DISPATCH_FAILED" },
-    };
+    return { ok: false, event, bookingId: internalId, email: { state: "failed", reason: "NOTIFICATION_DISPATCH_FAILED" }, sms: { state: "failed", reason: "NOTIFICATION_DISPATCH_FAILED" }, adminEmail: { state: "failed", reason: "NOTIFICATION_DISPATCH_FAILED" } };
   }
 }
-function eventForStatus(status: string): BookingEvent {
-  if (status === "APPROVED") return "booking_approved";
-  if (status === "REJECTED") return "booking_rejected";
-  if (status === "COMPLETED") return "booking_completed";
-  if (status === "CANCELLED") return "booking_cancelled";
-  return "booking_pending";
-}
+function eventForStatus(status: string): BookingEvent { if (status === "APPROVED") return "booking_approved"; if (status === "REJECTED") return "booking_rejected"; if (status === "COMPLETED") return "booking_completed"; if (status === "CANCELLED") return "booking_cancelled"; return "booking_pending"; }
 async function audit(admin: AdminIdentity, action: string, row: any, beforeData?: any, afterData?: any) {
-  await db("audit_logs", {
-    method: "POST",
-    headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({ actor_user_id: admin.id, actor_email: admin.email, action, entity_type: "booking", entity_id: row.reference, before_data: beforeData || null, after_data: afterData || null }),
-  }).catch(() => undefined);
+  await db("audit_logs", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ actor_user_id: admin.id, actor_email: admin.email, action, entity_type: "booking", entity_id: row.reference, before_data: beforeData || null, after_data: afterData || null }) }).catch(() => undefined);
 }
 
 async function createBooking(request: Request): Promise<Response> {
@@ -207,6 +142,17 @@ async function createBooking(request: Request): Promise<Response> {
     const paymentStatus = paymentMethod === "NONE" ? "NOT_REQUIRED" : "PENDING";
     const vehicleId = type === "RENTAL" || type === "SALE_INQUIRY" ? (uuid(itemId) ? itemId : null) : null;
     const tourId = type === "TOUR" && uuid(itemId) ? itemId : null;
+    const rentalDuration = clean(body?.rentalDuration, 40) || null;
+    const rentalHours = integerValue(body?.rentalHours, 1, 23);
+    const startAt = dateValue(body?.startDate);
+    const endAt = dateValue(body?.endDate);
+
+    if (type === "RENTAL") {
+      if (!vehicleId) throw new Error("INVALID_RENTAL_VEHICLE");
+      if (!startAt || !endAt || new Date(endAt).getTime() <= new Date(startAt).getTime()) throw new Error("INVALID_RENTAL_TIME");
+      if (rentalDuration === "hourly" && !rentalHours) throw new Error("INVALID_RENTAL_HOURS");
+    }
+
     const row = {
       idempotency_key: idempotencyKey,
       booking_type: type,
@@ -218,8 +164,8 @@ async function createBooking(request: Request): Promise<Response> {
       customer_name: customerName,
       customer_email: customerEmail,
       customer_phone: customerPhone,
-      start_at: dateValue(body?.startDate),
-      end_at: dateValue(body?.endDate),
+      start_at: startAt,
+      end_at: endAt,
       pickup_location: clean(body?.pickupLocation, 240) || null,
       dropoff_location: clean(body?.dropoffLocation, 240) || null,
       person_count: integerValue(body?.personCount, 1, 100),
@@ -228,7 +174,8 @@ async function createBooking(request: Request): Promise<Response> {
       total_price: numberValue(body?.totalPrice, 0, 50000000),
       currency,
       days: integerValue(body?.days, 1, 3650),
-      rental_duration: clean(body?.rentalDuration, 40) || null,
+      rental_hours: rentalHours,
+      rental_duration: rentalDuration,
       payment_method: paymentMethod,
       payment_status: paymentStatus,
       status: "PENDING",
@@ -280,6 +227,11 @@ async function patchBooking(request: Request): Promise<Response> {
     if (operation === "status") {
       const status = required(body?.status, "status", 30);
       if (!["PENDING", "APPROVED", "REJECTED", "COMPLETED", "CANCELLED"].includes(status)) throw new Error("INVALID_STATUS");
+      if (status === "APPROVED" && existing.booking_type === "RENTAL") {
+        if (!existing.vehicle_id || !existing.start_at || !existing.end_at || new Date(existing.end_at).getTime() <= new Date(existing.start_at).getTime()) {
+          return json({ ok: false, code: "INVALID_RENTAL_TIME", message: "Kiralama tarih ve saat bilgileri onay için yeterli değil." }, 409);
+        }
+      }
       update = { status };
       event = eventForStatus(status);
     } else if (operation === "payment") {
@@ -289,8 +241,16 @@ async function patchBooking(request: Request): Promise<Response> {
     } else {
       throw new Error("INVALID_OPERATION");
     }
+
     const res = await db(`bookings?id=eq.${encodeURIComponent(existing.id)}&select=*`, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(update) });
-    if (!res.ok) throw new Error("BOOKING_UPDATE_FAILED");
+    if (!res.ok) {
+      const detail = await res.text();
+      if (operation === "status" && update.status === "APPROVED" && (res.status === 409 || detail.includes("bookings_no_approved_rental_overlap") || detail.includes("23P01"))) {
+        return json({ ok: false, code: "RENTAL_TIME_CONFLICT", message: "Bu araç aynı tarih/saat aralığında başka bir onaylı kiralamaya sahiptir." }, 409);
+      }
+      console.error("Booking update failed", res.status, detail.slice(0, 500));
+      throw new Error("BOOKING_UPDATE_FAILED");
+    }
     const rows = await res.json();
     const saved = rows[0];
     await audit(admin, `booking_${operation}_updated`, saved, existing, saved);
@@ -313,11 +273,7 @@ async function deleteBooking(request: Request): Promise<Response> {
     const existing = await findByReference(reference);
     if (!existing) return json({ ok: false, code: "BOOKING_NOT_FOUND" }, 404);
     const now = new Date().toISOString();
-    const res = await db(`bookings?id=eq.${encodeURIComponent(existing.id)}&select=*`, {
-      method: "PATCH",
-      headers: { Prefer: "return=representation" },
-      body: JSON.stringify({ deleted_at: now, deleted_by: admin.id, status: "CANCELLED" }),
-    });
+    const res = await db(`bookings?id=eq.${encodeURIComponent(existing.id)}&select=*`, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ deleted_at: now, deleted_by: admin.id, status: "CANCELLED" }) });
     if (!res.ok) throw new Error("BOOKING_ARCHIVE_FAILED");
     const rows = await res.json();
     await audit(admin, "booking_archived", rows[0] || existing, existing, rows[0] || null);

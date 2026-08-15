@@ -1,33 +1,14 @@
 begin;
 
 -- V46 media truthfulness hardening.
--- Replace trim/powertrain-mismatched cover references only when a better
--- licensed, source-verifiable reference exists. These are still reference
--- images, not photographs of the physical inventory vehicle.
+-- Important: catalog_media is trigger-synced into published parent records.
+-- Therefore verified replacement media is inserted/activated before older
+-- mismatched references are disabled, so a published parent never becomes
+-- temporarily cover-less during the transaction.
 
 -- Mercedes-Benz C 200 W206, 2023
--- Source: https://commons.wikimedia.org/wiki/File:Mercedes-Benz_C_200_(W206,_2023)_(54708506199).jpg
--- License: CC0 1.0
 with target as (
-  select id
-  from public.vehicles
-  where category = 'RENTAL'
-    and brand = 'Mercedes-Benz'
-    and model = 'C Serisi (Süslenmiş Gelin Arabası)'
-    and model_year = 2023
-  limit 1
-)
-update public.catalog_media cm
-set is_active = false,
-    is_cover = false,
-    updated_at = now()
-from target
-where cm.vehicle_id = target.id
-  and cm.external_url like '%Mercedes-Benz_C-Klasse_(W206)_C_300_%';
-
-with target as (
-  select id
-  from public.vehicles
+  select id from public.vehicles
   where category = 'RENTAL'
     and brand = 'Mercedes-Benz'
     and model = 'C Serisi (Süslenmiş Gelin Arabası)'
@@ -35,18 +16,8 @@ with target as (
   limit 1
 )
 insert into public.catalog_media (
-  vehicle_id,
-  kind,
-  external_url,
-  source_url,
-  source_name,
-  license,
-  attribution,
-  alt_text,
-  sort_order,
-  is_cover,
-  is_active,
-  metadata
+  vehicle_id, kind, external_url, source_url, source_name, license,
+  attribution, alt_text, sort_order, is_cover, is_active, metadata
 )
 select
   target.id,
@@ -71,55 +42,33 @@ select
   )
 from target
 where not exists (
-  select 1
-  from public.catalog_media existing
+  select 1 from public.catalog_media existing
   where existing.vehicle_id = target.id
     and existing.source_url = 'https://commons.wikimedia.org/wiki/File:Mercedes-Benz_C_200_(W206,_2023)_(54708506199).jpg'
 );
 
 with target as (
-  select id
-  from public.vehicles
+  select id from public.vehicles
   where category = 'RENTAL'
     and brand = 'Mercedes-Benz'
     and model = 'C Serisi (Süslenmiş Gelin Arabası)'
     and model_year = 2023
   limit 1
-), media as (
-  select cm.external_url
-  from public.catalog_media cm
-  join target on target.id = cm.vehicle_id
-  where cm.source_url = 'https://commons.wikimedia.org/wiki/File:Mercedes-Benz_C_200_(W206,_2023)_(54708506199).jpg'
-    and cm.is_active = true
-  limit 1
 )
-update public.vehicles v
-set cover_image = media.external_url,
-    images = jsonb_build_array(
-      media.external_url,
-      'https://commons.wikimedia.org/wiki/Special:Redirect/file/Mercedes-Benz%20C-Class%20%28W206%2C%20rear%29.jpg?width=1600'
-    ),
-    metadata = coalesce(v.metadata, '{}'::jsonb) || jsonb_build_object(
-      'coverMediaSourceUrl', 'https://commons.wikimedia.org/wiki/File:Mercedes-Benz_C_200_(W206,_2023)_(54708506199).jpg',
-      'coverMediaLicense', 'CC0 1.0',
-      'coverMediaAttribution', 'Charles / Wikimedia Commons',
-      'verifiedModelFamily', 'Mercedes-Benz C 200 W206',
-      'verifiedMediaYear', 2023,
-      'mediaTruthfulnessVersion', 'V46'
-    ),
+update public.catalog_media cm
+set is_active = true,
+    is_cover = true,
+    sort_order = 1,
     updated_at = now()
-from target, media
-where v.id = target.id;
+from target
+where cm.vehicle_id = target.id
+  and cm.source_url = 'https://commons.wikimedia.org/wiki/File:Mercedes-Benz_C_200_(W206,_2023)_(54708506199).jpg';
 
--- Toyota Hilux Invincible reference.
--- Source: https://commons.wikimedia.org/wiki/File:Toyota_HiLux_Invincible,_WAW(1).jpg
--- License: CC BY-SA 4.0
 with target as (
-  select id
-  from public.vehicles
-  where category = 'SALE'
-    and brand = 'Toyota'
-    and model = 'Hilux'
+  select id from public.vehicles
+  where category = 'RENTAL'
+    and brand = 'Mercedes-Benz'
+    and model = 'C Serisi (Süslenmiş Gelin Arabası)'
     and model_year = 2023
   limit 1
 )
@@ -129,11 +78,33 @@ set is_active = false,
     updated_at = now()
 from target
 where cm.vehicle_id = target.id
-  and cm.is_active = true;
+  and cm.source_url <> 'https://commons.wikimedia.org/wiki/File:Mercedes-Benz_C_200_(W206,_2023)_(54708506199).jpg'
+  and cm.external_url like '%Mercedes-Benz_C-Klasse_(W206)_C_300_%';
 
 with target as (
-  select id
-  from public.vehicles
+  select id from public.vehicles
+  where category = 'RENTAL'
+    and brand = 'Mercedes-Benz'
+    and model = 'C Serisi (Süslenmiş Gelin Arabası)'
+    and model_year = 2023
+  limit 1
+)
+update public.vehicles v
+set metadata = coalesce(v.metadata, '{}'::jsonb) || jsonb_build_object(
+      'coverMediaSourceUrl', 'https://commons.wikimedia.org/wiki/File:Mercedes-Benz_C_200_(W206,_2023)_(54708506199).jpg',
+      'coverMediaLicense', 'CC0 1.0',
+      'coverMediaAttribution', 'Charles / Wikimedia Commons',
+      'verifiedModelFamily', 'Mercedes-Benz C 200 W206',
+      'verifiedMediaYear', 2023,
+      'mediaTruthfulnessVersion', 'V46'
+    ),
+    updated_at = now()
+from target
+where v.id = target.id;
+
+-- Toyota Hilux Invincible, 2023 reference
+with target as (
+  select id from public.vehicles
   where category = 'SALE'
     and brand = 'Toyota'
     and model = 'Hilux'
@@ -141,18 +112,8 @@ with target as (
   limit 1
 )
 insert into public.catalog_media (
-  vehicle_id,
-  kind,
-  external_url,
-  source_url,
-  source_name,
-  license,
-  attribution,
-  alt_text,
-  sort_order,
-  is_cover,
-  is_active,
-  metadata
+  vehicle_id, kind, external_url, source_url, source_name, license,
+  attribution, alt_text, sort_order, is_cover, is_active, metadata
 )
 select
   target.id,
@@ -177,32 +138,55 @@ select
   )
 from target
 where not exists (
-  select 1
-  from public.catalog_media existing
+  select 1 from public.catalog_media existing
   where existing.vehicle_id = target.id
     and existing.source_url = 'https://commons.wikimedia.org/wiki/File:Toyota_HiLux_Invincible,_WAW(1).jpg'
 );
 
 with target as (
-  select id
-  from public.vehicles
+  select id from public.vehicles
   where category = 'SALE'
     and brand = 'Toyota'
     and model = 'Hilux'
     and model_year = 2023
   limit 1
-), media as (
-  select cm.external_url
-  from public.catalog_media cm
-  join target on target.id = cm.vehicle_id
-  where cm.source_url = 'https://commons.wikimedia.org/wiki/File:Toyota_HiLux_Invincible,_WAW(1).jpg'
-    and cm.is_active = true
+)
+update public.catalog_media cm
+set is_active = true,
+    is_cover = true,
+    sort_order = 1,
+    updated_at = now()
+from target
+where cm.vehicle_id = target.id
+  and cm.source_url = 'https://commons.wikimedia.org/wiki/File:Toyota_HiLux_Invincible,_WAW(1).jpg';
+
+with target as (
+  select id from public.vehicles
+  where category = 'SALE'
+    and brand = 'Toyota'
+    and model = 'Hilux'
+    and model_year = 2023
+  limit 1
+)
+update public.catalog_media cm
+set is_active = false,
+    is_cover = false,
+    updated_at = now()
+from target
+where cm.vehicle_id = target.id
+  and cm.source_url <> 'https://commons.wikimedia.org/wiki/File:Toyota_HiLux_Invincible,_WAW(1).jpg'
+  and cm.is_active = true;
+
+with target as (
+  select id from public.vehicles
+  where category = 'SALE'
+    and brand = 'Toyota'
+    and model = 'Hilux'
+    and model_year = 2023
   limit 1
 )
 update public.vehicles v
-set cover_image = media.external_url,
-    images = jsonb_build_array(media.external_url),
-    metadata = coalesce(v.metadata, '{}'::jsonb) || jsonb_build_object(
+set metadata = coalesce(v.metadata, '{}'::jsonb) || jsonb_build_object(
       'coverMediaSourceUrl', 'https://commons.wikimedia.org/wiki/File:Toyota_HiLux_Invincible,_WAW(1).jpg',
       'coverMediaLicense', 'CC BY-SA 4.0',
       'coverMediaAttribution', 'Raf24~commonswiki / Wikimedia Commons',
@@ -211,7 +195,7 @@ set cover_image = media.external_url,
       'mediaTruthfulnessVersion', 'V46'
     ),
     updated_at = now()
-from target, media
+from target
 where v.id = target.id;
 
 commit;

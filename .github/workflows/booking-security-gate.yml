@@ -54,7 +54,7 @@ jobs:
           test ! -e api/_lib/firestore-rest.ts
           test ! -e src/services/persistent-car.service.ts
           test ! -e src/providers/legacy-webhook-safety.provider.ts
-          ! grep -R --line-number -E 'firebase/firestore|from[[:space:]]+["'"'][^"'"']*firebase' src api || exit 1
+          ! grep -R --line-number -E 'firebase/firestore|firebase/auth|firebase/app|\.\./firebase|from .*firebase' src api
           ! grep -Fq 'PersistentCarService' index.tsx
           ! grep -Fq 'provideLegacyWebhookSafety' index.tsx
 

@@ -26,6 +26,7 @@ export interface Vehicle {
 
   // Rental specific
   seats?: number;
+  doors?: number;
   isAvailable?: boolean;
   driverOption?: 'WITH_DRIVER' | 'WITHOUT_DRIVER' | 'BOTH';
   bookedDates?: {start: string, end: string}[];

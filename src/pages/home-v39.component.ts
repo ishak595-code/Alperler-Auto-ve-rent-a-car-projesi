@@ -105,23 +105,14 @@ interface SearchResult {
                 </select>
               </label>
               <div class="grid grid-cols-2 gap-3">
-                <label class="field-label">Alış Tarihi<input type="date" [(ngModel)]="pickupDate" name="pickupDate" class="field-control" /></label>
-                <label class="field-label">İade Tarihi<input type="date" [(ngModel)]="returnDate" name="returnDate" class="field-control" /></label>
+                <label class="field-label">Alış Tarihi<input type="date" [(ngModel)]="pickupDate" name="pickupDate" [min]="today" class="field-control" /></label>
+                <label class="field-label">İade Tarihi<input type="date" [(ngModel)]="returnDate" name="returnDate" [min]="pickupDate || today" class="field-control" /></label>
               </div>
               <button type="submit" class="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-6 font-black text-white hover:bg-black focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
                 <mat-icon aria-hidden="true">search</mat-icon>Uygun Araçları Bul
               </button>
             </form>
           </section>
-        </div>
-      </section>
-
-      <section class="border-b border-slate-100 bg-white py-7">
-        <div class="mx-auto grid max-w-7xl grid-cols-2 gap-3 px-4 sm:px-6 lg:grid-cols-4 lg:px-8">
-          <div class="stat-card"><strong>{{ carService.getCars()().length }}</strong><span>Kiralık Araç</span></div>
-          <div class="stat-card"><strong>{{ carService.getSaleCars()().length }}</strong><span>Satılık Araç</span></div>
-          <div class="stat-card"><strong>{{ carService.getTours()().length }}</strong><span>Tur Rotası</span></div>
-          <div class="stat-card"><strong>7/24</strong><span>Destek</span></div>
         </div>
       </section>
 
@@ -161,9 +152,9 @@ interface SearchResult {
                 </div>
                 <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                   <div class="mx-auto max-w-3xl text-center">
-                    <span class="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-[11px] font-black uppercase tracking-[.18em] text-amber-300"><mat-icon aria-hidden="true" class="!h-4 !w-4 !text-[16px]">bolt</mat-icon>{{ campaignsFor(section).length }} seçilmiş fırsat</span>
+                    <span class="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-[11px] font-black uppercase tracking-[.18em] text-amber-300"><mat-icon aria-hidden="true" class="!h-4 !w-4 !text-[16px]">bolt</mat-icon>Alperler Auto ayrıcalıkları</span>
                     <h2 id="campaigns-heading" class="mt-4 font-serif text-3xl font-black sm:text-4xl lg:text-5xl">{{ section.title }}</h2>
-                    <p class="mt-4 text-sm leading-7 text-slate-300 sm:text-base">Kiralama, satış, özel gün ve tur seçeneklerinden öne alınmış gerçek kampanyalar. Ayrı bir kampanya düğmesine gerek kalmadan fırsatlar doğrudan vitrinde.</p>
+                    <p class="mt-4 text-sm leading-7 text-slate-300 sm:text-base">Kiralama, satış, özel gün ve tur fırsatlarını tek premium vitrinde karşılaştırın. Yönetim panelinde öne aldığınız kampanyalar burada seçtiğiniz sırayla yayınlanır.</p>
                   </div>
                   <div class="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                     @for (campaign of campaignsFor(section); track campaign.id) {
@@ -216,7 +207,6 @@ interface SearchResult {
                       <a [routerLink]="['/tour', tour.id]" class="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-600">
                         <div class="relative aspect-[16/10] overflow-hidden bg-slate-100">
                           @if (tour.image) { <img [src]="tour.image" [alt]="tour.title || 'Tur'" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" /> }
-                          @if (tour.videos?.length) { <span class="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-slate-950/85 px-3 py-1 text-xs font-black text-white"><mat-icon aria-hidden="true" class="!h-4 !w-4 !text-[16px]">play_circle</mat-icon>Video</span> }
                         </div>
                         <div class="p-5"><h3 class="text-lg font-black">{{ tour.title }}</h3><p class="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">{{ tour.description }}</p><div class="mt-4 flex items-center justify-between"><span class="text-xs font-bold text-slate-500">{{ tour.location || 'Hakkari' }}</span><strong class="text-lg text-violet-700">{{ tour.price | number:'1.0-0' }} ₺</strong></div></div>
                       </a>
@@ -257,8 +247,6 @@ interface SearchResult {
     .field-label { display:flex; flex-direction:column; gap:.4rem; font-size:.72rem; font-weight:900; color:rgb(71 85 105); text-transform:uppercase; letter-spacing:.05em; }
     .field-control { min-height:3.25rem; width:100%; border:1px solid rgb(226 232 240); border-radius:1rem; background:rgb(248 250 252); padding:.7rem .9rem; color:rgb(15 23 42); font-size:.9rem; font-weight:800; outline:none; }
     .field-control:focus { border-color:rgb(37 99 235); box-shadow:0 0 0 3px rgb(37 99 235 / .15); }
-    .stat-card { display:flex; min-height:5.5rem; flex-direction:column; align-items:center; justify-content:center; border-radius:1.25rem; background:rgb(248 250 252); text-align:center; }
-    .stat-card strong { font-size:1.5rem; font-weight:900; }.stat-card span { font-size:.72rem; font-weight:800; color:rgb(100 116 139); text-transform:uppercase; }
     .section-kicker { font-size:.72rem; font-weight:900; text-transform:uppercase; letter-spacing:.18em; color:rgb(37 99 235); }
     .section-title { margin-top:.5rem; font-family:serif; font-size:2rem; line-height:1.1; font-weight:900; color:rgb(15 23 42); }
     .section-copy { margin-top:.5rem; max-width:42rem; font-size:.9rem; line-height:1.6; color:rgb(100 116 139); }
@@ -278,6 +266,7 @@ export class HomeV39Component implements OnInit {
   readonly campaigns = signal<CampaignRecord[]>([]);
   readonly searchQuery = signal('');
   readonly searchOpen = signal(false);
+  readonly today = new Date().toISOString().slice(0, 10);
   serviceType = 'individual';
   pickupLocation = 'merkez';
   pickupDate = '';
@@ -431,6 +420,9 @@ export class HomeV39Component implements OnInit {
 
   searchCars(event: Event): void {
     event.preventDefault();
+    if (this.pickupDate && this.returnDate && this.returnDate < this.pickupDate) {
+      this.returnDate = this.pickupDate;
+    }
     let filter: string | undefined;
     if (this.serviceType === 'wedding') filter = 'luxury';
     if (this.serviceType === 'minibus') filter = 'minibus';

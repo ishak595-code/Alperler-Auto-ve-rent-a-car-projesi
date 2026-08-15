@@ -1,6 +1,7 @@
-import { Injectable, inject, signal } from "@angular/core";
+import { DestroyRef, Injectable, inject, signal } from "@angular/core";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { AuthService } from "./auth.service";
+import { PublicContentRealtimeService } from "./public-content-realtime.service";
 
 export interface CampaignRecord {
   id: string;
@@ -30,16 +31,43 @@ export interface CampaignRecord {
 @Injectable({ providedIn: "root" })
 export class CampaignService {
   private readonly auth = inject(AuthService);
+  private readonly realtime = inject(PublicContentRealtimeService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly _campaigns = signal<CampaignRecord[]>([]);
+  private readonly _publicCampaigns = signal<CampaignRecord[]>([]);
+  private publicRefreshTimer?: number;
+
   readonly campaigns = this._campaigns.asReadonly();
+  readonly publicCampaigns = this._publicCampaigns.asReadonly();
+  readonly realtimeState = this.realtime.state;
+
+  constructor() {
+    const unwatch = this.realtime.watch(["campaigns"], () => this.queuePublicRefresh());
+    this.destroyRef.onDestroy(unwatch);
+
+    if (typeof window !== "undefined") {
+      const timer = window.setInterval(() => this.queuePublicRefresh(0), 60_000);
+      const onVisibility = () => {
+        if (document.visibilityState === "visible") this.queuePublicRefresh(0);
+      };
+      document.addEventListener("visibilitychange", onVisibility);
+      this.destroyRef.onDestroy(() => {
+        window.clearInterval(timer);
+        if (this.publicRefreshTimer !== undefined) window.clearTimeout(this.publicRefreshTimer);
+        document.removeEventListener("visibilitychange", onVisibility);
+      });
+    }
+  }
 
   async loadPublic(): Promise<CampaignRecord[]> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?is_active=eq.true&publication_status=eq.PUBLISHED&select=*&order=sort_order.asc,created_at.desc`, {
-      headers: this.publicHeaders(),
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?is_active=eq.true&publication_status=eq.PUBLISHED&select=*&order=sort_order.asc,created_at.desc&fresh=${Date.now()}`, {
+      headers: { ...this.publicHeaders(), "cache-control": "no-cache" },
       cache: "no-store",
     });
     if (!response.ok) throw new Error(`CAMPAIGNS_PUBLIC_${response.status}`);
-    return ((await response.json()) as any[]).map((row) => this.fromRow(row));
+    const records = ((await response.json()) as any[]).map((row) => this.fromRow(row));
+    this._publicCampaigns.set(records);
+    return records;
   }
 
   async refreshAdmin(): Promise<void> {
@@ -95,6 +123,7 @@ export class CampaignService {
     const saved = this.fromRow(((await response.json()) as any[])[0]);
     await this.refreshAdmin();
     await this.syncHomepageCampaigns(token);
+    await this.loadPublic();
     return saved;
   }
 
@@ -107,6 +136,7 @@ export class CampaignService {
     if (!response.ok) throw new Error(`CAMPAIGN_DELETE_${response.status}`);
     await this.refreshAdmin();
     await this.syncHomepageCampaigns(token);
+    await this.loadPublic();
   }
 
   async reorder(ids: string[]): Promise<void> {
@@ -120,6 +150,19 @@ export class CampaignService {
     })));
     await this.refreshAdmin();
     await this.syncHomepageCampaigns(token);
+    await this.loadPublic();
+  }
+
+  private queuePublicRefresh(delay = 120): void {
+    if (typeof window === "undefined") {
+      void this.loadPublic().catch(() => undefined);
+      return;
+    }
+    if (this.publicRefreshTimer !== undefined) window.clearTimeout(this.publicRefreshTimer);
+    this.publicRefreshTimer = window.setTimeout(() => {
+      this.publicRefreshTimer = undefined;
+      void this.loadPublic().catch((error) => console.info("Campaign realtime refresh deferred.", error));
+    }, delay);
   }
 
   private async syncHomepageCampaigns(token: string): Promise<void> {

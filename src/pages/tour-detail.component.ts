@@ -9,11 +9,12 @@ import { UiService } from "../services/ui.service";
 import { MatIconModule } from "@angular/material/icon";
 import { SeoService } from "../services/seo.service";
 import { VehicleCardComponent } from "../components/vehicle-card.component";
+import { TourMediaGalleryComponent } from "../components/tour-media-gallery.component";
 
 @Component({
   selector: "app-tour-detail",
   standalone: true,
-  imports: [CommonModule, MatIconModule, VehicleCardComponent, ReactiveFormsModule],
+  imports: [CommonModule, MatIconModule, VehicleCardComponent, TourMediaGalleryComponent, ReactiveFormsModule],
   template: `
     @if (tour()) {
       <div class="min-h-screen bg-white animate-fade-in flex flex-col pb-24 lg:pb-0 relative">
@@ -33,6 +34,8 @@ import { VehicleCardComponent } from "../components/vehicle-card.component";
               <h2 class="text-3xl sm:text-5xl font-serif font-bold text-white leading-tight">{{ tour()!.title }}</h2>
             </div>
           </div>
+
+          <app-tour-media-gallery [tour]="tour()!"></app-tour-media-gallery>
 
           <div class="max-w-5xl mx-auto px-4 sm:px-6 py-12">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">

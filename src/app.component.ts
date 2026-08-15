@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { ThemeService } from './services/theme.service';
 import { SeoService } from './services/seo.service';
 import { SystemHealthService } from './services/system-health.service';
+import { NewsletterSyncService } from './services/newsletter-sync.service';
 import { CustomerMobileDockComponent } from './components/customer-mobile-dock.component';
 import { RuntimeStatusGateComponent } from './components/runtime-status-gate.component';
 
@@ -20,9 +21,11 @@ export class AppComponent implements OnInit {
   themeService = inject(ThemeService);
   seoService = inject(SeoService);
   private readonly systemHealth = inject(SystemHealthService);
+  private readonly newsletterSync = inject(NewsletterSyncService);
 
   ngOnInit() {
     this.seoService.init();
     this.systemHealth.start();
+    void this.newsletterSync;
   }
 }

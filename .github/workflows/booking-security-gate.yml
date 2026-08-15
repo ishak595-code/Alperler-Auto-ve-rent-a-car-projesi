@@ -18,7 +18,7 @@ on:
       - "api/catalog.ts"
       - "api/partner-requests.ts"
       - "api/partner-upload-resume.ts"
-      - "api/notifications/**"
+      - "api/bookings.ts"
       - "api/_lib/firestore-rest.ts"
       - "api/_lib/sms.ts"
       - "api/_lib/booking-notification-template.ts"
@@ -56,15 +56,14 @@ jobs:
           grep -Fq 'public/*.zip' .vercelignore
           grep -Fq '*.zip' .vercelignore
 
-          # Transactional runtime must exist.
-          test -f api/notifications/booking.ts
-          test -f api/_lib/firestore-rest.ts
-          test -f api/_lib/sms.ts
-          test -f api/_lib/booking-notification-template.ts
+          # Transactional runtime must exist. Booking persistence and delivery
+          # now live in Supabase Edge Functions; Vercel only proxies the booking gateway.
+          test -f api/bookings.ts
           test -f api/catalog.ts
           test -f api/partner-upload-resume.ts
           test -f src/services/catalog.service.ts
           test -f supabase/functions/booking-gateway/index.ts
+          test -f supabase/functions/booking-notify/index.ts
           test -f supabase/functions/partner-request-gateway/index.ts
           test -f supabase/functions/partner-upload-resume/index.ts
           test -f supabase/migrations/202608140002_alperler_rls_policies_v1.sql

@@ -124,11 +124,12 @@ export class AdminLayoutComponent {
     ]},
     { label: "Organizasyon", items: [
       { label: "Yöneticiler ve Çalışanlar", route: "/admin/team", icon: "14" },
-      { label: "Şubeler", route: "/admin/branches", icon: "15" },
+      { label: "Yetki Matrisi", route: "/admin/permissions", icon: "15" },
+      { label: "Şubeler", route: "/admin/branches", icon: "16" },
     ]},
     { label: "Sistem", items: [
-      { label: "WhatsApp Ayarları", route: "/admin/whatsapp", icon: "16" },
-      { label: "Genel Ayarlar", route: "/admin/settings", icon: "17" },
+      { label: "WhatsApp Ayarları", route: "/admin/whatsapp", icon: "17" },
+      { label: "Genel Ayarlar", route: "/admin/settings", icon: "18" },
     ]},
   ];
 
@@ -140,6 +141,7 @@ export class AdminLayoutComponent {
     "/admin/catalog-editor": "Katalog Yayın Stüdyosu",
     "/admin/whatsapp": "WhatsApp Ayarları",
     "/admin/team": "Ekip ve Yetkiler",
+    "/admin/permissions": "Yönetici Yetki Matrisi",
     "/admin/branches": "Şube Yönetimi",
     "/admin/cars": "Araç Yönetimi",
     "/admin/reservations": "Rezervasyon Yönetimi",

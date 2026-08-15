@@ -1,220 +1,196 @@
-import { Component, inject, ChangeDetectionStrategy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CarService } from '../../services/car.service';
+import { MatIconModule } from '@angular/material/icon';
+import { NewsletterCampaign, NewsletterService, NewsletterSubscriber } from '../../services/newsletter.service';
 import { ToastService } from '../../services/toast.service';
 import { ConfirmService } from '../../services/confirm.service';
-import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-admin-subscribers',
   standalone: true,
   imports: [CommonModule, FormsModule, MatIconModule],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="px-4 py-6 md:px-8 bg-white border-b border-slate-200 shadow-sm sticky top-0 z-20 flex justify-between items-center">
-        <div>
-            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Bülten Aboneleri</h1>
-            <p class="text-sm text-slate-500 mt-1">Sitenizden haber almak isteyen e-posta abonelerini yönetin ve toplu mesajlar gönderin.</p>
+    <main class="min-h-screen bg-slate-50">
+      <header class="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-5 shadow-sm md:px-8">
+        <div class="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-[.18em] text-blue-600">Canlı Supabase Verisi</p>
+            <h1 class="mt-1 text-2xl font-black text-slate-950">Bülten & Abone Merkezi</h1>
+            <p class="mt-1 text-sm text-slate-500">Abonelik, izin durumu, kampanya gönderimi ve teslimat sonuçlarını tek merkezden yönetin.</p>
+          </div>
+          <button type="button" (click)="reload()" [disabled]="loading()" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50">
+            <mat-icon aria-hidden="true">refresh</mat-icon>{{ loading() ? 'Yükleniyor...' : 'Yenile' }}
+          </button>
         </div>
-    </div>
+      </header>
 
-    <div class="w-full bg-slate-50 min-h-[calc(100vh-10rem)] p-4 md:p-8">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="lg:col-span-2">
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-fade-in">
-                <div class="p-5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                   <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
-                       <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                       Tüm Aboneler
-                   </h3>
-                   <span class="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-bold shadow-sm border border-blue-200">{{ subscribers().length }} Kayıt</span>
-                </div>
-                
-                <div class="border-t border-slate-200 divide-y divide-slate-100 min-h-[400px]">
-                    @for(sub of subscribers(); track sub) {
-                        <div class="flex flex-col group">
-                            <!-- Row Header (Clickable) -->
-                            <div class="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors" (click)="toggleAccordion(sub)">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold border border-slate-200 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
-                                        {{ sub.charAt(0).toUpperCase() }}
-                                    </div>
-                                    <div class="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{{ sub }}</div>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    @if (selectedSubscriber() === sub) {
-                                      <span class="text-xs font-bold text-blue-500 mr-2 uppercase tracking-wide hidden sm:block">Seçili</span>
-                                    }
-                                    <mat-icon [class.rotate-180]="expandedSub() === sub" class="text-slate-400 transition-transform">expand_more</mat-icon>
-                                </div>
-                            </div>
-                            
-                            <!-- Accordion Content -->
-                            @if (expandedSub() === sub) {
-                                <div class="p-6 bg-slate-50 border-t border-b border-slate-100 animate-in slide-in-from-top-2 duration-300">
-                                    <div class="flex flex-col gap-4">
-                                        <div class="flex justify-between items-start">
-                                            <div>
-                                                <h4 class="font-bold text-slate-800 text-sm mb-1">Müşteri Email Bilgisi</h4>
-                                                <div class="text-xs text-slate-500 font-mono">{{ sub }}</div>
-                                            </div>
-                                            <button (click)="deleteSubscriber(sub, $event)" class="text-white bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-bold text-xs shadow-sm flex items-center gap-2 transition-colors">
-                                                <mat-icon class="w-4 h-4 text-sm">delete</mat-icon> Abonelikten Çıkar
-                                            </button>
-                                        </div>
-                                        
-                                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mt-2">
-                                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Bu aboneye özel mesaj gönder</p>
-                                            <div class="flex gap-2">
-                                                <textarea [(ngModel)]="localMessages[sub]" rows="2" class="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all placeholder:text-slate-400" placeholder="Sayın ilgili, sizin için tasarladığımız kampanya..."></textarea>
-                                                <button (click)="sendIndividualMessage(sub)" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 rounded-lg transition-colors flex items-center shadow">
-                                                    <mat-icon>send</mat-icon>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    } @empty {
-                        <div class="p-12 text-center text-slate-400">
-                            <mat-icon class="text-5xl text-slate-300 mb-4 block mx-auto">group_off</mat-icon>
-                            <p class="font-bold">Henüz bülten abonesi bulunmuyor.</p>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-
-        <div>
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-24">
-                <h3 class="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
-                    Toplu Gönderim
-                </h3>
-                <div class="text-sm text-slate-500 mb-4">Seçili abonelere veya tüm listeye anında e-posta / bildirim kampanyası gönderin.</div>
-                
-                <div class="space-y-4">
-                    <div>
-                         <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Gönderilecek Kişiler</label>
-                         <div class="p-3 bg-slate-50 border border-slate-200 rounded text-sm text-slate-700 font-medium">
-                              {{ selectedSubscriber() ? selectedSubscriber() : 'Tüm Aboneler (' + subscribers().length + ' Kişi)' }}
-                         </div>
-                         @if(selectedSubscriber()) {
-                             <button (click)="selectedSubscriber.set(null)" class="text-xs text-red-500 mt-1 font-bold hover:underline">Seçimi İptal Et (Tümüne Gönder)</button>
-                         }
-                    </div>
-                
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Mesaj İçeriği</label>
-                        <textarea [(ngModel)]="campaignMessage" rows="5" class="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none shadow-sm" placeholder="Sayın üyelerimiz, yeni kampanyamız..."></textarea>
-                    </div>
-                    
-                    <button (click)="sendCampaign()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-lg hover:bg-blue-500 hover:text-slate-900 transition-all shadow-md active:scale-95 flex justify-center items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-                        Mesajı Gönder
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    </div>
-  `
-})
-export class AdminSubscribersComponent {
-  carService = inject(CarService);
-  toastService = inject(ToastService);
-  confirmService = inject(ConfirmService);
-
-  subscribers = this.carService.getSubscribers();
-  selectedSubscriber = signal<string | null>(null);
-  expandedSub = signal<string | null>(null);
-  campaignMessage = '';
-  
-  localMessages: Record<string, string> = {};
-
-  toggleAccordion(email: string) {
-      if (this.expandedSub() === email) {
-          this.expandedSub.set(null);
-          this.selectedSubscriber.set(null);
-      } else {
-          this.expandedSub.set(email);
-          this.selectedSubscriber.set(email);
-      }
-  }
-
-  // Old openDetail can be safely removed or kept for legacy
-  openDetail(email: string) {
-      this.toggleAccordion(email);
-  }
-
-  async deleteSubscriber(email: string, event?: Event) {
-    if(event) event.stopPropagation();
-
-    const confirmed = await this.confirmService.confirm({
-      title: 'Aboneyi Sil',
-      message: `"${email}" adresini bülten listesinden çıkarmak istediğinize emin misiniz?`
-    });
-    
-    if (confirmed) {
-        this.carService.removeSubscriber(email);
-        this.toastService.show('Abone başarıyla listeden çıkarıldı.', 'success');
-        if (this.selectedSubscriber() === email) {
-            this.selectedSubscriber.set(null);
-            this.expandedSub.set(null);
+      <div class="mx-auto max-w-7xl space-y-8 p-4 md:p-8">
+        @if (error()) {
+          <div role="alert" class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{{ error() }}</div>
         }
-    }
+
+        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Bülten istatistikleri">
+          <article class="stat-card"><span>Aktif Abone</span><strong>{{ activeCount() }}</strong><small>Gönderim alabilir</small></article>
+          <article class="stat-card"><span>Abonelikten Çıkan</span><strong>{{ unsubscribedCount() }}</strong><small>Gönderim yapılmaz</small></article>
+          <article class="stat-card"><span>Toplam Kampanya</span><strong>{{ visibleCampaigns().length }}</strong><small>Sistem mesajları hariç</small></article>
+          <article class="stat-card"><span>Son Gönderimler</span><strong>{{ totalSent() }}</strong><small>Sağlayıcı tarafından kabul edilen</small></article>
+        </section>
+
+        <section class="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
+          <article class="panel">
+            <div class="panel-head">
+              <div><h2>Aboneler</h2><p>Her kayıt doğrudan <code>subscribers</code> tablosundan gelir.</p></div>
+              <select [(ngModel)]="statusFilter" class="control max-w-48" aria-label="Abone durum filtresi">
+                <option value="ALL">Tümü</option>
+                <option value="ACTIVE">Aktif</option>
+                <option value="UNSUBSCRIBED">Çıkmış</option>
+                <option value="BOUNCED">Bounced</option>
+              </select>
+            </div>
+            <div class="divide-y divide-slate-100">
+              @for (subscriber of filteredSubscribers(); track subscriber.id) {
+                <div class="grid gap-4 p-5 md:grid-cols-[1fr_auto] md:items-center">
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <strong class="break-all text-sm text-slate-950">{{ subscriber.email }}</strong>
+                      <span [class]="statusClass(subscriber.status)" class="rounded-full px-2.5 py-1 text-[10px] font-black uppercase">{{ statusLabel(subscriber.status) }}</span>
+                    </div>
+                    <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                      <span>Dil: {{ subscriber.locale | uppercase }}</span>
+                      <span>Kaynak: {{ subscriber.source }}</span>
+                      <span>Kayıt: {{ subscriber.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
+                    </div>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    @if (subscriber.status === 'ACTIVE') {
+                      <button type="button" (click)="prepareSingle(subscriber.email)" class="action-btn bg-blue-600 text-white hover:bg-blue-700"><mat-icon aria-hidden="true">mail</mat-icon>Mesaj</button>
+                      <button type="button" (click)="changeStatus(subscriber, 'UNSUBSCRIBED')" class="action-btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">Çıkar</button>
+                    } @else {
+                      <button type="button" (click)="changeStatus(subscriber, 'ACTIVE')" class="action-btn bg-emerald-600 text-white hover:bg-emerald-700">Yeniden Aktif Et</button>
+                    }
+                  </div>
+                </div>
+              } @empty {
+                <div class="p-10 text-center text-sm font-bold text-slate-400">Bu filtrede abone bulunmuyor.</div>
+              }
+            </div>
+          </article>
+
+          <article class="panel h-fit xl:sticky xl:top-28">
+            <div class="panel-head"><div><h2>Yeni Kampanya</h2><p>Gönderim sonucu veritabanında alıcı bazında saklanır.</p></div></div>
+            <form (submit)="send($event)" class="space-y-4 p-5">
+              @if (singleEmail()) {
+                <div class="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs font-bold text-blue-800">Yalnızca: {{ singleEmail() }} <button type="button" (click)="singleEmail.set(null)" class="ml-2 underline">Tüm abonelere dön</button></div>
+              }
+              <label class="field">İç başlık<input [(ngModel)]="campaignTitle" name="campaignTitle" maxlength="180" required class="control" placeholder="Örn. Eylül VIP Kiralama Fırsatları" /></label>
+              <label class="field">E-posta konusu<input [(ngModel)]="campaignSubject" name="campaignSubject" maxlength="200" required class="control" placeholder="Örn. Bu hafta 1 gün bizden" /></label>
+              <label class="field">Mesaj<textarea [(ngModel)]="campaignBody" name="campaignBody" maxlength="12000" rows="8" required class="control resize-y" placeholder="Müşteriye gidecek profesyonel mesaj..."></textarea></label>
+              <button type="submit" [disabled]="sending()" class="flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 font-black text-white hover:bg-blue-700 disabled:opacity-50">
+                <mat-icon aria-hidden="true">send</mat-icon>{{ sending() ? 'Gönderim işleniyor...' : singleEmail() ? 'Seçili Aboneye Gönder' : 'Tüm Aktif Abonelere Gönder' }}
+              </button>
+              <p class="text-[11px] leading-5 text-slate-500">Sağlayıcı bağlı değilse kampanya ve teslimat kayıtları yine oluşturulur ancak panel gerçek durumu “E-posta sağlayıcısı bağlı değil” olarak gösterir. Sahte başarı verilmez.</p>
+            </form>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><div><h2>Kampanya Geçmişi</h2><p>Gönderim toplamları ve sonuçları Supabase kayıtlarından hesaplanır.</p></div></div>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[820px] text-left text-sm">
+              <thead class="bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Kampanya</th><th class="px-5 py-3">Durum</th><th class="px-5 py-3">Hedef</th><th class="px-5 py-3">Gönderildi</th><th class="px-5 py-3">Başarısız</th><th class="px-5 py-3">Atlandı</th><th class="px-5 py-3">Tarih</th></tr></thead>
+              <tbody class="divide-y divide-slate-100">
+                @for (campaign of visibleCampaigns(); track campaign.id) {
+                  <tr class="hover:bg-slate-50"><td class="px-5 py-4"><strong class="block text-slate-950">{{ campaign.title }}</strong><small class="text-slate-500">{{ campaign.subject }}</small></td><td class="px-5 py-4"><span class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black">{{ campaign.status }}</span></td><td class="px-5 py-4 font-bold">{{ campaign.totalRecipients }}</td><td class="px-5 py-4 font-black text-emerald-700">{{ campaign.sentCount }}</td><td class="px-5 py-4 font-black text-red-600">{{ campaign.failedCount }}</td><td class="px-5 py-4 font-black text-amber-700">{{ campaign.skippedCount }}</td><td class="px-5 py-4 text-slate-500">{{ campaign.createdAt | date:'dd.MM.yyyy HH:mm' }}</td></tr>
+                } @empty { <tr><td colspan="7" class="p-10 text-center font-bold text-slate-400">Henüz kullanıcı kampanyası yok.</td></tr> }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+  `,
+  styles: [`
+    .panel{overflow:hidden;border:1px solid #e2e8f0;border-radius:20px;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+    .panel-head{display:flex;gap:1rem;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding:1.1rem 1.25rem}.panel-head h2{font-size:1rem;font-weight:900;color:#0f172a}.panel-head p{margin-top:.2rem;font-size:.75rem;color:#64748b}
+    .stat-card{display:flex;min-height:130px;flex-direction:column;justify-content:center;border:1px solid #e2e8f0;border-radius:18px;background:white;padding:1.25rem}.stat-card span{font-size:.68rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#64748b}.stat-card strong{margin-top:.35rem;font-size:2.2rem;line-height:1;font-weight:900;color:#0f172a}.stat-card small{margin-top:.55rem;color:#94a3b8;font-weight:700}
+    .field{display:flex;flex-direction:column;gap:.4rem;font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#475569}.control{min-height:46px;width:100%;border:1px solid #cbd5e1;border-radius:12px;background:#fff;padding:.7rem .85rem;color:#0f172a;font-size:.86rem;font-weight:650;outline:none}.control:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}.action-btn{display:inline-flex;min-height:40px;align-items:center;justify-content:center;gap:.35rem;border-radius:10px;padding:.5rem .75rem;font-size:.72rem;font-weight:900}.action-btn mat-icon{width:16px;height:16px;font-size:16px}
+  `],
+})
+export class AdminSubscribersComponent implements OnInit {
+  private readonly newsletter = inject(NewsletterService);
+  private readonly toast = inject(ToastService);
+  private readonly confirm = inject(ConfirmService);
+
+  readonly subscribers = signal<NewsletterSubscriber[]>([]);
+  readonly campaigns = signal<NewsletterCampaign[]>([]);
+  readonly loading = signal(false);
+  readonly sending = signal(false);
+  readonly error = signal('');
+  readonly singleEmail = signal<string | null>(null);
+  statusFilter = 'ALL';
+  campaignTitle = '';
+  campaignSubject = '';
+  campaignBody = '';
+
+  readonly activeCount = computed(() => this.subscribers().filter((item) => item.status === 'ACTIVE').length);
+  readonly unsubscribedCount = computed(() => this.subscribers().filter((item) => item.status === 'UNSUBSCRIBED').length);
+  readonly totalSent = computed(() => this.visibleCampaigns().reduce((sum, item) => sum + item.sentCount, 0));
+  readonly visibleCampaigns = computed(() => this.campaigns().filter((item) => item.metadata?.['system'] !== true));
+  readonly filteredSubscribers = computed(() => this.statusFilter === 'ALL' ? this.subscribers() : this.subscribers().filter((item) => item.status === this.statusFilter));
+
+  ngOnInit(): void { void this.reload(); }
+
+  async reload(): Promise<void> {
+    this.loading.set(true); this.error.set('');
+    try {
+      const [subscribers, campaigns] = await Promise.all([this.newsletter.listSubscribers(), this.newsletter.listCampaigns()]);
+      this.subscribers.set(subscribers); this.campaigns.set(campaigns);
+    } catch (error) {
+      console.error(error); this.error.set('Bülten verileri Supabase üzerinden yüklenemedi. Yönetici oturumunu ve bağlantıyı kontrol edin.');
+    } finally { this.loading.set(false); }
   }
 
-  async sendIndividualMessage(email: string) {
-      const msg = this.localMessages[email];
-      if (!msg || msg.trim().length === 0) {
-          this.toastService.show('Lütfen mesajınızı yazın.', 'error');
-          return;
-      }
-      
-      this.carService.sendNotification(email, `[ÖZEL MESAJ] ${msg}`);
-      this.toastService.show(`Özel mesajınız ${email} adresine gönderildi.`, 'success');
-      this.localMessages[email] = ''; // Clear after sending
+  prepareSingle(email: string): void {
+    this.singleEmail.set(email);
+    this.campaignTitle = `Özel mesaj | ${email}`;
+    this.campaignSubject = '';
+    this.campaignBody = '';
   }
 
-  async sendCampaign() {
-      if (!this.campaignMessage) {
-          this.toastService.show('Lütfen gönderilecek mesajı yazın.', 'error');
-          return;
-      }
-      
-      const subs = this.subscribers();
-      if (subs.length === 0) {
-          this.toastService.show('Gönderilecek abone bulunmuyor.', 'error');
-          return;
-      }
-
-      const confirmed = await this.confirmService.confirm({
-          title: 'Mesajı Gönder',
-          message: this.selectedSubscriber() 
-             ? `Sadece seçili aboneye (${this.selectedSubscriber()}) mesaj gönderilecektir. Onaylıyor musunuz?`
-             : `Bu mesaj toplam ${subs.length} aboneye gönderilecektir. Onaylıyor musunuz?`
-      });
-
-      if (confirmed) {
-          // Simulate sending
-          let index = 0;
-          const targetList = this.selectedSubscriber() ? [this.selectedSubscriber()!] : subs;
-          
-          targetList.forEach(email => {
-              setTimeout(() => {
-                  this.carService.sendNotification(email, `[BÜLTEN] ${this.campaignMessage}`);
-              }, index * 200);
-              index++;
-          });
-          
-          setTimeout(() => {
-              this.toastService.show('Mesaj(lar) başarıyla gönderildi ve bildirim geçmişine işlendi.', 'success');
-              this.campaignMessage = '';
-              // this.selectedSubscriber.set(null); // Keep selected or not.
-          }, index * 200 + 100);
-      }
+  async changeStatus(subscriber: NewsletterSubscriber, status: 'ACTIVE' | 'UNSUBSCRIBED'): Promise<void> {
+    const confirmed = await this.confirm.confirm({ title: status === 'ACTIVE' ? 'Aboneliği yeniden etkinleştir' : 'Abonelikten çıkar', message: `${subscriber.email} için bülten durumu ${status === 'ACTIVE' ? 'aktif' : 'abonelikten çıkmış'} olarak değiştirilecek.` });
+    if (!confirmed) return;
+    try {
+      await this.newsletter.setSubscriberStatus(subscriber.email, status);
+      this.toast.show(status === 'ACTIVE' ? 'Abonelik yeniden etkinleştirildi.' : 'Abone listeden çıkarıldı.', 'success');
+      await this.reload();
+    } catch (error) { console.error(error); this.toast.show('Abone durumu veritabanında güncellenemedi.', 'error'); }
   }
+
+  async send(event: Event): Promise<void> {
+    event.preventDefault();
+    if (!this.campaignTitle.trim() || !this.campaignSubject.trim() || !this.campaignBody.trim()) { this.toast.show('Kampanya başlığı, konu ve mesaj alanlarını doldurun.', 'error'); return; }
+    const targetCount = this.singleEmail() ? 1 : this.activeCount();
+    if (targetCount < 1) { this.toast.show('Gönderilecek aktif abone bulunmuyor.', 'error'); return; }
+    const confirmed = await this.confirm.confirm({ title: 'Bülten gönderimini başlat', message: `${targetCount} aktif alıcı için gerçek e-posta gönderimi başlatılacak ve sonuçlar veritabanına kaydedilecek.` });
+    if (!confirmed) return;
+    this.sending.set(true);
+    try {
+      const result = await this.newsletter.sendCampaign({ title: this.campaignTitle.trim(), subject: this.campaignSubject.trim(), bodyText: this.campaignBody.trim(), singleEmail: this.singleEmail() });
+      if (result.code === 'EMAIL_NOT_CONFIGURED') {
+        this.toast.show('Kampanya kaydedildi ancak e-posta sağlayıcısı henüz bağlı değil. Sahte gönderim yapılmadı.', 'info');
+      } else if ((result.counts?.failed || 0) > 0 || (result.counts?.skipped || 0) > 0) {
+        this.toast.show(`Gönderim tamamlandı: ${result.counts?.sent || 0} başarılı, ${(result.counts?.failed || 0) + (result.counts?.skipped || 0)} sorunlu.`, 'info');
+      } else {
+        this.toast.show(`${result.counts?.sent || targetCount} e-posta sağlayıcı tarafından kabul edildi.`, 'success');
+      }
+      this.campaignTitle = ''; this.campaignSubject = ''; this.campaignBody = ''; this.singleEmail.set(null);
+      await this.reload();
+    } catch (error) { console.error(error); this.toast.show('Bülten gönderimi tamamlanamadı. Kayıtlar panelde korunuyor.', 'error'); }
+    finally { this.sending.set(false); }
+  }
+
+  statusLabel(status: NewsletterSubscriber['status']): string { return status === 'ACTIVE' ? 'Aktif' : status === 'UNSUBSCRIBED' ? 'Çıkmış' : 'Bounced'; }
+  statusClass(status: NewsletterSubscriber['status']): string { return status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : status === 'UNSUBSCRIBED' ? 'bg-slate-100 text-slate-700' : 'bg-red-100 text-red-700'; }
 }

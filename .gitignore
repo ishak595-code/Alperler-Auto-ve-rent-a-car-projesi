@@ -7,10 +7,24 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependencies and build output
+node_modules/
+dist/
+dist-ssr/
+.angular/
+*.tsbuildinfo
+
+# Local/environment files
 *.local
+.env
+.env.*
+!.env.example
+
+# Generated archives and local backups
+*.zip
+*.tar
+*.tar.gz
+*.tgz
 
 # Editor directories and files
 .vscode/*

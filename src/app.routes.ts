@@ -76,7 +76,7 @@ export const routes: Routes = [
       { path: 'dashboard', component: AdminDashboardShellComponent },
       { path: 'homepage', component: AdminHomepageComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'campaigns', component: AdminCampaignsComponent, canActivate: [adminAreaGuard('content')] },
-      { path: 'media', redirectTo: 'catalog-editor', pathMatch: 'full' },
+      { path: 'media', canActivate: [adminAreaGuard('content')], loadComponent: () => import('./pages/admin/admin-media.component').then(m => m.AdminMediaComponent) },
       { path: 'catalog-editor', component: AdminCatalogEditorComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'whatsapp', component: AdminWhatsappSettingsComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'team', component: AdminTeamComponent, canActivate: [adminAreaGuard('team')] },

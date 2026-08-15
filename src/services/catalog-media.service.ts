@@ -66,6 +66,12 @@ interface CatalogMediaRow {
   metadata?: Record<string, unknown> | null;
 }
 
+type MediaPatch = Partial<Pick<
+  CatalogMediaItem,
+  "altText" | "sortOrder" | "isCover" | "isActive" | "posterUrl" |
+  "attribution" | "sourceUrl" | "sourceName" | "license" | "metadata"
+>>;
+
 @Injectable({ providedIn: "root" })
 export class CatalogMediaService {
   private readonly auth = inject(AuthService);
@@ -116,14 +122,14 @@ export class CatalogMediaService {
       }
 
       if (options.isCover) await this.clearExistingCover(entityType, entityId, token);
-      const owner = this.ownerPayload(entityType, entityId);
       const row = {
-        ...owner,
+        ...this.ownerPayload(entityType, entityId),
         kind,
         storage_bucket: this.bucket,
         object_path: objectPath,
         external_url: null,
         poster_url: options.posterUrl || null,
+        source_url: null,
         source_name: "Alperler Auto yönetim paneli",
         license: "BUSINESS_OWNED",
         attribution: "Alperler Auto",
@@ -137,6 +143,8 @@ export class CatalogMediaService {
           fileSize: file.size,
           verificationScope: "ACTUAL_ASSET",
           sourceVerified: true,
+          provenanceComplete: true,
+          reviewStatus: "VERIFIED",
           verifiedAt: new Date().toISOString().slice(0, 10),
         },
       };
@@ -152,8 +160,7 @@ export class CatalogMediaService {
         await this.deleteStorageObject(objectPath, token).catch(() => undefined);
         throw new Error(`CATALOG_MEDIA_ROW_CREATE_${response.status}`);
       }
-      const rows = (await response.json()) as CatalogMediaRow[];
-      return this.fromRow(rows[0]);
+      return this.fromRow(((await response.json()) as CatalogMediaRow[])[0]);
     } finally {
       if (this._uploadProgress() < 100) this._uploadProgress.set(0);
     }
@@ -161,19 +168,30 @@ export class CatalogMediaService {
 
   async addExternal(input: ExternalMediaInput): Promise<CatalogMediaItem> {
     const token = await this.requiredToken();
-    const mediaUrl = input.url.trim();
-    const sourceUrl = input.sourceUrl?.trim() || "";
-    const sourceName = input.sourceName?.trim() || "";
-    const license = input.license?.trim() || "";
-    const attribution = input.attribution?.trim() || "";
-    const altText = input.altText.trim();
-    let parsed: URL;
-    try { parsed = new URL(mediaUrl); } catch { throw new Error("MEDIA_URL_INVALID"); }
-    if (parsed.protocol !== "https:") throw new Error("MEDIA_URL_MUST_BE_HTTPS");
-    try { if (new URL(sourceUrl).protocol !== "https:") throw new Error("MEDIA_SOURCE_MUST_BE_HTTPS"); } catch { throw new Error("MEDIA_SOURCE_MUST_BE_HTTPS"); }
-    if (!sourceName || !license || !attribution || !altText) throw new Error("MEDIA_PROVENANCE_REQUIRED");
-    if (await this.externalDuplicateExists(input.entityType, input.entityId, mediaUrl, token)) throw new Error("MEDIA_ALREADY_EXISTS");
-    if (input.isCover) await this.clearExistingCover(input.entityType, input.entityId, token);
+    const mediaUrl = this.requireHttpsUrl(input.url, "MEDIA_URL_INVALID");
+    const rawSourceUrl = input.sourceUrl?.trim() || "";
+    const rawSourceName = input.sourceName?.trim() || "";
+    const rawLicense = input.license?.trim() || "";
+    const rawAttribution = input.attribution?.trim() || "";
+    const rawAltText = input.altText.trim();
+    const provenanceComplete = Boolean(rawSourceUrl && rawSourceName && rawLicense && rawAttribution && rawAltText);
+    const sourceUrl = rawSourceUrl ? this.requireHttpsUrl(rawSourceUrl, "MEDIA_SOURCE_MUST_BE_HTTPS") : mediaUrl;
+    const sourceHost = new URL(sourceUrl).hostname.replace(/^www\./, "");
+    const sourceName = rawSourceName || sourceHost;
+    const license = rawLicense || "REVIEW_REQUIRED";
+    const attribution = rawAttribution || sourceName;
+    const altText = (rawAltText || `${sourceName} katalog medyası`).slice(0, 300);
+
+    if (await this.externalDuplicateExists(input.entityType, input.entityId, mediaUrl, token)) {
+      throw new Error("MEDIA_ALREADY_EXISTS");
+    }
+
+    const requestedVerified = input.metadata?.["sourceVerified"] === true;
+    const verified = provenanceComplete && requestedVerified;
+    const active = provenanceComplete;
+    const cover = active && Boolean(input.isCover);
+    if (cover) await this.clearExistingCover(input.entityType, input.entityId, token);
+
     const row = {
       ...this.ownerPayload(input.entityType, input.entityId),
       kind: input.kind,
@@ -185,11 +203,17 @@ export class CatalogMediaService {
       source_name: sourceName,
       license,
       attribution,
-      alt_text: altText.slice(0, 300),
+      alt_text: altText,
       sort_order: input.sortOrder ?? 0,
-      is_cover: Boolean(input.isCover),
-      is_active: true,
-      metadata: input.metadata || {},
+      is_cover: cover,
+      is_active: active,
+      metadata: {
+        ...(input.metadata || {}),
+        provenanceComplete,
+        sourceVerified: verified,
+        reviewStatus: provenanceComplete ? (verified ? "VERIFIED" : "SOURCE_COMPLETE") : "REVIEW_REQUIRED",
+        verificationScope: input.metadata?.["verificationScope"] || "REFERENCE",
+      },
     };
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?select=*`, {
       method: "POST",
@@ -200,7 +224,7 @@ export class CatalogMediaService {
     return this.fromRow(((await response.json()) as CatalogMediaRow[])[0]);
   }
 
-  async update(item: CatalogMediaItem, patch: Partial<Pick<CatalogMediaItem, "altText" | "sortOrder" | "isCover" | "isActive" | "posterUrl" | "attribution">>): Promise<CatalogMediaItem> {
+  async update(item: CatalogMediaItem, patch: MediaPatch): Promise<CatalogMediaItem> {
     const token = await this.requiredToken();
     if (patch.isCover) {
       const entity = this.entityFromItem(item);
@@ -212,7 +236,11 @@ export class CatalogMediaService {
     if (patch.isCover !== undefined) body["is_cover"] = patch.isCover;
     if (patch.isActive !== undefined) body["is_active"] = patch.isActive;
     if (patch.posterUrl !== undefined) body["poster_url"] = patch.posterUrl || null;
-    if (patch.attribution !== undefined) body["attribution"] = patch.attribution || null;
+    if (patch.attribution !== undefined) body["attribution"] = patch.attribution?.trim() || null;
+    if (patch.sourceName !== undefined) body["source_name"] = patch.sourceName?.trim() || null;
+    if (patch.license !== undefined) body["license"] = patch.license?.trim() || null;
+    if (patch.sourceUrl !== undefined) body["source_url"] = patch.sourceUrl ? this.requireHttpsUrl(patch.sourceUrl, "MEDIA_SOURCE_MUST_BE_HTTPS") : null;
+    if (patch.metadata !== undefined) body["metadata"] = patch.metadata || {};
     const response = await fetch(
       `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?id=eq.${encodeURIComponent(item.id)}&select=*`,
       {
@@ -239,10 +267,21 @@ export class CatalogMediaService {
     }
   }
 
+  private requireHttpsUrl(value: string, code: string): string {
+    const trimmed = value.trim();
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol !== "https:") throw new Error(code);
+      return parsed.toString();
+    } catch {
+      throw new Error(code);
+    }
+  }
+
   private async externalDuplicateExists(entityType: CatalogEntityType, entityId: string, mediaUrl: string, token: string): Promise<boolean> {
     const column = this.ownerColumn(entityType);
     const response = await fetch(
-      `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?${column}=eq.${encodeURIComponent(entityId)}&external_url=eq.${encodeURIComponent(mediaUrl)}&is_active=eq.true&select=id&limit=1`,
+      `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?${column}=eq.${encodeURIComponent(entityId)}&external_url=eq.${encodeURIComponent(mediaUrl)}&select=id&limit=1`,
       { headers: this.authHeaders(token) },
     );
     if (!response.ok) throw new Error(`CATALOG_MEDIA_DUPLICATE_CHECK_${response.status}`);

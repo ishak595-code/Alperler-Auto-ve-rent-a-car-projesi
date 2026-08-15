@@ -1,5 +1,6 @@
 import { CommonModule } from "@angular/common";
-import { Component, computed, input, signal } from "@angular/core";
+import { Component, computed, inject, input, signal } from "@angular/core";
+import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { MatIconModule } from "@angular/material/icon";
 import { Tour } from "../models/car.model";
 
@@ -31,17 +32,29 @@ interface GallerySlide {
           <div class="overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 shadow-xl">
             <div class="relative aspect-video w-full bg-black">
               @if (slide.kind === 'VIDEO') {
-                <video
-                  class="h-full w-full object-contain"
-                  [src]="slide.url"
-                  [poster]="slide.posterUrl || ''"
-                  controls
-                  playsinline
-                  preload="metadata"
-                  [attr.aria-label]="slide.title"
-                >
-                  Tarayıcınız video oynatmayı desteklemiyor.
-                </video>
+                @if (isYouTube(slide.url)) {
+                  <iframe
+                    class="h-full w-full"
+                    [src]="youTubeEmbedUrl(slide.url)"
+                    [title]="slide.title"
+                    loading="lazy"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                  ></iframe>
+                } @else {
+                  <video
+                    class="h-full w-full object-contain"
+                    [src]="slide.url"
+                    [poster]="slide.posterUrl || ''"
+                    controls
+                    playsinline
+                    preload="metadata"
+                    [attr.aria-label]="slide.title"
+                  >
+                    Tarayıcınız video oynatmayı desteklemiyor.
+                  </video>
+                }
               } @else {
                 <img [src]="slide.url" [alt]="slide.title" class="h-full w-full object-cover" loading="eager" decoding="async" />
               }
@@ -81,6 +94,7 @@ interface GallerySlide {
   `,
 })
 export class TourMediaGalleryComponent {
+  private readonly sanitizer = inject(DomSanitizer);
   readonly tour = input.required<Tour>();
   readonly activeIndex = signal(0);
 
@@ -123,4 +137,28 @@ export class TourMediaGalleryComponent {
 
   readonly activeSlide = computed(() => this.slides()[this.safeActiveIndex()] || null);
   readonly hasVideo = computed(() => this.slides().some((slide) => slide.kind === "VIDEO"));
+
+  isYouTube(url: string): boolean {
+    return Boolean(this.youtubeId(url));
+  }
+
+  youTubeEmbedUrl(url: string): SafeResourceUrl {
+    const id = this.youtubeId(url);
+    if (!id) return this.sanitizer.bypassSecurityTrustResourceUrl("about:blank");
+    return this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?rel=0`);
+  }
+
+  private youtubeId(value: string): string {
+    try {
+      const url = new URL(value);
+      if (url.hostname === "youtu.be") return url.pathname.replace(/^\//, "").split("/")[0]?.slice(0, 32) || "";
+      if (url.hostname === "www.youtube.com" || url.hostname === "youtube.com" || url.hostname === "m.youtube.com") {
+        if (url.pathname === "/watch") return (url.searchParams.get("v") || "").slice(0, 32);
+        if (url.pathname.startsWith("/embed/") || url.pathname.startsWith("/shorts/")) return url.pathname.split("/")[2]?.slice(0, 32) || "";
+      }
+    } catch {
+      return "";
+    }
+    return "";
+  }
 }

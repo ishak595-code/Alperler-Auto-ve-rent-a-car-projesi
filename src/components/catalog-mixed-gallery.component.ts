@@ -25,7 +25,7 @@ type GalleryItem = {
         [attr.aria-label]="items().length + ' fotoğraf ve videoyu aç'"
       >
         <mat-icon>photo_library</mat-icon>
-        Medya {{ items().length }}/30
+        Medya {{ items().length }}/{{ mediaPolicy().maxItemsPerEntity }}
       </button>
     }
 
@@ -47,7 +47,6 @@ type GalleryItem = {
         </header>
 
         <div
-          #scroller
           class="flex flex-1 snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth"
           (scroll)="onScroll($event)"
         >
@@ -116,6 +115,7 @@ export class CatalogMixedGalleryComponent implements OnChanges {
   @Input() fallbackAlt = "Galeri görseli";
 
   private readonly media = inject(CatalogMediaService);
+  readonly mediaPolicy = this.media.policy;
   readonly items = signal<GalleryItem[]>([]);
   readonly isOpen = signal(false);
   readonly activeIndex = signal(0);
@@ -157,19 +157,21 @@ export class CatalogMixedGalleryComponent implements OnChanges {
   }
 
   private async reload(): Promise<void> {
-    const fallback = this.fallbackImages.filter(Boolean).slice(0, 30).map((url, index): GalleryItem => ({
+    await this.media.refreshPolicy();
+    const maxItems = this.mediaPolicy().maxItemsPerEntity;
+    const fallback = this.fallbackImages.filter(Boolean).slice(0, maxItems).map((url, index): GalleryItem => ({
       id: `legacy-${index}-${url}`,
       type: "IMAGE",
       url,
       alt: this.fallbackAlt,
     }));
     if (!this.entityId) {
-      this.items.set(this.dedupe(fallback).slice(0, 30));
+      this.items.set(this.dedupe(fallback).slice(0, maxItems));
       return;
     }
     try {
       const cloud = await this.media.load(this.entityType, this.entityId);
-      const verified: GalleryItem[] = cloud.map((item: CatalogMediaItem) => ({
+      const mediaRows: GalleryItem[] = cloud.map((item: CatalogMediaItem) => ({
         id: item.id,
         type: item.kind,
         url: item.url,
@@ -177,9 +179,9 @@ export class CatalogMixedGalleryComponent implements OnChanges {
         alt: item.altText || this.fallbackAlt,
         attribution: [item.sourceName, item.attribution, item.license].filter(Boolean).join(" · ") || undefined,
       }));
-      this.items.set(this.dedupe([...verified, ...fallback]).slice(0, 30));
+      this.items.set(this.dedupe([...mediaRows, ...fallback]).slice(0, maxItems));
     } catch {
-      this.items.set(this.dedupe(fallback).slice(0, 30));
+      this.items.set(this.dedupe(fallback).slice(0, maxItems));
     }
   }
 

@@ -84,13 +84,16 @@ type VerificationScope =
           </aside>
 
           <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h2 class="text-xl font-black text-slate-900">Galeri</h2><p class="text-xs text-slate-500">{{ currentItems().length }} aktif medya</p></div><button type="button" (click)="refresh()" class="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-black">Yenile</button></div>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div><h2 class="text-xl font-black text-slate-900">Galeri</h2><p class="text-xs text-slate-500">{{ activeCount() }} canlı · {{ reviewCount() }} inceleme bekliyor</p></div>
+              <button type="button" (click)="refresh()" class="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-black">Yenile</button>
+            </div>
             @if (!selectedEntityKey) {
               <div class="mt-6 rounded-3xl border border-dashed border-slate-300 p-14 text-center text-slate-500">Soldan bir araç veya tur seçin.</div>
             } @else {
               <div class="mt-5 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
                 @for (item of currentItems(); track item.id) {
-                  <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                  <article class="overflow-hidden rounded-3xl border bg-white shadow-sm" [class.border-amber-300]="!item.isActive" [class.border-slate-200]="item.isActive">
                     <div class="relative aspect-video bg-slate-950">
                       @if (item.kind === 'VIDEO') {
                         @if (isYouTube(item.url)) {
@@ -99,17 +102,29 @@ type VerificationScope =
                           <video [src]="item.url" [poster]="item.posterUrl" controls playsinline preload="metadata" class="h-full w-full object-contain"></video>
                         }
                       } @else { <img [src]="item.url" [alt]="item.altText" class="h-full w-full object-cover" referrerpolicy="no-referrer" /> }
-                      @if (item.isCover) { <span class="absolute left-3 top-3 rounded-full bg-blue-600 px-3 py-1 text-[10px] font-black text-white shadow">KAPAK</span> }
+                      <div class="absolute left-3 top-3 flex flex-wrap gap-2">
+                        @if (item.isCover) { <span class="rounded-full bg-blue-600 px-3 py-1 text-[10px] font-black text-white shadow">KAPAK</span> }
+                        @if (!item.isActive) { <span class="rounded-full bg-amber-400 px-3 py-1 text-[10px] font-black text-slate-950 shadow">İNCELEME BEKLİYOR</span> }
+                      </div>
                       <span class="absolute right-3 top-3 rounded-full bg-black/70 px-2 py-1 text-[10px] font-black text-white">{{ item.kind }}</span>
                     </div>
                     <div class="space-y-3 p-4">
                       <label class="field"><span>Alt metin</span><input [(ngModel)]="item.altText" maxlength="300" /></label>
+                      @if (!item.storageBucket) {
+                        <label class="field"><span>Kaynak sayfası</span><input [(ngModel)]="item.sourceUrl" type="url" placeholder="https://…" /></label>
+                        <label class="field"><span>Kaynak adı</span><input [(ngModel)]="item.sourceName" /></label>
+                        <label class="field"><span>Lisans / kullanım</span><input [(ngModel)]="item.license" placeholder="CC BY-SA 4.0, EMBED_ONLY…" /></label>
+                        <label class="field"><span>Atıf</span><input [(ngModel)]="item.attribution" /></label>
+                        <label class="field"><span>Doğrulama kapsamı</span><select [ngModel]="itemScope(item)" (ngModelChange)="setItemScope(item,$event)"><option value="ACTUAL_ASSET">Gerçek işletme varlığı</option><option value="EXACT_MODEL_YEAR">Aynı model ve yıl</option><option value="MODEL_FAMILY">Model ailesi / nesil</option><option value="EXACT_LOCATION">Gerçek tur lokasyonu</option><option value="NEARBY_LOCATION">Yakın lokasyon</option><option value="REFERENCE">Referans medya</option></select></label>
+                      } @else {
+                        <div class="rounded-xl bg-emerald-50 p-3 text-[11px] font-bold leading-relaxed text-emerald-800">İşletme tarafından yüklenen gerçek medya · BUSINESS_OWNED</div>
+                      }
                       <div class="grid grid-cols-2 gap-2"><label class="field"><span>Sıra</span><input type="number" [(ngModel)]="item.sortOrder" min="0" /></label><label class="flex items-end"><span class="flex min-h-11 w-full items-center gap-2 rounded-xl bg-slate-50 px-3 text-xs font-black"><input type="checkbox" [(ngModel)]="item.isCover" /> Kapak</span></label></div>
-                      <div class="rounded-xl bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-500"><strong class="block text-slate-700">{{ item.sourceName || 'Kaynak belirtilmedi' }}</strong><span>{{ item.attribution || 'Atıf belirtilmedi' }}</span><span class="block">{{ item.license || 'Lisans belirtilmedi' }}</span><span class="mt-1 block font-bold text-slate-700">{{ scopeLabel(item) }}</span></div>
-                      <div class="grid grid-cols-2 gap-2"><button type="button" (click)="saveItem(item)" class="min-h-11 rounded-xl bg-slate-950 font-black text-white">Kaydet</button><button type="button" (click)="removeItem(item)" class="min-h-11 rounded-xl bg-rose-50 font-black text-rose-700">Sil</button></div>
+                      <div class="rounded-xl bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-500"><strong class="block text-slate-700">{{ item.sourceName || 'İşletme yüklemesi' }}</strong><span>{{ item.attribution || 'Alperler Auto' }}</span><span class="block">{{ item.license || 'Lisans bilgisi yok' }}</span><span class="mt-1 block font-bold text-slate-700">{{ scopeLabel(item) }}</span></div>
+                      <div class="grid grid-cols-2 gap-2"><button type="button" (click)="saveItem(item)" class="min-h-11 rounded-xl bg-slate-950 font-black text-white">{{ item.isActive ? 'Kaydet' : 'Doğrula & Etkinleştir' }}</button><button type="button" (click)="removeItem(item)" class="min-h-11 rounded-xl bg-rose-50 font-black text-rose-700">Sil</button></div>
                     </div>
                   </article>
-                } @empty { <div class="col-span-full rounded-3xl border border-dashed border-slate-300 p-14 text-center text-slate-500">Bu içerik için henüz doğrulanmış medya eklenmedi.</div> }
+                } @empty { <div class="col-span-full rounded-3xl border border-dashed border-slate-300 p-14 text-center text-slate-500">Bu içerik için henüz medya eklenmedi.</div> }
               </div>
             }
           </section>
@@ -150,7 +165,7 @@ export class AdminMediaComponent implements OnInit {
     ...this.cars.getAllVehicles()().filter((row) => row.category !== "TOUR" && row.cloudId).map((row) => ({ type: "VEHICLE" as const, id: row.cloudId!, label: `${row.category === 'RENTAL' ? 'Kiralık' : 'Satılık'} · ${row.brand || ''} ${row.model || ''}`.trim(), image: row.image })),
     ...this.cars.getTours()().filter((row) => row.cloudId).map((row) => ({ type: "TOUR" as const, id: row.cloudId!, label: `Tur · ${row.title || row.id}`, image: row.image })),
   ]);
-  readonly currentItems = computed(() => { const entity = this.selectedEntity(); if (!entity) return []; return this.allItems().filter((item) => entity.type === "VEHICLE" ? item.vehicleId === entity.id : item.tourId === entity.id).sort((a,b) => Number(b.isCover)-Number(a.isCover) || a.sortOrder-b.sortOrder); });
+  readonly currentItems = computed(() => { const entity = this.selectedEntity(); if (!entity) return []; return this.allItems().filter((item) => entity.type === "VEHICLE" ? item.vehicleId === entity.id : item.tourId === entity.id).sort((a,b) => Number(b.isCover)-Number(a.isCover) || Number(b.isActive)-Number(a.isActive) || a.sortOrder-b.sortOrder); });
 
   ngOnInit(): void { void this.refresh(); }
   entityChanged(): void {
@@ -161,6 +176,8 @@ export class AdminMediaComponent implements OnInit {
     this.verificationScope = entity?.type === "TOUR" ? "EXACT_LOCATION" : "MODEL_FAMILY";
   }
 
+  activeCount(): number { return this.currentItems().filter((item) => item.isActive).length; }
+  reviewCount(): number { return this.currentItems().filter((item) => !item.isActive).length; }
   async refresh(): Promise<void> { try { this.allItems.set(await this.media.loadAllAdmin()); } catch (error) { this.toast.show(this.message(error), "error"); } }
   selectFiles(event: Event): void { const input = event.target as HTMLInputElement; this.files.set(Array.from(input.files || []).slice(0,20)); input.value = ""; }
   hasOversizedFile(): boolean { return this.files().some((file) => file.size > this.maxUploadBytes); }
@@ -201,8 +218,43 @@ export class AdminMediaComponent implements OnInit {
     } catch (error) { this.toast.show(this.message(error), "error"); }
   }
 
-  async saveItem(item: CatalogMediaItem): Promise<void> { try { await this.media.update(item, { altText: item.altText, sortOrder: item.sortOrder, isCover: item.isCover }); await this.refresh(); this.toast.show("Medya bilgileri kaydedildi.", "success"); } catch (error) { this.toast.show(this.message(error), "error"); } }
+  async saveItem(item: CatalogMediaItem): Promise<void> {
+    try {
+      if (item.storageBucket) {
+        await this.media.update(item, { altText: item.altText, sortOrder: item.sortOrder, isCover: item.isCover });
+      } else {
+        if (!this.externalProvenanceComplete(item)) {
+          this.toast.show("Etkinleştirmek için kaynak sayfası, kaynak adı, gerçek lisans, atıf ve alt metin zorunludur.", "error");
+          return;
+        }
+        const metadata = {
+          ...(item.metadata || {}),
+          verificationScope: this.itemScope(item),
+          provenanceComplete: true,
+          sourceVerified: true,
+          reviewStatus: "VERIFIED",
+          verifiedAt: new Date().toISOString().slice(0, 10),
+        };
+        await this.media.update(item, {
+          altText: item.altText,
+          sortOrder: item.sortOrder,
+          isCover: item.isCover,
+          isActive: true,
+          sourceUrl: item.sourceUrl,
+          sourceName: item.sourceName,
+          license: item.license,
+          attribution: item.attribution,
+          metadata,
+        });
+      }
+      await this.refresh(); this.toast.show("Medya bilgileri kaydedildi.", "success");
+    } catch (error) { this.toast.show(this.message(error), "error"); }
+  }
+
   async removeItem(item: CatalogMediaItem): Promise<void> { try { await this.media.remove(item); await this.refresh(); this.toast.show("Medya kaldırıldı.", "info"); } catch (error) { this.toast.show(this.message(error), "error"); } }
+  itemScope(item: CatalogMediaItem): VerificationScope { const value = String(item.metadata?.["verificationScope"] || item.metadata?.["verification_status"] || "REFERENCE"); return (["ACTUAL_ASSET","EXACT_MODEL_YEAR","MODEL_FAMILY","EXACT_LOCATION","NEARBY_LOCATION","REFERENCE"] as string[]).includes(value) ? value as VerificationScope : "REFERENCE"; }
+  setItemScope(item: CatalogMediaItem, value: VerificationScope): void { item.metadata = { ...(item.metadata || {}), verificationScope: value }; }
+  externalProvenanceComplete(item: CatalogMediaItem): boolean { return Boolean(item.sourceUrl?.trim() && item.sourceName?.trim() && item.license?.trim() && item.license.trim() !== "REVIEW_REQUIRED" && item.attribution?.trim() && item.altText.trim()); }
 
   isYouTube(url: string): boolean { return Boolean(this.youtubeId(url)); }
   safeYouTubeUrl(url: string): SafeResourceUrl {

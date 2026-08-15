@@ -72,6 +72,7 @@ export class CatalogMediaService {
   private readonly bucket = "catalog-media";
   private readonly tusThreshold = 6 * 1024 * 1024;
   private readonly tusChunkSize = 6 * 1024 * 1024;
+  readonly maxUploadBytes = 50 * 1024 * 1024;
   private readonly _uploadProgress = signal(0);
   readonly uploadProgress = this._uploadProgress.asReadonly();
 
@@ -134,6 +135,9 @@ export class CatalogMediaService {
           originalName: file.name,
           mimeType: file.type,
           fileSize: file.size,
+          verificationScope: "ACTUAL_ASSET",
+          sourceVerified: true,
+          verifiedAt: new Date().toISOString().slice(0, 10),
         },
       };
       const response = await fetch(
@@ -157,21 +161,31 @@ export class CatalogMediaService {
 
   async addExternal(input: ExternalMediaInput): Promise<CatalogMediaItem> {
     const token = await this.requiredToken();
-    const parsed = new URL(input.url);
-    if (!["https:"].includes(parsed.protocol)) throw new Error("MEDIA_URL_MUST_BE_HTTPS");
+    const mediaUrl = input.url.trim();
+    const sourceUrl = input.sourceUrl?.trim() || "";
+    const sourceName = input.sourceName?.trim() || "";
+    const license = input.license?.trim() || "";
+    const attribution = input.attribution?.trim() || "";
+    const altText = input.altText.trim();
+    let parsed: URL;
+    try { parsed = new URL(mediaUrl); } catch { throw new Error("MEDIA_URL_INVALID"); }
+    if (parsed.protocol !== "https:") throw new Error("MEDIA_URL_MUST_BE_HTTPS");
+    try { if (new URL(sourceUrl).protocol !== "https:") throw new Error("MEDIA_SOURCE_MUST_BE_HTTPS"); } catch { throw new Error("MEDIA_SOURCE_MUST_BE_HTTPS"); }
+    if (!sourceName || !license || !attribution || !altText) throw new Error("MEDIA_PROVENANCE_REQUIRED");
+    if (await this.externalDuplicateExists(input.entityType, input.entityId, mediaUrl, token)) throw new Error("MEDIA_ALREADY_EXISTS");
     if (input.isCover) await this.clearExistingCover(input.entityType, input.entityId, token);
     const row = {
       ...this.ownerPayload(input.entityType, input.entityId),
       kind: input.kind,
       storage_bucket: null,
       object_path: null,
-      external_url: input.url,
+      external_url: mediaUrl,
       poster_url: input.posterUrl || null,
-      source_url: input.sourceUrl || null,
-      source_name: input.sourceName || null,
-      license: input.license || null,
-      attribution: input.attribution || null,
-      alt_text: input.altText.trim().slice(0, 300),
+      source_url: sourceUrl,
+      source_name: sourceName,
+      license,
+      attribution,
+      alt_text: altText.slice(0, 300),
       sort_order: input.sortOrder ?? 0,
       is_cover: Boolean(input.isCover),
       is_active: true,
@@ -223,6 +237,17 @@ export class CatalogMediaService {
         console.warn("Catalog media row deleted but storage cleanup failed", error);
       });
     }
+  }
+
+  private async externalDuplicateExists(entityType: CatalogEntityType, entityId: string, mediaUrl: string, token: string): Promise<boolean> {
+    const column = this.ownerColumn(entityType);
+    const response = await fetch(
+      `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?${column}=eq.${encodeURIComponent(entityId)}&external_url=eq.${encodeURIComponent(mediaUrl)}&is_active=eq.true&select=id&limit=1`,
+      { headers: this.authHeaders(token) },
+    );
+    if (!response.ok) throw new Error(`CATALOG_MEDIA_DUPLICATE_CHECK_${response.status}`);
+    const rows = await response.json();
+    return Array.isArray(rows) && rows.length > 0;
   }
 
   private async uploadStandard(file: File, objectPath: string, token: string): Promise<void> {
@@ -335,7 +360,7 @@ export class CatalogMediaService {
       "video/webm",
     ]);
     if (!allowed.has(file.type)) throw new Error("CATALOG_MEDIA_TYPE_NOT_ALLOWED");
-    if (file.size < 1 || file.size > 150 * 1024 * 1024) throw new Error("CATALOG_MEDIA_SIZE_NOT_ALLOWED");
+    if (file.size < 1 || file.size > this.maxUploadBytes) throw new Error("CATALOG_MEDIA_SIZE_NOT_ALLOWED");
   }
 
   private extension(file: File): string {

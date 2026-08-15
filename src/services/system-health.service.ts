@@ -32,7 +32,7 @@ export class SystemHealthService {
 
     window.addEventListener("error", (event) => {
       const target = event.target;
-      if (target instanceof HTMLElement && target !== window) {
+      if (target instanceof HTMLElement) {
         const tag = target.tagName.toLowerCase();
         const resource = target instanceof HTMLImageElement ? "image" : target instanceof HTMLScriptElement ? "script" : tag;
         void this.report({

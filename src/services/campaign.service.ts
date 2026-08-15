@@ -36,6 +36,7 @@ export class CampaignService {
   async loadPublic(): Promise<CampaignRecord[]> {
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?is_active=eq.true&publication_status=eq.PUBLISHED&select=*&order=sort_order.asc,created_at.desc`, {
       headers: this.publicHeaders(),
+      cache: "no-store",
     });
     if (!response.ok) throw new Error(`CAMPAIGNS_PUBLIC_${response.status}`);
     return ((await response.json()) as any[]).map((row) => this.fromRow(row));
@@ -45,6 +46,7 @@ export class CampaignService {
     const token = await this.requiredToken();
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=*&order=sort_order.asc,created_at.desc`, {
       headers: this.authHeaders(token),
+      cache: "no-store",
     });
     if (!response.ok) throw new Error(`CAMPAIGNS_ADMIN_${response.status}`);
     this._campaigns.set(((await response.json()) as any[]).map((row) => this.fromRow(row)));
@@ -139,10 +141,10 @@ export class CampaignService {
       ...current,
       homeContent: {
         ...currentHome,
-        campaignBannerBadge: primary.badge || (primary.discountPercent != null ? `%${primary.discountPercent} İNDİRİM` : "KAMPANYA"),
-        campaignBannerTitle: primary.title,
-        campaignBannerSubtitle: primary.shortDescription || primary.description || "",
-        campaignBannerButtonText: primary.ctaLabel || "Kampanyayı İncele",
+        campaignBannerBadge: "3 Seçilmiş Fırsat",
+        campaignBannerTitle: "Sadece Şimdi: Seçilmiş 3 Fırsat",
+        campaignBannerSubtitle: "Kiralama, özel gün ve Cilo tur fırsatlarını şeffaf fiyatlarla inceleyin. Süreli avantajları kaçırmadan size uygun seçeneği değerlendirin.",
+        campaignBannerButtonText: primary.ctaLabel || "Fırsatı İncele",
         campaignBannerImage: primary.coverImage || "",
         campaignBannerUrl: primary.ctaUrl || "",
         campaignBannerWhatsappMessage: primary.whatsappMessage || "",
@@ -189,7 +191,7 @@ export class CampaignService {
   }
 
   private publicHeaders(): Record<string,string> {
-    return { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}` };
+    return { apikey: SUPABASE_PUBLISHABLE_KEY, accept: "application/json" };
   }
 
   private authHeaders(token: string): Record<string,string> {

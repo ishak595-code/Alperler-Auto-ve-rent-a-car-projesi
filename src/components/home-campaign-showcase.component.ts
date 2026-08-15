@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { Component, OnDestroy, OnInit, inject, signal } from "@angular/core";
+import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, inject, signal } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { Router } from "@angular/router";
 import { CampaignRecord, CampaignService } from "../services/campaign.service";
@@ -131,17 +131,25 @@ import { CarService } from "../services/car.service";
     :host{display:block}.campaign-card{animation:campaign-enter .55s cubic-bezier(.2,.8,.2,1) both}.campaign-glow{position:absolute;border-radius:9999px;filter:blur(70px);opacity:.24}.campaign-glow-one{width:28rem;height:28rem;background:#2563eb;left:-10rem;top:-9rem}.campaign-glow-two{width:26rem;height:26rem;background:#f59e0b;right:-9rem;bottom:-11rem}.campaign-grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:32px 32px;mask-image:linear-gradient(to bottom,black,transparent)}@keyframes campaign-enter{from{opacity:0;transform:translateY(22px) scale(.985)}to{opacity:1;transform:none}}@media(prefers-reduced-motion:reduce){.campaign-card{animation:none!important;transition:none!important}.campaign-card img{transition:none!important}}
   `],
 })
-export class HomeCampaignShowcaseComponent implements OnInit, OnDestroy {
+export class HomeCampaignShowcaseComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly campaignService = inject(CampaignService);
   private readonly carService = inject(CarService);
   private readonly router = inject(Router);
+  private readonly host = inject(ElementRef<HTMLElement>);
   readonly campaigns = signal<CampaignRecord[]>([]);
   private readonly clock = signal(Date.now());
   private timer?: number;
+  private viewReady = false;
+  private relocationAttempts = 0;
 
   ngOnInit(): void {
     if (typeof window !== "undefined") this.timer = window.setInterval(() => this.clock.set(Date.now()), 60_000);
     void this.load();
+  }
+
+  ngAfterViewInit(): void {
+    this.viewReady = true;
+    this.relocateWhenReady();
   }
 
   ngOnDestroy(): void {
@@ -252,9 +260,30 @@ export class HomeCampaignShowcaseComponent implements OnInit, OnDestroy {
     try {
       const rows = await this.campaignService.loadPublic();
       this.campaigns.set(rows.filter((row) => this.isLive(row)).slice(0, 3));
+      this.relocateWhenReady();
     } catch {
       this.campaigns.set([]);
     }
+  }
+
+  private relocateWhenReady(): void {
+    if (!this.viewReady || this.campaigns().length === 0 || typeof document === "undefined") return;
+    requestAnimationFrame(() => {
+      const legacyCampaign = document.querySelector<HTMLElement>('app-home section[aria-labelledby="campaigns-title"]');
+      const firstContentSection = document.querySelector<HTMLElement>('app-home section[aria-labelledby="rental_featured-title"], app-home section[aria-labelledby="sale_featured-title"], app-home section[aria-labelledby="tour_featured-title"]');
+      const anchor = legacyCampaign || firstContentSection;
+      if (anchor?.parentElement) {
+        if (legacyCampaign) legacyCampaign.style.display = "none";
+        if (this.host.nativeElement.nextSibling !== anchor || this.host.nativeElement.parentElement !== anchor.parentElement) {
+          anchor.parentElement.insertBefore(this.host.nativeElement, anchor);
+        }
+        return;
+      }
+      if (this.relocationAttempts < 20) {
+        this.relocationAttempts += 1;
+        window.setTimeout(() => this.relocateWhenReady(), 75);
+      }
+    });
   }
 
   private isLive(campaign: CampaignRecord): boolean {

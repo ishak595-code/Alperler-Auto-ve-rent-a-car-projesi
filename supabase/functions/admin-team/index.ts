@@ -8,6 +8,15 @@ const admin = createClient(URL, SERVICE_KEY, {
 });
 
 const allowedRoles = new Set(["owner", "admin", "editor", "support"]);
+const granularPermissionKeys = [
+  "content.manage",
+  "operations.manage",
+  "team.manage",
+  "settings.manage",
+  "finance.read",
+] as const;
+
+type GranularPermission = (typeof granularPermissionKeys)[number];
 
 function json(body: unknown, status = 200): Response {
   return Response.json(body, {
@@ -39,6 +48,32 @@ function adminInviteRedirect(): string {
 function email(value: unknown): string | null {
   const normalized = clean(value, 200).toLowerCase();
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) ? normalized : null;
+}
+
+function normalizePermissions(value: unknown): Record<GranularPermission, boolean> {
+  const source = value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+
+  const normalized: Record<GranularPermission, boolean> = {
+    "content.manage": false,
+    "operations.manage": false,
+    "team.manage": false,
+    "settings.manage": false,
+    "finance.read": false,
+  };
+
+  for (const key of granularPermissionKeys) {
+    normalized[key] = source[key] === true;
+  }
+
+  normalized["content.manage"] ||= source["content"] === true || source["catalog"] === true;
+  normalized["operations.manage"] ||= source["operations"] === true || source["bookings"] === true;
+  normalized["team.manage"] ||= source["team"] === true;
+  normalized["settings.manage"] ||= source["settings"] === true;
+  normalized["finance.read"] ||= source["finance"] === true;
+
+  return normalized;
 }
 
 function serviceHeaders(extra: Record<string, string> = {}) {
@@ -120,7 +155,7 @@ async function invite(actor: { id: string; email: string }, input: Record<string
   const displayName = clean(input["displayName"], 160);
   const role = clean(input["role"], 30).toLowerCase();
   const branchId = clean(input["primaryBranchId"], 80) || null;
-  const permissions = input["permissions"] && typeof input["permissions"] === "object" ? input["permissions"] : {};
+  const permissions = normalizePermissions(input["permissions"]);
   if (!targetEmail || !displayName || !allowedRoles.has(role)) {
     return json({ ok: false, code: "INVALID_ADMIN_INVITE" }, 400);
   }
@@ -130,6 +165,7 @@ async function invite(actor: { id: string; email: string }, input: Record<string
   if (!user) {
     const { data, error } = await admin.auth.admin.inviteUserByEmail(targetEmail, {
       redirectTo: adminInviteRedirect(),
+      data: { display_name: displayName, invited_by: actor.email },
     });
     if (error || !data.user?.id) {
       console.error("admin invite failed", error);
@@ -205,7 +241,9 @@ async function updateAdmin(actor: { id: string; email: string }, input: Record<s
     requestedPrimaryBranch = hasPrimaryBranch ? clean(input["primaryBranchId"], 80) || null : null;
     patch["primary_branch_id"] = requestedPrimaryBranch;
   }
-  if (input["permissions"] !== undefined && input["permissions"] && typeof input["permissions"] === "object") patch["permissions"] = input["permissions"];
+  if (input["permissions"] !== undefined) {
+    patch["permissions"] = normalizePermissions(input["permissions"]);
+  }
 
   const update = await rest(`admin_users?user_id=eq.${encodeURIComponent(userId)}&select=*`, {
     method: "PATCH",

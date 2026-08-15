@@ -46,7 +46,13 @@ export class AccessibilityRuntimeService {
 
   private ensureAccessibleName(control: HTMLElement): void {
     if (!control.matches('input,select,textarea,button')) return;
-    if (this.hasAccessibleName(control)) return;
+
+    const forceExplicit = control.matches('input[type="date"],input[type="time"],input[type="datetime-local"],select');
+    if (forceExplicit) {
+      if (control.getAttribute('aria-label')?.trim()) return;
+    } else if (this.hasAccessibleName(control)) {
+      return;
+    }
 
     const text = this.nearestLabelText(control)
       || control.getAttribute('placeholder')?.trim()

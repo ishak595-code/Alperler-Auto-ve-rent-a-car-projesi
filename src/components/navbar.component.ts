@@ -66,7 +66,7 @@ import { Language, UiService } from "../services/ui.service";
       <div class="mx-auto w-full max-w-xl">
         <div class="mb-3 px-1">
           <p class="text-[10px] font-black uppercase tracking-[.2em] text-blue-300">Alperler Auto</p>
-          <p class="mt-1 text-sm leading-6 text-slate-400">Bölümler arasında hızlı ve erişilebilir gezinme.</p>
+          <p class="mt-1 text-sm leading-6 text-slate-400">Bölümler, favoriler ve dil ayarları tek erişilebilir menüde.</p>
         </div>
 
         <div class="overflow-hidden rounded-2xl border border-white/10 bg-[#0b1526] shadow-2xl">
@@ -81,15 +81,43 @@ import { Language, UiService } from "../services/ui.service";
           <a routerLink="/about" (click)="closeMenu(false)" class="menu-row last"><mat-icon aria-hidden="true">info</mat-icon><span>{{ t().nav.about }}</span></a>
         </div>
 
+        <div class="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0b1526] shadow-2xl" aria-label="Kişisel ayarlar">
+          <a routerLink="/fleet" [queryParams]="{ favs: 'true' }" (click)="closeMenu(false)" class="menu-row">
+            <mat-icon aria-hidden="true">favorite_border</mat-icon>
+            <span>Favoriler</span>
+            @if (favoriteCount() > 0) { <strong class="menu-count" [attr.aria-label]="favoriteCount() + ' favori'">{{ favoriteCount() > 99 ? '99+' : favoriteCount() }}</strong> }
+          </a>
+          <button type="button" class="menu-row last" (click)="toggleMobileLanguage()" [attr.aria-expanded]="mobileLanguageOpen()" aria-controls="mobile-language-options">
+            <mat-icon aria-hidden="true">language</mat-icon>
+            <span>Dil: {{ langName(uiService.currentLang()) }}</span>
+            <mat-icon aria-hidden="true" class="transition-transform" [class.rotate-180]="mobileLanguageOpen()">expand_more</mat-icon>
+          </button>
+          @if (mobileLanguageOpen()) {
+            <div id="mobile-language-options" class="grid grid-cols-2 gap-2 border-t border-white/10 bg-black/10 p-3 sm:grid-cols-3" aria-label="Dil seçenekleri">
+              @for (lang of languages; track lang) {
+                <button
+                  type="button"
+                  (click)="setMobileLang(lang)"
+                  [attr.aria-pressed]="uiService.currentLang() === lang"
+                  class="min-h-12 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-sm font-bold text-slate-100 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                >
+                  <span class="block text-[10px] font-black uppercase tracking-wider text-blue-300">{{ lang }}</span>
+                  <span class="mt-0.5 block text-xs">{{ langName(lang) }}</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+
         <p class="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs leading-5 text-slate-400">
-          Arama, favoriler, dil ve randevu işlemleri ekranın altındaki hızlı işlem çubuğunda bulunur.
+          Arama ve randevu işlemleri mobil hızlı işlem çubuğunda kalır. Favoriler ve dil ayarı bu menüden yönetilir.
         </p>
       </div>
     </nav>
   `,
   styles: [`
     .nav-link{border-bottom:2px solid transparent;padding:.5rem 0;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#cbd5e1;white-space:nowrap}
-    .menu-row{display:flex;min-height:56px;align-items:center;gap:16px;border-bottom:1px solid rgba(255,255,255,.1);padding:0 16px;font-size:16px;font-weight:700;color:#f1f5f9;text-decoration:none}.menu-row span{flex:1}.menu-row.last{border-bottom:0}.menu-row:focus-visible{background:rgba(255,255,255,.08);outline:none}
+    .menu-row{display:flex;width:100%;min-height:56px;align-items:center;gap:16px;border:0;border-bottom:1px solid rgba(255,255,255,.1);background:transparent;padding:0 16px;text-align:left;font-size:16px;font-weight:700;color:#f1f5f9;text-decoration:none}.menu-row span{flex:1}.menu-row.last{border-bottom:0}.menu-row:focus-visible{background:rgba(255,255,255,.08);outline:none}.menu-count{display:inline-flex;min-width:28px;height:28px;align-items:center;justify-content:center;border-radius:999px;background:#1d4ed8;padding:0 8px;color:white;font-size:11px;font-weight:900}
   `],
 })
 export class NavbarComponent {
@@ -97,17 +125,21 @@ export class NavbarComponent {
   uiService = inject(UiService);
   router = inject(Router);
   config = this.carService.getConfig();
+  favoriteCount = this.carService.getFavoriteCount;
   isMenuOpen = signal(false);
   isLangMenuOpen = signal(false);
+  mobileLanguageOpen = signal(false);
   t = this.uiService.translations;
   languages: Language[] = ["TR", "EN", "DE", "FR", "KU", "ES", "RU", "ZH", "AR"];
 
   toggleMenu(): void { this.isMenuOpen() ? this.closeMenu(false) : this.openMenu(); }
-  openMenu(): void { if (this.isMenuOpen()) return; this.isLangMenuOpen.set(false); this.isMenuOpen.set(true); }
-  closeMenu(restoreFocus = false): void { if (!this.isMenuOpen()) return; this.isMenuOpen.set(false); if (restoreFocus) this.focusElement("mobile-menu-trigger"); }
+  openMenu(): void { if (this.isMenuOpen()) return; this.isLangMenuOpen.set(false); this.mobileLanguageOpen.set(false); this.isMenuOpen.set(true); }
+  closeMenu(restoreFocus = false): void { if (!this.isMenuOpen()) return; this.isMenuOpen.set(false); this.mobileLanguageOpen.set(false); if (restoreFocus) this.focusElement("mobile-menu-trigger"); }
   toggleLangMenu(): void { if (!this.isMenuOpen()) this.isLangMenuOpen.update(v => !v); }
   closeLangMenu(): void { this.isLangMenuOpen.set(false); }
+  toggleMobileLanguage(): void { this.mobileLanguageOpen.update(value => !value); }
   setLang(lang: Language): void { this.uiService.setLanguage(lang); this.closeLangMenu(); }
+  setMobileLang(lang: Language): void { this.uiService.setLanguage(lang); this.mobileLanguageOpen.set(false); }
 
   async onGlobalSearch(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;

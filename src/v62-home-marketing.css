@@ -1,27 +1,142 @@
-/* V62 customer-facing homepage simplification. */
+/* V63 customer-facing homepage refinement. */
 
 /* Phones already have the persistent bottom navigation. Repeating rental,
    sales and tour quick-action cards inside the hero creates competing choices.
-   Keep these shortcuts for tablet/desktop, remove them only from phones. */
+   Keep these shortcuts for tablet and desktop, remove them only from phones. */
 @media (max-width: 767px) {
-  app-home .mobile-scroll {
+  app-home .hero-shell .mobile-scroll {
     display: none !important;
   }
 
-  app-home main > section:first-of-type > div.mx-auto {
-    gap: 1.75rem !important;
+  app-home .hero-shell > div.mx-auto {
+    min-height: auto !important;
+    gap: 1.4rem !important;
+    padding-top: 2rem !important;
+    padding-bottom: 2.75rem !important;
+  }
+
+  app-home .hero-shell > div.mx-auto > div:first-child {
+    padding-top: 0 !important;
+  }
+
+  app-home .hero-shell aside {
+    margin-top: 0 !important;
   }
 }
 
-/* The V62 campaign component is the canonical campaign showroom. The older
-   inline section remains as a graceful code fallback but is hidden whenever
-   the V62 showroom has been positioned immediately before it. */
+/* Current HomeComponent 3D depth system. The old app-home-v39 selector no
+   longer exists, so depth must target the canonical app-home surface. */
+app-home .hero-shell {
+  perspective: 1500px;
+  isolation: isolate;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+}
+
+app-home .hero-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -9;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 78% 16%, rgba(59, 130, 246, 0.28), transparent 31%),
+    radial-gradient(circle at 16% 74%, rgba(6, 182, 212, 0.16), transparent 34%),
+    radial-gradient(circle at 50% 8%, rgba(255, 255, 255, 0.08), transparent 26%);
+}
+
+app-home .hero-shell::after {
+  content: "";
+  position: absolute;
+  left: 39%;
+  right: -12%;
+  bottom: -42%;
+  height: 68%;
+  z-index: -8;
+  pointer-events: none;
+  opacity: 0.23;
+  transform: perspective(900px) rotateX(68deg) rotateZ(-4deg);
+  transform-origin: center top;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.14) 1px, transparent 1px),
+    radial-gradient(circle at center, rgba(59, 130, 246, 0.18), transparent 62%);
+  background-size: 54px 54px, 54px 54px, 100% 100%;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.92), transparent 82%);
+}
+
+app-home .hero-shell > div.mx-auto {
+  transform-style: preserve-3d;
+}
+
+app-home .hero-shell > div.mx-auto > div:first-child {
+  transform: translateZ(18px);
+}
+
+app-home .hero-shell .glass:has(#home-search) {
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  box-shadow:
+    0 28px 68px rgba(2, 6, 23, 0.36),
+    0 6px 18px rgba(15, 23, 42, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+app-home .hero-shell aside {
+  transform: translateZ(34px);
+  border-color: rgba(255, 255, 255, 0.26) !important;
+  box-shadow:
+    0 38px 88px rgba(2, 6, 23, 0.4),
+    0 10px 26px rgba(15, 23, 42, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+@media (min-width: 1024px) {
+  app-home .hero-shell > div.mx-auto {
+    padding-top: clamp(4rem, 6vw, 5.5rem) !important;
+    padding-bottom: clamp(4.5rem, 7vw, 6rem) !important;
+  }
+
+  app-home .hero-shell aside {
+    margin-top: -1.2rem;
+  }
+}
+
+@media (max-width: 767px) {
+  app-home .hero-shell::after {
+    left: 18%;
+    right: -52%;
+    bottom: -28%;
+    height: 50%;
+    opacity: 0.15;
+    background-size: 42px 42px, 42px 42px, 100% 100%;
+  }
+
+  app-home .hero-shell > div.mx-auto > div:first-child,
+  app-home .hero-shell aside {
+    transform: none;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  app-home .hero-shell aside {
+    transition: transform 280ms ease, box-shadow 280ms ease, border-color 280ms ease;
+  }
+
+  app-home .hero-shell aside:hover {
+    transform: translateZ(42px) translateY(-3px) rotateY(-0.5deg);
+    border-color: rgba(96, 165, 250, 0.42) !important;
+    box-shadow:
+      0 46px 100px rgba(2, 6, 23, 0.44),
+      0 14px 32px rgba(15, 23, 42, 0.24),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+  }
+}
+
+/* The V62 campaign component can act as the canonical campaign showroom. The
+   older inline section is hidden only when that component is immediately before it. */
 app-home-campaign-showcase + section[aria-labelledby="campaigns-title"] {
   display: none !important;
 }
 
-/* Give the campaign showroom a strong visual break from the hero and the
-   inventory grid while preserving accessible contrast. */
 app-home app-home-campaign-showcase {
   display: block;
   position: relative;
@@ -31,5 +146,15 @@ app-home app-home-campaign-showcase {
 @media (max-width: 767px) {
   app-home app-home-campaign-showcase article {
     min-height: 0 !important;
+  }
+}
+
+/* Keep motion accessible and avoid unnecessary GPU work for users who request
+   reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  app-home .hero-shell > div.mx-auto > div:first-child,
+  app-home .hero-shell aside {
+    transform: none !important;
+    transition: none !important;
   }
 }

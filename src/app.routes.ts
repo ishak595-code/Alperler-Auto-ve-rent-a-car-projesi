@@ -50,6 +50,8 @@ const adminAreaGuard = (area: AdminArea): CanActivateFn => async () => {
 
 export const routes: Routes = [
   { path: 'admin/login', loadComponent: () => import('./pages/admin/admin-login.component').then(m => m.AdminLoginComponent) },
+  { path: 'search', loadComponent: () => import('./pages/search.component').then(m => m.SearchComponent) },
+  { path: 'campaigns', loadComponent: () => import('./pages/campaigns.component').then(m => m.CampaignsComponent) },
   { path: 'fleet', component: FleetComponent },
   { path: 'fleet/:id', component: RentalDetailShellComponent },
   { path: 'sales', loadComponent: () => import('./pages/sales-results.component').then(m => m.SalesResultsComponent) },

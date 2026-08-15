@@ -27,7 +27,7 @@ function adminInviteRedirect(): string {
   const configured = clean(Deno.env.get("ADMIN_INVITE_REDIRECT_URL"), 500);
   if (configured) {
     try {
-      const parsed = new URL(configured);
+      const parsed = new globalThis.URL(configured);
       if (parsed.protocol === "https:") return parsed.toString();
     } catch {
       console.warn("Ignoring invalid ADMIN_INVITE_REDIRECT_URL");

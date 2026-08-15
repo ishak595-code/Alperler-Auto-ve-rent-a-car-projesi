@@ -27,6 +27,8 @@ import { AdminTeamComponent } from './pages/admin/admin-team.component';
 import { AdminBranchesComponent } from './pages/admin/admin-branches.component';
 import { AdminCampaignsComponent } from './pages/admin/admin-campaigns.component';
 import { AdminCatalogEditorComponent } from './pages/admin/admin-catalog-editor.component';
+import { AdminMediaComponent } from './pages/admin/admin-media.component';
+import { AdminAuditComponent } from './pages/admin/admin-audit.component';
 import { AdminWhatsappSettingsComponent } from './pages/admin/admin-whatsapp-settings.component';
 
 const adminGuard: CanActivateFn = async () => {
@@ -76,11 +78,12 @@ export const routes: Routes = [
       { path: 'dashboard', component: AdminDashboardShellComponent },
       { path: 'homepage', component: AdminHomepageComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'campaigns', component: AdminCampaignsComponent, canActivate: [adminAreaGuard('content')] },
-      { path: 'media', redirectTo: 'catalog-editor', pathMatch: 'full' },
+      { path: 'media', component: AdminMediaComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'catalog-editor', component: AdminCatalogEditorComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'whatsapp', component: AdminWhatsappSettingsComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'team', component: AdminTeamComponent, canActivate: [adminAreaGuard('team')] },
       { path: 'branches', component: AdminBranchesComponent, canActivate: [adminAreaGuard('settings')] },
+      { path: 'audit', component: AdminAuditComponent, canActivate: [adminAreaGuard('finance')] },
       { path: 'cars', component: AdminCarsComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'reservations', component: AdminReservationsComponent, canActivate: [adminAreaGuard('operations')] },
       { path: 'sales', component: AdminCarsComponent, canActivate: [adminAreaGuard('content')] },

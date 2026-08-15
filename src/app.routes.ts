@@ -2,7 +2,7 @@ import { Routes, CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthService } from './services/auth.service';
 import { AdminAccessService, AdminArea } from './services/admin-access.service';
-import { HomeV39Component } from './pages/home-v39.component';
+import { HomeComponent } from './pages/home.component';
 import { FleetComponent } from './pages/fleet.component';
 import { AboutComponent } from './pages/about.component';
 import { BlogDetailComponent } from './pages/blog-detail.component';
@@ -67,7 +67,7 @@ export const routes: Routes = [
   { path: 'list-your-car', loadComponent: () => import('./pages/list-your-car.component').then(m => m.ListYourCarComponent) },
   { path: 'track-car/:id', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
   { path: 'track-car', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
-  { path: '', component: MainLayoutComponent, children: [{ path: '', component: HomeV39Component }] },
+  { path: '', component: MainLayoutComponent, children: [{ path: '', component: HomeComponent }] },
   {
     path: 'admin',
     component: AdminLayoutComponent,

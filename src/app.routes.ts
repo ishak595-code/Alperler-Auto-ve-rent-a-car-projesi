@@ -48,6 +48,17 @@ const adminAreaGuard = (area: AdminArea): CanActivateFn => async () => {
   return router.parseUrl(`/admin/dashboard?denied=${encodeURIComponent(area)}`);
 };
 
+const ownerGuard: CanActivateFn = async () => {
+  const auth = inject(AuthService);
+  const access = inject(AdminAccessService);
+  const router = inject(Router);
+  await auth.waitUntilReady();
+  if (!auth.isLoggedIn()) return router.parseUrl('/admin/login');
+  const profile = await access.refresh(true);
+  if (profile?.isActive && profile.role === 'owner') return true;
+  return router.parseUrl('/admin/dashboard?denied=owner');
+};
+
 export const routes: Routes = [
   { path: 'admin/login', loadComponent: () => import('./pages/admin/admin-login.component').then(m => m.AdminLoginComponent) },
   { path: 'fleet', component: FleetComponent },
@@ -81,8 +92,8 @@ export const routes: Routes = [
       { path: 'catalog-editor', component: AdminCatalogEditorComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'whatsapp', component: AdminWhatsappSettingsComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'team', component: AdminTeamComponent, canActivate: [adminAreaGuard('team')] },
-      { path: 'permissions', component: AdminPermissionsComponent, canActivate: [adminAreaGuard('team')] },
-      { path: 'branches', component: AdminBranchesComponent, canActivate: [adminAreaGuard('settings')] },
+      { path: 'permissions', component: AdminPermissionsComponent, canActivate: [ownerGuard] },
+      { path: 'branches', component: AdminBranchesComponent, canActivate: [adminAreaGuard('team')] },
       { path: 'cars', component: AdminCarsComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'reservations', component: AdminReservationsComponent, canActivate: [adminAreaGuard('operations')] },
       { path: 'sales', component: AdminCarsComponent, canActivate: [adminAreaGuard('content')] },

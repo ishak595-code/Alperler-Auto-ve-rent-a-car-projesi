@@ -1,5 +1,7 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { AuthService } from "./auth.service";
+import { AnalyticsIdentityService } from "./analytics-identity.service";
+import { VisitorAnalyticsService } from "./visitor-analytics.service";
 
 export type PartnerIntent = "sell" | "rent";
 export type PartnerStatus =
@@ -93,6 +95,8 @@ interface AdminResponse {
 @Injectable({ providedIn: "root" })
 export class PartnerRequestService {
   private readonly authService = inject(AuthService);
+  private readonly analyticsIdentity = inject(AnalyticsIdentityService);
+  private readonly analytics = inject(VisitorAnalyticsService);
   private readonly storageHost =
     "https://hrztrgjvgdnaurejnsgs.storage.supabase.co";
   private readonly bucket = "partner-uploads";
@@ -144,6 +148,7 @@ export class PartnerRequestService {
 
     if (session.duplicate && session.status === "NEW") {
       const reference = session.reference;
+      this.completeAnalytics(reference, input);
       this.resetSubmissionKey();
       return { reference };
     }
@@ -188,6 +193,7 @@ export class PartnerRequestService {
     }
 
     const reference = session.reference;
+    this.completeAnalytics(reference, input);
     this.resetSubmissionKey();
     return { reference };
   }
@@ -230,6 +236,16 @@ export class PartnerRequestService {
         record.reference === reference ? updated : record,
       ),
     );
+  }
+
+  private completeAnalytics(reference: string, input: PartnerSubmissionInput): void {
+    void this.analyticsIdentity.link({
+      entityType: "PARTNER_REQUEST",
+      reference,
+      phone: input.phone,
+      email: input.email,
+    });
+    this.analytics.trackFormSuccess("partner-request");
   }
 
   private async resumeUpload(files: FileManifest[]): Promise<InitResponse> {

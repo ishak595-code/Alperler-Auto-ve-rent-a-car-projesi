@@ -105,8 +105,9 @@ export class HomepageLayoutService {
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
       headers: {
         apikey: SUPABASE_PUBLISHABLE_KEY,
-        authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+        accept: 'application/json',
       },
+      cache: 'no-store',
     });
     if (!response.ok) throw new Error(`HOMEPAGE_LAYOUT_${response.status}`);
     return await response.json() as T;

@@ -36,6 +36,7 @@ export class CampaignService {
   async loadPublic(): Promise<CampaignRecord[]> {
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?is_active=eq.true&publication_status=eq.PUBLISHED&select=*&order=sort_order.asc,created_at.desc`, {
       headers: this.publicHeaders(),
+      cache: "no-store",
     });
     if (!response.ok) throw new Error(`CAMPAIGNS_PUBLIC_${response.status}`);
     return ((await response.json()) as any[]).map((row) => this.fromRow(row));
@@ -45,6 +46,7 @@ export class CampaignService {
     const token = await this.requiredToken();
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=*&order=sort_order.asc,created_at.desc`, {
       headers: this.authHeaders(token),
+      cache: "no-store",
     });
     if (!response.ok) throw new Error(`CAMPAIGNS_ADMIN_${response.status}`);
     this._campaigns.set(((await response.json()) as any[]).map((row) => this.fromRow(row)));
@@ -52,9 +54,10 @@ export class CampaignService {
 
   async save(input: Partial<CampaignRecord> & Pick<CampaignRecord, "title" | "campaignType" | "ctaLabel" | "publicationStatus">): Promise<CampaignRecord> {
     const token = await this.requiredToken();
+    const existing = input.id ? this._campaigns().find((row) => row.id === input.id) : undefined;
     const body = {
       title: input.title.trim(),
-      slug: (input.slug || this.slugify(input.title)).trim(),
+      slug: (input.slug || existing?.slug || this.slugify(input.title)).trim(),
       short_description: input.shortDescription?.trim() || null,
       description: input.description?.trim() || null,
       badge: input.badge?.trim() || null,
@@ -65,15 +68,15 @@ export class CampaignService {
       discount_percent: input.discountPercent ?? null,
       target_type: input.targetType || null,
       target_id: input.targetId || null,
-      cta_label: input.ctaLabel.trim() || "Detayları Gör",
+      cta_label: input.ctaLabel.trim() || "Fırsatı İncele",
       cta_url: input.ctaUrl?.trim() || null,
       whatsapp_message: input.whatsappMessage?.trim() || null,
       starts_at: input.startsAt || null,
       ends_at: input.endsAt || null,
       publication_status: input.publicationStatus,
       is_active: input.isActive !== false,
-      sort_order: input.sortOrder ?? 0,
-      metadata: input.metadata || {},
+      sort_order: input.sortOrder ?? existing?.sortOrder ?? this._campaigns().length + 1,
+      metadata: input.metadata ?? existing?.metadata ?? {},
       updated_at: new Date().toISOString(),
     };
     const isUpdate = Boolean(input.id);
@@ -91,7 +94,7 @@ export class CampaignService {
     }
     const saved = this.fromRow(((await response.json()) as any[])[0]);
     await this.refreshAdmin();
-    await this.syncHomepageBanner(token);
+    await this.syncHomepageCampaigns(token);
     return saved;
   }
 
@@ -103,7 +106,7 @@ export class CampaignService {
     });
     if (!response.ok) throw new Error(`CAMPAIGN_DELETE_${response.status}`);
     await this.refreshAdmin();
-    await this.syncHomepageBanner(token);
+    await this.syncHomepageCampaigns(token);
   }
 
   async reorder(ids: string[]): Promise<void> {
@@ -116,18 +119,50 @@ export class CampaignService {
       if (!response.ok) throw new Error(`CAMPAIGN_REORDER_${response.status}`);
     })));
     await this.refreshAdmin();
-    await this.syncHomepageBanner(token);
+    await this.syncHomepageCampaigns(token);
   }
 
-  private async syncHomepageBanner(token: string): Promise<void> {
-    const now = Date.now();
-    const primary = [...this._campaigns()]
+  private async syncHomepageCampaigns(token: string): Promise<void> {
+    const ordered = [...this._campaigns()]
       .filter((item) => item.isActive && item.publicationStatus === "PUBLISHED")
-      .filter((item) => !item.startsAt || new Date(item.startsAt).getTime() <= now)
-      .filter((item) => !item.endsAt || new Date(item.endsAt).getTime() > now)
-      .sort((a, b) => a.sortOrder - b.sortOrder)[0];
-    if (!primary) return;
+      .sort((a, b) => a.sortOrder - b.sortOrder);
 
+    const clearPlacements = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/homepage_placements?section_key=eq.campaigns&entity_type=eq.CAMPAIGN`, {
+      method: "DELETE",
+      headers: this.authHeaders(token),
+    });
+    if (!clearPlacements.ok) throw new Error(`CAMPAIGN_PLACEMENTS_CLEAR_${clearPlacements.status}`);
+
+    if (ordered.length) {
+      const placementResponse = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/homepage_placements`, {
+        method: "POST",
+        headers: { ...this.authHeaders(token), Prefer: "return=minimal" },
+        body: JSON.stringify(ordered.map((item, index) => ({
+          section_key: "campaigns",
+          entity_type: "CAMPAIGN",
+          entity_id: item.id,
+          label: item.badge || item.title,
+          sort_order: index + 1,
+          is_active: true,
+          starts_at: item.startsAt || null,
+          ends_at: item.endsAt || null,
+          metadata: { managedBy: "admin_campaigns" },
+        }))),
+      });
+      if (!placementResponse.ok) throw new Error(`CAMPAIGN_PLACEMENTS_SAVE_${placementResponse.status}`);
+    }
+
+    const sectionResponse = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/homepage_sections?section_key=eq.campaigns`, {
+      method: "PATCH",
+      headers: this.authHeaders(token),
+      body: JSON.stringify({ is_enabled: true, max_items: 3, updated_at: new Date().toISOString() }),
+    });
+    if (!sectionResponse.ok) throw new Error(`CAMPAIGN_SECTION_SAVE_${sectionResponse.status}`);
+
+    await this.syncHomepageBanner(token, ordered[0]);
+  }
+
+  private async syncHomepageBanner(token: string, primary?: CampaignRecord): Promise<void> {
     const currentResponse = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/site_config?key=eq.site_settings&select=value&limit=1`, {
       headers: this.authHeaders(token),
     });
@@ -139,14 +174,14 @@ export class CampaignService {
       ...current,
       homeContent: {
         ...currentHome,
-        campaignBannerBadge: primary.badge || (primary.discountPercent != null ? `%${primary.discountPercent} İNDİRİM` : "KAMPANYA"),
-        campaignBannerTitle: primary.title,
-        campaignBannerSubtitle: primary.shortDescription || primary.description || "",
-        campaignBannerButtonText: primary.ctaLabel || "Kampanyayı İncele",
-        campaignBannerImage: primary.coverImage || "",
-        campaignBannerUrl: primary.ctaUrl || "",
-        campaignBannerWhatsappMessage: primary.whatsappMessage || "",
-        campaignId: primary.id,
+        campaignBannerBadge: "Seçilmiş Fırsatlar",
+        campaignBannerTitle: "Avantajı Şimdi Yakalayın",
+        campaignBannerSubtitle: "Gerçek indirimleri, özel gün paketlerini ve Cilo tur fırsatlarını tek bakışta karşılaştırın. Süresi dolmadan size uygun fırsatı seçin.",
+        campaignBannerButtonText: primary?.ctaLabel || "Fırsatı İncele",
+        campaignBannerImage: primary?.coverImage || "",
+        campaignBannerUrl: primary?.ctaUrl || "",
+        campaignBannerWhatsappMessage: primary?.whatsappMessage || "",
+        campaignId: primary?.id || "",
       },
     };
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/site_config?on_conflict=key`, {
@@ -172,7 +207,7 @@ export class CampaignService {
       discountPercent: row.discount_percent == null ? undefined : Number(row.discount_percent),
       targetType: row.target_type || undefined,
       targetId: row.target_id || undefined,
-      ctaLabel: String(row.cta_label || "Detayları Gör"),
+      ctaLabel: String(row.cta_label || "Fırsatı İncele"),
       ctaUrl: row.cta_url || undefined,
       whatsappMessage: row.whatsapp_message || undefined,
       startsAt: row.starts_at || undefined,
@@ -189,7 +224,7 @@ export class CampaignService {
   }
 
   private publicHeaders(): Record<string,string> {
-    return { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}` };
+    return { apikey: SUPABASE_PUBLISHABLE_KEY, accept: "application/json" };
   }
 
   private authHeaders(token: string): Record<string,string> {

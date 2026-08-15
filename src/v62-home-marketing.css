@@ -1,0 +1,35 @@
+/* V62 customer-facing homepage simplification. */
+
+/* Phones already have the persistent bottom navigation. Repeating rental,
+   sales and tour quick-action cards inside the hero creates competing choices.
+   Keep these shortcuts for tablet/desktop, remove them only from phones. */
+@media (max-width: 767px) {
+  app-home .mobile-scroll {
+    display: none !important;
+  }
+
+  app-home main > section:first-of-type > div.mx-auto {
+    gap: 1.75rem !important;
+  }
+}
+
+/* The V62 campaign component is the canonical campaign showroom. The older
+   inline section remains as a graceful code fallback but is hidden whenever
+   the V62 showroom has been positioned immediately before it. */
+app-home-campaign-showcase + section[aria-labelledby="campaigns-title"] {
+  display: none !important;
+}
+
+/* Give the campaign showroom a strong visual break from the hero and the
+   inventory grid while preserving accessible contrast. */
+app-home app-home-campaign-showcase {
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 767px) {
+  app-home app-home-campaign-showcase article {
+    min-height: 0 !important;
+  }
+}

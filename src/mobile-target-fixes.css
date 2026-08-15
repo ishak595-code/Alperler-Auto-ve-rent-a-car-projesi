@@ -51,7 +51,7 @@ app-sales-results app-vehicle-list-item {
 }
 
 /* Premium 3D language: depth comes from layered light, perspective and shadow,
-   not from exaggerated button extrusion. The search control stays flat and calm. */
+   not from exaggerated button extrusion. */
 app-home-v39 main > section:first-of-type {
   perspective: 1500px;
   isolation: isolate;
@@ -65,11 +65,40 @@ app-home-v39 main > section:first-of-type::before {
   z-index: -8;
   pointer-events: none;
   background:
-    radial-gradient(circle at 78% 22%, rgba(96, 165, 250, 0.2), transparent 32%),
-    radial-gradient(circle at 18% 78%, rgba(14, 116, 144, 0.14), transparent 34%);
+    radial-gradient(circle at 78% 18%, rgba(96, 165, 250, 0.24), transparent 31%),
+    radial-gradient(circle at 18% 74%, rgba(14, 116, 144, 0.16), transparent 34%),
+    radial-gradient(circle at 52% 12%, rgba(255, 255, 255, 0.07), transparent 28%);
 }
 
+/* Subtle perspective floor gives the hero a premium 3D stage without heavy GPU
+   animation or decorative assets that would compete with the real content. */
+app-home-v39 main > section:first-of-type::after {
+  content: "";
+  position: absolute;
+  left: 42%;
+  right: -12%;
+  bottom: -42%;
+  height: 68%;
+  z-index: -7;
+  pointer-events: none;
+  opacity: 0.24;
+  transform: perspective(900px) rotateX(68deg) rotateZ(-4deg);
+  transform-origin: center top;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.14) 1px, transparent 1px),
+    radial-gradient(circle at center, rgba(59, 130, 246, 0.16), transparent 62%);
+  background-size: 54px 54px, 54px 54px, 100% 100%;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.9), transparent 82%);
+}
+
+/* Move the hero's primary task higher. Search should be encountered before the
+   eye settles in the vertical centre of the photograph. */
 app-home-v39 main > section:first-of-type > div.mx-auto {
+  align-items: start !important;
+  min-height: 680px;
+  padding-top: clamp(3.25rem, 7vw, 6rem) !important;
+  padding-bottom: clamp(4.5rem, 8vw, 6.5rem) !important;
   transform-style: preserve-3d;
 }
 
@@ -77,13 +106,62 @@ app-home-v39 main > section:first-of-type > div.mx-auto > div:first-child {
   transform: translateZ(18px);
 }
 
-app-home-v39 main > section:first-of-type > div.mx-auto > section {
-  transform: translateZ(34px);
-  border-color: rgba(255, 255, 255, 0.38) !important;
+app-home-v39 main > section:first-of-type div.relative:has(input[aria-label="Araç, tur veya blog ara"]) {
+  margin-top: 1.15rem !important;
+}
+
+app-home-v39 main > section:first-of-type div:has(> input[aria-label="Araç, tur veya blog ara"]) {
+  border: 1px solid rgba(255, 255, 255, 0.76);
   box-shadow:
-    0 34px 80px rgba(2, 6, 23, 0.36),
+    0 28px 68px rgba(2, 6, 23, 0.34),
+    0 6px 18px rgba(15, 23, 42, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
+}
+
+app-home-v39 main > section:first-of-type > div.mx-auto > section {
+  margin-top: -1rem;
+  transform: translateZ(38px);
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  box-shadow:
+    0 38px 88px rgba(2, 6, 23, 0.38),
     0 10px 26px rgba(15, 23, 42, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.86) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+@media (min-width: 1024px) {
+  app-home-v39 main > section:first-of-type > div.mx-auto {
+    padding-top: clamp(4rem, 6vw, 5.5rem) !important;
+  }
+
+  app-home-v39 main > section:first-of-type > div.mx-auto > section {
+    margin-top: -2rem;
+  }
+
+  app-home-v39 main > section:first-of-type div.relative:has(input[aria-label="Araç, tur veya blog ara"]) {
+    margin-top: 1rem !important;
+  }
+}
+
+@media (max-width: 639px) {
+  app-home-v39 main > section:first-of-type > div.mx-auto {
+    min-height: auto;
+    gap: 2.25rem !important;
+    padding-top: 2.75rem !important;
+    padding-bottom: 4.5rem !important;
+  }
+
+  app-home-v39 main > section:first-of-type > div.mx-auto > section {
+    margin-top: -0.5rem;
+  }
+
+  app-home-v39 main > section:first-of-type::after {
+    left: 20%;
+    right: -48%;
+    bottom: -30%;
+    height: 52%;
+    opacity: 0.17;
+    background-size: 42px 42px, 42px 42px, 100% 100%;
+  }
 }
 
 /* Vehicle and campaign surfaces receive restrained physical depth. */
@@ -101,11 +179,11 @@ app-home-v39 article {
   }
 
   app-home-v39 main > section:first-of-type > div.mx-auto > section:hover {
-    transform: translateZ(42px) translateY(-4px) rotateY(-0.7deg);
+    transform: translateZ(44px) translateY(-3px) rotateY(-0.6deg);
     box-shadow:
-      0 42px 95px rgba(2, 6, 23, 0.4),
+      0 46px 100px rgba(2, 6, 23, 0.42),
       0 14px 32px rgba(15, 23, 42, 0.22),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+      inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
   }
 
   app-vehicle-list-item article {

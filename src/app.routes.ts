@@ -14,12 +14,10 @@ import { RentalDetailShellComponent, SaleDetailShellComponent, TourDetailShellCo
 
 import { AdminLayoutComponent } from './pages/admin/admin-layout.component';
 import { AdminDashboardShellComponent } from './pages/admin/admin-dashboard-shell.component';
-import { AdminCarsComponent } from './pages/admin/admin-cars.component';
 import { AdminReservationsComponent } from './pages/admin/admin-reservations.component';
 import { AdminBlogComponent } from './pages/admin/admin-blog.component';
 import { AdminSettingsComponent } from './pages/admin/admin-settings.component';
 import { AdminPartnerRequestsComponent } from './pages/admin/admin-partner-requests.component';
-import { AdminToursComponent } from './pages/admin/admin-tours.component';
 import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
 import { AdminHomepageComponent } from './pages/admin/admin-homepage.component';
 import { AdminTeamComponent } from './pages/admin/admin-team.component';
@@ -85,10 +83,10 @@ export const routes: Routes = [
       { path: 'branches', component: AdminBranchesComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'audit', component: AdminAuditComponent, canActivate: [adminAreaGuard('finance')] },
       { path: 'system-health', component: AdminSystemHealthComponent, canActivate: [adminAreaGuard('settings')] },
-      { path: 'cars', component: AdminCarsComponent, canActivate: [adminAreaGuard('content')] },
+      { path: 'cars', redirectTo: 'catalog-editor', pathMatch: 'full' },
+      { path: 'sales', redirectTo: 'catalog-editor', pathMatch: 'full' },
+      { path: 'tours', redirectTo: 'catalog-editor', pathMatch: 'full' },
       { path: 'reservations', component: AdminReservationsComponent, canActivate: [adminAreaGuard('operations')] },
-      { path: 'sales', component: AdminCarsComponent, canActivate: [adminAreaGuard('content')] },
-      { path: 'tours', component: AdminToursComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'blog', component: AdminBlogComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'partner-requests', component: AdminPartnerRequestsComponent, canActivate: [adminAreaGuard('operations')] },
       { path: 'feedback', component: AdminFeedbackComponent, canActivate: [adminAreaGuard('operations')] },

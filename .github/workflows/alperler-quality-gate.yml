@@ -13,14 +13,15 @@ on:
       - "supabase/**"
       - "project/**"
       - "index.html"
+      - "index.tsx"
       - "package.json"
       - "package-lock.json"
       - "angular.json"
       - "vercel.json"
+      - ".env.example"
       - ".vercelignore"
       - ".gitignore"
       - "tsconfig.api.json"
-      - "firestore.rules"
       - ".github/workflows/alperler-quality-gate.yml"
   pull_request:
     branches:
@@ -31,14 +32,15 @@ on:
       - "supabase/**"
       - "project/**"
       - "index.html"
+      - "index.tsx"
       - "package.json"
       - "package-lock.json"
       - "angular.json"
       - "vercel.json"
+      - ".env.example"
       - ".vercelignore"
       - ".gitignore"
       - "tsconfig.api.json"
-      - "firestore.rules"
       - ".github/workflows/alperler-quality-gate.yml"
 
 permissions:

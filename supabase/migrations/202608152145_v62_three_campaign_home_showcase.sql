@@ -26,6 +26,33 @@ set
     when 'cilo-daglari-buzullar-uzman-tur-deneyimi' then 2
     else sort_order
   end,
+  badge = case slug
+    when '7-gun-kirala-6-gun-ode-renault-megane' then '7 GÜNDE 1 GÜN BİZDEN'
+    when 'gelin-arabasi-ozel-gun-paketi' then 'ÖZEL GÜN • %19 AVANTAJ'
+    when 'cilo-daglari-buzullar-uzman-tur-deneyimi' then 'CİLO • %18 YAZ FIRSATI'
+    else badge
+  end,
+  short_description = case slug
+    when '7-gun-kirala-6-gun-ode-renault-megane' then '7 günlük kesintisiz kiralamada yalnızca 6 günlük ücret ödeyin. Planınızı uzatın, bir günlük kiralama bedelini cebinizde bırakın.'
+    when 'gelin-arabasi-ozel-gun-paketi' then 'Şoförlü premium araç ve profesyonel süsleme tek pakette. Özel gününüzde ulaşım detayını son dakikaya bırakmayın.'
+    when 'cilo-daglari-buzullar-uzman-tur-deneyimi' then 'Cilo Dağları ve buzul rotasını profesyonel rehberlik, bölgesel öğle yemeği ve planlı yürüyüş programıyla keşfedin.'
+    else short_description
+  end,
+  metadata = case slug
+    when '7-gun-kirala-6-gun-ode-renault-megane' then coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
+      'benefits', jsonb_build_array('7 gün kullanım, 6 gün ücret', 'Net 2.800 TL avantaj', '31 Ekim 2026’ya kadar geçerli'),
+      'trustLine', 'Gerçek fiyat avantajı • Araç müsaitliğine tabi • Gizli ücret yok'
+    )
+    when 'gelin-arabasi-ozel-gun-paketi' then coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
+      'benefits', jsonb_build_array('Şoförlü premium hizmet', 'Profesyonel araç süslemesi', '1.500 TL paket avantajı'),
+      'trustLine', 'Başlangıç fiyatı açık • Kapsam net • Tarih uygunluğuna tabi'
+    )
+    when 'cilo-daglari-buzullar-uzman-tur-deneyimi' then coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
+      'benefits', jsonb_build_array('Profesyonel rehberli rota', 'Bölgesel öğle yemeği dahil', '1.000 TL kişi başı avantaj'),
+      'trustLine', 'Gerçek rota • Şeffaf kişi başı fiyat • Hava ve güvenlik koşullarına tabi'
+    )
+    else metadata
+  end,
   updated_at = now()
 where slug in (
   '7-gun-kirala-6-gun-ode-renault-megane',

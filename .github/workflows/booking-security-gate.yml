@@ -8,23 +8,21 @@ on:
       - agent/v33-booking-notifications-security
     paths:
       - "src/services/booking.service.ts"
-      - "src/services/persistent-car.service.ts"
       - "src/services/car.service.ts"
       - "src/services/catalog.service.ts"
       - "src/services/partner-request.service.ts"
       - "src/pages/admin/admin-reservations.component.ts"
       - "src/pages/admin/admin-partner-requests.component.ts"
       - "src/pages/appointment.component.ts"
+      - "index.tsx"
       - "api/catalog.ts"
       - "api/partner-requests.ts"
       - "api/partner-upload-resume.ts"
       - "api/bookings.ts"
-      - "api/_lib/firestore-rest.ts"
       - "api/_lib/sms.ts"
       - "api/_lib/booking-notification-template.ts"
       - "supabase/**"
-      - "firestore.rules"
-      - "firebase.json"
+      - ".env.example"
       - ".vercelignore"
       - ".github/workflows/booking-security-gate.yml"
   pull_request:
@@ -46,18 +44,26 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Legacy Firebase artifacts remain until the final cleanup migration,
-          # but must not fall back to blanket public writes.
-          test -f firebase.json
-          grep -Fq '"rules": "firestore.rules"' firebase.json
-          ! grep -Eq 'allow[[:space:]]+create:[[:space:]]*if[[:space:]]+true' firestore.rules
+          # Production runtime is Supabase-first. Obsolete Firebase-era source
+          # must not be reintroduced into the deployable application tree.
+          test ! -e firebase.json
+          test ! -e firestore.rules
+          test ! -e firebase-applet-config.json
+          test ! -e firebase-blueprint.json
+          test ! -e src/firebase.ts
+          test ! -e api/_lib/firestore-rest.ts
+          test ! -e src/services/persistent-car.service.ts
+          test ! -e src/providers/legacy-webhook-safety.provider.ts
+          ! grep -R --line-number -E 'firebase/firestore|firebase/auth|firebase/app|\.\./firebase|from .*firebase' src api
+          ! grep -Fq 'PersistentCarService' index.tsx
+          ! grep -Fq 'provideLegacyWebhookSafety' index.tsx
 
           # Deployment hygiene.
           grep -Fq 'public/*.zip' .vercelignore
           grep -Fq '*.zip' .vercelignore
 
           # Transactional runtime must exist. Booking persistence and delivery
-          # now live in Supabase Edge Functions; Vercel only proxies the booking gateway.
+          # live in Supabase Edge Functions; Vercel only proxies server boundaries.
           test -f api/bookings.ts
           test -f api/catalog.ts
           test -f api/partner-upload-resume.ts
@@ -71,16 +77,19 @@ jobs:
           # Never send booking/customer payloads to public test endpoints.
           ! grep -R --line-number --fixed-string 'httpbin.org' src api supabase/functions
 
-          # Service-role secrets are server-side only. The browser source may
+          # Service-role secrets are server-side only. Browser source may
           # reference publishable Supabase configuration, never the service key.
           ! grep -R --line-number --fixed-string 'SUPABASE_SERVICE_ROLE_KEY' src
           ! grep -R --line-number --fixed-string 'sb_secret_' src api supabase
 
-          # CarService must not regress to Firestore or direct Firebase writes.
-          ! grep -Fq 'firebase/firestore' src/services/car.service.ts
-          ! grep -Fq '../firebase' src/services/car.service.ts
+          # CarService must stay on the current catalog/booking abstraction.
           grep -Fq 'CatalogService' src/services/car.service.ts
           grep -Fq 'BookingService' src/services/car.service.ts
+
+          # Production-domain environment contract must not regress to placeholders.
+          grep -Fq 'PUBLIC_APP_URL=https://alperrentacar.online' .env.example
+          ! grep -Fq 'https://example.com' .env.example
+          ! grep -Fq 'FIREBASE_PROJECT_ID' .env.example
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v4

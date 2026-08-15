@@ -137,15 +137,19 @@ export class AuthService {
     }
 
     try {
-      const response = await fetch(supabaseAuthUrl("signup"), {
-        method: "POST",
-        headers: this.publicHeaders(),
-        body: JSON.stringify({
-          email: PRIMARY_ADMIN_EMAIL,
-          password,
-          data: { display_name: "İshak Alper" },
-        }),
-      });
+      const redirectTo = this.adminLoginRedirect();
+      const response = await fetch(
+        `${supabaseAuthUrl("signup")}?redirect_to=${encodeURIComponent(redirectTo)}`,
+        {
+          method: "POST",
+          headers: this.publicHeaders(),
+          body: JSON.stringify({
+            email: PRIMARY_ADMIN_EMAIL,
+            password,
+            data: { display_name: "İshak Alper" },
+          }),
+        },
+      );
       const payload = (await response.json().catch(() => ({}))) as AuthPayload;
       if (!response.ok) {
         this.capturePayloadError(payload, "İlk yönetici hesabı oluşturulamadı.");
@@ -163,7 +167,7 @@ export class AuthService {
 
       this.setError(
         "confirmation_required",
-        "Hesap oluşturuldu. Yönetici e-posta adresine gelen doğrulama bağlantısını açtıktan sonra giriş yapın.",
+        `Hesap oluşturuldu. E-postadaki doğrulama bağlantısı sizi ${redirectTo} adresine geri getirecek. Doğruladıktan sonra giriş yapın.`,
       );
       return { created: true, confirmationRequired: true };
     } catch (error) {
@@ -175,7 +179,7 @@ export class AuthService {
   async loginWithGoogle(): Promise<boolean> {
     this.clearError();
     try {
-      const redirectTo = `${window.location.origin}/admin/login`;
+      const redirectTo = this.adminLoginRedirect();
       const authorizeUrl = new URL(supabaseAuthUrl("authorize"));
       authorizeUrl.searchParams.set("provider", "google");
       authorizeUrl.searchParams.set("redirect_to", redirectTo);
@@ -237,11 +241,9 @@ export class AuthService {
   }
 
   validateStrongPassword(password: string): string | null {
-    if (password.length < 16) return "Şifre en az 16 karakter olmalı.";
-    if (!/[a-z]/.test(password)) return "Şifrede en az bir küçük harf bulunmalı.";
-    if (!/[A-Z]/.test(password)) return "Şifrede en az bir büyük harf bulunmalı.";
+    if (password.length < 8) return "Şifre en az 8 karakter olmalı.";
+    if (!/[A-Za-zÇĞİÖŞÜçğıöşü]/.test(password)) return "Şifrede en az bir harf bulunmalı.";
     if (!/[0-9]/.test(password)) return "Şifrede en az bir rakam bulunmalı.";
-    if (!/[^A-Za-z0-9]/.test(password)) return "Şifrede en az bir özel karakter bulunmalı.";
     return null;
   }
 
@@ -455,6 +457,11 @@ export class AuthService {
     }
     this.setError("owner_bootstrap_failed", "Yönetici yetkisi doğrulanamadı.");
     return false;
+  }
+
+  private adminLoginRedirect(): string {
+    if (typeof window === "undefined") return "/admin/login";
+    return `${window.location.origin}/admin/login`;
   }
 
   private publicHeaders(): Record<string, string> {

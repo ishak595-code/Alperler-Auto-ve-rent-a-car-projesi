@@ -154,22 +154,55 @@ interface SearchResult {
               </section>
             }
             @case ('CAMPAIGN') {
-              <section class="bg-slate-950 py-16 text-white sm:py-20">
-                <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                  <span class="text-xs font-black uppercase tracking-[.18em] text-amber-400">Fırsatlar</span>
-                  <h2 class="mt-2 font-serif text-3xl font-black sm:text-4xl">{{ section.title }}</h2>
-                  <div class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              <section class="relative overflow-hidden bg-slate-950 py-16 text-white sm:py-20" aria-labelledby="campaigns-heading">
+                <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+                  <div class="absolute -left-28 -top-32 h-80 w-80 rounded-full bg-blue-600/20 blur-3xl"></div>
+                  <div class="absolute -bottom-32 -right-24 h-80 w-80 rounded-full bg-amber-400/15 blur-3xl"></div>
+                </div>
+                <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                  <div class="mx-auto max-w-3xl text-center">
+                    <span class="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-[11px] font-black uppercase tracking-[.18em] text-amber-300"><mat-icon aria-hidden="true" class="!h-4 !w-4 !text-[16px]">bolt</mat-icon>{{ campaignsFor(section).length }} seçilmiş fırsat</span>
+                    <h2 id="campaigns-heading" class="mt-4 font-serif text-3xl font-black sm:text-4xl lg:text-5xl">{{ section.title }}</h2>
+                    <p class="mt-4 text-sm leading-7 text-slate-300 sm:text-base">Kiralama, satış, özel gün ve tur seçeneklerinden öne alınmış gerçek kampanyalar. Ayrı bir kampanya düğmesine gerek kalmadan fırsatlar doğrudan vitrinde.</p>
+                  </div>
+                  <div class="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                     @for (campaign of campaignsFor(section); track campaign.id) {
-                      <article class="overflow-hidden rounded-3xl border border-white/10 bg-white/5">
-                        <div class="aspect-[16/9] overflow-hidden bg-slate-900">@if (campaign.coverImage) { <img [src]="campaign.coverImage" [alt]="campaign.title" class="h-full w-full object-cover" loading="lazy" /> }</div>
-                        <div class="p-5">
-                          <div class="flex items-center justify-between gap-3"><span class="rounded-full bg-amber-400/15 px-3 py-1 text-[11px] font-black text-amber-300">{{ campaign.badge || 'KAMPANYA' }}</span>@if (campaign.discountPercent != null) { <strong class="text-xl text-amber-300">%{{ campaign.discountPercent }}</strong> }</div>
-                          <h3 class="mt-4 text-xl font-black">{{ campaign.title }}</h3>
-                          <p class="mt-2 line-clamp-3 text-sm leading-6 text-slate-300">{{ campaign.shortDescription || campaign.description }}</p>
-                          <a [href]="campaignHref(campaign)" class="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-amber-400 px-4 text-sm font-black text-slate-950">{{ campaign.ctaLabel || 'Detayları Gör' }} <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>
+                      <article class="group flex min-h-[500px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-white/5 shadow-2xl backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-white/20 focus-within:ring-2 focus-within:ring-amber-300">
+                        <div class="relative aspect-[16/10] overflow-hidden bg-slate-900">
+                          @if (campaign.coverImage) { <img [src]="campaign.coverImage" [alt]="campaignImageAlt(campaign)" class="h-full w-full object-cover transition duration-700 group-hover:scale-105" loading="lazy" referrerpolicy="no-referrer" /> }
+                          <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent"></div>
+                          <div class="absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2">
+                            <span class="rounded-full bg-amber-400 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-slate-950 shadow-lg">{{ campaign.badge || 'FIRSAT' }}</span>
+                            @if (campaign.discountPercent != null) { <span class="rounded-full bg-emerald-500 px-3 py-1.5 text-[10px] font-black text-white shadow-lg">%{{ campaign.discountPercent }} avantaj</span> }
+                          </div>
+                        </div>
+                        <div class="flex flex-1 flex-col p-5">
+                          <div class="min-h-10 text-[10px] font-bold leading-5 text-slate-400">
+                            <span>{{ campaignMediaLabel(campaign) }}</span>
+                            @if (campaignMediaCredit(campaign)) {
+                              <span aria-hidden="true"> · </span>
+                              @if (campaignMediaSource(campaign)) {
+                                <a [href]="campaignMediaSource(campaign)" target="_blank" rel="noopener noreferrer" class="underline decoration-slate-600 underline-offset-2 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">{{ campaignMediaCredit(campaign) }}</a>
+                              } @else { <span>{{ campaignMediaCredit(campaign) }}</span> }
+                            }
+                          </div>
+                          <h3 class="mt-3 text-xl font-black leading-tight">{{ campaign.title }}</h3>
+                          <p class="mt-3 line-clamp-4 text-sm leading-6 text-slate-300">{{ campaign.shortDescription || campaign.description }}</p>
+
+                          @if (campaign.newPrice != null || campaign.oldPrice != null) {
+                            <div class="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
+                              <span class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">Fırsat fiyatı</span>
+                              <div class="mt-1 flex flex-wrap items-end gap-x-3 gap-y-1">
+                                @if (campaign.newPrice != null) { <strong class="text-2xl font-black text-white">{{ formatCampaignPrice(campaign.newPrice) }}</strong> }
+                                @if (campaign.oldPrice != null && campaign.oldPrice !== campaign.newPrice) { <span class="pb-1 text-xs font-bold text-slate-500 line-through">{{ formatCampaignPrice(campaign.oldPrice) }}</span> }
+                              </div>
+                            </div>
+                          }
+
+                          <a [href]="campaignHref(campaign)" class="mt-auto inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-amber-400 px-4 pt-0 text-sm font-black text-slate-950 shadow-lg transition hover:bg-amber-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-300/30">{{ campaign.ctaLabel || 'Fırsatı İncele' }} <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>
                         </div>
                       </article>
-                    } @empty { <div class="empty-dark md:col-span-2 xl:col-span-3">Şu anda aktif kampanya bulunmuyor.</div> }
+                    } @empty { <div class="empty-dark md:col-span-2 xl:col-span-4">Şu anda aktif kampanya bulunmuyor.</div> }
                   </div>
                 </div>
               </section>
@@ -251,9 +284,9 @@ export class HomeV39Component implements OnInit {
   returnDate = '';
 
   private readonly fallbackSections: PublicHomepageSection[] = [
-    { sectionKey: 'rental_featured', title: 'Öne Çıkan Kiralık Araçlar', sectionType: 'VEHICLES', isEnabled: true, sortOrder: 10, maxItems: 6, settings: { category: 'RENTAL' } },
-    { sectionKey: 'sale_featured', title: 'Öne Çıkan Satılık Araçlar', sectionType: 'VEHICLES', isEnabled: true, sortOrder: 20, maxItems: 6, settings: { category: 'SALE' } },
-    { sectionKey: 'campaigns', title: 'Kampanyalar ve Fırsatlar', sectionType: 'CAMPAIGN', isEnabled: true, sortOrder: 30, maxItems: 3, settings: {} },
+    { sectionKey: 'campaigns', title: 'Kaçırılmayacak Fırsatlar', sectionType: 'CAMPAIGN', isEnabled: true, sortOrder: 5, maxItems: 4, settings: { layout: 'premium_campaign_cards', showCountdown: true, showDiscount: true } },
+    { sectionKey: 'rental_featured', title: 'Kiralık Araçlar', sectionType: 'VEHICLES', isEnabled: true, sortOrder: 20, maxItems: 6, settings: { category: 'RENTAL' } },
+    { sectionKey: 'sale_featured', title: 'Satılık Araçlar', sectionType: 'VEHICLES', isEnabled: true, sortOrder: 30, maxItems: 6, settings: { category: 'SALE' } },
     { sectionKey: 'tour_featured', title: 'Öne Çıkan Turlar', sectionType: 'TOURS', isEnabled: true, sortOrder: 40, maxItems: 6, settings: {} },
     { sectionKey: 'blog_featured', title: 'Son Yazılar', sectionType: 'BLOG', isEnabled: true, sortOrder: 50, maxItems: 3, settings: {} },
   ];
@@ -363,6 +396,30 @@ export class HomeV39Component implements OnInit {
       if (car) return car.category === 'SALE' ? `/sales/${car.id}` : `/fleet/${car.id}`;
     }
     return '/contact';
+  }
+
+  campaignMediaLabel(campaign: CampaignRecord): string {
+    return campaign.metadata?.['representativeImage'] === true ? 'Temsili model görseli' : 'Doğrulanmış rota/model görseli';
+  }
+
+  campaignMediaCredit(campaign: CampaignRecord): string {
+    const attribution = typeof campaign.metadata?.['imageAttribution'] === 'string' ? String(campaign.metadata['imageAttribution']) : '';
+    const license = typeof campaign.metadata?.['imageLicense'] === 'string' ? String(campaign.metadata['imageLicense']) : '';
+    return [attribution, license].filter(Boolean).join(' · ');
+  }
+
+  campaignMediaSource(campaign: CampaignRecord): string {
+    return typeof campaign.metadata?.['imageSourceUrl'] === 'string' ? String(campaign.metadata['imageSourceUrl']) : '';
+  }
+
+  campaignImageAlt(campaign: CampaignRecord): string {
+    return typeof campaign.metadata?.['imageAlt'] === 'string' && String(campaign.metadata['imageAlt']).trim()
+      ? String(campaign.metadata['imageAlt'])
+      : campaign.title;
+  }
+
+  formatCampaignPrice(value: number): string {
+    return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(value);
   }
 
   submitSearch(): void {

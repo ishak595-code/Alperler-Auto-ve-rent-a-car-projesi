@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { Component, computed, effect, inject, signal } from "@angular/core";
+import { Component, computed, effect, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { Router, RouterLink } from "@angular/router";
@@ -362,7 +362,7 @@ export class HomeComponent {
   readonly tours = this.carService.getTours();
   readonly blogPosts = this.carService.getBlogPosts();
   readonly pickupPoints = this.branchService.pickupPoints;
-  readonly publicCampaigns = signal<CampaignRecord[]>([]);
+  readonly publicCampaigns = this.campaignService.publicCampaigns;
 
   searchQuery = "";
   startDate = "";
@@ -417,9 +417,7 @@ export class HomeComponent {
   constructor() {
     void this.homepageLayout.load();
     void this.branchService.refresh();
-    void this.campaignService.loadPublic()
-      .then((items) => this.publicCampaigns.set(items.filter((item) => this.isLiveCampaign(item))))
-      .catch(() => this.publicCampaigns.set([]));
+    void this.campaignService.loadPublic().catch(() => undefined);
 
     effect(() => {
       const config = this.config();

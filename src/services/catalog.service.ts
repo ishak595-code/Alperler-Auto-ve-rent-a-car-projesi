@@ -36,26 +36,29 @@ interface CatalogListResponse<T> {
 export class CatalogService {
   private readonly authService = inject(AuthService);
 
-  async loadVehicles(): Promise<Vehicle[]> {
-    return this.loadList<Vehicle>("vehicles");
+  async loadVehicles(fresh = false): Promise<Vehicle[]> {
+    return this.loadList<Vehicle>("vehicles", fresh);
   }
 
-  async loadTours(): Promise<Vehicle[]> {
-    return this.loadList<Vehicle>("tours");
+  async loadTours(fresh = false): Promise<Vehicle[]> {
+    return this.loadList<Vehicle>("tours", fresh);
   }
 
-  async loadBlog(): Promise<CatalogBlogPost[]> {
-    return this.loadList<CatalogBlogPost>("blog");
+  async loadBlog(fresh = false): Promise<CatalogBlogPost[]> {
+    return this.loadList<CatalogBlogPost>("blog", fresh);
   }
 
-  async loadFaqs(): Promise<CatalogFaqItem[]> {
-    return this.loadList<CatalogFaqItem>("faqs");
+  async loadFaqs(fresh = false): Promise<CatalogFaqItem[]> {
+    return this.loadList<CatalogFaqItem>("faqs", fresh);
   }
 
-  async loadConfig(): Promise<Partial<SiteConfig> | null> {
+  async loadConfig(fresh = false): Promise<Partial<SiteConfig> | null> {
     const payload = await this.request<CatalogListResponse<never>>(
       "GET",
       "config",
+      undefined,
+      undefined,
+      fresh,
     );
     if (!payload.ok) throw new Error(payload.code || "CONFIG_LOAD_FAILED");
     return payload.value && typeof payload.value === "object"
@@ -105,10 +108,13 @@ export class CatalogService {
     return (payload.value || config) as SiteConfig;
   }
 
-  private async loadList<T>(resource: string): Promise<T[]> {
+  private async loadList<T>(resource: string, fresh = false): Promise<T[]> {
     const payload = await this.request<CatalogListResponse<T>>(
       "GET",
       resource,
+      undefined,
+      undefined,
+      fresh,
     );
     if (!payload.ok || !Array.isArray(payload.records)) {
       throw new Error(payload.code || "CATALOG_LOAD_FAILED");
@@ -143,13 +149,17 @@ export class CatalogService {
     resource: string,
     body?: unknown,
     token?: string,
+    fresh = false,
   ): Promise<T> {
+    const freshQuery = fresh && method === "GET" ? `&fresh=${Date.now()}` : "";
     const response = await fetch(
-      `/api/catalog?resource=${encodeURIComponent(resource)}`,
+      `/api/catalog?resource=${encodeURIComponent(resource)}${freshQuery}`,
       {
         method,
+        cache: fresh ? "no-store" : "default",
         headers: {
           ...(token ? { authorization: `Bearer ${token}` } : {}),
+          ...(fresh ? { "cache-control": "no-cache" } : {}),
           ...(method === "GET" ? {} : { "content-type": "application/json" }),
         },
         body: method === "GET" ? undefined : JSON.stringify(body),

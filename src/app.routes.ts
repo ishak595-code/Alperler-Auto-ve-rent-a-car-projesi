@@ -12,7 +12,6 @@ import { LegalComponent } from './pages/legal.component';
 import { MainLayoutComponent } from './components/main-layout.component';
 import { RentalDetailShellComponent, SaleDetailShellComponent, TourDetailShellComponent } from './pages/catalog-detail-shells.component';
 
-// Admin Pages
 import { AdminLayoutComponent } from './pages/admin/admin-layout.component';
 import { AdminDashboardShellComponent } from './pages/admin/admin-dashboard-shell.component';
 import { AdminCarsComponent } from './pages/admin/admin-cars.component';
@@ -30,6 +29,7 @@ import { AdminCatalogEditorComponent } from './pages/admin/admin-catalog-editor.
 import { AdminMediaComponent } from './pages/admin/admin-media.component';
 import { AdminAuditComponent } from './pages/admin/admin-audit.component';
 import { AdminWhatsappSettingsComponent } from './pages/admin/admin-whatsapp-settings.component';
+import { AdminSystemHealthComponent } from './pages/admin/admin-system-health.component';
 
 const adminGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
@@ -84,6 +84,7 @@ export const routes: Routes = [
       { path: 'team', component: AdminTeamComponent, canActivate: [adminAreaGuard('team')] },
       { path: 'branches', component: AdminBranchesComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'audit', component: AdminAuditComponent, canActivate: [adminAreaGuard('finance')] },
+      { path: 'system-health', component: AdminSystemHealthComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'cars', component: AdminCarsComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'reservations', component: AdminReservationsComponent, canActivate: [adminAreaGuard('operations')] },
       { path: 'sales', component: AdminCarsComponent, canActivate: [adminAreaGuard('content')] },

@@ -5,6 +5,7 @@ import { NavbarComponent } from "./navbar.component";
 import { FooterComponent } from "./footer.component";
 import { FeedbackComponent } from "./feedback.component";
 import { HomeCampaignShowcaseComponent } from "./home-campaign-showcase.component";
+import { CustomerMobileDockComponent } from "./customer-mobile-dock.component";
 import { UiService } from "../services/ui.service";
 import { CarService } from "../services/car.service";
 import { CommonModule, Location } from "@angular/common";
@@ -20,6 +21,7 @@ import { MatIconModule } from "@angular/material/icon";
     FooterComponent,
     FeedbackComponent,
     HomeCampaignShowcaseComponent,
+    CustomerMobileDockComponent,
     MatIconModule,
   ],
   template: `
@@ -33,7 +35,7 @@ import { MatIconModule } from "@angular/material/icon";
 
       <app-navbar></app-navbar>
 
-      <main id="main-content" tabindex="-1" class="flex-grow pt-[72px] md:pt-[96px] min-w-0">
+      <main id="main-content" tabindex="-1" class="flex-grow pt-[72px] pb-[78px] md:pt-[96px] xl:pb-0 min-w-0">
         <router-outlet></router-outlet>
         @if (isHomePage()) {
           <app-home-campaign-showcase></app-home-campaign-showcase>
@@ -42,18 +44,14 @@ import { MatIconModule } from "@angular/material/icon";
 
       <app-footer></app-footer>
       <app-feedback></app-feedback>
+      <app-customer-mobile-dock></app-customer-mobile-dock>
 
       @if (showWhatsapp() && getWhatsappNumber()) {
         <a
           [href]="getWhatsappHref()"
-          [style.bottom]="
-            isVehicleDetailPage()
-              ? 'calc(max(1rem, env(safe-area-inset-bottom)) + 4.75rem)'
-              : 'max(1rem, env(safe-area-inset-bottom))'
-          "
           target="_blank"
           rel="noopener noreferrer"
-          class="fixed right-[max(1rem,env(safe-area-inset-right))] z-[90] w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 md:hover:scale-110 hover:shadow-lg transition-all hover:bg-green-600 animate-fade-in-up focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-green-600"
+          class="fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[calc(max(1rem,env(safe-area-inset-bottom))+5.75rem)] xl:bottom-[max(1rem,env(safe-area-inset-bottom))] z-[87] w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 md:hover:scale-110 hover:shadow-lg transition-all hover:bg-green-600 animate-fade-in-up focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-green-600"
           [attr.aria-label]="getWhatsappAriaLabel()"
         >
           <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">

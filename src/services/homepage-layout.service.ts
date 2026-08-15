@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
 
 export interface PublicHomepageSection {
@@ -26,17 +26,26 @@ export interface PublicHomepagePlacement {
 
 @Injectable({ providedIn: 'root' })
 export class HomepageLayoutService {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly _sections = signal<PublicHomepageSection[]>([]);
   private readonly _placements = signal<PublicHomepagePlacement[]>([]);
   private readonly _loading = signal(false);
   private readonly _loaded = signal(false);
   private readonly _error = signal('');
+  private readonly _clock = signal(Date.now());
 
   readonly sections = this._sections.asReadonly();
   readonly placements = this._placements.asReadonly();
   readonly loading = this._loading.asReadonly();
   readonly loaded = this._loaded.asReadonly();
   readonly error = this._error.asReadonly();
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      const timer = window.setInterval(() => this._clock.set(Date.now()), 60_000);
+      this.destroyRef.onDestroy(() => window.clearInterval(timer));
+    }
+  }
 
   async load(): Promise<void> {
     if (this._loading()) return;
@@ -78,9 +87,18 @@ export class HomepageLayoutService {
   }
 
   placementsFor(sectionKey: string): PublicHomepagePlacement[] {
+    const now = this._clock();
     return this._placements()
-      .filter((row) => row.sectionKey === sectionKey && row.isActive)
+      .filter((row) => row.sectionKey === sectionKey && row.isActive && this.isInsideWindow(row, now))
       .sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
+  private isInsideWindow(row: PublicHomepagePlacement, now: number): boolean {
+    const startsAt = row.startsAt ? new Date(row.startsAt).getTime() : Number.NEGATIVE_INFINITY;
+    const endsAt = row.endsAt ? new Date(row.endsAt).getTime() : Number.POSITIVE_INFINITY;
+    if (!Number.isFinite(startsAt) && row.startsAt) return false;
+    if (!Number.isFinite(endsAt) && row.endsAt) return false;
+    return now >= startsAt && now < endsAt;
   }
 
   private async get<T>(path: string): Promise<T> {

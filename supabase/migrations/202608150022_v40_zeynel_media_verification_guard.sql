@@ -11,7 +11,8 @@ begin
   select id
     into v_tour_id
   from public.tours
-  where title = 'Zeynel Bey Medresesi Tarih ve Kültür Rotası'
+  where title = 'Zeynel Bey Medresesi & Sınır Boyları Moto-Turu'
+    and location_name = 'Biçer Mahallesi, Hakkari Merkez'
   limit 1;
 
   if v_tour_id is null then

@@ -18,6 +18,8 @@ interface Candidate {
   meta?: string;
 }
 
+type PlacementState = "LIVE" | "RESERVE" | "OFF" | "SECTION_OFF";
+
 @Component({
   selector: "app-admin-homepage",
   standalone: true,
@@ -30,7 +32,7 @@ interface Candidate {
           <div class="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 class="text-3xl font-black md:text-4xl">Ana Sayfa Vitrin Yönetimi</h1>
-              <p class="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">Kiralık, satılık, kampanya, tur ve blog bölümlerinin sırasını; hangi içeriklerin görüneceğini ve her bölümün kart limitini buradan yönetin. Değişiklikler Supabase veritabanına kaydedilir.</p>
+              <p class="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">Kiralık, satılık, kampanya, tur ve blog bölümlerinin sırasını; hangi içeriklerin görüneceğini ve her bölümün kart limitini buradan yönetin. İlk aktif {{ '{' }}N{{ '}' }} kayıt canlı vitrindir, limitin sonrasındaki aktif kayıtlar yedek sırada bekler.</p>
             </div>
             <button type="button" (click)="refresh()" [disabled]="loading()" class="min-h-12 rounded-xl bg-white px-5 font-black text-slate-950 disabled:opacity-50">{{ loading() ? 'Yükleniyor…' : 'Veriyi Yenile' }}</button>
           </div>
@@ -52,6 +54,10 @@ interface Candidate {
                     <div class="min-w-0 flex-1">
                       <strong class="block truncate text-sm text-slate-900">{{ section.title }}</strong>
                       <small class="text-slate-500">{{ section.sectionKey }}</small>
+                      <div class="mt-2 flex flex-wrap gap-1 text-[9px] font-black uppercase tracking-wide">
+                        <span class="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">Canlı {{ liveCount(section) }}</span>
+                        @if (reserveCount(section) > 0) { <span class="rounded-full bg-amber-50 px-2 py-1 text-amber-700">Yedek {{ reserveCount(section) }}</span> }
+                      </div>
                     </div>
                     <div class="flex gap-1">
                       <button type="button" (click)="moveSection(i,-1)" [disabled]="i===0" class="h-9 w-9 rounded-lg border border-slate-200 disabled:opacity-30" aria-label="Bölümü yukarı taşı">↑</button>
@@ -74,7 +80,7 @@ interface Candidate {
                   <div>
                     <p class="text-[10px] font-black uppercase tracking-[.16em] text-blue-600">{{ section.sectionType }}</p>
                     <h2 class="text-xl font-black text-slate-900">{{ section.title }}</h2>
-                    <p class="text-xs text-slate-500">En fazla {{ section.maxItems }} içerik gösterilecek</p>
+                    <p class="text-xs text-slate-500">{{ liveCount(section) }}/{{ section.maxItems }} canlı kart · {{ reserveCount(section) }} yedek · {{ offCount(section) }} kapalı</p>
                   </div>
                   <div class="flex min-w-0 flex-1 gap-2 md:max-w-xl">
                     <select [ngModel]="candidateSelection()[section.sectionKey] || ''" (ngModelChange)="selectCandidate(section.sectionKey,$event)" class="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold">
@@ -89,19 +95,37 @@ interface Candidate {
 
                 <div class="p-4 md:p-5">
                   @for (placement of placementsFor(section.sectionKey); track placement.id; let i = $index) {
-                    <div class="mb-2 flex items-center gap-3 rounded-2xl border border-slate-200 p-3 last:mb-0" [class.bg-slate-50]="!placement.isActive">
+                    <div class="mb-2 flex items-center gap-3 rounded-2xl border p-3 last:mb-0"
+                      [class.border-emerald-200]="placementState(section, placement) === 'LIVE'"
+                      [class.bg-emerald-50]="placementState(section, placement) === 'LIVE'"
+                      [class.border-amber-200]="placementState(section, placement) === 'RESERVE'"
+                      [class.bg-amber-50]="placementState(section, placement) === 'RESERVE'"
+                      [class.border-slate-200]="placementState(section, placement) === 'OFF' || placementState(section, placement) === 'SECTION_OFF'"
+                      [class.bg-slate-50]="placementState(section, placement) === 'OFF' || placementState(section, placement) === 'SECTION_OFF'">
                       <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 font-black text-white">{{ i + 1 }}</div>
                       @if (candidateByPlacement(placement)?.image) {
                         <img [src]="candidateByPlacement(placement)?.image" [alt]="candidateByPlacement(placement)?.label || ''" class="h-14 w-20 shrink-0 rounded-xl object-cover" referrerpolicy="no-referrer" />
                       }
                       <div class="min-w-0 flex-1">
-                        <strong class="block truncate text-sm text-slate-900">{{ candidateByPlacement(placement)?.label || placement.entityId }}</strong>
+                        <div class="mb-1 flex flex-wrap items-center gap-2">
+                          <strong class="block truncate text-sm text-slate-900">{{ candidateByPlacement(placement)?.label || placement.entityId }}</strong>
+                          <span class="rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-wider"
+                            [class.bg-emerald-600]="placementState(section, placement) === 'LIVE'"
+                            [class.text-white]="placementState(section, placement) === 'LIVE'"
+                            [class.bg-amber-400]="placementState(section, placement) === 'RESERVE'"
+                            [class.text-slate-950]="placementState(section, placement) === 'RESERVE'"
+                            [class.bg-slate-300]="placementState(section, placement) === 'OFF' || placementState(section, placement) === 'SECTION_OFF'"
+                            [class.text-slate-700]="placementState(section, placement) === 'OFF' || placementState(section, placement) === 'SECTION_OFF'">
+                            {{ placementStateLabel(section, placement) }}
+                          </span>
+                        </div>
                         <small class="block truncate text-slate-500">{{ placement.entityType }} · {{ candidateByPlacement(placement)?.meta || placement.entityId }}</small>
+                        @if (placementState(section, placement) === 'RESERVE') { <small class="mt-1 block font-bold text-amber-700">Kart limiti artarsa veya üstteki canlı içerik kapatılırsa otomatik olarak vitrine girer.</small> }
                       </div>
                       <label class="hidden items-center gap-1 text-xs font-bold text-slate-600 sm:flex"><input type="checkbox" [(ngModel)]="placement.isActive" (change)="savePlacement(placement)" /> Göster</label>
                       <div class="flex gap-1">
-                        <button type="button" (click)="movePlacement(section.sectionKey,i,-1)" [disabled]="i===0" class="h-10 w-10 rounded-xl border border-slate-200 disabled:opacity-30" aria-label="İçeriği yukarı taşı">↑</button>
-                        <button type="button" (click)="movePlacement(section.sectionKey,i,1)" [disabled]="i===placementsFor(section.sectionKey).length-1" class="h-10 w-10 rounded-xl border border-slate-200 disabled:opacity-30" aria-label="İçeriği aşağı taşı">↓</button>
+                        <button type="button" (click)="movePlacement(section.sectionKey,i,-1)" [disabled]="i===0" class="h-10 w-10 rounded-xl border border-slate-200 bg-white disabled:opacity-30" aria-label="İçeriği yukarı taşı">↑</button>
+                        <button type="button" (click)="movePlacement(section.sectionKey,i,1)" [disabled]="i===placementsFor(section.sectionKey).length-1" class="h-10 w-10 rounded-xl border border-slate-200 bg-white disabled:opacity-30" aria-label="İçeriği aşağı taşı">↓</button>
                         <button type="button" (click)="removePlacement(placement)" class="h-10 rounded-xl bg-rose-50 px-3 text-xs font-black text-rose-700">Çıkar</button>
                       </div>
                     </div>
@@ -142,6 +166,39 @@ export class AdminHomepageComponent implements OnInit {
     return this.management.placements().filter((row) => row.sectionKey === sectionKey).sort((a,b) => a.sortOrder-b.sortOrder);
   }
 
+  activePlacements(sectionKey: string): HomepagePlacement[] {
+    return this.placementsFor(sectionKey).filter((row) => row.isActive);
+  }
+
+  liveCount(section: HomepageSection): number {
+    if (!section.isEnabled) return 0;
+    return Math.min(this.activePlacements(section.sectionKey).length, Math.max(0, Number(section.maxItems || 0)));
+  }
+
+  reserveCount(section: HomepageSection): number {
+    if (!section.isEnabled) return this.activePlacements(section.sectionKey).length;
+    return Math.max(0, this.activePlacements(section.sectionKey).length - Math.max(0, Number(section.maxItems || 0)));
+  }
+
+  offCount(section: HomepageSection): number {
+    return this.placementsFor(section.sectionKey).filter((row) => !row.isActive).length;
+  }
+
+  placementState(section: HomepageSection, placement: HomepagePlacement): PlacementState {
+    if (!section.isEnabled) return "SECTION_OFF";
+    if (!placement.isActive) return "OFF";
+    const activeIndex = this.activePlacements(section.sectionKey).findIndex((row) => row.id === placement.id);
+    return activeIndex >= 0 && activeIndex < Math.max(0, Number(section.maxItems || 0)) ? "LIVE" : "RESERVE";
+  }
+
+  placementStateLabel(section: HomepageSection, placement: HomepagePlacement): string {
+    const state = this.placementState(section, placement);
+    if (state === "LIVE") return "CANLI";
+    if (state === "RESERVE") return "YEDEK SIRA";
+    if (state === "SECTION_OFF") return "BÖLÜM KAPALI";
+    return "KAPALI";
+  }
+
   candidatesFor(section: HomepageSection): Candidate[] {
     const placed = new Set(this.placementsFor(section.sectionKey).map((row) => `${row.entityType}:${row.entityId}`));
     return this.allCandidates(section).filter((candidate) => !placed.has(`${candidate.type}:${candidate.id}`));
@@ -162,10 +219,11 @@ export class AdminHomepageComponent implements OnInit {
     const type = raw.slice(0, separator) as Candidate["type"];
     const id = raw.slice(separator + 1);
     const next = this.placementsFor(section.sectionKey).length + 1;
+    const willBeReserve = section.isEnabled && this.activePlacements(section.sectionKey).length >= section.maxItems;
     try {
       await this.management.addPlacement({ sectionKey: section.sectionKey, entityType: type, entityId: id, sortOrder: next, isActive: true, metadata: {} });
       this.selectCandidate(section.sectionKey, "");
-      this.toast.show("İçerik vitrine eklendi.", "success");
+      this.toast.show(willBeReserve ? "İçerik yedek sıraya eklendi. Yukarı taşıyarak canlı vitrine alabilirsiniz." : "İçerik canlı vitrine eklendi.", "success");
     } catch (error) { this.toast.show(this.message(error), "error"); }
   }
 

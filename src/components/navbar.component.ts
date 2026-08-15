@@ -13,15 +13,15 @@ import { Language, UiService } from "../services/ui.service";
     <nav class="fixed inset-x-0 top-0 z-[100] border-b border-white/10 bg-[#07101f] shadow-xl" aria-label="Ana navigasyon">
       <div class="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
         <div class="flex h-[72px] items-center justify-between gap-2 md:h-24">
-          <a routerLink="/" aria-label="Alperler Auto ana sayfa" class="inline-flex min-w-0 max-w-[210px] items-center rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 md:max-w-[280px]">
+          <a routerLink="/" aria-label="Alperler Auto ana sayfa" class="inline-flex min-w-0 flex-1 items-center rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 md:max-w-[300px] xl:flex-none">
             @if (config().logoUrl) {
-              <img [src]="config().logoUrl" alt="Alperler Auto" class="max-h-[54px] w-auto max-w-[185px] object-contain md:max-h-[72px] md:max-w-[250px]" />
+              <img [src]="config().logoUrl" alt="Alperler Auto" class="max-h-[54px] w-auto max-w-[220px] object-contain md:max-h-[72px] md:max-w-[280px]" />
             } @else {
-              <div class="flex min-w-0 items-center gap-3">
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-xl font-black text-white">A</div>
+              <div class="flex min-w-0 items-center gap-2.5 sm:gap-3">
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-xl font-black text-white shadow-lg shadow-blue-950/30">A</div>
                 <div class="min-w-0">
-                  <div class="truncate font-serif text-base font-black tracking-wide text-white md:text-xl">{{ config().companyName | uppercase }}</div>
-                  <div class="mt-0.5 truncate text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400 md:text-[10px]">{{ config().tagline }}</div>
+                  <div class="brand-name font-serif font-black uppercase tracking-[.04em] text-white">Alperler Auto</div>
+                  <div class="brand-sub mt-0.5 font-black uppercase tracking-[.13em] text-slate-400">Kiralama • Satış • Tur</div>
                 </div>
               </div>
             }
@@ -66,13 +66,15 @@ import { Language, UiService } from "../services/ui.service";
       <div class="mx-auto w-full max-w-xl">
         <div class="mb-3 px-1">
           <p class="text-[10px] font-black uppercase tracking-[.2em] text-blue-300">Alperler Auto</p>
-          <p class="mt-1 text-sm leading-6 text-slate-400">Bölümler, favoriler ve dil ayarları tek erişilebilir menüde.</p>
+          <p class="mt-1 text-sm leading-6 text-slate-400">Kiralama, satış, tur ve müşteri işlemlerinin tamamına buradan ulaşın.</p>
         </div>
 
         <div class="overflow-hidden rounded-2xl border border-white/10 bg-[#0b1526] shadow-2xl">
           <a id="mobile-menu-first-link" routerLink="/" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">home</mat-icon><span>Ana Sayfa</span></a>
           <a routerLink="/fleet" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">key</mat-icon><span>{{ t().nav.fleet }}</span></a>
           <a routerLink="/sales" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">directions_car</mat-icon><span>{{ t().nav.sales }}</span></a>
+          <a routerLink="/" fragment="campaigns-heading" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">local_offer</mat-icon><span>Kampanyalar</span></a>
+          <a routerLink="/appointment" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">event_available</mat-icon><span>Randevu</span></a>
           <a routerLink="/list-your-car" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">sell</mat-icon><span>{{ t().nav.earn }}</span></a>
           <a routerLink="/tours" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">explore</mat-icon><span>{{ t().nav.tours }}</span></a>
           <a routerLink="/branches" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">storefront</mat-icon><span>Şubeler</span></a>
@@ -108,16 +110,14 @@ import { Language, UiService } from "../services/ui.service";
             </div>
           }
         </div>
-
-        <p class="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs leading-5 text-slate-400">
-          Arama ve randevu işlemleri mobil hızlı işlem çubuğunda kalır. Favoriler ve dil ayarı bu menüden yönetilir.
-        </p>
       </div>
     </nav>
   `,
   styles: [`
+    .brand-name{font-size:15px;line-height:1.05;white-space:nowrap}.brand-sub{font-size:7.5px;line-height:1.2;white-space:nowrap}
     .nav-link{border-bottom:2px solid transparent;padding:.5rem 0;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#cbd5e1;white-space:nowrap}
     .menu-row{display:flex;width:100%;min-height:56px;align-items:center;gap:16px;border:0;border-bottom:1px solid rgba(255,255,255,.1);background:transparent;padding:0 16px;text-align:left;font-size:16px;font-weight:700;color:#f1f5f9;text-decoration:none}.menu-row span{flex:1}.menu-row.last{border-bottom:0}.menu-row:focus-visible{background:rgba(255,255,255,.08);outline:none}.menu-count{display:inline-flex;min-width:28px;height:28px;align-items:center;justify-content:center;border-radius:999px;background:#1d4ed8;padding:0 8px;color:white;font-size:11px;font-weight:900}
+    @media (min-width:390px){.brand-name{font-size:17px}.brand-sub{font-size:8px}}
   `],
 })
 export class NavbarComponent {

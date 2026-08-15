@@ -211,7 +211,7 @@ export class AdminHomepageComponent implements OnInit {
     if (!section) return [...vehicles, ...tours, ...blogs, ...campaigns];
     if (section.sectionType === "TOURS") return tours;
     if (section.sectionType === "BLOG") return blogs;
-    if (section.sectionType === "CAMPAIGN" || section.sectionKey === "campaigns") return [...campaigns, ...vehicles.filter((item) => item.meta?.startsWith("Kiralık") || item.meta?.startsWith("Satılık"))];
+    if (section.sectionType === "CAMPAIGN" || section.sectionKey === "campaigns") return campaigns;
     const category = String(section.settings?.["category"] || "");
     if (category === "RENTAL" || section.sectionKey === "rental_featured") return vehicles.filter((item) => item.meta?.startsWith("Kiralık"));
     if (category === "SALE" || section.sectionKey === "sale_featured") return vehicles.filter((item) => item.meta?.startsWith("Satılık"));

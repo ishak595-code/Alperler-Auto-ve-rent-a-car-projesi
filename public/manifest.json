@@ -1,16 +1,47 @@
 {
+  "id": "/",
   "name": "Alperler Auto",
   "short_name": "Alperler",
-  "description": "Araç Kiralama, 2. El Satış ve Turlar",
+  "description": "Yüksekova'da araç kiralama, ikinci el araç satışı ve bölgesel tur hizmetleri.",
+  "lang": "tr",
+  "dir": "ltr",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0f172a",
+  "orientation": "any",
+  "background_color": "#081426",
+  "theme_color": "#081426",
+  "prefer_related_applications": false,
+  "categories": ["auto", "travel", "business"],
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Kiralık Araçlar",
+      "short_name": "Kiralık",
+      "url": "/fleet"
+    },
+    {
+      "name": "Satılık Araçlar",
+      "short_name": "Satılık",
+      "url": "/sales"
+    },
+    {
+      "name": "Ara",
+      "short_name": "Ara",
+      "url": "/search"
     }
   ]
 }

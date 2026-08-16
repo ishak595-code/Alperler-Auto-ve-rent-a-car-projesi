@@ -38,7 +38,7 @@ import { SeoService } from "../services/seo.service";
 
             <div class="field-grid">
               <label class="field"><span>Hizmet</span><select [(ngModel)]="serviceType" name="homeService"><option value="individual">Şoförsüz Araç Kiralama</option><option value="driver">Şoförlü Transfer</option><option value="wedding">Düğün / Özel Gün</option><option value="tour">Özel Tur</option></select></label>
-              <label class="field"><span>Teslim noktası</span><select [(ngModel)]="selectedPickupId" name="homePickup"><option value="">Teslim noktası seçin</option>@for (branch of pickupPoints(); track branch.id) {<option [value]="branch.id">{{ branch.name }} · {{ branch.district || branch.city }}</option>}</select></label>
+              @if (serviceType !== 'tour') {<label class="field"><span>{{ serviceType === 'individual' ? 'Teslim noktası' : 'Başlangıç noktası' }}</span><select [(ngModel)]="selectedPickupId" name="homePickup"><option value="">{{ serviceType === 'individual' ? 'Teslim noktası seçin' : 'Başlangıç noktası seçin' }}</option>@for (branch of pickupPoints(); track branch.id) {<option [value]="branch.id">{{ branch.name }} · {{ branch.district || branch.city }}</option>}</select></label>}
               <div class="date-grid">
                 <label class="field"><span>{{ serviceType === 'tour' ? 'Tur tarihi' : 'Alış tarihi' }}</span><input type="date" [(ngModel)]="startDate" name="homeStartDate" [min]="today" (ngModelChange)="onStartDateChanged($event)" /></label>
                 @if (serviceType !== 'tour') {<label class="field"><span>İade tarihi</span><input type="date" [(ngModel)]="endDate" name="homeEndDate" [min]="startDate || today" /></label>}
@@ -101,8 +101,8 @@ import { SeoService } from "../services/seo.service";
             <div class="section-inner">
               <div class="section-head"><div><p class="section-kicker">{{ brandName() }} · Hizmet Ağı</p><h2 id="branches-v71-title">{{ section.title || 'Şubelerimiz ve İş Ortaklığı' }}</h2><p class="section-desc">Mevcut hizmet noktalarını görün. Kendi bölgenizde Alperler Auto iş ortağı olmak istiyorsanız aynı altyapıya başvurun.</p></div><a class="view-all" routerLink="/branches">Tüm Şubeler <mat-icon aria-hidden="true">arrow_forward</mat-icon></a></div>
               <div class="branch-strip">
-                @for (branch of branchCards(section); track branch.id) {<a class="branch-card" routerLink="/branches"><span class="branch-icon" aria-hidden="true"><mat-icon>storefront</mat-icon></span><p class="branch-label">Aktif Hizmet Noktası</p><h3>{{ branch.name }}</h3><p>{{ branch.addressLabel }}</p><div class="branch-meta">@if (branch.isPickupPoint) {<span>Teslim Alma</span>}@if (branch.isReturnPoint) {<span>İade</span>}@if (branchServiceSummary(branch)) {<span>{{ branchServiceSummary(branch) }}</span>}</div><strong class="branch-link">Şube Bilgileri <mat-icon aria-hidden="true">arrow_forward</mat-icon></strong></a>}
-                <a class="branch-card partner-card" routerLink="/branch-partner"><span class="branch-icon" aria-hidden="true"><mat-icon>add_business</mat-icon></span><p class="branch-label">Yeni Bölge / Yeni Şube</p><h3>Kendi Bölgenizde Alperler Auto ile Çalışın</h3><p>Kendi araçlarınızı veya bölgenizdeki uygun araçları kiralık ve satılık olarak yayınlayabileceğiniz iş ortaklığı modeline başvurun.</p><div class="branch-meta"><span>Merkezi İlan Altyapısı</span><span>Müşteri Talepleri</span><span>Şube Görünürlüğü</span></div><strong class="branch-link">Şube Başvurusu Yap <mat-icon aria-hidden="true">arrow_forward</mat-icon></strong></a>
+                @for (branch of branchCards(section); track branch.id) {<a class="branch-card" [routerLink]="branch.slug ? ['/branches', branch.slug] : ['/branches']"><span class="branch-icon" aria-hidden="true"><mat-icon>storefront</mat-icon></span><p class="branch-label">{{ branch.networkType === 'FRANCHISE' ? 'Yetkili İş Ortağı' : 'Aktif Hizmet Noktası' }}</p><h3>{{ branch.name }}</h3><p>{{ branch.addressLabel }}</p><div class="branch-meta">@if (branch.isPickupPoint) {<span>Teslim Alma</span>}@if (branch.isReturnPoint) {<span>İade</span>}@if (branchServiceSummary(branch)) {<span>{{ branchServiceSummary(branch) }}</span>}</div><strong class="branch-link">Şubenin İlanlarını Gör <mat-icon aria-hidden="true">arrow_forward</mat-icon></strong></a>}
+                <a class="branch-card partner-card" routerLink="/branch-partner"><span class="branch-icon" aria-hidden="true"><mat-icon>add_business</mat-icon></span><p class="branch-label">Yeni Bölge / Yeni Şube</p><h3>Kendi Bölgenizde Alperler Auto ile Çalışın</h3><p>Kendi şube sayfanızı ve ilan havuzunuzu yönetin. Fiyat sınırları, yayın onayı, güvenlik kontrolleri ve müşteri güvencesi Alperler Auto merkezi standartlarında kalsın.</p><div class="branch-meta"><span>Şubeye Özel İlanlar</span><span>Merkezi Fiyat Disiplini</span><span>Yayın ve Güvenlik Kontrolü</span></div><strong class="branch-link">Şube Başvurusu Yap <mat-icon aria-hidden="true">arrow_forward</mat-icon></strong></a>
               </div>
               <p class="branch-disclaimer">Başvuru otomatik bayilik hakkı vermez. Bölge, operasyon ve marka uygunluğu kontrolünden sonra sözleşme ile aktive edilir.</p>
             </div>
@@ -186,13 +186,13 @@ export class HomeV71Component {
     return [] as PublicHomepageSection[];
   });
 
-  readonly plannerSummary = computed(() => {
+  plannerSummary(): string {
     if (!this.startDate) return "";
     const start = this.formatShortDate(this.startDate);
     const end = this.serviceType === "tour" || !this.endDate ? "" : ` - ${this.formatShortDate(this.endDate)}`;
-    const branch = this.pickupPoints().find((item) => item.id === this.selectedPickupId);
+    const branch = this.serviceType === "tour" ? undefined : this.pickupPoints().find((item) => item.id === this.selectedPickupId);
     return `${start}${end}${branch ? ` · ${branch.name}` : ""}`;
-  });
+  }
 
   constructor() {
     void this.homepageLayout.load();
@@ -221,7 +221,7 @@ export class HomeV71Component {
     if (this.serviceType !== "tour" && !this.endDate) { this.plannerError.set("İade tarihini de seçin."); return; }
     if (this.serviceType !== "tour" && this.endDate < this.startDate) { this.plannerError.set("İade tarihi alış tarihinden önce olamaz."); return; }
     const pickup = this.selectedPickupId || undefined;
-    if (this.serviceType === "tour") { void this.router.navigate(["/tours"], { queryParams: { start: this.startDate, pickup } }); return; }
+    if (this.serviceType === "tour") { void this.router.navigate(["/tours"], { queryParams: { start: this.startDate } }); return; }
     void this.router.navigate(["/fleet"], { queryParams: { start: this.startDate, end: this.endDate, pickup, driver: this.serviceType === "driver" || this.serviceType === "wedding" ? "true" : undefined, occasion: this.serviceType === "wedding" ? "wedding" : undefined } });
   }
 

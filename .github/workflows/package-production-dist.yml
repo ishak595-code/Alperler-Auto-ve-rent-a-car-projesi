@@ -1,0 +1,43 @@
+name: Package Production Dist
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/package-production-dist.yml'
+      - 'src/**'
+      - 'api/**'
+      - 'public/**'
+      - 'index.tsx'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'angular.json'
+      - 'tsconfig.json'
+      - 'vercel.json'
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build production
+        run: npm run build
+      - name: Upload production dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: alperler-production-dist
+          path: dist/**
+          if-no-files-found: error
+          retention-days: 1

@@ -59,6 +59,7 @@ export const routes: Routes = [
   { path: 'sales/:id', component: SaleDetailShellComponent },
   { path: 'tours', loadComponent: () => import('./pages/tours.component').then(m => m.ToursComponent) },
   { path: 'tour/:id', component: TourDetailShellComponent },
+  { path: 'branches/:slug', loadComponent: () => import('./pages/branch-detail.component').then(m => m.BranchDetailComponent) },
   { path: 'branches', loadComponent: () => import('./pages/branches.component').then(m => m.BranchesComponent) },
   { path: 'branch-partner', loadComponent: () => import('./pages/branch-partner.component').then(m => m.BranchPartnerComponent) },
   { path: 'blog', component: BlogListComponent },

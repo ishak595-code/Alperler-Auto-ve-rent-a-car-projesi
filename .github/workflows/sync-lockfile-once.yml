@@ -1,0 +1,33 @@
+name: Sync Lockfile Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sync-lockfile-once.yml'
+  workflow_dispatch:
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Regenerate package lock
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify clean install metadata
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Upload synchronized lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: synchronized-package-lock
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 1

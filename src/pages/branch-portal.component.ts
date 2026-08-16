@@ -153,7 +153,7 @@ export class BranchPortalComponent implements OnInit {
   readonly setupRequired = computed(() => this.portal.setup().filter((item) => item.required).length);
   readonly setupCompleted = computed(() => this.portal.setup().filter((item) => item.required && Boolean(item.completedAt)).length);
   readonly setupPercent = computed(() => this.setupRequired() ? Math.round(this.setupCompleted() / this.setupRequired() * 100) : 0);
-  readonly priceHint = computed(() => this.portal.priceHint(this.draft.category, this.draft.type || "*"));
+  priceHint() { return this.portal.priceHint(this.draft.category, this.draft.type || "*"); }
 
   async ngOnInit(): Promise<void> {
     try {

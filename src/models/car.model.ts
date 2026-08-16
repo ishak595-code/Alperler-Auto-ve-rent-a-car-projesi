@@ -4,9 +4,16 @@ export interface Vehicle {
   cloudId?: string;
   cloudStockCode?: string;
   cloudSlug?: string;
-  publicationStatus?: 'DRAFT' | 'SCHEDULED' | 'PUBLISHED' | 'ARCHIVED';
+  publicationStatus?: 'DRAFT' | 'PENDING_REVIEW' | 'SCHEDULED' | 'PUBLISHED' | 'REJECTED' | 'SUSPENDED' | 'ARCHIVED';
   publishedAt?: string;
   scheduledAt?: string;
+  branchId?: string;
+  branchName?: string;
+  branchSlug?: string;
+  branchCity?: string;
+  branchDistrict?: string;
+  listingOrigin?: 'CENTRAL' | 'BRANCH';
+  rejectionReason?: string;
   title?: string;
   brand?: string;
   model?: string;

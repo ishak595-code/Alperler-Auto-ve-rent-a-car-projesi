@@ -9,6 +9,8 @@ const allowedListing = new Set(["OWN_FLEET", "REGIONAL_NETWORK", "BOTH"]);
 const allowedBudget = new Set(["DISCUSS", "UNDER_100K", "100K_250K", "250K_500K", "500K_PLUS"]);
 const allowedStatus = new Set(["NEW", "REVIEWING", "CONTACTED", "DUE_DILIGENCE", "APPROVED", "REJECTED", "CLOSED"]);
 
+type AdminSession = { id: string; email: string; role: string; permissions: Record<string, unknown> };
+
 function clean(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
@@ -53,7 +55,12 @@ async function rate(key: string, scope: string, seconds: number, limit: number):
   return Boolean(await response.json());
 }
 
-async function requireAdmin(request: Request): Promise<{ id: string; email: string }> {
+function hasOperationsAccess(admin: AdminSession): boolean {
+  if (admin.role === "owner" || admin.role === "admin" || admin.role === "support") return true;
+  return admin.permissions?.["operations.manage"] === true;
+}
+
+async function requireAdmin(request: Request, operations = false): Promise<AdminSession> {
   const authorization = request.headers.get("authorization") || "";
   if (!/^Bearer\s+\S+/i.test(authorization)) throw new Error("UNAUTHORIZED");
   const userResponse = await fetch(`${URL}/auth/v1/user`, {
@@ -64,11 +71,18 @@ async function requireAdmin(request: Request): Promise<{ id: string; email: stri
   const user = await userResponse.json();
   const id = clean(user?.id, 80);
   if (!id) throw new Error("UNAUTHORIZED");
-  const adminResponse = await db(`admin_users?user_id=eq.${encodeURIComponent(id)}&is_active=eq.true&select=user_id&limit=1`);
+  const adminResponse = await db(`admin_users?user_id=eq.${encodeURIComponent(id)}&is_active=eq.true&select=user_id,role,permissions&limit=1`);
   if (!adminResponse.ok) throw new Error("ADMIN_LOOKUP_FAILED");
   const rows = await adminResponse.json();
   if (!Array.isArray(rows) || !rows[0]) throw new Error("FORBIDDEN");
-  return { id, email: clean(user?.email, 160) };
+  const admin: AdminSession = {
+    id,
+    email: clean(user?.email, 160),
+    role: clean(rows[0]?.role, 30).toLowerCase(),
+    permissions: rows[0]?.permissions && typeof rows[0].permissions === "object" ? rows[0].permissions : {},
+  };
+  if (operations && !hasOperationsAccess(admin)) throw new Error("FORBIDDEN");
+  return admin;
 }
 
 function escapeHtml(value: unknown): string {
@@ -202,22 +216,50 @@ async function createApplication(request: Request, input: any): Promise<Response
 }
 
 async function listApplications(request: Request): Promise<Response> {
-  await requireAdmin(request);
+  await requireAdmin(request, true);
   const response = await db("branch_partner_requests?select=*&order=created_at.desc&limit=500");
   if (!response.ok) return json(request, { ok: false, code: "BRANCH_PARTNER_LIST_FAILED" }, 500);
   return json(request, { ok: true, requests: await response.json() });
 }
 
+async function provisionApplication(request: Request, input: any): Promise<Response> {
+  const admin = await requireAdmin(request, true);
+  const reference = clean(input?.reference, 80);
+  const branchName = clean(input?.branchName, 160) || null;
+  if (!reference) return json(request, { ok: false, code: "INVALID_PROVISION_REQUEST" }, 400);
+  const rpc = await db("rpc/provision_branch_partner_request", {
+    method: "POST",
+    body: JSON.stringify({ p_reference: reference, p_actor: admin.id, p_branch_name: branchName }),
+  });
+  if (!rpc.ok) {
+    const error = await rpc.json().catch(() => ({}));
+    const message = clean(error?.message, 300);
+    if (message.includes("NOT_APPROVED")) return json(request, { ok: false, code: "BRANCH_PARTNER_NOT_APPROVED" }, 409);
+    if (message.includes("NOT_FOUND")) return json(request, { ok: false, code: "BRANCH_PARTNER_NOT_FOUND" }, 404);
+    return json(request, { ok: false, code: "BRANCH_PROVISION_FAILED" }, 500);
+  }
+  const branch = await rpc.json();
+  const refreshed = await db(`branch_partner_requests?reference=eq.${encodeURIComponent(reference)}&select=*&limit=1`);
+  const rows = refreshed.ok ? await refreshed.json() : [];
+  return json(request, { ok: true, branch, request: Array.isArray(rows) ? rows[0] : null });
+}
+
 async function updateApplication(request: Request, input: any): Promise<Response> {
-  await requireAdmin(request);
+  const admin = await requireAdmin(request, true);
+  if (clean(input?.action, 30).toUpperCase() === "PROVISION") return provisionApplication(request, input);
   const reference = clean(input?.reference, 80);
   const status = clean(input?.status, 30).toUpperCase();
   const internalNotes = clean(input?.internalNotes, 4000) || null;
   if (!reference || !allowedStatus.has(status)) return json(request, { ok: false, code: "INVALID_UPDATE" }, 400);
+  const patch: Record<string, unknown> = { status, internal_notes: internalNotes, updated_at: new Date().toISOString() };
+  if (status === "APPROVED") {
+    patch["approved_at"] = new Date().toISOString();
+    patch["approved_by"] = admin.id;
+  }
   const response = await db(`branch_partner_requests?reference=eq.${encodeURIComponent(reference)}&select=*`, {
     method: "PATCH",
     headers: { Prefer: "return=representation" },
-    body: JSON.stringify({ status, internal_notes: internalNotes, updated_at: new Date().toISOString() }),
+    body: JSON.stringify(patch),
   });
   if (!response.ok) return json(request, { ok: false, code: "BRANCH_PARTNER_UPDATE_FAILED" }, 500);
   const rows = await response.json();

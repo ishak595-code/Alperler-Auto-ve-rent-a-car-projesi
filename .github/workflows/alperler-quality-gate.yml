@@ -13,12 +13,16 @@ on:
       - "supabase/**"
       - "project/**"
       - "index.html"
+      - "index.tsx"
+      - "server.ts"
       - "package.json"
       - "package-lock.json"
       - "angular.json"
       - "vercel.json"
       - ".vercelignore"
       - ".gitignore"
+      - ".env.example"
+      - "tsconfig.json"
       - "tsconfig.api.json"
       - "firestore.rules"
       - ".github/workflows/alperler-quality-gate.yml"
@@ -31,12 +35,16 @@ on:
       - "supabase/**"
       - "project/**"
       - "index.html"
+      - "index.tsx"
+      - "server.ts"
       - "package.json"
       - "package-lock.json"
       - "angular.json"
       - "vercel.json"
       - ".vercelignore"
       - ".gitignore"
+      - ".env.example"
+      - "tsconfig.json"
       - "tsconfig.api.json"
       - "firestore.rules"
       - ".github/workflows/alperler-quality-gate.yml"
@@ -64,8 +72,8 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
+      - name: Install dependencies from lockfile
+        run: npm ci --no-audit --no-fund
 
       - name: Frontend TypeScript quality check
         run: npm run lint

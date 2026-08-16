@@ -51,6 +51,8 @@ const adminAreaGuard = (area: AdminArea): CanActivateFn => async () => {
 
 export const routes: Routes = [
   { path: 'admin/login', loadComponent: () => import('./pages/admin/admin-login.component').then(m => m.AdminLoginComponent) },
+  { path: 'branch-portal/login', loadComponent: () => import('./pages/branch-portal-login.component').then(m => m.BranchPortalLoginComponent) },
+  { path: 'branch-portal', loadComponent: () => import('./pages/branch-portal.component').then(m => m.BranchPortalComponent) },
   { path: 'search', loadComponent: () => import('./pages/search.component').then(m => m.SearchComponent) },
   { path: 'campaigns', loadComponent: () => import('./pages/campaigns.component').then(m => m.CampaignsComponent) },
   { path: 'fleet', component: FleetComponent },
@@ -89,6 +91,7 @@ export const routes: Routes = [
       { path: 'team', component: AdminTeamComponent, canActivate: [adminAreaGuard('team')] },
       { path: 'assignments', canActivate: [adminAreaGuard('team')], loadComponent: () => import('./pages/admin/admin-assignment-center.component').then(m => m.AdminAssignmentCenterComponent) },
       { path: 'branches', component: AdminBranchesComponent, canActivate: [adminAreaGuard('settings')] },
+      { path: 'branch-network/:id', canActivate: [adminAreaGuard('settings')], loadComponent: () => import('./pages/admin/admin-branch-network.component').then(m => m.AdminBranchNetworkComponent) },
       { path: 'audit', component: AdminAuditComponent, canActivate: [adminAreaGuard('finance')] },
       { path: 'system-health', component: AdminSystemHealthComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'cars', redirectTo: 'catalog-editor', pathMatch: 'full' },

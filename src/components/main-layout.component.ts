@@ -1,14 +1,13 @@
-import { Component, inject, signal } from "@angular/core";
-import { RouterOutlet, Router, NavigationEnd } from "@angular/router";
-import { filter } from "rxjs/operators";
-import { NavbarComponent } from "./navbar.component";
-import { FooterComponent } from "./footer.component";
-import { FeedbackComponent } from "./feedback.component";
-import { HomeCampaignShowcaseComponent } from "./home-campaign-showcase.component";
-import { UiService } from "../services/ui.service";
-import { CarService } from "../services/car.service";
 import { CommonModule, Location } from "@angular/common";
+import { Component, inject, signal } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
+import { NavigationEnd, Router, RouterOutlet } from "@angular/router";
+import { filter } from "rxjs/operators";
+import { CarService } from "../services/car.service";
+import { UiService } from "../services/ui.service";
+import { CustomerFooterV70Component } from "./customer-footer-v70.component";
+import { FeedbackComponent } from "./feedback.component";
+import { NavbarComponent } from "./navbar.component";
 
 @Component({
   selector: "app-main-layout",
@@ -17,9 +16,8 @@ import { MatIconModule } from "@angular/material/icon";
     CommonModule,
     RouterOutlet,
     NavbarComponent,
-    FooterComponent,
+    CustomerFooterV70Component,
     FeedbackComponent,
-    HomeCampaignShowcaseComponent,
     MatIconModule,
   ],
   template: `
@@ -35,12 +33,9 @@ import { MatIconModule } from "@angular/material/icon";
 
       <main id="main-content" tabindex="-1" class="flex-grow pt-[72px] pb-[78px] md:pt-[96px] xl:pb-0 min-w-0">
         <router-outlet></router-outlet>
-        @if (isHomePage()) {
-          <app-home-campaign-showcase></app-home-campaign-showcase>
-        }
       </main>
 
-      <app-footer></app-footer>
+      <app-customer-footer-v70></app-customer-footer-v70>
       <app-feedback></app-feedback>
 
       @if (showWhatsapp() && getWhatsappNumber()) {
@@ -101,7 +96,7 @@ export class MainLayoutComponent {
       : "WhatsApp destek hattını yeni sekmede aç";
   }
 
-  private updatePageState() {
+  private updatePageState(): void {
     const url = this.router.url.split("?")[0];
     this.isHomePage.set(url === "/");
   }
@@ -111,9 +106,9 @@ export class MainLayoutComponent {
     return /^\/(fleet|sales)\/[^/]+$/.test(url);
   }
 
-  goBack() {
+  goBack(): void {
     if (window.history.length > 1) this.location.back();
-    else this.router.navigate(["/"]);
+    else void this.router.navigate(["/"]);
   }
 
   getPageTitle(): string {
@@ -121,7 +116,7 @@ export class MainLayoutComponent {
     if (url.startsWith("/fleet")) return "Kiralık Araçlar";
     if (url.startsWith("/sales")) return "Satılık Araçlar";
     if (url.startsWith("/blog")) return "Blog & Haberler";
-    if (url.startsWith("/tours")) return "VIP Turlar";
+    if (url.startsWith("/tours")) return "Turlar";
     if (url.startsWith("/list-your-car")) return "Arabanı Değerlendir";
     if (url.startsWith("/contact")) return "İletişim";
     if (url.startsWith("/about")) return "Hakkımızda";

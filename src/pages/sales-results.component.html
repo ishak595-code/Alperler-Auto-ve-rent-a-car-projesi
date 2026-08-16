@@ -12,35 +12,25 @@
 
   <section class="border-b border-slate-800 bg-[#020617] px-4 py-6 sm:py-8">
     <div class="mx-auto max-w-7xl">
-      <h1 class="font-serif text-3xl font-black text-white sm:text-4xl">Satılık Araçlar <span class="text-lg text-slate-500">({{ filteredVehicles().length }})</span></h1>
-      <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Fiyat, marka, model yılı, kilometre, yakıt, vites, kasa, renk, hasar ve garanti bilgilerine göre araçları doğrudan filtreleyin.</p>
+      <p class="text-[10px] font-black uppercase tracking-[.16em] text-blue-400">Yeni Aracınızı Keşfedin</p>
+      <h1 class="mt-1 font-serif text-3xl font-black text-white sm:text-4xl">Satılık Araçlar</h1>
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-400">İlanları rahatça karşılaştırın. Fiyat, kilometre, model yılı ve diğer ayrıntıları yalnız ihtiyaç duyduğunuzda filtreleyin.</p>
     </div>
   </section>
 
-  <section class="border-b border-slate-200 bg-white px-4 py-5 text-slate-900" aria-labelledby="sales-filter-title">
-    <div class="mx-auto max-w-7xl">
-      <div class="mb-4 flex items-center justify-between gap-3">
-        <div><h2 id="sales-filter-title" class="text-lg font-black">Filtreler</h2><p class="mt-1 text-xs text-slate-500">Her seçim sonuçlara anında uygulanır.</p></div>
-        @if (activeFilterCount() > 0 || searchQuery().trim()) { <button type="button" (click)="clearAll()" class="min-h-11 rounded-xl px-3 text-xs font-black text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Temizle</button> }
+  <section class="sticky top-16 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 text-slate-900 shadow-sm backdrop-blur" aria-label="Satılık araç araçları">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-3">
+      <div class="min-w-0" aria-live="polite">
+        <strong class="block text-sm font-black">{{ filteredVehicles().length }} araç bulundu</strong>
+        <span class="block truncate text-[11px] text-slate-500">@if (activeFilterCount()) { {{ activeFilterCount() }} filtre aktif } @else { Filtre uygulanmadı }</span>
       </div>
-
-      <div class="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
-        <label class="block"><span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Marka</span><select aria-label="Satılık araç markası" [ngModel]="filterBrand()" (ngModelChange)="filterBrand.set($event)" class="filter-control"><option value="">Tüm markalar</option>@for (brand of brands(); track brand) { <option [value]="brand">{{ brand }}</option> }</select></label>
-        <label class="block"><span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Fiyat</span><select aria-label="Satılık araç fiyat aralığı" [ngModel]="filterPrice()" (ngModelChange)="filterPrice.set($event)" class="filter-control">@for (option of priceOptions; track option.id) { <option [value]="option.id">{{ option.label }}</option> }</select></label>
-        <label class="block"><span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Model yılı</span><select aria-label="Satılık araç model yılı" [ngModel]="filterYear()" (ngModelChange)="filterYear.set($event)" class="filter-control"><option value="">Tüm yıllar</option>@for (year of years(); track year) { <option [value]="year.toString()">{{ year }}</option> }</select></label>
-        <label class="block"><span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Kilometre</span><select aria-label="Satılık araç kilometre aralığı" [ngModel]="filterKm()" (ngModelChange)="filterKm.set($event)" class="filter-control">@for (option of kmOptions; track option.id) { <option [value]="option.id">{{ option.label }}</option> }</select></label>
-        <label class="block"><span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Yakıt</span><select aria-label="Satılık araç yakıt türü" [ngModel]="filterFuel()" (ngModelChange)="filterFuel.set($event)" class="filter-control"><option value="">Tüm yakıtlar</option>@for (fuel of fuels(); track fuel) { <option [value]="fuel">{{ fuel }}</option> }</select></label>
-        <label class="block"><span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Vites</span><select aria-label="Satılık araç vites türü" [ngModel]="filterTransmission()" (ngModelChange)="filterTransmission.set($event)" class="filter-control"><option value="">Tüm vitesler</option>@for (value of transmissions(); track value) { <option [value]="value">{{ value }}</option> }</select></label>
-        <label class="block"><span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Kasa tipi</span><select aria-label="Satılık araç kasa tipi" [ngModel]="filterType()" (ngModelChange)="filterType.set($event)" class="filter-control"><option value="">Tüm kasalar</option>@for (type of types(); track type) { <option [value]="type">{{ type }}</option> }</select></label>
-        <label class="block"><span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Renk</span><select aria-label="Satılık araç rengi" [ngModel]="filterColor()" (ngModelChange)="filterColor.set($event)" class="filter-control"><option value="">Tüm renkler</option>@for (color of colors(); track color) { <option [value]="color">{{ color }}</option> }</select></label>
-        <label class="block"><span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Hasar</span><select aria-label="Satılık araç hasar durumu" [ngModel]="filterDamage()" (ngModelChange)="filterDamage.set($event)" class="filter-control">@for (option of damageOptions; track option.id) { <option [value]="option.id">{{ option.label }}</option> }</select></label>
-        <label class="block"><span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Garanti</span><select aria-label="Satılık araç garanti durumu" [ngModel]="filterWarranty()" (ngModelChange)="filterWarranty.set($event)" class="filter-control"><option value="">Tümü</option><option value="yes">Garantili</option></select></label>
-        <label class="block"><span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Sırala</span><select aria-label="Satılık araçları sırala" [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)" class="filter-control">@for (option of sortOptions; track option.id) { <option [value]="option.id">{{ option.label }}</option> }</select></label>
-      </div>
-
-      <div class="mt-4 flex flex-wrap gap-2 text-xs font-bold text-slate-600" aria-live="polite">
-        <span class="rounded-full bg-slate-100 px-3 py-2">{{ filteredVehicles().length }} araç bulundu</span>
-        @if (activeFilterCount()) { <span class="rounded-full bg-blue-50 px-3 py-2 text-blue-700">{{ activeFilterCount() }} filtre aktif</span> }
+      <div class="flex shrink-0 items-center gap-2">
+        @if (activeFilterCount()) {
+          <button type="button" (click)="clearFilters()" class="min-h-11 rounded-xl px-3 text-xs font-black text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Temizle</button>
+        }
+        <button type="button" (click)="filterOpen.set(true)" class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-black text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" [attr.aria-expanded]="filterOpen()" aria-controls="sales-filter-sheet">
+          <mat-icon aria-hidden="true">tune</mat-icon> Filtrele @if (activeFilterCount()) { <span class="count-badge">{{ activeFilterCount() }}</span> }
+        </button>
       </div>
     </div>
   </section>
@@ -51,7 +41,39 @@
         @for (car of filteredVehicles(); track car.id) { <div class="min-w-0 bg-white"><app-vehicle-list-item [car]="car" variant="sale"></app-vehicle-list-item></div> }
       </div>
     } @else {
-      <div class="mx-auto flex min-h-80 max-w-2xl flex-col items-center justify-center px-6 text-center text-slate-700"><mat-icon class="!h-14 !w-14 !text-[56px] text-slate-300" aria-hidden="true">search_off</mat-icon><h2 class="mt-4 text-xl font-black">Eşleşen araç bulunamadı</h2><p class="mt-2 text-sm text-slate-500">Arama veya filtreleri değiştirerek tekrar deneyin.</p><button type="button" (click)="clearAll()" class="mt-5 min-h-11 rounded-xl bg-slate-900 px-5 font-black text-white">Tüm Araçları Göster</button></div>
+      <div class="mx-auto flex min-h-80 max-w-2xl flex-col items-center justify-center px-6 text-center text-slate-700"><mat-icon class="!h-14 !w-14 !text-[56px] text-slate-300" aria-hidden="true">search_off</mat-icon><h2 class="mt-4 text-xl font-black">Bu seçimlere uyan araç bulunamadı</h2><p class="mt-2 text-sm text-slate-500">Filtrelerden birini değiştirin veya tüm filtreleri temizleyin.</p><button type="button" (click)="clearAll()" class="mt-5 min-h-11 rounded-xl bg-slate-900 px-5 font-black text-white">Tüm Araçları Göster</button></div>
     }
   </section>
+
+  @if (filterOpen()) {
+    <div class="filter-backdrop" (click)="filterOpen.set(false)" (keydown.escape)="filterOpen.set(false)">
+      <section id="sales-filter-sheet" class="filter-sheet" role="dialog" aria-modal="true" aria-labelledby="sales-filter-title" (click)="$event.stopPropagation()">
+        <header class="filter-head">
+          <div><p>Aramanızı daraltın</p><h2 id="sales-filter-title">Satılık Araç Filtreleri</h2></div>
+          <button type="button" (click)="filterOpen.set(false)" aria-label="Filtreleri kapat"><mat-icon aria-hidden="true">close</mat-icon></button>
+        </header>
+
+        <div class="filter-scroll">
+          <div class="filter-grid">
+            <label><span>Marka</span><select aria-label="Satılık araç markası" [ngModel]="filterBrand()" (ngModelChange)="filterBrand.set($event)" class="filter-control"><option value="">Tüm markalar</option>@for (brand of brands(); track brand) { <option [value]="brand">{{ brand }}</option> }</select></label>
+            <label><span>Fiyat</span><select aria-label="Satılık araç fiyat aralığı" [ngModel]="filterPrice()" (ngModelChange)="filterPrice.set($event)" class="filter-control">@for (option of priceOptions; track option.id) { <option [value]="option.id">{{ option.label }}</option> }</select></label>
+            <label><span>Model yılı</span><select aria-label="Satılık araç model yılı" [ngModel]="filterYear()" (ngModelChange)="filterYear.set($event)" class="filter-control"><option value="">Tüm yıllar</option>@for (year of years(); track year) { <option [value]="year.toString()">{{ year }}</option> }</select></label>
+            <label><span>Kilometre</span><select aria-label="Satılık araç kilometre aralığı" [ngModel]="filterKm()" (ngModelChange)="filterKm.set($event)" class="filter-control">@for (option of kmOptions; track option.id) { <option [value]="option.id">{{ option.label }}</option> }</select></label>
+            <label><span>Yakıt</span><select aria-label="Satılık araç yakıt türü" [ngModel]="filterFuel()" (ngModelChange)="filterFuel.set($event)" class="filter-control"><option value="">Tüm yakıtlar</option>@for (fuel of fuels(); track fuel) { <option [value]="fuel">{{ fuel }}</option> }</select></label>
+            <label><span>Vites</span><select aria-label="Satılık araç vites türü" [ngModel]="filterTransmission()" (ngModelChange)="filterTransmission.set($event)" class="filter-control"><option value="">Tüm vitesler</option>@for (value of transmissions(); track value) { <option [value]="value">{{ value }}</option> }</select></label>
+            <label><span>Kasa tipi</span><select aria-label="Satılık araç kasa tipi" [ngModel]="filterType()" (ngModelChange)="filterType.set($event)" class="filter-control"><option value="">Tüm kasalar</option>@for (type of types(); track type) { <option [value]="type">{{ type }}</option> }</select></label>
+            <label><span>Renk</span><select aria-label="Satılık araç rengi" [ngModel]="filterColor()" (ngModelChange)="filterColor.set($event)" class="filter-control"><option value="">Tüm renkler</option>@for (color of colors(); track color) { <option [value]="color">{{ color }}</option> }</select></label>
+            <label><span>Hasar</span><select aria-label="Satılık araç hasar durumu" [ngModel]="filterDamage()" (ngModelChange)="filterDamage.set($event)" class="filter-control">@for (option of damageOptions; track option.id) { <option [value]="option.id">{{ option.label }}</option> }</select></label>
+            <label><span>Garanti</span><select aria-label="Satılık araç garanti durumu" [ngModel]="filterWarranty()" (ngModelChange)="filterWarranty.set($event)" class="filter-control"><option value="">Tümü</option><option value="yes">Garantili</option></select></label>
+            <label><span>Sırala</span><select aria-label="Satılık araçları sırala" [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)" class="filter-control">@for (option of sortOptions; track option.id) { <option [value]="option.id">{{ option.label }}</option> }</select></label>
+          </div>
+        </div>
+
+        <footer class="filter-footer">
+          <button type="button" (click)="clearFilters()" class="secondary">Filtreleri Temizle</button>
+          <button type="button" (click)="filterOpen.set(false)" class="primary">{{ filteredVehicles().length }} Aracı Göster</button>
+        </footer>
+      </section>
+    </div>
+  }
 </main>

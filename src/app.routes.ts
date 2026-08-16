@@ -2,7 +2,7 @@ import { Routes, CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthService } from './services/auth.service';
 import { AdminAccessService, AdminArea } from './services/admin-access.service';
-import { HomeV69Component } from './pages/home-v69.component';
+import { HomeV71Component } from './pages/home-v71.component';
 import { FleetComponent } from './pages/fleet.component';
 import { AboutComponent } from './pages/about.component';
 import { BlogDetailComponent } from './pages/blog-detail.component';
@@ -18,6 +18,7 @@ import { AdminReservationsComponent } from './pages/admin/admin-reservations.com
 import { AdminBlogComponent } from './pages/admin/admin-blog.component';
 import { AdminSettingsComponent } from './pages/admin/admin-settings.component';
 import { AdminPartnerRequestsComponent } from './pages/admin/admin-partner-requests.component';
+import { AdminBranchPartnerRequestsComponent } from './pages/admin/admin-branch-partner-requests.component';
 import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
 import { AdminHomepageComponent } from './pages/admin/admin-homepage.component';
 import { AdminTeamComponent } from './pages/admin/admin-team.component';
@@ -59,6 +60,7 @@ export const routes: Routes = [
   { path: 'tours', loadComponent: () => import('./pages/tours.component').then(m => m.ToursComponent) },
   { path: 'tour/:id', component: TourDetailShellComponent },
   { path: 'branches', loadComponent: () => import('./pages/branches.component').then(m => m.BranchesComponent) },
+  { path: 'branch-partner', loadComponent: () => import('./pages/branch-partner.component').then(m => m.BranchPartnerComponent) },
   { path: 'blog', component: BlogListComponent },
   { path: 'blog/:id', component: BlogDetailComponent },
   { path: 'about', component: AboutComponent },
@@ -69,7 +71,7 @@ export const routes: Routes = [
   { path: 'list-your-car', loadComponent: () => import('./pages/list-your-car.component').then(m => m.ListYourCarComponent) },
   { path: 'track-car/:id', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
   { path: 'track-car', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
-  { path: '', component: MainLayoutComponent, children: [{ path: '', component: HomeV69Component }] },
+  { path: '', component: MainLayoutComponent, children: [{ path: '', component: HomeV71Component }] },
   {
     path: 'admin',
     component: AdminLayoutComponent,
@@ -94,6 +96,7 @@ export const routes: Routes = [
       { path: 'reservations', component: AdminReservationsComponent, canActivate: [adminAreaGuard('operations')] },
       { path: 'blog', component: AdminBlogComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'partner-requests', component: AdminPartnerRequestsComponent, canActivate: [adminAreaGuard('operations')] },
+      { path: 'branch-partner-requests', component: AdminBranchPartnerRequestsComponent, canActivate: [adminAreaGuard('operations')] },
       { path: 'feedback', component: AdminFeedbackComponent, canActivate: [adminAreaGuard('operations')] },
       { path: 'subscribers', canActivate: [adminAreaGuard('operations')], loadComponent: () => import('./pages/admin/admin-subscribers.component').then(m => m.AdminSubscribersComponent) },
       { path: 'settings', component: AdminSettingsComponent, canActivate: [adminAreaGuard('settings')] }

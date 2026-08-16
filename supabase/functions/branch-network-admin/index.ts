@@ -236,7 +236,7 @@ Deno.serve(async (request: Request) => {
     const admin = await requireAdmin(request);
     if (request.method === "GET") {
       if (!canOperate(admin) && !canModerate(admin)) return json(request, { ok: false, code: "FORBIDDEN" }, 403);
-      const branchId = clean(new URL(request.url).searchParams.get("branchId"), 80);
+      const branchId = clean(new globalThis.URL(request.url).searchParams.get("branchId"), 80);
       if (!branchId) return json(request, { ok: false, code: "INVALID_BRANCH" }, 400);
       return json(request, { ok: true, workspace: await loadBranchWorkspace(branchId) });
     }

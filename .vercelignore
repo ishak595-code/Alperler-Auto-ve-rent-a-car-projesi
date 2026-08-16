@@ -1,6 +1,10 @@
-# Never ship source/project archives as public deployment files.
+# Never ship archives or local build/cache artifacts.
 *.zip
 public/*.zip
-
-# Local Angular build cache is not a production artifact.
 .angular
+
+# Repository-only maintenance tooling is not part of the production runtime.
+project/
+
+# Historical migration copies are retained in Git but are not needed by Vercel builds.
+supabase/applied-history/

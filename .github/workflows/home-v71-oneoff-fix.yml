@@ -1,0 +1,77 @@
+name: One-off Home V71 Accessibility Patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/home-v71-oneoff-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-home:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch home planner and branch routing
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('src/pages/home-v71.component.ts')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+            (
+              '''              <label class="field"><span>Teslim noktası</span><select [(ngModel)]="selectedPickupId" name="homePickup"><option value="">Teslim noktası seçin</option>@for (branch of pickupPoints(); track branch.id) {<option [value]="branch.id">{{ branch.name }} · {{ branch.district || branch.city }}</option>}</select></label>''',
+              '''              @if (serviceType !== 'tour') {<label class="field"><span>{{ serviceType === 'individual' ? 'Teslim noktası' : 'Başlangıç noktası' }}</span><select [(ngModel)]="selectedPickupId" name="homePickup"><option value="">{{ serviceType === 'individual' ? 'Teslim noktası seçin' : 'Başlangıç noktası seçin' }}</option>@for (branch of pickupPoints(); track branch.id) {<option [value]="branch.id">{{ branch.name }} · {{ branch.district || branch.city }}</option>}</select></label>}'''
+            ),
+            (
+              '''  readonly plannerSummary = computed(() => {
+    if (!this.startDate) return "";
+    const start = this.formatShortDate(this.startDate);
+    const end = this.serviceType === "tour" || !this.endDate ? "" : ` - ${this.formatShortDate(this.endDate)}`;
+    const branch = this.pickupPoints().find((item) => item.id === this.selectedPickupId);
+    return `${start}${end}${branch ? ` · ${branch.name}` : ""}`;
+  });''',
+              '''  plannerSummary(): string {
+    if (!this.startDate) return "";
+    const start = this.formatShortDate(this.startDate);
+    const end = this.serviceType === "tour" || !this.endDate ? "" : ` - ${this.formatShortDate(this.endDate)}`;
+    const branch = this.serviceType === "tour" ? undefined : this.pickupPoints().find((item) => item.id === this.selectedPickupId);
+    return `${start}${end}${branch ? ` · ${branch.name}` : ""}`;
+  }'''
+            ),
+            (
+              '''    if (this.serviceType === "tour") { void this.router.navigate(["/tours"], { queryParams: { start: this.startDate, pickup } }); return; }''',
+              '''    if (this.serviceType === "tour") { void this.router.navigate(["/tours"], { queryParams: { start: this.startDate } }); return; }'''
+            ),
+            (
+              '''                @for (branch of branchCards(section); track branch.id) {<a class="branch-card" routerLink="/branches"><span class="branch-icon" aria-hidden="true"><mat-icon>storefront</mat-icon></span><p class="branch-label">Aktif Hizmet Noktası</p><h3>{{ branch.name }}</h3><p>{{ branch.addressLabel }}</p><div class="branch-meta">@if (branch.isPickupPoint) {<span>Teslim Alma</span>}@if (branch.isReturnPoint) {<span>İade</span>}@if (branchServiceSummary(branch)) {<span>{{ branchServiceSummary(branch) }}</span>}</div><strong class="branch-link">Şube Bilgileri <mat-icon aria-hidden="true">arrow_forward</mat-icon></strong></a>}''',
+              '''                @for (branch of branchCards(section); track branch.id) {<a class="branch-card" [routerLink]="branch.slug ? ['/branches', branch.slug] : ['/branches']"><span class="branch-icon" aria-hidden="true"><mat-icon>storefront</mat-icon></span><p class="branch-label">{{ branch.networkType === 'FRANCHISE' ? 'Yetkili İş Ortağı' : 'Aktif Hizmet Noktası' }}</p><h3>{{ branch.name }}</h3><p>{{ branch.addressLabel }}</p><div class="branch-meta">@if (branch.isPickupPoint) {<span>Teslim Alma</span>}@if (branch.isReturnPoint) {<span>İade</span>}@if (branchServiceSummary(branch)) {<span>{{ branchServiceSummary(branch) }}</span>}</div><strong class="branch-link">Şubenin İlanlarını Gör <mat-icon aria-hidden="true">arrow_forward</mat-icon></strong></a>}'''
+            ),
+            (
+              '''                <a class="branch-card partner-card" routerLink="/branch-partner"><span class="branch-icon" aria-hidden="true"><mat-icon>add_business</mat-icon></span><p class="branch-label">Yeni Bölge / Yeni Şube</p><h3>Kendi Bölgenizde Alperler Auto ile Çalışın</h3><p>Kendi araçlarınızı veya bölgenizdeki uygun araçları kiralık ve satılık olarak yayınlayabileceğiniz iş ortaklığı modeline başvurun.</p><div class="branch-meta"><span>Merkezi İlan Altyapısı</span><span>Müşteri Talepleri</span><span>Şube Görünürlüğü</span></div><strong class="branch-link">Şube Başvurusu Yap <mat-icon aria-hidden="true">arrow_forward</mat-icon></strong></a>''',
+              '''                <a class="branch-card partner-card" routerLink="/branch-partner"><span class="branch-icon" aria-hidden="true"><mat-icon>add_business</mat-icon></span><p class="branch-label">Yeni Bölge / Yeni Şube</p><h3>Kendi Bölgenizde Alperler Auto ile Çalışın</h3><p>Kendi şube sayfanızı ve ilan havuzunuzu yönetin. Fiyat sınırları, yayın onayı, güvenlik kontrolleri ve müşteri güvencesi Alperler Auto merkezi standartlarında kalsın.</p><div class="branch-meta"><span>Şubeye Özel İlanlar</span><span>Merkezi Fiyat Disiplini</span><span>Yayın ve Güvenlik Kontrolü</span></div><strong class="branch-link">Şube Başvurusu Yap <mat-icon aria-hidden="true">arrow_forward</mat-icon></strong></a>'''
+            ),
+          ]
+
+          for old, new in replacements:
+            if old not in text:
+              raise SystemExit(f'Expected block not found:\n{old[:180]}')
+            text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+      - name: Commit patch
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git config user.name "Alperler CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/pages/home-v71.component.ts
+          git commit -m "fix(home): finalize planner accessibility and branch routing"
+          git push origin HEAD:main

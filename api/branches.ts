@@ -5,6 +5,8 @@ import {
 
 interface BranchPayload {
   id?: string;
+  cloudId?: string;
+  slug?: string;
   name?: string;
   city?: string;
   district?: string;
@@ -21,6 +23,16 @@ interface BranchPayload {
   isPickupPoint?: boolean;
   isReturnPoint?: boolean;
   priority?: number;
+  networkType?: "OWNED" | "FRANCHISE" | "PARTNER";
+  publicStatus?: "DRAFT" | "ACTIVE" | "SUSPENDED" | "CLOSED";
+  territoryLabel?: string;
+  publicDescription?: string;
+  heroImage?: string;
+  customerGuaranteeEnabled?: boolean;
+  centralPricingRequired?: boolean;
+  listingRequiresApproval?: boolean;
+  brandProfile?: Record<string, unknown>;
+  serviceRules?: Record<string, unknown>;
 }
 
 function clean(value: unknown, max: number): string {
@@ -45,6 +57,9 @@ function normalize(input: BranchPayload) {
   })).filter((row) => row.label && row.value);
   const latitude = Number(input.latitude);
   const longitude = Number(input.longitude);
+  const networkType = input.networkType && ["OWNED", "FRANCHISE", "PARTNER"].includes(input.networkType) ? input.networkType : undefined;
+  const publicStatus = input.publicStatus && ["DRAFT", "ACTIVE", "SUSPENDED", "CLOSED"].includes(input.publicStatus) ? input.publicStatus : undefined;
+  const slug = clean(input.slug, 140).toLowerCase();
   return {
     code,
     name,
@@ -64,12 +79,25 @@ function normalize(input: BranchPayload) {
     is_pickup_point: Boolean(input.isPickupPoint),
     is_return_point: Boolean(input.isReturnPoint),
     sort_order: Math.max(0, Math.min(9999, Math.round(Number(input.priority) || 0))),
+    ...(slug ? { slug } : {}),
+    ...(networkType ? { network_type: networkType } : {}),
+    ...(publicStatus ? { public_status: publicStatus } : {}),
+    ...(input.territoryLabel !== undefined ? { territory_label: clean(input.territoryLabel, 240) || null } : {}),
+    ...(input.publicDescription !== undefined ? { public_description: clean(input.publicDescription, 4000) || null } : {}),
+    ...(input.heroImage !== undefined ? { hero_image: clean(input.heroImage, 2048) || null } : {}),
+    ...(input.customerGuaranteeEnabled !== undefined ? { customer_guarantee_enabled: Boolean(input.customerGuaranteeEnabled) } : {}),
+    ...(input.centralPricingRequired !== undefined ? { central_pricing_required: Boolean(input.centralPricingRequired) } : {}),
+    ...(input.listingRequiresApproval !== undefined ? { listing_requires_approval: Boolean(input.listingRequiresApproval) } : {}),
+    ...(input.brandProfile && typeof input.brandProfile === "object" ? { brand_profile: input.brandProfile } : {}),
+    ...(input.serviceRules && typeof input.serviceRules === "object" ? { service_rules: input.serviceRules } : {}),
   };
 }
 
 function toApi(row: any) {
   return {
     id: row.code || row.id,
+    cloudId: row.id,
+    slug: row.slug || undefined,
     name: row.name,
     city: row.city || "",
     district: row.district || "",
@@ -86,6 +114,16 @@ function toApi(row: any) {
     isPickupPoint: Boolean(row.is_pickup_point),
     isReturnPoint: Boolean(row.is_return_point),
     priority: Number(row.sort_order || 0),
+    networkType: row.network_type || "OWNED",
+    publicStatus: row.public_status || (row.is_active ? "ACTIVE" : "DRAFT"),
+    territoryLabel: row.territory_label || undefined,
+    publicDescription: row.public_description || undefined,
+    heroImage: row.hero_image || undefined,
+    customerGuaranteeEnabled: row.customer_guarantee_enabled !== false,
+    centralPricingRequired: row.central_pricing_required !== false,
+    listingRequiresApproval: row.listing_requires_approval !== false,
+    brandProfile: row.brand_profile && typeof row.brand_profile === "object" ? row.brand_profile : {},
+    serviceRules: row.service_rules && typeof row.service_rules === "object" ? row.service_rules : {},
   };
 }
 
@@ -105,7 +143,7 @@ export default {
       if (includeInactive && !authorization) {
         return Response.json({ ok: false, code: "UNAUTHORIZED" }, { status: 401, headers: { "cache-control": "no-store" } });
       }
-      const filter = includeInactive ? "" : "is_active=eq.true&";
+      const filter = includeInactive ? "" : "is_active=eq.true&public_status=eq.ACTIVE&";
       const response = await fetch(
         `${SUPABASE_PROJECT_URL}/rest/v1/branches?${filter}select=*&order=sort_order.asc,name.asc`,
         {
@@ -181,7 +219,7 @@ export default {
       const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/branches?code=eq.${encodeURIComponent(code)}`, {
         method: "PATCH",
         headers: supabaseRestHeaders(authorization, { Prefer: "return=minimal" }),
-        body: JSON.stringify({ is_active: false }),
+        body: JSON.stringify({ is_active: false, public_status: "SUSPENDED" }),
         signal: AbortSignal.timeout(8_000),
       });
       if (!response.ok) return Response.json({ ok: false, code: "BRANCH_DISABLE_DENIED" }, { status: response.status });

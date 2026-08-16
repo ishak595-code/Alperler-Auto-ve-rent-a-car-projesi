@@ -11,10 +11,12 @@ jobs:
   lockfile:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
@@ -24,10 +26,17 @@ jobs:
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - name: Verify clean install metadata
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Upload synchronized lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: synchronized-package-lock
-          path: package-lock.json
-          if-no-files-found: error
-          retention-days: 1
+      - name: Commit synchronized lockfile and remove this temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm -f .github/workflows/sync-lockfile-once.yml
+          git add package-lock.json .github/workflows/sync-lockfile-once.yml
+          if git diff --cached --quiet; then
+            echo 'No lockfile change required; temporary workflow already clean.'
+            exit 0
+          fi
+          git commit -m 'chore: synchronize npm lockfile for production'
+          git push origin HEAD:main

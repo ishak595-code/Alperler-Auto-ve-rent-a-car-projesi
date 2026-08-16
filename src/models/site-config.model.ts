@@ -98,6 +98,7 @@ export interface SiteConfig {
     quickActionSellDesc?: string;
 
     bookingTitle?: string;
+    bookingSubtitle?: string;
 
     featuredBadge?: string;
     featuredTitle?: string;

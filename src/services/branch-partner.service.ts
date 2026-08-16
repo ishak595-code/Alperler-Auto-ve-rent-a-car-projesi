@@ -35,6 +35,14 @@ export interface BranchPartnerSubmission {
   website?: string;
 }
 
+export interface ProvisionedBranchSummary {
+  branchId: string;
+  code: string;
+  slug: string;
+  name: string;
+  alreadyProvisioned?: boolean;
+}
+
 export interface BranchPartnerAdminRecord {
   id: string;
   reference: string;
@@ -55,6 +63,9 @@ export interface BranchPartnerAdminRecord {
   notes?: string;
   status: BranchPartnerStatus;
   internalNotes?: string;
+  provisionedBranchId?: string;
+  approvedAt?: Date;
+  provisionedAt?: Date;
   createdAt: Date;
 }
 
@@ -66,6 +77,7 @@ interface GatewayResponse {
   status?: BranchPartnerStatus;
   requests?: Record<string, unknown>[];
   request?: Record<string, unknown>;
+  branch?: ProvisionedBranchSummary;
 }
 
 @Injectable({ providedIn: "root" })
@@ -129,6 +141,24 @@ export class BranchPartnerService {
     this._records.update((items) => items.map((item) => item.reference === reference ? updated : item));
   }
 
+  async provision(reference: string, branchName?: string): Promise<ProvisionedBranchSummary> {
+    const token = await this.requiredToken();
+    const response = await fetch(this.endpoint, {
+      method: "PATCH",
+      headers: this.headers(token),
+      body: JSON.stringify({ action: "PROVISION", reference, branchName: branchName?.trim() || undefined }),
+    });
+    const payload = (await response.json().catch(() => ({}))) as GatewayResponse;
+    if (!response.ok || !payload.ok || !payload.branch) throw new Error(payload.code || "BRANCH_PROVISION_FAILED");
+    if (payload.request) {
+      const updated = this.fromRow(payload.request);
+      this._records.update((items) => items.map((item) => item.reference === reference ? updated : item));
+    } else {
+      await this.refreshAdmin();
+    }
+    return payload.branch;
+  }
+
   private async callPublic(method: "POST", body: unknown): Promise<GatewayResponse> {
     const response = await fetch(this.endpoint, {
       method,
@@ -156,6 +186,7 @@ export class BranchPartnerService {
 
   private fromRow(row: Record<string, unknown>): BranchPartnerAdminRecord {
     const services = Array.isArray(row["services"]) ? row["services"].map(String) : [];
+    const dateOrUndefined = (value: unknown): Date | undefined => value ? new Date(String(value)) : undefined;
     return {
       id: String(row["id"] || ""),
       reference: String(row["reference"] || ""),
@@ -176,6 +207,9 @@ export class BranchPartnerService {
       notes: row["notes"] ? String(row["notes"]) : undefined,
       status: String(row["status"] || "NEW") as BranchPartnerStatus,
       internalNotes: row["internal_notes"] ? String(row["internal_notes"]) : undefined,
+      provisionedBranchId: row["provisioned_branch_id"] ? String(row["provisioned_branch_id"]) : undefined,
+      approvedAt: dateOrUndefined(row["approved_at"]),
+      provisionedAt: dateOrUndefined(row["provisioned_at"]),
       createdAt: new Date(String(row["created_at"] || new Date().toISOString())),
     };
   }

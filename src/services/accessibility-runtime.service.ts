@@ -25,7 +25,7 @@ export class AccessibilityRuntimeService {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['type', 'name', 'id', 'placeholder', 'aria-label', 'aria-labelledby'],
+      attributeFilter: ['type', 'name', 'id', 'placeholder', 'aria-label', 'aria-labelledby', 'aria-hidden'],
     });
   }
 
@@ -46,6 +46,7 @@ export class AccessibilityRuntimeService {
 
   private ensureAccessibleName(control: HTMLElement): void {
     if (!control.matches('input,select,textarea,button')) return;
+    if (control.getAttribute('aria-hidden') === 'true' || control.hasAttribute('inert') || control.dataset['a11yProxy'] === 'true') return;
 
     const forceExplicit = control.matches('input[type="date"],input[type="time"],input[type="datetime-local"],select');
     if (forceExplicit) {

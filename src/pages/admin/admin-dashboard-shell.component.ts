@@ -17,10 +17,7 @@ import { AdminOperationsDashboardComponent } from "./admin-operations-dashboard.
         </div>
         <nav class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" aria-label="Admin hızlı yönetim araçları">
           @for (item of tools; track item.route) {
-            <a
-              [routerLink]="item.route"
-              class="group flex min-h-20 flex-col justify-between rounded-2xl border border-white/10 bg-white/5 p-3 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-            >
+            <a [routerLink]="item.route" class="group flex min-h-20 flex-col justify-between rounded-2xl border border-white/10 bg-white/5 p-3 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
               <mat-icon class="text-blue-400" aria-hidden="true">{{ item.icon }}</mat-icon>
               <span class="mt-3 text-xs font-black leading-tight text-white">{{ item.label }}</span>
             </a>
@@ -40,6 +37,7 @@ export class AdminDashboardShellComponent {
     { route: "/admin/catalog-editor", icon: "tune", label: "Tam Katalog Editörü" },
     { route: "/admin/reservations", icon: "event_note", label: "Rezervasyonlar" },
     { route: "/admin/partner-requests", icon: "directions_car", label: "Araç Başvuruları" },
+    { route: "/admin/branch-partner-requests", icon: "add_business", label: "Şube Başvuruları" },
     { route: "/admin/feedback", icon: "mark_email_unread", label: "Mesaj Kutusu" },
     { route: "/admin/subscribers", icon: "mark_email_read", label: "Bülten Merkezi" },
     { route: "/admin/team", icon: "groups", label: "Ekip & Yetkiler" },

@@ -11,7 +11,7 @@ import { CarService } from "../services/car.service";
   imports: [CommonModule, RouterLink, TurkishCurrencyPipe],
   host: { class: "block h-full w-full min-w-0" },
   template: `
-    <article class="group h-full overflow-hidden rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all hover:bg-slate-50 hover:shadow-md">
+    <article class="group h-full overflow-hidden rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:bg-slate-50 hover:shadow-lg">
       <a
         [routerLink]="detailRoute"
         [attr.aria-label]="detailAriaLabel"
@@ -37,7 +37,10 @@ import { CarService } from "../services/car.service";
         </div>
 
         <div class="px-1 pt-3">
-          <h3 class="truncate text-sm font-bold text-slate-900 transition-colors group-hover:text-blue-600 sm:text-base">{{ displayTitle }}</h3>
+          <div class="flex items-start justify-between gap-2">
+            <h3 class="min-w-0 flex-1 truncate text-sm font-bold text-slate-900 transition-colors group-hover:text-blue-600 sm:text-base">{{ displayTitle }}</h3>
+            <span aria-hidden="true" class="shrink-0 text-slate-400 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-blue-600">→</span>
+          </div>
           <div class="mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold text-slate-600 sm:text-xs">
             @if (car.year) { <span class="rounded bg-slate-100 px-2 py-1">{{ car.year }}</span> }
             @if (car.transmission) { <span class="rounded bg-slate-100 px-2 py-1">{{ car.transmission }}</span> }
@@ -54,20 +57,14 @@ import { CarService } from "../services/car.service";
         </div>
       </a>
 
-      <div class="mt-3 grid grid-cols-2 gap-2">
-        <a
-          [routerLink]="detailRoute"
-          class="flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-800 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-        >Detay</a>
-        <button
-          type="button"
-          (click)="openWhatsApp($event)"
-          class="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 text-xs font-black text-white transition-colors hover:bg-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
-          [attr.aria-label]="displayTitle + ' için WhatsApp ile bilgi al'"
-        >
-          WhatsApp
-        </button>
-      </div>
+      <button
+        type="button"
+        (click)="openWhatsApp($event)"
+        class="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 text-xs font-black text-white transition-all hover:bg-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 active:translate-y-px"
+        [attr.aria-label]="displayTitle + ' için WhatsApp ile bilgi al'"
+      >
+        WhatsApp ile Bilgi Al
+      </button>
     </article>
   `,
 })
@@ -90,7 +87,7 @@ export class VehicleListItemComponent {
   get detailAriaLabel(): string {
     const type = this.variant === "rental" ? "kiralık araç" : "satılık araç";
     const details = [this.car.year, this.variant === "sale" && this.car.km != null ? `${this.car.km} kilometre` : null, this.car.transmission, this.car.fuel].filter(Boolean).join(", ");
-    return `${this.displayTitle}, ${type}${details ? `, ${details}` : ""}, fiyat ${this.car.price} Türk lirası${this.variant === "rental" ? " günlük" : ""}. Detayları aç`;
+    return `${this.displayTitle}, ${type}${details ? `, ${details}` : ""}, fiyat ${this.car.price} Türk lirası${this.variant === "rental" ? " günlük" : ""}. İlanı aç`;
   }
 
   openWhatsApp(event: Event): void {

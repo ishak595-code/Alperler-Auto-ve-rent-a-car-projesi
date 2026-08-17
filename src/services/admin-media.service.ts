@@ -16,6 +16,10 @@ export class AdminMediaService {
   private readonly allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
 
   async uploadHomepageImage(file: File, sectionKey: string, purpose: 'profile' | 'cover' | 'background'): Promise<AdminMediaUploadResult> {
+    return this.uploadImage(file, 'HOMEPAGE_SECTION', sectionKey, purpose);
+  }
+
+  async uploadImage(file: File, entityType: string, entityId: string, purpose = 'image'): Promise<AdminMediaUploadResult> {
     if (!this.allowedImageTypes.has(file.type)) throw new Error('Yalnız JPG, PNG, WEBP veya AVIF görsel yükleyebilirsiniz.');
     if (!file.size || file.size > this.maxImageBytes) throw new Error('Görsel en fazla 15 MB olabilir.');
 
@@ -23,9 +27,11 @@ export class AdminMediaService {
     if (!token) throw new Error('ADMIN_SESSION_REQUIRED');
 
     const extension = this.extensionFor(file);
-    const safeSection = this.cleanSegment(sectionKey || 'section');
+    const safeType = this.cleanSegment(entityType || 'content');
+    const safeEntity = this.cleanSegment(entityId || 'draft');
+    const safePurpose = this.cleanSegment(purpose || 'image');
     const nonce = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const objectPath = `homepage/${safeSection}/${purpose}/${Date.now()}-${nonce}.${extension}`;
+    const objectPath = `admin/${safeType}/${safeEntity}/${safePurpose}/${Date.now()}-${nonce}.${extension}`;
     const encodedPath = objectPath.split('/').map((part) => encodeURIComponent(part)).join('/');
 
     const upload = await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/${this.bucket}/${encodedPath}`, {
@@ -57,11 +63,16 @@ export class AdminMediaService {
         bucket: this.bucket,
         object_path: objectPath,
         media_type: 'IMAGE',
-        entity_type: 'HOMEPAGE_SECTION',
-        entity_id: safeSection,
+        entity_type: String(entityType || 'CONTENT').slice(0, 80),
+        entity_id: String(entityId || 'draft').slice(0, 180),
         alt_text: file.name.slice(0, 180),
         is_public: true,
-        metadata: { purpose, originalName: file.name.slice(0, 180), size: file.size, mimeType: file.type },
+        metadata: {
+          purpose: safePurpose,
+          originalName: file.name.slice(0, 180),
+          size: file.size,
+          mimeType: file.type,
+        },
       }),
     });
 
@@ -83,6 +94,6 @@ export class AdminMediaService {
   }
 
   private cleanSegment(value: string): string {
-    return value.toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ı/g, 'i').replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64) || 'section';
+    return value.toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ı/g, 'i').replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64) || 'content';
   }
 }

@@ -24,7 +24,7 @@ interface AuditRow {
   template: `
     <main class="min-h-screen bg-slate-50 p-4 md:p-8">
       <div class="mx-auto max-w-7xl space-y-6">
-        <header class="sticky top-16 z-20 rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8">
+        <header class="sticky top-0 z-20 rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8">
           <p class="text-xs font-black uppercase tracking-[.2em] text-blue-400">Denetim ve sorumluluk</p>
           <div class="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>

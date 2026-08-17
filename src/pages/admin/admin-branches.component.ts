@@ -13,7 +13,7 @@ import { ToastService } from "../../services/toast.service";
   imports: [CommonModule, FormsModule, MatIconModule],
   template: `
     <main class="min-h-screen bg-slate-100 pb-20 text-slate-900">
-      <header class="sticky top-16 z-30 border-b border-slate-200 bg-white shadow-sm">
+      <header class="sticky top-0 z-30 border-b border-slate-200 bg-white shadow-sm">
         <div class="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 md:px-8">
           <div class="flex min-w-0 items-center gap-3">
             <button type="button" (click)="router.navigate(['/admin/dashboard'])" aria-label="Kontrol paneline dön" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">

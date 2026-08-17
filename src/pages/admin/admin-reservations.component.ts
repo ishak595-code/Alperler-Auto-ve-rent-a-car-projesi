@@ -27,7 +27,7 @@ import { ToastService } from "../../services/toast.service";
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="min-h-screen bg-slate-50 text-slate-900">
-      <header class="sticky top-16 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
+      <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
         <div class="mx-auto max-w-7xl px-4 py-4 md:px-8">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div class="flex min-w-0 items-center gap-3">

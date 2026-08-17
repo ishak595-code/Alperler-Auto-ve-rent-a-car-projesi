@@ -36,7 +36,7 @@ import { ToastService } from "../../services/toast.service";
 
         </header>
 
-        <section class="sticky top-16 z-40 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur" aria-label="Katalog hızlı işlemleri">
+        <section class="sticky top-0 z-40 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur" aria-label="Katalog hızlı işlemleri">
           <div class="grid gap-2 xl:grid-cols-[minmax(280px,1fr)_auto_auto] xl:items-center">
             <input [(ngModel)]="search" type="search" aria-label="Katalogda ara" placeholder="Marka, model, stok kodu veya tur ara…" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500" />
             <div class="grid grid-cols-3 gap-2" role="tablist" aria-label="Katalog türü">

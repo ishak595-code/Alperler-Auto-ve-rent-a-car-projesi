@@ -35,7 +35,7 @@ interface LegalField {
           </div>
         </header>
 
-        <nav class="sticky top-[65px] z-20 overflow-x-auto rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur" aria-label="Yasal metin sekmeleri">
+        <nav class="sticky top-0 z-20 overflow-x-auto rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur" aria-label="Yasal metin sekmeleri">
           <div class="flex min-w-max gap-2">
             @for (field of fields; track field.key) {
               <button type="button" (click)="activeKey.set(field.key)" [class.bg-slate-950]="activeKey()===field.key" [class.text-white]="activeKey()===field.key" class="min-h-10 rounded-xl bg-slate-100 px-3 text-xs font-black text-slate-700" [attr.aria-pressed]="activeKey()===field.key" [attr.aria-label]="field.title + ' metnini düzenle'">{{ field.title }}</button>

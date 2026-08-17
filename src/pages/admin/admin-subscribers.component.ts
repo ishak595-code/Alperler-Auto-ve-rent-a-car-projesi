@@ -12,7 +12,7 @@ import { ConfirmService } from '../../services/confirm.service';
   imports: [CommonModule, FormsModule, MatIconModule],
   template: `
     <main class="min-h-screen bg-slate-50">
-      <header class="sticky top-16 z-20 border-b border-slate-200 bg-white px-4 py-5 shadow-sm md:px-8">
+      <header class="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-5 shadow-sm md:px-8">
         <div class="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p class="text-[10px] font-black uppercase tracking-[.18em] text-blue-600">Canlı Supabase Verisi</p>

@@ -29,7 +29,7 @@ import { ToastService } from "../../services/toast.service";
           </div>
         </header>
 
-        <section class="sticky top-16 z-40 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur" aria-label="Ekip hızlı işlemleri">
+        <section class="sticky top-0 z-40 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur" aria-label="Ekip hızlı işlemleri">
           <div class="grid gap-2 sm:grid-cols-[minmax(220px,1fr)_auto_auto]">
             @if (tab() !== 'assignments') {
               <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" [placeholder]="teamSearchPlaceholder()" aria-label="Ekip yönetimi kayıtlarında ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500" />

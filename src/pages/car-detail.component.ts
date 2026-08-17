@@ -1,977 +1,401 @@
 import {
   Component,
-  inject,
-  signal,
+  CUSTOM_ELEMENTS_SCHEMA,
+  ElementRef,
+  ViewChild,
   computed,
   effect,
-  OnInit,
-  OnDestroy,
-  HostListener,
-  CUSTOM_ELEMENTS_SCHEMA,
+  inject,
+  signal,
 } from "@angular/core";
 import { CommonModule, Location } from "@angular/common";
-import { ActivatedRoute, Router, RouterModule } from "@angular/router";
-import { CarService } from "../services/car.service";
-import { UiService } from "../services/ui.service";
+import { ActivatedRoute, Router } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
-import { FormsModule } from "@angular/forms";
 import { register } from "swiper/element/bundle";
+import { AccessibleDateFieldComponent } from "../components/accessible-date-field.component";
 import { Car } from "../models/car.model";
-import { getTechnicalSpecs } from "../data/technical-specs.data";
-import { Meta, Title } from "@angular/platform-browser";
-
-import { SeoService } from "../services/seo.service";
 import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
+import { CarService } from "../services/car.service";
+import { SeoService } from "../services/seo.service";
+import { UiService } from "../services/ui.service";
+import { getTechnicalSpecs } from "../data/technical-specs.data";
 
-// Register Swiper custom elements
 register();
+
+interface GalleryMedia {
+  type: "image" | "video";
+  url: string;
+  posterUrl?: string;
+  title?: string;
+}
 
 @Component({
   selector: "app-car-detail",
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    MatIconModule,
-    FormsModule,
-    TurkishCurrencyPipe,
-  ],
+  imports: [CommonModule, MatIconModule, AccessibleDateFieldComponent, TurkishCurrencyPipe],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <div class="min-h-screen bg-white pb-28 lg:pb-0 font-sans text-[#212121] overflow-x-hidden">
-      @if (car()) {
-        <!-- 1. Header -->
-        <div
-          class="sticky top-[72px] md:top-[96px] left-0 right-0 z-40 bg-[#005c8d] text-white flex items-center justify-between px-2 sm:px-4 min-h-14 shadow-md pointer-events-auto"
-        >
-          <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <button
-              (click)="goBack()"
-              class="w-11 h-11 shrink-0 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              [attr.aria-label]="t().buttons.back"
-            >
-              <mat-icon>arrow_back</mat-icon>
-            </button>
-            <h1 class="text-sm sm:text-lg font-bold tracking-tight line-clamp-1 min-w-0">
-              {{ car()!.brand }} {{ car()!.model }}
-            </h1>
-          </div>
-
-          <div class="flex items-center gap-2">
-            @if (car()?.badge || car()?.isPopular) {
-              <div
-                class="hidden sm:flex items-center gap-1 bg-red-600 px-3 py-1 text-white rounded-full border border-red-500 shadow-sm"
-              >
-                <mat-icon class="text-[14px] w-[14px] h-[14px]"
-                  >local_fire_department</mat-icon
-                >
-                <span class="text-[10px] font-bold uppercase tracking-wider">{{
-                  car()?.badge || "FIRSAT"
-                }}</span>
-              </div>
-            }
-            <div
-              class="hidden md:flex items-center gap-1 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full text-white shadow-[0_2px_10px_rgba(0,0,0,0.3)]"
-            >
-              <div class="w-2 h-2 rounded-full bg-green-400 animate-ping"></div>
-              <span class="text-xs font-medium"
-                >{{ viewersCount() }} kişi inceliyor</span
-              >
-            </div>
-          </div>
-
-          <div class="flex items-center gap-2 pointer-events-auto">
-            <button
-              (click)="shareCar(car())"
-              class="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-sm text-white shadow-[0_2px_10px_rgba(0,0,0,0.3)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              aria-label="Paylaş"
-            >
-              <mat-icon class="drop-shadow-lg">share</mat-icon>
-            </button>
-            <button
-              (click)="toggleFav(car()?.id)"
-              class="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-sm text-white shadow-[0_2px_10px_rgba(0,0,0,0.3)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              [attr.aria-label]="
-                isFav(car()?.id)
-                  ? t().common.removeFromFav
-                  : t().common.addToFav
-              "
-            >
-              <mat-icon
-                class="drop-shadow-lg"
-                [class.text-red-500]="isFav(car()?.id)"
-              >
-                {{ isFav(car()?.id) ? "favorite" : "favorite_border" }}
-              </mat-icon>
-            </button>
-          </div>
-        </div>
-
-        <!-- 2. Media Area (Full Screen Gallery) -->
-        <div
-          class="relative w-full aspect-[4/3] md:aspect-[16/9] lg:aspect-[21/9] bg-black overflow-hidden"
-        >
-          <swiper-container
-            #swiper
-            class="w-full h-full"
-            pagination="false"
-            navigation="true"
-            space-between="0"
-            loop="true"
-            (slidechange)="onSlideChange($event)"
-          >
-            @for (img of allImages(); track $index) {
-              <swiper-slide
-                class="w-full h-full cursor-zoom-in focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-blue-500"
-                role="button"
-                tabindex="0"
-                [attr.aria-label]="(car()?.brand || 'Araç') + ' ' + (car()?.model || '') + ' görselini büyüt'"
-                (click)="openLightbox($index)"
-                (keydown.enter)="openLightbox($index)"
-                (keydown.space)="$event.preventDefault(); openLightbox($index)"
-              >
-                <img
-                  [src]="img"
-                  [alt]="car()?.brand + ' ' + car()?.model"
-                  class="w-full h-full object-cover"
-                  referrerpolicy="no-referrer"
-                />
-              </swiper-slide>
-            }
-          </swiper-container>
-
-          <!-- Page Indicator (Bottom Left) -->
-          <div
-            class="absolute bottom-4 left-4 z-10 bg-black/50 backdrop-blur-md text-white px-3 py-1 rounded text-[12px] font-bold"
-          >
-            {{ currentSlide() + 1 }} / {{ allImages().length }}
-          </div>
-
-          <!-- Badges Overlay -->
-          <div
-            class="absolute bottom-4 right-4 z-10 flex flex-col gap-2 items-end"
-          >
-            @if (car()?.badge) {
-              <span
-                class="bg-blue-500 text-slate-900 px-3 py-1 rounded font-black uppercase tracking-widest text-[10px] shadow-lg"
-              >
-                {{ car()?.badge }}
-              </span>
-            }
-            <span
-              class="bg-blue-600 text-white px-3 py-1 rounded font-black uppercase tracking-widest text-[10px] shadow-lg"
-            >
-              {{ car()?.category === "SALE" ? "SATILIK" : "KİRALIK" }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="max-w-4xl mx-auto px-4 py-6 space-y-8">
-          <!-- 3. Araç Bilgileri (Specs List) -->
-          <section class="space-y-4">
-            <div
-              class="flex justify-between items-end gap-4 border-b border-slate-100 pb-4"
-            >
-              <h1 class="text-xl font-bold text-[#212121] min-w-0 break-words">
-                {{ car()?.brand }} {{ car()?.model }}
-                <span class="block text-sm font-normal text-[#757575] mt-1">{{
-                  car()?.type
-                }}</span>
-              </h1>
-              <div class="text-right shrink-0">
-                <div class="text-2xl font-black text-blue-600">
-                  {{ car()?.price | turkishCurrency }}
-                </div>
-                <div
-                  class="text-[10px] font-bold text-[#757575] uppercase tracking-widest"
-                >
-                  {{ car()?.category === "SALE" ? "SATIŞ FİYATI" : "GÜNLÜK" }}
-                </div>
+    <main class="min-h-screen bg-slate-50 pb-28 text-slate-950 lg:pb-8">
+      @if (car(); as vehicle) {
+        <header class="sticky top-[72px] z-40 border-b border-slate-800 bg-slate-950/95 text-white backdrop-blur md:top-[96px]">
+          <div class="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-2 px-3 sm:px-5">
+            <div class="flex min-w-0 items-center gap-2">
+              <button type="button" (click)="goBack()" aria-label="Geri" class="grid h-11 w-11 shrink-0 place-items-center rounded-full hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
+                <mat-icon aria-hidden="true">arrow_back</mat-icon>
+              </button>
+              <div class="min-w-0">
+                <p class="truncate text-xs font-bold uppercase tracking-wider text-blue-300">Kiralık Araç</p>
+                <h1 class="truncate text-base font-black sm:text-lg">{{ vehicle.brand }} {{ vehicle.model }}</h1>
               </div>
             </div>
-
-            <div class="space-y-0.5">
-              <div
-                class="flex justify-between py-2.5 border-b border-slate-50 text-sm"
-              >
-                <span class="text-[#757575]">Araç No</span>
-                <span class="font-bold text-red-600">{{ car()?.id }}</span>
-              </div>
-              <div
-                class="flex justify-between py-2.5 border-b border-slate-50 text-sm"
-              >
-                <span class="text-[#757575]">Yıl</span>
-                <span class="text-[#212121]">{{ car()?.year }}</span>
-              </div>
-              <div
-                class="flex justify-between py-2.5 border-b border-slate-50 text-sm"
-              >
-                <span class="text-[#757575]">Vites Tipi</span>
-                <span class="text-[#212121]">{{ car()?.transmission }}</span>
-              </div>
-              <div
-                class="flex justify-between py-2.5 border-b border-slate-50 text-sm"
-              >
-                <span class="text-[#757575]">Yakıt Tipi</span>
-                <span class="text-[#212121]">{{ car()?.fuel }}</span>
-              </div>
-              <div
-                class="flex justify-between py-2.5 border-b border-slate-50 text-sm"
-              >
-                <span class="text-[#757575]">Koltuk Sayısı</span>
-                <span class="text-[#212121]">{{ car()?.seats || "5" }}</span>
-              </div>
-
-              @if (car()?.minLicenseYears) {
-                <div
-                  class="flex justify-between py-2.5 border-b border-slate-50 text-sm"
-                >
-                  <span class="text-[#757575]">Min. Ehliyet</span>
-                  <span class="text-[#212121]"
-                    >{{ car()?.minLicenseYears }} Yıl</span
-                  >
-                </div>
-              }
-
-              @if (car()?.deposit) {
-                <div
-                  class="flex justify-between py-2.5 border-b border-slate-50 text-sm"
-                >
-                  <span class="text-[#757575]">Depozito</span>
-                  <span class="text-[#212121]">{{
-                    car()?.deposit | turkishCurrency
-                  }}</span>
-                </div>
-              }
-
-              @if (car()?.dailyMileageLimit) {
-                <div
-                  class="flex justify-between py-2.5 border-b border-slate-50 text-sm"
-                >
-                  <span class="text-[#757575]">Günlük KM</span>
-                  <span class="text-[#212121]"
-                    >{{ car()?.dailyMileageLimit }} km</span
-                  >
-                </div>
-              }
-
-              <div
-                class="flex justify-between py-2.5 border-b border-slate-50 text-sm"
-              >
-                <span class="text-[#757575]">Durum</span>
-                <span>
-                  <span
-                    [class]="
-                      car()?.isAvailable !== false
-                        ? 'text-green-600 bg-green-100'
-                        : 'text-red-600 bg-red-100'
-                    "
-                    class="px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase"
-                  >
-                    {{
-                      car()?.isAvailable !== false
-                        ? car()?.category === "RENTAL"
-                          ? "Müsait"
-                          : "Satışta"
-                        : car()?.category === "RENTAL"
-                          ? "Dolu"
-                          : "Satıldı"
-                    }}
-                  </span>
-                </span>
-              </div>
-            </div>
-          </section>
-
-          <!-- 4. Kiralama Hesaplayıcı -->
-          @if (car()?.category === "RENTAL") {
-          <section class="bg-slate-50 rounded-2xl p-4 sm:p-6 space-y-4">
-            <h2
-              class="text-lg font-bold text-[#212121] border-l-4 border-blue-500 pl-3"
-            >
-              Kiralama Hesapla
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div class="space-y-1">
-                <label
-                  for="pickupDate"
-                  class="text-[10px] font-bold text-[#757575] uppercase"
-                  >Alış Tarihi</label
-                >
-                <input
-                  type="date"
-                  id="pickupDate"
-                  aria-label="Araç alış tarihini seçin"
-                  title="Alış Tarihi"
-                  [(ngModel)]="startDate"
-                  class="w-full min-h-12 bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                />
-              </div>
-              <div class="space-y-1">
-                <label
-                  for="returnDate"
-                  class="text-[10px] font-bold text-[#757575] uppercase"
-                  >Dönüş Tarihi</label
-                >
-                <input
-                  type="date"
-                  id="returnDate"
-                  aria-label="Araç dönüş tarihini seçin"
-                  title="Dönüş Tarihi"
-                  [(ngModel)]="endDate"
-                  class="w-full min-h-12 bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                />
-              </div>
-            </div>
-
-            @if (car()?.bookedDates?.length) {
-              <div class="mt-4 border border-red-100 bg-red-50 p-3 rounded-xl">
-                <div class="text-[10px] font-bold text-red-600 uppercase mb-2">
-                  Dolu (Rezerve) Tarihler
-                </div>
-                <ul class="text-xs text-red-800 space-y-1">
-                  @for (date of car()?.bookedDates; track date) {
-                    <li>
-                      • {{ date.start | date: "dd.MM.yyyy" }} -
-                      {{ date.end | date: "dd.MM.yyyy" }}
-                    </li>
-                  }
-                </ul>
-              </div>
-            }
-
-            @if (
-              car()?.category === "RENTAL" &&
-              car()?.driverOption &&
-              car()?.driverOption !== "WITHOUT_DRIVER"
-            ) {
-              <div
-                class="flex items-center gap-3 bg-white border border-slate-200 p-3 rounded-xl mt-3"
-              >
-                <input
-                  type="checkbox"
-                  id="withDriverCheck"
-                  [(ngModel)]="wantsDriver"
-                  aria-label="Şoförlü kiralama istiyorum"
-                  [disabled]="car()?.driverOption === 'WITH_DRIVER'"
-                  class="w-5 h-5 text-blue-500 rounded border-gray-300 focus:ring-blue-500"
-                />
-                <label
-                  for="withDriverCheck"
-                  class="text-sm font-bold text-slate-700 flex-1"
-                  >Şoförlü Kiralama
-                  <span class="text-blue-600 ml-1"
-                    >(+1500 TL / Gün)</span
-                  ></label
-                >
-              </div>
-            }
-
-            <div aria-live="polite" aria-atomic="true">
-              @if (totalPrice() > 0) {
-                <div
-                  class="bg-white rounded-xl p-4 border border-slate-200 flex justify-between items-center animate-in zoom-in duration-300"
-                >
-                  <div>
-                    <div
-                      class="text-[10px] font-bold text-[#757575] uppercase"
-                      aria-hidden="true"
-                    >
-                      Toplam Tutar ({{ totalDays() }} Gün)
-                    </div>
-                    <div class="text-xl font-black text-blue-600">
-                      <span class="sr-only"
-                        >{{ totalDays() }} gün için seçilen tarih aralığında
-                        toplam hesaplanan kiralama tutarı</span
-                      >
-                      {{ totalPrice() | turkishCurrency }}
-                    </div>
-                  </div>
-                  <mat-icon class="text-emerald-500" aria-hidden="true"
-                    >check_circle</mat-icon
-                  >
-                </div>
-              }
-            </div>
-          </section>
-          }
-
-          <!-- 5. Özellikler & Açıklama -->
-          <section class="space-y-4">
-            <div class="space-y-3">
-              <div class="border border-slate-100 rounded-xl overflow-hidden">
-                <button
-                  (click)="toggleSection('desc')"
-                  class="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
-                >
-                  <span class="font-bold text-sm">Açıklama</span>
-                  <mat-icon
-                    [class.rotate-180]="activeSection() === 'desc'"
-                    class="transition-transform"
-                    >expand_more</mat-icon
-                  >
-                </button>
-                @if (activeSection() === "desc") {
-                  <div
-                    class="p-4 text-sm text-[#212121] leading-relaxed whitespace-pre-line animate-in slide-in-from-top-2 duration-300"
-                  >
-                    {{
-                      car()?.description ||
-                        "Bu araç için detaylı açıklama bulunmamaktadır."
-                    }}
-                  </div>
-                }
-              </div>
-
-              <div class="border border-slate-100 rounded-xl overflow-hidden">
-                <button
-                  (click)="toggleSection('features')"
-                  class="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
-                >
-                  <span class="font-bold text-sm">Araç Özellikleri</span>
-                  <mat-icon
-                    [class.rotate-180]="activeSection() === 'features'"
-                    class="transition-transform"
-                    >expand_more</mat-icon
-                  >
-                </button>
-                @if (activeSection() === "features") {
-                  <div class="p-4 animate-in slide-in-from-top-2 duration-300">
-                    <div class="grid grid-cols-2 gap-y-2 gap-x-4 mb-4">
-                      @for (f of car()?.features; track f) {
-                        <div
-                          class="flex items-center gap-2 text-xs text-[#212121]"
-                        >
-                          <mat-icon
-                            class="text-green-500 text-sm"
-                            style="width:16px;height:16px;font-size:16px;"
-                            >check</mat-icon
-                          >
-                          {{ f }}
-                        </div>
-                      }
-                    </div>
-                    @if (techSpecs()) {
-                      <div class="mt-4 border-t border-slate-100 pt-4">
-                        <button
-                          (click)="isTechSpecsOpen.update(v => !v)"
-                          [attr.aria-expanded]="isTechSpecsOpen()"
-                          aria-controls="tech-specs-content-rent"
-                          class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-2xl transition-all flex items-center justify-between px-6 shadow-[0_8px_20px_rgba(0,0,0,0.12)] hover:shadow-[0_12px_25px_rgba(0,0,0,0.2)] hover:-translate-y-0.5 active:translate-y-0 group"
-                        >
-                          <div class="flex items-center gap-3">
-                            <div class="bg-white/20 p-2 rounded-lg group-hover:bg-white/30 transition-colors">
-                              <mat-icon class="text-[20px] w-[20px] h-[20px]">settings_suggest</mat-icon>
-                            </div>
-                            <span class="sr-only">Teknik özellikleri</span> 
-                            {{ isTechSpecsOpen() ? 'Teknik Özellikleri Gizle' : 'Tüm Teknik Özellikleri İncele' }}
-                          </div>
-                          <mat-icon
-                            class="text-[20px] w-[20px] h-[20px] transition-transform duration-300"
-                            [class.rotate-90]="isTechSpecsOpen()"
-                          >
-                            chevron_right
-                          </mat-icon>
-                        </button>
-
-                        @if (isTechSpecsOpen()) {
-                          <div
-                            id="tech-specs-content-rent"
-                            class="mt-4 bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-6 animate-in slide-in-from-top-2 fade-in duration-300"
-                          >
-                            @if (techSpecs(); as specs) {
-                              <!-- Performans -->
-                              <div>
-                                <h4
-                                  class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-3 flex items-center gap-2"
-                                >
-                                  <mat-icon class="text-[16px] w-[16px] h-[16px]">speed</mat-icon>
-                                  Performans
-                                </h4>
-                                <div class="bg-white rounded-xl p-4 space-y-3 shadow-sm border border-slate-100">
-                                  <div class="flex justify-between text-sm">
-                                    <span class="text-slate-500 font-medium">Maks. Hız</span>
-                                    <span class="font-bold text-slate-800">{{ specs.maxSpeed }}</span>
-                                  </div>
-                                  <div class="flex justify-between text-sm">
-                                    <span class="text-slate-500 font-medium">0-100 km/s</span>
-                                    <span class="font-bold text-slate-800">{{ specs.acceleration }}</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <!-- Motor & Güç -->
-                              <div>
-                                <h4
-                                  class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-3 flex items-center gap-2"
-                                >
-                                  <mat-icon class="text-[16px] w-[16px] h-[16px]">engineering</mat-icon>
-                                  Motor & Drivetrain
-                                </h4>
-                                <div class="bg-white rounded-xl p-4 space-y-3 shadow-sm border border-slate-100">
-                                  <div class="flex justify-between text-sm">
-                                    <span class="text-slate-500 font-medium">Motor Hacmi</span>
-                                    <span class="font-bold text-slate-800">{{ specs.engineVolume }}</span>
-                                  </div>
-                                  <div class="flex justify-between text-sm">
-                                    <span class="text-slate-500 font-medium">Motor Gücü</span>
-                                    <span class="font-bold text-slate-800">{{ specs.enginePower }}</span>
-                                  </div>
-                                  <div class="flex justify-between text-sm">
-                                    <span class="text-slate-500 font-medium">Tork</span>
-                                    <span class="font-bold text-slate-800">{{ specs.torque }}</span>
-                                  </div>
-                                  <div class="flex justify-between text-sm">
-                                    <span class="text-slate-500 font-medium">Çekiş</span>
-                                    <span class="font-bold text-slate-800">{{ specs.drivetrain }}</span>
-                                  </div>
-                                  <div class="flex justify-between text-sm">
-                                    <span class="text-slate-500 font-medium">Silindir</span>
-                                    <span class="font-bold text-slate-800">{{ specs.cylinders }}</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <!-- Yakıt & Kapasite -->
-                              <div>
-                                <h4
-                                  class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-3 flex items-center gap-2"
-                                >
-                                  <mat-icon class="text-[16px] w-[16px] h-[16px]">local_gas_station</mat-icon>
-                                  Tüketim & Boyutlar
-                                </h4>
-                                <div class="bg-white rounded-xl p-4 space-y-3 shadow-sm border border-slate-100">
-                                  <div class="flex justify-between text-sm">
-                                    <span class="text-slate-500 font-medium">Şehir İçi</span>
-                                    <span class="font-bold text-slate-800">{{ specs.cityFuel }}</span>
-                                  </div>
-                                  <div class="flex justify-between text-sm">
-                                    <span class="text-slate-500 font-medium">Uzun Yol</span>
-                                    <span class="font-bold text-slate-800">{{ specs.highwayFuel }}</span>
-                                  </div>
-                                  <div class="flex justify-between text-sm">
-                                    <span class="text-slate-500 font-medium">Ortalama</span>
-                                    <span class="font-bold text-slate-800">{{ specs.combinedFuel }}</span>
-                                  </div>
-                                  <div class="flex justify-between text-sm">
-                                    <span class="text-slate-500 font-medium">Depo</span>
-                                    <span class="font-bold text-slate-800">{{ specs.tankCapacity }}</span>
-                                  </div>
-                                  <div class="flex justify-between text-sm">
-                                    <span class="text-slate-500 font-medium">Bagaj</span>
-                                    <span class="font-bold text-slate-800">{{ specs.trunkCapacity }}</span>
-                                  </div>
-                                  <div class="flex justify-between text-sm">
-                                    <span class="text-slate-500 font-medium">Boyutlar</span>
-                                    <span class="font-bold text-slate-800">{{ specs.dimensions }}</span>
-                                  </div>
-                                  <div class="flex justify-between text-sm">
-                                    <span class="text-slate-500 font-medium">Ağırlık</span>
-                                    <span class="font-bold text-slate-800">{{ specs.weight }}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            }
-                          </div>
-                        }
-                      </div>
-                    }
-                  </div>
-                }
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <!-- 6. Sabit Alt Bar (Sticky Bottom Bar) -->
-        <div
-          class="fixed bottom-0 left-0 right-0 z-[70] bg-white/95 backdrop-blur-xl border-t border-slate-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:px-8 flex items-stretch gap-2 shadow-[0_-10px_30px_rgba(0,0,0,0.08)]"
-        >
-          <a
-            [href]="'tel:' + carService.getConfig()().phone?.replace(' ', '')"
-            class="flex-1 min-w-0 min-h-12 bg-red-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-1 sm:gap-2 active:scale-95 transition-all shadow-lg shadow-red-600/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-          >
-            <mat-icon class="text-sm">call</mat-icon>
-            <span class="text-xs uppercase tracking-wider">Hemen Ara</span>
-          </a>
-          <button
-            (click)="whatsappInquiry()"
-            class="flex-1 bg-[#25D366] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-green-500/20"
-          >
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path
-                d="M12.031 0C5.383 0 0 5.383 0 12.031c0 2.656.832 5.12 2.28 7.184L.52 24l4.928-1.728A11.95 11.95 0 0012.031 24c6.648 0 12.031-5.383 12.031-12.031C24.062 5.383 18.679 0 12.031 0zm6.544 17.296c-.28.784-1.584 1.456-2.208 1.528-.584.064-1.344.16-3.84-1.04-3.04-1.464-4.992-4.576-5.144-4.784-.144-.2-1.224-1.632-1.224-3.112 0-1.48.768-2.208 1.04-2.504.28-.296.608-.368.808-.368.2 0 .4 0 .576.008.192.008.448-.072.688.512.248.608.848 2.072.92 2.232.072.16.12.352.024.544-.096.192-.144.312-.288.48-.144.168-.304.368-.432.496-.144.144-.296.304-.128.584.168.28 .752 1.232 1.616 1.984 1.112.968 2.048 1.272 2.328 1.416.28.144.448.12.616-.072.168-.192.728-.848.928-1.144.2-.296.4-.248.664-.152.264.096 1.68.792 1.968.936.288.144.48.216.552.336.072.12.072.704-.208 1.488z"
-              />
-            </svg>
-            <span class="text-xs uppercase tracking-wider">WhatsApp</span>
-          </button>
-          <button
-            (click)="rentCar(car())"
-            [disabled]="car()?.isAvailable === false"
-            [attr.aria-label]="car()?.category === 'SALE' ? 'Araç hakkında bilgi al' : 'Aracı rezerve et'"
-            class="flex-1 min-w-0 min-h-12 bg-[#212121] disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl flex items-center justify-center gap-1 sm:gap-2 active:scale-95 transition-all shadow-lg shadow-black/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-700"
-          >
-            <mat-icon class="text-sm">calendar_month</mat-icon>
-            <span class="text-[10px] sm:text-xs uppercase tracking-wider">{{ car()?.category === "SALE" ? "Bilgi Al" : "Rezerve Et" }}</span>
-          </button>
-        </div>
-
-        <!-- Lightbox -->
-        @if (isLightboxOpen()) {
-          <div
-            class="fixed inset-0 z-[100] bg-black/95 flex flex-col animate-in fade-in duration-300"
-            (click)="closeLightbox()"
-          >
-            <div
-              class="flex justify-between items-center p-4 text-white z-10"
-              (click)="$event.stopPropagation()"
-            >
-              <span class="font-bold tracking-widest text-sm"
-                >{{ activeImageIndex() + 1 }} / {{ allImages().length }}</span
-              >
-              <button
-                (click)="closeLightbox()"
-                aria-label="Kapat"
-                class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors"
-              >
-                <mat-icon>close</mat-icon>
+            <div class="flex shrink-0 gap-1">
+              <button type="button" (click)="shareCar(vehicle)" aria-label="Paylaş" class="grid h-11 w-11 place-items-center rounded-full hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
+                <mat-icon aria-hidden="true">share</mat-icon>
+              </button>
+              <button type="button" (click)="toggleFav(vehicle.id)" [attr.aria-label]="isFav(vehicle.id) ? 'Favorilerden çıkar' : 'Favorilere ekle'" class="grid h-11 w-11 place-items-center rounded-full hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
+                <mat-icon aria-hidden="true" [class.text-red-400]="isFav(vehicle.id)">{{ isFav(vehicle.id) ? 'favorite' : 'favorite_border' }}</mat-icon>
               </button>
             </div>
+          </div>
+        </header>
 
-            <div
-              class="flex-1 relative w-full h-full pb-8"
-              (click)="$event.stopPropagation()"
-            >
-              <swiper-container
-                class="w-full h-full"
-                [initialSlide]="activeImageIndex()"
-                pagination="false"
-                navigation="true"
-                space-between="20"
-                (slidechange)="onLightboxSlideChange($event)"
-              >
-                @for (img of allImages(); track $index) {
-                  <swiper-slide
-                    class="w-full h-full flex items-center justify-center p-4"
-                  >
-                    <img
-                      [src]="img"
-                      class="max-w-full max-h-full object-contain cursor-zoom-out"
-                      referrerpolicy="no-referrer"
-                      (click)="closeLightbox()"
-                    />
+        <section class="bg-black" aria-label="Araç görselleri ve videoları">
+          <div class="relative mx-auto max-w-6xl overflow-hidden bg-black">
+            @if (media().length) {
+              <swiper-container #gallerySwiper class="block aspect-[4/3] w-full sm:aspect-[16/9] lg:aspect-[21/9]" pagination="false" navigation="false" loop="false" (slidechange)="onSlideChange($event)">
+                @for (item of media(); track item.type + ':' + item.url) {
+                  <swiper-slide class="h-full w-full">
+                    @if (item.type === 'image') {
+                      <img [src]="item.url" [alt]="vehicle.brand + ' ' + vehicle.model + ' araç görseli'" class="h-full w-full object-cover" referrerpolicy="no-referrer" />
+                    } @else {
+                      <video class="h-full w-full bg-black object-contain" controls playsinline preload="metadata" [poster]="item.posterUrl || ''" [attr.aria-label]="item.title || (vehicle.brand + ' ' + vehicle.model + ' araç videosu')">
+                        <source [src]="item.url" />
+                      </video>
+                    }
                   </swiper-slide>
                 }
               </swiper-container>
-            </div>
 
-            <div class="p-6 bg-black/40 backdrop-blur-md text-white z-10">
-              <h3 class="text-xl font-bold mb-1">
-                {{ car()?.brand }} {{ car()?.model }}
-              </h3>
-              <p class="text-white/60 text-sm">
-                {{ car()?.year }} • {{ car()?.fuel }} •
-                {{ car()?.transmission }}
-              </p>
-            </div>
+              <div class="absolute inset-x-3 bottom-3 z-20 flex items-center justify-between gap-2 pointer-events-none">
+                <div class="rounded-full bg-black/70 px-3 py-1.5 text-xs font-black text-white backdrop-blur">{{ currentSlide() + 1 }} / {{ media().length }}</div>
+                @if (media().length > 1) {
+                  <div class="flex gap-2 pointer-events-auto">
+                    <button type="button" (click)="previousMedia()" aria-label="Önceki görsel" class="grid h-11 w-11 place-items-center rounded-full bg-black/70 text-white backdrop-blur focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">chevron_left</mat-icon></button>
+                    <button type="button" (click)="nextMedia()" aria-label="Sonraki görsel" class="grid h-11 w-11 place-items-center rounded-full bg-black/70 text-white backdrop-blur focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">chevron_right</mat-icon></button>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="grid aspect-[4/3] place-items-center bg-slate-900 text-slate-400 sm:aspect-[16/9]">
+                <div class="text-center"><mat-icon aria-hidden="true" class="!h-12 !w-12 !text-[48px]">directions_car</mat-icon><p class="mt-2 text-sm font-bold">Araç görseli hazırlanıyor</p></div>
+              </div>
+            }
           </div>
-        }
+        </section>
 
+        <div class="mx-auto grid max-w-6xl gap-5 px-3 py-5 sm:px-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+          <div class="space-y-5">
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="vehicle-summary-title">
+              <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p class="text-xs font-black uppercase tracking-wider text-blue-600">Araç No {{ vehicle.id }}</p>
+                  <h2 id="vehicle-summary-title" class="mt-1 font-serif text-3xl font-black tracking-tight">{{ vehicle.brand }} {{ vehicle.model }}</h2>
+                  <p class="mt-1 text-sm text-slate-500">{{ [vehicle.year, vehicle.type, vehicle.location].filter(Boolean).join(' · ') }}</p>
+                </div>
+                <div class="sm:text-right">
+                  <strong class="block text-3xl font-black text-blue-700">{{ vehicle.price | turkishCurrency }}</strong>
+                  <span class="text-xs font-bold uppercase text-slate-500">Günlük kiralama</span>
+                </div>
+              </div>
 
-      } @else {
-        <div
-          class="flex items-center justify-center h-screen w-full bg-slate-50"
-        >
-          <div class="flex flex-col items-center gap-4">
-            <div
-              class="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900"
-            ></div>
-            <p class="text-sm text-slate-500 font-medium animate-pulse">
-              Araç bilgileri yükleniyor...
-            </p>
+              <div class="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div class="rounded-xl bg-slate-50 p-3"><span class="block text-[11px] font-bold uppercase text-slate-400">Vites</span><strong class="mt-1 block text-sm">{{ vehicle.transmission || 'Belirtilmedi' }}</strong></div>
+                <div class="rounded-xl bg-slate-50 p-3"><span class="block text-[11px] font-bold uppercase text-slate-400">Yakıt</span><strong class="mt-1 block text-sm">{{ vehicle.fuel || 'Belirtilmedi' }}</strong></div>
+                <div class="rounded-xl bg-slate-50 p-3"><span class="block text-[11px] font-bold uppercase text-slate-400">Koltuk</span><strong class="mt-1 block text-sm">{{ vehicle.seats || 'Belirtilmedi' }}</strong></div>
+                <div class="rounded-xl bg-slate-50 p-3"><span class="block text-[11px] font-bold uppercase text-slate-400">Durum</span><strong class="mt-1 block text-sm" [class.text-emerald-700]="vehicle.isAvailable !== false" [class.text-red-700]="vehicle.isAvailable === false">{{ vehicle.isAvailable === false ? 'Müsait değil' : 'Müsait' }}</strong></div>
+              </div>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="vehicle-details-title">
+              <h2 id="vehicle-details-title" class="text-lg font-black">Araç Bilgileri</h2>
+              <dl class="mt-4 divide-y divide-slate-100 text-sm">
+                @if (vehicle.deposit !== undefined) { <div class="flex justify-between gap-4 py-3"><dt class="text-slate-500">Depozito</dt><dd class="font-bold">{{ vehicle.deposit | turkishCurrency }}</dd></div> }
+                @if (vehicle.dailyMileageLimit) { <div class="flex justify-between gap-4 py-3"><dt class="text-slate-500">Günlük kilometre</dt><dd class="font-bold">{{ vehicle.dailyMileageLimit }} km</dd></div> }
+                @if (vehicle.minAge) { <div class="flex justify-between gap-4 py-3"><dt class="text-slate-500">Minimum yaş</dt><dd class="font-bold">{{ vehicle.minAge }}</dd></div> }
+                @if (vehicle.minLicenseYears) { <div class="flex justify-between gap-4 py-3"><dt class="text-slate-500">Minimum ehliyet</dt><dd class="font-bold">{{ vehicle.minLicenseYears }} yıl</dd></div> }
+                <div class="flex justify-between gap-4 py-3"><dt class="text-slate-500">Sürücü seçeneği</dt><dd class="font-bold">{{ driverOptionLabel(vehicle.driverOption) }}</dd></div>
+              </dl>
+            </section>
+
+            @if (vehicle.description) {
+              <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="description-title">
+                <h2 id="description-title" class="text-lg font-black">Açıklama</h2>
+                <p class="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600">{{ vehicle.description }}</p>
+              </section>
+            }
+
+            @if (vehicle.features?.length) {
+              <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="features-title">
+                <h2 id="features-title" class="text-lg font-black">Araç Özellikleri</h2>
+                <div class="mt-4 grid gap-2 sm:grid-cols-2">
+                  @for (feature of vehicle.features; track feature) {
+                    <div class="flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-sm"><mat-icon aria-hidden="true" class="!h-5 !w-5 !text-[20px] text-emerald-600">check_circle</mat-icon><span>{{ feature }}</span></div>
+                  }
+                </div>
+              </section>
+            }
+
+            @if (technicalSpecs(); as specs) {
+              <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="tech-title">
+                <button type="button" (click)="techOpen.update(v => !v)" [attr.aria-expanded]="techOpen()" aria-controls="rental-tech-specs" class="flex min-h-12 w-full items-center justify-between gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-xl">
+                  <span><strong id="tech-title" class="block text-lg">Teknik Özellikler</strong><small class="text-slate-500">Motor, performans ve ölçüler</small></span>
+                  <mat-icon aria-hidden="true">{{ techOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+                </button>
+                @if (techOpen()) {
+                  <dl id="rental-tech-specs" class="mt-4 grid gap-2 sm:grid-cols-2">
+                    @for (row of specRows(specs); track row.label) {
+                      <div class="rounded-xl bg-slate-50 p-3"><dt class="text-xs font-bold uppercase text-slate-400">{{ row.label }}</dt><dd class="mt-1 text-sm font-black">{{ row.value }}</dd></div>
+                    }
+                  </dl>
+                }
+              </section>
+            }
+          </div>
+
+          <aside id="rental-calculator" class="rounded-2xl border border-blue-200 bg-white p-4 shadow-xl shadow-blue-950/5 sm:p-6 lg:sticky lg:top-[116px]" aria-labelledby="calculator-title">
+            <p class="text-xs font-black uppercase tracking-wider text-blue-600">Hızlı Rezervasyon</p>
+            <h2 id="calculator-title" class="mt-1 font-serif text-2xl font-black">Tarihinizi seçin</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-500">Önce tarihleri belirleyin. Ek hizmet ve teslim noktasını sonraki adımda seçebilirsiniz.</p>
+
+            <div class="mt-5 space-y-4">
+              <app-accessible-date-field label="Alış tarihi" [value]="startDate()" [min]="today" (valueChange)="setStartDate($event)" />
+              <app-accessible-date-field label="İade tarihi" [value]="endDate()" [min]="startDate() || today" (valueChange)="setEndDate($event)" />
+            </div>
+
+            @if (dateError()) { <p class="mt-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700" role="alert">{{ dateError() }}</p> }
+
+            <div class="mt-5 rounded-2xl bg-slate-950 p-4 text-white" aria-live="polite" aria-atomic="true">
+              @if (validDates()) {
+                <div class="flex items-center justify-between gap-3 text-sm"><span class="text-slate-300">{{ totalDays() }} gün × {{ vehicle.price | turkishCurrency }}</span><strong>{{ totalPrice() | turkishCurrency }}</strong></div>
+                <div class="mt-3 border-t border-white/10 pt-3"><span class="text-xs font-bold uppercase text-blue-300">Tahmini araç bedeli</span><strong class="mt-1 block text-3xl">{{ totalPrice() | turkishCurrency }}</strong></div>
+              } @else {
+                <p class="text-sm text-slate-300">Fiyatı hesaplamak için alış ve iade tarihini seçin.</p>
+              }
+            </div>
+
+            <button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false || !validDates()" aria-label="Hemen rezerve et" class="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 font-black text-white shadow-lg shadow-blue-600/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+              <mat-icon aria-hidden="true">event_available</mat-icon>Hemen Rezerve Et
+            </button>
+
+            <button type="button" (click)="whatsappInquiry()" aria-label="WhatsApp ile bilgi al" class="mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 font-black text-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+              <mat-icon aria-hidden="true">chat</mat-icon>WhatsApp ile Sor
+            </button>
+
+            <p class="mt-3 text-xs leading-5 text-slate-500">Ek hizmetler, teslim ve iade noktası rezervasyon ekranında seçilir. Seçimler fiyatı anında günceller.</p>
+          </aside>
+        </div>
+
+        <div class="fixed inset-x-0 bottom-0 z-[70] border-t border-slate-200 bg-white/95 p-2 pb-[max(.5rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+          <div class="mx-auto grid max-w-2xl grid-cols-[.75fr_1.25fr] gap-2">
+            <a [href]="phoneHref()" aria-label="Telefonla ara" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-100 font-black text-slate-800"><mat-icon aria-hidden="true">call</mat-icon>Ara</a>
+            <button type="button" (click)="reserveFromSticky(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Rezervasyon" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 font-black text-white disabled:bg-slate-300 disabled:text-slate-500"><mat-icon aria-hidden="true">event_available</mat-icon>{{ validDates() ? 'Hemen Rezerve Et' : 'Tarih Seç' }}</button>
           </div>
         </div>
+      } @else {
+        <section class="grid min-h-[70vh] place-items-center bg-slate-50 px-6 text-center" role="status">
+          <div><div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div><p class="mt-4 font-bold text-slate-600">Araç bilgileri yükleniyor...</p></div>
+        </section>
       }
-    </div>
+    </main>
   `,
 })
-export class CarDetailComponent implements OnInit, OnDestroy {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private location = inject(Location);
-  carService = inject(CarService);
-  uiService = inject(UiService);
-  meta = inject(Meta);
-  title = inject(Title);
-  seoService = inject(SeoService);
+export class CarDetailComponent {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly location = inject(Location);
+  readonly carService = inject(CarService);
+  private readonly seoService = inject(SeoService);
+  private readonly uiService = inject(UiService);
 
-  car = signal<Car | null>(null);
-  isScrolled = signal(false);
-  isLightboxOpen = signal(false);
-  viewersCount = signal(Math.floor(Math.random() * 15) + 5);
-  isTechSpecsOpen = signal(false);
-  activeImageIndex = signal(0);
-  activeSection = signal<string | null>(null);
-  currentSlide = signal(0);
+  @ViewChild("gallerySwiper") gallerySwiper?: ElementRef<any>;
 
-  allImages = computed(() => {
-    const c = this.car();
-    if (!c) return [];
-    const imgs = [];
-    if (c.image) imgs.push(c.image);
-    if (c.images && c.images.length > 0) imgs.push(...c.images);
-    if (c.gallery && c.gallery.length > 0) imgs.push(...c.gallery);
-    return [...new Set(imgs)].filter(Boolean);
-  });
+  private readonly routeId = this.route.snapshot.paramMap.get("id") || "";
+  readonly today = new Date().toISOString().slice(0, 10);
+  readonly startDate = signal(this.validQueryDate(this.route.snapshot.queryParamMap.get("start")));
+  readonly endDate = signal(this.validQueryDate(this.route.snapshot.queryParamMap.get("end")));
+  readonly currentSlide = signal(0);
+  readonly techOpen = signal(false);
+  readonly dateError = signal("");
 
-  techSpecs = computed(() => {
-    const c = this.car();
-    if (!c) return null;
-    let modelKey = c.model;
-    if (c.series) {
-      modelKey = `${c.series} ${c.model}`.trim();
-    }
-    const specs = (
-      getTechnicalSpecs(c.brand || "", modelKey || "") ||
-      getTechnicalSpecs(c.brand || "", c.model || "")
+  readonly car = computed<Car | null>(() => {
+    const match = this.carService.getAllVehicles()().find((item) =>
+      item.category === "RENTAL" &&
+      (String(item.id) === this.routeId || String(item.cloudId || "") === this.routeId),
     );
-    
-    // Provide a generic fallback so the button always appears for all cars
-    if (!specs) {
-      return {
-        maxSpeed: 'Belirtilmemiş',
-        acceleration: 'Belirtilmemiş',
-        cityFuel: 'Belirtilmemiş',
-        highwayFuel: 'Belirtilmemiş',
-        combinedFuel: 'Belirtilmemiş',
-        tankCapacity: 'Belirtilmemiş',
-        trunkCapacity: 'Belirtilmemiş',
-        wheels: 'Orijinal Standart Özelik',
-        dimensions: 'Belirtilmemiş',
-        cylinders: '-',
-        engineVolume: c.engineVolume || 'Belirtilmemiş',
-        enginePower: c.enginePower || 'Belirtilmemiş',
-        torque: 'Belirtilmemiş',
-        weight: 'Belirtilmemiş',
-        drivetrain: c.drivetrain || 'Belirtilmemiş'
-      };
-    }
-    
-    return specs;
+    return (match as Car | undefined) || null;
   });
 
-  openLightbox(index: number) {
-    this.activeImageIndex.set(index);
-    this.isLightboxOpen.set(true);
-    document.body.style.overflow = "hidden";
-  }
+  readonly media = computed<GalleryMedia[]>(() => {
+    const vehicle = this.car();
+    if (!vehicle) return [];
+    const seen = new Set<string>();
+    const items: GalleryMedia[] = [];
+    for (const url of [vehicle.image, ...(vehicle.images || []), ...(vehicle.gallery || [])]) {
+      const clean = String(url || "").trim();
+      if (!clean || seen.has(clean)) continue;
+      seen.add(clean);
+      items.push({ type: "image", url: clean });
+    }
+    for (const video of vehicle.videos || []) {
+      const clean = String(video?.url || "").trim();
+      if (!clean || seen.has(clean)) continue;
+      seen.add(clean);
+      items.push({ type: "video", url: clean, posterUrl: video.posterUrl, title: video.title });
+    }
+    return items.slice(0, 30);
+  });
 
-  closeLightbox() {
-    this.isLightboxOpen.set(false);
-    document.body.style.overflow = "auto";
-  }
-
-  t = this.uiService.translations;
-  isFav = (id: string | number | undefined) =>
-    id ? this.carService.isFavorite(id) : false;
-
-  startDate = signal("");
-  endDate = signal("");
-  wantsDriver = signal(false);
-
-  totalDays = computed(() => {
-    const start = this.startDate();
-    const end = this.endDate();
+  readonly totalDays = computed(() => {
+    const start = this.parseLocalDate(this.startDate());
+    const end = this.parseLocalDate(this.endDate());
     if (!start || !end) return 0;
-
-    const d1 = new Date(start);
-    const d2 = new Date(end);
-    const diff = d2.getTime() - d1.getTime();
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    return days > 0 ? days : 0;
+    return Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86_400_000));
   });
 
-  totalPrice = computed(() => {
-    const days = this.totalDays();
-    const car = this.car();
-    if (!car || days <= 0) return 0;
+  readonly validDates = computed(() => Boolean(this.startDate() && this.endDate() && this.startDate() >= this.today && this.totalDays() > 0));
+  readonly totalPrice = computed(() => this.validDates() ? this.totalDays() * Number(this.car()?.price || 0) : 0);
 
-    let dailyPrice = car.price;
-    if (car.driverOption === "WITH_DRIVER" || this.wantsDriver()) {
-      dailyPrice += 1500;
-    }
-
-    return days * dailyPrice;
+  readonly technicalSpecs = computed(() => {
+    const vehicle = this.car();
+    if (!vehicle) return null;
+    const modelKey = vehicle.series ? `${vehicle.series} ${vehicle.model || ""}`.trim() : vehicle.model || "";
+    return getTechnicalSpecs(vehicle.brand || "", modelKey) || getTechnicalSpecs(vehicle.brand || "", vehicle.model || "") || null;
   });
-
-  similarCars = computed(() => {
-    const currentCar = this.car();
-    if (!currentCar) return [];
-
-    return this.carService
-      .getCars()()
-      .filter(
-        (c) =>
-          c.id !== currentCar.id &&
-          (c.brand === currentCar.brand ||
-            Math.abs(c.price - currentCar.price) < 500),
-      )
-      .slice(0, 3);
-  });
-
-  @HostListener("window:scroll", [])
-  onWindowScroll() {
-    this.isScrolled.set(window.scrollY > 100);
-  }
-
-  private routeId = signal<string | null>(null);
 
   constructor() {
     effect(() => {
-      const id = this.routeId();
-      if (id) {
-        const found = this.carService.getCar(id);
-        if (found) {
-          this.car.set(found);
-          const config = this.carService.getConfig()();
-          const pageTitle = `${found.brand} ${found.model} ile Kusursuz Sürüş Deneyimi 🚘 | ${config.companyName}`;
-
-          this.seoService.updateSeoTags({
-            title: pageTitle,
-            description: `Hayalinizdeki ${found.brand} ${found.model} ${found.year} sizi bekliyor! Ayrıcalıklı kiralama deneyimi, şeffaf fiyatlar ve 7/24 destek ile hemen yola çıkın.`,
-            keywords: `${found.brand} kiralama, ${found.model} kiralık donanım, lüks araç kiralama Yüksekova, Hakkari rent a car fırsatları, sorunsuz araç kiralama`,
-            image:
-              found.image ||
-              (found.images && found.images.length > 0
-                ? found.images[0]
-                : config.logoUrl),
-          });
-          
-          this.seoService.updateJsonLd({
-            "@context": "https://schema.org",
-            "@type": "Product",
-            "name": `${found.brand} ${found.model}`,
-            "image": found.image,
-            "description": `Kiralık ${found.brand} ${found.model} ${found.year}`,
-            "brand": {
-              "@type": "Brand",
-              "name": found.brand
-            },
-            "offers": {
-              "@type": "Offer",
-              "url": `https://alperrentacar.online/fleet/${found.id}`,
-              "priceCurrency": "TRY",
-              "price": `${found.price}`,
-              "itemCondition": "https://schema.org/UsedCondition",
-              "availability": "https://schema.org/InStock",
-              "seller": {
-                "@type": "Organization",
-                "name": config.companyName
-              }
-            }
-          });
-        }
-      }
-    });
-  }
-
-  ngOnInit() {
-    this.route.params.subscribe((params) => {
-      const id = params["id"];
-      if (id) {
-        this.routeId.set(id);
-      }
-    });
-  }
-
-  ngOnDestroy() {
-    // Service reset defaults automatically on navigation end,
-    // but we can optionally call this.seoService.setDefaults() here too if we want instant change before navigation completes.
-  }
-
-  goBack() {
-    if (window.history.length > 1) {
-      this.location.back();
-    } else {
-      this.router.navigate(["/fleet"]);
-    }
-  }
-
-  toggleSection(section: string) {
-    this.activeSection.update((current) =>
-      current === section ? null : section,
-    );
-  }
-
-  onSlideChange(event: any) {
-    this.currentSlide.set(event.detail[0].realIndex);
-  }
-
-  onLightboxSlideChange(event: any) {
-    this.activeImageIndex.set(event.detail[0].activeIndex);
-  }
-
-  toggleFav(id: string | number | undefined) {
-    if (id) {
-      this.carService.toggleFavorite(id);
-    }
-  }
-
-  shareCar(car: Car | null) {
-    if (!car) return;
-    const url = window.location.href;
-    if (navigator.share) {
-      navigator
-        .share({
-          title: `${car.brand} ${car.model} - Alperler Auto`,
-          text: `${car.brand} ${car.model} aracını inceleyin!`,
-          url: url,
-        })
-        .catch(console.error);
-    } else {
-      navigator.clipboard.writeText(url).then(() => {
-        alert(this.t().common.linkCopied);
+      const vehicle = this.car();
+      if (!vehicle) return;
+      const config = this.carService.getConfig()();
+      this.seoService.updateSeoTags({
+        title: `${vehicle.brand || "Araç"} ${vehicle.model || ""} Kiralama | ${config.companyName}`,
+        description: `${vehicle.brand || "Araç"} ${vehicle.model || ""} kiralama detayları, günlük fiyat, özellikler ve rezervasyon seçenekleri.`,
+        image: vehicle.image || vehicle.images?.[0] || config.seoOgImage,
       });
-    }
-  }
-
-  rentCar(car: Car | null) {
-    if (!car || car.isAvailable === false) return;
-
-    const isSale = car.category === "SALE";
-    this.carService.setBookingRequest({
-      type: isSale ? ("SALE_INQUIRY" as const) : ("RENTAL" as const),
-      item: car,
-      itemName: `${car.brand} ${car.model}`,
-      image: car.image,
-      basePrice: car.price,
-      startDate: isSale ? undefined : this.startDate(),
-      endDate: isSale ? undefined : this.endDate(),
-      rentalDuration: isSale ? undefined : "daily",
-      withDriver: !isSale && (car.driverOption === "WITH_DRIVER" || this.wantsDriver()),
     });
-    this.router.navigate(["/contact"]);
   }
 
-  whatsappInquiry() {
-    const c = this.car();
-    if (!c) return;
+  setStartDate(value: string): void {
+    this.startDate.set(value);
+    if (this.endDate() && value && this.endDate() <= value) this.endDate.set("");
+    this.validateDateRange();
+  }
 
-    const msg = this.t()
-      .car.whatsappMsg.replace("{brand}", c.brand)
-      .replace("{model}", c.model)
-      .replace("{year}", c.year?.toString() || "")
-      .replace("{url}", window.location.href);
+  setEndDate(value: string): void {
+    this.endDate.set(value);
+    this.validateDateRange();
+  }
 
-    // Temizlenmiş (boşluksuz/formatsız) numarayı kullan
-    const phone =
-      this.carService.getConfig()().whatsapp ||
-      this.carService.getConfig()().phone;
-    const cleanPhone = phone?.replace(/\D/g, "") || "";
-    window.open(
-      `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`,
-      "_blank",
-    );
+  previousMedia(): void { this.gallerySwiper?.nativeElement?.swiper?.slidePrev(); }
+  nextMedia(): void { this.gallerySwiper?.nativeElement?.swiper?.slideNext(); }
+  onSlideChange(event: any): void { this.currentSlide.set(Number(event?.detail?.[0]?.activeIndex || 0)); }
+
+  reserve(vehicle: Car): void {
+    if (vehicle.isAvailable === false) return;
+    if (!this.validDates()) {
+      this.dateError.set("Rezervasyon için geçerli alış ve iade tarihini seçin.");
+      this.scrollToCalculator();
+      return;
+    }
+    this.dateError.set("");
+    this.carService.setBookingRequest({
+      type: "RENTAL",
+      item: vehicle,
+      itemName: `${vehicle.brand || ""} ${vehicle.model || ""}`.trim(),
+      image: vehicle.image || vehicle.images?.[0],
+      basePrice: Number(vehicle.price || 0),
+      totalPrice: this.totalPrice(),
+      startDate: this.startDate(),
+      endDate: this.endDate(),
+      days: this.totalDays(),
+      rentalDuration: "daily",
+      withDriver: vehicle.driverOption === "WITH_DRIVER",
+    });
+    void this.router.navigate(["/contact"]);
+  }
+
+  reserveFromSticky(vehicle: Car): void {
+    if (this.validDates()) this.reserve(vehicle);
+    else this.scrollToCalculator();
+  }
+
+  toggleFav(id: string | number): void { this.carService.toggleFavorite(id); }
+  isFav(id: string | number): boolean { return this.carService.isFavorite(id); }
+
+  async shareCar(vehicle: Car): Promise<void> {
+    const payload = { title: `${vehicle.brand || ""} ${vehicle.model || ""} | Alperler Auto`.trim(), text: "Bu kiralık aracı inceleyin.", url: window.location.href };
+    try {
+      if (navigator.share) await navigator.share(payload);
+      else if (navigator.clipboard) await navigator.clipboard.writeText(window.location.href);
+    } catch { /* user cancelled share */ }
+  }
+
+  whatsappInquiry(): void {
+    const vehicle = this.car();
+    if (!vehicle) return;
+    const config = this.carService.getConfig()();
+    const phone = String(config.whatsapp || config.phone || "").replace(/\D/g, "");
+    if (!phone) return;
+    const message = `Merhaba, ${vehicle.brand || ""} ${vehicle.model || ""} kiralık araç hakkında bilgi almak istiyorum. ${window.location.href}`.trim();
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+  }
+
+  phoneHref(): string {
+    const phone = String(this.carService.getConfig()().phone || "").replace(/[^+\d]/g, "");
+    return phone ? `tel:${phone}` : "#";
+  }
+
+  driverOptionLabel(value: Car["driverOption"]): string {
+    if (value === "WITH_DRIVER") return "Şoförlü";
+    if (value === "BOTH") return "Şoförlü veya şoförsüz";
+    return "Şoförsüz";
+  }
+
+  specRows(specs: any): { label: string; value: string }[] {
+    const candidates = [
+      ["Motor hacmi", specs.engineVolume], ["Motor gücü", specs.enginePower],
+      ["Tork", specs.torque], ["Çekiş", specs.drivetrain],
+      ["Maksimum hız", specs.maxSpeed], ["0-100 km/s", specs.acceleration],
+      ["Ortalama tüketim", specs.combinedFuel], ["Bagaj", specs.trunkCapacity],
+      ["Depo", specs.tankCapacity], ["Ağırlık", specs.weight],
+    ];
+    return candidates.filter((row) => Boolean(row[1]) && row[1] !== "Belirtilmemiş" && row[1] !== "-").map(([label, value]) => ({ label: String(label), value: String(value) }));
+  }
+
+  goBack(): void {
+    if (window.history.length > 1) this.location.back();
+    else void this.router.navigate(["/fleet"]);
+  }
+
+  private validateDateRange(): void {
+    if (!this.startDate() || !this.endDate()) { this.dateError.set(""); return; }
+    if (this.startDate() < this.today) { this.dateError.set("Alış tarihi bugünden önce olamaz."); return; }
+    if (this.totalDays() <= 0) { this.dateError.set("İade tarihi alış tarihinden sonra olmalıdır."); return; }
+    this.dateError.set("");
+  }
+
+  private scrollToCalculator(): void {
+    document.getElementById("rental-calculator")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  private validQueryDate(value: string | null): string {
+    return /^\d{4}-\d{2}-\d{2}$/.test(value || "") ? String(value) : "";
+  }
+
+  private parseLocalDate(value: string): Date | null {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "");
+    if (!match) return null;
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 }

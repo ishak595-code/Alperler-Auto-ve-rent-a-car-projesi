@@ -299,10 +299,10 @@ export class HomeV71Component {
   });
 
   private readonly fallbackSections: PublicHomepageSection[] = [
-    { sectionKey: "rental_featured", title: "Yolculuğunuza Uyan Kiralık Araçlar", sectionType: "VEHICLES", isEnabled: true, sortOrder: 10, maxItems: 6, settings: { category: "RENTAL" } },
-    { sectionKey: "campaigns", title: "Size Özel Fırsatlar", sectionType: "CAMPAIGN", isEnabled: true, sortOrder: 15, maxItems: 3, settings: {} },
-    { sectionKey: "sale_featured", title: "Yeni Aracınız Burada Olabilir", sectionType: "VEHICLES", isEnabled: true, sortOrder: 20, maxItems: 6, settings: { category: "SALE" } },
-    { sectionKey: "tour_featured", title: "Hakkâri'yi Keşfedin", sectionType: "TOURS", isEnabled: true, sortOrder: 30, maxItems: 6, settings: {} },
+    { sectionKey: "rental_featured", title: "Öne Çıkan Kiralık Araçlar", sectionType: "VEHICLES", isEnabled: true, sortOrder: 10, maxItems: 4, settings: { category: "RENTAL" } },
+    { sectionKey: "campaigns", title: "Planınızı Avantaja Çeviren Fırsatlar", sectionType: "CAMPAIGN", isEnabled: true, sortOrder: 5, maxItems: 3, settings: {} },
+    { sectionKey: "sale_featured", title: "Öne Çıkan İkinci El Araçlar", sectionType: "VEHICLES", isEnabled: true, sortOrder: 20, maxItems: 4, settings: { category: "SALE" } },
+    { sectionKey: "tour_featured", title: "Rehberlerimizle Görmeniz Gereken Rotalar", sectionType: "TOURS", isEnabled: true, sortOrder: 30, maxItems: 4, settings: {} },
     { sectionKey: "branches", title: "Size En Yakın Alperler Auto", sectionType: "CUSTOM", isEnabled: true, sortOrder: 35, maxItems: 3, settings: {} },
     { sectionKey: "partner", title: "Aracınız Değerini Bulsun", sectionType: "CUSTOM", isEnabled: true, sortOrder: 40, maxItems: 1, settings: {} },
     { sectionKey: "blog_featured", title: "Yola Çıkmadan Önce", sectionType: "BLOG", isEnabled: true, sortOrder: 50, maxItems: 3, settings: {} },
@@ -414,9 +414,9 @@ export class HomeV71Component {
   stableVehicleKey(item: Vehicle): string { return String(item.cloudId || item.id); }
   entityTitle(item: Vehicle): string { return item.title || [item.brand, item.model, item.year].filter(Boolean).join(" ") || `İlan ${item.id}`; }
   vehicleSectionRoute(section: PublicHomepageSection): string { return String(section.settings?.["category"] || "").toUpperCase() === "SALE" ? "/sales" : "/fleet"; }
-  vehicleSectionBadge(section: PublicHomepageSection): string { return this.vehicleSectionRoute(section) === "/sales" ? "Sizin İçin Seçilen Satılık Araçlar" : "Sizin İçin Seçilen Kiralık Araçlar"; }
+  vehicleSectionBadge(section: PublicHomepageSection): string { return this.vehicleSectionRoute(section) === "/sales" ? this.homeContent().salesBadge || "Seçili İkinci El Araçlar" : this.homeContent().featuredBadge || "Seçili Kiralık Araçlar"; }
   vehicleSectionSubtitle(section: PublicHomepageSection): string { return this.vehicleSectionRoute(section) === "/sales" ? this.homeContent().salesDescription || "Beğendiğiniz aracı ayrıntıları, donanımı ve fiyatıyla birlikte inceleyin." : this.homeContent().featuredSubtitle || "Günlük planınıza, kişi sayınıza ve bütçenize uyan araçları karşılaştırın."; }
-  vehicleSectionViewAll(section: PublicHomepageSection): string { return this.vehicleSectionRoute(section) === "/sales" ? "Tüm Satılık Araçlar" : "Tüm Kiralık Araçlar"; }
+  vehicleSectionViewAll(section: PublicHomepageSection): string { return this.vehicleSectionRoute(section) === "/sales" ? this.homeContent().salesViewAll || "Tüm Satılık Araçlar" : this.homeContent().featuredViewAll || "Tüm Kiralık Araçlar"; }
 
   campaignSavings(campaign: CampaignRecord): number { return campaign.oldPrice != null && campaign.newPrice != null ? Math.max(0, campaign.oldPrice - campaign.newPrice) : 0; }
   campaignHook(campaign: CampaignRecord): string {

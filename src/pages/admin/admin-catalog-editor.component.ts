@@ -37,6 +37,14 @@ import { ToastService } from "../../services/toast.service";
               <button type="button" (click)="createTour()" [disabled]="saving()" class="min-h-12 rounded-xl bg-violet-600 px-4 font-black text-white disabled:opacity-40">+ Yeni Tur</button>
             </div>
           </div>
+          <div class="mt-5 grid gap-3 lg:grid-cols-[minmax(260px,1fr)_auto]">
+            <input [(ngModel)]="search" type="search" aria-label="Katalogda ara" placeholder="Marka, model, stok kodu veya tur ara…" class="min-h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-bold text-white outline-none placeholder:text-slate-400 focus:border-blue-400" />
+            <div class="grid grid-cols-3 gap-2" role="tablist" aria-label="Katalog türü">
+              <button type="button" (click)="filter.set('RENTAL')" [class.bg-blue-600]="filter()==='RENTAL'" [class.text-white]="filter()==='RENTAL'" class="min-h-12 rounded-xl bg-white/10 px-4 text-xs font-black text-slate-200">Kiralık</button>
+              <button type="button" (click)="filter.set('SALE')" [class.bg-emerald-600]="filter()==='SALE'" [class.text-white]="filter()==='SALE'" class="min-h-12 rounded-xl bg-white/10 px-4 text-xs font-black text-slate-200">Satılık</button>
+              <button type="button" (click)="filter.set('TOUR')" [class.bg-violet-600]="filter()==='TOUR'" [class.text-white]="filter()==='TOUR'" class="min-h-12 rounded-xl bg-white/10 px-4 text-xs font-black text-slate-200">Turlar</button>
+            </div>
+          </div>
         </header>
 
         @if (error()) {
@@ -45,14 +53,7 @@ import { ToastService } from "../../services/toast.service";
 
         <div class="grid gap-5 xl:grid-cols-[330px_minmax(0,1fr)]">
           <aside class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm xl:sticky xl:top-20 xl:max-h-[calc(100dvh-7rem)] xl:overflow-y-auto xl:self-start">
-            <div class="grid grid-cols-3 gap-2" role="tablist" aria-label="Katalog türü">
-              <button type="button" (click)="filter.set('RENTAL')" [class.bg-blue-600]="filter()==='RENTAL'" [class.text-white]="filter()==='RENTAL'" class="min-h-11 rounded-xl bg-slate-100 text-xs font-black">Kiralık</button>
-              <button type="button" (click)="filter.set('SALE')" [class.bg-emerald-600]="filter()==='SALE'" [class.text-white]="filter()==='SALE'" class="min-h-11 rounded-xl bg-slate-100 text-xs font-black">Satılık</button>
-              <button type="button" (click)="filter.set('TOUR')" [class.bg-violet-600]="filter()==='TOUR'" [class.text-white]="filter()==='TOUR'" class="min-h-11 rounded-xl bg-slate-100 text-xs font-black">Turlar</button>
-            </div>
-            <input [(ngModel)]="search" type="search" aria-label="Katalogda ara" placeholder="Marka, model, tur ara…" class="mt-3 min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 outline-none focus:ring-2 focus:ring-blue-500" />
-
-            <div class="mt-3 space-y-2">
+            <div class="space-y-2">
               @if (filter() !== 'TOUR') {
                 @for (item of filteredVehicles(); track item.id) {
                   <button type="button" (click)="selectVehicle(item)" [class.border-blue-500]="selectedVehicle()?.id===item.id" [class.bg-blue-50]="selectedVehicle()?.id===item.id" class="w-full rounded-2xl border border-slate-200 p-3 text-left">

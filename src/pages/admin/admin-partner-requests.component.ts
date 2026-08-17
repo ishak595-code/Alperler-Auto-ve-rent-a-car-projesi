@@ -28,7 +28,7 @@ import { ToastService } from "../../services/toast.service";
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="min-h-screen bg-slate-50 text-slate-900">
-      <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-5 shadow-sm backdrop-blur md:px-8">
+      <header class="sticky top-16 z-20 border-b border-slate-200 bg-white/95 px-4 py-5 shadow-sm backdrop-blur md:px-8">
         <div class="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div class="flex items-center gap-3">
             <button
@@ -46,48 +46,15 @@ import { ToastService } from "../../services/toast.service";
             </div>
           </div>
 
-          <button
-            type="button"
-            (click)="refresh()"
-            [disabled]="partnerService.loading()"
-            class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-blue-600 disabled:opacity-50"
-          >
-            {{ partnerService.loading() ? "Yenileniyor..." : "Başvuruları Yenile" }}
-          </button>
+          <div class="grid w-full gap-2 lg:w-auto lg:grid-cols-[minmax(240px,1fr)_180px_auto]">
+            <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Müşteri, telefon, araç ara…" aria-label="Araç başvurularında ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500" />
+            <select [ngModel]="filter()" (ngModelChange)="filter.set($event)" aria-label="Araç başvurusu durum filtresi" class="min-h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black"><option value="ALL">Tüm durumlar</option><option value="UPLOADING">Dosya yükleniyor</option><option value="NEW">Yeni</option><option value="REVIEWING">İnceleniyor</option><option value="CONTACTED">İletişim kuruldu</option><option value="OFFERED">Teklif verildi</option><option value="ACCEPTED">Kabul edildi</option><option value="REJECTED">Reddedildi</option><option value="CLOSED">Kapalı</option></select>
+            <button type="button" (click)="refresh()" [disabled]="partnerService.loading()" class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-blue-600 disabled:opacity-50">{{ partnerService.loading() ? "Yenileniyor..." : "Yenile" }}</button>
+          </div>
         </div>
       </header>
 
       <section class="mx-auto max-w-7xl space-y-5 p-4 md:p-8">
-        <div class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_auto]">
-          <label>
-            <span class="sr-only">Başvurularda ara</span>
-            <input
-              [ngModel]="searchQuery()"
-              (ngModelChange)="searchQuery.set($event)"
-              type="search"
-              autocomplete="off"
-              placeholder="Referans, müşteri, telefon, e-posta veya araç ara..."
-              class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-white"
-            />
-          </label>
-          <select
-            [ngModel]="filter()"
-            (ngModelChange)="filter.set($event)"
-            aria-label="Başvuru durumuna göre filtrele"
-            class="min-h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black"
-          >
-            <option value="ALL">Tüm durumlar</option>
-            <option value="UPLOADING">Dosya yükleniyor</option>
-            <option value="NEW">Yeni</option>
-            <option value="REVIEWING">İnceleniyor</option>
-            <option value="CONTACTED">İletişim kuruldu</option>
-            <option value="OFFERED">Teklif verildi</option>
-            <option value="ACCEPTED">Kabul edildi</option>
-            <option value="REJECTED">Reddedildi</option>
-            <option value="CLOSED">Kapalı</option>
-          </select>
-        </div>
-
         @if (partnerService.error()) {
           <div role="alert" class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-800">
             Başvuru kaynağına ulaşılamadı: {{ partnerService.error() }}

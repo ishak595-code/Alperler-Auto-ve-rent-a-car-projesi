@@ -24,7 +24,7 @@ interface AuditRow {
   template: `
     <main class="min-h-screen bg-slate-50 p-4 md:p-8">
       <div class="mx-auto max-w-7xl space-y-6">
-        <header class="rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8">
+        <header class="sticky top-16 z-20 rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8">
           <p class="text-xs font-black uppercase tracking-[.2em] text-blue-400">Denetim ve sorumluluk</p>
           <div class="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -33,13 +33,12 @@ interface AuditRow {
             </div>
             <button type="button" (click)="refresh()" [disabled]="loading()" class="min-h-12 rounded-xl bg-white px-5 font-black text-slate-950 disabled:opacity-50">{{ loading() ? 'Yükleniyor…' : 'Kayıtları Yenile' }}</button>
           </div>
+          <section class="mt-5 grid gap-3 rounded-2xl bg-white p-3 text-slate-900 md:grid-cols-[1fr_220px_180px]">
+            <label class="field"><span>Ara</span><input [(ngModel)]="query" type="search" placeholder="Yönetici, tablo, kayıt veya değişen alan…" /></label>
+            <label class="field"><span>Modül</span><select [(ngModel)]="entityFilter"><option value="">Tümü</option>@for (entity of entityTypes(); track entity) { <option [value]="entity">{{ entityLabel(entity) }}</option> }</select></label>
+            <label class="field"><span>İşlem</span><select [(ngModel)]="actionFilter"><option value="">Tümü</option><option value="INSERT">Ekleme</option><option value="UPDATE">Güncelleme</option><option value="DELETE">Silme</option></select></label>
+          </section>
         </header>
-
-        <section class="grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_220px_180px] md:p-5">
-          <label class="field"><span>Ara</span><input [(ngModel)]="query" type="search" placeholder="Yönetici, tablo, kayıt veya değişen alan…" /></label>
-          <label class="field"><span>Modül</span><select [(ngModel)]="entityFilter"><option value="">Tümü</option>@for (entity of entityTypes(); track entity) { <option [value]="entity">{{ entityLabel(entity) }}</option> }</select></label>
-          <label class="field"><span>İşlem</span><select [(ngModel)]="actionFilter"><option value="">Tümü</option><option value="INSERT">Ekleme</option><option value="UPDATE">Güncelleme</option><option value="DELETE">Silme</option></select></label>
-        </section>
 
         @if (error()) {
           <div role="alert" class="rounded-2xl border border-rose-200 bg-rose-50 p-4 font-bold text-rose-800">{{ error() }}</div>

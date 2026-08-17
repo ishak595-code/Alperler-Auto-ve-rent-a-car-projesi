@@ -18,6 +18,11 @@ import { AdminMediaService } from "../../services/admin-media.service";
           <p class="text-xs font-black uppercase tracking-[.2em] text-amber-400">Kampanya ve dönüşüm merkezi</p>
           <h1 class="mt-2 text-3xl font-black md:text-4xl">Kampanyayı Buradan Yönet, Ana Sayfada Anında Yayınla</h1>
           <p class="mt-2 max-w-4xl text-sm leading-relaxed text-slate-300">Aktif ve “Yayınlandı” durumundaki kampanyalar tek Supabase kaynağından okunur. Sıralamadaki ilk 3 kampanya ana sayfa vitrinine otomatik bağlanır. Yeni kampanya ekleme, metin, görsel, fiyat, gerçek bitiş süresi, CTA ve WhatsApp mesajı burada yönetilir.</p>
+          <div class="mt-5 grid gap-3 lg:grid-cols-[minmax(260px,1fr)_auto_auto]">
+            <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Kampanya adı, rozet veya durum ara…" aria-label="Kampanyalarda ara" class="min-h-12 rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-bold text-white outline-none placeholder:text-slate-400 focus:border-amber-400" />
+            <button type="button" (click)="startNewCampaign()" class="min-h-12 rounded-xl bg-amber-500 px-5 text-sm font-black text-slate-950">+ Yeni Kampanya</button>
+            <button type="button" (click)="refresh()" class="min-h-12 rounded-xl border border-white/15 bg-white/10 px-5 text-sm font-black text-white">Yenile</button>
+          </div>
           <div class="mt-5 grid gap-3 sm:grid-cols-3">
             <div class="rounded-2xl border border-white/10 bg-white/5 p-4"><div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Yayındaki kampanya</div><div class="mt-1 text-2xl font-black">{{ publishedCampaigns().length }}</div></div>
             <div class="rounded-2xl border border-white/10 bg-white/5 p-4"><div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Ana sayfa vitrini</div><div class="mt-1 text-2xl font-black">{{ homepageCampaigns().length }} / 3</div></div>
@@ -26,7 +31,7 @@ import { AdminMediaService } from "../../services/admin-media.service";
         </header>
 
         <section class="grid gap-5 xl:grid-cols-[430px_1fr]">
-          <form (ngSubmit)="save()" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-20 xl:self-start">
+          <form id="campaign-editor" (ngSubmit)="save()" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-20 xl:self-start">
             <div class="flex items-center justify-between gap-3">
               <div><h2 class="text-xl font-black text-slate-900">{{ editingId ? 'Kampanyayı Düzenle' : 'Yeni Kampanya' }}</h2><p class="text-xs text-slate-500">Müşterinin göreceği vitrin içeriğini hazırlayın.</p></div>
               @if (editingId) { <button type="button" (click)="reset()" class="min-h-10 rounded-lg px-3 text-sm font-black text-blue-700">Yeni</button> }
@@ -104,7 +109,7 @@ import { AdminMediaService } from "../../services/admin-media.service";
               </div>
             </div>
 
-            @for (campaign of campaigns(); track campaign.id; let i = $index) {
+            @for (campaign of filteredCampaigns(); track campaign.id; let i = $index) {
               <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm" [class.opacity-60]="!campaign.isActive">
                 <div class="grid md:grid-cols-[220px_1fr]">
                   <div class="relative min-h-48 bg-slate-900">
@@ -164,6 +169,7 @@ export class AdminCampaignsComponent implements OnInit {
   private readonly adminMedia = inject(AdminMediaService);
   readonly campaigns = this.campaignService.campaigns;
   readonly saving = signal(false);
+  readonly searchQuery = signal("");
 
   editingId = "";
   title = "";
@@ -194,6 +200,11 @@ export class AdminCampaignsComponent implements OnInit {
 
   readonly publishedCampaigns = computed(() => this.campaigns().filter((row) => row.isActive && row.publicationStatus === "PUBLISHED"));
   readonly homepageCampaigns = computed(() => [...this.publishedCampaigns()].sort((a, b) => a.sortOrder - b.sortOrder).slice(0, 3));
+  readonly filteredCampaigns = computed(() => {
+    const q = this.searchQuery().trim().toLocaleLowerCase("tr-TR");
+    if (!q) return this.campaigns();
+    return this.campaigns().filter((row) => `${row.title} ${row.shortDescription || ""} ${row.badge || ""} ${row.campaignType} ${row.publicationStatus}`.toLocaleLowerCase("tr-TR").includes(q));
+  });
 
   readonly availableTargets = computed(() => {
     if (this.targetType === "VEHICLE") return this.cars.getAllVehicles()().filter((row) => row.category !== "TOUR" && row.cloudId).map((row) => ({ id: row.cloudId!, label: `${row.brand || ""} ${row.model || ""} · ${row.category}`.trim() }));
@@ -291,6 +302,11 @@ export class AdminCampaignsComponent implements OnInit {
     this.priceSuffix = typeof campaign.metadata?.["priceSuffix"] === "string" ? String(campaign.metadata["priceSuffix"]) : "";
     this.editingMetadata = { ...(campaign.metadata || {}) };
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  startNewCampaign(): void {
+    this.reset();
+    if (typeof document !== "undefined") document.getElementById("campaign-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   reset(): void {

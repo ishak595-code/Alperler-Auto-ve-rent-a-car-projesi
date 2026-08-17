@@ -1,4 +1,5 @@
 import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
 import {
   ChangeDetectionStrategy,
   Component,
@@ -22,11 +23,11 @@ import { ToastService } from "../../services/toast.service";
 @Component({
   selector: "app-admin-reservations",
   standalone: true,
-  imports: [CommonModule, MatIconModule, TurkishCurrencyPipe],
+  imports: [CommonModule, FormsModule, MatIconModule, TurkishCurrencyPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="min-h-screen bg-slate-50 text-slate-900">
-      <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
+      <header class="sticky top-16 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
         <div class="mx-auto max-w-7xl px-4 py-4 md:px-8">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div class="flex min-w-0 items-center gap-3">
@@ -39,6 +40,10 @@ import { ToastService } from "../../services/toast.service";
               </div>
             </div>
 
+            <label class="w-full lg:max-w-sm">
+              <span class="sr-only">Rezervasyonlarda ara</span>
+              <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Müşteri, telefon, e-posta veya araç ara…" aria-label="Rezervasyonlarda ara" class="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500" />
+            </label>
             <div class="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1" aria-label="Durum filtresi">
               @for (option of filterOptions; track option.value) {
                 <button type="button" (click)="filter.set(option.value)" [attr.aria-pressed]="filter() === option.value" [class.bg-white]="filter() === option.value" [class.text-slate-950]="filter() === option.value" [class.shadow-sm]="filter() === option.value" class="min-h-10 shrink-0 rounded-lg px-3 text-xs font-black text-slate-500 transition hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
@@ -176,6 +181,7 @@ export class AdminReservationsComponent implements OnInit, OnDestroy {
   readonly typeFilter = signal<string | null>(null);
   readonly expandedId = signal<string | null>(null);
   readonly updatingId = signal<string | null>(null);
+  readonly searchQuery = signal("");
 
   readonly filterOptions: Array<{ value: "ALL" | BookingStatus; label: string }> = [
     { value: "ALL", label: "Tümü" },
@@ -190,6 +196,8 @@ export class AdminReservationsComponent implements OnInit, OnDestroy {
     let current = this.reservations();
     if (this.typeFilter()) current = current.filter((record) => record.type === this.typeFilter());
     if (this.filter() !== "ALL") current = current.filter((record) => record.status === this.filter());
+    const q = this.searchQuery().trim().toLocaleLowerCase("tr-TR");
+    if (q) current = current.filter((record) => `${record.customerName || ""} ${record.customerPhone || ""} ${record.customerEmail || ""} ${record.itemName || ""} ${record.pickupLocation || ""} ${record.id}`.toLocaleLowerCase("tr-TR").includes(q));
     return current;
   });
 

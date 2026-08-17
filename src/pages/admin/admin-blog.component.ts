@@ -13,14 +13,17 @@ import { AdminMediaService } from '../../services/admin-media.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="px-4 py-6 md:px-8 bg-white border-b border-slate-200 shadow-sm sticky top-0 z-20 flex justify-between items-center">
-        <div class="flex items-center gap-4">
-            <button (click)="goBack()" aria-label="Kontrol Paneline Dön" class="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-            </button>
+    <div class="sticky top-16 z-20 border-b border-slate-200 bg-white/95 px-4 py-4 shadow-sm backdrop-blur md:px-8">
+        <div class="mx-auto flex max-w-7xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div class="flex items-center gap-4">
+            <button (click)="goBack()" aria-label="Kontrol Paneline Dön" class="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg></button>
             <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Blog Yönetimi</h1>
+          </div>
+          <div class="grid w-full gap-2 sm:grid-cols-[minmax(220px,1fr)_auto] lg:w-auto">
+            <input [(ngModel)]="searchQuery" type="search" autocomplete="off" placeholder="Blog başlığı veya içerik ara…" aria-label="Blog yazılarında ara" class="min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500" />
+            <button (click)="toggleForm()" class="min-h-11 rounded-xl bg-blue-600 px-4 text-sm font-black text-white shadow hover:bg-blue-700">+ Yeni Yazı Ekle</button>
+          </div>
         </div>
-        <button (click)="toggleForm()" class="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-blue-600 transition-colors text-sm">+ Yeni Yazı Ekle</button>
     </div>
 
     <div class="w-full bg-slate-50 min-h-[calc(100vh-10rem)] p-4 md:p-8">
@@ -118,7 +121,7 @@ import { AdminMediaService } from '../../services/admin-media.service';
 
     <!-- List View -->
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-in fade-in duration-300">
-        @for (post of posts(); track post.id) {
+        @for (post of filteredPosts(); track post.id) {
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col group hover:shadow-md hover:border-blue-300 transition-all">
                 <div class="aspect-[16/9] relative overflow-hidden bg-slate-100">
                     <img [src]="post.image" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -161,10 +164,17 @@ export class AdminBlogComponent {
   router = inject(Router);
   posts = this.carService.getBlogPosts();
   showForm = signal(false);
+  searchQuery = "";
 
   newPost: any = {
       title: '', summary: '', content: '', image: '', readTime: '', date: new Date().toLocaleDateString('tr-TR')
   };
+
+  filteredPosts() {
+      const q = this.searchQuery.trim().toLocaleLowerCase('tr-TR');
+      if (!q) return this.posts();
+      return this.posts().filter((post) => `${post.title} ${post.summary} ${post.content}`.toLocaleLowerCase('tr-TR').includes(q));
+  }
 
   async onBlogImageSelected(event: Event) {
       const input = event.target as HTMLInputElement;

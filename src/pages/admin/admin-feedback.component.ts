@@ -15,7 +15,7 @@ import { ToastService } from "../../services/toast.service";
   imports: [CommonModule, FormsModule],
   template: `
     <main class="min-h-screen bg-slate-50 text-slate-900">
-      <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-5 shadow-sm backdrop-blur md:px-8">
+      <header class="sticky top-16 z-20 border-b border-slate-200 bg-white/95 px-4 py-5 shadow-sm backdrop-blur md:px-8">
         <div class="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div class="flex items-center gap-3">
             <button
@@ -33,14 +33,11 @@ import { ToastService } from "../../services/toast.service";
             </div>
           </div>
 
-          <button
-            type="button"
-            (click)="refresh()"
-            [disabled]="contactService.loading()"
-            class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white hover:bg-blue-600 disabled:opacity-50"
-          >
-            {{ contactService.loading() ? "Yenileniyor..." : "Mesajları Yenile" }}
-          </button>
+          <div class="grid w-full gap-2 lg:w-auto lg:grid-cols-[minmax(240px,1fr)_160px_auto]">
+            <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Ad, e-posta, telefon veya mesaj ara…" aria-label="Mesajlarda ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500" />
+            <select [ngModel]="filter()" (ngModelChange)="setFilter($event)" aria-label="Mesaj durum filtresi" class="min-h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black"><option value="ALL">Tüm durumlar</option><option value="NEW">Yeni</option><option value="READ">Okundu</option><option value="REPLIED">Yanıtlandı</option><option value="ARCHIVED">Arşiv</option></select>
+            <button type="button" (click)="refresh()" [disabled]="contactService.loading()" class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white hover:bg-blue-600 disabled:opacity-50">{{ contactService.loading() ? "Yenileniyor..." : "Yenile" }}</button>
+          </div>
         </div>
       </header>
 
@@ -58,32 +55,6 @@ import { ToastService } from "../../services/toast.service";
               <strong class="mt-1 block text-2xl font-black text-slate-950">{{ countFor(item.value) }}</strong>
             </button>
           }
-        </div>
-
-        <div class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_auto]">
-          <label class="block">
-            <span class="sr-only">Mesajlarda ara</span>
-            <input
-              [ngModel]="searchQuery()"
-              (ngModelChange)="searchQuery.set($event)"
-              type="search"
-              autocomplete="off"
-              placeholder="Referans, ad, telefon, e-posta veya mesaj içinde ara..."
-              class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-white"
-            />
-          </label>
-          <select
-            [ngModel]="filter()"
-            (ngModelChange)="setFilter($event)"
-            aria-label="Mesaj durumuna göre filtrele"
-            class="min-h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black"
-          >
-            <option value="ALL">Tüm durumlar</option>
-            <option value="NEW">Yeni</option>
-            <option value="READ">Okundu</option>
-            <option value="REPLIED">Yanıtlandı</option>
-            <option value="ARCHIVED">Arşiv</option>
-          </select>
         </div>
 
         @if (contactService.error()) {

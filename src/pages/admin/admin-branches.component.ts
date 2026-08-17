@@ -13,7 +13,7 @@ import { ToastService } from "../../services/toast.service";
   imports: [CommonModule, FormsModule, MatIconModule],
   template: `
     <main class="min-h-screen bg-slate-100 pb-20 text-slate-900">
-      <header class="sticky top-0 z-30 border-b border-slate-200 bg-white shadow-sm">
+      <header class="sticky top-16 z-30 border-b border-slate-200 bg-white shadow-sm">
         <div class="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 md:px-8">
           <div class="flex min-w-0 items-center gap-3">
             <button type="button" (click)="router.navigate(['/admin/dashboard'])" aria-label="Kontrol paneline dön" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
@@ -21,13 +21,16 @@ import { ToastService } from "../../services/toast.service";
             </button>
             <div class="min-w-0"><h1 class="truncate text-xl font-black">Şube Yönetimi</h1><p class="text-xs text-slate-500">Merkez şubeleri ve yetkili iş ortağı şubelerini ayrı kurallarla yönetin</p></div>
           </div>
-          <button type="button" (click)="newBranch()" class="flex min-h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><mat-icon>add</mat-icon><span class="hidden sm:inline">Merkez Şubesi Ekle</span></button>
+          <div class="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+            <input [(ngModel)]="searchQuery" type="search" autocomplete="off" placeholder="Şube, şehir veya ilçe ara…" aria-label="Şubelerde ara" class="min-h-11 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500 lg:w-72" />
+            <button type="button" (click)="newBranch()" class="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><mat-icon>add</mat-icon><span>Merkez Şubesi Ekle</span></button>
+          </div>
         </div>
       </header>
 
       <div class="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(360px,480px)]">
         <section class="space-y-3" aria-label="Şube listesi">
-          @for (branch of branchService.managedBranches(); track branch.cloudId || branch.id) {
+          @for (branch of filteredBranches(); track branch.cloudId || branch.id) {
             <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" [class.opacity-70]="branch.publicStatus==='SUSPENDED' || branch.publicStatus==='CLOSED'">
               <div class="flex items-start justify-between gap-4">
                 <div class="min-w-0">
@@ -106,11 +109,18 @@ export class AdminBranchesComponent implements OnInit {
   readonly errorMessage = signal("");
   readonly serviceOptions: BranchServiceType[] = ["RENTAL", "SALES", "TOUR", "TRANSFER", "PICKUP", "RETURN"];
   draft: Branch = this.emptyBranch();
+  searchQuery = "";
 
   ngOnInit(): void {
     const branchId = this.route.snapshot.queryParamMap.get("branch");
     if (branchId) { void this.router.navigate(["/admin/branch-network", branchId], { replaceUrl: true }); return; }
     void this.loadAdminBranches();
+  }
+
+  filteredBranches(): Branch[] {
+    const q = this.searchQuery.trim().toLocaleLowerCase("tr-TR");
+    if (!q) return this.branchService.managedBranches();
+    return this.branchService.managedBranches().filter((branch) => `${branch.name} ${branch.city} ${branch.district} ${branch.addressLabel || ""} ${branch.phone || ""}`.toLocaleLowerCase("tr-TR").includes(q));
   }
 
   private async loadAdminBranches(): Promise<void> {

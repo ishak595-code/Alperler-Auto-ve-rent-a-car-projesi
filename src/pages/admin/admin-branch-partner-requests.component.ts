@@ -15,26 +15,23 @@ import { ToastService } from "../../services/toast.service";
   imports: [CommonModule, FormsModule],
   template: `
     <main class="min-h-screen bg-slate-50 text-slate-900">
-      <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-5 shadow-sm backdrop-blur md:px-8">
+      <header class="sticky top-16 z-20 border-b border-slate-200 bg-white/95 px-4 py-5 shadow-sm backdrop-blur md:px-8">
         <div class="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div class="flex items-center gap-3">
             <button type="button" (click)="router.navigate(['/admin/dashboard'])" class="grid min-h-12 min-w-12 place-items-center rounded-xl bg-slate-100 font-black" aria-label="Kontrol paneline dön">←</button>
             <div><p class="text-[10px] font-black uppercase tracking-[.18em] text-blue-600">Şube Adayları</p><h1 class="text-2xl font-black">İş Ortaklığı Başvuruları</h1><p class="mt-1 text-xs text-slate-500">Başvuru, uygunluk, şube hazırlığı ve aktivasyonu birbirinden ayrı yönetin.</p></div>
           </div>
-          <button type="button" (click)="refresh()" [disabled]="service.loading()" class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white disabled:opacity-50">{{ service.loading() ? 'Yenileniyor...' : 'Başvuruları Yenile' }}</button>
+          <div class="grid w-full gap-2 lg:w-auto lg:grid-cols-[minmax(240px,1fr)_180px_auto]">
+            <input type="search" [ngModel]="query()" (ngModelChange)="query.set($event)" placeholder="Aday, şehir, ilçe veya telefon ara" aria-label="Şube başvurularında ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500" />
+            <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)" aria-label="Şube başvurusu durum filtresi" class="min-h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black"><option value="ALL">Tüm durumlar</option><option value="NEW">Yeni</option><option value="REVIEWING">İnceleniyor</option><option value="CONTACTED">İletişim kuruldu</option><option value="DUE_DILIGENCE">Uygunluk kontrolü</option><option value="APPROVED">Onaylandı</option><option value="REJECTED">Reddedildi</option><option value="CLOSED">Kapalı</option></select>
+            <button type="button" (click)="refresh()" [disabled]="service.loading()" class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white disabled:opacity-50">{{ service.loading() ? 'Yenileniyor...' : 'Yenile' }}</button>
+          </div>
         </div>
       </header>
 
       <section class="mx-auto max-w-7xl space-y-5 p-4 md:p-8">
         <div class="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
           <strong>İşleyiş:</strong> Aday onaylandıktan sonra şube alanı hazırlanır. Hazırlanan şube önce taslaktır. Sözleşme, adres, marka standardı, merkezi fiyat kuralları, güvenlik, müşteri güvencesi, ödeme ayarları ve ilk ilan kontrolü tamamlanmadan canlıya açılamaz.
-        </div>
-
-        <div class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[1fr_auto]">
-          <label><span class="sr-only">Şube başvurularında ara</span><input type="search" [ngModel]="query()" (ngModelChange)="query.set($event)" placeholder="Referans, aday, şehir, ilçe veya telefon ara" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4" /></label>
-          <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)" aria-label="Durum filtresi" class="min-h-12 rounded-xl border border-slate-200 bg-white px-4 font-black">
-            <option value="ALL">Tüm durumlar</option><option value="NEW">Yeni</option><option value="REVIEWING">İnceleniyor</option><option value="CONTACTED">İletişim kuruldu</option><option value="DUE_DILIGENCE">Uygunluk kontrolü</option><option value="APPROVED">Onaylandı</option><option value="REJECTED">Reddedildi</option><option value="CLOSED">Kapalı</option>
-          </select>
         </div>
 
         @if (service.error()) { <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-4 font-bold text-rose-800">Başvuru kaynağına ulaşılamadı: {{ service.error() }}</div> }

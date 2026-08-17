@@ -156,4 +156,17 @@ jobs:
           done
 
       - name: Production build
-        run: npm run build
+        id: production_build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee angular-build.log
+
+      - name: Upload production build diagnostics
+        if: failure() && steps.production_build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: angular-build-log
+          path: angular-build.log
+          if-no-files-found: error
+          retention-days: 2

@@ -17,6 +17,8 @@ import { AdminDashboardShellComponent } from './pages/admin/admin-dashboard-shel
 import { AdminReservationsComponent } from './pages/admin/admin-reservations.component';
 import { AdminBlogComponent } from './pages/admin/admin-blog.component';
 import { AdminSettingsComponent } from './pages/admin/admin-settings.component';
+import { AdminSeoSettingsComponent } from './pages/admin/admin-seo-settings.component';
+import { AdminFaqManagementComponent } from './pages/admin/admin-faq-management.component';
 import { AdminPartnerRequestsComponent } from './pages/admin/admin-partner-requests.component';
 import { AdminBranchPartnerRequestsComponent } from './pages/admin/admin-branch-partner-requests.component';
 import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
@@ -75,6 +77,9 @@ export const routes: Routes = [
       { path: 'navigation', component: AdminNavigationComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'footer', component: AdminFooterComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'legal', component: AdminLegalCenterComponent, canActivate: [adminAreaGuard('settings')] },
+      { path: 'settings', component: AdminSettingsComponent, canActivate: [adminAreaGuard('settings')] },
+      { path: 'seo', component: AdminSeoSettingsComponent, canActivate: [adminAreaGuard('settings')] },
+      { path: 'faq-management', component: AdminFaqManagementComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'campaigns', component: AdminCampaignsComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'media', redirectTo: 'catalog-editor', pathMatch: 'full' },
       { path: 'catalog-editor', component: AdminCatalogEditorComponent, canActivate: [adminAreaGuard('content')] },
@@ -91,8 +96,7 @@ export const routes: Routes = [
       { path: 'partner-requests', component: AdminPartnerRequestsComponent, canActivate: [adminAreaGuard('operations')] },
       { path: 'branch-partner-requests', component: AdminBranchPartnerRequestsComponent, canActivate: [adminAreaGuard('operations')] },
       { path: 'feedback', component: AdminFeedbackComponent, canActivate: [adminAreaGuard('operations')] },
-      { path: 'subscribers', canActivate: [adminAreaGuard('operations')], loadComponent: () => import('./pages/admin/admin-subscribers.component').then(m => m.AdminSubscribersComponent) },
-      { path: 'settings', component: AdminSettingsComponent, canActivate: [adminAreaGuard('settings')] }
+      { path: 'subscribers', canActivate: [adminAreaGuard('operations')], loadComponent: () => import('./pages/admin/admin-subscribers.component').then(m => m.AdminSubscribersComponent) }
     ] },
   { path: '**', component: MainLayoutComponent, children: [{ path: '', loadComponent: () => import('./pages/not-found.component').then(m => m.NotFoundComponent) }] }
 ];

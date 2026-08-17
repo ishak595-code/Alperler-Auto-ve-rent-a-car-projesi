@@ -23,7 +23,6 @@ export interface SiteConfig {
   logoWidthDesktop?: number;
   logoWidthMobile?: number;
   adminProfileUrl?: string;
-
   adminEmails?: string[];
 
   companyName: string;
@@ -40,11 +39,8 @@ export interface SiteConfig {
   youtubeUrl: string;
   tiktokUrl: string;
 
-  // Rental configuration. Values are loaded from public site_config so pricing
-  // can be adjusted without a new frontend deployment.
   rentalExtras?: RentalExtraOption[];
 
-  // SEO & Tracking
   seoTitle?: string;
   seoKeywords?: string;
   seoDescription?: string;
@@ -57,12 +53,11 @@ export interface SiteConfig {
   googleAdsId?: string;
   metaPixelId?: string;
 
-  // About Section
   aboutTitle: string;
   aboutText: string;
   team: TeamMember[];
 
-  // Legal Texts
+  // Core legal texts.
   kvkkText: string;
   privacyText: string;
   cookiesText: string;
@@ -71,10 +66,17 @@ export interface SiteConfig {
   cancellationText: string;
   insuranceText: string;
 
-  // Theme
+  // Service-specific legal texts. Optional for backward compatibility with
+  // older site_config rows; production/admin legal center manages these keys.
+  rentalTermsText?: string;
+  salesTermsText?: string;
+  tourTermsText?: string;
+  partnerTermsText?: string;
+  branchTermsText?: string;
+  commercialCommunicationText?: string;
+
   theme: "light" | "dark" | "luxury" | "corporate";
 
-  // Legacy compatibility fields. New home editing uses homeContent below.
   heroTitle?: string;
   heroSubtitle?: string;
   campaignEarlyBooking?: string;
@@ -95,7 +97,6 @@ export interface SiteConfig {
   partnerSubtitle?: string;
   partnerRequirementYear?: string;
 
-  // Home Content Editor
   homeContent?: {
     heroTitle?: string;
     heroSubtitle?: string;
@@ -128,13 +129,10 @@ export interface SiteConfig {
 
     whyUsTitle?: string;
     whyUsSubtitle?: string;
-
     whyUsTrustTitle?: string;
     whyUsTrustDesc?: string;
-
     whyUsSupportTitle?: string;
     whyUsSupportDesc?: string;
-
     whyUsComfortTitle?: string;
     whyUsComfortDesc?: string;
 

@@ -32,6 +32,7 @@ export class AdminDashboardShellComponent {
   readonly tools = [
     { route: "/admin/analytics", icon: "query_stats", label: "Ziyaretçi Analitiği" },
     { route: "/admin/homepage", icon: "view_quilt", label: "Ana Sayfa Vitrini" },
+    { route: "/admin/navigation", icon: "menu_open", label: "Mobil Menü & Alt Bar" },
     { route: "/admin/campaigns", icon: "campaign", label: "Kampanyalar" },
     { route: "/admin/media", icon: "perm_media", label: "Fotoğraf & Video" },
     { route: "/admin/catalog-editor", icon: "tune", label: "Tam Katalog Editörü" },

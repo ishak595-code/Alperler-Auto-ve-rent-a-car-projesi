@@ -1,0 +1,38 @@
+name: V90 Repair CarService Once
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/v90-repair-car-service.yml']
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Restore known-good service and patch only config save
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout b2448d08d09838424ce48ee92eb530e044fd7cac -- src/services/car.service.ts
+          python <<'PY'
+          from pathlib import Path
+          p=Path('src/services/car.service.ts')
+          text=p.read_text()
+          old='''  updateConfig(newConfig: SiteConfig): void {\n    const normalized = this.normalizeConfig(newConfig);\n    const previous = this._config();\n    this._config.set(normalized);\n    void this.catalogService\n      .saveConfig(normalized)\n      .then((saved) => this._config.set(this.normalizeConfig(saved)))\n      .catch((error) => {\n        console.error("Site config cloud save failed", error);\n        this._config.set(previous);\n      });\n  }'''
+          new='''  async updateConfig(newConfig: SiteConfig): Promise<void> {\n    const normalized = this.normalizeConfig(newConfig);\n    const previous = this._config();\n    this._config.set(normalized);\n    try {\n      const saved = await this.catalogService.saveConfig(normalized);\n      this._config.set(this.normalizeConfig(saved));\n    } catch (error) {\n      console.error("Site config cloud save failed", error);\n      this._config.set(previous);\n      throw error;\n    }\n  }'''
+          if text.count(old)!=1:
+              raise SystemExit(f'Expected one updateConfig block, found {text.count(old)}')
+          p.write_text(text.replace(old,new,1))
+          PY
+          git rm .github/workflows/v90-repair-car-service.yml
+          git diff --check
+      - name: Commit repaired source
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/services/car.service.ts .github/workflows/v90-repair-car-service.yml
+          git commit -m "V90: restore CarService contracts and await config saves"
+          git push origin HEAD:main

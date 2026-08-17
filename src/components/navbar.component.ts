@@ -1,9 +1,10 @@
-import { Component, HostListener, inject, signal } from "@angular/core";
+import { Component, HostListener, effect, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router, RouterLink, RouterLinkActive } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 import { CarService } from "../services/car.service";
 import { Language, UiService } from "../services/ui.service";
+import { NavigationConfigService } from "../services/navigation-config.service";
 
 @Component({
   selector: "app-navbar",
@@ -48,12 +49,15 @@ import { Language, UiService } from "../services/ui.service";
               </div>
             }
             <a routerLink="/fleet" [queryParams]="{ favs: 'true' }" aria-label="Favoriler" class="relative hidden xl:flex h-11 w-11 items-center justify-center rounded-xl text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">favorite_border</mat-icon></a>
-            <button id="mobile-menu-trigger" type="button" (click)="toggleMenu()" [attr.aria-label]="isMenuOpen() ? 'Menüyü kapat' : 'Menüyü aç'" [attr.aria-expanded]="isMenuOpen()" aria-controls="mobile-navigation" class="xl:hidden flex h-12 w-12 items-center justify-center rounded-xl text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">{{ isMenuOpen() ? 'close' : 'menu' }}</mat-icon></button>
+            @if (navigation.mobileMenuEnabled()) {
+              <button id="mobile-menu-trigger" type="button" (click)="toggleMenu()" [attr.aria-label]="isMenuOpen() ? 'Menüyü kapat' : 'Menüyü aç'" [attr.aria-expanded]="isMenuOpen()" aria-controls="mobile-navigation" class="xl:hidden flex h-12 w-12 items-center justify-center rounded-xl text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">{{ isMenuOpen() ? 'close' : 'menu' }}</mat-icon></button>
+            }
           </div>
         </div>
       </div>
     </nav>
 
+    @if (navigation.mobileMenuEnabled()) {
     <nav
       id="mobile-navigation"
       aria-label="Mobil navigasyon"
@@ -70,17 +74,9 @@ import { Language, UiService } from "../services/ui.service";
         </div>
 
         <div class="overflow-hidden rounded-2xl border border-white/10 bg-[#0b1526] shadow-2xl">
-          <a id="mobile-menu-first-link" routerLink="/" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">home</mat-icon><span>Ana Sayfa</span></a>
-          <a routerLink="/fleet" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">key</mat-icon><span>{{ t().nav.fleet }}</span></a>
-          <a routerLink="/sales" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">directions_car</mat-icon><span>{{ t().nav.sales }}</span></a>
-          <a routerLink="/" fragment="campaigns-heading" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">local_offer</mat-icon><span>Kampanyalar</span></a>
-          <a routerLink="/appointment" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">event_available</mat-icon><span>Randevu</span></a>
-          <a routerLink="/list-your-car" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">sell</mat-icon><span>{{ t().nav.earn }}</span></a>
-          <a routerLink="/tours" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">explore</mat-icon><span>{{ t().nav.tours }}</span></a>
-          <a routerLink="/branches" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">storefront</mat-icon><span>Şubeler</span></a>
-          <a routerLink="/blog" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">article</mat-icon><span>{{ t().nav.blog }}</span></a>
-          <a routerLink="/contact" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">support_agent</mat-icon><span>{{ t().nav.contact }}</span></a>
-          <a routerLink="/about" (click)="closeMenu(false)" class="menu-row last"><mat-icon aria-hidden="true">info</mat-icon><span>{{ t().nav.about }}</span></a>
+          @for (item of navigation.itemsFor('MOBILE_MENU'); track item.id; let first = $first; let last = $last) {
+            <a [id]="first ? 'mobile-menu-first-link' : null" [routerLink]="item.route" (click)="closeMenu(false)" class="menu-row" [class.last]="last" [attr.aria-label]="item.label"><mat-icon aria-hidden="true">{{ item.icon }}</mat-icon><span>{{ item.label }}</span></a>
+          }
         </div>
 
         <div class="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0b1526] shadow-2xl" aria-label="Kişisel ayarlar">
@@ -112,6 +108,7 @@ import { Language, UiService } from "../services/ui.service";
         </div>
       </div>
     </nav>
+    }
   `,
   styles: [`
     .brand-name{font-size:15px;line-height:1.05;white-space:nowrap}.brand-sub{font-size:7.5px;line-height:1.2;white-space:nowrap}
@@ -123,6 +120,7 @@ import { Language, UiService } from "../services/ui.service";
 export class NavbarComponent {
   carService = inject(CarService);
   uiService = inject(UiService);
+  navigation = inject(NavigationConfigService);
   router = inject(Router);
   config = this.carService.getConfig();
   favoriteCount = this.carService.getFavoriteCount;
@@ -131,6 +129,8 @@ export class NavbarComponent {
   mobileLanguageOpen = signal(false);
   t = this.uiService.translations;
   languages: Language[] = ["TR", "EN", "DE", "FR", "KU", "ES", "RU", "ZH", "AR"];
+
+  constructor() { effect(() => { if (!this.navigation.mobileMenuEnabled()) this.closeMenu(false); }); }
 
   toggleMenu(): void { this.isMenuOpen() ? this.closeMenu(false) : this.openMenu(); }
   openMenu(): void { if (this.isMenuOpen()) return; this.isLangMenuOpen.set(false); this.mobileLanguageOpen.set(false); this.isMenuOpen.set(true); }

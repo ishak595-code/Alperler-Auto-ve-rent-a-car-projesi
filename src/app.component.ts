@@ -32,7 +32,9 @@ export class AppComponent implements OnInit {
   private readonly newsletterSync = inject(NewsletterSyncService);
   private readonly visitorAnalytics = inject(VisitorAnalyticsService);
   private readonly accessibilityRuntime = inject(AccessibilityRuntimeService);
-  readonly showCustomerChrome = signal(this.isCustomerRoute(this.router.url));
+  readonly showCustomerChrome = signal(
+    this.isCustomerRoute(typeof window !== 'undefined' ? window.location.pathname : this.router.url),
+  );
 
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => {

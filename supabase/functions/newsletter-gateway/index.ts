@@ -6,16 +6,20 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const supabase = createClient(URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const WELCOME_CAMPAIGN_ID = "eeeeeeee-0000-4000-8000-000000000001";
 
-const allowedOrigin = (origin: string): string => {
-  if (!origin) return "*";
-  try {
-    const host = new globalThis.URL(origin).hostname.toLowerCase();
-    if (host === "alperrentacar.online" || host === "www.alperrentacar.online" || host === "localhost" || host === "127.0.0.1" || host.endsWith(".vercel.app")) return origin;
-  } catch { /* reject below */ }
-  return "null";
-};
-function responseHeaders(request: Request): HeadersInit { return { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": allowedOrigin(request.headers.get("origin") || ""), "access-control-allow-methods": "POST, GET, OPTIONS", "access-control-allow-headers": "content-type", vary: "Origin" }; }
-function json(request: Request, body: unknown, status = 200): Response { return Response.json(body, { status, headers: responseHeaders(request) }); }
+// This endpoint is intentionally public. It never returns subscriber lists or secrets,
+// validates/rate-limits input, and only writes one normalized e-mail subscription.
+// Using wildcard CORS avoids browser-specific preflight failures across production,
+// preview and future custom domains while keeping the service-role key server-side.
+function responseHeaders(): HeadersInit {
+  return {
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store",
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "POST, GET, OPTIONS",
+    "access-control-allow-headers": "authorization, apikey, content-type, x-client-info",
+  };
+}
+function json(body: unknown, status = 200): Response { return Response.json(body, { status, headers: responseHeaders() }); }
 function clean(value: unknown, max: number): string { return typeof value === "string" ? value.trim().slice(0, max) : ""; }
 async function digest(value: string): Promise<string> { const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)); return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join(""); }
 async function consume(keyHash: string, scope: string, windowSeconds: number, limit: number): Promise<boolean> { const { data, error } = await supabase.rpc("consume_rate_limit", { p_key_hash: keyHash, p_scope: scope, p_window_seconds: windowSeconds, p_limit: limit }); if (error) throw error; return Boolean(data); }
@@ -42,31 +46,31 @@ async function sendWelcome(subscriber: { id: string; email: string; unsubscribe_
 }
 async function updateWelcomeCampaignCounts(): Promise<void> { const { data } = await supabase.from("newsletter_deliveries").select("status").eq("campaign_id", WELCOME_CAMPAIGN_ID); const counts = { total: 0, sent: 0, failed: 0, skipped: 0 }; for (const row of data || []) { counts.total += 1; if (["SENT","DELIVERED"].includes(row.status)) counts.sent += 1; else if (row.status === "FAILED") counts.failed += 1; else if (row.status === "SKIPPED") counts.skipped += 1; } await supabase.from("newsletter_campaigns").update({ total_recipients: counts.total, sent_count: counts.sent, failed_count: counts.failed, skipped_count: counts.skipped, updated_at: new Date().toISOString() }).eq("id", WELCOME_CAMPAIGN_ID); }
 async function unsubscribe(token: string): Promise<Response> {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(token)) return new Response("Geçersiz abonelik bağlantısı.", { status: 400, headers: { "content-type": "text/plain; charset=utf-8" } });
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(token)) return new Response("Geçersiz abonelik bağlantısı.", { status: 400, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
   const { data, error } = await supabase.from("subscribers").update({ status: "UNSUBSCRIBED", updated_at: new Date().toISOString() }).eq("unsubscribe_token", token).select("email").maybeSingle();
-  if (error || !data?.email) return new Response("Abonelik kaydı bulunamadı veya bağlantı artık geçerli değil.", { status: 404, headers: { "content-type": "text/plain; charset=utf-8" } });
+  if (error || !data?.email) return new Response("Abonelik kaydı bulunamadı veya bağlantı artık geçerli değil.", { status: 404, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
   const settings = await siteSettings(); const phone = clean(settings["phone"], 80), emailAddress = clean(settings["email"], 200);
   return new Response(`<!doctype html><html lang="tr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Abonelikten Çıkıldı | Alperler Auto</title><body style="margin:0;background:#07101f;color:white;font-family:Arial,sans-serif;display:grid;min-height:100vh;place-items:center;padding:24px"><main style="max-width:620px;background:#0f172a;border:1px solid #334155;border-radius:24px;padding:34px"><div style="font-size:12px;color:#60a5fa;font-weight:800;letter-spacing:.15em">ALPERLER AUTO</div><h1>Aboneliğiniz sonlandırıldı</h1><p style="color:#cbd5e1;line-height:1.7">${data.email} adresi artık bülten gönderimleri almayacak. Yeniden abone olmak isterseniz web sitemizdeki bülten formunu kullanabilirsiniz.</p><p style="color:#94a3b8;font-size:13px">${phone || ""}${phone && emailAddress ? " · " : ""}${emailAddress || ""}</p></main></body></html>`, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 }
 
 Deno.serve(async (request: Request) => {
-  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: responseHeaders(request) });
-  if (!URL || !SERVICE_KEY) return json(request, { ok: false, code: "SERVER_CONFIG_MISSING" }, 503);
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: responseHeaders() });
+  if (!URL || !SERVICE_KEY) return json({ ok: false, code: "SERVER_CONFIG_MISSING" }, 503);
   const parsed = new globalThis.URL(request.url), unsubscribeToken = parsed.searchParams.get("unsubscribe");
   if (request.method === "GET" && unsubscribeToken) return unsubscribe(unsubscribeToken);
-  if (request.method !== "POST") return json(request, { ok: false, code: "METHOD_NOT_ALLOWED" }, 405);
-  if (Number(request.headers.get("content-length") || 0) > 4096) return json(request, { ok: false, code: "PAYLOAD_TOO_LARGE" }, 413);
+  if (request.method !== "POST") return json({ ok: false, code: "METHOD_NOT_ALLOWED" }, 405);
+  if (Number(request.headers.get("content-length") || 0) > 4096) return json({ ok: false, code: "PAYLOAD_TOO_LARGE" }, 413);
   try {
     const payload = await request.json().catch(() => null) as { email?: unknown; locale?: unknown } | null;
     const email = typeof payload?.email === "string" ? payload.email.trim().toLowerCase().slice(0, 160) : "", localeRaw = typeof payload?.locale === "string" ? payload.locale.trim().toLowerCase().slice(0, 10) : "tr", locale = /^[a-z]{2}(-[a-z]{2})?$/.test(localeRaw) ? localeRaw : "tr";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json(request, { ok: false, code: "INVALID_EMAIL" }, 400);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json({ ok: false, code: "INVALID_EMAIL" }, 400);
     const ip = (request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("cf-connecting-ip") || "unknown").trim().slice(0, 100), ua = (request.headers.get("user-agent") || "unknown").slice(0, 260), networkHash = await digest(`${ip}|${ua}`), emailHash = await digest(email);
-    if (!(await consume(networkHash, "newsletter_network", 3600, 12)) || !(await consume(emailHash, "newsletter_email", 86400, 4))) return json(request, { ok: false, code: "RATE_LIMITED" }, 429);
+    if (!(await consume(networkHash, "newsletter_network", 3600, 20)) || !(await consume(emailHash, "newsletter_email", 86400, 6))) return json({ ok: false, code: "RATE_LIMITED" }, 429);
     const { data: existing, error: lookupError } = await supabase.from("subscribers").select("id,email,status,unsubscribe_token").ilike("email", email).limit(1).maybeSingle(); if (lookupError) throw lookupError;
     let subscriber: { id: string; email: string; unsubscribe_token: string }; let existed = Boolean(existing?.id);
     if (existing?.id) { const { data, error } = await supabase.from("subscribers").update({ status: "ACTIVE", locale, source: "WEB", consent_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", existing.id).select("id,email,unsubscribe_token").single(); if (error) throw error; subscriber = data; }
     else { const { data, error } = await supabase.from("subscribers").insert({ email, locale, status: "ACTIVE", source: "WEB", consent_at: new Date().toISOString() }).select("id,email,unsubscribe_token").single(); if (error) { if (error.code === "23505") { const retry = await supabase.from("subscribers").select("id,email,unsubscribe_token").ilike("email", email).single(); if (retry.error) throw retry.error; subscriber = retry.data; existed = true; } else throw error; } else subscriber = data; }
     const settings = await siteSettings(), welcomeEmail = await sendWelcome(subscriber, settings); await updateWelcomeCampaignCounts();
-    return json(request, { ok: true, subscribed: true, existing: existed, subscriberId: subscriber.id, welcomeEmail }, existed ? 200 : 201);
-  } catch (error) { console.error("newsletter-gateway failed", error); return json(request, { ok: false, code: "NEWSLETTER_FAILED" }, 500); }
+    return json({ ok: true, subscribed: true, existing: existed, subscriberId: subscriber.id, welcomeEmail }, existed ? 200 : 201);
+  } catch (error) { console.error("newsletter-gateway failed", error); return json({ ok: false, code: "NEWSLETTER_FAILED" }, 500); }
 });

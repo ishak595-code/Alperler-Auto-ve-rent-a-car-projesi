@@ -6,6 +6,7 @@ import { CarService, FaqItem } from "../../services/car.service";
 import { AuthService } from "../../services/auth.service";
 import { ToastService } from "../../services/toast.service";
 import { ConfirmService } from "../../services/confirm.service";
+import { AdminMediaService } from "../../services/admin-media.service";
 import { SiteConfig, TeamMember } from "../../models/site-config.model";
 
 @Component({
@@ -1482,6 +1483,10 @@ import { SiteConfig, TeamMember } from "../../models/site-config.model";
                   class="w-full p-3 border rounded text-sm"
                   placeholder="https://... (önerilen boyut: 1200x630)"
                 />
+                <label class="mt-2 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 text-xs font-black text-blue-700">
+                  Dosya Seç
+                  <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" class="sr-only" (change)="onOgImageSelected($event)" aria-label="Sosyal medya paylaşım görseli dosyası seç" />
+                </label>
               </div>
               <div class="md:col-span-2">
                 <label
@@ -1654,6 +1659,10 @@ import { SiteConfig, TeamMember } from "../../models/site-config.model";
                 <label class="min-w-0 flex-1">
                   <span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Profil fotoğrafı URL</span>
                   <input [(ngModel)]="formConfig.adminProfileUrl" name="adminProfileUrl" class="w-full rounded-lg border bg-white p-3 text-sm text-slate-700" placeholder="https://..." />
+                  <label class="mt-2 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 text-xs font-black text-blue-700">
+                    Dosya Seç
+                    <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" class="sr-only" (change)="onAdminProfileSelected($event)" aria-label="Admin profil fotoğrafı dosyası seç" />
+                  </label>
                 </label>
               </div>
             </div>
@@ -1679,6 +1688,7 @@ export class AdminSettingsComponent implements OnInit {
   authService = inject(AuthService);
   toastService = inject(ToastService);
   confirmService = inject(ConfirmService);
+  mediaService = inject(AdminMediaService);
   router = inject(Router);
   currentConfig = this.carService.getConfig();
   faqs = this.carService.getFaqs();
@@ -1835,26 +1845,56 @@ export class AdminSettingsComponent implements OnInit {
     }
   }
 
-  onFileSelected(event: any, member: TeamMember) {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e: any) => {
-        member.image = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
+  async onFileSelected(event: Event, member: TeamMember) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const uploaded = await this.mediaService.uploadImage(file, "TEAM_MEMBER", String(member.id), "profile");
+      member.image = uploaded.publicUrl;
+      this.toastService.show("Ekip fotoğrafı Supabase Storage'a yüklendi.", "success");
+    } catch (error) {
+      this.toastService.show(error instanceof Error ? error.message : "Fotoğraf yüklenemedi.", "error");
+    } finally { input.value = ""; }
   }
 
-  onLogoSelected(event: any) {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e: any) => {
-        this.formConfig.logoUrl = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
+  async onLogoSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const uploaded = await this.mediaService.uploadImage(file, "SITE_CONFIG", "main", "logo");
+      this.formConfig.logoUrl = uploaded.publicUrl;
+      this.toastService.show("Logo Supabase Storage'a yüklendi.", "success");
+    } catch (error) {
+      this.toastService.show(error instanceof Error ? error.message : "Logo yüklenemedi.", "error");
+    } finally { input.value = ""; }
+  }
+
+  async onAdminProfileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const uploaded = await this.mediaService.uploadImage(file, "SITE_CONFIG", "main", "admin-profile");
+      this.formConfig.adminProfileUrl = uploaded.publicUrl;
+      this.toastService.show("Admin profil fotoğrafı Supabase Storage'a yüklendi.", "success");
+    } catch (error) {
+      this.toastService.show(error instanceof Error ? error.message : "Profil fotoğrafı yüklenemedi.", "error");
+    } finally { input.value = ""; }
+  }
+
+  async onOgImageSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const uploaded = await this.mediaService.uploadImage(file, "SITE_CONFIG", "main", "og-image");
+      this.formConfig.seoOgImage = uploaded.publicUrl;
+      this.toastService.show("Paylaşım görseli Supabase Storage'a yüklendi.", "success");
+    } catch (error) {
+      this.toastService.show(error instanceof Error ? error.message : "Paylaşım görseli yüklenemedi.", "error");
+    } finally { input.value = ""; }
   }
 
 
@@ -1944,7 +1984,7 @@ export class AdminSettingsComponent implements OnInit {
       name: "",
       role: "",
       description: "",
-      image: "https://picsum.photos/200/200",
+      image: "",
     };
     this.formConfig.team = [...this.formConfig.team, newMember];
   }

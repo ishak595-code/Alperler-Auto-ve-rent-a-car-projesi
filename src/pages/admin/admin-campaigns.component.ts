@@ -5,6 +5,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { CampaignRecord, CampaignService } from "../../services/campaign.service";
 import { CarService } from "../../services/car.service";
 import { ToastService } from "../../services/toast.service";
+import { AdminMediaService } from "../../services/admin-media.service";
 
 @Component({
   selector: "app-admin-campaigns",
@@ -40,7 +41,12 @@ import { ToastService } from "../../services/toast.service";
                 <label class="field"><span>Vitrin rozeti</span><input [(ngModel)]="badge" name="badge" placeholder="7 GÜNDE 1 GÜN BİZDEN" /></label>
               </div>
 
-              <label class="field"><span>Kapak görseli URL</span><input [(ngModel)]="coverImage" name="coverImage" type="url" placeholder="https://..." /></label>
+              <div class="field"><span>Kapak görseli</span><input [(ngModel)]="coverImage" name="coverImage" type="url" placeholder="https://..." aria-label="Kampanya kapak görseli URL adresi" />
+                <label class="flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-4 text-xs font-black text-amber-800">Dosya Seç
+                  <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" class="sr-only" (change)="onCampaignCoverSelected($event)" aria-label="Kampanya kapak görseli dosyası seç" />
+                </label>
+                @if (coverImage) { <img [src]="coverImage" alt="Kampanya kapak önizlemesi" class="mt-2 aspect-video w-full rounded-xl object-cover" /> }
+              </div>
 
               <div class="grid grid-cols-3 gap-2">
                 <label class="field"><span>Eski fiyat</span><input [(ngModel)]="oldPrice" name="oldPrice" type="number" min="0" /></label>
@@ -155,6 +161,7 @@ export class AdminCampaignsComponent implements OnInit {
   private readonly campaignService = inject(CampaignService);
   private readonly cars = inject(CarService);
   private readonly toast = inject(ToastService);
+  private readonly adminMedia = inject(AdminMediaService);
   readonly campaigns = this.campaignService.campaigns;
   readonly saving = signal(false);
 
@@ -240,6 +247,19 @@ export class AdminCampaignsComponent implements OnInit {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  async onCampaignCoverSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const entityId = this.editingId || `draft-${Date.now()}`;
+      const uploaded = await this.adminMedia.uploadImage(file, "CAMPAIGN", entityId, "cover");
+      this.coverImage = uploaded.publicUrl;
+      this.toast.show("Kampanya görseli Supabase Storage'a yüklendi.", "success");
+    } catch (error) { this.toast.show(this.message(error), "error"); }
+    finally { input.value = ""; }
   }
 
   edit(campaign: CampaignRecord): void {

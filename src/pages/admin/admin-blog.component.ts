@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { CarService } from '../../services/car.service';
 import { ToastService } from '../../services/toast.service';
 import { ConfirmService } from '../../services/confirm.service';
+import { AdminMediaService } from '../../services/admin-media.service';
 
 @Component({
   selector: 'app-admin-blog',
@@ -66,7 +67,10 @@ import { ConfirmService } from '../../services/confirm.service';
                          <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
                              <h4 class="font-bold text-sm text-slate-800 mb-4 border-b border-slate-200 pb-2">Görsel & Medya</h4>
                              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Kapak Görseli URL</label>
-                             <input [(ngModel)]="newPost.image" placeholder="https://..." class="w-full p-3 border border-slate-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none mb-4">
+                             <input [(ngModel)]="newPost.image" placeholder="https://..." aria-label="Blog kapak görseli URL adresi" class="w-full p-3 border border-slate-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none mb-2">
+                             <label class="mb-4 flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 text-xs font-black text-blue-700">Dosya Seç
+                               <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" class="sr-only" (change)="onBlogImageSelected($event)" aria-label="Blog kapak görseli dosyası seç" />
+                             </label>
                              
                              <!-- Preview -->
                              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Önizleme</label>
@@ -153,13 +157,28 @@ export class AdminBlogComponent {
   carService = inject(CarService);
   toastService = inject(ToastService);
   confirmService = inject(ConfirmService);
+  mediaService = inject(AdminMediaService);
   router = inject(Router);
   posts = this.carService.getBlogPosts();
   showForm = signal(false);
 
   newPost: any = {
-      title: '', summary: '', content: '', image: 'https://picsum.photos/800/600', readTime: '', date: new Date().toLocaleDateString('tr-TR')
+      title: '', summary: '', content: '', image: '', readTime: '', date: new Date().toLocaleDateString('tr-TR')
   };
+
+  async onBlogImageSelected(event: Event) {
+      const input = event.target as HTMLInputElement;
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+          const entityId = String(this.newPost.cloudId || this.newPost.id || `draft-${Date.now()}`);
+          const uploaded = await this.mediaService.uploadImage(file, 'BLOG', entityId, 'cover');
+          this.newPost.image = uploaded.publicUrl;
+          this.toastService.show("Blog görseli Supabase Storage'a yüklendi.", 'success');
+      } catch (error) {
+          this.toastService.show(error instanceof Error ? error.message : 'Blog görseli yüklenemedi.', 'error');
+      } finally { input.value = ''; }
+  }
 
   goBack() {
       this.router.navigate(['/admin/dashboard']);
@@ -168,7 +187,7 @@ export class AdminBlogComponent {
   toggleForm() { 
       this.showForm.update(v => !v); 
       if (!this.showForm()) {
-          this.newPost = { title: '', summary: '', content: '', image: 'https://picsum.photos/800/600', readTime: '', date: new Date().toLocaleDateString('tr-TR') };
+          this.newPost = { title: '', summary: '', content: '', image: '', readTime: '', date: new Date().toLocaleDateString('tr-TR') };
       }
   }
 
@@ -186,7 +205,7 @@ export class AdminBlogComponent {
       this.toastService.show(this.newPost.id ? 'Yazı güncellendi.' : 'Yeni yazı eklendi.', 'success');
       this.showForm.set(false);
       // Reset
-      this.newPost = { title: '', summary: '', content: '', image: 'https://picsum.photos/800/600', readTime: '', date: new Date().toLocaleDateString('tr-TR') };
+      this.newPost = { title: '', summary: '', content: '', image: '', readTime: '', date: new Date().toLocaleDateString('tr-TR') };
   }
 
   async deletePost(id: number) {

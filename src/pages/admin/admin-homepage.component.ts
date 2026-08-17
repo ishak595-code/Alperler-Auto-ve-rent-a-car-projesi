@@ -281,7 +281,7 @@ export class AdminHomepageComponent implements OnInit {
     const vehicles = this.cars.getAllVehicles()().filter((item) => item.category !== 'TOUR' && item.cloudId).map((item) => ({ id: item.cloudId!, type: 'VEHICLE' as const, label: `${item.brand || ''} ${item.model || ''}`.trim(), image: item.image, meta: `${item.category === 'RENTAL' ? 'Kiralık' : 'Satılık'} · ${item.year || ''}`, category: item.category }));
     const tours = this.cars.getTours()().filter((item) => item.cloudId).map((item) => ({ id: item.cloudId!, type: 'TOUR' as const, label: item.title || 'Tur', image: item.image, meta: item.duration || 'Tur' }));
     const blogs = this.cars.getBlogPosts()().map((item: any) => ({ id: String(item.cloudId || ''), type: 'BLOG' as const, label: item.title, image: item.image, meta: item.date })).filter((item) => item.id);
-    const campaigns = this.campaigns.adminCampaigns().map((item) => ({ id: item.id, type: 'CAMPAIGN' as const, label: item.title, image: item.coverImage, meta: item.publicationStatus }));
+    const campaigns = this.campaigns.campaigns().map((item) => ({ id: item.id, type: 'CAMPAIGN' as const, label: item.title, image: item.coverImage, meta: item.publicationStatus }));
     if (!section) return [...vehicles, ...tours, ...blogs, ...campaigns];
     if (section.sectionType === 'VEHICLES') { const category = this.setting(section, 'category', 'RENTAL'); return vehicles.filter((item: any) => item.category === category); }
     if (section.sectionType === 'TOURS') return tours; if (section.sectionType === 'BLOG') return blogs; if (section.sectionType === 'CAMPAIGN') return campaigns; return [];

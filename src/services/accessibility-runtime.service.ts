@@ -11,21 +11,15 @@ export class AccessibilityRuntimeService {
     this.scan(document.body);
     this.observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
-        if (mutation.type === 'childList') {
-          mutation.addedNodes.forEach((node) => {
-            if (node instanceof HTMLElement) this.scan(node);
-          });
-        }
-        if (mutation.type === 'attributes' && mutation.target instanceof HTMLElement) {
-          this.prepareInteractive(mutation.target);
-        }
+        if (mutation.type !== 'childList') continue;
+        mutation.addedNodes.forEach((node) => {
+          if (node instanceof HTMLElement) this.scan(node);
+        });
       }
     });
     this.observer.observe(document.body, {
       childList: true,
       subtree: true,
-      attributes: true,
-      attributeFilter: ['type', 'name', 'id', 'placeholder', 'aria-label', 'aria-labelledby', 'aria-hidden', 'href'],
     });
   }
 
@@ -60,33 +54,39 @@ export class AccessibilityRuntimeService {
     }
   }
 
+  private setName(control: HTMLElement, value: string): void {
+    const next = this.clean(value);
+    if (!next) return;
+    if (control.getAttribute('aria-label') !== next) control.setAttribute('aria-label', next);
+  }
+
   private applyConciseKnownName(control: HTMLElement): void {
     if (control.matches('.dock-action')) {
       const visible = control.querySelector('span')?.textContent?.trim();
-      if (visible) control.setAttribute('aria-label', this.clean(visible));
+      if (visible) this.setName(control, visible);
       return;
     }
     if (control.matches('a.partner-inline')) {
-      control.setAttribute('aria-label', 'Bayilik başvurusu');
+      this.setName(control, 'Bayilik başvurusu');
       return;
     }
     if (control.matches('.vehicle-partner a')) {
-      control.setAttribute('aria-label', 'Aracımı değerlendir');
+      this.setName(control, 'Aracımı değerlendir');
       return;
     }
     if (control.matches('a.branch-card')) {
       const title = control.querySelector('h3')?.textContent?.trim();
-      control.setAttribute('aria-label', title ? `Şube: ${this.clean(title)}` : 'Şubeyi aç');
+      this.setName(control, title ? `Şube: ${this.clean(title)}` : 'Şubeyi aç');
       return;
     }
     if (control.matches('a.tour-card')) {
       const title = control.querySelector('h3')?.textContent?.trim();
-      control.setAttribute('aria-label', title ? `Tur: ${this.clean(title)}` : 'Turu aç');
+      this.setName(control, title ? `Tur: ${this.clean(title)}` : 'Turu aç');
       return;
     }
     if (control.matches('a.blog-card')) {
       const title = control.querySelector('h3')?.textContent?.trim();
-      control.setAttribute('aria-label', title ? `Yazı: ${this.clean(title)}` : 'Yazıyı aç');
+      this.setName(control, title ? `Yazı: ${this.clean(title)}` : 'Yazıyı aç');
     }
   }
 
@@ -104,7 +104,7 @@ export class AccessibilityRuntimeService {
       || this.humanize(control.id || '')
       || this.fallbackName(control);
 
-    if (text) control.setAttribute('aria-label', this.clean(text));
+    if (text) this.setName(control, text);
   }
 
   private hasAccessibleName(control: HTMLElement): boolean {

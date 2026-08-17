@@ -4,16 +4,18 @@ import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.conf
 
 export type HomepageSectionType = 'VEHICLES' | 'TOURS' | 'BLOG' | 'CAMPAIGN' | 'CUSTOM';
 export type HomepageEntityType = 'VEHICLE' | 'TOUR' | 'BLOG' | 'CAMPAIGN';
+export type HomepageTheme = 'light' | 'soft' | 'dark' | 'brand' | 'ocean' | 'emerald' | 'sunset' | 'violet' | 'sand' | 'graphite';
 
 export interface HomepageSectionSettings {
   category?: 'RENTAL' | 'SALE';
   renderer?: 'BRANCHES' | 'PARTNER' | 'PROMO';
   badge?: string;
   description?: string;
+  profileImage?: string;
   backgroundImage?: string;
   coverImage?: string;
   backgroundColor?: string;
-  theme?: 'light' | 'soft' | 'dark' | 'brand';
+  theme?: HomepageTheme;
   layout?: 'rail' | 'grid' | 'wide';
   width?: 'standard' | 'wide' | 'full';
   viewAllLabel?: string;
@@ -72,12 +74,7 @@ export class HomepageAdminService {
     }
   }
 
-  async createSection(input: {
-    title: string;
-    sectionType: HomepageSectionType;
-    maxItems?: number;
-    settings?: HomepageSectionSettings;
-  }): Promise<HomepageSectionRecord> {
+  async createSection(input: { title: string; sectionType: HomepageSectionType; maxItems?: number; settings?: HomepageSectionSettings }): Promise<HomepageSectionRecord> {
     const token = await this.requiredToken();
     const sectionKey = this.createSectionKey(input.title);
     const nextSort = this._sections().reduce((max, item) => Math.max(max, item.sortOrder), 0) + 10;
@@ -118,12 +115,7 @@ export class HomepageAdminService {
 
   async reorderSections(orderedKeys: string[]): Promise<void> {
     const token = await this.requiredToken();
-    await Promise.all(orderedKeys.map((key, index) => this.rest(
-      'PATCH',
-      `homepage_sections?section_key=eq.${encodeURIComponent(key)}`,
-      { sort_order: (index + 1) * 10, updated_at: new Date().toISOString() },
-      token,
-    )));
+    await Promise.all(orderedKeys.map((key, index) => this.rest('PATCH', `homepage_sections?section_key=eq.${encodeURIComponent(key)}`, { sort_order: (index + 1) * 10, updated_at: new Date().toISOString() }, token)));
     await this.refresh();
   }
 
@@ -165,12 +157,7 @@ export class HomepageAdminService {
 
   async reorderPlacements(orderedIds: string[]): Promise<void> {
     const token = await this.requiredToken();
-    await Promise.all(orderedIds.map((id, index) => this.rest(
-      'PATCH',
-      `homepage_placements?id=eq.${encodeURIComponent(id)}`,
-      { sort_order: index + 1, updated_at: new Date().toISOString() },
-      token,
-    )));
+    await Promise.all(orderedIds.map((id, index) => this.rest('PATCH', `homepage_placements?id=eq.${encodeURIComponent(id)}`, { sort_order: index + 1, updated_at: new Date().toISOString() }, token)));
     await this.refresh();
   }
 
@@ -202,19 +189,7 @@ export class HomepageAdminService {
   }
 
   private createSectionKey(title: string): string {
-    const base = title
-      .toLocaleLowerCase('tr-TR')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/ı/g, 'i')
-      .replace(/ş/g, 's')
-      .replace(/ğ/g, 'g')
-      .replace(/ü/g, 'u')
-      .replace(/ö/g, 'o')
-      .replace(/ç/g, 'c')
-      .replace(/[^a-z0-9]+/g, '_')
-      .replace(/^_+|_+$/g, '')
-      .slice(0, 48) || 'bolum';
+    const base = title.toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 48) || 'bolum';
     return `${base}_${Date.now().toString(36)}`;
   }
 
@@ -229,13 +204,7 @@ export class HomepageAdminService {
     return token;
   }
 
-  private async rest<T = unknown>(
-    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
-    path: string,
-    body: unknown,
-    token: string,
-    prefer?: string,
-  ): Promise<T> {
+  private async rest<T = unknown>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body: unknown, token: string, prefer?: string): Promise<T> {
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
       method,
       headers: {

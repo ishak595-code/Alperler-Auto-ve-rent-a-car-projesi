@@ -1,7 +1,7 @@
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { CarService } from '../../services/car.service';
@@ -14,73 +14,128 @@ interface AdminMenuGroup { id: string; title: string; icon: string; items: Admin
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterOutlet, RouterLink, RouterLinkActive, ToastComponent, ConfirmModalComponent],
+  imports: [CommonModule, FormsModule, RouterOutlet, ToastComponent, ConfirmModalComponent],
   template: `
     <app-toast />
     <app-confirm-modal />
+
     <div class="admin-shell">
-      <header class="topbar">
-        <button type="button" class="menu-button" (click)="toggleSidebar()" [attr.aria-expanded]="isSidebarOpen()" aria-controls="admin-menu" aria-label="Yönetim menüsünü aç veya kapat"><span aria-hidden="true">☰</span><span>Menü</span></button>
-        @if (!isDashboard()) { <button type="button" class="back-button" (click)="goBack()" aria-label="Önceki admin sayfasına dön"><span aria-hidden="true">←</span><span>Geri</span></button> }
-        <a routerLink="/admin/dashboard" class="brand" aria-label="Admin kontrol paneline git">
-          @if (config().logoUrl) { <img [src]="config().logoUrl" alt="" aria-hidden="true" /> } @else { <span class="brand-mark" aria-hidden="true">A</span> }
-          <span><strong>ALPERLER AUTO</strong><small>{{ adminPageTitle() }}</small></span>
-        </a>
-        <a routerLink="/" class="site-link" target="_blank" aria-label="Müşteri sitesini yeni sekmede aç">Site</a>
-      </header>
+      @if (!isMenuOpen()) {
+        <button
+          type="button"
+          class="edge-menu-button"
+          (click)="openMenu()"
+          aria-controls="admin-command-menu"
+          aria-expanded="false"
+          [attr.aria-label]="'Yönetim menüsünü aç. Şu an ' + pageTitle() + ' sayfasındasınız'"
+        >
+          <span aria-hidden="true">⋮</span>
+        </button>
+      }
 
-      @if (isSidebarOpen()) { <button type="button" class="backdrop" (click)="closeSidebar()" aria-label="Yönetim menüsünü kapat"></button> }
+      @if (isMenuOpen()) {
+        <button type="button" class="menu-backdrop" (click)="closeMenu()" aria-label="Yönetim menüsünü kapat"></button>
+      }
 
-      <aside id="admin-menu" class="sidebar" [class.open]="isSidebarOpen()" aria-label="Admin ana menüsü">
-        <div class="sidebar-head">
-          <div class="profile">
-            @if (config().adminProfileUrl) { <img [src]="config().adminProfileUrl" alt="Yönetici profil görseli" /> } @else { <span aria-hidden="true">A</span> }
-            <div><strong>Yönetim Merkezi</strong><small>{{ adminPageTitle() }}</small></div>
+      <aside id="admin-command-menu" class="command-drawer" [class.open]="isMenuOpen()" aria-label="Admin yönetim menüsü">
+        <header class="drawer-header">
+          <div class="profile-block">
+            @if (config().adminProfileUrl) {
+              <img [src]="config().adminProfileUrl" alt="Yönetici profil görseli" />
+            } @else {
+              <span class="profile-fallback" aria-hidden="true">A</span>
+            }
+            <div>
+              <strong>{{ config().adminDisplayName || 'Yönetim Merkezi' }}</strong>
+              <small>{{ pageTitle() }}</small>
+            </div>
           </div>
-          <button type="button" class="close-button" (click)="closeSidebar()" aria-label="Yönetim menüsünü kapat">×</button>
-        </div>
+          <button type="button" class="drawer-close" (click)="closeMenu()" aria-label="Yönetim menüsünü kapat">×</button>
+        </header>
+
+        <section class="drawer-brand" aria-label="Alperler Auto yönetim alanı">
+          <span class="brand-mark" aria-hidden="true">A</span>
+          <div><strong>ALPERLER AUTO</strong><small>Canlı Yönetim Merkezi</small></div>
+        </section>
 
         <div class="menu-search">
-          <label for="admin-menu-search">Menüde ara</label>
-          <div><span aria-hidden="true">⌕</span><input id="admin-menu-search" [(ngModel)]="menuSearch" type="search" autocomplete="off" placeholder="Araç, bülten, yasal…" aria-label="Yönetim menüsünde sayfa ara" />@if(menuSearch.trim()){<button type="button" (click)="menuSearch=''" aria-label="Menü aramasını temizle">×</button>}</div>
+          <label for="admin-command-search">Menüde ara</label>
+          <div class="search-control">
+            <span aria-hidden="true">⌕</span>
+            <input
+              id="admin-command-search"
+              [(ngModel)]="menuSearch"
+              type="search"
+              autocomplete="off"
+              placeholder="Araç, bülten, yasal, SEO…"
+              aria-label="Yönetim menüsünde sayfa ara"
+            />
+            @if (menuSearch.trim()) {
+              <button type="button" (click)="menuSearch=''" aria-label="Menü aramasını temizle">×</button>
+            }
+          </div>
         </div>
 
-        <nav class="menu" aria-label="Admin yönetim bölümleri">
+        <nav class="menu-scroll" aria-label="Yönetim sayfaları">
           @if (menuSearch.trim()) {
             <p class="result-title">Arama Sonuçları · {{ searchResults().length }}</p>
-            @for (item of searchResults(); track item.route) { <ng-container *ngTemplateOutlet="navItem; context: {$implicit:item}"></ng-container> }
-            @empty { <div class="empty-result">Eşleşen yönetim sayfası yok.</div> }
+            @for (item of searchResults(); track item.route) {
+              <button type="button" class="nav-item" [class.active]="isActive(item.route)" (click)="go(item.route)" [attr.aria-label]="item.label + ' sayfasını aç'">
+                <span class="item-icon" aria-hidden="true">{{ item.icon }}</span><span>{{ item.label }}</span>
+              </button>
+            } @empty {
+              <div class="empty-result">Eşleşen yönetim sayfası bulunamadı.</div>
+            }
           } @else {
             @for (group of menuGroups; track group.id) {
               <section class="menu-group">
-                <button type="button" class="group-toggle" (click)="toggleGroup(group.id)" [attr.aria-expanded]="groupOpen(group.id)" [attr.aria-controls]="'group-'+group.id" [attr.aria-label]="group.title + ' menüsünü ' + (groupOpen(group.id) ? 'kapat' : 'aç')"><span class="group-icon" aria-hidden="true">{{ group.icon }}</span><strong>{{ group.title }}</strong><span aria-hidden="true">{{ groupOpen(group.id) ? '⌃' : '⌄' }}</span></button>
-                @if (groupOpen(group.id)) { <div [id]="'group-'+group.id" class="group-items">@for (item of group.items; track item.route) { <ng-container *ngTemplateOutlet="navItem; context: {$implicit:item}"></ng-container> }</div> }
+                <button
+                  type="button"
+                  class="group-toggle"
+                  (click)="toggleGroup(group.id)"
+                  [attr.aria-expanded]="groupOpen(group.id)"
+                  [attr.aria-controls]="'admin-group-' + group.id"
+                >
+                  <span class="group-icon" aria-hidden="true">{{ group.icon }}</span>
+                  <strong>{{ group.title }}</strong>
+                  <span aria-hidden="true">{{ groupOpen(group.id) ? '⌃' : '⌄' }}</span>
+                </button>
+                @if (groupOpen(group.id)) {
+                  <div class="group-items" [id]="'admin-group-' + group.id">
+                    @for (item of group.items; track item.route) {
+                      <button type="button" class="nav-item" [class.active]="isActive(item.route)" (click)="go(item.route)" [attr.aria-label]="item.label + ' sayfasını aç'">
+                        <span class="item-icon" aria-hidden="true">{{ item.icon }}</span><span>{{ item.label }}</span>
+                      </button>
+                    }
+                  </div>
+                }
               </section>
             }
           }
         </nav>
 
-        <ng-template #navItem let-item>
-          <a [routerLink]="item.route" routerLinkActive="active" [routerLinkActiveOptions]="{exact:item.route==='/admin/dashboard'}" (click)="closeSidebar()" [attr.aria-label]="item.label + ' sayfasını aç'"><span class="menu-icon" aria-hidden="true">{{ item.icon }}</span><span>{{ item.label }}</span></a>
-        </ng-template>
-
-        <div class="sidebar-foot"><a routerLink="/admin/dashboard" (click)="closeSidebar()" aria-label="Kontrol paneline git">⌂ Kontrol Paneli</a><button type="button" (click)="logout()" aria-label="Admin hesabından çıkış yap">Çıkış Yap</button></div>
+        <footer class="drawer-footer">
+          <button type="button" (click)="go('/admin/dashboard')">⌂ Kontrol Paneli</button>
+          <a href="/" target="_blank" rel="noopener noreferrer" aria-label="Müşteri sitesini yeni sekmede aç">↗ Siteyi Gör</a>
+          <button type="button" class="logout" (click)="logout()">Çıkış Yap</button>
+        </footer>
       </aside>
 
-      <main class="content"><router-outlet /></main>
+      <main id="admin-page-content" class="admin-page" tabindex="-1" [attr.aria-label]="pageTitle()">
+        <router-outlet />
+      </main>
     </div>
   `,
   styles: [`
-    :host{display:block}.admin-shell{min-height:100vh;background:#f8fafc;color:#0f172a;font-family:ui-sans-serif,system-ui,sans-serif}.topbar{position:fixed;inset:0 0 auto;z-index:80;display:flex;height:64px;align-items:center;gap:.45rem;border-bottom:1px solid #e2e8f0;background:rgba(255,255,255,.98);padding:0 .65rem;box-shadow:0 4px 20px rgba(15,23,42,.06);backdrop-filter:blur(14px)}.menu-button,.back-button,.site-link{display:inline-flex;min-height:42px;align-items:center;justify-content:center;gap:.35rem;border:0;border-radius:11px;background:#f1f5f9;padding:0 .7rem;color:#0f172a;font:850 .72rem/1 inherit;text-decoration:none}.site-link{margin-left:auto;background:#0f172a;color:#fff}.brand{display:flex;min-width:0;align-items:center;gap:.5rem;color:#0f172a;text-decoration:none}.brand img,.brand-mark{width:34px;height:34px;flex:none;border-radius:10px}.brand img{object-fit:contain}.brand-mark{display:grid;place-items:center;background:#2563eb;color:#fff;font:900 1rem/1 Georgia,serif}.brand>span:last-child{display:flex;min-width:0;flex-direction:column}.brand strong{font-size:.7rem;white-space:nowrap}.brand small{max-width:42vw;overflow:hidden;color:#2563eb;font-size:.55rem;font-weight:900;text-overflow:ellipsis;white-space:nowrap}.backdrop{position:fixed;inset:64px 0 0;z-index:81;border:0;background:rgba(2,6,23,.57);backdrop-filter:blur(2px)}.sidebar{position:fixed;z-index:82;left:0;top:64px;bottom:0;display:flex;width:min(92vw,360px);transform:translateX(-105%);flex-direction:column;background:#07101f;color:#fff;box-shadow:24px 0 50px rgba(2,6,23,.3);transition:transform .2s ease}.sidebar.open{transform:translateX(0)}.sidebar-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;border-bottom:1px solid rgba(255,255,255,.09);padding:.9rem}.profile{display:flex;min-width:0;align-items:center;gap:.65rem}.profile img,.profile>span{width:42px;height:42px;flex:none;border-radius:999px}.profile img{object-fit:cover}.profile>span{display:grid;place-items:center;background:#1d4ed8;font-weight:950}.profile div{display:flex;min-width:0;flex-direction:column}.profile strong{font-size:.78rem}.profile small{max-width:220px;overflow:hidden;color:#94a3b8;font-size:.6rem;text-overflow:ellipsis;white-space:nowrap}.close-button{width:42px;height:42px;border:0;border-radius:11px;background:rgba(255,255,255,.08);color:#fff;font-size:1.35rem}.menu-search{border-bottom:1px solid rgba(255,255,255,.08);padding:.8rem}.menu-search>label{display:block;margin:0 0 .35rem;color:#94a3b8;font-size:.58rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em}.menu-search>div{display:flex;min-height:44px;align-items:center;gap:.45rem;border:1px solid rgba(148,163,184,.2);border-radius:12px;background:rgba(255,255,255,.06);padding:0 .65rem}.menu-search input{min-width:0;flex:1;border:0;background:transparent;color:#fff;outline:none;font-size:.75rem}.menu-search input::placeholder{color:#64748b}.menu-search button{width:34px;height:34px;border:0;background:transparent;color:#cbd5e1}.menu{flex:1;overflow-y:auto;padding:.7rem}.menu-group{margin-bottom:.5rem;overflow:hidden;border:1px solid rgba(148,163,184,.12);border-radius:14px}.group-toggle{display:grid;width:100%;min-height:48px;grid-template-columns:30px 1fr auto;align-items:center;gap:.45rem;border:0;background:rgba(255,255,255,.035);padding:0 .65rem;color:#e2e8f0;text-align:left}.group-toggle strong{font-size:.7rem}.group-icon,.menu-icon{display:grid;width:25px;height:25px;place-items:center;border-radius:8px;background:rgba(255,255,255,.06);font-size:.72rem}.group-items{border-top:1px solid rgba(148,163,184,.1);padding:.35rem}.menu a{display:flex;min-height:44px;align-items:center;gap:.65rem;border-radius:11px;padding:0 .65rem;color:#cbd5e1;font-size:.69rem;font-weight:800;text-decoration:none}.menu a:hover,.menu a.active{background:rgba(37,99,235,.2);color:#fff}.result-title{margin:.3rem .45rem .55rem;color:#64748b;font-size:.58rem;font-weight:950;text-transform:uppercase}.empty-result{border:1px dashed rgba(148,163,184,.25);border-radius:12px;padding:1rem;text-align:center;color:#94a3b8;font-size:.7rem}.sidebar-foot{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;border-top:1px solid rgba(255,255,255,.09);padding:.75rem}.sidebar-foot a,.sidebar-foot button{display:flex;min-height:44px;align-items:center;justify-content:center;border:0;border-radius:10px;background:rgba(255,255,255,.06);color:#cbd5e1;font-size:.67rem;font-weight:900;text-decoration:none}.sidebar-foot button{color:#fda4af}.content{min-height:100vh;padding-top:64px}.topbar button:focus-visible,.topbar a:focus-visible,.sidebar button:focus-visible,.menu a:focus-visible,.sidebar-foot a:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}@media(max-width:390px){.menu-button span:last-child,.back-button span:last-child{display:none}.menu-button,.back-button{width:42px;padding:0}}@media(prefers-reduced-motion:reduce){.sidebar{transition:none}}
+    :host{display:block;min-height:100vh}.admin-shell{min-height:100vh;background:#f8fafc;color:#0f172a;font-family:ui-sans-serif,system-ui,sans-serif}.admin-page{min-height:100vh;outline:none}.edge-menu-button{position:fixed;right:0;top:76px;z-index:100;display:grid;width:48px;height:58px;place-items:center;border:1px solid rgba(255,255,255,.16);border-right:0;border-radius:16px 0 0 16px;background:#07101f;color:#fff;box-shadow:0 12px 30px rgba(2,6,23,.28);font:900 1.7rem/1 system-ui;cursor:pointer}.edge-menu-button:focus-visible,.command-drawer button:focus-visible,.command-drawer a:focus-visible,.command-drawer input:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}.menu-backdrop{position:fixed;inset:0;z-index:108;border:0;background:rgba(2,6,23,.62);backdrop-filter:blur(3px)}.command-drawer{position:fixed;z-index:109;inset:0 0 0 auto;display:flex;width:min(94vw,390px);transform:translateX(105%);flex-direction:column;background:#07101f;color:#fff;box-shadow:-28px 0 60px rgba(2,6,23,.36);transition:transform .2s ease}.command-drawer.open{transform:translateX(0)}.drawer-header{display:flex;align-items:center;justify-content:space-between;gap:.75rem;border-bottom:1px solid rgba(255,255,255,.08);padding:1rem}.profile-block{display:flex;min-width:0;align-items:center;gap:.75rem}.profile-block img,.profile-fallback{width:46px;height:46px;flex:none;border-radius:999px}.profile-block img{object-fit:cover}.profile-fallback{display:grid;place-items:center;background:#2563eb;color:#fff;font-weight:950}.profile-block div{display:flex;min-width:0;flex-direction:column}.profile-block strong{font-size:.82rem}.profile-block small{max-width:235px;overflow:hidden;color:#94a3b8;font-size:.62rem;font-weight:750;text-overflow:ellipsis;white-space:nowrap}.drawer-close{width:44px;height:44px;flex:none;border:0;border-radius:12px;background:rgba(255,255,255,.08);color:#fff;font-size:1.5rem;cursor:pointer}.drawer-brand{display:flex;align-items:center;gap:.7rem;border-bottom:1px solid rgba(255,255,255,.08);padding:.8rem 1rem}.brand-mark{display:grid;width:35px;height:35px;place-items:center;border-radius:11px;background:linear-gradient(145deg,#2563eb,#1d4ed8);font:900 1rem/1 Georgia,serif}.drawer-brand div{display:flex;flex-direction:column}.drawer-brand strong{font-size:.72rem;letter-spacing:.08em}.drawer-brand small{margin-top:.15rem;color:#64748b;font-size:.56rem;font-weight:850;text-transform:uppercase}.menu-search{border-bottom:1px solid rgba(255,255,255,.08);padding:.8rem 1rem}.menu-search label{display:block;margin-bottom:.4rem;color:#94a3b8;font-size:.58rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.search-control{display:flex;min-height:46px;align-items:center;gap:.45rem;border:1px solid rgba(148,163,184,.2);border-radius:13px;background:rgba(255,255,255,.06);padding:0 .7rem}.search-control input{min-width:0;flex:1;border:0;background:transparent;color:#fff;outline:none;font-size:.76rem}.search-control input::placeholder{color:#64748b}.search-control button{width:34px;height:34px;border:0;background:transparent;color:#cbd5e1}.menu-scroll{flex:1;overflow-y:auto;padding:.75rem}.result-title{margin:.3rem .45rem .6rem;color:#64748b;font-size:.58rem;font-weight:950;letter-spacing:.08em;text-transform:uppercase}.menu-group{margin-bottom:.55rem;overflow:hidden;border:1px solid rgba(148,163,184,.12);border-radius:15px}.group-toggle{display:grid;width:100%;min-height:50px;grid-template-columns:30px 1fr auto;align-items:center;gap:.5rem;border:0;background:rgba(255,255,255,.035);padding:0 .7rem;color:#e2e8f0;text-align:left;cursor:pointer}.group-toggle strong{font-size:.72rem}.group-icon,.item-icon{display:grid;width:27px;height:27px;place-items:center;border-radius:8px;background:rgba(255,255,255,.06);font-size:.74rem}.group-items{border-top:1px solid rgba(148,163,184,.1);padding:.4rem}.nav-item{display:flex;width:100%;min-height:46px;align-items:center;gap:.7rem;border:0;border-radius:11px;background:transparent;padding:0 .7rem;color:#cbd5e1;font:800 .72rem/1.25 inherit;text-align:left;cursor:pointer}.nav-item:hover,.nav-item.active{background:rgba(37,99,235,.2);color:#fff}.nav-item.active{box-shadow:inset 3px 0 0 #60a5fa}.empty-result{border:1px dashed rgba(148,163,184,.25);border-radius:12px;padding:1rem;text-align:center;color:#94a3b8;font-size:.72rem}.drawer-footer{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;border-top:1px solid rgba(255,255,255,.09);padding:.8rem}.drawer-footer button,.drawer-footer a{display:flex;min-height:44px;align-items:center;justify-content:center;border:0;border-radius:11px;background:rgba(255,255,255,.06);color:#cbd5e1;font-size:.68rem;font-weight:900;text-decoration:none;cursor:pointer}.drawer-footer .logout{grid-column:1/-1;color:#fda4af}@media(max-width:520px){.edge-menu-button{top:70px;width:44px;height:54px}.command-drawer{width:min(96vw,390px)}}@media(prefers-reduced-motion:reduce){.command-drawer{transition:none}}
   `]
 })
 export class AdminLayoutComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly location = inject(Location);
   private readonly carService = inject(CarService);
   readonly config = this.carService.getConfig();
-  readonly isSidebarOpen = signal(false);
+  readonly isMenuOpen = signal(false);
   readonly currentPath = signal(this.cleanPath(this.router.url));
   readonly activeGroup = signal('general');
   menuSearch = '';
@@ -92,11 +147,13 @@ export class AdminLayoutComponent {
       {route:'/admin/system-health',label:'Sistem Sağlığı',icon:'♡',keywords:'hata servis bağlantı'},
     ]},
     { id:'site', title:'Site & Görünüm', icon:'▦', items:[
-      {route:'/admin/homepage',label:'Ana Sayfa Vitrini',icon:'▦',keywords:'bölüm sıra tema'},
+      {route:'/admin/homepage',label:'Ana Sayfa Vitrini',icon:'▦',keywords:'bölüm sıra tema vitrin'},
       {route:'/admin/navigation',label:'Mobil Menü & Alt Bar',icon:'☰',keywords:'hamburger navigasyon buton'},
       {route:'/admin/footer',label:'Footer & Sosyal Medya',icon:'↓',keywords:'instagram tiktok youtube x bülten'},
       {route:'/admin/legal',label:'Yasal Metin Merkezi',icon:'§',keywords:'kvkk kiralama satış tur bayilik sözleşme'},
-      {route:'/admin/settings',label:'Site Ayarları',icon:'⚙',keywords:'logo şirket seo hesap'},
+      {route:'/admin/settings',label:'Genel Ayarlar & Profil',icon:'⚙',keywords:'logo şirket iletişim profil hesap şifre'},
+      {route:'/admin/seo',label:'SEO & Ölçüm',icon:'◎',keywords:'google analytics ads meta og arama'},
+      {route:'/admin/faq-management',label:'SSS Yönetimi',icon:'?',keywords:'sık sorulan sorular cevap'},
       {route:'/admin/whatsapp',label:'WhatsApp Ayarları',icon:'✆',keywords:'mesaj iletişim'},
     ]},
     { id:'content', title:'İçerik & Katalog', icon:'◇', items:[
@@ -122,24 +179,52 @@ export class AdminLayoutComponent {
   readonly searchResults = computed(() => {
     const q = this.menuSearch.trim().toLocaleLowerCase('tr-TR');
     if (!q) return [];
-    return this.menuGroups.flatMap(group=>group.items).filter(item=>`${item.label} ${item.keywords||''}`.toLocaleLowerCase('tr-TR').includes(q));
+    return this.menuGroups.flatMap(group => group.items).filter(item => `${item.label} ${item.keywords || ''}`.toLocaleLowerCase('tr-TR').includes(q));
   });
 
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => {
-      const path=this.cleanPath((event as NavigationEnd).urlAfterRedirects); this.currentPath.set(path); this.openCurrentGroup(path); this.closeSidebar();
+      const path = this.cleanPath((event as NavigationEnd).urlAfterRedirects);
+      this.currentPath.set(path);
+      this.openCurrentGroup(path);
+      this.closeMenu();
+      queueMicrotask(() => document.getElementById('admin-page-content')?.focus({ preventScroll: true }));
     });
     this.openCurrentGroup(this.currentPath());
   }
 
-  isDashboard(): boolean { return this.currentPath()==='/admin'||this.currentPath()==='/admin/dashboard'; }
-  toggleSidebar(): void { this.isSidebarOpen.update(v=>!v); }
-  closeSidebar(): void { this.isSidebarOpen.set(false); }
-  toggleGroup(id:string):void{this.activeGroup.set(this.activeGroup()===id?'':id)}
-  groupOpen(id:string):boolean{return this.activeGroup()===id}
-  goBack(): void { if(typeof window!=='undefined'&&window.history.length>1)this.location.back(); else void this.router.navigate(['/admin/dashboard']); }
-  async logout(): Promise<void> { await this.auth.logout(); void this.router.navigate(['/admin/login']); }
-  adminPageTitle():string{const item=this.menuGroups.flatMap(g=>g.items).find(i=>this.currentPath()===i.route||this.currentPath().startsWith(i.route+'/'));return item?.label||'Kontrol Merkezi'}
-  private openCurrentGroup(path:string):void{const group=this.menuGroups.find(g=>g.items.some(i=>path===i.route||path.startsWith(i.route+'/')));if(group)this.activeGroup.set(group.id)}
-  private cleanPath(url:string):string{return url.split('?')[0].split('#')[0].replace(/\/$/,'')||'/'}
+  openMenu(): void { this.isMenuOpen.set(true); }
+  closeMenu(): void { this.isMenuOpen.set(false); }
+  toggleGroup(id: string): void { this.activeGroup.set(this.activeGroup() === id ? '' : id); }
+  groupOpen(id: string): boolean { return this.activeGroup() === id; }
+  isActive(route: string): boolean { return this.currentPath() === route || this.currentPath().startsWith(route + '/'); }
+
+  async go(route: string): Promise<void> {
+    this.closeMenu();
+    this.menuSearch = '';
+    if (this.currentPath() === route) {
+      queueMicrotask(() => document.getElementById('admin-page-content')?.focus({ preventScroll: true }));
+      return;
+    }
+    await this.router.navigateByUrl(route);
+  }
+
+  async logout(): Promise<void> {
+    this.closeMenu();
+    await this.auth.logout();
+  }
+
+  pageTitle(): string {
+    const item = this.menuGroups.flatMap(group => group.items).find(item => this.currentPath() === item.route || this.currentPath().startsWith(item.route + '/'));
+    return item?.label || 'Kontrol Merkezi';
+  }
+
+  private openCurrentGroup(path: string): void {
+    const group = this.menuGroups.find(candidate => candidate.items.some(item => path === item.route || path.startsWith(item.route + '/')));
+    if (group) this.activeGroup.set(group.id);
+  }
+
+  private cleanPath(url: string): string {
+    return url.split('?')[0].split('#')[0].replace(/\/$/, '') || '/';
+  }
 }

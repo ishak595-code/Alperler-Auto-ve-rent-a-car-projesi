@@ -21,6 +21,7 @@ import { AdminPartnerRequestsComponent } from './pages/admin/admin-partner-reque
 import { AdminBranchPartnerRequestsComponent } from './pages/admin/admin-branch-partner-requests.component';
 import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
 import { AdminHomepageComponent } from './pages/admin/admin-homepage.component';
+import { AdminNavigationComponent } from './pages/admin/admin-navigation.component';
 import { AdminTeamComponent } from './pages/admin/admin-team.component';
 import { AdminBranchesComponent } from './pages/admin/admin-branches.component';
 import { AdminCampaignsComponent } from './pages/admin/admin-campaigns.component';
@@ -84,6 +85,7 @@ export const routes: Routes = [
       { path: 'dashboard', component: AdminDashboardShellComponent },
       { path: 'analytics', component: AdminAnalyticsComponent, canActivate: [adminAreaGuard('analytics')] },
       { path: 'homepage', component: AdminHomepageComponent, canActivate: [adminAreaGuard('content')] },
+      { path: 'navigation', component: AdminNavigationComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'campaigns', component: AdminCampaignsComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'media', component: AdminMediaComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'catalog-editor', component: AdminCatalogEditorComponent, canActivate: [adminAreaGuard('content')] },

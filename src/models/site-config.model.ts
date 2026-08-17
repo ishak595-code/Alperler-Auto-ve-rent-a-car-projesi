@@ -23,6 +23,7 @@ export interface SiteConfig {
   logoWidthDesktop?: number;
   logoWidthMobile?: number;
   adminProfileUrl?: string;
+  adminDisplayName?: string;
   adminEmails?: string[];
 
   companyName: string;
@@ -57,7 +58,6 @@ export interface SiteConfig {
   aboutText: string;
   team: TeamMember[];
 
-  // Core legal texts.
   kvkkText: string;
   privacyText: string;
   cookiesText: string;
@@ -66,8 +66,6 @@ export interface SiteConfig {
   cancellationText: string;
   insuranceText: string;
 
-  // Service-specific legal texts. Optional for backward compatibility with
-  // older site_config rows; production/admin legal center manages these keys.
   rentalTermsText?: string;
   salesTermsText?: string;
   tourTermsText?: string;

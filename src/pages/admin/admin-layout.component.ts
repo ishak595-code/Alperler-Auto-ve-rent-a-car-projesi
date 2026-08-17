@@ -59,7 +59,7 @@ import { filter } from 'rxjs';
                  </div>
              </div>
              
-             <button (click)="closeSidebar()" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors">
+             <button (click)="closeSidebar()" aria-label="Admin menüsünü kapat" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors">
                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
              </button>
           </div>
@@ -142,8 +142,16 @@ import { filter } from 'rxjs';
         </aside>
       }
 
-      <!-- Main Content (Full Screen if not dashboard) -->
-      <main class="w-full min-h-screen bg-slate-50" [class.pt-16]="showLayout()">
+      @if (!showLayout()) {
+        <nav class="fixed top-0 left-0 right-0 z-40 flex h-14 items-center gap-2 border-b border-slate-200 bg-white/95 px-3 shadow-sm backdrop-blur" aria-label="Admin sayfa gezinmesi">
+          <button type="button" (click)="goBack()" aria-label="Önceki admin sayfasına dön" class="flex min-h-10 items-center gap-2 rounded-xl bg-slate-100 px-3 text-sm font-black text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">← <span>Geri</span></button>
+          <a routerLink="/admin/dashboard" aria-label="Admin kontrol paneline git" class="flex min-h-10 items-center rounded-xl bg-slate-950 px-3 text-sm font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Kontrol Paneli</a>
+          <span class="ml-auto max-w-[42vw] truncate text-xs font-bold text-slate-500">{{ adminPageTitle() }}</span>
+        </nav>
+      }
+
+      <!-- Main Content -->
+      <main class="w-full min-h-screen bg-slate-50" [class.pt-16]="showLayout()" [class.pt-14]="!showLayout()">
          <router-outlet></router-outlet>
       </main>
     </div>
@@ -178,6 +186,18 @@ export class AdminLayoutComponent {
 
   closeSidebar() {
     this.isSidebarOpen.set(false);
+  }
+
+  goBack() {
+    if (typeof window !== 'undefined' && window.history.length > 1) this.location.back();
+    else void this.router.navigate(['/admin/dashboard']);
+  }
+
+  adminPageTitle(): string {
+    const path = this.location.path().split('?')[0];
+    const labels: Record<string,string> = { homepage: 'Ana Sayfa Vitrini', campaigns: 'Kampanyalar', media: 'Fotoğraf & Video', 'catalog-editor': 'Katalog Editörü', reservations: 'Rezervasyonlar', 'partner-requests': 'Araç Başvuruları', 'branch-partner-requests': 'Şube Başvuruları', feedback: 'Mesaj Kutusu', subscribers: 'Bülten Merkezi', team: 'Ekip & Yetkiler', assignments: 'Görev Merkezi', branches: 'Şubeler', whatsapp: 'WhatsApp Ayarları', 'system-health': 'Sistem Sağlığı', audit: 'İşlem Geçmişi', analytics: 'Ziyaretçi Analitiği', settings: 'Site Ayarları', blog: 'Blog' };
+    const segment = path.replace(/^\/admin\/?/, '').split('/')[0] || 'dashboard';
+    return labels[segment] || 'Admin';
   }
 
   logout() {

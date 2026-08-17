@@ -32,6 +32,8 @@ const PUBLIC_CONTENT_TABLES = [
   'blog_posts',
   'faqs',
   'branches',
+  'navigation_settings',
+  'navigation_items',
 ] as const;
 
 @Injectable({ providedIn: 'root' })

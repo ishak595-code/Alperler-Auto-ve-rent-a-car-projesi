@@ -88,7 +88,7 @@ export class HomepageLayoutService {
         sectionType: row.section_type,
         isEnabled: row.is_enabled !== false,
         sortOrder: Number(row.sort_order || 0),
-        maxItems: Math.max(1, Math.min(24, Number(row.max_items || 6))),
+        maxItems: Math.max(1, Math.floor(Number(row.max_items || 6))),
         settings: row.settings && typeof row.settings === 'object' ? row.settings : {},
       })).filter((row) => row.sectionKey && row.isEnabled));
       this._placements.set(placementRows.map((row) => ({

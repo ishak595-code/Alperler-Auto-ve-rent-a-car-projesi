@@ -4,6 +4,7 @@ import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { Router, RouterLink } from "@angular/router";
 import { VehicleListItemComponent } from "../components/vehicle-list-item.component";
+import { DynamicHomeSectionComponent } from "../components/dynamic-home-section.component";
 import { Branch } from "../models/branch.model";
 import { Vehicle } from "../models/car.model";
 import { CampaignRecord, CampaignService } from "../services/campaign.service";
@@ -22,7 +23,7 @@ interface PickupChoice {
 @Component({
   selector: "app-home-v71",
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, RouterLink, VehicleListItemComponent],
+  imports: [CommonModule, FormsModule, MatIconModule, RouterLink, VehicleListItemComponent, DynamicHomeSectionComponent],
   template: `
     <main class="home-root">
       <section class="hero" [style.backgroundImage]="'url(' + heroImage() + ')'" aria-labelledby="home-title">
@@ -113,126 +114,7 @@ interface PickupChoice {
       }
 
       @for (section of managedSections(); track section.sectionKey) {
-        @if (section.sectionType === 'VEHICLES' && sectionVehicles(section).length > 0) {
-          <section class="section inventory" [class.sale-section]="vehicleSectionRoute(section) === '/sales'" [attr.aria-labelledby]="section.sectionKey + '-title'">
-            <div class="section-inner">
-              <div class="section-head">
-                <div>
-                  <p class="section-kicker">{{ vehicleSectionBadge(section) }}</p>
-                  <h2 [id]="section.sectionKey + '-title'">{{ section.title }}</h2>
-                  <p class="section-desc">{{ vehicleSectionSubtitle(section) }}</p>
-                </div>
-                <a class="view-all" [routerLink]="vehicleSectionRoute(section)">{{ vehicleSectionViewAll(section) }} <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>
-              </div>
-              <div class="vehicle-rail">
-                @for (car of sectionVehicles(section); track stableVehicleKey(car)) {
-                  <div class="vehicle-shell"><app-vehicle-list-item [car]="car" [variant]="car.category === 'SALE' ? 'sale' : 'rental'"></app-vehicle-list-item></div>
-                }
-              </div>
-              <a class="mobile-view-all" [routerLink]="vehicleSectionRoute(section)">{{ vehicleSectionViewAll(section) }} <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>
-            </div>
-          </section>
-        }
-
-        @if (section.sectionType === 'CAMPAIGN' && campaignCards(section).length > 0) {
-          <section class="section offers" [attr.aria-labelledby]="section.sectionKey + '-title'">
-            <div class="section-inner">
-              <div class="section-head">
-                <div>
-                  <p class="section-kicker">{{ homeContent().campaignBannerBadge || 'Avantajlı Seçimler' }}</p>
-                  <h2 [id]="section.sectionKey + '-title'">{{ section.title }}</h2>
-                  <p class="section-desc">{{ homeContent().campaignBannerSubtitle || 'Gerçek fiyat farkını görün. Size uyan fırsatı açın, tüm koşulları ayrıntı sayfasında inceleyin.' }}</p>
-                </div>
-                <a class="view-all" routerLink="/campaigns">Tüm Fırsatlar <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>
-              </div>
-              <div class="offer-rail">
-                @for (campaign of campaignCards(section); track campaign.id) {
-                  <article class="offer-card">
-                    <a [href]="campaignHref(campaign)" class="offer-link" [attr.aria-label]="campaign.title + ' fırsatını incele'">
-                      <div class="offer-media">
-                        <img [src]="campaign.coverImage || fallbackImage" [alt]="campaign.title" loading="lazy" />
-                        @if (campaign.badge || campaign.discountPercent) { <span class="offer-badge">{{ campaign.badge || ('%' + campaign.discountPercent + ' avantaj') }}</span> }
-                      </div>
-                      <div class="offer-body">
-                        <p class="offer-hook">{{ campaignHook(campaign) }}</p>
-                        <h3>{{ campaign.title }}</h3>
-                        <p class="offer-copy">{{ campaign.shortDescription || campaign.description || 'Size sağlayacağı avantajı ve tüm koşulları inceleyin.' }}</p>
-                        <div class="offer-bottom">
-                          <div class="offer-price">
-                            @if (campaign.oldPrice && campaign.newPrice && campaign.oldPrice > campaign.newPrice) { <span>{{ formatPrice(campaign.oldPrice) }}</span> }
-                            @if (campaign.newPrice != null) { <strong>{{ formatPrice(campaign.newPrice) }}</strong> }
-                          </div>
-                          @if (campaignSavings(campaign) > 0) { <span class="saving-chip">{{ formatPrice(campaignSavings(campaign)) }} avantaj</span> }
-                        </div>
-                        @if (campaign.endsAt) { <p class="validity"><mat-icon aria-hidden="true">schedule</mat-icon>{{ campaignValidity(campaign.endsAt) }}</p> }
-                        <span class="offer-cta">{{ campaign.ctaLabel || 'Fırsatı İncele' }} <mat-icon aria-hidden="true">arrow_forward</mat-icon></span>
-                      </div>
-                    </a>
-                  </article>
-                }
-              </div>
-              <a class="mobile-view-all dark-button" routerLink="/campaigns">Tüm Fırsatları Gör <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>
-            </div>
-          </section>
-        }
-
-        @if (section.sectionType === 'TOURS' && sectionTours(section).length > 0) {
-          <section class="section tours" [attr.aria-labelledby]="section.sectionKey + '-title'">
-            <div class="section-inner">
-              <div class="section-head">
-                <div><p class="section-kicker">Keşfet</p><h2 [id]="section.sectionKey + '-title'">{{ section.title }}</h2><p class="section-desc">{{ homeContent().toursSubtitle || 'Bölgenin doğal güzelliklerini, yerel rotaları ve deneyimleri tek yerden keşfedin.' }}</p></div>
-                <a class="view-all" routerLink="/tours">Tüm Turlar <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>
-              </div>
-              <div class="tour-rail">
-                @for (tour of sectionTours(section); track stableVehicleKey(tour)) {
-                  <a class="tour-card" [routerLink]="['/tour', tour.id]">
-                    <div class="tour-media"><img [src]="tour.image || fallbackImage" [alt]="entityTitle(tour)" loading="lazy" /></div>
-                    <div class="tour-body"><div class="tour-top"><h3>{{ entityTitle(tour) }}</h3>@if (tour.price) { <strong>{{ formatPrice(tour.price) }}</strong> }</div><p>{{ tour.description || tour.location || 'Rotayı ve deneyim ayrıntılarını keşfedin.' }}</p><span>Turu Keşfet <mat-icon aria-hidden="true">arrow_forward</mat-icon></span></div>
-                  </a>
-                }
-              </div>
-              <a class="mobile-view-all dark-button" routerLink="/tours">Tüm Turları Gör <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>
-            </div>
-          </section>
-        }
-
-        @if (section.sectionType === 'CUSTOM' && section.sectionKey === 'branches') {
-          <section class="section branches-section" aria-labelledby="branches-title">
-            <div class="section-inner">
-              <div class="section-head">
-                <div><p class="section-kicker">Hizmet Ağı</p><h2 id="branches-title">{{ section.title || 'Size En Yakın Alperler Auto' }}</h2><p class="section-desc">Şubeleri, yetkili bayileri ve o noktaya ait ilanları tek ekranda keşfedin.</p></div>
-                <a class="view-all" routerLink="/branches">Tüm Noktalar <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>
-              </div>
-              <div class="branch-rail">
-                @for (branch of branchCards(section); track branch.id) {
-                  <a class="branch-card" [routerLink]="branch.slug ? ['/branches', branch.slug] : ['/branches']">
-                    <span class="branch-icon" aria-hidden="true"><mat-icon>storefront</mat-icon></span>
-                    <p class="branch-label">{{ branchDemo(branch) ? 'Demo Bayi' : branch.networkType === 'FRANCHISE' ? 'Yetkili Bayi' : 'Alperler Auto Noktası' }}</p>
-                    <h3>{{ branch.name }}</h3>
-                    <p>{{ branch.publicDescription || (branch.district + ' bölgesindeki araç, teslim ve hizmet seçeneklerini inceleyin.') }}</p>
-                    <div class="branch-meta"><span>{{ branch.city }} / {{ branch.district }}</span>@if (branch.isPickupPoint) { <span>Teslim alma</span> }@if (branch.isReturnPoint) { <span>İade</span> }</div>
-                    <strong>Şubeyi Keşfet <mat-icon aria-hidden="true">arrow_forward</mat-icon></strong>
-                  </a>
-                }
-              </div>
-              <a class="partner-inline" routerLink="/branch-partner"><span><mat-icon aria-hidden="true">add_business</mat-icon><b>Kendi bölgenizde Alperler Auto ile büyümek ister misiniz?</b></span><strong>Bayilik Başvurusu <mat-icon aria-hidden="true">arrow_forward</mat-icon></strong></a>
-            </div>
-          </section>
-        }
-
-        @if (section.sectionType === 'CUSTOM' && section.sectionKey === 'partner') {
-          <section class="vehicle-partner" aria-labelledby="partner-title">
-            <div class="vehicle-partner-card"><div><p class="section-kicker">Araç Sahipleri</p><h2 id="partner-title">{{ section.title || 'Aracınız değerini bulsun' }}</h2><p>{{ homeContent().partnerSubtitle || 'Aracınızı satmak veya kiralama filosunda değerlendirmek için bilgilerinizi gönderin. Ekibimiz size uygun yolu birlikte netleştirsin.' }}</p></div><a routerLink="/list-your-car">Aracımı Değerlendir <mat-icon aria-hidden="true">arrow_forward</mat-icon></a></div>
-          </section>
-        }
-
-        @if (section.sectionType === 'BLOG' && sectionBlogs(section).length > 0) {
-          <section class="section blog-section" [attr.aria-labelledby]="section.sectionKey + '-title'">
-            <div class="section-inner"><div class="section-head"><div><p class="section-kicker">Yola Çıkmadan Önce</p><h2 [id]="section.sectionKey + '-title'">{{ section.title }}</h2></div><a class="view-all" routerLink="/blog">Tüm Yazılar <mat-icon aria-hidden="true">arrow_forward</mat-icon></a></div>
-              <div class="blog-rail">@for (post of sectionBlogs(section); track post.cloudId || post.id) {<a class="blog-card" [routerLink]="['/blog', post.id]"><div class="blog-media"><img [src]="post.image || fallbackImage" [alt]="post.title" loading="lazy" /></div><div class="blog-body"><h3>{{ post.title }}</h3><p>{{ post.summary }}</p><span>Yazıyı Oku <mat-icon aria-hidden="true">arrow_forward</mat-icon></span></div></a>}</div>
-            </div>
-          </section>
-        }
+        <app-dynamic-home-section [section]="section"></app-dynamic-home-section>
       }
     </main>
   `,

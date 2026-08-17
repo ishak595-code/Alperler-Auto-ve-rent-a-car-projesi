@@ -10,7 +10,7 @@ import { AdminOperationsDashboardComponent } from "./admin-operations-dashboard.
       <div class="mx-auto max-w-7xl">
         <p class="text-[10px] font-black uppercase tracking-[.18em] text-blue-600">Canlı Kontrol Merkezi</p>
         <h1 class="mt-1 text-2xl font-black text-slate-950">Operasyon ve İstatistikler</h1>
-        <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Burada yalnız karar vermenizi gerektiren canlı özetler bulunur. İçerik ve ayar ekranlarına üstteki Menü düğmesinden ulaşabilirsiniz.</p>
+        <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Burada yalnız karar vermenizi gerektiren canlı özetler bulunur. Tüm yönetim modüllerine üstteki Menü düğmesinden ulaşabilirsiniz; liste ekranlarında arama, filtre ve yeni kayıt işlemleri ilk görünen üst araç çubuğunda tutulur.</p>
       </div>
     </section>
     <app-admin-operations-dashboard />

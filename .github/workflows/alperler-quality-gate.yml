@@ -25,6 +25,7 @@ on:
       - "tsconfig.json"
       - "tsconfig.api.json"
       - "firestore.rules"
+      - ".github/workflows/booking-security-gate.yml"
       - ".github/workflows/alperler-quality-gate.yml"
   pull_request:
     branches:
@@ -47,6 +48,7 @@ on:
       - "tsconfig.json"
       - "tsconfig.api.json"
       - "firestore.rules"
+      - ".github/workflows/booking-security-gate.yml"
       - ".github/workflows/alperler-quality-gate.yml"
 
 permissions:

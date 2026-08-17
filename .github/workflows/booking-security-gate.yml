@@ -88,8 +88,8 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
+      - name: Install dependencies from lockfile
+        run: npm ci --no-audit --no-fund
 
       - name: Type-check browser booking integration
         run: npm run lint

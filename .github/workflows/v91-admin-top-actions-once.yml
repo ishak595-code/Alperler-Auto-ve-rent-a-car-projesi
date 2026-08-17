@@ -1,0 +1,152 @@
+name: V91 Admin Top Actions Once
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/v91-admin-top-actions-once.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Move admin search and create actions to the top
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new, label):
+              p=Path(path); t=p.read_text()
+              count=t.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected 1 match, found {count} in {path}')
+              p.write_text(t.replace(old,new,1))
+
+          # 1) Catalog editor: search/type controls beside the existing top create buttons.
+          path='src/pages/admin/admin-catalog-editor.component.ts'
+          insert='''        </header>\n\n        @if (error()) {'''
+          toolbar='''          <div class="mt-5 grid gap-3 lg:grid-cols-[minmax(260px,1fr)_auto]">\n            <input [(ngModel)]="search" type="search" aria-label="Katalogda ara" placeholder="Marka, model, stok kodu veya tur ara…" class="min-h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-bold text-white outline-none placeholder:text-slate-400 focus:border-blue-400" />\n            <div class="grid grid-cols-3 gap-2" role="tablist" aria-label="Katalog türü">\n              <button type="button" (click)="filter.set('RENTAL')" [class.bg-blue-600]="filter()==='RENTAL'" [class.text-white]="filter()==='RENTAL'" class="min-h-12 rounded-xl bg-white/10 px-4 text-xs font-black text-slate-200">Kiralık</button>\n              <button type="button" (click)="filter.set('SALE')" [class.bg-emerald-600]="filter()==='SALE'" [class.text-white]="filter()==='SALE'" class="min-h-12 rounded-xl bg-white/10 px-4 text-xs font-black text-slate-200">Satılık</button>\n              <button type="button" (click)="filter.set('TOUR')" [class.bg-violet-600]="filter()==='TOUR'" [class.text-white]="filter()==='TOUR'" class="min-h-12 rounded-xl bg-white/10 px-4 text-xs font-black text-slate-200">Turlar</button>\n            </div>\n          </div>\n        </header>\n\n        @if (error()) {'''
+          replace_once(path,insert,toolbar,'catalog top toolbar')
+          old='''            <div class="grid grid-cols-3 gap-2" role="tablist" aria-label="Katalog türü">\n              <button type="button" (click)="filter.set('RENTAL')" [class.bg-blue-600]="filter()==='RENTAL'" [class.text-white]="filter()==='RENTAL'" class="min-h-11 rounded-xl bg-slate-100 text-xs font-black">Kiralık</button>\n              <button type="button" (click)="filter.set('SALE')" [class.bg-emerald-600]="filter()==='SALE'" [class.text-white]="filter()==='SALE'" class="min-h-11 rounded-xl bg-slate-100 text-xs font-black">Satılık</button>\n              <button type="button" (click)="filter.set('TOUR')" [class.bg-violet-600]="filter()==='TOUR'" [class.text-white]="filter()==='TOUR'" class="min-h-11 rounded-xl bg-slate-100 text-xs font-black">Turlar</button>\n            </div>\n            <input [(ngModel)]="search" type="search" aria-label="Katalogda ara" placeholder="Marka, model, tur ara…" class="mt-3 min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 outline-none focus:ring-2 focus:ring-blue-500" />\n\n            <div class="mt-3 space-y-2">'''
+          replace_once(path,old,'''            <div class="space-y-2">''','catalog remove lower toolbar')
+
+          # 2) Campaigns: top search, create and refresh; list is searchable.
+          path='src/pages/admin/admin-campaigns.component.ts'
+          marker='''          <div class="mt-5 grid gap-3 sm:grid-cols-3">'''
+          block='''          <div class="mt-5 grid gap-3 lg:grid-cols-[minmax(260px,1fr)_auto_auto]">\n            <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Kampanya adı, rozet veya durum ara…" aria-label="Kampanyalarda ara" class="min-h-12 rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-bold text-white outline-none placeholder:text-slate-400 focus:border-amber-400" />\n            <button type="button" (click)="startNewCampaign()" class="min-h-12 rounded-xl bg-amber-500 px-5 text-sm font-black text-slate-950">+ Yeni Kampanya</button>\n            <button type="button" (click)="refresh()" class="min-h-12 rounded-xl border border-white/15 bg-white/10 px-5 text-sm font-black text-white">Yenile</button>\n          </div>\n          <div class="mt-5 grid gap-3 sm:grid-cols-3">'''
+          replace_once(path,marker,block,'campaign top actions')
+          replace_once(path,'<form (ngSubmit)="save()" class="rounded-3xl','<form id="campaign-editor" (ngSubmit)="save()" class="rounded-3xl','campaign editor id')
+          replace_once(path,'@for (campaign of campaigns(); track campaign.id; let i = $index)','@for (campaign of filteredCampaigns(); track campaign.id; let i = $index)','campaign filtered loop')
+          prop='''  readonly saving = signal(false);\n\n  editingId = "";'''
+          prop_new='''  readonly saving = signal(false);\n  readonly searchQuery = signal("");\n\n  editingId = "";'''
+          replace_once(path,prop,prop_new,'campaign search signal')
+          comp='''  readonly publishedCampaigns = computed(() => this.campaigns().filter((row) => row.isActive && row.publicationStatus === "PUBLISHED"));\n  readonly homepageCampaigns = computed(() => [...this.publishedCampaigns()].sort((a, b) => a.sortOrder - b.sortOrder).slice(0, 3));'''
+          comp_new='''  readonly publishedCampaigns = computed(() => this.campaigns().filter((row) => row.isActive && row.publicationStatus === "PUBLISHED"));\n  readonly homepageCampaigns = computed(() => [...this.publishedCampaigns()].sort((a, b) => a.sortOrder - b.sortOrder).slice(0, 3));\n  readonly filteredCampaigns = computed(() => {\n    const q = this.searchQuery().trim().toLocaleLowerCase("tr-TR");\n    if (!q) return this.campaigns();\n    return this.campaigns().filter((row) => `${row.title} ${row.shortDescription || ""} ${row.badge || ""} ${row.campaignType} ${row.publicationStatus}`.toLocaleLowerCase("tr-TR").includes(q));\n  });'''
+          replace_once(path,comp,comp_new,'campaign filtered computed')
+          method='''  reset(): void {'''
+          method_new='''  startNewCampaign(): void {\n    this.reset();\n    if (typeof document !== "undefined") document.getElementById("campaign-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });\n  }\n\n  reset(): void {'''
+          replace_once(path,method,method_new,'campaign new method')
+
+          # 3) Blog: sticky top search + create, searchable list.
+          path='src/pages/admin/admin-blog.component.ts'
+          old='''    <div class="px-4 py-6 md:px-8 bg-white border-b border-slate-200 shadow-sm sticky top-0 z-20 flex justify-between items-center">\n        <div class="flex items-center gap-4">\n            <button (click)="goBack()" aria-label="Kontrol Paneline Dön" class="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors">\n                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>\n            </button>\n            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Blog Yönetimi</h1>\n        </div>\n        <button (click)="toggleForm()" class="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-blue-600 transition-colors text-sm">+ Yeni Yazı Ekle</button>\n    </div>'''
+          new='''    <div class="sticky top-16 z-20 border-b border-slate-200 bg-white/95 px-4 py-4 shadow-sm backdrop-blur md:px-8">\n        <div class="mx-auto flex max-w-7xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">\n          <div class="flex items-center gap-4">\n            <button (click)="goBack()" aria-label="Kontrol Paneline Dön" class="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg></button>\n            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Blog Yönetimi</h1>\n          </div>\n          <div class="grid w-full gap-2 sm:grid-cols-[minmax(220px,1fr)_auto] lg:w-auto">\n            <input [(ngModel)]="searchQuery" type="search" autocomplete="off" placeholder="Blog başlığı veya içerik ara…" aria-label="Blog yazılarında ara" class="min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500" />\n            <button (click)="toggleForm()" class="min-h-11 rounded-xl bg-blue-600 px-4 text-sm font-black text-white shadow hover:bg-blue-700">+ Yeni Yazı Ekle</button>\n          </div>\n        </div>\n    </div>'''
+          replace_once(path,old,new,'blog top toolbar')
+          replace_once(path,'@for (post of posts(); track post.id)','@for (post of filteredPosts(); track post.id)','blog filtered loop')
+          replace_once(path,'  showForm = signal(false);\n','  showForm = signal(false);\n  searchQuery = "";\n','blog search state')
+          marker='''  async onBlogImageSelected(event: Event) {'''
+          method='''  filteredPosts() {\n      const q = this.searchQuery.trim().toLocaleLowerCase('tr-TR');\n      if (!q) return this.posts();\n      return this.posts().filter((post) => `${post.title} ${post.summary} ${post.content}`.toLocaleLowerCase('tr-TR').includes(q));\n  }\n\n  async onBlogImageSelected(event: Event) {'''
+          replace_once(path,marker,method,'blog filter method')
+
+          # 4) Branches: search and create stay in sticky top header.
+          path='src/pages/admin/admin-branches.component.ts'
+          replace_once(path,'<header class="sticky top-0 z-30','<header class="sticky top-16 z-30','branches sticky offset')
+          old='''          <button type="button" (click)="newBranch()" class="flex min-h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><mat-icon>add</mat-icon><span class="hidden sm:inline">Merkez Şubesi Ekle</span></button>'''
+          new='''          <div class="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">\n            <input [(ngModel)]="searchQuery" type="search" autocomplete="off" placeholder="Şube, şehir veya ilçe ara…" aria-label="Şubelerde ara" class="min-h-11 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500 lg:w-72" />\n            <button type="button" (click)="newBranch()" class="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><mat-icon>add</mat-icon><span>Merkez Şubesi Ekle</span></button>\n          </div>'''
+          replace_once(path,old,new,'branches top search')
+          replace_once(path,'@for (branch of branchService.managedBranches(); track branch.cloudId || branch.id)','@for (branch of filteredBranches(); track branch.cloudId || branch.id)','branches filtered loop')
+          replace_once(path,'  draft: Branch = this.emptyBranch();\n','  draft: Branch = this.emptyBranch();\n  searchQuery = "";\n','branches search state')
+          marker='''  private async loadAdminBranches(): Promise<void> {'''
+          method='''  filteredBranches(): Branch[] {\n    const q = this.searchQuery.trim().toLocaleLowerCase("tr-TR");\n    if (!q) return this.branchService.managedBranches();\n    return this.branchService.managedBranches().filter((branch) => `${branch.name} ${branch.city} ${branch.district} ${branch.addressLabel || ""} ${branch.phone || ""}`.toLocaleLowerCase("tr-TR").includes(q));\n  }\n\n  private async loadAdminBranches(): Promise<void> {'''
+          replace_once(path,marker,method,'branches filter method')
+
+          # 5) Reservations: top search next to existing status filter.
+          path='src/pages/admin/admin-reservations.component.ts'
+          replace_once(path,'import { CommonModule } from "@angular/common";\n','import { CommonModule } from "@angular/common";\nimport { FormsModule } from "@angular/forms";\n','reservations forms import')
+          replace_once(path,'imports: [CommonModule, MatIconModule, TurkishCurrencyPipe]','imports: [CommonModule, FormsModule, MatIconModule, TurkishCurrencyPipe]','reservations forms module')
+          replace_once(path,'<header class="sticky top-0 z-30','<header class="sticky top-16 z-30','reservations sticky offset')
+          marker='''            <div class="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1" aria-label="Durum filtresi">'''
+          new='''            <label class="w-full lg:max-w-sm">\n              <span class="sr-only">Rezervasyonlarda ara</span>\n              <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Müşteri, telefon, e-posta veya araç ara…" aria-label="Rezervasyonlarda ara" class="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500" />\n            </label>\n            <div class="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1" aria-label="Durum filtresi">'''
+          replace_once(path,marker,new,'reservations top search')
+          replace_once(path,'  readonly updatingId = signal<string | null>(null);\n','  readonly updatingId = signal<string | null>(null);\n  readonly searchQuery = signal("");\n','reservations search signal')
+          old='''    if (this.filter() !== "ALL") current = current.filter((record) => record.status === this.filter());\n    return current;'''
+          new='''    if (this.filter() !== "ALL") current = current.filter((record) => record.status === this.filter());\n    const q = this.searchQuery().trim().toLocaleLowerCase("tr-TR");\n    if (q) current = current.filter((record) => `${record.customerName || ""} ${record.customerPhone || ""} ${record.customerEmail || ""} ${record.itemName || ""} ${record.pickupLocation || ""} ${record.id}`.toLocaleLowerCase("tr-TR").includes(q));\n    return current;'''
+          replace_once(path,old,new,'reservations filter logic')
+
+          # 6) Vehicle-owner applications: move search/filter into the sticky page header.
+          path='src/pages/admin/admin-partner-requests.component.ts'
+          replace_once(path,'<header class="sticky top-0 z-20','<header class="sticky top-16 z-20','partner sticky offset')
+          old='''          <button\n            type="button"\n            (click)="refresh()"\n            [disabled]="partnerService.loading()"\n            class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-blue-600 disabled:opacity-50"\n          >\n            {{ partnerService.loading() ? "Yenileniyor..." : "Başvuruları Yenile" }}\n          </button>'''
+          new='''          <div class="grid w-full gap-2 lg:w-auto lg:grid-cols-[minmax(240px,1fr)_180px_auto]">\n            <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Müşteri, telefon, araç ara…" aria-label="Araç başvurularında ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500" />\n            <select [ngModel]="filter()" (ngModelChange)="filter.set($event)" aria-label="Araç başvurusu durum filtresi" class="min-h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black"><option value="ALL">Tüm durumlar</option><option value="UPLOADING">Dosya yükleniyor</option><option value="NEW">Yeni</option><option value="REVIEWING">İnceleniyor</option><option value="CONTACTED">İletişim kuruldu</option><option value="OFFERED">Teklif verildi</option><option value="ACCEPTED">Kabul edildi</option><option value="REJECTED">Reddedildi</option><option value="CLOSED">Kapalı</option></select>\n            <button type="button" (click)="refresh()" [disabled]="partnerService.loading()" class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-blue-600 disabled:opacity-50">{{ partnerService.loading() ? "Yenileniyor..." : "Yenile" }}</button>\n          </div>'''
+          replace_once(path,old,new,'partner top toolbar')
+          lower='''        <div class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_auto]">\n          <label>\n            <span class="sr-only">Başvurularda ara</span>\n            <input\n              [ngModel]="searchQuery()"\n              (ngModelChange)="searchQuery.set($event)"\n              type="search"\n              autocomplete="off"\n              placeholder="Referans, müşteri, telefon, e-posta veya araç ara..."\n              class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-white"\n            />\n          </label>\n          <select\n            [ngModel]="filter()"\n            (ngModelChange)="filter.set($event)"\n            aria-label="Başvuru durumuna göre filtrele"\n            class="min-h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black"\n          >\n            <option value="ALL">Tüm durumlar</option>\n            <option value="UPLOADING">Dosya yükleniyor</option>\n            <option value="NEW">Yeni</option>\n            <option value="REVIEWING">İnceleniyor</option>\n            <option value="CONTACTED">İletişim kuruldu</option>\n            <option value="OFFERED">Teklif verildi</option>\n            <option value="ACCEPTED">Kabul edildi</option>\n            <option value="REJECTED">Reddedildi</option>\n            <option value="CLOSED">Kapalı</option>\n          </select>\n        </div>\n\n'''
+          replace_once(path,lower,'','partner remove lower toolbar')
+
+          # 7) Branch applications: same top toolbar rule.
+          path='src/pages/admin/admin-branch-partner-requests.component.ts'
+          replace_once(path,'<header class="sticky top-0 z-20','<header class="sticky top-16 z-20','branch partner sticky offset')
+          old='''          <button type="button" (click)="refresh()" [disabled]="service.loading()" class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white disabled:opacity-50">{{ service.loading() ? 'Yenileniyor...' : 'Başvuruları Yenile' }}</button>'''
+          new='''          <div class="grid w-full gap-2 lg:w-auto lg:grid-cols-[minmax(240px,1fr)_180px_auto]">\n            <input type="search" [ngModel]="query()" (ngModelChange)="query.set($event)" placeholder="Aday, şehir, ilçe veya telefon ara" aria-label="Şube başvurularında ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500" />\n            <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)" aria-label="Şube başvurusu durum filtresi" class="min-h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black"><option value="ALL">Tüm durumlar</option><option value="NEW">Yeni</option><option value="REVIEWING">İnceleniyor</option><option value="CONTACTED">İletişim kuruldu</option><option value="DUE_DILIGENCE">Uygunluk kontrolü</option><option value="APPROVED">Onaylandı</option><option value="REJECTED">Reddedildi</option><option value="CLOSED">Kapalı</option></select>\n            <button type="button" (click)="refresh()" [disabled]="service.loading()" class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white disabled:opacity-50">{{ service.loading() ? 'Yenileniyor...' : 'Yenile' }}</button>\n          </div>'''
+          replace_once(path,old,new,'branch partner top toolbar')
+          lower='''        <div class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[1fr_auto]">\n          <label><span class="sr-only">Şube başvurularında ara</span><input type="search" [ngModel]="query()" (ngModelChange)="query.set($event)" placeholder="Referans, aday, şehir, ilçe veya telefon ara" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4" /></label>\n          <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)" aria-label="Durum filtresi" class="min-h-12 rounded-xl border border-slate-200 bg-white px-4 font-black">\n            <option value="ALL">Tüm durumlar</option><option value="NEW">Yeni</option><option value="REVIEWING">İnceleniyor</option><option value="CONTACTED">İletişim kuruldu</option><option value="DUE_DILIGENCE">Uygunluk kontrolü</option><option value="APPROVED">Onaylandı</option><option value="REJECTED">Reddedildi</option><option value="CLOSED">Kapalı</option>\n          </select>\n        </div>\n\n'''
+          replace_once(path,lower,'','branch partner remove lower toolbar')
+
+          # 8) Feedback: search/filter in sticky header, not below status cards.
+          path='src/pages/admin/admin-feedback.component.ts'
+          replace_once(path,'<header class="sticky top-0 z-20','<header class="sticky top-16 z-20','feedback sticky offset')
+          old='''          <button\n            type="button"\n            (click)="refresh()"\n            [disabled]="contactService.loading()"\n            class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white hover:bg-blue-600 disabled:opacity-50"\n          >\n            {{ contactService.loading() ? "Yenileniyor..." : "Mesajları Yenile" }}\n          </button>'''
+          new='''          <div class="grid w-full gap-2 lg:w-auto lg:grid-cols-[minmax(240px,1fr)_160px_auto]">\n            <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Ad, e-posta, telefon veya mesaj ara…" aria-label="Mesajlarda ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500" />\n            <select [ngModel]="filter()" (ngModelChange)="setFilter($event)" aria-label="Mesaj durum filtresi" class="min-h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black"><option value="ALL">Tüm durumlar</option><option value="NEW">Yeni</option><option value="READ">Okundu</option><option value="REPLIED">Yanıtlandı</option><option value="ARCHIVED">Arşiv</option></select>\n            <button type="button" (click)="refresh()" [disabled]="contactService.loading()" class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white hover:bg-blue-600 disabled:opacity-50">{{ contactService.loading() ? "Yenileniyor..." : "Yenile" }}</button>\n          </div>'''
+          replace_once(path,old,new,'feedback top toolbar')
+          lower='''        <div class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_auto]">\n          <label class="block">\n            <span class="sr-only">Mesajlarda ara</span>\n            <input\n              [ngModel]="searchQuery()"\n              (ngModelChange)="searchQuery.set($event)"\n              type="search"\n              autocomplete="off"\n              placeholder="Referans, ad, telefon, e-posta veya mesaj içinde ara..."\n              class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-white"\n            />\n          </label>\n          <select\n            [ngModel]="filter()"\n            (ngModelChange)="setFilter($event)"\n            aria-label="Mesaj durumuna göre filtrele"\n            class="min-h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black"\n          >\n            <option value="ALL">Tüm durumlar</option>\n            <option value="NEW">Yeni</option>\n            <option value="READ">Okundu</option>\n            <option value="REPLIED">Yanıtlandı</option>\n            <option value="ARCHIVED">Arşiv</option>\n          </select>\n        </div>\n\n'''
+          replace_once(path,lower,'','feedback remove lower toolbar')
+
+          # 9) Audit: filters live inside a sticky top control surface.
+          path='src/pages/admin/admin-audit.component.ts'
+          replace_once(path,'<header class="rounded-3xl bg-slate-950','<header class="sticky top-16 z-20 rounded-3xl bg-slate-950','audit sticky header')
+          marker='''          </div>\n        </header>\n\n        <section class="grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_220px_180px] md:p-5">\n          <label class="field"><span>Ara</span><input [(ngModel)]="query" type="search" placeholder="Yönetici, tablo, kayıt veya değişen alan…" /></label>\n          <label class="field"><span>Modül</span><select [(ngModel)]="entityFilter"><option value="">Tümü</option>@for (entity of entityTypes(); track entity) { <option [value]="entity">{{ entityLabel(entity) }}</option> }</select></label>\n          <label class="field"><span>İşlem</span><select [(ngModel)]="actionFilter"><option value="">Tümü</option><option value="INSERT">Ekleme</option><option value="UPDATE">Güncelleme</option><option value="DELETE">Silme</option></select></label>\n        </section>'''
+          new='''          </div>\n          <section class="mt-5 grid gap-3 rounded-2xl bg-white p-3 text-slate-900 md:grid-cols-[1fr_220px_180px]">\n            <label class="field"><span>Ara</span><input [(ngModel)]="query" type="search" placeholder="Yönetici, tablo, kayıt veya değişen alan…" /></label>\n            <label class="field"><span>Modül</span><select [(ngModel)]="entityFilter"><option value="">Tümü</option>@for (entity of entityTypes(); track entity) { <option [value]="entity">{{ entityLabel(entity) }}</option> }</select></label>\n            <label class="field"><span>İşlem</span><select [(ngModel)]="actionFilter"><option value="">Tümü</option><option value="INSERT">Ekleme</option><option value="UPDATE">Güncelleme</option><option value="DELETE">Silme</option></select></label>\n          </section>\n        </header>'''
+          replace_once(path,marker,new,'audit top filters')
+
+          # 10) Newsletter local sticky header sits below global admin topbar.
+          path='src/pages/admin/admin-subscribers.component.ts'
+          replace_once(path,'<header class="sticky top-0 z-20','<header class="sticky top-16 z-20','subscribers sticky offset')
+
+          # Common static verification.
+          expected = {
+            'src/pages/admin/admin-catalog-editor.component.ts':['Marka, model, stok kodu veya tur ara…','+ Yeni Kiralık','+ Yeni Satılık','+ Yeni Tur'],
+            'src/pages/admin/admin-campaigns.component.ts':['+ Yeni Kampanya','filteredCampaigns()'],
+            'src/pages/admin/admin-blog.component.ts':['Blog başlığı veya içerik ara…','+ Yeni Yazı Ekle'],
+            'src/pages/admin/admin-branches.component.ts':['Şube, şehir veya ilçe ara…','Merkez Şubesi Ekle'],
+            'src/pages/admin/admin-reservations.component.ts':['Müşteri, telefon, e-posta veya araç ara…'],
+            'src/pages/admin/admin-partner-requests.component.ts':['Araç başvurularında ara'],
+            'src/pages/admin/admin-branch-partner-requests.component.ts':['Şube başvurularında ara'],
+            'src/pages/admin/admin-feedback.component.ts':['Mesajlarda ara'],
+          }
+          for f, needles in expected.items():
+              text=Path(f).read_text()
+              for needle in needles:
+                  if needle not in text: raise SystemExit(f'missing {needle} in {f}')
+          PY
+          git rm .github/workflows/v91-admin-top-actions-once.yml
+          git diff --check
+      - name: Commit admin top-action standard
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "V91: keep admin search and create actions at the top"
+          git push origin HEAD:main

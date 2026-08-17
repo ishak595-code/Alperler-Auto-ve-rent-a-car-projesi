@@ -146,6 +146,7 @@ export class FooterSettingsService {
       headers: {
         apikey: SUPABASE_PUBLISHABLE_KEY,
         authorization: `Bearer ${token}`,
+        accept: 'application/json',
         ...(method === 'GET' ? {} : { 'content-type': 'application/json' }),
       },
       body: method === 'GET' ? undefined : JSON.stringify(body),

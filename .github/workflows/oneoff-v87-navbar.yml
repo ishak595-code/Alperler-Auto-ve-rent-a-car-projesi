@@ -1,0 +1,47 @@
+name: One-off V87 mobile navigation
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/oneoff-v87-navbar.yml']
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - name: Patch navbar
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('src/components/navbar.component.ts')
+          s=p.read_text()
+          s=s.replace('import { Component, HostListener, inject, signal } from "@angular/core";', 'import { Component, HostListener, effect, inject, signal } from "@angular/core";')
+          s=s.replace('import { Language, UiService } from "../services/ui.service";', 'import { Language, UiService } from "../services/ui.service";\nimport { NavigationConfigService } from "../services/navigation-config.service";')
+          old='''            <button id="mobile-menu-trigger" type="button" (click)="toggleMenu()" [attr.aria-label]="isMenuOpen() ? 'Menüyü kapat' : 'Menüyü aç'" [attr.aria-expanded]="isMenuOpen()" aria-controls="mobile-navigation" class="xl:hidden flex h-12 w-12 items-center justify-center rounded-xl text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">{{ isMenuOpen() ? 'close' : 'menu' }}</mat-icon></button>'''
+          new='''            @if (navigation.mobileMenuEnabled()) {\n              <button id="mobile-menu-trigger" type="button" (click)="toggleMenu()" [attr.aria-label]="isMenuOpen() ? 'Menüyü kapat' : 'Menüyü aç'" [attr.aria-expanded]="isMenuOpen()" aria-controls="mobile-navigation" class="xl:hidden flex h-12 w-12 items-center justify-center rounded-xl text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">{{ isMenuOpen() ? 'close' : 'menu' }}</mat-icon></button>\n            }'''
+          if old not in s: raise SystemExit('mobile trigger anchor missing')
+          s=s.replace(old,new,1)
+          old_rows='''          <a id="mobile-menu-first-link" routerLink="/" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">home</mat-icon><span>Ana Sayfa</span></a>\n          <a routerLink="/fleet" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">key</mat-icon><span>{{ t().nav.fleet }}</span></a>\n          <a routerLink="/sales" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">directions_car</mat-icon><span>{{ t().nav.sales }}</span></a>\n          <a routerLink="/" fragment="campaigns-heading" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">local_offer</mat-icon><span>Kampanyalar</span></a>\n          <a routerLink="/appointment" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">event_available</mat-icon><span>Randevu</span></a>\n          <a routerLink="/list-your-car" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">sell</mat-icon><span>{{ t().nav.earn }}</span></a>\n          <a routerLink="/tours" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">explore</mat-icon><span>{{ t().nav.tours }}</span></a>\n          <a routerLink="/branches" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">storefront</mat-icon><span>Şubeler</span></a>\n          <a routerLink="/blog" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">article</mat-icon><span>{{ t().nav.blog }}</span></a>\n          <a routerLink="/contact" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">support_agent</mat-icon><span>{{ t().nav.contact }}</span></a>\n          <a routerLink="/about" (click)="closeMenu(false)" class="menu-row last"><mat-icon aria-hidden="true">info</mat-icon><span>{{ t().nav.about }}</span></a>'''
+          new_rows='''          @for (item of navigation.itemsFor('MOBILE_MENU'); track item.id; let first = $first; let last = $last) {\n            <a [id]="first ? 'mobile-menu-first-link' : null" [routerLink]="item.route" (click)="closeMenu(false)" class="menu-row" [class.last]="last" [attr.aria-label]="item.label"><mat-icon aria-hidden="true">{{ item.icon }}</mat-icon><span>{{ item.label }}</span></a>\n          }'''
+          if old_rows not in s: raise SystemExit('mobile menu rows anchor missing')
+          s=s.replace(old_rows,new_rows,1)
+          nav_open='''    <nav\n      id="mobile-navigation"'''
+          s=s.replace(nav_open, '''    @if (navigation.mobileMenuEnabled()) {\n    <nav\n      id="mobile-navigation"''',1)
+          close_anchor='''    </nav>\n  `,\n  styles: [`'''
+          if close_anchor not in s: raise SystemExit('mobile nav close anchor missing')
+          s=s.replace(close_anchor, '''    </nav>\n    }\n  `,\n  styles: [`''',1)
+          inject_anchor='''  uiService = inject(UiService);\n  router = inject(Router);'''
+          s=s.replace(inject_anchor, '''  uiService = inject(UiService);\n  navigation = inject(NavigationConfigService);\n  router = inject(Router);''',1)
+          method_anchor='''  languages: Language[] = ["TR", "EN", "DE", "FR", "KU", "ES", "RU", "ZH", "AR"];\n\n  toggleMenu(): void'''
+          s=s.replace(method_anchor, '''  languages: Language[] = ["TR", "EN", "DE", "FR", "KU", "ES", "RU", "ZH", "AR"];\n\n  constructor() { effect(() => { if (!this.navigation.mobileMenuEnabled()) this.closeMenu(false); }); }\n\n  toggleMenu(): void''',1)
+          p.write_text(s)
+      - name: Commit and clean workflow
+        run: |
+          rm .github/workflows/oneoff-v87-navbar.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/navbar.component.ts .github/workflows/oneoff-v87-navbar.yml
+          git commit -m "V87.1: render mobile hamburger from Supabase navigation"
+          git push origin HEAD:main

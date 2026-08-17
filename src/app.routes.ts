@@ -22,11 +22,11 @@ import { AdminBranchPartnerRequestsComponent } from './pages/admin/admin-branch-
 import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
 import { AdminHomepageComponent } from './pages/admin/admin-homepage.component';
 import { AdminNavigationComponent } from './pages/admin/admin-navigation.component';
+import { AdminFooterComponent } from './pages/admin/admin-footer.component';
 import { AdminTeamComponent } from './pages/admin/admin-team.component';
 import { AdminBranchesComponent } from './pages/admin/admin-branches.component';
 import { AdminCampaignsComponent } from './pages/admin/admin-campaigns.component';
 import { AdminCatalogEditorComponent } from './pages/admin/admin-catalog-editor.component';
-import { AdminMediaComponent } from './pages/admin/admin-media.component';
 import { AdminAuditComponent } from './pages/admin/admin-audit.component';
 import { AdminWhatsappSettingsComponent } from './pages/admin/admin-whatsapp-settings.component';
 import { AdminSystemHealthComponent } from './pages/admin/admin-system-health.component';
@@ -86,8 +86,9 @@ export const routes: Routes = [
       { path: 'analytics', component: AdminAnalyticsComponent, canActivate: [adminAreaGuard('analytics')] },
       { path: 'homepage', component: AdminHomepageComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'navigation', component: AdminNavigationComponent, canActivate: [adminAreaGuard('settings')] },
+      { path: 'footer', component: AdminFooterComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'campaigns', component: AdminCampaignsComponent, canActivate: [adminAreaGuard('content')] },
-      { path: 'media', component: AdminMediaComponent, canActivate: [adminAreaGuard('content')] },
+      { path: 'media', redirectTo: 'catalog-editor', pathMatch: 'full' },
       { path: 'catalog-editor', component: AdminCatalogEditorComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'whatsapp', component: AdminWhatsappSettingsComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'team', component: AdminTeamComponent, canActivate: [adminAreaGuard('team')] },

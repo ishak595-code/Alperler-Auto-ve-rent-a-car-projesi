@@ -157,7 +157,9 @@ export class NavigationConfigService {
 
   async reorder(surface: NavigationSurface, orderedIds: string[]): Promise<void> {
     const token = await this.requiredToken();
-    await Promise.all(orderedIds.map((id,index) => this.rest('PATCH',`navigation_items?id=eq.${encodeURIComponent(id)}`,{ sort_order:(index+1)*10, updated_at:new Date().toISOString() },token)));
+    const allowed = new Set(this.itemsFor(surface,true).map((item) => item.id));
+    const ids = orderedIds.filter((id) => allowed.has(id));
+    await Promise.all(ids.map((id,index) => this.rest('PATCH',`navigation_items?id=eq.${encodeURIComponent(id)}`,{ sort_order:(index+1)*10, updated_at:new Date().toISOString() },token)));
     await this.refreshAdmin();
   }
 

@@ -47,12 +47,13 @@ import { ToastService } from '../../services/toast.service';
           </section>
 
           <section class="panel" aria-labelledby="social-title">
-            <div class="heading"><div><h2 id="social-title">Sosyal medya hesapları</h2><p>Boş bıraktığın hesap footer'da hiç görünmez. Gerçek hesabı bağladığında ikon doğrudan o hesaba gider.</p></div></div>
+            <div class="heading"><div><h2 id="social-title">Sosyal medya hesapları</h2><p>Bu alan sosyal medya hesaplarının tek yönetim noktasıdır. Boş bıraktığın hesap footer'da görünmez.</p></div></div>
             <div class="grid two">
               <label><span>Instagram URL</span><input [(ngModel)]="instagramUrl" name="instagramUrl" inputmode="url" placeholder="https://instagram.com/..." aria-label="Instagram profil URL adresi" /></label>
               <label><span>TikTok URL</span><input [(ngModel)]="tiktokUrl" name="tiktokUrl" inputmode="url" placeholder="https://tiktok.com/@..." aria-label="TikTok profil URL adresi" /></label>
               <label><span>YouTube URL</span><input [(ngModel)]="youtubeUrl" name="youtubeUrl" inputmode="url" placeholder="https://youtube.com/@..." aria-label="YouTube kanal URL adresi" /></label>
               <label><span>X URL</span><input [(ngModel)]="xUrl" name="xUrl" inputmode="url" placeholder="https://x.com/..." aria-label="X profil URL adresi" /></label>
+              <label><span>Facebook URL</span><input [(ngModel)]="facebookUrl" name="facebookUrl" inputmode="url" placeholder="https://facebook.com/..." aria-label="Facebook profil URL adresi" /></label>
             </div>
           </section>
 
@@ -66,7 +67,7 @@ import { ToastService } from '../../services/toast.service';
           </section>
 
           <section class="panel" aria-labelledby="legal-status-title">
-            <div class="heading"><div><h2 id="legal-status-title">Yasal metin durumu</h2><p>Footer her belgeyi ayrı bağlantı olarak gösterecek. Metinlerin asıl kaynağı Site Ayarları → Yasal Sayfalar'dır.</p></div><a routerLink="/admin/settings" aria-label="Site ayarlarında yasal metinleri düzenle">Yasal metinleri düzenle</a></div>
+            <div class="heading"><div><h2 id="legal-status-title">Yasal metin durumu</h2><p>Footer her belgeyi ayrı bağlantı olarak gösterecek. Metinlerin asıl kaynağı Yasal Metin Merkezi'dir.</p></div><a routerLink="/admin/legal" aria-label="Yasal Metin Merkezi sayfasını aç">Yasal metinleri düzenle</a></div>
             <div class="legal-grid">
               @for (doc of legalStatus(); track doc.label) {
                 <div [class.ok]="doc.ready" class="legal-row"><strong>{{ doc.label }}</strong><span>{{ doc.ready ? 'Hazır' : 'Eksik' }}</span></div>
@@ -96,6 +97,7 @@ export class AdminFooterComponent implements OnInit {
   tiktokUrl = '';
   youtubeUrl = '';
   xUrl = '';
+  facebookUrl = '';
   saving = false;
 
   async ngOnInit(): Promise<void> {
@@ -107,6 +109,7 @@ export class AdminFooterComponent implements OnInit {
       this.tiktokUrl = cfg.tiktokUrl || '';
       this.youtubeUrl = cfg.youtubeUrl || '';
       this.xUrl = cfg.twitterUrl || '';
+      this.facebookUrl = cfg.facebookUrl || '';
     } catch (error) {
       this.toast.show(this.message(error), 'error');
     }
@@ -115,7 +118,13 @@ export class AdminFooterComponent implements OnInit {
   legalStatus(): { label: string; ready: boolean }[] {
     const cfg = this.carService.getConfig()();
     return [
-      ['Kullanım Şartları', cfg.termsText],
+      ['Araç Kiralama Koşulları', cfg.rentalTermsText],
+      ['Satış ve İlan Koşulları', cfg.salesTermsText],
+      ['Tur ve Transfer Koşulları', cfg.tourTermsText],
+      ['Aracını Değerlendir Koşulları', cfg.partnerTermsText],
+      ['Şube ve Bayilik Koşulları', cfg.branchTermsText],
+      ['Bülten ve Ticari İleti', cfg.commercialCommunicationText],
+      ['Genel Kullanım Şartları', cfg.termsText],
       ['KVKK Aydınlatma Metni', cfg.kvkkText],
       ['Gizlilik Politikası', cfg.privacyText],
       ['Çerez Politikası', cfg.cookiesText],
@@ -129,7 +138,7 @@ export class AdminFooterComponent implements OnInit {
     event.preventDefault();
     if (this.saving) return;
     try {
-      const socials = [this.instagramUrl, this.tiktokUrl, this.youtubeUrl, this.xUrl];
+      const socials = [this.instagramUrl, this.tiktokUrl, this.youtubeUrl, this.xUrl, this.facebookUrl];
       if (socials.some((url) => !this.validExternalUrl(url))) throw new Error('Sosyal medya URL adresleri boş olmalı veya https:// ile başlamalıdır.');
       this.saving = true;
       await this.footer.save(this.form);
@@ -140,6 +149,7 @@ export class AdminFooterComponent implements OnInit {
         tiktokUrl: this.tiktokUrl.trim(),
         youtubeUrl: this.youtubeUrl.trim(),
         twitterUrl: this.xUrl.trim(),
+        facebookUrl: this.facebookUrl.trim(),
       });
       await this.carService.refreshCloudCatalog(true);
       this.form = { ...this.footer.settings() };

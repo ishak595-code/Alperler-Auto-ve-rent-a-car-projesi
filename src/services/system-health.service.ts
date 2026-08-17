@@ -1,5 +1,9 @@
 import { Injectable, signal } from "@angular/core";
-import { supabaseFunctionUrl } from "../supabase.config";
+import {
+  SUPABASE_PROJECT_URL,
+  SUPABASE_PUBLISHABLE_KEY,
+  supabaseFunctionUrl,
+} from "../supabase.config";
 
 export type SystemSeverity = "INFO" | "WARN" | "ERROR" | "CRITICAL";
 
@@ -14,11 +18,28 @@ export interface SystemEventInput {
   details?: Record<string, string | number | boolean | null | undefined>;
 }
 
+interface StorefrontProbe {
+  name: string;
+  path: string;
+  required: boolean;
+}
+
 @Injectable({ providedIn: "root" })
 export class SystemHealthService {
   readonly started = signal(false);
   private readonly recent = new Map<string, number>();
   private readonly listenerAbort = typeof AbortController !== "undefined" ? new AbortController() : null;
+  private storefrontTimer?: number;
+  private storefrontProbeInFlight = false;
+
+  private readonly storefrontProbes: StorefrontProbe[] = [
+    { name: "vehicles", path: "vehicles?is_active=eq.true&select=id&limit=1", required: true },
+    { name: "tours", path: "tours?is_active=eq.true&select=id&limit=1", required: true },
+    { name: "campaigns", path: "campaigns?is_active=eq.true&publication_status=eq.PUBLISHED&select=id&limit=1", required: false },
+    { name: "homepage_sections", path: "homepage_sections?is_enabled=eq.true&select=section_key&limit=1", required: true },
+    { name: "homepage_placements", path: "homepage_placements?is_active=eq.true&select=id&limit=1", required: true },
+    { name: "branches", path: "branches?is_active=eq.true&public_status=eq.ACTIVE&select=id&limit=1", required: true },
+  ];
 
   start(): void {
     if (this.started() || typeof window === "undefined") return;
@@ -46,6 +67,14 @@ export class SystemHealthService {
       }
       if (event.error) void this.handleUnexpected(this.normalizeError(event.error), "window-error");
     }, signal ? { capture: true, signal } : true);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void this.checkPublicStorefront();
+    };
+    document.addEventListener("visibilitychange", onVisibility, signal ? { signal } : undefined);
+
+    window.setTimeout(() => void this.checkPublicStorefront(), 1_500);
+    this.storefrontTimer = window.setInterval(() => void this.checkPublicStorefront(), 5 * 60_000);
   }
 
   async handleUnexpected(error: Error, source = "angular"): Promise<void> {
@@ -97,6 +126,62 @@ export class SystemHealthService {
       });
     } catch {
       // Telemetry must never create another user-facing failure.
+    }
+  }
+
+  private async checkPublicStorefront(): Promise<void> {
+    if (this.storefrontProbeInFlight || typeof navigator === "undefined" || !navigator.onLine) return;
+    this.storefrontProbeInFlight = true;
+    try {
+      const results = await Promise.all(this.storefrontProbes.map(async (probe) => {
+        try {
+          const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${probe.path}`, {
+            method: "GET",
+            cache: "no-store",
+            headers: {
+              apikey: SUPABASE_PUBLISHABLE_KEY,
+              accept: "application/json",
+              "cache-control": "no-cache",
+            },
+          });
+          if (!response.ok) return { ...probe, ok: false, status: response.status, hasRows: false };
+          const payload = await response.json().catch(() => []);
+          return { ...probe, ok: true, status: response.status, hasRows: Array.isArray(payload) && payload.length > 0 };
+        } catch {
+          return { ...probe, ok: false, status: 0, hasRows: false };
+        }
+      }));
+
+      const failed = results.filter((item) => !item.ok);
+      if (failed.length) {
+        await this.report({
+          severity: "CRITICAL",
+          source: "storefront",
+          code: "STOREFRONT_PUBLIC_READ_FAILED",
+          message: "Public storefront data is not readable with the customer role.",
+          details: {
+            failedResources: failed.map((item) => `${item.name}:${item.status}`).join(","),
+            online: navigator.onLine,
+          },
+        });
+        return;
+      }
+
+      const unexpectedlyEmpty = results.filter((item) => item.required && !item.hasRows);
+      if (unexpectedlyEmpty.length) {
+        await this.report({
+          severity: "ERROR",
+          source: "storefront",
+          code: "STOREFRONT_REQUIRED_DATA_EMPTY",
+          message: "A required public storefront resource returned no visible records.",
+          details: {
+            emptyResources: unexpectedlyEmpty.map((item) => item.name).join(","),
+            online: navigator.onLine,
+          },
+        });
+      }
+    } finally {
+      this.storefrontProbeInFlight = false;
     }
   }
 

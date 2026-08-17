@@ -34,6 +34,7 @@ const PUBLIC_CONTENT_TABLES = [
   'branches',
   'navigation_settings',
   'navigation_items',
+  'footer_settings',
 ] as const;
 
 @Injectable({ providedIn: 'root' })

@@ -1,5 +1,6 @@
 -- V85: dynamic homepage section builder.
 -- Removes the legacy 24-card ceiling and makes each section self-contained through settings JSON.
+-- Public rendering preserves card readability: larger limits add scrollable items or new grid rows instead of shrinking cards.
 
 alter table public.homepage_sections drop constraint if exists homepage_sections_max_items_check;
 alter table public.homepage_sections add constraint homepage_sections_max_items_check check (max_items >= 1);

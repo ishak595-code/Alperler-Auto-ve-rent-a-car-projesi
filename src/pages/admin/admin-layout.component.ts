@@ -61,7 +61,7 @@ interface AdminMenuGroup { id: string; title: string; icon: string; items: Admin
         </nav>
 
         <ng-template #navItem let-item>
-          <a [routerLink]="item.route" routerLinkActive="active" [routerLinkActiveOptions]="{exact:item.route==='/admin/dashboard'}" (click)="closeSidebar()" [attr.aria-label]="item.label + ' sayfasını aç"><span class="menu-icon" aria-hidden="true">{{ item.icon }}</span><span>{{ item.label }}</span></a>
+          <a [routerLink]="item.route" routerLinkActive="active" [routerLinkActiveOptions]="{exact:item.route==='/admin/dashboard'}" (click)="closeSidebar()" [attr.aria-label]="item.label + ' sayfasını aç'"><span class="menu-icon" aria-hidden="true">{{ item.icon }}</span><span>{{ item.label }}</span></a>
         </ng-template>
 
         <div class="sidebar-foot"><a routerLink="/admin/dashboard" (click)="closeSidebar()" aria-label="Kontrol paneline git">⌂ Kontrol Paneli</a><button type="button" (click)="logout()" aria-label="Admin hesabından çıkış yap">Çıkış Yap</button></div>

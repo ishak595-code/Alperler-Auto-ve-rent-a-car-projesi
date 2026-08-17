@@ -1,0 +1,44 @@
+name: V93 Assignment Sticky Actions Once
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/v93-assignment-sticky-actions-once.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Keep assignment actions reachable
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+          p = Path('src/pages/admin/admin-assignment-center.component.ts')
+          t = p.read_text()
+          old = '''            <div class="flex flex-wrap gap-2">\n              <a routerLink="/admin/team" class="flex min-h-12 items-center gap-2 rounded-xl bg-blue-600 px-5 font-black text-white"><mat-icon aria-hidden="true">add_task</mat-icon>Yeni Görev Ata</a>\n              <button type="button" (click)="refresh()" [disabled]="loading()" class="min-h-12 rounded-xl bg-white px-5 font-black text-slate-950 disabled:opacity-50">{{ loading() ? 'Yükleniyor…' : 'Yenile' }}</button>\n            </div>'''
+          if t.count(old) != 1:
+              raise SystemExit(f'assignment hero actions expected once, got {t.count(old)}')
+          t = t.replace(old, '', 1)
+          marker = '''        </header>\n\n        <section class="grid gap-3 sm:grid-cols-3">'''
+          sticky = '''        </header>\n\n        <section class="sticky top-16 z-40 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:justify-end" aria-label="Görev merkezi hızlı işlemleri">\n          <a routerLink="/admin/team" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 font-black text-white"><mat-icon aria-hidden="true">add_task</mat-icon>Yeni Görev Ata</a>\n          <button type="button" (click)="refresh()" [disabled]="loading()" class="min-h-12 rounded-xl border border-slate-200 bg-white px-5 font-black text-slate-950 disabled:opacity-50">{{ loading() ? 'Yükleniyor…' : 'Yenile' }}</button>\n        </section>\n\n        <section class="grid gap-3 sm:grid-cols-3">'''
+          if t.count(marker) != 1:
+              raise SystemExit(f'assignment marker expected once, got {t.count(marker)}')
+          t = t.replace(marker, sticky, 1)
+          p.write_text(t)
+          if 'Görev merkezi hızlı işlemleri' not in t or 'sticky top-16 z-40' not in t:
+              raise SystemExit('assignment sticky verification failed')
+          PY
+          git rm .github/workflows/v93-assignment-sticky-actions-once.yml
+          git diff --check
+      - name: Commit assignment sticky actions
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "V93: keep assignment primary actions sticky"
+          git push origin HEAD:main

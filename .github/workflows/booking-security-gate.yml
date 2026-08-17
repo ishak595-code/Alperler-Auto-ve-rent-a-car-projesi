@@ -12,8 +12,16 @@ on:
       - "src/services/car.service.ts"
       - "src/services/catalog.service.ts"
       - "src/services/partner-request.service.ts"
+      - "src/services/newsletter.service.ts"
+      - "src/pages/admin/admin-layout.component.ts"
       - "src/pages/admin/admin-reservations.component.ts"
       - "src/pages/admin/admin-partner-requests.component.ts"
+      - "src/pages/admin/admin-branch-partner-requests.component.ts"
+      - "src/pages/admin/admin-subscribers.component.ts"
+      - "src/pages/admin/admin-legal-center.component.ts"
+      - "src/pages/admin/admin-team.component.ts"
+      - "src/pages/legal.component.ts"
+      - "src/components/customer-footer-v70.component.ts"
       - "src/pages/appointment.component.ts"
       - "api/catalog.ts"
       - "api/partner-requests.ts"
@@ -67,6 +75,20 @@ jobs:
           test -f supabase/functions/partner-request-gateway/index.ts
           test -f supabase/functions/partner-upload-resume/index.ts
           test -f supabase/migrations/202608140002_alperler_rls_policies_v1.sql
+
+          # Newsletter is public only through its hardened gateway. Subscriber
+          # management remains admin-only and consent changes keep an audit trail.
+          test -f supabase/functions/newsletter-gateway/index.ts
+          test -f supabase/migrations/20260817181500_v90_newsletter_consent_audit.sql
+          grep -Fq 'consume_rate_limit' supabase/functions/newsletter-gateway/index.ts
+          grep -Fq 'newsletter_consent_events_admin_read' supabase/migrations/20260817181500_v90_newsletter_consent_audit.sql
+          grep -Fq 'private.can_manage_operations()' supabase/migrations/20260817181500_v90_newsletter_consent_audit.sql
+
+          # Admin legal center must remain behind the routed admin shell rather
+          # than creating a separate unauthenticated management entry point.
+          test -f src/pages/admin/admin-legal-center.component.ts
+          grep -Fq "path: 'legal', component: AdminLegalCenterComponent" src/app.routes.ts
+          grep -Fq "adminAreaGuard('settings')" src/app.routes.ts
 
           # Never send booking/customer payloads to public test endpoints.
           ! grep -R --line-number --fixed-string 'httpbin.org' src api supabase/functions

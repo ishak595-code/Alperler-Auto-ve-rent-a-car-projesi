@@ -117,7 +117,7 @@ export class AdminFooterComponent implements OnInit {
 
   legalStatus(): { label: string; ready: boolean }[] {
     const cfg = this.carService.getConfig()();
-    return [
+    const documents: Array<[string, string | undefined]> = [
       ['Araç Kiralama Koşulları', cfg.rentalTermsText],
       ['Satış ve İlan Koşulları', cfg.salesTermsText],
       ['Tur ve Transfer Koşulları', cfg.tourTermsText],
@@ -131,7 +131,8 @@ export class AdminFooterComponent implements OnInit {
       ['Mesafeli İşlem', cfg.distanceSellingText],
       ['İade ve İptal', cfg.cancellationText],
       ['Sigorta ve Sorumluluk', cfg.insuranceText],
-    ].map(([label, value]) => ({ label, ready: String(value || '').trim().length > 20 }));
+    ];
+    return documents.map(([label, value]) => ({ label, ready: String(value || '').trim().length > 20 }));
   }
 
   async save(event: Event): Promise<void> {

@@ -1,5 +1,6 @@
 import { DestroyRef, computed, inject, Injectable, signal } from "@angular/core";
 import { Branch } from "../models/branch.model";
+import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { AuthService } from "./auth.service";
 import { CarService } from "./car.service";
 import { PublicContentRealtimeService } from "./public-content-realtime.service";
@@ -47,7 +48,7 @@ export class BranchService {
 
   readonly branches = computed(() =>
     (this.publicRemoteAvailable() ? this.publicRemoteBranches() : this.fallbackBranches())
-      .filter((branch) => branch.isActive)
+      .filter((branch) => branch.isActive && branch.publicStatus !== "DRAFT" && branch.publicStatus !== "SUSPENDED" && branch.publicStatus !== "CLOSED")
       .slice()
       .sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name, "tr")),
   );
@@ -142,14 +143,26 @@ export class BranchService {
   async refreshPublic(showError = true): Promise<void> {
     try {
       const records = await this.fetchBranches(`/api/branches?fresh=${Date.now()}`);
-      this.publicRemoteBranches.set(records);
-      this.publicRemoteAvailable.set(true);
-      this.syncError.set(null);
-    } catch (error) {
-      console.info("Branch source unavailable; verified fallback remains active.", error);
+      this.usePublicRecords(records);
+      return;
+    } catch (apiError) {
+      console.info("Branch API unavailable; trying direct public Supabase read.", apiError);
+    }
+
+    try {
+      const records = await this.fetchPublicDirect();
+      this.usePublicRecords(records);
+    } catch (directError) {
+      console.info("Direct public branch source unavailable; verified local fallback remains active.", directError);
       this.publicRemoteAvailable.set(false);
       if (showError) this.syncError.set("Şube veri kaynağına şu anda ulaşılamıyor.");
     }
+  }
+
+  private usePublicRecords(records: Branch[]): void {
+    this.publicRemoteBranches.set(records);
+    this.publicRemoteAvailable.set(records.length > 0);
+    this.syncError.set(null);
   }
 
   private queueRealtimeRefresh(delay = 120): void {
@@ -178,6 +191,59 @@ export class BranchService {
       throw new Error(payload.code || "BRANCH_SOURCE_UNAVAILABLE");
     }
     return payload.branches.map((branch) => this.normalize(branch)).filter((branch) => this.isUsable(branch));
+  }
+
+  private async fetchPublicDirect(): Promise<Branch[]> {
+    const response = await fetch(
+      `${SUPABASE_PROJECT_URL}/rest/v1/branches?is_active=eq.true&public_status=eq.ACTIVE&select=*&order=sort_order.asc,name.asc`,
+      {
+        cache: "no-store",
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          accept: "application/json",
+          "cache-control": "no-cache",
+        },
+      },
+    );
+    if (!response.ok) throw new Error(`BRANCH_DIRECT_${response.status}`);
+    const rows = await response.json();
+    if (!Array.isArray(rows)) throw new Error("BRANCH_DIRECT_INVALID");
+    return rows.map((row) => this.fromPublicRow(row)).map((branch) => this.normalize(branch)).filter((branch) => this.isUsable(branch));
+  }
+
+  private fromPublicRow(raw: unknown): Branch {
+    const row = raw && typeof raw === "object" ? raw as Record<string, any> : {};
+    return {
+      id: String(row["code"] || row["id"] || "").trim().toLowerCase(),
+      cloudId: row["id"] ? String(row["id"]) : undefined,
+      slug: row["slug"] || undefined,
+      name: String(row["name"] || ""),
+      city: String(row["city"] || ""),
+      district: String(row["district"] || ""),
+      addressLabel: String(row["address_line"] || ""),
+      phone: String(row["phone"] || ""),
+      whatsapp: row["whatsapp"] || undefined,
+      email: row["email"] || undefined,
+      latitude: row["latitude"] === null || row["latitude"] === undefined ? undefined : Number(row["latitude"]),
+      longitude: row["longitude"] === null || row["longitude"] === undefined ? undefined : Number(row["longitude"]),
+      mapUrl: row["map_url"] || undefined,
+      workingHours: Array.isArray(row["opening_hours"]) ? row["opening_hours"] : [],
+      services: Array.isArray(row["services"]) ? row["services"] : [],
+      isActive: Boolean(row["is_active"]),
+      isPickupPoint: Boolean(row["is_pickup_point"]),
+      isReturnPoint: Boolean(row["is_return_point"]),
+      priority: Number(row["sort_order"] || 0),
+      networkType: row["network_type"] || "OWNED",
+      publicStatus: row["public_status"] || "ACTIVE",
+      territoryLabel: row["territory_label"] || undefined,
+      publicDescription: row["public_description"] || undefined,
+      heroImage: row["hero_image"] || undefined,
+      customerGuaranteeEnabled: row["customer_guarantee_enabled"] !== false,
+      centralPricingRequired: row["central_pricing_required"] !== false,
+      listingRequiresApproval: row["listing_requires_approval"] !== false,
+      brandProfile: row["brand_profile"] && typeof row["brand_profile"] === "object" ? row["brand_profile"] : {},
+      serviceRules: row["service_rules"] && typeof row["service_rules"] === "object" ? row["service_rules"] : {},
+    };
   }
 
   private normalize(branch: Branch): Branch {

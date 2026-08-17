@@ -116,7 +116,7 @@ export class AccessibilityRuntimeService {
     if (id && Array.from(document.querySelectorAll<HTMLLabelElement>('label[for]')).some((label) => label.htmlFor === id && Boolean(label.textContent?.trim()))) return true;
 
     const wrappingLabel = control.closest('label');
-    if (wrappingLabel && this.labelTextWithoutControl(wrappingLabel, control)) return true;
+    if (wrappingLabel && this.labelTextWithoutControl(wrappingLabel)) return true;
 
     if (control.tagName === 'BUTTON' && this.visibleText(control)) return true;
     return false;
@@ -125,7 +125,7 @@ export class AccessibilityRuntimeService {
   private nearestLabelText(control: HTMLElement): string {
     const wrappingLabel = control.closest('label');
     if (wrappingLabel) {
-      const text = this.labelTextWithoutControl(wrappingLabel, control);
+      const text = this.labelTextWithoutControl(wrappingLabel);
       if (text) return text;
     }
 
@@ -140,7 +140,7 @@ export class AccessibilityRuntimeService {
     return '';
   }
 
-  private labelTextWithoutControl(label: HTMLLabelElement, control: HTMLElement): string {
+  private labelTextWithoutControl(label: HTMLLabelElement): string {
     const clone = label.cloneNode(true) as HTMLElement;
     clone.querySelectorAll('input,select,textarea,button,[aria-hidden="true"],mat-icon,svg').forEach((node) => node.remove());
     return clone.textContent?.trim() || '';

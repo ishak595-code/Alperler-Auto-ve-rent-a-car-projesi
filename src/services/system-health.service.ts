@@ -73,6 +73,14 @@ export class SystemHealthService {
     };
     document.addEventListener("visibilitychange", onVisibility, signal ? { signal } : undefined);
 
+    const clearProbeTimer = () => {
+      if (this.storefrontTimer !== undefined) {
+        window.clearInterval(this.storefrontTimer);
+        this.storefrontTimer = undefined;
+      }
+    };
+    window.addEventListener("pagehide", clearProbeTimer, signal ? { once: true, signal } : { once: true });
+
     window.setTimeout(() => void this.checkPublicStorefront(), 1_500);
     this.storefrontTimer = window.setInterval(() => void this.checkPublicStorefront(), 5 * 60_000);
   }

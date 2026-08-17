@@ -13,7 +13,7 @@ import { AdminOperationsDashboardComponent } from "./admin-operations-dashboard.
         <div class="mb-4">
           <p class="text-[10px] font-black uppercase tracking-[.2em] text-blue-400">İçerik, Analitik ve Operasyon Merkezi</p>
           <h2 class="mt-1 text-xl font-black">Hızlı Yönetim</h2>
-          <p class="mt-1 text-xs text-slate-400">Production veritabanı, ziyaretçi davranışı, yayın, ekip, medya ve müşteri operasyonlarına doğrudan erişin.</p>
+          <p class="mt-1 text-xs text-slate-400">Production veritabanı, yayın, ekip, müşteri operasyonları ve site görünümünü tek merkezden yönetin.</p>
         </div>
         <nav class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" aria-label="Admin hızlı yönetim araçları">
           @for (item of tools; track item.route) {
@@ -33,9 +33,10 @@ export class AdminDashboardShellComponent {
     { route: "/admin/analytics", icon: "query_stats", label: "Ziyaretçi Analitiği" },
     { route: "/admin/homepage", icon: "view_quilt", label: "Ana Sayfa Vitrini" },
     { route: "/admin/navigation", icon: "menu_open", label: "Mobil Menü & Alt Bar" },
+    { route: "/admin/footer", icon: "vertical_align_bottom", label: "Footer & Sosyal Medya" },
+    { route: "/admin/settings", icon: "settings", label: "Site Ayarları" },
     { route: "/admin/campaigns", icon: "campaign", label: "Kampanyalar" },
-    { route: "/admin/media", icon: "perm_media", label: "Fotoğraf & Video" },
-    { route: "/admin/catalog-editor", icon: "tune", label: "Tam Katalog Editörü" },
+    { route: "/admin/catalog-editor", icon: "tune", label: "Araç & Tur Yayın Stüdyosu" },
     { route: "/admin/reservations", icon: "event_note", label: "Rezervasyonlar" },
     { route: "/admin/partner-requests", icon: "directions_car", label: "Araç Başvuruları" },
     { route: "/admin/branch-partner-requests", icon: "add_business", label: "Şube Başvuruları" },

@@ -30,12 +30,14 @@ import { ToastService } from "../../services/toast.service";
                 Çalışanların şube, araç ve tur sorumluluklarını tek ekranda görün. Eski veya yanlış görevlendirmeleri güvenli biçimde kaldırın.
               </p>
             </div>
-            <div class="flex flex-wrap gap-2">
-              <a routerLink="/admin/team" class="flex min-h-12 items-center gap-2 rounded-xl bg-blue-600 px-5 font-black text-white"><mat-icon aria-hidden="true">add_task</mat-icon>Yeni Görev Ata</a>
-              <button type="button" (click)="refresh()" [disabled]="loading()" class="min-h-12 rounded-xl bg-white px-5 font-black text-slate-950 disabled:opacity-50">{{ loading() ? 'Yükleniyor…' : 'Yenile' }}</button>
-            </div>
+
           </div>
         </header>
+
+        <section class="sticky top-16 z-40 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:justify-end" aria-label="Görev merkezi hızlı işlemleri">
+          <a routerLink="/admin/team" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 font-black text-white"><mat-icon aria-hidden="true">add_task</mat-icon>Yeni Görev Ata</a>
+          <button type="button" (click)="refresh()" [disabled]="loading()" class="min-h-12 rounded-xl border border-slate-200 bg-white px-5 font-black text-slate-950 disabled:opacity-50">{{ loading() ? 'Yükleniyor…' : 'Yenile' }}</button>
+        </section>
 
         <section class="grid gap-3 sm:grid-cols-3">
           <article class="metric"><span>Şube ataması</span><strong>{{ snapshot().branches.length }}</strong></article>

@@ -1,0 +1,124 @@
+name: V94 Admin Single Source Apply Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v94-admin-single-source-apply-once.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply verified admin source cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+
+          p = Path('src/pages/admin/admin-settings.component.ts')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace(
+              'Marka, iletişim ve yönetici profilini tek kaynaktan yönetin. Ana sayfa, yasal metinler, ekip, footer, SEO ve SSS artık kendi yönetim sayfalarındadır.',
+              'Marka kimliği, temel iletişim ve yönetici profilini tek kaynaktan yönetin. Ana sayfa, yasal metinler, ekip, footer ve sosyal medya, WhatsApp, SEO ve SSS kendi uzman yönetim sayfalarındadır.'
+          )
+          s = s.replace('            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">WhatsApp Numarası</span><input [(ngModel)]="formConfig.whatsapp" name="whatsapp" inputmode="tel" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>\n', '')
+          s = s.replace('            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">WhatsApp Karşılama Mesajı</span><input [(ngModel)]="formConfig.whatsappMessage" name="whatsappMessage" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>\n', '')
+          sm = '<h2 class="text-xl font-black">Sosyal Medya</h2>'
+          hm = '<h2 class="text-xl font-black">Hesap Güvenliği</h2>'
+          if sm in s:
+              a = s.rfind('\n        <section', 0, s.index(sm))
+              b = s.rfind('\n        <section', s.index(sm), s.index(hm, s.index(sm)))
+              if a < 0 or b < 0: raise SystemExit('settings section boundaries not found')
+              s = s[:a] + s[b:]
+          s = s.replace(
+              'Bu sayfa artık ana sayfa metinlerini, ekip üyelerini, yasal içerikleri, footer ayarlarını veya SSS kayıtlarını ikinci kez tutmaz. O içerikler kendi admin modüllerinden canlı veritabanına yazılır.',
+              'Bu sayfa artık ana sayfa metinlerini, ekip üyelerini, yasal içerikleri, footer ve sosyal medya ayarlarını, WhatsApp ayarlarını, SEO değerlerini veya SSS kayıtlarını ikinci kez tutmaz. Her veri yalnız kendi uzman admin modülünden canlı veritabanına yazılır.'
+          )
+          p.write_text(s, encoding='utf-8')
+
+          p = Path('src/pages/admin/admin-footer.component.ts')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace("Metinlerin asıl kaynağı Site Ayarları → Yasal Sayfalar'dır.", "Metinlerin asıl kaynağı Yasal Metin Merkezi'dir.")
+          s = s.replace('routerLink="/admin/settings" aria-label="Site ayarlarında yasal metinleri düzenle"', 'routerLink="/admin/legal" aria-label="Yasal Metin Merkezi sayfasını aç"')
+          if '[(ngModel)]="facebookUrl"' not in s:
+              s = s.replace(
+                  '              <label><span>X URL</span><input [(ngModel)]="xUrl" name="xUrl" inputmode="url" placeholder="https://x.com/..." aria-label="X profil URL adresi" /></label>',
+                  '              <label><span>X URL</span><input [(ngModel)]="xUrl" name="xUrl" inputmode="url" placeholder="https://x.com/..." aria-label="X profil URL adresi" /></label>\n              <label><span>Facebook URL</span><input [(ngModel)]="facebookUrl" name="facebookUrl" inputmode="url" placeholder="https://facebook.com/..." aria-label="Facebook profil URL adresi" /></label>'
+              )
+              s = s.replace("  xUrl = '';", "  xUrl = '';\n  facebookUrl = '';")
+              s = s.replace("      this.xUrl = cfg.twitterUrl || '';", "      this.xUrl = cfg.twitterUrl || '';\n      this.facebookUrl = cfg.facebookUrl || '';")
+              s = s.replace('      const socials = [this.instagramUrl, this.tiktokUrl, this.youtubeUrl, this.xUrl];', '      const socials = [this.instagramUrl, this.tiktokUrl, this.youtubeUrl, this.xUrl, this.facebookUrl];')
+              s = s.replace("        twitterUrl: this.xUrl.trim(),", "        twitterUrl: this.xUrl.trim(),\n        facebookUrl: this.facebookUrl.trim(),")
+          old = """      ['Kullanım Şartları', cfg.termsText],
+      ['KVKK Aydınlatma Metni', cfg.kvkkText],
+      ['Gizlilik Politikası', cfg.privacyText],
+      ['Çerez Politikası', cfg.cookiesText],
+      ['Mesafeli İşlem', cfg.distanceSellingText],
+      ['İade ve İptal', cfg.cancellationText],
+      ['Sigorta ve Sorumluluk', cfg.insuranceText],"""
+          new = """      ['Araç Kiralama Koşulları', cfg.rentalTermsText],
+      ['Satış ve İlan Koşulları', cfg.salesTermsText],
+      ['Tur ve Transfer Koşulları', cfg.tourTermsText],
+      ['Aracını Değerlendir Koşulları', cfg.partnerTermsText],
+      ['Şube ve Bayilik Koşulları', cfg.branchTermsText],
+      ['Bülten ve Ticari İleti', cfg.commercialCommunicationText],
+      ['Genel Kullanım Şartları', cfg.termsText],
+      ['KVKK Aydınlatma Metni', cfg.kvkkText],
+      ['Gizlilik Politikası', cfg.privacyText],
+      ['Çerez Politikası', cfg.cookiesText],
+      ['Mesafeli İşlem', cfg.distanceSellingText],
+      ['İade ve İptal', cfg.cancellationText],
+      ['Sigorta ve Sorumluluk', cfg.insuranceText],"""
+          s = s.replace(old, new)
+          p.write_text(s, encoding='utf-8')
+
+          p = Path('src/pages/admin/admin-homepage.component.ts')
+          p.write_text(p.read_text(encoding='utf-8').replace('AlperAuto', 'Alperler Auto'), encoding='utf-8')
+
+          p = Path('src/services/car.service.ts')
+          s = p.read_text(encoding='utf-8')
+          if '.replace(/AlperAuto/g, "Alperler Auto")' not in s:
+              s = s.replace(
+                  '      .replace(/ALPERLER OTO/g, "ALPERLER AUTO");',
+                  '      .replace(/ALPERLER OTO/g, "ALPERLER AUTO")\n      .replace(/AlperAuto/g, "Alperler Auto")\n      .replace(/ALPERAUTO/g, "ALPERLER AUTO");'
+              )
+          p.write_text(s, encoding='utf-8')
+
+          p = Path('src/app.component.ts')
+          s = p.read_text(encoding='utf-8').replace(
+              'readonly showCustomerChrome = signal(this.isCustomerRoute(this.router.url));',
+              "readonly showCustomerChrome = signal(this.isCustomerRoute(typeof window !== 'undefined' ? window.location.pathname : this.router.url));"
+          )
+          p.write_text(s, encoding='utf-8')
+          PY
+
+          grep -q 'routerLink="/admin/legal"' src/pages/admin/admin-footer.component.ts
+          grep -q 'facebookUrl' src/pages/admin/admin-footer.component.ts
+          ! grep -q '>Sosyal Medya</h2>' src/pages/admin/admin-settings.component.ts
+          ! grep -q '>WhatsApp Numarası</span>' src/pages/admin/admin-settings.component.ts
+          grep -q 'window.location.pathname' src/app.component.ts
+          git diff --check
+
+      - name: Commit source cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app.component.ts src/services/car.service.ts src/pages/admin/admin-settings.component.ts src/pages/admin/admin-footer.component.ts src/pages/admin/admin-homepage.component.ts
+          git rm -f .github/workflows/v94-admin-single-source-apply-once.yml
+          git rm -f .github/workflows/v94-admin-single-source-cleanup-once.yml || true
+          git commit -m "V94: enforce single-source admin settings"
+          git push origin HEAD:main

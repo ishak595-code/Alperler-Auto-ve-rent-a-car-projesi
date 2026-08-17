@@ -6,6 +6,18 @@ export interface TeamMember {
   image: string;
 }
 
+export interface RentalExtraOption {
+  id: string;
+  label: string;
+  description?: string;
+  icon?: string;
+  enabled: boolean;
+  sortOrder?: number;
+  pricePerDay?: number;
+  pricePerHour?: number;
+  flatPrice?: number;
+}
+
 export interface SiteConfig {
   logoUrl: string;
   logoWidthDesktop?: number;
@@ -27,6 +39,10 @@ export interface SiteConfig {
   facebookUrl: string;
   youtubeUrl: string;
   tiktokUrl: string;
+
+  // Rental configuration. Values are loaded from public site_config so pricing
+  // can be adjusted without a new frontend deployment.
+  rentalExtras?: RentalExtraOption[];
 
   // SEO & Tracking
   seoTitle?: string;

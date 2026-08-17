@@ -19,9 +19,15 @@ import { ConfirmService } from '../../services/confirm.service';
             <h1 class="mt-1 text-2xl font-black text-slate-950">Bülten & Abone Merkezi</h1>
             <p class="mt-1 text-sm text-slate-500">Abonelik, izin durumu, kampanya gönderimi ve teslimat sonuçlarını tek merkezden yönetin.</p>
           </div>
-          <button type="button" (click)="reload()" [disabled]="loading()" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50">
-            <mat-icon aria-hidden="true">refresh</mat-icon>{{ loading() ? 'Yükleniyor...' : 'Yenile' }}
-          </button>
+          <div class="grid w-full gap-2 sm:grid-cols-[minmax(220px,1fr)_160px_auto] lg:w-auto">
+            <input [(ngModel)]="searchTerm" type="search" autocomplete="off" placeholder="E-posta ara…" aria-label="Abonelerde e-posta ara" class="control min-w-0" />
+            <select [(ngModel)]="statusFilter" class="control" aria-label="Abone durum filtresi">
+              <option value="ALL">Tüm durumlar</option><option value="ACTIVE">Aktif</option><option value="UNSUBSCRIBED">Çıkmış</option><option value="BOUNCED">Bounced</option>
+            </select>
+            <button type="button" (click)="reload()" [disabled]="loading()" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50">
+              <mat-icon aria-hidden="true">refresh</mat-icon>{{ loading() ? 'Yükleniyor...' : 'Yenile' }}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -41,12 +47,7 @@ import { ConfirmService } from '../../services/confirm.service';
           <article class="panel">
             <div class="panel-head">
               <div><h2>Aboneler</h2><p>Her kayıt doğrudan <code>subscribers</code> tablosundan gelir.</p></div>
-              <select [(ngModel)]="statusFilter" class="control max-w-48" aria-label="Abone durum filtresi">
-                <option value="ALL">Tümü</option>
-                <option value="ACTIVE">Aktif</option>
-                <option value="UNSUBSCRIBED">Çıkmış</option>
-                <option value="BOUNCED">Bounced</option>
-              </select>
+
             </div>
             <div class="divide-y divide-slate-100">
               @for (subscriber of filteredSubscribers(); track subscriber.id) {
@@ -129,6 +130,7 @@ export class AdminSubscribersComponent implements OnInit {
   readonly error = signal('');
   readonly singleEmail = signal<string | null>(null);
   statusFilter = 'ALL';
+  searchTerm = '';
   campaignTitle = '';
   campaignSubject = '';
   campaignBody = '';
@@ -137,7 +139,10 @@ export class AdminSubscribersComponent implements OnInit {
   readonly unsubscribedCount = computed(() => this.subscribers().filter((item) => item.status === 'UNSUBSCRIBED').length);
   readonly totalSent = computed(() => this.visibleCampaigns().reduce((sum, item) => sum + item.sentCount, 0));
   readonly visibleCampaigns = computed(() => this.campaigns().filter((item) => item.metadata?.['system'] !== true));
-  readonly filteredSubscribers = computed(() => this.statusFilter === 'ALL' ? this.subscribers() : this.subscribers().filter((item) => item.status === this.statusFilter));
+  readonly filteredSubscribers = computed(() => {
+    const query = this.searchTerm.trim().toLocaleLowerCase('tr-TR');
+    return this.subscribers().filter((item) => (this.statusFilter === 'ALL' || item.status === this.statusFilter) && (!query || item.email.toLocaleLowerCase('tr-TR').includes(query)));
+  });
 
   ngOnInit(): void { void this.reload(); }
 

@@ -18,7 +18,7 @@ import { SiteConfig } from '../../models/site-config.model';
           <div>
             <p class="text-[11px] font-black uppercase tracking-[.18em] text-blue-600">Canlı site_config</p>
             <h1 class="mt-1 text-2xl font-black md:text-3xl">Genel Ayarlar ve Profil</h1>
-            <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Marka, iletişim ve yönetici profilini tek kaynaktan yönetin. Ana sayfa, yasal metinler, ekip, footer, SEO ve SSS artık kendi yönetim sayfalarındadır.</p>
+            <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Marka kimliği, temel iletişim ve yönetici profilini tek kaynaktan yönetin. Ana sayfa, yasal metinler, ekip, footer ve sosyal medya, WhatsApp, SEO ve SSS kendi uzman yönetim sayfalarındadır.</p>
           </div>
           <div class="flex flex-wrap gap-2">
             <button type="button" (click)="reload()" [disabled]="loading() || saving()" class="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 disabled:opacity-50">{{ loading() ? 'Yenileniyor…' : 'Veritabanından Yenile' }}</button>
@@ -78,24 +78,11 @@ import { SiteConfig } from '../../models/site-config.model';
         </section>
 
         <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <header class="border-b border-slate-200 p-5 md:p-6"><h2 class="text-xl font-black">İletişim</h2><p class="mt-1 text-sm leading-6 text-slate-500">Müşteriyle temas kurulan gerçek iletişim kanalları.</p></header>
+          <header class="border-b border-slate-200 p-5 md:p-6"><h2 class="text-xl font-black">Temel İletişim</h2><p class="mt-1 text-sm leading-6 text-slate-500">Telefon, e-posta ve adres burada yönetilir. WhatsApp ayarları kendi yönetim sayfasındadır.</p></header>
           <div class="grid gap-5 p-5 md:grid-cols-2 md:p-6">
             <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Telefon</span><input [(ngModel)]="formConfig.phone" name="phone" autocomplete="tel" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
             <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">E-posta</span><input [(ngModel)]="formConfig.email" name="email" type="email" autocomplete="email" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">WhatsApp Numarası</span><input [(ngModel)]="formConfig.whatsapp" name="whatsapp" inputmode="tel" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">WhatsApp Karşılama Mesajı</span><input [(ngModel)]="formConfig.whatsappMessage" name="whatsappMessage" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
             <label class="grid gap-1.5 md:col-span-2"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Adres</span><textarea [(ngModel)]="formConfig.address" name="address" rows="3" class="rounded-xl border border-slate-300 bg-slate-50 p-4 outline-none focus:border-blue-500 focus:bg-white"></textarea></label>
-          </div>
-        </section>
-
-        <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <header class="border-b border-slate-200 p-5 md:p-6"><h2 class="text-xl font-black">Sosyal Medya</h2><p class="mt-1 text-sm leading-6 text-slate-500">Footer ve müşteri iletişim alanlarında kullanılan hesaplar.</p></header>
-          <div class="grid gap-5 p-5 md:grid-cols-2 md:p-6">
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Instagram</span><input [(ngModel)]="formConfig.instagramUrl" name="instagramUrl" type="url" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">X</span><input [(ngModel)]="formConfig.twitterUrl" name="twitterUrl" type="url" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Facebook</span><input [(ngModel)]="formConfig.facebookUrl" name="facebookUrl" type="url" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">YouTube</span><input [(ngModel)]="formConfig.youtubeUrl" name="youtubeUrl" type="url" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">TikTok</span><input [(ngModel)]="formConfig.tiktokUrl" name="tiktokUrl" type="url" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
           </div>
         </section>
 
@@ -109,7 +96,7 @@ import { SiteConfig } from '../../models/site-config.model';
         </section>
 
         <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
-          <strong class="font-black">Tek kaynak kuralı aktif:</strong> Bu sayfa artık ana sayfa metinlerini, ekip üyelerini, yasal içerikleri, footer ayarlarını veya SSS kayıtlarını ikinci kez tutmaz. O içerikler kendi admin modüllerinden canlı veritabanına yazılır.
+          <strong class="font-black">Tek kaynak kuralı aktif:</strong> Bu sayfa ana sayfa metinlerini, ekip üyelerini, yasal içerikleri, footer ve sosyal medya ayarlarını, WhatsApp ayarlarını, SEO değerlerini veya SSS kayıtlarını ikinci kez tutmaz. Her veri yalnız kendi uzman admin modülünden canlı veritabanına yazılır.
         </div>
       </form>
     </main>

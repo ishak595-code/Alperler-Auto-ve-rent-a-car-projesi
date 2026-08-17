@@ -1,0 +1,48 @@
+name: V90 Subscriber Toolbar Once
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/v90-subscriber-toolbar-once.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Move subscriber search and filter to page header
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+          p=Path('src/pages/admin/admin-subscribers.component.ts')
+          t=p.read_text()
+          old='''          <button type="button" (click)="reload()" [disabled]="loading()" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50">\n            <mat-icon aria-hidden="true">refresh</mat-icon>{{ loading() ? 'Yükleniyor...' : 'Yenile' }}\n          </button>'''
+          new='''          <div class="grid w-full gap-2 sm:grid-cols-[minmax(220px,1fr)_160px_auto] lg:w-auto">\n            <input [(ngModel)]="searchTerm" type="search" autocomplete="off" placeholder="E-posta ara…" aria-label="Abonelerde e-posta ara" class="control min-w-0" />\n            <select [(ngModel)]="statusFilter" class="control" aria-label="Abone durum filtresi">\n              <option value="ALL">Tüm durumlar</option><option value="ACTIVE">Aktif</option><option value="UNSUBSCRIBED">Çıkmış</option><option value="BOUNCED">Bounced</option>\n            </select>\n            <button type="button" (click)="reload()" [disabled]="loading()" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50">\n              <mat-icon aria-hidden="true">refresh</mat-icon>{{ loading() ? 'Yükleniyor...' : 'Yenile' }}\n            </button>\n          </div>'''
+          if t.count(old)!=1: raise SystemExit(f'header action matches={t.count(old)}')
+          t=t.replace(old,new,1)
+          old2='''              <select [(ngModel)]="statusFilter" class="control max-w-48" aria-label="Abone durum filtresi">\n                <option value="ALL">Tümü</option>\n                <option value="ACTIVE">Aktif</option>\n                <option value="UNSUBSCRIBED">Çıkmış</option>\n                <option value="BOUNCED">Bounced</option>\n              </select>'''
+          if t.count(old2)!=1: raise SystemExit(f'old filter matches={t.count(old2)}')
+          t=t.replace(old2,'',1)
+          old3="""  statusFilter = 'ALL';\n  campaignTitle = '';"""
+          new3="""  statusFilter = 'ALL';\n  searchTerm = '';\n  campaignTitle = '';"""
+          if t.count(old3)!=1: raise SystemExit('state block mismatch')
+          t=t.replace(old3,new3,1)
+          old4="""  readonly filteredSubscribers = computed(() => this.statusFilter === 'ALL' ? this.subscribers() : this.subscribers().filter((item) => item.status === this.statusFilter));"""
+          new4="""  readonly filteredSubscribers = computed(() => {\n    const query = this.searchTerm.trim().toLocaleLowerCase('tr-TR');\n    return this.subscribers().filter((item) => (this.statusFilter === 'ALL' || item.status === this.statusFilter) && (!query || item.email.toLocaleLowerCase('tr-TR').includes(query)));\n  });"""
+          if t.count(old4)!=1: raise SystemExit('computed block mismatch')
+          t=t.replace(old4,new4,1)
+          p.write_text(t)
+          PY
+          git rm .github/workflows/v90-subscriber-toolbar-once.yml
+          git diff --check
+      - name: Commit clean toolbar
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "V90: keep subscriber search and filters at the top"
+          git push origin HEAD:main

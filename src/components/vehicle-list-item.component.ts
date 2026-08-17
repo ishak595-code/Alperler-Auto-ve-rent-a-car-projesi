@@ -56,15 +56,6 @@ import { CarService } from "../services/car.service";
           </div>
         </div>
       </a>
-
-      <button
-        type="button"
-        (click)="openWhatsApp($event)"
-        class="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 text-xs font-black text-white transition-all hover:bg-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 active:translate-y-px"
-        [attr.aria-label]="displayTitle + ' için WhatsApp ile bilgi al'"
-      >
-        WhatsApp ile Bilgi Al
-      </button>
     </article>
   `,
 })
@@ -88,19 +79,6 @@ export class VehicleListItemComponent {
     const type = this.variant === "rental" ? "kiralık araç" : "satılık araç";
     const details = [this.car.year, this.variant === "sale" && this.car.km != null ? `${this.car.km} kilometre` : null, this.car.transmission, this.car.fuel].filter(Boolean).join(", ");
     return `${this.displayTitle}, ${type}${details ? `, ${details}` : ""}, fiyat ${this.car.price} Türk lirası${this.variant === "rental" ? " günlük" : ""}. İlanı aç`;
-  }
-
-  openWhatsApp(event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
-    if (typeof window === "undefined") return;
-    const cfg = this.config();
-    const number = String(cfg.whatsapp || cfg.phone || "").replace(/\D/g, "");
-    if (!number) return;
-    const pageUrl = `${window.location.origin}${this.variant === "rental" ? "/fleet/" : "/sales/"}${this.car.id}`;
-    const base = cfg.whatsappMessage?.trim() || "Merhaba, bu araç hakkında bilgi almak istiyorum.";
-    const message = `${base}\n\n${this.displayTitle}\n${pageUrl}`;
-    window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   }
 
   handleImageError(event: Event): void {

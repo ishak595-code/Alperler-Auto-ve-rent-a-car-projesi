@@ -23,6 +23,7 @@ import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
 import { AdminHomepageComponent } from './pages/admin/admin-homepage.component';
 import { AdminNavigationComponent } from './pages/admin/admin-navigation.component';
 import { AdminFooterComponent } from './pages/admin/admin-footer.component';
+import { AdminLegalCenterComponent } from './pages/admin/admin-legal-center.component';
 import { AdminTeamComponent } from './pages/admin/admin-team.component';
 import { AdminBranchesComponent } from './pages/admin/admin-branches.component';
 import { AdminCampaignsComponent } from './pages/admin/admin-campaigns.component';
@@ -33,21 +34,13 @@ import { AdminSystemHealthComponent } from './pages/admin/admin-system-health.co
 import { AdminAnalyticsComponent } from './pages/admin/admin-analytics.component';
 
 const adminGuard: CanActivateFn = async () => {
-  const auth = inject(AuthService);
-  const router = inject(Router);
-  await auth.waitUntilReady();
-  if (auth.isLoggedIn()) return true;
-  return router.parseUrl('/admin/login');
+  const auth = inject(AuthService); const router = inject(Router); await auth.waitUntilReady();
+  if (auth.isLoggedIn()) return true; return router.parseUrl('/admin/login');
 };
-
 const adminAreaGuard = (area: AdminArea): CanActivateFn => async () => {
-  const auth = inject(AuthService);
-  const access = inject(AdminAccessService);
-  const router = inject(Router);
-  await auth.waitUntilReady();
-  if (!auth.isLoggedIn()) return router.parseUrl('/admin/login');
-  if (await access.can(area)) return true;
-  return router.parseUrl(`/admin/dashboard?denied=${encodeURIComponent(area)}`);
+  const auth = inject(AuthService); const access = inject(AdminAccessService); const router = inject(Router);
+  await auth.waitUntilReady(); if (!auth.isLoggedIn()) return router.parseUrl('/admin/login');
+  if (await access.can(area)) return true; return router.parseUrl(`/admin/dashboard?denied=${encodeURIComponent(area)}`);
 };
 
 export const routes: Routes = [
@@ -65,28 +58,23 @@ export const routes: Routes = [
   { path: 'branches/:slug', loadComponent: () => import('./pages/branch-detail.component').then(m => m.BranchDetailComponent) },
   { path: 'branches', loadComponent: () => import('./pages/branches.component').then(m => m.BranchesComponent) },
   { path: 'branch-partner', loadComponent: () => import('./pages/branch-partner.component').then(m => m.BranchPartnerComponent) },
-  { path: 'blog', component: BlogListComponent },
-  { path: 'blog/:id', component: BlogDetailComponent },
+  { path: 'blog', component: BlogListComponent }, { path: 'blog/:id', component: BlogDetailComponent },
   { path: 'about', component: AboutComponent },
   { path: 'contact', loadComponent: () => import('./pages/contact-entry.component').then(m => m.ContactEntryComponent) },
-  { path: 'faq', component: FaqComponent },
-  { path: 'legal', component: LegalComponent },
+  { path: 'faq', component: FaqComponent }, { path: 'legal', component: LegalComponent },
   { path: 'appointment', loadComponent: () => import('./pages/appointment.component').then(m => m.AppointmentComponent) },
   { path: 'list-your-car', loadComponent: () => import('./pages/list-your-car.component').then(m => m.ListYourCarComponent) },
   { path: 'track-car/:id', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
   { path: 'track-car', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
   { path: '', component: MainLayoutComponent, children: [{ path: '', component: HomeV71Component }] },
-  {
-    path: 'admin',
-    component: AdminLayoutComponent,
-    canActivate: [adminGuard],
-    children: [
+  { path: 'admin', component: AdminLayoutComponent, canActivate: [adminGuard], children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: AdminDashboardShellComponent },
       { path: 'analytics', component: AdminAnalyticsComponent, canActivate: [adminAreaGuard('analytics')] },
       { path: 'homepage', component: AdminHomepageComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'navigation', component: AdminNavigationComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'footer', component: AdminFooterComponent, canActivate: [adminAreaGuard('settings')] },
+      { path: 'legal', component: AdminLegalCenterComponent, canActivate: [adminAreaGuard('settings')] },
       { path: 'campaigns', component: AdminCampaignsComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'media', redirectTo: 'catalog-editor', pathMatch: 'full' },
       { path: 'catalog-editor', component: AdminCatalogEditorComponent, canActivate: [adminAreaGuard('content')] },
@@ -97,9 +85,7 @@ export const routes: Routes = [
       { path: 'branch-network/:id', canActivate: [adminAreaGuard('settings')], loadComponent: () => import('./pages/admin/admin-branch-network.component').then(m => m.AdminBranchNetworkComponent) },
       { path: 'audit', component: AdminAuditComponent, canActivate: [adminAreaGuard('finance')] },
       { path: 'system-health', component: AdminSystemHealthComponent, canActivate: [adminAreaGuard('settings')] },
-      { path: 'cars', redirectTo: 'catalog-editor', pathMatch: 'full' },
-      { path: 'sales', redirectTo: 'catalog-editor', pathMatch: 'full' },
-      { path: 'tours', redirectTo: 'catalog-editor', pathMatch: 'full' },
+      { path: 'cars', redirectTo: 'catalog-editor', pathMatch: 'full' }, { path: 'sales', redirectTo: 'catalog-editor', pathMatch: 'full' }, { path: 'tours', redirectTo: 'catalog-editor', pathMatch: 'full' },
       { path: 'reservations', component: AdminReservationsComponent, canActivate: [adminAreaGuard('operations')] },
       { path: 'blog', component: AdminBlogComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'partner-requests', component: AdminPartnerRequestsComponent, canActivate: [adminAreaGuard('operations')] },
@@ -107,7 +93,6 @@ export const routes: Routes = [
       { path: 'feedback', component: AdminFeedbackComponent, canActivate: [adminAreaGuard('operations')] },
       { path: 'subscribers', canActivate: [adminAreaGuard('operations')], loadComponent: () => import('./pages/admin/admin-subscribers.component').then(m => m.AdminSubscribersComponent) },
       { path: 'settings', component: AdminSettingsComponent, canActivate: [adminAreaGuard('settings')] }
-    ]
-  },
+    ] },
   { path: '**', component: MainLayoutComponent, children: [{ path: '', loadComponent: () => import('./pages/not-found.component').then(m => m.NotFoundComponent) }] }
 ];

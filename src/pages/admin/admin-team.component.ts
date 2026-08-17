@@ -25,7 +25,15 @@ import { ToastService } from "../../services/toast.service";
               <h1 class="text-3xl font-black md:text-4xl">Ekip, Yetkiler ve Şubeler</h1>
               <p class="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">Yönetici erişimi Auth üzerinden, çalışan ve görevlendirmeler ise Supabase veritabanından yönetilir. Yönetici davetleri owner yetkisi gerektirir.</p>
             </div>
-            <button type="button" (click)="refresh()" [disabled]="loading()" class="min-h-12 rounded-xl bg-white px-5 font-black text-slate-950 disabled:opacity-50">{{ loading() ? 'Yükleniyor…' : 'Veriyi Yenile' }}</button>
+            <div class="grid w-full gap-2 lg:w-auto lg:grid-cols-[minmax(220px,1fr)_auto_auto]">
+              @if (tab() !== 'assignments') {
+                <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" [placeholder]="teamSearchPlaceholder()" aria-label="Ekip yönetimi kayıtlarında ara" class="min-h-12 rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-bold text-white outline-none placeholder:text-slate-400 focus:border-blue-400" />
+              } @else {
+                <div class="hidden lg:block"></div>
+              }
+              <button type="button" (click)="startNewForCurrentTab()" class="min-h-12 rounded-xl bg-blue-600 px-5 text-sm font-black text-white">+ {{ newActionLabel() }}</button>
+              <button type="button" (click)="refresh()" [disabled]="loading()" class="min-h-12 rounded-xl bg-white px-5 text-sm font-black text-slate-950 disabled:opacity-50">{{ loading() ? 'Yükleniyor…' : 'Yenile' }}</button>
+            </div>
           </div>
         </header>
 
@@ -38,7 +46,7 @@ import { ToastService } from "../../services/toast.service";
 
         @if (tab()==='admins') {
           <section class="grid gap-5 xl:grid-cols-[390px_1fr]">
-            <form (ngSubmit)="inviteAdmin()" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+            <form id="team-admin-form" (ngSubmit)="inviteAdmin()" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
               <h2 class="text-xl font-black text-slate-900">Yeni Yönetici Davet Et</h2>
               <p class="mt-1 text-xs leading-relaxed text-slate-500">Davet e-postası Supabase Auth tarafından gönderilir.</p>
               <div class="mt-5 space-y-4">
@@ -53,7 +61,7 @@ import { ToastService } from "../../services/toast.service";
             <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
               <div class="flex items-center justify-between"><div><h2 class="text-xl font-black text-slate-900">Panel Kullanıcıları</h2><p class="text-xs text-slate-500">{{ admins().length }} yetkili hesap</p></div></div>
               <div class="mt-5 space-y-3">
-                @for (admin of admins(); track admin.userId) {
+                @for (admin of filteredAdmins(); track admin.userId) {
                   <article class="rounded-2xl border border-slate-200 p-4" [class.opacity-50]="!admin.isActive">
                     <div class="flex flex-col gap-4 md:flex-row md:items-center">
                       <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-950 font-black text-white">{{ initials(admin.displayName || admin.email) }}</div>
@@ -73,7 +81,7 @@ import { ToastService } from "../../services/toast.service";
 
         @if (tab()==='staff') {
           <section class="grid gap-5 xl:grid-cols-[390px_1fr]">
-            <form (ngSubmit)="saveStaff()" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+            <form id="team-staff-form" (ngSubmit)="saveStaff()" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
               <div class="flex items-center justify-between"><h2 class="text-xl font-black text-slate-900">{{ editingStaffId ? 'Çalışanı Düzenle' : 'Çalışan Ekle' }}</h2>@if (editingStaffId) { <button type="button" (click)="resetStaffForm()" class="text-sm font-bold text-blue-600">Yeni kayıt</button> }</div>
               <div class="mt-5 space-y-4">
                 <label class="field"><span>Ad soyad</span><input [(ngModel)]="staffName" name="staffName" required /></label>
@@ -85,7 +93,7 @@ import { ToastService } from "../../services/toast.service";
               </div>
             </form>
             <div class="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-              @for (staff of staff(); track staff.id) {
+              @for (staff of filteredStaff(); track staff.id) {
                 <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm" [class.opacity-50]="!staff.isActive">
                   <div class="flex items-start justify-between gap-3"><div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 font-black text-blue-700">{{ initials(staff.displayName) }}</div><span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase text-slate-600">{{ staff.department }}</span></div>
                   <h3 class="mt-4 text-lg font-black text-slate-900">{{ staff.displayName }}</h3><p class="text-sm text-slate-500">{{ staff.jobTitle || 'Görev belirtilmedi' }}</p>
@@ -99,7 +107,7 @@ import { ToastService } from "../../services/toast.service";
 
         @if (tab()==='branches') {
           <section class="grid gap-5 xl:grid-cols-[390px_1fr]">
-            <form (ngSubmit)="saveBranch()" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+            <form id="team-branch-form" (ngSubmit)="saveBranch()" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
               <div class="flex items-center justify-between"><h2 class="text-xl font-black text-slate-900">{{ editingBranchId ? 'Şubeyi Düzenle' : 'Şube Ekle' }}</h2>@if (editingBranchId) { <button type="button" (click)="resetBranchForm()" class="text-sm font-bold text-blue-600">Yeni kayıt</button> }</div>
               <div class="mt-5 space-y-4">
                 <label class="field"><span>Şube kodu</span><input [(ngModel)]="branchCode" name="branchCode" placeholder="YKVA-MRK" required /></label>
@@ -113,7 +121,7 @@ import { ToastService } from "../../services/toast.service";
               </div>
             </form>
             <div class="grid gap-3 md:grid-cols-2">
-              @for (branch of branches(); track branch.id) {
+              @for (branch of filteredBranches(); track branch.id) {
                 <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div class="flex items-start justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-blue-600">{{ branch.code || 'ŞUBE' }}</span><h3 class="mt-1 text-xl font-black text-slate-900">{{ branch.name }}</h3></div><span [class.bg-emerald-100]="branch.isActive" [class.text-emerald-700]="branch.isActive" class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black">{{ branch.isActive ? 'AKTİF' : 'PASİF' }}</span></div>
                   <p class="mt-3 text-sm text-slate-600">{{ branch.district ? branch.district + ' / ' : '' }}{{ branch.city }}</p><p class="mt-1 text-xs leading-relaxed text-slate-500">{{ branch.address || 'Adres girilmedi' }}</p>
@@ -125,7 +133,7 @@ import { ToastService } from "../../services/toast.service";
         }
 
         @if (tab()==='assignments') {
-          <section class="grid gap-5 lg:grid-cols-3">
+          <section id="team-assignment-form" class="grid gap-5 lg:grid-cols-3">
             <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><h2 class="text-lg font-black text-slate-900">Çalışanı Şubeye Ata</h2><div class="mt-4 space-y-3"><label class="field"><span>Çalışan</span><select [(ngModel)]="assignmentStaffId"><option value="">Seç</option>@for (member of activeStaff(); track member.id) { <option [value]="member.id">{{ member.displayName }}</option> }</select></label><label class="field"><span>Şube</span><select [(ngModel)]="assignmentBranchId"><option value="">Seç</option>@for (branch of branches(); track branch.id) { <option [value]="branch.id">{{ branch.name }}</option> }</select></label><label class="flex min-h-11 items-center gap-2 rounded-xl bg-slate-50 px-3 text-sm font-bold"><input type="checkbox" [(ngModel)]="assignmentPrimary" /> Ana şube yap</label><button type="button" (click)="assignBranch()" class="min-h-12 w-full rounded-xl bg-slate-950 font-black text-white">Ata</button></div></article>
 
             <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><h2 class="text-lg font-black text-slate-900">Araç Sorumluluğu</h2><div class="mt-4 space-y-3"><label class="field"><span>Çalışan</span><select [(ngModel)]="vehicleStaffId"><option value="">Seç</option>@for (member of activeStaff(); track member.id) { <option [value]="member.id">{{ member.displayName }}</option> }</select></label><label class="field"><span>Araç</span><select [(ngModel)]="vehicleId"><option value="">Seç</option>@for (vehicle of cloudVehicles(); track vehicle.cloudId) { <option [value]="vehicle.cloudId">{{ vehicle.brand }} {{ vehicle.model }} · {{ vehicle.category }}</option> }</select></label><label class="field"><span>Sorumluluk</span><select [(ngModel)]="vehicleResponsibility"><option value="RESPONSIBLE">Genel sorumlu</option><option value="SALES">Satış</option><option value="FLEET">Filo</option><option value="DELIVERY">Teslimat</option><option value="MAINTENANCE">Bakım</option></select></label><button type="button" (click)="assignVehicle()" class="min-h-12 w-full rounded-xl bg-slate-950 font-black text-white">Araç Görevi Ata</button></div></article>
@@ -148,10 +156,26 @@ export class AdminTeamComponent implements OnInit {
   readonly tab = signal<"admins" | "staff" | "branches" | "assignments">("admins");
   readonly loading = signal(false);
   readonly saving = signal(false);
+  readonly searchQuery = signal("");
   readonly admins = this.management.admins;
   readonly staff = this.management.staff;
   readonly branches = this.management.branches;
   readonly activeStaff = computed(() => this.staff().filter((row) => row.isActive));
+  readonly filteredAdmins = computed(() => {
+    const q = this.searchQuery().trim().toLocaleLowerCase("tr-TR");
+    if (!q) return this.admins();
+    return this.admins().filter((row) => `${row.displayName || ""} ${row.email} ${row.role}`.toLocaleLowerCase("tr-TR").includes(q));
+  });
+  readonly filteredStaff = computed(() => {
+    const q = this.searchQuery().trim().toLocaleLowerCase("tr-TR");
+    if (!q) return this.staff();
+    return this.staff().filter((row) => `${row.displayName} ${row.jobTitle || ""} ${row.department} ${row.email || ""} ${row.phone || ""}`.toLocaleLowerCase("tr-TR").includes(q));
+  });
+  readonly filteredBranches = computed(() => {
+    const q = this.searchQuery().trim().toLocaleLowerCase("tr-TR");
+    if (!q) return this.branches();
+    return this.branches().filter((row) => `${row.code} ${row.name} ${row.city} ${row.district || ""} ${row.address || ""}`.toLocaleLowerCase("tr-TR").includes(q));
+  });
   readonly cloudVehicles = computed(() => this.cars.getAllVehicles()().filter((row) => row.category !== "TOUR" && row.cloudId));
   readonly cloudTours = computed(() => this.cars.getTours()().filter((row) => row.cloudId));
 
@@ -163,6 +187,23 @@ export class AdminTeamComponent implements OnInit {
   tourStaffId = ""; tourId = ""; tourResponsibility: "COORDINATOR" | "GUIDE" | "DRIVER" | "CONTENT" = "COORDINATOR";
 
   ngOnInit(): void { void this.refresh(); }
+
+  teamSearchPlaceholder(): string {
+    return this.tab() === "admins" ? "Yönetici adı, e-posta veya rol ara…" : this.tab() === "staff" ? "Çalışan, unvan veya departman ara…" : "Şube, kod, şehir veya ilçe ara…";
+  }
+
+  newActionLabel(): string {
+    return this.tab() === "admins" ? "Yeni Yönetici" : this.tab() === "staff" ? "Yeni Çalışan" : this.tab() === "branches" ? "Yeni Şube" : "Yeni Görev";
+  }
+
+  startNewForCurrentTab(): void {
+    this.searchQuery.set("");
+    if (this.tab() === "staff") this.resetStaffForm();
+    if (this.tab() === "branches") this.resetBranchForm();
+    if (this.tab() === "admins") { this.adminName = ""; this.adminEmail = ""; this.adminRole = "admin"; this.adminBranchId = ""; }
+    const target = this.tab() === "admins" ? "team-admin-form" : this.tab() === "staff" ? "team-staff-form" : this.tab() === "branches" ? "team-branch-form" : "team-assignment-form";
+    if (typeof document !== "undefined") document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   async refresh(): Promise<void> {
     this.loading.set(true);

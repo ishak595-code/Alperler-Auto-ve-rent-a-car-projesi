@@ -1,0 +1,42 @@
+name: V89 Repair Admin Settings
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v89-repair-settings.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore complete settings editor and patch only nested label
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout 625986e222ac50fe66cdd82a4ac7ab0c65cfc686 -- src/pages/admin/admin-settings.component.ts
+          python <<'PY'
+          from pathlib import Path
+          p = Path('src/pages/admin/admin-settings.component.ts')
+          text = p.read_text()
+          old = '''                <label class="min-w-0 flex-1">\n                  <span class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Profil fotoğrafı URL</span>\n                  <input [(ngModel)]="formConfig.adminProfileUrl" name="adminProfileUrl" class="w-full rounded-lg border bg-white p-3 text-sm text-slate-700" placeholder="https://..." />\n                  <label class="mt-2 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 text-xs font-black text-blue-700">\n                    Dosya Seç\n                    <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" class="sr-only" (change)="onAdminProfileSelected($event)" aria-label="Admin profil fotoğrafı dosyası seç" />\n                  </label>\n                </label>'''
+          new = '''                <div class="min-w-0 flex-1">\n                  <label for="admin-profile-url" class="mb-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">Profil fotoğrafı URL veya Dosya Seç</label>\n                  <input id="admin-profile-url" [(ngModel)]="formConfig.adminProfileUrl" name="adminProfileUrl" class="w-full rounded-lg border bg-white p-3 text-sm text-slate-700" placeholder="https://..." aria-label="Admin profil fotoğrafı URL adresi" />\n                  <label class="mt-2 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 text-xs font-black text-blue-700">\n                    Dosya Seç\n                    <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" class="sr-only" (change)="onAdminProfileSelected($event)" aria-label="Admin profil fotoğrafı dosyası seç" />\n                  </label>\n                </div>'''
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected one admin profile block, found {text.count(old)}')
+          p.write_text(text.replace(old, new, 1))
+          PY
+          git diff --check
+      - name: Commit repair
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/admin/admin-settings.component.ts
+          git commit -m "V89.1: restore complete settings editor and fix profile semantics"
+          git push origin HEAD:main

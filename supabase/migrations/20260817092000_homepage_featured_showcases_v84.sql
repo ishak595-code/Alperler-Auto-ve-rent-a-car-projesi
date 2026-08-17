@@ -1,5 +1,6 @@
 -- V84: keep homepage showcases concise and customer-facing copy persuasive.
 -- Production data change mirrored in source control so new environments keep the same contract.
+-- The HomeV71 local fallback uses the same titles, ordering and 4-item limits.
 
 update public.homepage_sections
 set title = case section_key

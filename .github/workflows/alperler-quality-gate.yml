@@ -1,4 +1,5 @@
 # Validates the complete latest tree, including frontend, Vercel Functions and Supabase runtime.
+# V93 validation checkpoint: admin primary actions remain top-reachable on the latest main tree.
 name: Alperler Professional Quality Gate
 
 on:

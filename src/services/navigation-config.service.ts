@@ -83,17 +83,18 @@ export class NavigationConfigService {
   async refreshPublic(): Promise<void> {
     this._loading.set(true);
     try {
+      const publicHeaders = { apikey: SUPABASE_PUBLISHABLE_KEY, accept: 'application/json' };
       const [settingsResponse, itemsResponse] = await Promise.all([
-        fetch(`${SUPABASE_PROJECT_URL}/rest/v1/navigation_settings?config_key=eq.main&select=*`, { headers:{ apikey:SUPABASE_PUBLISHABLE_KEY, authorization:`Bearer ${SUPABASE_PUBLISHABLE_KEY}` }, cache:'no-store' }),
-        fetch(`${SUPABASE_PROJECT_URL}/rest/v1/navigation_items?is_active=eq.true&select=*&order=surface.asc,sort_order.asc`, { headers:{ apikey:SUPABASE_PUBLISHABLE_KEY, authorization:`Bearer ${SUPABASE_PUBLISHABLE_KEY}` }, cache:'no-store' }),
+        fetch(`${SUPABASE_PROJECT_URL}/rest/v1/navigation_settings?config_key=eq.main&select=*`, { headers:publicHeaders, cache:'no-store' }),
+        fetch(`${SUPABASE_PROJECT_URL}/rest/v1/navigation_items?is_active=eq.true&select=*&order=surface.asc,sort_order.asc`, { headers:publicHeaders, cache:'no-store' }),
       ]);
       if (settingsResponse.ok) {
         const rows = await settingsResponse.json() as any[]; const row = rows[0];
         if (row) this._settings.set({ mobileDockEnabled: row.mobile_dock_enabled !== false, mobileMenuEnabled: row.mobile_menu_enabled !== false });
       }
       if (itemsResponse.ok) {
-        const rows = await itemsResponse.json() as any[]; const mapped = rows.map((row) => this.fromRow(row));
-        if (mapped.length) this._items.set(mapped);
+        const rows = await itemsResponse.json() as any[];
+        this._items.set(rows.map((row) => this.fromRow(row)));
       }
     } finally { this._loading.set(false); }
   }

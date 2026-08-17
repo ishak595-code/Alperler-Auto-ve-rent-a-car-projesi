@@ -1,0 +1,53 @@
+name: One-off V85 responsive section fix
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/oneoff-v85-responsive-grid-fix.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - name: Fix campaign source and non-squeezing responsive grids
+        shell: python
+        run: |
+          from pathlib import Path
+
+          admin = Path('src/pages/admin/admin-homepage.component.ts')
+          text = admin.read_text()
+          old = "const campaigns = this.campaigns.adminCampaigns().map((item) => ({ id: item.id, type: 'CAMPAIGN' as const, label: item.title, image: item.coverImage, meta: item.publicationStatus }));"
+          new = "const campaigns = this.campaigns.campaigns().map((item) => ({ id: item.id, type: 'CAMPAIGN' as const, label: item.title, image: item.coverImage, meta: item.publicationStatus }));"
+          if old not in text:
+            raise SystemExit('Campaign source anchor missing')
+          admin.write_text(text.replace(old, new, 1))
+
+          component = Path('src/components/dynamic-home-section.component.ts')
+          text = component.read_text()
+          old_grid = ".grid-layout{display:grid;grid-template-columns:1fr;overflow:visible;scroll-snap-type:none}.grid-layout>*{width:auto!important;max-width:none!important;flex:none}"
+          new_grid = ".grid-layout{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));align-items:stretch;overflow:visible;scroll-snap-type:none}.grid-layout>*{width:auto!important;max-width:none!important;min-width:0;flex:none}"
+          if old_grid not in text:
+            raise SystemExit('Base grid anchor missing')
+          text = text.replace(old_grid, new_grid, 1)
+          old_720 = ".content-rail.grid-layout{grid-template-columns:repeat(2,minmax(0,1fr))}"
+          if old_720 not in text:
+            raise SystemExit('Tablet grid anchor missing')
+          text = text.replace(old_720, ".content-rail.grid-layout{grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}", 1)
+          old_1050 = ".content-rail.grid-layout{grid-template-columns:repeat(4,minmax(0,1fr))}"
+          if old_1050 not in text:
+            raise SystemExit('Desktop grid anchor missing')
+          text = text.replace(old_1050, ".content-rail.grid-layout{grid-template-columns:repeat(auto-fit,minmax(275px,1fr))}", 1)
+          component.write_text(text)
+      - name: Commit responsive sync
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/admin/admin-homepage.component.ts src/components/dynamic-home-section.component.ts
+          git diff --cached --quiet && exit 0
+          git commit -m "V85.1: keep expanded homepage sections readable"
+          git push origin HEAD:main

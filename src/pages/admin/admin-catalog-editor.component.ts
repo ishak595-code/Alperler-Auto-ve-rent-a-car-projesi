@@ -31,21 +31,26 @@ import { ToastService } from "../../services/toast.service";
               <h1 class="text-2xl font-black md:text-4xl">Araç & Tur Yayın Stüdyosu</h1>
               <p class="mt-2 text-sm leading-relaxed text-slate-300">Kiralık araç, satılık araç ve turlar birbirinden ayrı gerçek kayıtlar olarak yönetilir. Yeni kayıt önce taslak açılır, bilgileri ve medyası tamamlandıktan sonra canlıya alınır veya ileri bir tarihe planlanır.</p>
             </div>
-            <div class="grid gap-2 sm:grid-cols-3">
-              <button type="button" (click)="createVehicle('RENTAL')" [disabled]="saving()" class="min-h-12 rounded-xl bg-blue-600 px-4 font-black text-white disabled:opacity-40">+ Yeni Kiralık</button>
-              <button type="button" (click)="createVehicle('SALE')" [disabled]="saving()" class="min-h-12 rounded-xl bg-emerald-600 px-4 font-black text-white disabled:opacity-40">+ Yeni Satılık</button>
-              <button type="button" (click)="createTour()" [disabled]="saving()" class="min-h-12 rounded-xl bg-violet-600 px-4 font-black text-white disabled:opacity-40">+ Yeni Tur</button>
-            </div>
+
           </div>
-          <div class="mt-5 grid gap-3 lg:grid-cols-[minmax(260px,1fr)_auto]">
-            <input [(ngModel)]="search" type="search" aria-label="Katalogda ara" placeholder="Marka, model, stok kodu veya tur ara…" class="min-h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-bold text-white outline-none placeholder:text-slate-400 focus:border-blue-400" />
-            <div class="grid grid-cols-3 gap-2" role="tablist" aria-label="Katalog türü">
-              <button type="button" (click)="filter.set('RENTAL')" [class.bg-blue-600]="filter()==='RENTAL'" [class.text-white]="filter()==='RENTAL'" class="min-h-12 rounded-xl bg-white/10 px-4 text-xs font-black text-slate-200">Kiralık</button>
-              <button type="button" (click)="filter.set('SALE')" [class.bg-emerald-600]="filter()==='SALE'" [class.text-white]="filter()==='SALE'" class="min-h-12 rounded-xl bg-white/10 px-4 text-xs font-black text-slate-200">Satılık</button>
-              <button type="button" (click)="filter.set('TOUR')" [class.bg-violet-600]="filter()==='TOUR'" [class.text-white]="filter()==='TOUR'" class="min-h-12 rounded-xl bg-white/10 px-4 text-xs font-black text-slate-200">Turlar</button>
-            </div>
-          </div>
+
         </header>
+
+        <section class="sticky top-16 z-40 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur" aria-label="Katalog hızlı işlemleri">
+          <div class="grid gap-2 xl:grid-cols-[minmax(280px,1fr)_auto_auto] xl:items-center">
+            <input [(ngModel)]="search" type="search" aria-label="Katalogda ara" placeholder="Marka, model, stok kodu veya tur ara…" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500" />
+            <div class="grid grid-cols-3 gap-2" role="tablist" aria-label="Katalog türü">
+              <button type="button" (click)="filter.set('RENTAL')" [class.bg-blue-600]="filter()==='RENTAL'" [class.text-white]="filter()==='RENTAL'" class="min-h-12 rounded-xl bg-slate-100 px-3 text-xs font-black text-slate-700">Kiralık</button>
+              <button type="button" (click)="filter.set('SALE')" [class.bg-emerald-600]="filter()==='SALE'" [class.text-white]="filter()==='SALE'" class="min-h-12 rounded-xl bg-slate-100 px-3 text-xs font-black text-slate-700">Satılık</button>
+              <button type="button" (click)="filter.set('TOUR')" [class.bg-violet-600]="filter()==='TOUR'" [class.text-white]="filter()==='TOUR'" class="min-h-12 rounded-xl bg-slate-100 px-3 text-xs font-black text-slate-700">Turlar</button>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <button type="button" (click)="createVehicle('RENTAL')" [disabled]="saving()" class="min-h-12 rounded-xl bg-blue-600 px-3 text-xs font-black text-white disabled:opacity-40">+ Kiralık</button>
+              <button type="button" (click)="createVehicle('SALE')" [disabled]="saving()" class="min-h-12 rounded-xl bg-emerald-600 px-3 text-xs font-black text-white disabled:opacity-40">+ Satılık</button>
+              <button type="button" (click)="createTour()" [disabled]="saving()" class="min-h-12 rounded-xl bg-violet-600 px-3 text-xs font-black text-white disabled:opacity-40">+ Tur</button>
+            </div>
+          </div>
+        </section>
 
         @if (error()) {
           <div role="alert" class="rounded-2xl border border-rose-200 bg-rose-50 p-4 font-bold text-rose-800">{{ error() }}</div>

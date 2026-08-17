@@ -25,17 +25,21 @@ import { ToastService } from "../../services/toast.service";
               <h1 class="text-3xl font-black md:text-4xl">Ekip, Yetkiler ve Şubeler</h1>
               <p class="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">Yönetici erişimi Auth üzerinden, çalışan ve görevlendirmeler ise Supabase veritabanından yönetilir. Yönetici davetleri owner yetkisi gerektirir.</p>
             </div>
-            <div class="grid w-full gap-2 lg:w-auto lg:grid-cols-[minmax(220px,1fr)_auto_auto]">
-              @if (tab() !== 'assignments') {
-                <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" [placeholder]="teamSearchPlaceholder()" aria-label="Ekip yönetimi kayıtlarında ara" class="min-h-12 rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-bold text-white outline-none placeholder:text-slate-400 focus:border-blue-400" />
-              } @else {
-                <div class="hidden lg:block"></div>
-              }
-              <button type="button" (click)="startNewForCurrentTab()" class="min-h-12 rounded-xl bg-blue-600 px-5 text-sm font-black text-white">+ {{ newActionLabel() }}</button>
-              <button type="button" (click)="refresh()" [disabled]="loading()" class="min-h-12 rounded-xl bg-white px-5 text-sm font-black text-slate-950 disabled:opacity-50">{{ loading() ? 'Yükleniyor…' : 'Yenile' }}</button>
-            </div>
+
           </div>
         </header>
+
+        <section class="sticky top-16 z-40 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur" aria-label="Ekip hızlı işlemleri">
+          <div class="grid gap-2 sm:grid-cols-[minmax(220px,1fr)_auto_auto]">
+            @if (tab() !== 'assignments') {
+              <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" [placeholder]="teamSearchPlaceholder()" aria-label="Ekip yönetimi kayıtlarında ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500" />
+            } @else {
+              <div class="hidden sm:block"></div>
+            }
+            <button type="button" (click)="startNewForCurrentTab()" class="min-h-12 rounded-xl bg-blue-600 px-5 text-sm font-black text-white">+ {{ newActionLabel() }}</button>
+            <button type="button" (click)="refresh()" [disabled]="loading()" class="min-h-12 rounded-xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-900 disabled:opacity-50">{{ loading() ? 'Yükleniyor…' : 'Yenile' }}</button>
+          </div>
+        </section>
 
         <nav class="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm md:grid-cols-4" aria-label="Ekip yönetimi bölümleri">
           <button type="button" (click)="tab.set('admins')" [class.bg-slate-950]="tab()==='admins'" [class.text-white]="tab()==='admins'" class="min-h-12 rounded-xl px-3 font-black">Yöneticiler</button>

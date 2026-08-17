@@ -18,17 +18,21 @@ import { AdminMediaService } from "../../services/admin-media.service";
           <p class="text-xs font-black uppercase tracking-[.2em] text-amber-400">Kampanya ve dönüşüm merkezi</p>
           <h1 class="mt-2 text-3xl font-black md:text-4xl">Kampanyayı Buradan Yönet, Ana Sayfada Anında Yayınla</h1>
           <p class="mt-2 max-w-4xl text-sm leading-relaxed text-slate-300">Aktif ve “Yayınlandı” durumundaki kampanyalar tek Supabase kaynağından okunur. Sıralamadaki ilk 3 kampanya ana sayfa vitrinine otomatik bağlanır. Yeni kampanya ekleme, metin, görsel, fiyat, gerçek bitiş süresi, CTA ve WhatsApp mesajı burada yönetilir.</p>
-          <div class="mt-5 grid gap-3 lg:grid-cols-[minmax(260px,1fr)_auto_auto]">
-            <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Kampanya adı, rozet veya durum ara…" aria-label="Kampanyalarda ara" class="min-h-12 rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-bold text-white outline-none placeholder:text-slate-400 focus:border-amber-400" />
-            <button type="button" (click)="startNewCampaign()" class="min-h-12 rounded-xl bg-amber-500 px-5 text-sm font-black text-slate-950">+ Yeni Kampanya</button>
-            <button type="button" (click)="refresh()" class="min-h-12 rounded-xl border border-white/15 bg-white/10 px-5 text-sm font-black text-white">Yenile</button>
-          </div>
+
           <div class="mt-5 grid gap-3 sm:grid-cols-3">
             <div class="rounded-2xl border border-white/10 bg-white/5 p-4"><div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Yayındaki kampanya</div><div class="mt-1 text-2xl font-black">{{ publishedCampaigns().length }}</div></div>
             <div class="rounded-2xl border border-white/10 bg-white/5 p-4"><div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Ana sayfa vitrini</div><div class="mt-1 text-2xl font-black">{{ homepageCampaigns().length }} / 3</div></div>
             <div class="rounded-2xl border border-white/10 bg-white/5 p-4"><div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Tek kaynak</div><div class="mt-1 text-sm font-black text-emerald-300">Admin → Supabase → Ana sayfa</div></div>
           </div>
         </header>
+
+        <section class="sticky top-16 z-40 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur" aria-label="Kampanya hızlı işlemleri">
+          <div class="grid gap-2 sm:grid-cols-[minmax(220px,1fr)_auto_auto]">
+            <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Kampanya adı, rozet veya durum ara…" aria-label="Kampanyalarda ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400 focus:border-amber-500" />
+            <button type="button" (click)="startNewCampaign()" class="min-h-12 rounded-xl bg-amber-500 px-5 text-sm font-black text-slate-950">+ Yeni Kampanya</button>
+            <button type="button" (click)="refresh()" class="min-h-12 rounded-xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-900">Yenile</button>
+          </div>
+        </section>
 
         <section class="grid gap-5 xl:grid-cols-[430px_1fr]">
           <form id="campaign-editor" (ngSubmit)="save()" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-20 xl:self-start">

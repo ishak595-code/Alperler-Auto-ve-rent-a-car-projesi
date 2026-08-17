@@ -45,11 +45,13 @@ interface ThemeOption { value: HomepageTheme; label: string; preview: string; te
               <span>Bölümleri taşı, düzenle, görsellerini yükle ve değişiklikleri canlıya gönder.</span>
             </div>
           </div>
-          <div class="hero-actions">
-            <button type="button" class="primary-button" (click)="creating.set(!creating())" [attr.aria-expanded]="creating()" aria-controls="new-section-panel">{{ creating() ? 'Yeni Bölümü Kapat' : '+ Yeni Bölüm' }}</button>
-            <button type="button" class="secondary-button" (click)="refresh()" [disabled]="loading()" aria-label="Ana sayfa verilerini yenile">{{ loading() ? 'Yükleniyor…' : 'Veriyi Yenile' }}</button>
-          </div>
+
         </header>
+
+        <div class="sticky top-16 z-40 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:justify-end" aria-label="Ana sayfa hızlı işlemleri">
+          <button type="button" class="primary-button" (click)="creating.set(!creating())" [attr.aria-expanded]="creating()" aria-controls="new-section-panel">{{ creating() ? 'Yeni Bölümü Kapat' : '+ Yeni Bölüm' }}</button>
+          <button type="button" class="secondary-button" (click)="refresh()" [disabled]="loading()" aria-label="Ana sayfa verilerini yenile">{{ loading() ? 'Yükleniyor…' : 'Veriyi Yenile' }}</button>
+        </div>
 
         @if (error()) { <div class="alert" role="alert">{{ error() }}</div> }
 

@@ -17,7 +17,7 @@ export class AccessibilityRuntimeService {
           });
         }
         if (mutation.type === 'attributes' && mutation.target instanceof HTMLElement) {
-          this.ensureAccessibleName(mutation.target);
+          this.prepareInteractive(mutation.target);
         }
       }
     });
@@ -25,7 +25,7 @@ export class AccessibilityRuntimeService {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['type', 'name', 'id', 'placeholder', 'aria-label', 'aria-labelledby', 'aria-hidden'],
+      attributeFilter: ['type', 'name', 'id', 'placeholder', 'aria-label', 'aria-labelledby', 'aria-hidden', 'href'],
     });
   }
 
@@ -36,18 +36,61 @@ export class AccessibilityRuntimeService {
   }
 
   private scan(root: HTMLElement): void {
-    const selector = 'input,select,textarea,button';
+    const selector = 'input,select,textarea,button,a[href]';
     const controls = [
       ...(root.matches(selector) ? [root] : []),
       ...Array.from(root.querySelectorAll<HTMLElement>(selector)),
     ];
-    controls.forEach((control) => this.ensureAccessibleName(control));
+    controls.forEach((control) => this.prepareInteractive(control));
+  }
+
+  private prepareInteractive(control: HTMLElement): void {
+    if (!control.matches('input,select,textarea,button,a[href]')) return;
+    if (control.getAttribute('aria-hidden') === 'true' || control.hasAttribute('inert') || control.dataset['a11yProxy'] === 'true') return;
+
+    this.applyConciseKnownName(control);
+
+    if (control.matches('input,select,textarea,button')) {
+      this.ensureAccessibleName(control);
+    }
+
+    if (control.matches('input[type="date"],input[type="time"],input[type="datetime-local"]')) {
+      const label = control.getAttribute('aria-label')?.trim();
+      if (label && !control.getAttribute('title')) control.setAttribute('title', label);
+    }
+  }
+
+  private applyConciseKnownName(control: HTMLElement): void {
+    if (control.matches('.dock-action')) {
+      const visible = control.querySelector('span')?.textContent?.trim();
+      if (visible) control.setAttribute('aria-label', this.clean(visible));
+      return;
+    }
+    if (control.matches('a.partner-inline')) {
+      control.setAttribute('aria-label', 'Bayilik başvurusu');
+      return;
+    }
+    if (control.matches('.vehicle-partner a')) {
+      control.setAttribute('aria-label', 'Aracımı değerlendir');
+      return;
+    }
+    if (control.matches('a.branch-card')) {
+      const title = control.querySelector('h3')?.textContent?.trim();
+      control.setAttribute('aria-label', title ? `Şube: ${this.clean(title)}` : 'Şubeyi aç');
+      return;
+    }
+    if (control.matches('a.tour-card')) {
+      const title = control.querySelector('h3')?.textContent?.trim();
+      control.setAttribute('aria-label', title ? `Tur: ${this.clean(title)}` : 'Turu aç');
+      return;
+    }
+    if (control.matches('a.blog-card')) {
+      const title = control.querySelector('h3')?.textContent?.trim();
+      control.setAttribute('aria-label', title ? `Yazı: ${this.clean(title)}` : 'Yazıyı aç');
+    }
   }
 
   private ensureAccessibleName(control: HTMLElement): void {
-    if (!control.matches('input,select,textarea,button')) return;
-    if (control.getAttribute('aria-hidden') === 'true' || control.hasAttribute('inert') || control.dataset['a11yProxy'] === 'true') return;
-
     const forceExplicit = control.matches('input[type="date"],input[type="time"],input[type="datetime-local"],select');
     if (forceExplicit) {
       if (control.getAttribute('aria-label')?.trim()) return;
@@ -75,7 +118,7 @@ export class AccessibilityRuntimeService {
     const wrappingLabel = control.closest('label');
     if (wrappingLabel && this.labelTextWithoutControl(wrappingLabel, control)) return true;
 
-    if (control.tagName === 'BUTTON' && control.textContent?.trim()) return true;
+    if (control.tagName === 'BUTTON' && this.visibleText(control)) return true;
     return false;
   }
 
@@ -99,23 +142,36 @@ export class AccessibilityRuntimeService {
 
   private labelTextWithoutControl(label: HTMLLabelElement, control: HTMLElement): string {
     const clone = label.cloneNode(true) as HTMLElement;
-    const selector = control.tagName.toLowerCase();
-    clone.querySelectorAll(`${selector},input,select,textarea,button`).forEach((node) => node.remove());
+    clone.querySelectorAll('input,select,textarea,button,[aria-hidden="true"],mat-icon,svg').forEach((node) => node.remove());
     return clone.textContent?.trim() || '';
+  }
+
+  private visibleText(control: HTMLElement): string {
+    const clone = control.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll('[aria-hidden="true"],mat-icon,svg').forEach((node) => node.remove());
+    return clone.textContent?.replace(/\s+/g, ' ').trim() || '';
   }
 
   private fallbackName(control: HTMLElement): string {
     const type = (control.getAttribute('type') || control.tagName).toLowerCase();
-    if (type === 'date') return 'Tarih seçin';
-    if (type === 'time') return 'Saat seçin';
-    if (type === 'datetime-local') return 'Tarih ve saat seçin';
+    if (type === 'date') return 'Tarih';
+    if (type === 'time') return 'Saat';
+    if (type === 'datetime-local') return 'Tarih ve saat';
     if (type === 'search') return 'Ara';
-    if (type === 'email') return 'E-posta adresi';
-    if (type === 'tel') return 'Telefon numarası';
+    if (type === 'email') return 'E-posta';
+    if (type === 'tel') return 'Telefon';
     if (type === 'password') return 'Şifre';
-    if (control.tagName === 'SELECT') return 'Seçim yapın';
-    if (control.tagName === 'TEXTAREA') return 'Metin alanı';
-    if (control.tagName === 'BUTTON') return control.getAttribute('title') || 'Düğme';
+    if (control.tagName === 'SELECT') return 'Seçim';
+    if (control.tagName === 'TEXTAREA') return 'Metin';
+    if (control.tagName === 'BUTTON') {
+      const icon = control.querySelector('mat-icon')?.textContent?.trim();
+      const iconNames: Record<string, string> = {
+        close: 'Kapat', menu: 'Menü', arrow_back: 'Geri', search: 'Ara',
+        favorite: 'Favori', favorite_border: 'Favori', delete: 'Sil', edit: 'Düzenle',
+        add: 'Ekle', remove: 'Kaldır', expand_more: 'Seçenekler', more_vert: 'Seçenekler',
+      };
+      return (icon && iconNames[icon]) || control.getAttribute('title') || 'İşlem';
+    }
     return 'Form alanı';
   }
 
@@ -124,6 +180,6 @@ export class AccessibilityRuntimeService {
   }
 
   private clean(value: string): string {
-    return value.replace(/\s+/g, ' ').replace(/\*/g, '').trim().slice(0, 140);
+    return value.replace(/\s+/g, ' ').replace(/\*/g, '').trim().slice(0, 80);
   }
 }

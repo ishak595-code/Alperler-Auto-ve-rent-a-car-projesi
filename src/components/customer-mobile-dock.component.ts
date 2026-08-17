@@ -9,20 +9,20 @@ import { filter } from "rxjs/operators";
   imports: [MatIconModule, RouterLink, RouterLinkActive],
   template: `
     @if (!hidden()) {
-      <nav class="customer-command-dock" aria-label="Mobil ana menü">
-        <a routerLink="/fleet" routerLinkActive="dock-active" class="dock-action" aria-label="Kiralık araçları aç">
+      <nav class="customer-command-dock" aria-label="Hızlı menü">
+        <a routerLink="/fleet" routerLinkActive="dock-active" class="dock-action" aria-label="Kiralık">
           <mat-icon aria-hidden="true">key</mat-icon><span>Kiralık</span>
         </a>
-        <a routerLink="/sales" routerLinkActive="dock-active" class="dock-action" aria-label="Satılık araçları aç">
+        <a routerLink="/sales" routerLinkActive="dock-active" class="dock-action" aria-label="Satılık">
           <mat-icon aria-hidden="true">directions_car</mat-icon><span>Satılık</span>
         </a>
-        <a routerLink="/search" routerLinkActive="dock-active" class="dock-action" aria-label="Araç, tur veya ilan ara">
+        <a routerLink="/search" routerLinkActive="dock-active" class="dock-action" aria-label="Ara">
           <mat-icon aria-hidden="true">search</mat-icon><span>Ara</span>
         </a>
-        <a routerLink="/campaigns" routerLinkActive="dock-active" class="dock-action" aria-label="Fırsatları ve kampanyaları aç">
+        <a routerLink="/campaigns" routerLinkActive="dock-active" class="dock-action" aria-label="Fırsatlar">
           <mat-icon aria-hidden="true">local_offer</mat-icon><span>Fırsatlar</span>
         </a>
-        <a routerLink="/appointment" routerLinkActive="dock-active" class="dock-action" aria-label="Randevu oluştur">
+        <a routerLink="/appointment" routerLinkActive="dock-active" class="dock-action" aria-label="Randevu">
           <mat-icon aria-hidden="true">event_available</mat-icon><span>Randevu</span>
         </a>
       </nav>

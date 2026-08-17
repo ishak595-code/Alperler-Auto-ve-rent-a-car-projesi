@@ -4,290 +4,187 @@ import { FormsModule } from "@angular/forms";
 import { CarService, Feedback } from "../services/car.service";
 import { UiService } from "../services/ui.service";
 
+interface FeedbackStoreResponse {
+  ok?: boolean;
+  stored?: boolean;
+  reference?: string;
+  code?: string;
+}
+
 @Component({
   selector: "app-feedback",
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
     @if (uiService.isFeedbackOpen()) {
-      <div class="fixed inset-0 z-50 flex justify-end">
-        <!-- Backdrop -->
-        <div
-          class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
-          (click)="close()"
-        ></div>
-
-        <!-- Panel -->
-        <div
-          class="relative w-full max-w-md bg-white shadow-2xl h-full flex flex-col animate-slide-in-right"
-        >
-          <!-- Header -->
-          <div
-            class="p-6 bg-slate-900 text-white flex justify-between items-center shadow-md"
-          >
+      <div class="feedback-layer" role="presentation">
+        <button type="button" class="backdrop" (click)="close()" aria-label="Geri bildirimi kapat"></button>
+        <section class="panel" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
+          <header class="panel-head">
             <div>
-              <h2 class="text-xl font-serif font-bold text-blue-500">
-                {{ t().feedback.title }}
-              </h2>
-              <p class="text-slate-400 text-sm">{{ t().feedback.subtitle }}</p>
+              <h2 id="feedback-title">{{ t().feedback.title }}</h2>
+              <p>{{ t().feedback.subtitle }}</p>
             </div>
-            <button
-              (click)="close()"
-              class="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full"
-            >
-              <svg
-                class="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+            <button type="button" (click)="close()" class="close-button" aria-label="Kapat">
+              <span aria-hidden="true">×</span>
             </button>
-          </div>
+          </header>
 
-          <!-- Content -->
-          <div class="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50">
+          <div class="panel-content">
             @if (!isSuccess()) {
-              <!-- Form -->
-              <form (submit)="submitFeedback($event)" class="space-y-6">
-                <!-- Category -->
-                <div>
-                  <label
-                    class="block text-sm font-medium text-slate-700 mb-2"
-                    >{{ t().feedback.category }}</label
-                  >
-                  <select
-                    [(ngModel)]="category"
-                    name="category"
-                    class="w-full bg-white border border-slate-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  >
-                    <option value="GENERAL">
-                      {{ t().feedback.categories.GENERAL }}
-                    </option>
-                    <option value="BUG">
-                      {{ t().feedback.categories.BUG }}
-                    </option>
-                    <option value="FEATURE">
-                      {{ t().feedback.categories.FEATURE }}
-                    </option>
-                    <option value="CONTENT">
-                      {{ t().feedback.categories.CONTENT }}
-                    </option>
-                    <option value="OTHER">
-                      {{ t().feedback.categories.OTHER }}
-                    </option>
-                  </select>
+              <form (submit)="submitFeedback($event)" class="feedback-form" novalidate>
+                <div class="form-grid">
+                  <label class="field"><span>Ad</span><input [(ngModel)]="name" name="feedbackName" autocomplete="given-name" maxlength="80" required /></label>
+                  <label class="field"><span>Soyad</span><input [(ngModel)]="surname" name="feedbackSurname" autocomplete="family-name" maxlength="80" required /></label>
+                </div>
+                <div class="form-grid">
+                  <label class="field"><span>Telefon</span><input [(ngModel)]="phone" name="feedbackPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="40" required /></label>
+                  <label class="field"><span>E-posta</span><input [(ngModel)]="email" name="feedbackEmail" type="email" inputmode="email" autocomplete="email" maxlength="160" required /></label>
                 </div>
 
-                <!-- Rating -->
-                <div>
-                  <label
-                    class="block text-sm font-medium text-slate-700 mb-2"
-                    >{{ t().feedback.rating }}</label
-                  >
-                  <div class="flex gap-2">
+                <label class="field">
+                  <span>{{ t().feedback.category }}</span>
+                  <select [(ngModel)]="category" name="feedbackCategory" aria-label="Geri bildirim kategorisi">
+                    <option value="GENERAL">{{ t().feedback.categories.GENERAL }}</option>
+                    <option value="BUG">{{ t().feedback.categories.BUG }}</option>
+                    <option value="FEATURE">{{ t().feedback.categories.FEATURE }}</option>
+                    <option value="CONTENT">{{ t().feedback.categories.CONTENT }}</option>
+                    <option value="OTHER">{{ t().feedback.categories.OTHER }}</option>
+                  </select>
+                </label>
+
+                <fieldset class="rating-field">
+                  <legend>{{ t().feedback.rating }}</legend>
+                  <div class="rating-row">
                     @for (star of [1, 2, 3, 4, 5]; track star) {
                       <button
                         type="button"
                         (click)="rating.set(star)"
-                        class="text-2xl transition-transform hover:scale-110 focus:outline-none"
-                        [class.text-blue-400]="star <= rating()"
-                        [class.text-slate-300]="star > rating()"
+                        [attr.aria-label]="star + ' yıldız'"
+                        [attr.aria-pressed]="rating() === star"
+                        [class.selected]="star <= rating()"
+                        class="star-button"
                       >
-                        ★
+                        <span aria-hidden="true">★</span>
                       </button>
                     }
                   </div>
-                </div>
+                </fieldset>
 
-                <!-- Message -->
-                <div>
-                  <label
-                    class="block text-sm font-medium text-slate-700 mb-2"
-                    >{{ t().feedback.message }}</label
-                  >
-                  <textarea
-                    [(ngModel)]="message"
-                    name="message"
-                    rows="5"
-                    [placeholder]="t().feedback.placeholder"
-                    class="w-full bg-white border border-slate-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
-                    required
-                  ></textarea>
-                </div>
+                <label class="field">
+                  <span>{{ t().feedback.message }}</span>
+                  <textarea [(ngModel)]="message" name="feedbackMessage" rows="5" maxlength="3000" [placeholder]="t().feedback.placeholder" required></textarea>
+                </label>
 
-                <!-- Submit -->
-                <button
-                  type="submit"
-                  [disabled]="!message.trim()"
-                  class="w-full bg-slate-900 text-white font-bold py-4 rounded-lg hover:bg-blue-500 hover:text-slate-900 transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
-                >
-                  {{ t().feedback.submit }}
+                @if (errorMessage()) {
+                  <p class="form-error" role="alert">{{ errorMessage() }}</p>
+                }
+
+                <button type="submit" [disabled]="submitting() || !isValid()" class="submit-button">
+                  {{ submitting() ? 'Kaydediliyor' : t().feedback.submit }}
                 </button>
               </form>
-
-              <!-- Admin / Analysis Section (Hidden by default, toggleable) -->
-              <div class="mt-12 pt-8 border-t border-slate-200">
-                <button
-                  (click)="showAnalysis.update((v) => !v)"
-                  class="text-xs text-slate-400 hover:text-slate-600 underline"
-                >
-                  {{
-                    showAnalysis() ? "Analizi Gizle" : "Yönetici Analizi (AI)"
-                  }}
-                </button>
-
-                @if (showAnalysis()) {
-                  <div
-                    class="mt-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm animate-fade-in"
-                  >
-                    <h3
-                      class="font-bold text-slate-800 mb-3 flex items-center gap-2"
-                    >
-                      <span
-                        class="w-2 h-2 bg-green-500 rounded-full animate-pulse"
-                      ></span>
-                      {{ t().feedback.analysis.title }}
-                    </h3>
-
-                    <div class="mb-4 text-sm text-slate-600">
-                      Toplam Geri Bildirim:
-                      <span class="font-bold text-slate-900">{{
-                        carService.getFeedbacks().length
-                      }}</span>
-                    </div>
-
-                    @if (analysisResult()) {
-                      <div
-                        class="bg-slate-50 p-3 rounded-lg text-sm text-slate-700 whitespace-pre-line border border-slate-200"
-                      >
-                        {{ analysisResult() }}
-                      </div>
-                    }
-
-                    <button
-                      (click)="analyze()"
-                      [disabled]="isAnalyzing()"
-                      class="mt-4 w-full bg-blue-50 text-blue-600 font-medium py-2 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
-                    >
-                      @if (isAnalyzing()) {
-                        <svg
-                          class="animate-spin h-4 w-4 text-blue-600"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            class="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            stroke-width="4"
-                          ></circle>
-                          <path
-                            class="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        {{ t().feedback.analysis.loading }}
-                      } @else {
-                        {{ t().feedback.analysis.btn }}
-                      }
-                    </button>
-                  </div>
-                }
-              </div>
             } @else {
-              <!-- Success State -->
-              <div
-                class="h-full flex flex-col items-center justify-center text-center animate-fade-in"
-              >
-                <div
-                  class="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-6"
-                >
-                  <svg
-                    class="w-10 h-10"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-                <h3 class="text-2xl font-bold text-slate-900 mb-2">
-                  {{ t().feedback.success }}
-                </h3>
-                <p class="text-slate-500 mb-8">
-                  Görüşleriniz hizmet kalitemizi artırmamıza yardımcı oluyor.
-                </p>
-                <button
-                  (click)="close()"
-                  class="bg-slate-900 text-white font-bold py-3 px-8 rounded-lg hover:bg-slate-800 transition-colors"
-                >
-                  {{ t().buttons.close }}
-                </button>
+              <div class="success-state" role="status" aria-live="polite">
+                <div class="success-icon" aria-hidden="true">✓</div>
+                <h3>{{ t().feedback.success }}</h3>
+                <p>Görüşünüz güvenli şekilde kaydedildi ve ekibimizin mesaj kutusuna iletildi.</p>
+                @if (reference()) { <strong>Referans: {{ reference() }}</strong> }
+                <button type="button" (click)="close()">Kapat</button>
               </div>
             }
           </div>
-        </div>
+        </section>
       </div>
     }
   `,
+  styles: [`
+    :host{display:contents}.feedback-layer{position:fixed;inset:0;z-index:160;display:flex;justify-content:flex-end}.backdrop{position:absolute;inset:0;border:0;background:rgba(2,6,23,.7);backdrop-filter:blur(3px)}.panel{position:relative;display:flex;width:min(100%,460px);height:100%;flex-direction:column;background:#fff;box-shadow:-20px 0 60px rgba(2,6,23,.28)}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:#07101f;padding:1.2rem 1.25rem;color:#fff}.panel-head h2{margin:0;color:#60a5fa;font-family:Georgia,"Times New Roman",serif;font-size:1.3rem}.panel-head p{margin:.25rem 0 0;color:#94a3b8;font-size:.75rem;line-height:1.4}.close-button{display:grid;width:44px;height:44px;flex:none;place-items:center;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.06);color:#fff;font-size:1.6rem}.panel-content{flex:1;overflow-y:auto;background:#f8fafc;padding:1.25rem}.feedback-form{display:grid;gap:1rem}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}.field{display:flex;min-width:0;flex-direction:column;gap:.4rem}.field>span,.rating-field legend{color:#475569;font-size:.7rem;font-weight:900;letter-spacing:.07em;text-transform:uppercase}.field input,.field select,.field textarea{width:100%;border:1px solid #cbd5e1;border-radius:12px;background:#fff;padding:.75rem;color:#0f172a;font:inherit;outline:none}.field input,.field select{min-height:48px}.field input:focus,.field select:focus,.field textarea:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.13)}.rating-field{margin:0;border:0;padding:0}.rating-row{display:flex;gap:.35rem;margin-top:.45rem}.star-button{display:grid;width:44px;height:44px;place-items:center;border:0;border-radius:10px;background:#e2e8f0;color:#94a3b8;font-size:1.45rem}.star-button.selected{background:#eff6ff;color:#2563eb}.star-button:focus-visible,.close-button:focus-visible,.submit-button:focus-visible,.success-state button:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}.form-error{margin:0;border-radius:10px;background:#fff1f2;padding:.75rem;color:#be123c;font-size:.78rem;font-weight:800}.submit-button{min-height:52px;border:0;border-radius:12px;background:#0f172a;color:#fff;font-weight:900}.submit-button:disabled{opacity:.45}.success-state{display:flex;min-height:70vh;flex-direction:column;align-items:center;justify-content:center;text-align:center}.success-icon{display:grid;width:68px;height:68px;place-items:center;border-radius:999px;background:#dcfce7;color:#15803d;font-size:2rem;font-weight:950}.success-state h3{margin:1rem 0 .4rem;color:#0f172a;font-size:1.5rem}.success-state p{max-width:320px;margin:0;color:#64748b;line-height:1.55}.success-state strong{margin-top:.8rem;color:#334155;font-size:.78rem}.success-state button{min-height:46px;margin-top:1.4rem;border:0;border-radius:12px;background:#0f172a;padding:0 1.3rem;color:#fff;font-weight:900}@media(max-width:420px){.form-grid{grid-template-columns:1fr}.panel-content{padding:1rem}}
+  `],
 })
 export class FeedbackComponent {
-  carService = inject(CarService);
-  uiService = inject(UiService);
-  t = this.uiService.translations;
+  readonly carService = inject(CarService);
+  readonly uiService = inject(UiService);
+  readonly t = this.uiService.translations;
 
   category: Feedback["category"] = "GENERAL";
   rating = signal(5);
+  name = "";
+  surname = "";
+  phone = "";
+  email = "";
   message = "";
+  readonly isSuccess = signal(false);
+  readonly submitting = signal(false);
+  readonly errorMessage = signal("");
+  readonly reference = signal("");
+  private submissionKey = crypto.randomUUID();
 
-  isSuccess = signal(false);
-  showAnalysis = signal(false);
-  isAnalyzing = signal(false);
-  analysisResult = signal<string | null>(null);
+  isValid(): boolean {
+    return Boolean(
+      this.name.trim().length >= 2 &&
+      this.surname.trim().length >= 2 &&
+      /^[+0-9()\s-]{7,24}$/.test(this.phone.trim()) &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email.trim()) &&
+      this.message.trim().length >= 2
+    );
+  }
 
-  close() {
+  async submitFeedback(event: Event): Promise<void> {
+    event.preventDefault();
+    if (!this.isValid() || this.submitting()) return;
+    this.submitting.set(true);
+    this.errorMessage.set("");
+    try {
+      const categoryLabel = this.categoryLabel(this.category);
+      const storedMessage = `GERİ BİLDİRİM\nKategori: ${categoryLabel}\nPuan: ${this.rating()}/5\n\n${this.message.trim()}`;
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: this.name.trim(),
+          surname: this.surname.trim(),
+          phone: this.phone.trim(),
+          email: this.email.trim(),
+          message: storedMessage,
+          idempotencyKey: this.submissionKey,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as FeedbackStoreResponse;
+      if (!response.ok || !payload.ok || !payload.stored) throw new Error(payload.code || "FEEDBACK_STORE_FAILED");
+
+      this.carService.addFeedback({ category: this.category, rating: this.rating(), message: this.message.trim() });
+      this.reference.set(payload.reference || "");
+      this.isSuccess.set(true);
+    } catch (error) {
+      console.error("Feedback store failed", error);
+      this.errorMessage.set("Geri bildirim kaydedilemedi. Lütfen tekrar deneyin.");
+    } finally {
+      this.submitting.set(false);
+    }
+  }
+
+  close(): void {
     this.uiService.toggleFeedback(false);
-    setTimeout(() => {
-      this.isSuccess.set(false);
-      this.message = "";
-      this.rating.set(5);
-      this.category = "GENERAL";
-    }, 300);
+    window.setTimeout(() => this.reset(), 200);
   }
 
-  submitFeedback(e: Event) {
-    e.preventDefault();
-    if (!this.message.trim()) return;
-
-    this.carService.addFeedback({
-      category: this.category,
-      rating: this.rating(),
-      message: this.message,
-    });
-
-    this.isSuccess.set(true);
+  private reset(): void {
+    this.category = "GENERAL";
+    this.rating.set(5);
+    this.name = "";
+    this.surname = "";
+    this.phone = "";
+    this.email = "";
+    this.message = "";
+    this.isSuccess.set(false);
+    this.submitting.set(false);
+    this.errorMessage.set("");
+    this.reference.set("");
+    this.submissionKey = crypto.randomUUID();
   }
 
-  async analyze() {
-    this.isAnalyzing.set(true);
-    const result = await this.carService.analyzeFeedback();
-    this.analysisResult.set(result);
-    this.isAnalyzing.set(false);
+  private categoryLabel(category: Feedback["category"]): string {
+    return ({ BUG: "Hata", FEATURE: "Özellik Önerisi", GENERAL: "Genel", CONTENT: "İçerik", OTHER: "Diğer" } as Record<Feedback["category"], string>)[category];
   }
 }

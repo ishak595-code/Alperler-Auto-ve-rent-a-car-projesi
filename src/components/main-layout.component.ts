@@ -4,6 +4,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { NavigationEnd, Router, RouterOutlet } from "@angular/router";
 import { filter } from "rxjs/operators";
 import { CarService } from "../services/car.service";
+import { NavigationConfigService } from "../services/navigation-config.service";
 import { UiService } from "../services/ui.service";
 import { CustomerFooterV70Component } from "./customer-footer-v70.component";
 import { FeedbackComponent } from "./feedback.component";
@@ -31,7 +32,7 @@ import { NavbarComponent } from "./navbar.component";
 
       <app-navbar></app-navbar>
 
-      <main id="main-content" tabindex="-1" class="flex-grow pt-[72px] pb-[78px] md:pt-[96px] xl:pb-0 min-w-0">
+      <main id="main-content" tabindex="-1" class="flex-grow pt-[72px] md:pt-[96px] min-w-0">
         <router-outlet></router-outlet>
       </main>
 
@@ -43,7 +44,8 @@ import { NavbarComponent } from "./navbar.component";
           [href]="getWhatsappHref()"
           target="_blank"
           rel="noopener noreferrer"
-          class="fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[calc(max(1rem,env(safe-area-inset-bottom))+5.75rem)] xl:bottom-[max(1rem,env(safe-area-inset-bottom))] z-[87] w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 md:hover:scale-110 hover:shadow-lg transition-all hover:bg-green-600 animate-fade-in-up focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-green-600"
+          class="whatsapp-fab fixed right-[max(1rem,env(safe-area-inset-right))] z-[87] w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 md:hover:scale-110 hover:shadow-lg transition-all hover:bg-green-600 animate-fade-in-up focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-green-600"
+          [class.dock-offset]="navigation.mobileDockRendered()"
           aria-label="WhatsApp"
         >
           <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -53,10 +55,18 @@ import { NavbarComponent } from "./navbar.component";
       }
     </div>
   `,
+  styles: [`
+    .whatsapp-fab{bottom:max(1rem,env(safe-area-inset-bottom));transition:bottom .2s ease,transform .16s ease,box-shadow .16s ease,background-color .16s ease}
+    @media (max-width:767px), (max-width:950px) and (max-height:500px) and (pointer:coarse){
+      .whatsapp-fab.dock-offset{bottom:calc(max(1rem,env(safe-area-inset-bottom)) + 5.15rem)}
+    }
+    @media(prefers-reduced-motion:reduce){.whatsapp-fab{transition:none}}
+  `],
 })
 export class MainLayoutComponent {
   uiService = inject(UiService);
   carService = inject(CarService);
+  navigation = inject(NavigationConfigService);
   router = inject(Router);
   location = inject(Location);
 

@@ -16,12 +16,14 @@ export class SeoService {
   private initialized = false;
   private trackingSignature = '';
 
-  private readonly configEffect = effect(() => {
-    const config = this.config();
-    if (!this.initialized || typeof document === 'undefined') return;
-    this.setDefaults(config);
-    this.syncTrackingScripts(config);
-  });
+  constructor() {
+    effect(() => {
+      const config = this.config();
+      if (!this.initialized || typeof document === 'undefined') return;
+      this.setDefaults(config);
+      this.syncTrackingScripts(config);
+    });
+  }
 
   init(): void {
     if (this.initialized) return;

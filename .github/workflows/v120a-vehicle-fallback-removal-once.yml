@@ -1,0 +1,76 @@
+name: V120A Vehicle Fallback Removal Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v120a-vehicle-fallback-removal-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Remove vehicle fallback records only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+          import re
+
+          p=Path('src/services/mock-data.ts')
+          text=p.read_text(encoding='utf-8')
+          start=text.index('  // --- KİRALIK (RENTAL) ARAÇLAR ---')
+          end=text.index('  // --- TURLAR (TOUR) ---')
+          text=text[:start]+text[end:]
+          if re.search(r"category:\s*['\"](?:RENTAL|SALE)['\"]",text):
+              raise SystemExit('Rental/sale fallback still remains')
+          if "category: 'TOUR'" not in text and 'category: "TOUR"' not in text:
+              raise SystemExit('Tour fallback was accidentally removed')
+          p.write_text(text,encoding='utf-8')
+
+          p=Path('src/services/car.service.ts')
+          text=p.read_text(encoding='utf-8')
+          old='''        const mergedVehicles = source.map((vehicle) =>
+          this.mergeVehicleWithFallback(vehicle),
+        );
+        this.replaceVehicleCatalog(mergedVehicles);'''
+          if old not in text:
+              raise SystemExit('Vehicle cloud merge block not found')
+          text=text.replace(old,'        this.replaceVehicleCatalog(source);',1)
+          text=text.replace('this.mergeVehicleWithFallback(tour) as Tour','this.mergeTourWithFallback(tour) as Tour')
+          text=text.replace('private mergeVehicleWithFallback(vehicle: Vehicle): Vehicle {','private mergeTourWithFallback(vehicle: Vehicle): Vehicle {')
+          if 'mergeVehicleWithFallback' in text:
+              raise SystemExit('Vehicle fallback merge still exists')
+          if 'mergeTourWithFallback' not in text:
+              raise SystemExit('Tour fallback merge missing')
+          p.write_text(text,encoding='utf-8')
+          PY
+          git diff --check
+      - name: Validate build
+        run: |
+          npm ci --no-audit --no-fund
+          npm run lint
+          npx tsc --noEmit -p tsconfig.api.json
+          npm run build
+      - name: Commit verified V120A
+        run: |
+          rm -f .github/workflows/v120a-vehicle-fallback-removal-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "V120A: remove static rental and sale fallback inventory"
+          git push origin HEAD:main

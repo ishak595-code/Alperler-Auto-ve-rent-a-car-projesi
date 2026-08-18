@@ -67,7 +67,9 @@ import { ToastService } from "../services/toast.service";
           </div>
 
           <button
+            type="button"
             (click)="toastService.remove(toast.id)"
+            aria-label="Bildirimi kapat"
             class="text-slate-400 hover:text-slate-600"
           >
             <svg

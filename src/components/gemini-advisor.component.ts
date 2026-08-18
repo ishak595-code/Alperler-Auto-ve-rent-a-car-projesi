@@ -26,7 +26,9 @@ import { ToastService } from "../services/toast.service";
                   Sana en uygun aracı bulmamı ister misin?
                 </p>
                 <button
+                  type="button"
                   (click)="showWelcomeBubble.set(false)"
+                  aria-label="Karşılama mesajını kapat"
                   class="absolute -top-2 -right-2 text-slate-400 hover:text-slate-600"
                 >
                   <svg
@@ -88,7 +90,9 @@ import { ToastService } from "../services/toast.service";
               class="absolute inset-0 z-50 bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center text-white p-6 text-center animate-fade-in"
             >
               <button
+                type="button"
                 (click)="toggleConversationMode()"
+                aria-label="Sesli görüşme modunu kapat"
                 class="absolute top-4 right-4 text-white/70 hover:text-white p-2"
               >
                 <svg
@@ -221,7 +225,9 @@ import { ToastService } from "../services/toast.service";
               <!-- Controls -->
               <div class="flex gap-6 mt-4">
                 <button
+                  type="button"
                   (click)="toggleVoice()"
+                  [attr.aria-label]="isVoiceEnabled() ? 'Asistan sesini kapat' : 'Asistan sesini aç'"
                   class="p-4 rounded-full bg-slate-800 hover:bg-slate-700 transition-colors border border-slate-700"
                   [class.text-red-400]="!isVoiceEnabled()"
                   [class.text-green-400]="isVoiceEnabled()"
@@ -258,7 +264,9 @@ import { ToastService } from "../services/toast.service";
                 </button>
 
                 <button
+                  type="button"
                   (click)="stopSpeaking()"
+                  aria-label="Asistan konuşmasını durdur"
                   class="p-4 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 transition-colors"
                 >
                   <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">

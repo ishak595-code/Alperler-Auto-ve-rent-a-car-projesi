@@ -1,12 +1,1 @@
-src/components/gemini-advisor.component.ts:28: icon-only button has no aria-label/aria-labelledby
-src/components/gemini-advisor.component.ts:90: icon-only button has no aria-label/aria-labelledby
-src/components/gemini-advisor.component.ts:223: icon-only button has no aria-label/aria-labelledby
-src/components/gemini-advisor.component.ts:260: icon-only button has no aria-label/aria-labelledby
-src/components/toast.component.ts:69: icon-only button has no aria-label/aria-labelledby
-src/pages/admin/admin-blog.component.ts:130: icon-only button has no aria-label/aria-labelledby
-src/pages/admin/admin-blog.component.ts:133: icon-only button has no aria-label/aria-labelledby
-src/pages/track-car.component.ts:17: icon-only button has no aria-label/aria-labelledby
-src/pages/track-car.component.ts:79: icon-only button has no aria-label/aria-labelledby
-src/pages/track-car.component.ts:82: icon-only button has no aria-label/aria-labelledby
-src/pages/track-car.component.ts:85: icon-only button has no aria-label/aria-labelledby
-src/pages/track-car.component.ts:106: icon-only button has no aria-label/aria-labelledby
+No unlabeled icon-only buttons found.

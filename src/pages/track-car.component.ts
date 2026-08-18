@@ -14,7 +14,7 @@ import { MatIconModule } from "@angular/material/icon";
         <!-- Header -->
         <div class="bg-white/90 backdrop-blur px-6 py-4 shadow-sm relative z-20 flex items-center justify-between border-b border-slate-200">
           <div class="flex items-center gap-4">
-            <button (click)="goBack()" class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 shadow-sm border border-slate-200 transition-colors">
+            <button type="button" (click)="goBack()" aria-label="Canlı takip ekranından geri dön" class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 shadow-sm border border-slate-200 transition-colors">
               <mat-icon>arrow_back</mat-icon>
             </button>
             <div>
@@ -76,13 +76,13 @@ import { MatIconModule } from "@angular/material/icon";
 
         <!-- Map Controls -->
         <div class="absolute right-6 bottom-6 flex flex-col gap-2 z-20">
-          <button title="Yakınlaştır" class="w-12 h-12 bg-white rounded-xl shadow-lg border border-slate-200 text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-colors flex items-center justify-center active:scale-95">
+          <button type="button" title="Yakınlaştır" aria-label="Haritayı yakınlaştır" class="w-12 h-12 bg-white rounded-xl shadow-lg border border-slate-200 text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-colors flex items-center justify-center active:scale-95">
             <mat-icon>add</mat-icon>
           </button>
-          <button title="Uzaklaştır" class="w-12 h-12 bg-white rounded-xl shadow-lg border border-slate-200 text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-colors flex items-center justify-center active:scale-95">
+          <button type="button" title="Uzaklaştır" aria-label="Haritayı uzaklaştır" class="w-12 h-12 bg-white rounded-xl shadow-lg border border-slate-200 text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-colors flex items-center justify-center active:scale-95">
             <mat-icon>remove</mat-icon>
           </button>
-          <button title="Aracı Ortala" class="w-12 h-12 bg-white rounded-xl shadow-lg border border-slate-200 text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center active:scale-95 mt-2">
+          <button type="button" title="Aracı Ortala" aria-label="Aracı haritada ortala" class="w-12 h-12 bg-white rounded-xl shadow-lg border border-slate-200 text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center active:scale-95 mt-2">
             <mat-icon>my_location</mat-icon>
           </button>
         </div>
@@ -103,7 +103,7 @@ import { MatIconModule } from "@angular/material/icon";
               <p class="text-sm text-slate-500 font-medium">+90 532 123 45 67</p>
               <p class="text-xs text-slate-400 mt-1">TC: 1234*****89</p>
             </div>
-            <button class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-100 transition-colors active:scale-95">
+            <button type="button" aria-label="Sürücüyü telefonla ara" class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-100 transition-colors active:scale-95">
               <mat-icon class="!text-[20px] !w-[20px] !h-[20px]">phone</mat-icon>
             </button>
           </div>

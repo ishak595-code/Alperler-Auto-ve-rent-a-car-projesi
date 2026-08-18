@@ -1,0 +1,91 @@
+name: V115B TalkBack Date Controls Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v115b-talkback-date-controls-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Harden date controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+          import re
+
+          # Rental filter dates use the same explicit labelled picker as home/checkout.
+          p=Path('src/pages/rental-results.component.ts'); text=p.read_text(encoding='utf-8')
+          anchor='import { VehicleListItemComponent } from "../components/vehicle-list-item.component";\n'
+          if anchor not in text: raise SystemExit('rental import anchor missing')
+          text=text.replace(anchor,anchor+'import { AccessibleNativeDateComponent } from "../components/accessible-native-date.component";\n',1)
+          text,n=re.subn(r'imports: \[CommonModule, FormsModule, MatIconModule, VehicleListItemComponent\]', 'imports: [CommonModule, FormsModule, MatIconModule, VehicleListItemComponent, AccessibleNativeDateComponent]',text,count=1)
+          if n!=1: raise SystemExit('rental imports array missing')
+          old='''                <label><span>Alış tarihi</span><input aria-label="Kiralık araç alış tarihi" type="date" [min]="today" [ngModel]="startDate()" (ngModelChange)="setStartDate($event)" class="filter-control" /></label>\n                <label><span>İade tarihi</span><input aria-label="Kiralık araç iade tarihi" type="date" [min]="startDate() || today" [ngModel]="endDate()" (ngModelChange)="endDate.set($event)" class="filter-control" /></label>'''
+          new='''                <app-accessible-native-date label="Alış tarihi" [value]="startDate()" [min]="today" (valueChange)="setStartDate($event)" />\n                <app-accessible-native-date label="İade tarihi" [value]="endDate()" [min]="startDate() || today" (valueChange)="endDate.set($event)" />'''
+          if old not in text: raise SystemExit('rental date fields missing')
+          text=text.replace(old,new,1)
+          style_token='.filter-grid label>span{color:#475569;font-size:10px;font-weight:950;letter-spacing:.055em;text-transform:uppercase}'
+          if style_token not in text: raise SystemExit('rental style token missing')
+          text=text.replace(style_token,style_token+'.filter-grid app-accessible-native-date{--date-bg:#f8fafc;--date-color:#0f172a;--date-label:#475569;--date-border:#cbd5e1}',1)
+          p.write_text(text,encoding='utf-8')
+
+          # Static labels for both scheduling controls in the catalogue editor.
+          p=Path('src/pages/admin/admin-catalog-editor.component.ts'); text=p.read_text(encoding='utf-8')
+          text,n1=re.subn(r'name="scheduled" type="datetime-local"(?! aria-label)', 'name="scheduled" type="datetime-local" aria-label="Araç planlanan yayın tarihi ve saati"',text,count=1)
+          text,n2=re.subn(r'name="tourScheduled" type="datetime-local"(?! aria-label)', 'name="tourScheduled" type="datetime-local" aria-label="Tur planlanan yayın tarihi ve saati"',text,count=1)
+          if (n1,n2)!=(1,1): raise SystemExit(f'catalog schedule labels {(n1,n2)}')
+          p.write_text(text,encoding='utf-8')
+
+          # Chromium exposes native picker indicators as extra unnamed TalkBack buttons.
+          # Hide those pseudo-controls globally; the real input remains labelled/focusable.
+          p=Path('src/runtime-stability.css'); text=p.read_text(encoding='utf-8')
+          text=re.sub(r'app-home-v71 input\[type="date"\],\napp-booking-checkout input\[type="date"\]', 'input[type="date"],\ninput[type="datetime-local"]',text,count=1)
+          text=re.sub(r'app-home-v71 input\[type="date"\]::\-webkit-calendar-picker-indicator,\napp-booking-checkout input\[type="date"\]::\-webkit-calendar-picker-indicator', 'input[type="date"]::-webkit-calendar-picker-indicator,\ninput[type="datetime-local"]::-webkit-calendar-picker-indicator',text,count=1)
+          p.write_text(text,encoding='utf-8')
+
+          # Permanent static audit for native date controls.
+          Path('scripts/check-date-controls.mjs').write_text('''import fs from "node:fs";\nimport path from "node:path";\nconst failures=[];\nfunction walk(dir){for(const e of fs.readdirSync(dir,{withFileTypes:true})){const f=path.join(dir,e.name);if(e.isDirectory())walk(f);else if(/\\.(ts|html)$/.test(e.name))audit(f);}}\nfunction audit(file){const s=fs.readFileSync(file,"utf8");const re=/<input\\b[^>]*type=["\\'](?:date|datetime-local)["\\'][^>]*>/gi;let m;while((m=re.exec(s))){const tag=m[0];if(/aria-label\\s*=|\\[attr\\.aria-label\\]\\s*=/.test(tag))continue;const line=s.slice(0,m.index).split("\\n").length;failures.push(`${file}:${line}: native date control lacks explicit aria-label`);}}\nwalk("src");\nconst css=fs.readFileSync("src/runtime-stability.css","utf8");\nif(!css.includes('input[type="date"]::-webkit-calendar-picker-indicator')||!css.includes('input[type="datetime-local"]::-webkit-calendar-picker-indicator')||!css.includes('display: none'))failures.push("global native picker TalkBack suppression is missing");\nif(failures.length){console.error(failures.join("\\n"));process.exit(1);}\nconsole.log("Date-control accessibility guard passed.");\n''',encoding='utf-8')
+
+          p=Path('package.json'); text=p.read_text(encoding='utf-8')
+          marker='    "a11y:buttons": "node scripts/check-accessible-buttons.mjs",\n'
+          if marker not in text: raise SystemExit('package a11y marker missing')
+          text=text.replace(marker,marker+'    "a11y:dates": "node scripts/check-date-controls.mjs",\n',1)
+          p.write_text(text,encoding='utf-8')
+          PY
+          rm -f scripts/v115-date-control-audit.txt
+          git diff --check
+      - name: Validate TalkBack date controls
+        run: |
+          npm ci --no-audit --no-fund
+          npm run a11y:buttons
+          npm run a11y:dates
+          npm run media:vehicles
+          npm run lint
+          npx tsc --noEmit -p tsconfig.api.json
+          npm run build
+      - name: Commit verified date accessibility
+        run: |
+          rm -f .github/workflows/v115b-talkback-date-controls-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "V115: eliminate native date picker TalkBack ghost buttons"
+          git push origin HEAD:main

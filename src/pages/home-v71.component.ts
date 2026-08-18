@@ -88,12 +88,12 @@ interface PickupChoice {
               <div class="date-grid">
                 <label class="field">
                   <span>{{ serviceType === 'tour' ? 'Tur tarihi' : 'Alış tarihi' }}</span>
-                  <input type="date" [(ngModel)]="startDate" name="homeStartDate" [min]="today" (ngModelChange)="onStartDateChanged($event)" />
+                  <input type="date" [(ngModel)]="startDate" name="homeStartDate" [min]="today" (ngModelChange)="onStartDateChanged($event)" [attr.aria-label]="serviceType === 'tour' ? 'Tur tarihi seç' : 'Araç alış tarihi seç'" [attr.title]="serviceType === 'tour' ? 'Tur tarihi seç' : 'Araç alış tarihi seç'" />
                 </label>
                 @if (serviceType !== 'tour') {
                   <label class="field">
                     <span>İade tarihi</span>
-                    <input type="date" [(ngModel)]="endDate" name="homeEndDate" [min]="startDate || today" (ngModelChange)="clearPlannerError()" />
+                    <input type="date" [(ngModel)]="endDate" name="homeEndDate" [min]="startDate || today" (ngModelChange)="clearPlannerError()" aria-label="Araç iade tarihi seç" title="Araç iade tarihi seç" />
                   </label>
                 }
               </div>

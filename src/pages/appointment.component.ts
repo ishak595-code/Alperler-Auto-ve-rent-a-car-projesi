@@ -83,11 +83,11 @@ import { ToastService } from "../services/toast.service";
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <label class="block">
                     <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">Tarih *</span>
-                    <input type="date" [min]="minDate" formControlName="date" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                    <input type="date" [min]="minDate" formControlName="date" aria-label="Randevu tarihi seç" title="Randevu tarihi seç" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
                   </label>
                   <label class="block">
                     <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">Saat *</span>
-                    <input type="time" formControlName="time" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                    <input type="time" formControlName="time" aria-label="Randevu saati seç" title="Randevu saati seç" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
                   </label>
                 </div>
 

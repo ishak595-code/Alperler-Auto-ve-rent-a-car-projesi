@@ -96,13 +96,36 @@ export class CatalogService {
   }
 
   async saveConfig(config: SiteConfig): Promise<SiteConfig> {
-    const payload = await this.adminRequest<CatalogListResponse<never>>(
-      "PUT",
-      "config",
-      config,
-    );
-    if (!payload.ok) throw new Error(payload.code || "CONFIG_SAVE_FAILED");
-    return (payload.value || config) as SiteConfig;
+    try {
+      const payload = await this.adminRequest<CatalogListResponse<never>>(
+        "PUT",
+        "config",
+        config,
+      );
+      if (!payload.ok) throw new Error(payload.code || "CONFIG_SAVE_FAILED");
+      return (payload.value || config) as SiteConfig;
+    } catch (apiError) {
+      console.warn("Catalog config API unavailable; using authenticated Supabase fallback.", apiError);
+      const token = await this.authService.getAccessToken();
+      if (!token) throw apiError;
+      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/site_config?on_conflict=key&select=value`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+          Prefer: "resolution=merge-duplicates,return=representation",
+        },
+        body: JSON.stringify({ key: "site_settings", value: config, is_public: true }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({})) as { message?: string; code?: string };
+        throw new Error(payload.message || payload.code || `CONFIG_DIRECT_SAVE_${response.status}`);
+      }
+      const rows = await response.json() as Array<{ value?: SiteConfig }>;
+      return rows[0]?.value || config;
+    }
   }
 
   private async loadList<T>(resource: Exclude<PublicResource, "config">, fresh = false): Promise<T[]> {

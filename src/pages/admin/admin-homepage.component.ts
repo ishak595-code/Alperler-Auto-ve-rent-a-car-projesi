@@ -52,6 +52,29 @@ interface ThemeOption { value: HomepageTheme; label: string; preview: string; te
 
         @if (error()) { <div class="alert" role="alert">{{ error() }}</div> }
 
+        <section class="new-panel" aria-labelledby="homepage-top-area-title">
+          <div class="content-head">
+            <div><h2 id="homepage-top-area-title">Ana Sayfa Üst Alanı</h2><p>Hero başlığı, açıklaması, arka plan görseli ve hızlı planlama metinleri doğrudan ana sayfanın en üstünde kullanılır.</p></div>
+            <button type="button" class="save-button" (click)="saveTopArea()" [disabled]="topAreaSaving()" aria-label="Ana sayfa üst alanını kaydet ve uygula">{{ topAreaSaving() ? 'Kaydediliyor…' : 'Üst Alanı Kaydet' }}</button>
+          </div>
+          <div class="editor-grid">
+            <section class="editor-block">
+              <h4>Hero</h4>
+              <label><span>Ana başlık</span><input [(ngModel)]="heroTitle" name="homeHeroTitle" maxlength="180" aria-label="Ana sayfa hero başlığı" /></label>
+              <label><span>Açıklama</span><textarea [(ngModel)]="heroSubtitle" name="homeHeroSubtitle" rows="4" maxlength="700" aria-label="Ana sayfa hero açıklaması"></textarea></label>
+              <label><span>Arka plan görseli URL</span><input [(ngModel)]="heroImage" name="homeHeroImage" type="url" placeholder="https://..." aria-label="Ana sayfa hero arka plan görseli URL adresi" /></label>
+              <label class="file-button"><span>Hero Görseli Yükle</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" (change)="onHeroImageSelected($event)" aria-label="Ana sayfa hero görseli dosyası seç" /></label>
+              @if (topAreaUploading()) { <p class="upload-state" role="status">Hero görseli yükleniyor…</p> }
+            </section>
+            <section class="editor-block">
+              <h4>Hızlı Planlama</h4>
+              <label><span>Planlama başlığı</span><input [(ngModel)]="bookingTitle" name="homeBookingTitle" maxlength="180" aria-label="Ana sayfa hızlı planlama başlığı" /></label>
+              <label><span>Planlama açıklaması</span><textarea [(ngModel)]="bookingSubtitle" name="homeBookingSubtitle" rows="4" maxlength="500" aria-label="Ana sayfa hızlı planlama açıklaması"></textarea></label>
+              <p class="hint">Teslim noktaları ve araç/tur sonuçları mevcut canlı şube ve katalog verilerinden otomatik gelir.</p>
+            </section>
+          </div>
+        </section>
+
         @if (creating()) {
           <section id="new-section-panel" class="new-panel" aria-labelledby="new-section-title">
             <h2 id="new-section-title">Yeni bölüm oluştur</h2>
@@ -189,6 +212,13 @@ export class AdminHomepageComponent implements OnInit {
   readonly editingKey = signal<string | null>(null);
   readonly uploadingKey = signal<string | null>(null);
   readonly candidateSelection = signal<Record<string, string>>({});
+  readonly topAreaSaving = signal(false);
+  readonly topAreaUploading = signal(false);
+  heroTitle = '';
+  heroSubtitle = '';
+  heroImage = '';
+  bookingTitle = '';
+  bookingSubtitle = '';
 
   readonly themes: ThemeOption[] = [
     { value: 'light', label: 'Beyaz', preview: '#ffffff', text: '#0f172a' },
@@ -214,9 +244,51 @@ export class AdminHomepageComponent implements OnInit {
     this.error.set('');
     try {
       await Promise.all([this.homepage.refresh(), this.campaignsService.refreshAdmin(), this.cars.refreshCloudCatalog(true)]);
+      this.syncTopArea();
     } catch (error) {
       const message = this.message(error); this.error.set(message); this.toast.show(message, 'error');
     }
+  }
+
+  async saveTopArea(): Promise<void> {
+    if (this.topAreaSaving()) return;
+    this.topAreaSaving.set(true);
+    try {
+      const current = this.cars.getConfig()();
+      const homeContent = { ...(current.homeContent || {}) } as Record<string, unknown>;
+      homeContent['heroTitle'] = this.heroTitle.trim();
+      homeContent['heroSubtitle'] = this.heroSubtitle.trim();
+      homeContent['heroImage'] = this.heroImage.trim();
+      homeContent['bookingTitle'] = this.bookingTitle.trim();
+      homeContent['bookingSubtitle'] = this.bookingSubtitle.trim();
+      await this.cars.updateConfig({ ...current, homeContent: homeContent as any });
+      await this.cars.refreshCloudCatalog(true);
+      this.syncTopArea();
+      this.toast.show('Ana sayfa üst alanı kaydedildi ve uygulandı.', 'success');
+    } catch (error) { this.toast.show(this.message(error), 'error'); }
+    finally { this.topAreaSaving.set(false); }
+  }
+
+  async onHeroImageSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.topAreaUploading.set(true);
+    try {
+      const result = await this.media.uploadHomepageImage(file, 'hero', 'background');
+      this.heroImage = result.publicUrl;
+      this.toast.show('Hero görseli hazır. Üst Alanı Kaydet düğmesiyle yayınlayabilirsiniz.', 'success');
+    } catch (error) { this.toast.show(this.message(error), 'error'); }
+    finally { this.topAreaUploading.set(false); input.value = ''; }
+  }
+
+  private syncTopArea(): void {
+    const home = (this.cars.getConfig()().homeContent || {}) as Record<string, unknown>;
+    this.heroTitle = String(home['heroTitle'] || '');
+    this.heroSubtitle = String(home['heroSubtitle'] || '');
+    this.heroImage = String(home['heroImage'] || '');
+    this.bookingTitle = String(home['bookingTitle'] || '');
+    this.bookingSubtitle = String(home['bookingSubtitle'] || '');
   }
 
   async createSection(): Promise<void> {

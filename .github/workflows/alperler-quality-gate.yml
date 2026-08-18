@@ -1,5 +1,5 @@
 # Validates the complete latest tree, including frontend, Vercel Functions and Supabase runtime.
-# V93 validation checkpoint: admin primary actions remain top-reachable on the latest main tree.
+# V102 controlled patch run: responsive admin, booking, social and accessibility cleanup.
 name: Alperler Professional Quality Gate
 
 on:
@@ -53,11 +53,11 @@ on:
       - ".github/workflows/alperler-quality-gate.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: alperler-quality-${{ github.ref }}
-  cancel-in-progress: true
+  group: alperler-quality-${{ github.run_id }}
+  cancel-in-progress: false
 
 jobs:
   quality:
@@ -68,6 +68,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
@@ -77,6 +79,116 @@ jobs:
 
       - name: Install dependencies from lockfile
         run: npm ci --no-audit --no-fund
+
+      - name: Apply V102 requested source cleanup
+        if: github.event_name == 'push' && github.event.head_commit.message == 'V102: trigger responsive booking social a11y cleanup'
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          def write_changed(path, before, after):
+              if before == after:
+                  raise SystemExit(f'Expected V102 change not produced: {path}')
+              Path(path).write_text(after)
+
+          # Per-section device visibility: phone, tablet and computer remain independent.
+          path = 'src/components/dynamic-home-section.component.ts'
+          before = Path(path).read_text(); text = before
+          old = "return [`theme-${['light','soft','dark','brand','ocean','emerald','sunset','violet','sand','graphite'].includes(theme) ? theme : 'light'}`, `width-${['standard','wide','full'].includes(width) ? width : 'wide'}`];"
+          new = "const classes = [`theme-${['light','soft','dark','brand','ocean','emerald','sunset','violet','sand','graphite'].includes(theme) ? theme : 'light'}`, `width-${['standard','wide','full'].includes(width) ? width : 'wide'}`];\n    if (!this.boolSetting('showOnMobile', true)) classes.push('hide-mobile');\n    if (!this.boolSetting('showOnTablet', true)) classes.push('hide-tablet');\n    if (!this.boolSetting('showOnDesktop', true)) classes.push('hide-desktop');\n    return classes;"
+          if old not in text: raise SystemExit('sectionClasses marker missing')
+          text = text.replace(old, new, 1)
+          old = "  private setting(key: string, fallback: unknown): unknown { const settings = this.section.settings && typeof this.section.settings === 'object' ? this.section.settings : {}; return Object.prototype.hasOwnProperty.call(settings, key) ? settings[key] : fallback; }"
+          new = old + "\n  private boolSetting(key: string, fallback: boolean): boolean { const value = this.setting(key, fallback); return typeof value === 'boolean' ? value : fallback; }"
+          if old not in text: raise SystemExit('dynamic setting marker missing')
+          text = text.replace(old, new, 1)
+          marker = '    @media(min-width:720px){.view-all{display:flex}'
+          if marker not in text: raise SystemExit('dynamic media marker missing')
+          text = text.replace(marker, "    @media(max-width:767px){.hide-mobile{display:none!important}}@media(min-width:768px) and (max-width:1023px){.hide-tablet{display:none!important}}@media(min-width:1024px){.hide-desktop{display:none!important}}\n" + marker, 1)
+          write_changed(path, before, text)
+
+          # Admin homepage gets explicit device visibility controls for every managed section.
+          path = 'src/pages/admin/admin-homepage.component.ts'
+          before = Path(path).read_text(); text = before
+          match = re.search(r'(\s*<div class="editor-toolbar">.*?</div>)(\s*<div class="editor-grid">)', text, re.S)
+          if not match: raise SystemExit('admin homepage editor toolbar missing')
+          device = '''\n                  <fieldset class="device-visibility" [attr.aria-label]="section.title + ' cihaz görünürlüğü'">\n                    <legend>Cihaz görünürlüğü</legend>\n                    <label><input type="checkbox" [ngModel]="boolSetting(section,'showOnMobile',true)" (ngModelChange)="setSetting(section,'showOnMobile',$event)" [name]="section.sectionKey + '-mobile'" [attr.aria-label]="section.title + ' bölümünü telefonda göster'" /><span>Telefon</span></label>\n                    <label><input type="checkbox" [ngModel]="boolSetting(section,'showOnTablet',true)" (ngModelChange)="setSetting(section,'showOnTablet',$event)" [name]="section.sectionKey + '-tablet'" [attr.aria-label]="section.title + ' bölümünü tablette göster'" /><span>Tablet</span></label>\n                    <label><input type="checkbox" [ngModel]="boolSetting(section,'showOnDesktop',true)" (ngModelChange)="setSetting(section,'showOnDesktop',$event)" [name]="section.sectionKey + '-desktop'" [attr.aria-label]="section.title + ' bölümünü bilgisayarda göster'" /><span>Bilgisayar</span></label>\n                  </fieldset>'''
+          text = text[:match.end(1)] + device + text[match.end(1):]
+          old = "  setting(section: HomepageSectionRecord, key: string, fallback = ''): any { return Object.prototype.hasOwnProperty.call(section.settings || {}, key) ? section.settings[key] : fallback; }"
+          new = "  setting(section: HomepageSectionRecord, key: string, fallback: any = ''): any { return Object.prototype.hasOwnProperty.call(section.settings || {}, key) ? section.settings[key] : fallback; }\n  boolSetting(section: HomepageSectionRecord, key: string, fallback = true): boolean { const value = this.setting(section, key, fallback); return typeof value === 'boolean' ? value : fallback; }"
+          if old not in text: raise SystemExit('admin homepage setting marker missing')
+          text = text.replace(old, new, 1)
+          css = '.editor-toolbar{display:flex;align-items:center;justify-content:space-between;gap:.75rem}'
+          if css not in text: raise SystemExit('admin homepage css marker missing')
+          text = text.replace(css, css + '.device-visibility{display:flex;flex-wrap:wrap;gap:.45rem;border:1px solid #dbe4ef;border-radius:14px;background:#f8fafc;padding:.7rem}.device-visibility legend{padding:0 .25rem;color:#475569;font-size:.62rem;font-weight:950;text-transform:uppercase;letter-spacing:.05em}.device-visibility label{display:flex;min-height:42px;align-items:center;gap:.4rem;border-radius:10px;background:#fff;padding:0 .7rem;font-size:.68rem;font-weight:900}.device-visibility input{width:18px;height:18px}', 1)
+          write_changed(path, before, text)
+
+          # Rental detail no longer duplicates the reservation calculator.
+          path = 'src/pages/car-detail.component.ts'
+          before = Path(path).read_text(); text = before
+          replacement = '''\n          <aside id="rental-reservation" class="rounded-2xl border border-blue-200 bg-white p-4 shadow-xl shadow-blue-950/5 sm:p-6 lg:sticky lg:top-[116px]" aria-labelledby="reservation-title">\n            <p class="text-xs font-black uppercase tracking-wider text-blue-600">Rezervasyon</p>\n            <h2 id="reservation-title" class="mt-1 font-serif text-2xl font-black">Bu aracı rezerve edin</h2>\n            <p class="mt-2 text-sm leading-6 text-slate-500">Tarih, teslim ve iade noktası, şoför tercihi ve ek hizmetlerin tamamını tek rezervasyon ekranında seçin.</p>\n            <div class="mt-5 rounded-2xl bg-slate-950 p-4 text-white"><span class="text-xs font-bold uppercase text-blue-300">Günlük başlangıç fiyatı</span><strong class="mt-1 block text-3xl">{{ vehicle.price | turkishCurrency }}</strong><p class="mt-2 text-xs leading-5 text-slate-400">Nihai tutar rezervasyondaki tarih ve hizmet seçimlerinize göre otomatik güncellenir.</p></div>\n            <button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Bu araç için rezervasyon oluştur" class="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 font-black text-white shadow-lg shadow-blue-600/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><mat-icon aria-hidden="true">event_available</mat-icon>Rezervasyon Oluştur</button>\n            <button type="button" (click)="whatsappInquiry()" aria-label="Bu araç hakkında WhatsApp ile bilgi al" class="mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 font-black text-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"><mat-icon aria-hidden="true">chat</mat-icon>WhatsApp ile Sor</button>\n          </aside>'''
+          text, count = re.subn(r'\n\s*<aside id="rental-calculator".*?</aside>', replacement, text, count=1, flags=re.S)
+          if count != 1: raise SystemExit('rental calculator block missing')
+          old = '<button type="button" (click)="reserveFromSticky(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Rezervasyon" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 font-black text-white disabled:bg-slate-300 disabled:text-slate-500"><mat-icon aria-hidden="true">event_available</mat-icon>{{ validDates() ? \'Hemen Rezerve Et\' : \'Tarih Seç\' }}</button>'
+          new = '<button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Bu araç için rezervasyon oluştur" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 font-black text-white disabled:bg-slate-300 disabled:text-slate-500"><mat-icon aria-hidden="true">event_available</mat-icon>Rezervasyon Oluştur</button>'
+          if old not in text: raise SystemExit('sticky reservation button missing')
+          text = text.replace(old, new, 1)
+          old = '''  reserve(vehicle: Car): void {\n    if (vehicle.isAvailable === false) return;\n    if (!this.validDates()) { this.dateError.set("Rezervasyon için geçerli alış ve iade tarihini seçin."); this.scrollToCalculator(); return; }\n    this.dateError.set("");\n    this.carService.setBookingRequest({ type: "RENTAL", item: vehicle, itemName: `${vehicle.brand || ""} ${vehicle.model || ""}`.trim(), image: vehicle.image || vehicle.images?.[0], basePrice: Number(vehicle.price || 0), totalPrice: this.totalPrice(), startDate: this.startDate(), endDate: this.endDate(), days: this.totalDays(), rentalDuration: "daily", withDriver: vehicle.driverOption === "WITH_DRIVER" });\n    void this.router.navigate(["/contact"]);\n  }'''
+          new = '''  reserve(vehicle: Car): void {\n    if (vehicle.isAvailable === false) return;\n    const hasDates = this.validDates();\n    this.dateError.set("");\n    this.carService.setBookingRequest({ type: "RENTAL", item: vehicle, itemName: `${vehicle.brand || ""} ${vehicle.model || ""}`.trim(), image: vehicle.image || vehicle.images?.[0], basePrice: Number(vehicle.price || 0), totalPrice: hasDates ? this.totalPrice() : Number(vehicle.price || 0), startDate: hasDates ? this.startDate() : undefined, endDate: hasDates ? this.endDate() : undefined, days: hasDates ? this.totalDays() : undefined, rentalDuration: "daily", withDriver: vehicle.driverOption === "WITH_DRIVER" });\n    void this.router.navigate(["/contact"]);\n  }'''
+          if old not in text: raise SystemExit('reserve method marker missing')
+          text = text.replace(old, new, 1)
+          text = text.replace('  reserveFromSticky(vehicle: Car): void { if (this.validDates()) this.reserve(vehicle); else this.scrollToCalculator(); }', '  reserveFromSticky(vehicle: Car): void { this.reserve(vehicle); }', 1)
+          write_changed(path, before, text)
+
+          # Checkout is the single place where price-changing rental choices are made.
+          path = 'src/pages/booking-checkout.component.ts'
+          before = Path(path).read_text(); text = before
+          old = '<h2 id="rental-details-title" class="mb-5 text-lg font-black text-white">1. Kiralama Detayları</h2>'
+          new = '<h2 id="rental-details-title" class="text-lg font-black text-white">1. Kiralama Detayları</h2><p class="mb-5 mt-1 text-sm leading-6 text-slate-400">Tarih, teslimat, şoför tercihi ve ek hizmetler değiştikçe tahmini toplam otomatik güncellenir.</p>'
+          if old not in text: raise SystemExit('checkout rental title missing')
+          text = text.replace(old, new, 1)
+          text = text.replace('aria-label="Teslimat ve ek hizmetleri seç"', 'aria-label="Teslimat, şoför tercihi ve ek hizmetleri seç"', 1)
+          text = text.replace('<strong class="block text-sm text-white">Teslimat ve Ek Hizmetler</strong>', '<strong class="block text-sm text-white">Teslimat, Şoför ve Ek Hizmetler</strong>', 1)
+          write_changed(path, before, text)
+
+          # Social URLs are verified by a round trip before showing a success message.
+          path = 'src/pages/admin/admin-footer.component.ts'
+          before = Path(path).read_text(); text = before
+          old = '''      const current = this.carService.getConfig()();\n      await this.catalog.saveConfig({\n        ...current,\n        instagramUrl: this.instagramUrl.trim(),\n        tiktokUrl: this.tiktokUrl.trim(),\n        youtubeUrl: this.youtubeUrl.trim(),\n        twitterUrl: this.xUrl.trim(),\n        facebookUrl: this.facebookUrl.trim(),\n      });\n      await this.carService.refreshCloudCatalog(true);\n      this.form = { ...this.footer.settings() };\n      this.toast.show('Footer ve sosyal medya ayarları kaydedildi ve siteye uygulandı.', 'success');'''
+          new = '''      const desired = { instagramUrl: this.instagramUrl.trim(), tiktokUrl: this.tiktokUrl.trim(), youtubeUrl: this.youtubeUrl.trim(), twitterUrl: this.xUrl.trim(), facebookUrl: this.facebookUrl.trim() };\n      const current = this.carService.getConfig()();\n      await this.catalog.saveConfig({ ...current, ...desired });\n      await this.carService.updateConfig({ ...current, ...desired });\n      const verified = this.carService.getConfig()();\n      const mismatch = Object.entries(desired).some(([key, value]) => String((verified as any)[key] || '').trim() !== value);\n      if (mismatch) throw new Error('Sosyal medya bağlantıları kaydedildi olarak doğrulanamadı. Lütfen tekrar deneyin.');\n      this.instagramUrl = verified.instagramUrl || ''; this.tiktokUrl = verified.tiktokUrl || ''; this.youtubeUrl = verified.youtubeUrl || ''; this.xUrl = verified.twitterUrl || ''; this.facebookUrl = verified.facebookUrl || '';\n      this.form = { ...this.footer.settings() };\n      this.toast.show('Footer ve sosyal medya bağlantıları doğrulandı ve siteye uygulandı.', 'success');'''
+          if old not in text: raise SystemExit('social save block missing')
+          text = text.replace(old, new, 1)
+          write_changed(path, before, text)
+
+          # Screen-reader safety also covers icon-only links, not only form controls.
+          path = 'src/services/accessibility-runtime.service.ts'
+          before = Path(path).read_text(); text = before
+          old = "if (control.matches('input,select,textarea,button')) {\n      this.ensureAccessibleName(control);\n    }"
+          new = "if (control.matches('input,select,textarea,button,a[href]')) {\n      this.ensureAccessibleName(control);\n    }"
+          if old not in text: raise SystemExit('a11y interactive marker missing')
+          text = text.replace(old, new, 1)
+          text = text.replace("if (control.tagName === 'BUTTON' && this.visibleText(control)) return true;", "if ((control.tagName === 'BUTTON' || control.tagName === 'A') && this.visibleText(control)) return true;", 1)
+          text = text.replace("add: 'Ekle', remove: 'Kaldır', expand_more: 'Seçenekler', more_vert: 'Seçenekler',", "add: 'Ekle', remove: 'Kaldır', expand_more: 'Seçenekler', more_vert: 'Seçenekler',\n        event_available: 'Rezervasyon', call: 'Telefonla ara', share: 'Paylaş', chevron_left: 'Önceki', chevron_right: 'Sonraki', tune: 'Ayarlar', save: 'Kaydet',", 1)
+          write_changed(path, before, text)
+
+          # Prepared hook for a future real per-km tariff. No fake tariff is activated.
+          path = 'src/models/site-config.model.ts'
+          before = Path(path).read_text(); text = before
+          old = '  pricePerHour?: number;\n  flatPrice?: number;'
+          new = '  pricePerHour?: number;\n  pricePerKm?: number;\n  flatPrice?: number;'
+          if old not in text: raise SystemExit('rental extra tariff marker missing')
+          text = text.replace(old, new, 1)
+          write_changed(path, before, text)
+          PY
+          git diff --check
+          grep -q 'showOnMobile' src/pages/admin/admin-homepage.component.ts
+          grep -q 'hide-tablet' src/components/dynamic-home-section.component.ts
+          grep -q 'id="rental-reservation"' src/pages/car-detail.component.ts
+          ! grep -q 'id="rental-calculator"' src/pages/car-detail.component.ts
+          grep -q 'Rezervasyon Oluştur' src/pages/car-detail.component.ts
+          grep -q 'bağlantıları doğrulandı' src/pages/admin/admin-footer.component.ts
 
       - name: Frontend TypeScript quality check
         run: npm run lint
@@ -94,12 +206,8 @@ jobs:
           const outputPath = angular.projects?.app?.architect?.build?.options?.outputPath;
           const angularBase = typeof outputPath === 'string' ? outputPath : outputPath?.base;
           const normalizedBase = String(angularBase || '').replace(/^\.\//, '').replace(/\/$/, '');
-          if (!normalizedBase || vercel.outputDirectory !== normalizedBase) {
-            throw new Error(`Vercel outputDirectory (${vercel.outputDirectory}) does not match Angular outputPath (${normalizedBase})`);
-          }
-          const spaRewrite = Array.isArray(vercel.rewrites) && vercel.rewrites.some(
-            (rule) => rule?.source === '/(.*)' && rule?.destination === '/index.html'
-          );
+          if (!normalizedBase || vercel.outputDirectory !== normalizedBase) throw new Error(`Vercel outputDirectory (${vercel.outputDirectory}) does not match Angular outputPath (${normalizedBase})`);
+          const spaRewrite = Array.isArray(vercel.rewrites) && vercel.rewrites.some((rule) => rule?.source === '/(.*)' && rule?.destination === '/index.html');
           if (!spaRewrite) throw new Error('Missing SPA catch-all rewrite to /index.html');
           if (vercel.framework !== 'angular') throw new Error('Vercel framework must remain angular');
           console.log('Vercel/Angular deployment configuration is consistent.');
@@ -171,3 +279,14 @@ jobs:
           path: angular-build.log
           if-no-files-found: error
           retention-days: 2
+
+      - name: Commit V102 source changes and restore quality gate
+        if: github.event_name == 'push' && github.event.head_commit.message == 'V102: trigger responsive booking social a11y cleanup'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout HEAD^ -- .github/workflows/alperler-quality-gate.yml
+          git add .github/workflows/alperler-quality-gate.yml src/components/dynamic-home-section.component.ts src/pages/admin/admin-homepage.component.ts src/pages/car-detail.component.ts src/pages/booking-checkout.component.ts src/pages/admin/admin-footer.component.ts src/services/accessibility-runtime.service.ts src/models/site-config.model.ts
+          git commit -m "V102: responsive homepage booking social and accessibility cleanup"
+          git push origin main

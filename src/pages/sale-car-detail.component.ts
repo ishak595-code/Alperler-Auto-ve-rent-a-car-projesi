@@ -442,7 +442,7 @@ register();
                     ><mat-icon class="text-[18px]">info</mat-icon> Tramer
                     Bilgisi:</strong
                   >
-                  {{ car()?.tramer || "Tramer kaydı bulunmamaktadır." }}
+                  {{ car()?.tramer || "Tramer bilgisi belirtilmedi." }}
                 </div>
               </div>
             </div>

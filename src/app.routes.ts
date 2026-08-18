@@ -16,22 +16,15 @@ import { AdminLayoutComponent } from './pages/admin/admin-layout.component';
 import { AdminDashboardShellComponent } from './pages/admin/admin-dashboard-shell.component';
 import { AdminReservationsComponent } from './pages/admin/admin-reservations.component';
 import { AdminBlogComponent } from './pages/admin/admin-blog.component';
-import { AdminSettingsComponent } from './pages/admin/admin-settings.component';
-import { AdminSeoSettingsComponent } from './pages/admin/admin-seo-settings.component';
-import { AdminFaqManagementComponent } from './pages/admin/admin-faq-management.component';
+import { AdminSiteSettingsHubComponent } from './pages/admin/admin-site-settings-hub.component';
 import { AdminPartnerRequestsComponent } from './pages/admin/admin-partner-requests.component';
 import { AdminBranchPartnerRequestsComponent } from './pages/admin/admin-branch-partner-requests.component';
 import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
-import { AdminHomepageComponent } from './pages/admin/admin-homepage.component';
-import { AdminNavigationComponent } from './pages/admin/admin-navigation.component';
-import { AdminFooterComponent } from './pages/admin/admin-footer.component';
-import { AdminLegalCenterComponent } from './pages/admin/admin-legal-center.component';
 import { AdminTeamComponent } from './pages/admin/admin-team.component';
 import { AdminBranchesComponent } from './pages/admin/admin-branches.component';
 import { AdminCampaignsComponent } from './pages/admin/admin-campaigns.component';
 import { AdminCatalogEditorComponent } from './pages/admin/admin-catalog-editor.component';
 import { AdminAuditComponent } from './pages/admin/admin-audit.component';
-import { AdminWhatsappSettingsComponent } from './pages/admin/admin-whatsapp-settings.component';
 import { AdminSystemHealthComponent } from './pages/admin/admin-system-health.component';
 import { AdminAnalyticsComponent } from './pages/admin/admin-analytics.component';
 
@@ -73,17 +66,17 @@ export const routes: Routes = [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: AdminDashboardShellComponent },
       { path: 'analytics', component: AdminAnalyticsComponent, canActivate: [adminAreaGuard('analytics')] },
-      { path: 'homepage', component: AdminHomepageComponent, canActivate: [adminAreaGuard('content')] },
-      { path: 'navigation', component: AdminNavigationComponent, canActivate: [adminAreaGuard('settings')] },
-      { path: 'footer', component: AdminFooterComponent, canActivate: [adminAreaGuard('settings')] },
-      { path: 'legal', component: AdminLegalCenterComponent, canActivate: [adminAreaGuard('settings')] },
-      { path: 'settings', component: AdminSettingsComponent, canActivate: [adminAreaGuard('settings')] },
-      { path: 'seo', component: AdminSeoSettingsComponent, canActivate: [adminAreaGuard('settings')] },
-      { path: 'faq-management', component: AdminFaqManagementComponent, canActivate: [adminAreaGuard('content')] },
+      { path: 'homepage', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'homepage' }, canActivate: [adminAreaGuard('content')] },
+      { path: 'navigation', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'navigation' }, canActivate: [adminAreaGuard('settings')] },
+      { path: 'footer', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'footer' }, canActivate: [adminAreaGuard('settings')] },
+      { path: 'legal', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'legal' }, canActivate: [adminAreaGuard('settings')] },
+      { path: 'settings', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'general' }, canActivate: [adminAreaGuard('settings')] },
+      { path: 'seo', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'seo' }, canActivate: [adminAreaGuard('settings')] },
+      { path: 'faq-management', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'faq' }, canActivate: [adminAreaGuard('content')] },
       { path: 'campaigns', component: AdminCampaignsComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'media', redirectTo: 'catalog-editor', pathMatch: 'full' },
       { path: 'catalog-editor', component: AdminCatalogEditorComponent, canActivate: [adminAreaGuard('content')] },
-      { path: 'whatsapp', component: AdminWhatsappSettingsComponent, canActivate: [adminAreaGuard('settings')] },
+      { path: 'whatsapp', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'whatsapp' }, canActivate: [adminAreaGuard('settings')] },
       { path: 'team', component: AdminTeamComponent, canActivate: [adminAreaGuard('team')] },
       { path: 'assignments', canActivate: [adminAreaGuard('team')], loadComponent: () => import('./pages/admin/admin-assignment-center.component').then(m => m.AdminAssignmentCenterComponent) },
       { path: 'branches', component: AdminBranchesComponent, canActivate: [adminAreaGuard('settings')] },

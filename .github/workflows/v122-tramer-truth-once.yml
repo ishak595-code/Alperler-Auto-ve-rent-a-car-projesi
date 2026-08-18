@@ -1,0 +1,68 @@
+name: V122 Tramer Truth Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v122-tramer-truth-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Replace fabricated missing-tramer claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+          path = Path('src/pages/sale-car-detail.component.ts')
+          text = path.read_text(encoding='utf-8')
+          old = '{{ car()?.tramer || "Tramer kaydı bulunmamaktadır." }}'
+          new = '{{ car()?.tramer || "Tramer bilgisi belirtilmedi." }}'
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'expected exactly one tramer fallback, found {count}')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Validate accessibility and catalogue truth
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+          npm run media:vehicles
+
+      - name: TypeScript and production build
+        run: |
+          npm run lint
+          npx tsc --noEmit -p tsconfig.api.json
+          npm run build
+
+      - name: Commit correction and remove one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/v122-tramer-truth-once.yml
+          git add src/pages/sale-car-detail.component.ts .github/workflows/v122-tramer-truth-once.yml
+          git diff --cached --check
+          git commit -m "V122: do not infer clean tramer history from missing data"
+          git push origin HEAD:main

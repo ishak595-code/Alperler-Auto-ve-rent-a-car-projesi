@@ -8,7 +8,7 @@ import { routes } from './src/app.routes';
 import { provideLegacyWebhookSafety } from './src/providers/legacy-webhook-safety.provider';
 import { GlobalErrorHandler } from './src/services/global-error-handler';
 
-const LEGACY_CATALOG_STORAGE_KEY = /^db_(?:cars|sale(?:cars|s)?|tours|inventory|config|faqs)(?:_|$)/i;
+const LEGACY_CATALOG_STORAGE_KEY = /^db_(?:cars|rental_?cars?|sale_?cars?|sales?|vehicles?|tours?|inventory|config|faqs?|blog)(?:_|$)/i;
 
 function isLegacyCatalogStorageKey(key: string | null): boolean {
   return Boolean(key && LEGACY_CATALOG_STORAGE_KEY.test(key));

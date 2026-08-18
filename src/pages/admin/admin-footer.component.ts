@@ -147,7 +147,12 @@ export class AdminFooterComponent implements OnInit {
       await this.carService.updateConfig({ ...current, ...desired });
       await this.carService.refreshCloudCatalog(true);
       const verified = this.carService.getConfig()();
-      const mismatch = Object.entries(desired).some(([key, value]) => String((verified as Record<string, unknown>)[key] || '').trim() !== value);
+      const mismatch =
+        String(verified.instagramUrl || '').trim() !== desired.instagramUrl ||
+        String(verified.tiktokUrl || '').trim() !== desired.tiktokUrl ||
+        String(verified.youtubeUrl || '').trim() !== desired.youtubeUrl ||
+        String(verified.twitterUrl || '').trim() !== desired.twitterUrl ||
+        String(verified.facebookUrl || '').trim() !== desired.facebookUrl;
       if (mismatch) throw new Error('Sosyal medya bağlantıları canlı ayarlarda doğrulanamadı. Lütfen tekrar kaydedin.');
       this.syncSocialFields();
       this.form = { ...this.footer.settings() };

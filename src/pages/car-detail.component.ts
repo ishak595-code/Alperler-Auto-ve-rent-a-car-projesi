@@ -12,7 +12,6 @@ import { CommonModule, Location } from "@angular/common";
 import { ActivatedRoute, Router } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 import { register } from "swiper/element/bundle";
-import { AccessibleDateFieldComponent } from "../components/accessible-date-field.component";
 import { Car } from "../models/car.model";
 import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
 import { CarService } from "../services/car.service";
@@ -31,7 +30,7 @@ interface GalleryMedia {
 @Component({
   selector: "app-car-detail",
   standalone: true,
-  imports: [CommonModule, MatIconModule, AccessibleDateFieldComponent, TurkishCurrencyPipe],
+  imports: [CommonModule, MatIconModule, TurkishCurrencyPipe],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <main class="min-h-screen bg-slate-50 pb-28 text-slate-950 lg:pb-8">
@@ -154,12 +153,10 @@ export class CarDetailComponent {
   @ViewChild("gallerySwiper") gallerySwiper?: ElementRef<any>;
 
   private readonly routeId = this.route.snapshot.paramMap.get("id") || "";
-  readonly today = new Date().toISOString().slice(0, 10);
-  readonly startDate = signal(this.validQueryDate(this.route.snapshot.queryParamMap.get("start")));
-  readonly endDate = signal(this.validQueryDate(this.route.snapshot.queryParamMap.get("end")));
+  private readonly presetStartDate = this.validQueryDate(this.route.snapshot.queryParamMap.get("start"));
+  private readonly presetEndDate = this.validQueryDate(this.route.snapshot.queryParamMap.get("end"));
   readonly currentSlide = signal(0);
   readonly techOpen = signal(false);
-  readonly dateError = signal("");
 
   readonly car = computed<Car | null>(() => {
     const match = this.carService.getAllVehicles()().find((item) => item.category === "RENTAL" && (String(item.id) === this.routeId || String(item.cloudId || "") === this.routeId));
@@ -186,15 +183,6 @@ export class CarDetailComponent {
     return items.slice(0, 30);
   });
 
-  readonly totalDays = computed(() => {
-    const start = this.parseLocalDate(this.startDate());
-    const end = this.parseLocalDate(this.endDate());
-    if (!start || !end) return 0;
-    return Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86_400_000));
-  });
-
-  readonly validDates = computed(() => Boolean(this.startDate() && this.endDate() && this.startDate() >= this.today && this.totalDays() > 0));
-  readonly totalPrice = computed(() => this.validDates() ? this.totalDays() * Number(this.car()?.price || 0) : 0);
   readonly technicalSpecs = computed(() => {
     const vehicle = this.car();
     if (!vehicle) return null;
@@ -211,33 +199,29 @@ export class CarDetailComponent {
     });
   }
 
-  setStartDate(value: string): void { this.startDate.set(value); if (this.endDate() && value && this.endDate() <= value) this.endDate.set(""); this.validateDateRange(); }
-  setEndDate(value: string): void { this.endDate.set(value); this.validateDateRange(); }
   previousMedia(): void { this.gallerySwiper?.nativeElement?.swiper?.slidePrev(); }
   nextMedia(): void { this.gallerySwiper?.nativeElement?.swiper?.slideNext(); }
   onSlideChange(event: any): void { this.currentSlide.set(Number(event?.detail?.[0]?.activeIndex || 0)); }
 
   reserve(vehicle: Car): void {
     if (vehicle.isAvailable === false) return;
-    const hasDates = this.validDates();
-    this.dateError.set("");
+    const days = this.rentalDays(this.presetStartDate, this.presetEndDate);
     this.carService.setBookingRequest({
       type: "RENTAL",
       item: vehicle,
       itemName: `${vehicle.brand || ""} ${vehicle.model || ""}`.trim(),
       image: vehicle.image || vehicle.images?.[0],
       basePrice: Number(vehicle.price || 0),
-      totalPrice: hasDates ? this.totalPrice() : Number(vehicle.price || 0),
-      startDate: hasDates ? this.startDate() : undefined,
-      endDate: hasDates ? this.endDate() : undefined,
-      days: hasDates ? this.totalDays() : undefined,
+      totalPrice: days > 0 ? days * Number(vehicle.price || 0) : Number(vehicle.price || 0),
+      startDate: days > 0 ? this.presetStartDate : undefined,
+      endDate: days > 0 ? this.presetEndDate : undefined,
+      days: days > 0 ? days : undefined,
       rentalDuration: "daily",
       withDriver: vehicle.driverOption === "WITH_DRIVER",
     });
     void this.router.navigate(["/contact"]);
   }
 
-  reserveFromSticky(vehicle: Car): void { this.reserve(vehicle); }
   toggleFav(id: string | number): void { this.carService.toggleFavorite(id); }
   isFav(id: string | number): boolean { return this.carService.isFavorite(id); }
 
@@ -266,14 +250,13 @@ export class CarDetailComponent {
 
   goBack(): void { if (window.history.length > 1) this.location.back(); else void this.router.navigate(["/fleet"]); }
 
-  private validateDateRange(): void {
-    if (!this.startDate() || !this.endDate()) { this.dateError.set(""); return; }
-    if (this.startDate() < this.today) { this.dateError.set("Alış tarihi bugünden önce olamaz."); return; }
-    if (this.totalDays() <= 0) { this.dateError.set("İade tarihi alış tarihinden sonra olmalıdır."); return; }
-    this.dateError.set("");
+  private rentalDays(startValue: string, endValue: string): number {
+    const start = this.parseLocalDate(startValue);
+    const end = this.parseLocalDate(endValue);
+    if (!start || !end) return 0;
+    return Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86_400_000));
   }
 
-  private scrollToCalculator(): void { document.getElementById("rental-reservation")?.scrollIntoView({ behavior: "smooth", block: "center" }); }
   private validQueryDate(value: string | null): string { return /^\d{4}-\d{2}-\d{2}$/.test(value || "") ? String(value) : ""; }
   private parseLocalDate(value: string): Date | null { const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || ""); if (!match) return null; const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])); return Number.isNaN(date.getTime()) ? null : date; }
 }

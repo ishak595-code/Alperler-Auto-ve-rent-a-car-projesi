@@ -1,0 +1,38 @@
+name: V96 Admin UX Quality Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v96-admin-ux-quality-once.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Frontend TypeScript
+        run: npm run lint
+      - name: API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Production build
+        run: npm run build
+      - name: Retire one-shot workflow
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/v96-admin-ux-quality-once.yml
+          git commit -m "V96: verify compact admin workspace UX"
+          git push

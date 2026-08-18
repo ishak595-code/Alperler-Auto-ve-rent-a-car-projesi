@@ -40,7 +40,8 @@ export class CatalogService {
   private readonly authService = inject(AuthService);
 
   async loadVehicles(_fresh = false): Promise<Vehicle[]> {
-    return this.loadList<Vehicle>("vehicles", true);
+    const records = await this.loadList<Record<string, any>>("vehicles", true);
+    return records.map((record) => this.normalizeVehicleRecord(record));
   }
 
   async loadTours(fresh = false): Promise<Vehicle[]> {
@@ -64,7 +65,8 @@ export class CatalogService {
   }
 
   async saveVehicle(vehicle: Vehicle): Promise<Vehicle> {
-    return this.saveRecord<Vehicle>("vehicles", vehicle);
+    const saved = await this.saveRecord<Record<string, any>>("vehicles", vehicle as unknown as Record<string, any>);
+    return this.normalizeVehicleRecord(saved);
   }
 
   async disableVehicle(vehicle: Pick<Vehicle, "id"> & Record<string, unknown>): Promise<void> {
@@ -203,44 +205,7 @@ export class CatalogService {
     const row = raw && typeof raw === "object" ? raw as Record<string, any> : {};
     const metadata = row["metadata"] && typeof row["metadata"] === "object" ? row["metadata"] : {};
     if (resource === "vehicles") {
-      const images = Array.isArray(row["images"]) ? row["images"] : [];
-      const category = row["category"] === "SALE" ? "SALE" : "RENTAL";
-      const id = this.legacyId(metadata["legacyId"]) ?? row["id"];
-      return {
-        ...metadata,
-        id,
-        category,
-        brand: row["brand"] || "",
-        model: row["model"] || "",
-        year: row["model_year"] ?? undefined,
-        price: Number(category === "RENTAL" ? row["rental_price_daily"] ?? row["price"] ?? 0 : row["price"] ?? 0),
-        km: row["mileage_km"] ?? undefined,
-        fuel: row["fuel_type"] || undefined,
-        transmission: row["transmission"] || undefined,
-        type: row["body_type"] || undefined,
-        color: row["color"] || undefined,
-        engineVolume: row["engine"] || metadata["engineVolume"] || undefined,
-        seats: row["seats"] ?? undefined,
-        location: row["location"] || undefined,
-        description: row["description"] || "",
-        features: Array.isArray(row["features"]) ? row["features"] : [],
-        images,
-        image: row["cover_image"] || images[0] || undefined,
-        isFeatured: Boolean(row["is_featured"]),
-        isAvailable: row["availability_status"] === "AVAILABLE",
-        availability: category === "SALE"
-          ? row["availability_status"] === "SOLD" ? "Satıldı" : metadata["availability"] || "Satışta"
-          : metadata["availability"],
-        cloudId: row["id"],
-        cloudStockCode: row["stock_code"],
-        publicationStatus: row["publication_status"],
-        publishedAt: row["published_at"] || undefined,
-        scheduledAt: row["scheduled_at"] || undefined,
-        branchId: row["branch_id"] || undefined,
-        listingOrigin: row["listing_origin"] || undefined,
-        createdAt: row["created_at"] || undefined,
-        updatedAt: row["updated_at"],
-      };
+      return this.normalizeVehicleRecord({ ...row, metadata }) as unknown as Record<string, unknown>;
     }
 
     if (resource === "tours") {
@@ -295,6 +260,65 @@ export class CatalogService {
     };
   }
 
+  private normalizeVehicleRecord(raw: Record<string, any>): Vehicle {
+    const row = raw && typeof raw === "object" ? raw : {};
+    const metadata = row["metadata"] && typeof row["metadata"] === "object" ? row["metadata"] : {};
+    const category = row["category"] === "SALE" ? "SALE" : "RENTAL";
+    const images = Array.isArray(row["images"])
+      ? row["images"].filter((value: unknown): value is string => typeof value === "string" && Boolean(value.trim()))
+      : [];
+    const databaseId = row["cloudId"] ?? row["id"];
+    const legacyId = this.legacyId(metadata["legacyId"]);
+    const mappedId = this.legacyId(row["id"]);
+    const availabilityStatus = row["availability_status"] ?? row["availabilityStatus"];
+    const price = Number(
+      category === "RENTAL"
+        ? row["rental_price_daily"] ?? row["price"] ?? 0
+        : row["price"] ?? 0,
+    );
+
+    return {
+      ...metadata,
+      ...row,
+      id: legacyId ?? mappedId ?? databaseId,
+      category,
+      brand: String(row["brand"] || ""),
+      model: String(row["model"] || ""),
+      year: row["model_year"] ?? row["year"] ?? undefined,
+      price: Number.isFinite(price) ? price : 0,
+      km: row["mileage_km"] ?? row["km"] ?? undefined,
+      fuel: row["fuel_type"] ?? row["fuel"] ?? undefined,
+      transmission: row["transmission"] || undefined,
+      type: row["body_type"] ?? row["type"] ?? undefined,
+      color: row["color"] || undefined,
+      engineVolume: row["engine"] ?? row["engineVolume"] ?? metadata["engineVolume"] ?? undefined,
+      seats: row["seats"] ?? undefined,
+      location: row["location"] || undefined,
+      description: String(row["description"] || ""),
+      features: Array.isArray(row["features"]) ? row["features"] : [],
+      images,
+      image: row["cover_image"] ?? row["image"] ?? images[0] ?? undefined,
+      isFeatured: typeof row["isFeatured"] === "boolean" ? row["isFeatured"] : Boolean(row["is_featured"]),
+      isAvailable: typeof row["isAvailable"] === "boolean"
+        ? row["isAvailable"]
+        : availabilityStatus
+          ? availabilityStatus === "AVAILABLE"
+          : true,
+      availability: category === "SALE"
+        ? availabilityStatus === "SOLD" ? "Satıldı" : row["availability"] || metadata["availability"] || "Satışta"
+        : row["availability"] ?? metadata["availability"],
+      cloudId: row["cloudId"] ?? row["id"],
+      cloudStockCode: row["cloudStockCode"] ?? row["stock_code"] ?? undefined,
+      publicationStatus: row["publicationStatus"] ?? row["publication_status"] ?? undefined,
+      publishedAt: row["publishedAt"] ?? row["published_at"] ?? undefined,
+      scheduledAt: row["scheduledAt"] ?? row["scheduled_at"] ?? undefined,
+      branchId: row["branchId"] ?? row["branch_id"] ?? undefined,
+      listingOrigin: row["listingOrigin"] ?? row["listing_origin"] ?? undefined,
+      createdAt: row["createdAt"] ?? row["created_at"] ?? undefined,
+      updatedAt: row["updatedAt"] ?? row["updated_at"] ?? undefined,
+    } as Vehicle;
+  }
+
   private legacyId(value: unknown): number | string | null {
     if (typeof value === "number" && Number.isFinite(value)) return value;
     if (typeof value !== "string" || !value.trim()) return null;
@@ -302,7 +326,7 @@ export class CatalogService {
     return /^\d+$/.test(normalized) ? Number(normalized) : normalized.slice(0, 120);
   }
 
-  private async saveRecord<T>(resource: string, record: T): Promise<T> {
+  private async saveRecord<T>(resource: string, record: unknown): Promise<T> {
     const payload = await this.adminRequest<CatalogListResponse<T>>(
       "PUT",
       resource,

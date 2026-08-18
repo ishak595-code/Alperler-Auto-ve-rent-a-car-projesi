@@ -1,7 +1,6 @@
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { CarService } from '../../services/car.service';
 import { CampaignService } from '../../services/campaign.service';
 import { AdminMediaService } from '../../services/admin-media.service';
@@ -38,19 +37,17 @@ interface ThemeOption { value: HomepageTheme; label: string; preview: string; te
       <div class="builder-shell">
         <header class="hero-panel">
           <div class="hero-top">
-            <button type="button" class="icon-button light" (click)="goBack()" aria-label="Admin paneline geri dön">←</button>
             <div class="hero-copy">
               <p>Ana sayfa yönetimi</p>
               <h1>Vitrin Bölümleri</h1>
-              <span>Bölümleri taşı, düzenle, görsellerini yükle ve değişiklikleri canlıya gönder.</span>
+              <span>Ana sayfadaki bölümlerin sırasını, metinlerini, görsellerini ve öne çıkan içeriklerini buradan yönetin.</span>
             </div>
           </div>
-
         </header>
 
         <div class="sticky top-0 z-40 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:justify-end" aria-label="Ana sayfa hızlı işlemleri">
           <button type="button" class="primary-button" (click)="creating.set(!creating())" [attr.aria-expanded]="creating()" aria-controls="new-section-panel">{{ creating() ? 'Yeni Bölümü Kapat' : '+ Yeni Bölüm' }}</button>
-          <button type="button" class="secondary-button" (click)="refresh()" [disabled]="loading()" aria-label="Ana sayfa verilerini yenile">{{ loading() ? 'Yükleniyor…' : 'Veriyi Yenile' }}</button>
+          <button type="button" class="secondary-button" (click)="refresh()" [disabled]="loading()" aria-label="Ana sayfa verilerini yenile">{{ loading() ? 'Yükleniyor…' : 'Vitrini Yenile' }}</button>
         </div>
 
         @if (error()) { <div class="alert" role="alert">{{ error() }}</div> }
@@ -67,7 +64,7 @@ interface ThemeOption { value: HomepageTheme; label: string; preview: string; te
         }
 
         <section class="section-list" aria-labelledby="section-list-title">
-          <div class="list-head"><div><h2 id="section-list-title">Bölüm sırası</h2><p>{{ sections().length }} bölüm · değişiklikler Supabase ve Realtime ile canlı siteye bağlıdır</p></div></div>
+          <div class="list-head"><div><h2 id="section-list-title">Bölüm sırası</h2><p>{{ sections().length }} bölüm · burada yaptığınız değişiklikler ana sayfadaki vitrini günceller</p></div></div>
 
           @for (section of sections(); track section.sectionKey; let i = $index) {
             <article class="section-card" [class.section-disabled]="!section.isEnabled">
@@ -89,7 +86,7 @@ interface ThemeOption { value: HomepageTheme; label: string; preview: string; te
                 <div class="editor" [id]="'edit-' + section.sectionKey">
                   <div class="editor-toolbar">
                     <label class="visibility-toggle"><input type="checkbox" [(ngModel)]="section.isEnabled" [name]="section.sectionKey + '-visible'" (change)="saveSection(section)" [attr.aria-label]="section.title + ' bölümünü ana sayfada göster'" /> <span>Ana sayfada göster</span></label>
-                    <button type="button" class="save-button" (click)="saveSection(section)" [attr.aria-label]="section.title + ' bölümünü kaydet ve yayınla'">Kaydet ve Yayınla</button>
+                    <button type="button" class="save-button" (click)="saveSection(section)" [attr.aria-label]="section.title + ' bölümünü kaydet ve yayınla'">Kaydet ve Uygula</button>
                   </div>
 
                   <div class="editor-grid">
@@ -117,7 +114,7 @@ interface ThemeOption { value: HomepageTheme; label: string; preview: string; te
 
                   <section class="editor-block media-block" aria-label="Bölüm görselleri">
                     <h4>Görseller</h4>
-                    <p class="hint">URL yapıştırabilir veya telefondan/bilgisayardan dosya seçebilirsin. Dosyalar güvenli Supabase Storage alanına yüklenir.</p>
+                    <p class="hint">Görsel bağlantısı yapıştırabilir veya telefonunuzdan/bilgisayarınızdan bir dosya seçebilirsiniz. Yüklenen görsel bu bölümde kullanılmak üzere saklanır.</p>
                     <div class="media-grid">
                       <div class="media-field">
                         <strong>Profil / logo görseli</strong>
@@ -183,8 +180,6 @@ export class AdminHomepageComponent implements OnInit {
   private readonly cars = inject(CarService);
   private readonly campaignsService = inject(CampaignService);
   private readonly toast = inject(ToastService);
-  private readonly location = inject(Location);
-  private readonly router = inject(Router);
 
   readonly sections = computed(() => this.homepage.sections());
   readonly placements = computed(() => this.homepage.placements());
@@ -199,7 +194,7 @@ export class AdminHomepageComponent implements OnInit {
     { value: 'light', label: 'Beyaz', preview: '#ffffff', text: '#0f172a' },
     { value: 'soft', label: 'Buz', preview: '#f1f5f9', text: '#0f172a' },
     { value: 'dark', label: 'Gece', preview: '#050b18', text: '#ffffff' },
-    { value: 'brand', label: 'AlperAuto', preview: 'linear-gradient(145deg,#071124,#0b2347)', text: '#ffffff' },
+    { value: 'brand', label: 'Alperler Auto', preview: 'linear-gradient(145deg,#071124,#0b2347)', text: '#ffffff' },
     { value: 'ocean', label: 'Okyanus', preview: 'linear-gradient(145deg,#062a4e,#0b5b83)', text: '#ffffff' },
     { value: 'emerald', label: 'Zümrüt', preview: 'linear-gradient(145deg,#052e2b,#0f766e)', text: '#ffffff' },
     { value: 'sunset', label: 'Gün Batımı', preview: 'linear-gradient(145deg,#7c2d12,#ea580c)', text: '#ffffff' },
@@ -212,11 +207,6 @@ export class AdminHomepageComponent implements OnInit {
   newKind: NewSectionKind = 'RENTAL';
 
   async ngOnInit(): Promise<void> { await this.refresh(); }
-
-  goBack(): void {
-    if (typeof window !== 'undefined' && window.history.length > 1) this.location.back();
-    else void this.router.navigate(['/admin']);
-  }
 
   toggleEdit(key: string): void { this.editingKey.update((current) => current === key ? null : key); }
 
@@ -239,7 +229,7 @@ export class AdminHomepageComponent implements OnInit {
   }
 
   async saveSection(section: HomepageSectionRecord): Promise<void> {
-    try { await this.homepage.updateSection(section); this.toast.show('Bölüm kaydedildi ve canlıya gönderildi.', 'success'); }
+    try { await this.homepage.updateSection(section); this.toast.show('Bölüm kaydedildi ve ana sayfaya uygulandı.', 'success'); }
     catch (error) { this.toast.show(this.message(error), 'error'); }
   }
 
@@ -270,7 +260,7 @@ export class AdminHomepageComponent implements OnInit {
       const key = purpose === 'profile' ? 'profileImage' : purpose === 'cover' ? 'coverImage' : 'backgroundImage';
       this.setSetting(section, key, result.publicUrl);
       await this.homepage.updateSection(section);
-      this.toast.show('Görsel yüklendi ve canlı bölüme bağlandı.', 'success');
+      this.toast.show('Görsel yüklendi ve bu bölümde kullanılmaya başladı.', 'success');
     } catch (error) { this.toast.show(this.message(error), 'error'); }
     finally { this.uploadingKey.set(null); input.value = ''; }
   }
@@ -306,7 +296,7 @@ export class AdminHomepageComponent implements OnInit {
     if (kind === 'TOURS') return { type:'TOURS', settings:{ badge:'Yerel Rotalar', description:'Yerel rehberlerle öne çıkan rotaları keşfedin.', layout:'rail', width:'wide', theme:'dark', viewAllLabel:'Tüm Turlar', viewAllUrl:'/tours' } };
     if (kind === 'CAMPAIGN') return { type:'CAMPAIGN', settings:{ badge:'Seçili Avantajlar', description:'Planınıza uyan güncel avantajları keşfedin.', layout:'rail', width:'wide', theme:'brand', viewAllLabel:'Tüm Fırsatlar', viewAllUrl:'/campaigns' } };
     if (kind === 'BLOG') return { type:'BLOG', settings:{ badge:'Rehber & İpuçları', description:'Yola çıkmadan önce seçili içeriklere göz atın.', layout:'rail', width:'wide', theme:'light', viewAllLabel:'Tüm Yazılar', viewAllUrl:'/blog' } };
-    return { type:'CUSTOM', settings:{ renderer:'PROMO', badge:'AlperAuto', description:'Bu bölümün açıklamasını düzenleyin.', layout:'wide', width:'wide', theme:'brand', ctaLabel:'Detayları İncele', ctaUrl:'/contact' } };
+    return { type:'CUSTOM', settings:{ renderer:'PROMO', badge:'Alperler Auto', description:'Bu bölümün açıklamasını düzenleyin.', layout:'wide', width:'wide', theme:'brand', ctaLabel:'Detayları İncele', ctaUrl:'/contact' } };
   }
 
   private allCandidates(section?: HomepageSectionRecord): Candidate[] {

@@ -46,7 +46,7 @@ import { ToastService } from '../../services/toast.service';
           </section>
 
           <section class="panel" aria-labelledby="social-title">
-            <div class="heading"><div><h2 id="social-title">Sosyal medya hesapları</h2><p>Footer'daki sosyal medya ikonlarının hangi hesaba gideceğini belirleyin. Boş bıraktığınız hesap gösterilmez. Kaydetme tamamlandığında bağlantılar canlı ayarlardan tekrar doğrulanır.</p></div></div>
+            <div class="heading"><div><h2 id="social-title">Sosyal medya hesapları</h2><p>Footer'daki sosyal medya ikonlarının hangi hesaba gideceğini belirleyin. Boş bıraktığınız hesap gösterilmez. En az bir bağlantı girdiğinizde sosyal medya alanı otomatik açık tutulur ve kayıt sonrası canlı ayarlardan doğrulanır.</p></div></div>
             <div class="grid two">
               <label><span>Instagram URL</span><input [(ngModel)]="instagramUrl" name="instagramUrl" inputmode="url" placeholder="https://instagram.com/..." aria-label="Instagram profil URL adresi" /></label>
               <label><span>TikTok URL</span><input [(ngModel)]="tiktokUrl" name="tiktokUrl" inputmode="url" placeholder="https://tiktok.com/@..." aria-label="TikTok profil URL adresi" /></label>
@@ -132,10 +132,6 @@ export class AdminFooterComponent implements OnInit {
     event.preventDefault();
     if (this.saving) return;
     try {
-      const socials = [this.instagramUrl, this.tiktokUrl, this.youtubeUrl, this.xUrl, this.facebookUrl];
-      if (socials.some((url) => !this.validExternalUrl(url))) throw new Error('Sosyal medya bağlantısı boş bırakılmalı veya https:// ile başlayan geçerli bir adres olmalıdır.');
-      this.saving = true;
-      await this.footer.save(this.form);
       const desired = {
         instagramUrl: this.instagramUrl.trim(),
         tiktokUrl: this.tiktokUrl.trim(),
@@ -143,19 +139,26 @@ export class AdminFooterComponent implements OnInit {
         twitterUrl: this.xUrl.trim(),
         facebookUrl: this.facebookUrl.trim(),
       };
+      const socials = Object.values(desired);
+      if (socials.some((url) => !this.validExternalUrl(url))) throw new Error('Sosyal medya bağlantısı boş bırakılmalı veya https:// ile başlayan geçerli bir adres olmalıdır.');
+      if (socials.some(Boolean)) this.form.showSocial = true;
+      this.saving = true;
+      await this.footer.save(this.form);
       const current = this.carService.getConfig()();
       await this.carService.updateConfig({ ...current, ...desired });
-      await this.carService.refreshCloudCatalog(true);
+      await Promise.all([this.footer.refreshAdmin(), this.carService.refreshCloudCatalog(true)]);
       const verified = this.carService.getConfig()();
+      const verifiedFooter = this.footer.settings();
       const mismatch =
         String(verified.instagramUrl || '').trim() !== desired.instagramUrl ||
         String(verified.tiktokUrl || '').trim() !== desired.tiktokUrl ||
         String(verified.youtubeUrl || '').trim() !== desired.youtubeUrl ||
         String(verified.twitterUrl || '').trim() !== desired.twitterUrl ||
-        String(verified.facebookUrl || '').trim() !== desired.facebookUrl;
-      if (mismatch) throw new Error('Sosyal medya bağlantıları canlı ayarlarda doğrulanamadı. Lütfen tekrar kaydedin.');
+        String(verified.facebookUrl || '').trim() !== desired.facebookUrl ||
+        (socials.some(Boolean) && !verifiedFooter.showSocial);
+      if (mismatch) throw new Error('Sosyal medya bağlantıları ve görünürlük ayarı canlı veride doğrulanamadı. Lütfen tekrar kaydedin.');
       this.syncSocialFields();
-      this.form = { ...this.footer.settings() };
+      this.form = { ...verifiedFooter };
       this.toast.show('Footer ve sosyal medya bağlantıları doğrulandı ve siteye uygulandı.', 'success');
     } catch (error) {
       this.toast.show(this.message(error), 'error');

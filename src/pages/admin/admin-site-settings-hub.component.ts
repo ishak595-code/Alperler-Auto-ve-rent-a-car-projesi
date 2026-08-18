@@ -11,14 +11,15 @@ import { AdminLegalCenterComponent } from './admin-legal-center.component';
 import { AdminSeoSettingsComponent } from './admin-seo-settings.component';
 import { AdminFaqManagementComponent } from './admin-faq-management.component';
 import { AdminWhatsappSettingsComponent } from './admin-whatsapp-settings.component';
+import { AdminRentalPricingComponent } from './admin-rental-pricing.component';
 
-type SettingsSection = 'general' | 'homepage' | 'navigation' | 'footer' | 'legal' | 'seo' | 'faq' | 'whatsapp';
+type SettingsSection = 'general' | 'homepage' | 'rental' | 'navigation' | 'footer' | 'legal' | 'seo' | 'faq' | 'whatsapp';
 interface SettingsTab { id: SettingsSection; label: string; shortLabel: string; description: string; area: AdminArea; }
 
 @Component({
   selector: 'app-admin-site-settings-hub',
   standalone: true,
-  imports: [CommonModule, AdminSettingsComponent, AdminHomepageComponent, AdminHomepageDeviceVisibilityComponent, AdminNavigationComponent, AdminFooterComponent, AdminLegalCenterComponent, AdminSeoSettingsComponent, AdminFaqManagementComponent, AdminWhatsappSettingsComponent],
+  imports: [CommonModule, AdminSettingsComponent, AdminHomepageComponent, AdminHomepageDeviceVisibilityComponent, AdminRentalPricingComponent, AdminNavigationComponent, AdminFooterComponent, AdminLegalCenterComponent, AdminSeoSettingsComponent, AdminFaqManagementComponent, AdminWhatsappSettingsComponent],
   template: `
     <div class="workspace">
       <header class="workspace-head">
@@ -27,7 +28,7 @@ interface SettingsTab { id: SettingsSection; label: string; shortLabel: string; 
           <div>
             <p>Site Yönetimi</p>
             <h1>Site Ayarları</h1>
-            <span>Sitenin görünümünü, iletişim bilgilerini ve yayınlanan içeriklerini tek alanda yönetin.</span>
+            <span>Sitenin görünümünü, kiralama hesaplarını, iletişim bilgilerini ve yayınlanan içeriklerini tek alanda yönetin.</span>
           </div>
         </div>
         <nav class="tabs" aria-label="Site ayarları bölümleri">
@@ -43,6 +44,7 @@ interface SettingsTab { id: SettingsSection; label: string; shortLabel: string; 
         @if (accessReady()) {
         @switch (activeSection()) {
           @case ('homepage') { <app-admin-homepage-device-visibility /><app-admin-homepage /> }
+          @case ('rental') { <app-admin-rental-pricing /> }
           @case ('navigation') { <app-admin-navigation /> }
           @case ('footer') { <app-admin-footer /> }
           @case ('legal') { <app-admin-legal-center /> }
@@ -72,6 +74,7 @@ export class AdminSiteSettingsHubComponent implements OnInit {
   readonly tabs: SettingsTab[] = [
     { id:'general', label:'Profil ve Genel Ayarlar', shortLabel:'Profil & Genel', description:'Profil, marka, logo ve iletişim.', area:'settings' },
     { id:'homepage', label:'Ana Sayfa Vitrini', shortLabel:'Ana Sayfa', description:'Bölümler, cihazlar, sıra ve öne çıkanlar.', area:'content' },
+    { id:'rental', label:'Kiralama ve Mesafe Ücretleri', shortLabel:'Kiralama Ücretleri', description:'Yakıt, tüketim ve rota kilometreleri.', area:'settings' },
     { id:'navigation', label:'Menü ve Alt Bar', shortLabel:'Menü & Alt Bar', description:'Mobil menü ve hızlı erişim.', area:'settings' },
     { id:'footer', label:'Footer ve Sosyal Medya', shortLabel:'Footer & Sosyal', description:'Alt bilgi, sosyal hesap ve bülten.', area:'settings' },
     { id:'legal', label:'Yasal Metinler', shortLabel:'Yasal', description:'Kiralama, satış ve politikalar.', area:'settings' },

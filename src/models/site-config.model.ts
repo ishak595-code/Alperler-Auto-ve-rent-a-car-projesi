@@ -18,6 +18,14 @@ export interface RentalExtraOption {
   flatPrice?: number;
 }
 
+export interface RentalRoutePricing {
+  id: string;
+  from: string;
+  to: string;
+  distanceKm: number;
+  enabled: boolean;
+}
+
 export interface SiteConfig {
   logoUrl: string;
   logoWidthDesktop?: number;
@@ -41,6 +49,9 @@ export interface SiteConfig {
   tiktokUrl: string;
 
   rentalExtras?: RentalExtraOption[];
+  rentalFuelPricePerLiter?: number;
+  rentalAverageConsumptionPer100Km?: number;
+  rentalRoutePricing?: RentalRoutePricing[];
 
   seoTitle?: string;
   seoKeywords?: string;

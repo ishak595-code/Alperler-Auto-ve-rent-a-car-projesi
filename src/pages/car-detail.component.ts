@@ -33,9 +33,9 @@ interface GalleryMedia {
   imports: [CommonModule, MatIconModule, TurkishCurrencyPipe],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <main class="min-h-screen bg-slate-50 pb-28 text-slate-950 lg:pb-8">
+    <main class="min-h-screen bg-slate-50 pb-32 text-slate-950 lg:pb-8">
       @if (car(); as vehicle) {
-        <header class="sticky top-[72px] z-40 border-b border-slate-800 bg-slate-950/95 text-white backdrop-blur md:top-[96px]">
+        <header class="relative z-20 border-b border-slate-800 bg-slate-950 text-white">
           <div class="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-2 px-3 sm:px-5">
             <div class="flex min-w-0 items-center gap-2">
               <button type="button" (click)="goBack()" aria-label="Geri" class="grid h-11 w-11 shrink-0 place-items-center rounded-full hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
@@ -120,22 +120,22 @@ interface GalleryMedia {
             }
           </div>
 
-          <aside id="rental-reservation" class="rounded-2xl border border-blue-200 bg-white p-4 shadow-xl shadow-blue-950/5 sm:p-6 lg:sticky lg:top-[116px]" aria-labelledby="reservation-title">
+          <aside id="rental-reservation" class="rounded-2xl border border-blue-200 bg-white p-4 shadow-xl shadow-blue-950/5 sm:p-6 lg:sticky lg:top-6" aria-labelledby="reservation-title">
             <p class="text-xs font-black uppercase tracking-wider text-blue-600">Rezervasyon</p>
             <h2 id="reservation-title" class="mt-1 font-serif text-2xl font-black">Bu aracı rezerve edin</h2>
-            <p class="mt-2 text-sm leading-6 text-slate-500">Tarih, teslim ve iade noktası, şoför tercihi ve ek hizmetlerin tamamını tek rezervasyon ekranında seçin.</p>
-            <div class="mt-5 rounded-2xl bg-slate-950 p-4 text-white">
-              <span class="text-xs font-bold uppercase text-blue-300">Günlük başlangıç fiyatı</span>
-              <strong class="mt-1 block text-3xl">{{ vehicle.price | turkishCurrency }}</strong>
-              <p class="mt-2 text-xs leading-5 text-slate-400">Nihai tutar rezervasyondaki tarih ve hizmet seçimlerinize göre otomatik güncellenir.</p>
-            </div>
+            <p class="mt-2 text-sm leading-6 text-slate-500">Tarih, teslim ve iade noktası, şoför tercihi ve ek hizmetlerin tamamını rezervasyon ekranında seçin.</p>
+            <div class="mt-5 rounded-2xl bg-slate-950 p-4 text-white"><span class="text-xs font-bold uppercase text-blue-300">Günlük başlangıç fiyatı</span><strong class="mt-1 block text-3xl">{{ vehicle.price | turkishCurrency }}</strong><p class="mt-2 text-xs leading-5 text-slate-400">Nihai tutar rezervasyondaki tarih, hizmet ve varsa tanımlı rota mesafesine göre otomatik güncellenir.</p></div>
             <button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Bu araç için rezervasyon oluştur" class="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 font-black text-white shadow-lg shadow-blue-600/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><mat-icon aria-hidden="true">event_available</mat-icon>Rezervasyon Oluştur</button>
             <button type="button" (click)="whatsappInquiry()" aria-label="Bu araç hakkında WhatsApp ile bilgi al" class="mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 font-black text-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"><mat-icon aria-hidden="true">chat</mat-icon>WhatsApp ile Sor</button>
           </aside>
         </div>
 
-        <div class="fixed inset-x-0 bottom-0 z-[70] border-t border-slate-200 bg-white/95 p-2 pb-[max(.5rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
-          <div class="mx-auto grid max-w-2xl grid-cols-[.75fr_1.25fr] gap-2"><a [href]="phoneHref()" aria-label="Telefonla ara" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-100 font-black text-slate-800"><mat-icon aria-hidden="true">call</mat-icon>Ara</a><button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Bu araç için rezervasyon oluştur" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 font-black text-white disabled:bg-slate-300 disabled:text-slate-500"><mat-icon aria-hidden="true">event_available</mat-icon>Rezervasyon Oluştur</button></div>
+        <div class="fixed inset-x-0 bottom-0 z-[70] border-t border-slate-200 bg-white/95 p-2 pb-[max(.5rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden" aria-label="Araç hızlı işlemleri">
+          <div class="mx-auto grid max-w-2xl grid-cols-3 gap-2">
+            <a [href]="phoneHref()" aria-label="Telefonla ara" class="flex min-h-12 items-center justify-center gap-1 rounded-xl bg-slate-100 px-2 text-sm font-black text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><mat-icon aria-hidden="true">call</mat-icon><span>Ara</span></a>
+            <button type="button" (click)="whatsappInquiry()" aria-label="WhatsApp ile bilgi al" class="flex min-h-12 items-center justify-center gap-1 rounded-xl bg-emerald-600 px-2 text-sm font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"><mat-icon aria-hidden="true">chat</mat-icon><span>WhatsApp</span></button>
+            <button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Bu araç için rezervasyon oluştur" class="flex min-h-12 items-center justify-center gap-1 rounded-xl bg-slate-950 px-2 text-sm font-black text-white disabled:bg-slate-300 disabled:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><mat-icon aria-hidden="true">event_available</mat-icon><span>Rezerve Et</span></button>
+          </div>
         </div>
       } @else {
         <section class="grid min-h-[70vh] place-items-center bg-slate-50 px-6 text-center" role="status"><div><div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div><p class="mt-4 font-bold text-slate-600">Araç bilgileri yükleniyor...</p></div></section>

@@ -1,5 +1,5 @@
 # Validates the complete latest tree, including frontend, Vercel Functions and Supabase runtime.
-# V93 validation checkpoint: admin primary actions remain top-reachable on the latest main tree.
+# V110 validation checkpoint: vehicle media is file-backed and icon-only controls must stay TalkBack-labelled.
 name: Alperler Professional Quality Gate
 
 on:
@@ -13,6 +13,7 @@ on:
       - "api/**"
       - "supabase/**"
       - "project/**"
+      - "scripts/**"
       - "index.html"
       - "index.tsx"
       - "server.ts"
@@ -36,6 +37,7 @@ on:
       - "api/**"
       - "supabase/**"
       - "project/**"
+      - "scripts/**"
       - "index.html"
       - "index.tsx"
       - "server.ts"
@@ -77,6 +79,12 @@ jobs:
 
       - name: Install dependencies from lockfile
         run: npm ci --no-audit --no-fund
+
+      - name: TalkBack button accessibility guard
+        run: npm run a11y:buttons
+
+      - name: Rental and sale vehicle media guard
+        run: npm run media:vehicles
 
       - name: Frontend TypeScript quality check
         run: npm run lint

@@ -1,7 +1,7 @@
 /* Runtime-only safeguards for native controls. Keep this file deliberately
    small so legacy visual patches cannot become a second design system. */
-app-home-v71 input[type="date"],
-app-booking-checkout input[type="date"] {
+input[type="date"],
+input[type="datetime-local"] {
   color-scheme: dark;
   appearance: auto;
   -webkit-appearance: auto;
@@ -10,8 +10,8 @@ app-booking-checkout input[type="date"] {
 /* Chromium/Android can expose its internal calendar glyph to TalkBack as a
    second, unlabeled button. The date input itself already has an explicit
    accessible name and remains the single interactive date control. */
-app-home-v71 input[type="date"]::-webkit-calendar-picker-indicator,
-app-booking-checkout input[type="date"]::-webkit-calendar-picker-indicator {
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   display: none;
   -webkit-appearance: none;
 }

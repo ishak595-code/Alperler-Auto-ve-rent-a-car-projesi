@@ -168,7 +168,7 @@ import { ToastService } from "../../services/toast.service";
                   <header><h2>Yayın Kontrolü</h2></header>
                   <div class="form-grid">
                     <label class="field"><span>Yayın durumu</span><select [(ngModel)]="car.publicationStatus" name="publication"><option value="DRAFT">Taslak</option><option value="SCHEDULED">Planlandı</option><option value="PUBLISHED">Yayınlandı</option><option value="ARCHIVED">Arşiv</option></select></label>
-                    <label class="field"><span>Planlanan tarih</span><input [(ngModel)]="car.scheduledAt" name="scheduled" type="datetime-local" /></label>
+                    <label class="field"><span>Planlanan tarih</span><input [(ngModel)]="car.scheduledAt" name="scheduled" type="datetime-local" aria-label="Araç planlanan yayın tarihi ve saati" /></label>
                     <label class="check"><input type="checkbox" [(ngModel)]="car.isFeatured" name="featured" /> Ana sayfada öne çıkarılabilir</label>
                     <label class="check"><input type="checkbox" [(ngModel)]="car.isActive" name="active" /> Kayıt aktif</label>
                   </div>
@@ -236,7 +236,7 @@ import { ToastService } from "../../services/toast.service";
                   <header><h2>Tur Yayını</h2></header>
                   <div class="form-grid">
                     <label class="field"><span>Yayın durumu</span><select [(ngModel)]="tour.publicationStatus" name="tourPublication"><option value="DRAFT">Taslak</option><option value="SCHEDULED">Planlandı</option><option value="PUBLISHED">Yayınlandı</option><option value="ARCHIVED">Arşiv</option></select></label>
-                    <label class="field"><span>Planlanan tarih</span><input [(ngModel)]="tour.scheduledAt" name="tourScheduled" type="datetime-local" /></label>
+                    <label class="field"><span>Planlanan tarih</span><input [(ngModel)]="tour.scheduledAt" name="tourScheduled" type="datetime-local" aria-label="Tur planlanan yayın tarihi ve saati" /></label>
                     <label class="check"><input type="checkbox" [(ngModel)]="tour.isFeatured" name="tourFeatured" /> Ana sayfada öne çıkarılabilir</label>
                     <label class="check"><input type="checkbox" [(ngModel)]="tour.isActive" name="tourActive" /> Kayıt aktif</label>
                   </div>

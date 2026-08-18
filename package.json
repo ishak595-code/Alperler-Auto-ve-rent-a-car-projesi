@@ -12,6 +12,7 @@
     "build": "ng build",
     "lint": "tsc --noEmit",
     "a11y:buttons": "node scripts/check-accessible-buttons.mjs",
+    "a11y:dates": "node scripts/check-date-controls.mjs",
     "media:vehicles": "node scripts/check-vehicle-media.mjs",
     "preview": "ng serve --configuration=production"
   },

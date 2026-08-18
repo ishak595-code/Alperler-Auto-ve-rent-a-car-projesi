@@ -231,8 +231,6 @@ export class CatalogAdminEditorService {
       location: record.location?.trim() || null,
       description: record.description?.trim() || null,
       features: record.features.filter(Boolean).slice(0, 100),
-      images: record.images.filter(Boolean).slice(0, 30),
-      cover_image: record.coverImage?.trim() || record.images[0] || null,
       is_featured: record.isFeatured,
       is_active: active,
       availability_status: record.availabilityStatus || "AVAILABLE",

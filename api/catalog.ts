@@ -18,6 +18,12 @@ function booleanValue(value: unknown): boolean {
   return value === true;
 }
 
+const VEHICLE_MEDIA_PREFIX = "https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/";
+
+function trustedVehicleMediaUrl(value: unknown): value is string {
+  return typeof value === "string" && value.trim().startsWith(VEHICLE_MEDIA_PREFIX);
+}
+
 function slugify(value: string): string {
   return value
     .toLocaleLowerCase("tr-TR")
@@ -50,7 +56,7 @@ function jsonSize(value: unknown): number {
 function publicCache(resource: Resource): string {
   switch (resource) {
     case "vehicles":
-      return "public, max-age=30, s-maxage=120, stale-while-revalidate=3600";
+      return "no-store";
     case "tours":
       return "public, max-age=60, s-maxage=300, stale-while-revalidate=7200";
     case "blog":
@@ -120,6 +126,12 @@ function vehicleFromRow(row: any): Record<string, unknown> {
         : metadata.availability,
     cloudId: row.id,
     cloudStockCode: row.stock_code,
+    publicationStatus: row.publication_status,
+    publishedAt: row.published_at || undefined,
+    scheduledAt: row.scheduled_at || undefined,
+    branchId: row.branch_id || undefined,
+    listingOrigin: row.listing_origin || undefined,
+    createdAt: row.created_at || undefined,
     updatedAt: row.updated_at,
   };
 }
@@ -221,9 +233,17 @@ function normalizeVehicle(input: any): Record<string, unknown> {
   const model = clean(input.model, 160);
   if (!brand || !model) throw new Error("VEHICLE_BRAND_MODEL_REQUIRED");
   if (jsonSize(input) > 350_000) throw new Error("VEHICLE_PAYLOAD_TOO_LARGE");
-  const images = Array.isArray(input.images)
+  const submittedImages = Array.isArray(input.images)
     ? input.images.filter((value: unknown) => typeof value === "string" && value.length <= 2048).slice(0, 30)
     : [];
+  const submittedCover = clean(input.image, 2048);
+  if (submittedImages.some((value: string) => !trustedVehicleMediaUrl(value))) {
+    throw new Error("VEHICLE_MEDIA_STORAGE_ONLY");
+  }
+  if (submittedCover && !trustedVehicleMediaUrl(submittedCover)) {
+    throw new Error("VEHICLE_MEDIA_STORAGE_ONLY");
+  }
+  const images = submittedImages;
   const price = Math.max(0, Number(input.price) || 0);
   const availability = clean(input.availability, 40).toLocaleLowerCase("tr-TR");
   return {
@@ -246,7 +266,7 @@ function normalizeVehicle(input: any): Record<string, unknown> {
     description: clean(input.description, 10_000) || null,
     features: Array.isArray(input.features) ? input.features.slice(0, 100) : [],
     images,
-    cover_image: clean(input.image, 2048) || images[0] || null,
+    cover_image: submittedCover || images[0] || null,
     is_featured: booleanValue(input.isFeatured),
     is_active: true,
     availability_status: input.category === "SALE" && availability === "satıldı" ? "SOLD" : "AVAILABLE",

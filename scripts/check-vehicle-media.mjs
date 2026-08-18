@@ -12,5 +12,15 @@ for (const id of ids) {
 }
 for (const token of ["externalUrl", "addExternalMedia", "Kaynaklı Medyayı Ekle", "Dış görsel", "Dış video"]) if (admin.includes(token)) failures.push(`admin still exposes ${token}`);
 if (/async\s+addExternal\s*\(/.test(service)) failures.push("CatalogMediaService still exposes addExternal()");
+const carService = fs.readFileSync("src/services/car.service.ts", "utf8");
+const adminEditor = fs.readFileSync("src/services/catalog-admin-editor.service.ts", "utf8");
+const catalogApi = fs.readFileSync("api/catalog.ts", "utf8");
+const vehicleSaveStart = adminEditor.indexOf("async saveVehicle(record: VehicleAdminRecord)");
+const vehicleSaveEnd = adminEditor.indexOf("async saveTour(record: TourAdminRecord)", vehicleSaveStart);
+const vehicleSave = adminEditor.slice(vehicleSaveStart, vehicleSaveEnd);
+if (carService.includes('localStorage.setItem("db_cars') || carService.includes('localStorage.setItem("db_saleCars')) failures.push("vehicle catalogue is still persisted to browser storage");
+if (carService.includes('this.readStorage("db_cars') || carService.includes('this.readStorage("db_saleCars')) failures.push("vehicle catalogue can still restore stale browser storage");
+if (/images:\s*record\.images/.test(vehicleSave) || /cover_image:\s*record\.coverImage/.test(vehicleSave)) failures.push("saveVehicle can still overwrite media authority");
+if (!catalogApi.includes("VEHICLE_MEDIA_STORAGE_ONLY") || !catalogApi.includes("trustedVehicleMediaUrl") || !catalogApi.includes('case "vehicles":\n      return "no-store"')) failures.push("vehicle API media/cache guard missing");
 if (failures.length) { console.error(failures.join("\n")); process.exit(1); }
 console.log("Vehicle media guard passed: 11 rental/sale fallback records are Alperler Storage backed and URL authoring is disabled.");

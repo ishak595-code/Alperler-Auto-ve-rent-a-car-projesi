@@ -39,8 +39,8 @@ type PublicResource = "vehicles" | "tours" | "blog" | "faqs" | "config";
 export class CatalogService {
   private readonly authService = inject(AuthService);
 
-  async loadVehicles(fresh = false): Promise<Vehicle[]> {
-    return this.loadList<Vehicle>("vehicles", fresh);
+  async loadVehicles(_fresh = false): Promise<Vehicle[]> {
+    return this.loadList<Vehicle>("vehicles", true);
   }
 
   async loadTours(fresh = false): Promise<Vehicle[]> {
@@ -238,6 +238,7 @@ export class CatalogService {
         scheduledAt: row["scheduled_at"] || undefined,
         branchId: row["branch_id"] || undefined,
         listingOrigin: row["listing_origin"] || undefined,
+        createdAt: row["created_at"] || undefined,
         updatedAt: row["updated_at"],
       };
     }

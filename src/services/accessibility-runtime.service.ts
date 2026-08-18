@@ -43,10 +43,7 @@ export class AccessibilityRuntimeService {
     if (control.getAttribute('aria-hidden') === 'true' || control.hasAttribute('inert') || control.dataset['a11yProxy'] === 'true') return;
 
     this.applyConciseKnownName(control);
-
-    if (control.matches('input,select,textarea,button')) {
-      this.ensureAccessibleName(control);
-    }
+    this.ensureAccessibleName(control);
 
     if (control.matches('input[type="date"],input[type="time"],input[type="datetime-local"]')) {
       const label = control.getAttribute('aria-label')?.trim();
@@ -118,7 +115,7 @@ export class AccessibilityRuntimeService {
     const wrappingLabel = control.closest('label');
     if (wrappingLabel && this.labelTextWithoutControl(wrappingLabel)) return true;
 
-    if (control.tagName === 'BUTTON' && this.visibleText(control)) return true;
+    if ((control.tagName === 'BUTTON' || control.tagName === 'A') && this.visibleText(control)) return true;
     return false;
   }
 
@@ -163,14 +160,18 @@ export class AccessibilityRuntimeService {
     if (type === 'password') return 'Şifre';
     if (control.tagName === 'SELECT') return 'Seçim';
     if (control.tagName === 'TEXTAREA') return 'Metin';
-    if (control.tagName === 'BUTTON') {
+    if (control.tagName === 'BUTTON' || control.tagName === 'A') {
       const icon = control.querySelector('mat-icon')?.textContent?.trim();
       const iconNames: Record<string, string> = {
         close: 'Kapat', menu: 'Menü', arrow_back: 'Geri', search: 'Ara',
         favorite: 'Favori', favorite_border: 'Favori', delete: 'Sil', edit: 'Düzenle',
         add: 'Ekle', remove: 'Kaldır', expand_more: 'Seçenekler', more_vert: 'Seçenekler',
+        event_available: 'Rezervasyon', call: 'Telefonla ara', share: 'Paylaş',
+        chevron_left: 'Önceki', chevron_right: 'Sonraki', tune: 'Ayarlar', save: 'Kaydet',
+        chat: 'Mesaj gönder', home: 'Ana sayfa', arrow_forward: 'Devam et',
       };
-      return (icon && iconNames[icon]) || control.getAttribute('title') || 'İşlem';
+      const title = control.getAttribute('title')?.trim();
+      return (icon && iconNames[icon]) || title || (control.tagName === 'A' ? 'Bağlantıyı aç' : 'İşlem');
     }
     return 'Form alanı';
   }

@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AdminAccessService, AdminArea } from '../../services/admin-access.service';
 import { AdminSettingsComponent } from './admin-settings.component';
 import { AdminHomepageComponent } from './admin-homepage.component';
+import { AdminHomepageDeviceVisibilityComponent } from './admin-homepage-device-visibility.component';
 import { AdminNavigationComponent } from './admin-navigation.component';
 import { AdminFooterComponent } from './admin-footer.component';
 import { AdminLegalCenterComponent } from './admin-legal-center.component';
@@ -17,7 +18,7 @@ interface SettingsTab { id: SettingsSection; label: string; shortLabel: string; 
 @Component({
   selector: 'app-admin-site-settings-hub',
   standalone: true,
-  imports: [CommonModule, AdminSettingsComponent, AdminHomepageComponent, AdminNavigationComponent, AdminFooterComponent, AdminLegalCenterComponent, AdminSeoSettingsComponent, AdminFaqManagementComponent, AdminWhatsappSettingsComponent],
+  imports: [CommonModule, AdminSettingsComponent, AdminHomepageComponent, AdminHomepageDeviceVisibilityComponent, AdminNavigationComponent, AdminFooterComponent, AdminLegalCenterComponent, AdminSeoSettingsComponent, AdminFaqManagementComponent, AdminWhatsappSettingsComponent],
   template: `
     <div class="workspace">
       <header class="workspace-head">
@@ -41,7 +42,7 @@ interface SettingsTab { id: SettingsSection; label: string; shortLabel: string; 
       <main class="content">
         @if (accessReady()) {
         @switch (activeSection()) {
-          @case ('homepage') { <app-admin-homepage /> }
+          @case ('homepage') { <app-admin-homepage-device-visibility /><app-admin-homepage /> }
           @case ('navigation') { <app-admin-navigation /> }
           @case ('footer') { <app-admin-footer /> }
           @case ('legal') { <app-admin-legal-center /> }
@@ -70,7 +71,7 @@ export class AdminSiteSettingsHubComponent implements OnInit {
 
   readonly tabs: SettingsTab[] = [
     { id:'general', label:'Profil ve Genel Ayarlar', shortLabel:'Profil & Genel', description:'Profil, marka, logo ve iletişim.', area:'settings' },
-    { id:'homepage', label:'Ana Sayfa Vitrini', shortLabel:'Ana Sayfa', description:'Bölümler, sıra ve öne çıkanlar.', area:'content' },
+    { id:'homepage', label:'Ana Sayfa Vitrini', shortLabel:'Ana Sayfa', description:'Bölümler, cihazlar, sıra ve öne çıkanlar.', area:'content' },
     { id:'navigation', label:'Menü ve Alt Bar', shortLabel:'Menü & Alt Bar', description:'Mobil menü ve hızlı erişim.', area:'settings' },
     { id:'footer', label:'Footer ve Sosyal Medya', shortLabel:'Footer & Sosyal', description:'Alt bilgi, sosyal hesap ve bülten.', area:'settings' },
     { id:'legal', label:'Yasal Metinler', shortLabel:'Yasal', description:'Kiralama, satış ve politikalar.', area:'settings' },

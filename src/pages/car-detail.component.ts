@@ -12,7 +12,6 @@ import { CommonModule, Location } from "@angular/common";
 import { ActivatedRoute, Router } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 import { register } from "swiper/element/bundle";
-import { AccessibleDateFieldComponent } from "../components/accessible-date-field.component";
 import { Car } from "../models/car.model";
 import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
 import { CarService } from "../services/car.service";
@@ -31,7 +30,7 @@ interface GalleryMedia {
 @Component({
   selector: "app-car-detail",
   standalone: true,
-  imports: [CommonModule, MatIconModule, AccessibleDateFieldComponent, TurkishCurrencyPipe],
+  imports: [CommonModule, MatIconModule, TurkishCurrencyPipe],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <main class="min-h-screen bg-slate-50 pb-28 text-slate-950 lg:pb-8">
@@ -121,22 +120,22 @@ interface GalleryMedia {
             }
           </div>
 
-          <aside id="rental-calculator" class="rounded-2xl border border-blue-200 bg-white p-4 shadow-xl shadow-blue-950/5 sm:p-6 lg:sticky lg:top-[116px]" aria-labelledby="calculator-title">
-            <p class="text-xs font-black uppercase tracking-wider text-blue-600">Hızlı Rezervasyon</p><h2 id="calculator-title" class="mt-1 font-serif text-2xl font-black">Tarihinizi seçin</h2><p class="mt-2 text-sm leading-6 text-slate-500">Önce tarihleri belirleyin. Ek hizmet ve teslim noktasını sonraki adımda seçebilirsiniz.</p>
-            <div class="mt-5 space-y-4"><app-accessible-date-field label="Alış tarihi" [value]="startDate()" [min]="today" (valueChange)="setStartDate($event)" /><app-accessible-date-field label="İade tarihi" [value]="endDate()" [min]="startDate() || today" (valueChange)="setEndDate($event)" /></div>
-            @if (dateError()) { <p class="mt-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700" role="alert">{{ dateError() }}</p> }
-            <div class="mt-5 rounded-2xl bg-slate-950 p-4 text-white" aria-live="polite" aria-atomic="true">
-              @if (validDates()) { <div class="flex items-center justify-between gap-3 text-sm"><span class="text-slate-300">{{ totalDays() }} gün × {{ vehicle.price | turkishCurrency }}</span><strong>{{ totalPrice() | turkishCurrency }}</strong></div><div class="mt-3 border-t border-white/10 pt-3"><span class="text-xs font-bold uppercase text-blue-300">Tahmini araç bedeli</span><strong class="mt-1 block text-3xl">{{ totalPrice() | turkishCurrency }}</strong></div> }
-              @else { <p class="text-sm text-slate-300">Fiyatı hesaplamak için alış ve iade tarihini seçin.</p> }
+          <aside id="rental-reservation" class="rounded-2xl border border-blue-200 bg-white p-4 shadow-xl shadow-blue-950/5 sm:p-6 lg:sticky lg:top-[116px]" aria-labelledby="reservation-title">
+            <p class="text-xs font-black uppercase tracking-wider text-blue-600">Rezervasyon</p>
+            <h2 id="reservation-title" class="mt-1 font-serif text-2xl font-black">Bu aracı rezerve edin</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-500">Tarih, teslim ve iade noktası, şoför tercihi ve ek hizmetlerin tamamını tek rezervasyon ekranında seçin.</p>
+            <div class="mt-5 rounded-2xl bg-slate-950 p-4 text-white">
+              <span class="text-xs font-bold uppercase text-blue-300">Günlük başlangıç fiyatı</span>
+              <strong class="mt-1 block text-3xl">{{ vehicle.price | turkishCurrency }}</strong>
+              <p class="mt-2 text-xs leading-5 text-slate-400">Nihai tutar rezervasyondaki tarih ve hizmet seçimlerinize göre otomatik güncellenir.</p>
             </div>
-            <button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false || !validDates()" aria-label="Hemen rezerve et" class="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 font-black text-white shadow-lg shadow-blue-600/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><mat-icon aria-hidden="true">event_available</mat-icon>Hemen Rezerve Et</button>
-            <button type="button" (click)="whatsappInquiry()" aria-label="WhatsApp ile bilgi al" class="mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 font-black text-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"><mat-icon aria-hidden="true">chat</mat-icon>WhatsApp ile Sor</button>
-            <p class="mt-3 text-xs leading-5 text-slate-500">Ek hizmetler, teslim ve iade noktası rezervasyon ekranında seçilir. Seçimler fiyatı anında günceller.</p>
+            <button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Bu araç için rezervasyon oluştur" class="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 font-black text-white shadow-lg shadow-blue-600/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><mat-icon aria-hidden="true">event_available</mat-icon>Rezervasyon Oluştur</button>
+            <button type="button" (click)="whatsappInquiry()" aria-label="Bu araç hakkında WhatsApp ile bilgi al" class="mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 font-black text-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"><mat-icon aria-hidden="true">chat</mat-icon>WhatsApp ile Sor</button>
           </aside>
         </div>
 
         <div class="fixed inset-x-0 bottom-0 z-[70] border-t border-slate-200 bg-white/95 p-2 pb-[max(.5rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
-          <div class="mx-auto grid max-w-2xl grid-cols-[.75fr_1.25fr] gap-2"><a [href]="phoneHref()" aria-label="Telefonla ara" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-100 font-black text-slate-800"><mat-icon aria-hidden="true">call</mat-icon>Ara</a><button type="button" (click)="reserveFromSticky(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Rezervasyon" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 font-black text-white disabled:bg-slate-300 disabled:text-slate-500"><mat-icon aria-hidden="true">event_available</mat-icon>{{ validDates() ? 'Hemen Rezerve Et' : 'Tarih Seç' }}</button></div>
+          <div class="mx-auto grid max-w-2xl grid-cols-[.75fr_1.25fr] gap-2"><a [href]="phoneHref()" aria-label="Telefonla ara" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-100 font-black text-slate-800"><mat-icon aria-hidden="true">call</mat-icon>Ara</a><button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Bu araç için rezervasyon oluştur" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 font-black text-white disabled:bg-slate-300 disabled:text-slate-500"><mat-icon aria-hidden="true">event_available</mat-icon>Rezervasyon Oluştur</button></div>
         </div>
       } @else {
         <section class="grid min-h-[70vh] place-items-center bg-slate-50 px-6 text-center" role="status"><div><div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div><p class="mt-4 font-bold text-slate-600">Araç bilgileri yükleniyor...</p></div></section>
@@ -154,12 +153,10 @@ export class CarDetailComponent {
   @ViewChild("gallerySwiper") gallerySwiper?: ElementRef<any>;
 
   private readonly routeId = this.route.snapshot.paramMap.get("id") || "";
-  readonly today = new Date().toISOString().slice(0, 10);
-  readonly startDate = signal(this.validQueryDate(this.route.snapshot.queryParamMap.get("start")));
-  readonly endDate = signal(this.validQueryDate(this.route.snapshot.queryParamMap.get("end")));
+  private readonly presetStartDate = this.validQueryDate(this.route.snapshot.queryParamMap.get("start"));
+  private readonly presetEndDate = this.validQueryDate(this.route.snapshot.queryParamMap.get("end"));
   readonly currentSlide = signal(0);
   readonly techOpen = signal(false);
-  readonly dateError = signal("");
 
   readonly car = computed<Car | null>(() => {
     const match = this.carService.getAllVehicles()().find((item) => item.category === "RENTAL" && (String(item.id) === this.routeId || String(item.cloudId || "") === this.routeId));
@@ -186,15 +183,6 @@ export class CarDetailComponent {
     return items.slice(0, 30);
   });
 
-  readonly totalDays = computed(() => {
-    const start = this.parseLocalDate(this.startDate());
-    const end = this.parseLocalDate(this.endDate());
-    if (!start || !end) return 0;
-    return Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86_400_000));
-  });
-
-  readonly validDates = computed(() => Boolean(this.startDate() && this.endDate() && this.startDate() >= this.today && this.totalDays() > 0));
-  readonly totalPrice = computed(() => this.validDates() ? this.totalDays() * Number(this.car()?.price || 0) : 0);
   readonly technicalSpecs = computed(() => {
     const vehicle = this.car();
     if (!vehicle) return null;
@@ -211,21 +199,29 @@ export class CarDetailComponent {
     });
   }
 
-  setStartDate(value: string): void { this.startDate.set(value); if (this.endDate() && value && this.endDate() <= value) this.endDate.set(""); this.validateDateRange(); }
-  setEndDate(value: string): void { this.endDate.set(value); this.validateDateRange(); }
   previousMedia(): void { this.gallerySwiper?.nativeElement?.swiper?.slidePrev(); }
   nextMedia(): void { this.gallerySwiper?.nativeElement?.swiper?.slideNext(); }
   onSlideChange(event: any): void { this.currentSlide.set(Number(event?.detail?.[0]?.activeIndex || 0)); }
 
   reserve(vehicle: Car): void {
     if (vehicle.isAvailable === false) return;
-    if (!this.validDates()) { this.dateError.set("Rezervasyon için geçerli alış ve iade tarihini seçin."); this.scrollToCalculator(); return; }
-    this.dateError.set("");
-    this.carService.setBookingRequest({ type: "RENTAL", item: vehicle, itemName: `${vehicle.brand || ""} ${vehicle.model || ""}`.trim(), image: vehicle.image || vehicle.images?.[0], basePrice: Number(vehicle.price || 0), totalPrice: this.totalPrice(), startDate: this.startDate(), endDate: this.endDate(), days: this.totalDays(), rentalDuration: "daily", withDriver: vehicle.driverOption === "WITH_DRIVER" });
+    const days = this.rentalDays(this.presetStartDate, this.presetEndDate);
+    this.carService.setBookingRequest({
+      type: "RENTAL",
+      item: vehicle,
+      itemName: `${vehicle.brand || ""} ${vehicle.model || ""}`.trim(),
+      image: vehicle.image || vehicle.images?.[0],
+      basePrice: Number(vehicle.price || 0),
+      totalPrice: days > 0 ? days * Number(vehicle.price || 0) : Number(vehicle.price || 0),
+      startDate: days > 0 ? this.presetStartDate : undefined,
+      endDate: days > 0 ? this.presetEndDate : undefined,
+      days: days > 0 ? days : undefined,
+      rentalDuration: "daily",
+      withDriver: vehicle.driverOption === "WITH_DRIVER",
+    });
     void this.router.navigate(["/contact"]);
   }
 
-  reserveFromSticky(vehicle: Car): void { if (this.validDates()) this.reserve(vehicle); else this.scrollToCalculator(); }
   toggleFav(id: string | number): void { this.carService.toggleFavorite(id); }
   isFav(id: string | number): boolean { return this.carService.isFavorite(id); }
 
@@ -254,14 +250,13 @@ export class CarDetailComponent {
 
   goBack(): void { if (window.history.length > 1) this.location.back(); else void this.router.navigate(["/fleet"]); }
 
-  private validateDateRange(): void {
-    if (!this.startDate() || !this.endDate()) { this.dateError.set(""); return; }
-    if (this.startDate() < this.today) { this.dateError.set("Alış tarihi bugünden önce olamaz."); return; }
-    if (this.totalDays() <= 0) { this.dateError.set("İade tarihi alış tarihinden sonra olmalıdır."); return; }
-    this.dateError.set("");
+  private rentalDays(startValue: string, endValue: string): number {
+    const start = this.parseLocalDate(startValue);
+    const end = this.parseLocalDate(endValue);
+    if (!start || !end) return 0;
+    return Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86_400_000));
   }
 
-  private scrollToCalculator(): void { document.getElementById("rental-calculator")?.scrollIntoView({ behavior: "smooth", block: "center" }); }
   private validQueryDate(value: string | null): string { return /^\d{4}-\d{2}-\d{2}$/.test(value || "") ? String(value) : ""; }
   private parseLocalDate(value: string): Date | null { const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || ""); if (!match) return null; const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])); return Number.isNaN(date.getTime()) ? null : date; }
 }

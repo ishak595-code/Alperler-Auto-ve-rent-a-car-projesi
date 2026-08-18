@@ -84,7 +84,7 @@ interface SettingsTab {
     </div>
   `,
   styles: [`
-    :host{display:block;min-height:100vh;background:#f8fafc;color:#0f172a}.settings-workspace{min-height:100vh}.settings-header{position:sticky;top:0;z-index:70;border-bottom:1px solid #e2e8f0;background:rgba(248,250,252,.97);box-shadow:0 8px 24px rgba(15,23,42,.06);backdrop-filter:blur(14px)}.title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;width:min(100%,1240px);margin:auto;padding:1rem 1rem .75rem}.eyebrow{margin:0;color:#2563eb;font-size:.62rem;font-weight:950;letter-spacing:.16em;text-transform:uppercase}.title-row h1{margin:.18rem 0 0;font-size:1.55rem;font-weight:950}.intro{max-width:760px;margin:.35rem 0 0;color:#64748b;font-size:.72rem;line-height:1.55}.menu-button{display:grid;flex:none;width:46px;height:46px;place-items:center;border:0;border-radius:13px;background:#0f172a;color:#fff;font-size:1.45rem;font-weight:950;cursor:pointer}.settings-tabs{display:flex;gap:.45rem;width:min(100%,1240px);margin:auto;overflow-x:auto;padding:0 1rem .85rem;scrollbar-width:thin}.settings-tab{min-width:145px;max-width:190px;min-height:64px;flex:0 0 auto;border:1px solid #e2e8f0;border-radius:14px;background:#fff;padding:.62rem .72rem;color:#334155;text-align:left;cursor:pointer}.settings-tab strong{display:block;font-size:.72rem;font-weight:950}.settings-tab span{display:block;margin-top:.2rem;color:#64748b;font-size:.57rem;line-height:1.35}.settings-tab.active{border-color:#2563eb;background:#eff6ff;color:#1d4ed8;box-shadow:0 0 0 2px rgba(37,99,235,.08)}.settings-tab.active span{color:#475569}.settings-tab:focus-visible,.menu-button:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}.section-context{display:flex;width:min(calc(100% - 2rem),1240px);margin:.8rem auto 0;align-items:center;gap:.6rem;border:1px solid #dbeafe;border-radius:14px;background:#eff6ff;padding:.65rem .8rem;color:#1e3a8a}.section-context strong{font-size:.7rem;white-space:nowrap}.section-context span{font-size:.65rem;line-height:1.45;color:#475569}.settings-content{min-height:60vh}:host ::ng-deep .settings-content>app-admin-settings>main>header.sticky,:host ::ng-deep .settings-content>app-admin-seo-settings>main>header.sticky,:host ::ng-deep .settings-content>app-admin-faq-management>main>header.sticky{position:static!important}:host ::ng-deep .settings-content .sticky.top-16{top:142px!important}@media(max-width:640px){.title-row{padding-right:3.4rem}.title-row h1{font-size:1.35rem}.intro{font-size:.67rem}.settings-tabs{padding-bottom:.7rem}.settings-tab{min-width:132px;min-height:60px}.section-context{align-items:flex-start;flex-direction:column;gap:.2rem}.menu-button{display:none}}
+    :host{display:block;min-height:100vh;background:#f8fafc;color:#0f172a}.settings-workspace{min-height:100vh}.settings-header{position:sticky;top:0;z-index:70;border-bottom:1px solid #e2e8f0;background:rgba(248,250,252,.97);box-shadow:0 8px 24px rgba(15,23,42,.06);backdrop-filter:blur(14px)}.title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;width:min(100%,1240px);margin:auto;padding:1rem 1rem .75rem}.eyebrow{margin:0;color:#2563eb;font-size:.62rem;font-weight:950;letter-spacing:.16em;text-transform:uppercase}.title-row h1{margin:.18rem 0 0;font-size:1.55rem;font-weight:950}.intro{max-width:760px;margin:.35rem 0 0;color:#64748b;font-size:.72rem;line-height:1.55}.menu-button{display:grid;flex:none;width:46px;height:46px;place-items:center;border:0;border-radius:13px;background:#0f172a;color:#fff;font-size:1.45rem;font-weight:950;cursor:pointer}.settings-tabs{display:flex;gap:.45rem;width:min(100%,1240px);margin:auto;overflow-x:auto;padding:0 1rem .85rem;scrollbar-width:thin}.settings-tab{min-width:145px;max-width:190px;min-height:64px;flex:0 0 auto;border:1px solid #e2e8f0;border-radius:14px;background:#fff;padding:.62rem .72rem;color:#334155;text-align:left;cursor:pointer}.settings-tab strong{display:block;font-size:.72rem;font-weight:950}.settings-tab span{display:block;margin-top:.2rem;color:#64748b;font-size:.57rem;line-height:1.35}.settings-tab.active{border-color:#2563eb;background:#eff6ff;color:#1d4ed8;box-shadow:0 0 0 2px rgba(37,99,235,.08)}.settings-tab.active span{color:#475569}.settings-tab:focus-visible,.menu-button:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}.section-context{display:flex;width:min(calc(100% - 2rem),1240px);margin:.8rem auto 0;align-items:center;gap:.6rem;border:1px solid #dbeafe;border-radius:14px;background:#eff6ff;padding:.65rem .8rem;color:#1e3a8a}.section-context strong{font-size:.7rem;white-space:nowrap}.section-context span{font-size:.65rem;line-height:1.45;color:#475569}.settings-content{min-height:60vh}:host ::ng-deep .settings-content>app-admin-settings>main>header.sticky,:host ::ng-deep .settings-content>app-admin-seo-settings>main>header.sticky,:host ::ng-deep .settings-content>app-admin-faq-management>main>header.sticky,:host ::ng-deep .settings-content>app-admin-homepage .sticky.top-0,:host ::ng-deep .settings-content>app-admin-legal-center .sticky.top-0{position:static!important;top:auto!important}:host ::ng-deep .settings-content .sticky.top-16{position:static!important;top:auto!important}@media(max-width:640px){.title-row{padding-right:3.4rem}.title-row h1{font-size:1.35rem}.intro{font-size:.67rem}.settings-tabs{padding-bottom:.7rem}.settings-tab{min-width:132px;min-height:60px}.section-context{align-items:flex-start;flex-direction:column;gap:.2rem}.menu-button{display:none}}
   `],
 })
 export class AdminSiteSettingsHubComponent implements OnInit {
@@ -113,12 +113,23 @@ export class AdminSiteSettingsHubComponent implements OnInit {
     this.accessReady.set(true);
     const requested = this.sectionFromRoute();
     const allowed = this.visibleTabs().some((tab) => tab.id === requested);
-    this.activeSection.set(allowed ? requested : (this.visibleTabs()[0]?.id || 'general'));
+    const selected = allowed ? requested : (this.visibleTabs()[0]?.id || 'general');
+    this.activeSection.set(selected);
+
+    if (!this.router.url.startsWith('/admin/settings')) {
+      await this.router.navigate(['/admin/settings'], { queryParams: { section: selected }, replaceUrl: true });
+    }
   }
 
   select(section: SettingsSection): void {
     if (!this.visibleTabs().some((tab) => tab.id === section)) return;
     this.activeSection.set(section);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { section },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -129,8 +140,12 @@ export class AdminSiteSettingsHubComponent implements OnInit {
   }
 
   private sectionFromRoute(): SettingsSection {
+    const querySection = String(this.route.snapshot.queryParamMap.get('section') || '').trim() as SettingsSection;
+    if (this.tabs.some((tab) => tab.id === querySection)) return querySection;
+
     const explicit = String(this.route.snapshot.data['settingsSection'] || '').trim() as SettingsSection;
     if (this.tabs.some((tab) => tab.id === explicit)) return explicit;
+
     const map: Record<string, SettingsSection> = {
       homepage:'homepage', navigation:'navigation', footer:'footer', legal:'legal', seo:'seo', 'faq-management':'faq', whatsapp:'whatsapp', settings:'general'
     };

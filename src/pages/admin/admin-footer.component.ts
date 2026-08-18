@@ -3,7 +3,6 @@ import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CarService } from '../../services/car.service';
-import { CatalogService } from '../../services/catalog.service';
 import { FooterSettings, FooterSettingsService } from '../../services/footer-settings.service';
 import { ToastService } from '../../services/toast.service';
 
@@ -47,7 +46,7 @@ import { ToastService } from '../../services/toast.service';
           </section>
 
           <section class="panel" aria-labelledby="social-title">
-            <div class="heading"><div><h2 id="social-title">Sosyal medya hesapları</h2><p>Footer'daki sosyal medya ikonlarının hangi hesaba gideceğini belirleyin. Boş bıraktığınız hesap gösterilmez.</p></div></div>
+            <div class="heading"><div><h2 id="social-title">Sosyal medya hesapları</h2><p>Footer'daki sosyal medya ikonlarının hangi hesaba gideceğini belirleyin. Boş bıraktığınız hesap gösterilmez. Kaydetme tamamlandığında bağlantılar canlı ayarlardan tekrar doğrulanır.</p></div></div>
             <div class="grid two">
               <label><span>Instagram URL</span><input [(ngModel)]="instagramUrl" name="instagramUrl" inputmode="url" placeholder="https://instagram.com/..." aria-label="Instagram profil URL adresi" /></label>
               <label><span>TikTok URL</span><input [(ngModel)]="tiktokUrl" name="tiktokUrl" inputmode="url" placeholder="https://tiktok.com/@..." aria-label="TikTok profil URL adresi" /></label>
@@ -89,7 +88,6 @@ import { ToastService } from '../../services/toast.service';
 export class AdminFooterComponent implements OnInit {
   private readonly footer = inject(FooterSettingsService);
   private readonly carService = inject(CarService);
-  private readonly catalog = inject(CatalogService);
   private readonly toast = inject(ToastService);
 
   form: FooterSettings = { ...this.footer.settings() };
@@ -104,12 +102,7 @@ export class AdminFooterComponent implements OnInit {
     try {
       await Promise.all([this.footer.refreshAdmin(), this.carService.refreshCloudCatalog(true)]);
       this.form = { ...this.footer.settings() };
-      const cfg = this.carService.getConfig()();
-      this.instagramUrl = cfg.instagramUrl || '';
-      this.tiktokUrl = cfg.tiktokUrl || '';
-      this.youtubeUrl = cfg.youtubeUrl || '';
-      this.xUrl = cfg.twitterUrl || '';
-      this.facebookUrl = cfg.facebookUrl || '';
+      this.syncSocialFields();
     } catch (error) {
       this.toast.show(this.message(error), 'error');
     }
@@ -119,18 +112,18 @@ export class AdminFooterComponent implements OnInit {
     const cfg = this.carService.getConfig()();
     const documents: Array<[string, string | undefined]> = [
       ['Araç Kiralama Koşulları', cfg.rentalTermsText],
+      ['Sigorta ve Sorumluluk', cfg.insuranceText],
+      ['İade ve İptal', cfg.cancellationText],
+      ['KVKK Aydınlatma Metni', cfg.kvkkText],
+      ['Gizlilik Politikası', cfg.privacyText],
       ['Satış ve İlan Koşulları', cfg.salesTermsText],
       ['Tur ve Transfer Koşulları', cfg.tourTermsText],
       ['Aracını Değerlendir Koşulları', cfg.partnerTermsText],
       ['Şube ve Bayilik Koşulları', cfg.branchTermsText],
       ['Bülten ve Ticari İleti', cfg.commercialCommunicationText],
       ['Genel Kullanım Şartları', cfg.termsText],
-      ['KVKK Aydınlatma Metni', cfg.kvkkText],
-      ['Gizlilik Politikası', cfg.privacyText],
       ['Çerez Politikası', cfg.cookiesText],
       ['Mesafeli İşlem', cfg.distanceSellingText],
-      ['İade ve İptal', cfg.cancellationText],
-      ['Sigorta ve Sorumluluk', cfg.insuranceText],
     ];
     return documents.map(([label, value]) => ({ label, ready: String(value || '').trim().length > 20 }));
   }
@@ -143,23 +136,36 @@ export class AdminFooterComponent implements OnInit {
       if (socials.some((url) => !this.validExternalUrl(url))) throw new Error('Sosyal medya bağlantısı boş bırakılmalı veya https:// ile başlayan geçerli bir adres olmalıdır.');
       this.saving = true;
       await this.footer.save(this.form);
-      const current = this.carService.getConfig()();
-      await this.catalog.saveConfig({
-        ...current,
+      const desired = {
         instagramUrl: this.instagramUrl.trim(),
         tiktokUrl: this.tiktokUrl.trim(),
         youtubeUrl: this.youtubeUrl.trim(),
         twitterUrl: this.xUrl.trim(),
         facebookUrl: this.facebookUrl.trim(),
-      });
+      };
+      const current = this.carService.getConfig()();
+      await this.carService.updateConfig({ ...current, ...desired });
       await this.carService.refreshCloudCatalog(true);
+      const verified = this.carService.getConfig()();
+      const mismatch = Object.entries(desired).some(([key, value]) => String((verified as Record<string, unknown>)[key] || '').trim() !== value);
+      if (mismatch) throw new Error('Sosyal medya bağlantıları canlı ayarlarda doğrulanamadı. Lütfen tekrar kaydedin.');
+      this.syncSocialFields();
       this.form = { ...this.footer.settings() };
-      this.toast.show('Footer ve sosyal medya ayarları kaydedildi ve siteye uygulandı.', 'success');
+      this.toast.show('Footer ve sosyal medya bağlantıları doğrulandı ve siteye uygulandı.', 'success');
     } catch (error) {
       this.toast.show(this.message(error), 'error');
     } finally {
       this.saving = false;
     }
+  }
+
+  private syncSocialFields(): void {
+    const cfg = this.carService.getConfig()();
+    this.instagramUrl = cfg.instagramUrl || '';
+    this.tiktokUrl = cfg.tiktokUrl || '';
+    this.youtubeUrl = cfg.youtubeUrl || '';
+    this.xUrl = cfg.twitterUrl || '';
+    this.facebookUrl = cfg.facebookUrl || '';
   }
 
   private validExternalUrl(value: string): boolean {

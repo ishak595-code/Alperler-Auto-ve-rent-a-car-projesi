@@ -1,130 +1,173 @@
-# Temporary V103 candidate builder. The candidate restores the normal quality gate before it can reach main.
+# Validates the complete latest tree, including frontend, Vercel Functions and Supabase runtime.
+# V93 validation checkpoint: admin primary actions remain top-reachable on the latest main tree.
 name: Alperler Professional Quality Gate
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
+      - agent/v33-booking-notifications-security
     paths:
+      - "src/**"
+      - "api/**"
+      - "supabase/**"
+      - "project/**"
+      - "index.html"
+      - "index.tsx"
+      - "server.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "angular.json"
+      - "vercel.json"
+      - ".vercelignore"
+      - ".gitignore"
+      - ".env.example"
+      - "tsconfig.json"
+      - "tsconfig.api.json"
+      - "firestore.rules"
+      - ".github/workflows/booking-security-gate.yml"
+      - ".github/workflows/alperler-quality-gate.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "api/**"
+      - "supabase/**"
+      - "project/**"
+      - "index.html"
+      - "index.tsx"
+      - "server.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "angular.json"
+      - "vercel.json"
+      - ".vercelignore"
+      - ".gitignore"
+      - ".env.example"
+      - "tsconfig.json"
+      - "tsconfig.api.json"
+      - "firestore.rules"
+      - ".github/workflows/booking-security-gate.yml"
       - ".github/workflows/alperler-quality-gate.yml"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: alperler-v103-${{ github.run_id }}
-  cancel-in-progress: false
+  group: alperler-quality-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  candidate:
+  quality:
+    name: lint-build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
-      - run: npm ci --no-audit --no-fund
 
-      - name: Apply requested V103 changes
-        shell: bash
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-          import re
-
-          def change(path, fn):
-              p=Path(path); before=p.read_text(); after=fn(before)
-              if after != before:
-                  p.write_text(after); print('changed', path)
-              else:
-                  print('unchanged', path)
-
-          def dynamic(text):
-              if 'showOnMobile' not in text:
-                  text=text.replace(
-                    "return [`theme-${['light','soft','dark','brand','ocean','emerald','sunset','violet','sand','graphite'].includes(theme) ? theme : 'light'}`, `width-${['standard','wide','full'].includes(width) ? width : 'wide'}`];",
-                    "const classes = [`theme-${['light','soft','dark','brand','ocean','emerald','sunset','violet','sand','graphite'].includes(theme) ? theme : 'light'}`, `width-${['standard','wide','full'].includes(width) ? width : 'wide'}`];\n    if (!this.boolSetting('showOnMobile', true)) classes.push('hide-mobile');\n    if (!this.boolSetting('showOnTablet', true)) classes.push('hide-tablet');\n    if (!this.boolSetting('showOnDesktop', true)) classes.push('hide-desktop');\n    return classes;",
-                    1)
-                  marker="  private setting(key: string, fallback: unknown): unknown { const settings = this.section.settings && typeof this.section.settings === 'object' ? this.section.settings : {}; return Object.prototype.hasOwnProperty.call(settings, key) ? settings[key] : fallback; }"
-                  text=text.replace(marker, marker+"\n  private boolSetting(key: string, fallback: boolean): boolean { const value = this.setting(key, fallback); return typeof value === 'boolean' ? value : fallback; }",1)
-                  media='    @media(min-width:720px){.view-all{display:flex}'
-                  text=text.replace(media,"    @media(max-width:767px){.hide-mobile{display:none!important}}@media(min-width:768px) and (max-width:1023px){.hide-tablet{display:none!important}}@media(min-width:1024px){.hide-desktop{display:none!important}}\n"+media,1)
-              return text
-          change('src/components/dynamic-home-section.component.ts', dynamic)
-
-          def admin_home(text):
-              if 'cihaz görünürlüğü' not in text:
-                  m=re.search(r'(\s*<div class="editor-toolbar">.*?</div>)(\s*<div class="editor-grid">)',text,re.S)
-                  if m:
-                      device='''\n                  <fieldset class="device-visibility" [attr.aria-label]="section.title + ' cihaz görünürlüğü'">\n                    <legend>Cihaz görünürlüğü</legend>\n                    <label><input type="checkbox" [ngModel]="boolSetting(section,'showOnMobile',true)" (ngModelChange)="setSetting(section,'showOnMobile',$event)" [name]="section.sectionKey + '-mobile'" [attr.aria-label]="section.title + ' bölümünü telefonda göster'" /><span>Telefon</span></label>\n                    <label><input type="checkbox" [ngModel]="boolSetting(section,'showOnTablet',true)" (ngModelChange)="setSetting(section,'showOnTablet',$event)" [name]="section.sectionKey + '-tablet'" [attr.aria-label]="section.title + ' bölümünü tablette göster'" /><span>Tablet</span></label>\n                    <label><input type="checkbox" [ngModel]="boolSetting(section,'showOnDesktop',true)" (ngModelChange)="setSetting(section,'showOnDesktop',$event)" [name]="section.sectionKey + '-desktop'" [attr.aria-label]="section.title + ' bölümünü bilgisayarda göster'" /><span>Bilgisayar</span></label>\n                  </fieldset>'''
-                      text=text[:m.end(1)]+device+text[m.end(1):]
-                  old="  setting(section: HomepageSectionRecord, key: string, fallback = ''): any { return Object.prototype.hasOwnProperty.call(section.settings || {}, key) ? section.settings[key] : fallback; }"
-                  text=text.replace(old,"  setting(section: HomepageSectionRecord, key: string, fallback: any = ''): any { return Object.prototype.hasOwnProperty.call(section.settings || {}, key) ? section.settings[key] : fallback; }\n  boolSetting(section: HomepageSectionRecord, key: string, fallback = true): boolean { const value = this.setting(section, key, fallback); return typeof value === 'boolean' ? value : fallback; }",1)
-                  css='.editor-toolbar{display:flex;align-items:center;justify-content:space-between;gap:.75rem}'
-                  text=text.replace(css,css+'.device-visibility{display:flex;flex-wrap:wrap;gap:.45rem;border:1px solid #dbe4ef;border-radius:14px;background:#f8fafc;padding:.7rem}.device-visibility legend{padding:0 .25rem;color:#475569;font-size:.62rem;font-weight:950;text-transform:uppercase;letter-spacing:.05em}.device-visibility label{display:flex;min-height:42px;align-items:center;gap:.4rem;border-radius:10px;background:#fff;padding:0 .7rem;font-size:.68rem;font-weight:900}.device-visibility input{width:18px;height:18px}',1)
-              return text
-          change('src/pages/admin/admin-homepage.component.ts', admin_home)
-
-          def car_detail(text):
-              replacement='''\n          <aside id="rental-reservation" class="rounded-2xl border border-blue-200 bg-white p-4 shadow-xl shadow-blue-950/5 sm:p-6 lg:sticky lg:top-[116px]" aria-labelledby="reservation-title">\n            <p class="text-xs font-black uppercase tracking-wider text-blue-600">Rezervasyon</p>\n            <h2 id="reservation-title" class="mt-1 font-serif text-2xl font-black">Bu aracı rezerve edin</h2>\n            <p class="mt-2 text-sm leading-6 text-slate-500">Tarih, teslim ve iade noktası, şoför tercihi ve ek hizmetlerin tamamını tek rezervasyon ekranında seçin.</p>\n            <div class="mt-5 rounded-2xl bg-slate-950 p-4 text-white"><span class="text-xs font-bold uppercase text-blue-300">Günlük başlangıç fiyatı</span><strong class="mt-1 block text-3xl">{{ vehicle.price | turkishCurrency }}</strong><p class="mt-2 text-xs leading-5 text-slate-400">Nihai tutar rezervasyondaki tarih ve hizmet seçimlerinize göre otomatik güncellenir.</p></div>\n            <button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Bu araç için rezervasyon oluştur" class="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 font-black text-white shadow-lg shadow-blue-600/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><mat-icon aria-hidden="true">event_available</mat-icon>Rezervasyon Oluştur</button>\n            <button type="button" (click)="whatsappInquiry()" aria-label="Bu araç hakkında WhatsApp ile bilgi al" class="mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 font-black text-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"><mat-icon aria-hidden="true">chat</mat-icon>WhatsApp ile Sor</button>\n          </aside>'''
-              text=re.sub(r'\n\s*<aside id="rental-calculator".*?</aside>',replacement,text,count=1,flags=re.S)
-              text=text.replace('<button type="button" (click)="reserveFromSticky(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Rezervasyon" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 font-black text-white disabled:bg-slate-300 disabled:text-slate-500"><mat-icon aria-hidden="true">event_available</mat-icon>{{ validDates() ? \'Hemen Rezerve Et\' : \'Tarih Seç\' }}</button>','<button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Bu araç için rezervasyon oluştur" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 font-black text-white disabled:bg-slate-300 disabled:text-slate-500"><mat-icon aria-hidden="true">event_available</mat-icon>Rezervasyon Oluştur</button>',1)
-              old='''  reserve(vehicle: Car): void {\n    if (vehicle.isAvailable === false) return;\n    if (!this.validDates()) { this.dateError.set("Rezervasyon için geçerli alış ve iade tarihini seçin."); this.scrollToCalculator(); return; }\n    this.dateError.set("");\n    this.carService.setBookingRequest({ type: "RENTAL", item: vehicle, itemName: `${vehicle.brand || ""} ${vehicle.model || ""}`.trim(), image: vehicle.image || vehicle.images?.[0], basePrice: Number(vehicle.price || 0), totalPrice: this.totalPrice(), startDate: this.startDate(), endDate: this.endDate(), days: this.totalDays(), rentalDuration: "daily", withDriver: vehicle.driverOption === "WITH_DRIVER" });\n    void this.router.navigate(["/contact"]);\n  }'''
-              new='''  reserve(vehicle: Car): void {\n    if (vehicle.isAvailable === false) return;\n    const hasDates = this.validDates();\n    this.dateError.set("");\n    this.carService.setBookingRequest({ type: "RENTAL", item: vehicle, itemName: `${vehicle.brand || ""} ${vehicle.model || ""}`.trim(), image: vehicle.image || vehicle.images?.[0], basePrice: Number(vehicle.price || 0), totalPrice: hasDates ? this.totalPrice() : Number(vehicle.price || 0), startDate: hasDates ? this.startDate() : undefined, endDate: hasDates ? this.endDate() : undefined, days: hasDates ? this.totalDays() : undefined, rentalDuration: "daily", withDriver: vehicle.driverOption === "WITH_DRIVER" });\n    void this.router.navigate(["/contact"]);\n  }'''
-              text=text.replace(old,new,1)
-              text=text.replace('  reserveFromSticky(vehicle: Car): void { if (this.validDates()) this.reserve(vehicle); else this.scrollToCalculator(); }','  reserveFromSticky(vehicle: Car): void { this.reserve(vehicle); }',1)
-              return text
-          change('src/pages/car-detail.component.ts', car_detail)
-
-          def checkout(text):
-              text=text.replace('<h2 id="rental-details-title" class="mb-5 text-lg font-black text-white">1. Kiralama Detayları</h2>','<h2 id="rental-details-title" class="text-lg font-black text-white">1. Kiralama Detayları</h2><p class="mb-5 mt-1 text-sm leading-6 text-slate-400">Tarih, teslimat, şoför tercihi ve ek hizmetler değiştikçe tahmini toplam otomatik güncellenir.</p>',1)
-              text=text.replace('aria-label="Teslimat ve ek hizmetleri seç"','aria-label="Teslimat, şoför tercihi ve ek hizmetleri seç"',1)
-              text=text.replace('<strong class="block text-sm text-white">Teslimat ve Ek Hizmetler</strong>','<strong class="block text-sm text-white">Teslimat, Şoför ve Ek Hizmetler</strong>',1)
-              return text
-          change('src/pages/booking-checkout.component.ts', checkout)
-
-          def footer_admin(text):
-              old='''      const current = this.carService.getConfig()();\n      await this.catalog.saveConfig({\n        ...current,\n        instagramUrl: this.instagramUrl.trim(),\n        tiktokUrl: this.tiktokUrl.trim(),\n        youtubeUrl: this.youtubeUrl.trim(),\n        twitterUrl: this.xUrl.trim(),\n        facebookUrl: this.facebookUrl.trim(),\n      });\n      await this.carService.refreshCloudCatalog(true);\n      this.form = { ...this.footer.settings() };\n      this.toast.show('Footer ve sosyal medya ayarları kaydedildi ve siteye uygulandı.', 'success');'''
-              new='''      const desired = { instagramUrl: this.instagramUrl.trim(), tiktokUrl: this.tiktokUrl.trim(), youtubeUrl: this.youtubeUrl.trim(), twitterUrl: this.xUrl.trim(), facebookUrl: this.facebookUrl.trim() };\n      const current = this.carService.getConfig()();\n      await this.carService.updateConfig({ ...current, ...desired });\n      const verified = this.carService.getConfig()();\n      const mismatch = Object.entries(desired).some(([key, value]) => String((verified as any)[key] || '').trim() !== value);\n      if (mismatch) throw new Error('Sosyal medya bağlantıları kaydedildi olarak doğrulanamadı. Lütfen tekrar deneyin.');\n      this.instagramUrl = verified.instagramUrl || ''; this.tiktokUrl = verified.tiktokUrl || ''; this.youtubeUrl = verified.youtubeUrl || ''; this.xUrl = verified.twitterUrl || ''; this.facebookUrl = verified.facebookUrl || '';\n      this.form = { ...this.footer.settings() };\n      this.toast.show('Footer ve sosyal medya bağlantıları doğrulandı ve siteye uygulandı.', 'success');'''
-              return text.replace(old,new,1)
-          change('src/pages/admin/admin-footer.component.ts', footer_admin)
-
-          def a11y(text):
-              text=text.replace("if (control.matches('input,select,textarea,button')) {\n      this.ensureAccessibleName(control);\n    }","if (control.matches('input,select,textarea,button,a[href]')) {\n      this.ensureAccessibleName(control);\n    }",1)
-              text=text.replace("if (control.tagName === 'BUTTON' && this.visibleText(control)) return true;","if ((control.tagName === 'BUTTON' || control.tagName === 'A') && this.visibleText(control)) return true;",1)
-              text=text.replace("add: 'Ekle', remove: 'Kaldır', expand_more: 'Seçenekler', more_vert: 'Seçenekler',","add: 'Ekle', remove: 'Kaldır', expand_more: 'Seçenekler', more_vert: 'Seçenekler',\n        event_available: 'Rezervasyon', call: 'Telefonla ara', share: 'Paylaş', chevron_left: 'Önceki', chevron_right: 'Sonraki', tune: 'Ayarlar', save: 'Kaydet',",1)
-              return text
-          change('src/services/accessibility-runtime.service.ts', a11y)
-
-          def config_model(text):
-              if 'pricePerKm?: number;' not in text:
-                  text=text.replace('  pricePerHour?: number;\n  flatPrice?: number;','  pricePerHour?: number;\n  pricePerKm?: number;\n  flatPrice?: number;',1)
-              return text
-          change('src/models/site-config.model.ts', config_model)
-          PY
-          git diff --check
-
-      - name: Create inspectable candidate commit and restore normal quality gate
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout 46b2983b6d25a5d726f66dd9924ce266b077e024 -- .github/workflows/alperler-quality-gate.yml
-          git add .github/workflows/alperler-quality-gate.yml src/components/dynamic-home-section.component.ts src/pages/admin/admin-homepage.component.ts src/pages/car-detail.component.ts src/pages/booking-checkout.component.ts src/pages/admin/admin-footer.component.ts src/services/accessibility-runtime.service.ts src/models/site-config.model.ts
-          git commit -m "V103: responsive booking social accessibility candidate"
-          git push --force origin HEAD:v103-candidate
+      - name: Install dependencies from lockfile
+        run: npm ci --no-audit --no-fund
 
       - name: Frontend TypeScript quality check
         run: npm run lint
+
       - name: API TypeScript quality check
         run: npx tsc --noEmit -p tsconfig.api.json
-      - name: Production build
-        run: npm run build
 
-      - name: Promote verified candidate to main
-        run: git push origin HEAD:main
+      - name: Validate Vercel SPA deployment config
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const angular = JSON.parse(fs.readFileSync('angular.json', 'utf8'));
+          const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
+          const outputPath = angular.projects?.app?.architect?.build?.options?.outputPath;
+          const angularBase = typeof outputPath === 'string' ? outputPath : outputPath?.base;
+          const normalizedBase = String(angularBase || '').replace(/^\.\//, '').replace(/\/$/, '');
+          if (!normalizedBase || vercel.outputDirectory !== normalizedBase) {
+            throw new Error(`Vercel outputDirectory (${vercel.outputDirectory}) does not match Angular outputPath (${normalizedBase})`);
+          }
+          const spaRewrite = Array.isArray(vercel.rewrites) && vercel.rewrites.some(
+            (rule) => rule?.source === '/(.*)' && rule?.destination === '/index.html'
+          );
+          if (!spaRewrite) throw new Error('Missing SPA catch-all rewrite to /index.html');
+          if (vercel.framework !== 'angular') throw new Error('Vercel framework must remain angular');
+          console.log('Vercel/Angular deployment configuration is consistent.');
+          NODE
+
+      - name: Set up Deno 2
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Newsletter Edge Function type check
+        id: newsletter_check
+        shell: bash
+        run: |
+          set -o pipefail
+          deno check supabase/functions/newsletter-gateway/index.ts 2>&1 | tee deno-newsletter.log
+
+      - name: Upload newsletter diagnostics
+        if: failure() && steps.newsletter_check.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deno-newsletter-log
+          path: deno-newsletter.log
+          if-no-files-found: error
+          retention-days: 2
+
+      - name: Analytics ingest Edge Function type check
+        id: analytics_ingest_check
+        shell: bash
+        run: |
+          set -o pipefail
+          deno check supabase/functions/analytics-ingest/index.ts 2>&1 | tee deno-analytics-ingest.log
+
+      - name: Upload analytics ingest diagnostics
+        if: failure() && steps.analytics_ingest_check.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deno-analytics-ingest-log
+          path: deno-analytics-ingest.log
+          if-no-files-found: error
+          retention-days: 2
+
+      - name: Analytics identity Edge Function type check
+        run: deno check supabase/functions/analytics-link/index.ts
+
+      - name: Existing Supabase Edge Functions type check
+        run: |
+          set -euo pipefail
+          for file in supabase/functions/*/index.ts; do
+            case "$file" in
+              supabase/functions/newsletter-gateway/index.ts|supabase/functions/analytics-ingest/index.ts|supabase/functions/analytics-link/index.ts) continue ;;
+            esac
+            echo "Checking $file"
+            deno check "$file"
+          done
+
+      - name: Production build
+        id: production_build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee angular-build.log
+
+      - name: Upload production build diagnostics
+        if: failure() && steps.production_build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: angular-build-log
+          path: angular-build.log
+          if-no-files-found: error
+          retention-days: 2

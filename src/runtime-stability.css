@@ -7,11 +7,19 @@ app-booking-checkout input[type="date"] {
   -webkit-appearance: auto;
 }
 
+/* Chromium/Android can expose its internal calendar glyph to TalkBack as a
+   second, unlabeled button. The date input itself already has an explicit
+   accessible name and remains the single interactive date control. */
 app-home-v71 input[type="date"]::-webkit-calendar-picker-indicator,
 app-booking-checkout input[type="date"]::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  opacity: 1;
-  filter: invert(.86);
+  display: none;
+  -webkit-appearance: none;
+}
+
+/* V109 is file-upload only. The server also rejects every new external_url
+   catalog-media write, so a stale browser bundle cannot restore this path. */
+app-admin-catalog-editor div:has(input[type="url"]) {
+  display: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

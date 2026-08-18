@@ -54,7 +54,7 @@ interface ThemeOption { value: HomepageTheme; label: string; preview: string; te
 
         <section class="new-panel" aria-labelledby="homepage-top-area-title">
           <div class="content-head">
-            <div><h2 id="homepage-top-area-title">Ana Sayfa Üst Alanı</h2><p>Hero başlığı, açıklaması, arka plan görseli ve hızlı planlama metinleri doğrudan ana sayfanın en üstünde kullanılır.</p></div>
+            <div><h2 id="homepage-top-area-title">Ana Sayfa Üst Alanı</h2><p>Telefonlarda sade Hero kullanılır: üst satır, başlık, açıklama ve arka plan. Arama ve Hızlı Planlama yalnız tablet ve bilgisayarda gösterilir.</p></div>
             <button type="button" class="save-button" (click)="saveTopArea()" [disabled]="topAreaSaving()" aria-label="Ana sayfa üst alanını kaydet ve uygula">{{ topAreaSaving() ? 'Kaydediliyor…' : 'Üst Alanı Kaydet' }}</button>
           </div>
           <div class="editor-grid">
@@ -69,13 +69,13 @@ interface ThemeOption { value: HomepageTheme; label: string; preview: string; te
               @if (topAreaUploading()) { <p class="upload-state" role="status">Hero görseli yükleniyor…</p> }
             </section>
             <section class="editor-block">
-              <h4>Hızlı Planlama</h4>
+              <h4>Tablet ve Bilgisayar Hızlı Planlama</h4>
               <label><span>Üst etiket</span><input [(ngModel)]="plannerKicker" name="homePlannerKicker" maxlength="100" aria-label="Ana sayfa hızlı planlama üst etiketi" /></label>
               <label><span>Planlama başlığı</span><input [(ngModel)]="bookingTitle" name="homeBookingTitle" maxlength="180" aria-label="Ana sayfa hızlı planlama başlığı" /></label>
               <label><span>Planlama açıklaması</span><textarea [(ngModel)]="bookingSubtitle" name="homeBookingSubtitle" rows="4" maxlength="500" aria-label="Ana sayfa hızlı planlama açıklaması"></textarea></label>
               <label><span>Planlama alt notu</span><textarea [(ngModel)]="plannerNote" name="homePlannerNote" rows="3" maxlength="300" aria-label="Ana sayfa hızlı planlama alt notu"></textarea></label>
               <fieldset class="themes"><legend>Güven rozetleri</legend><div class="new-grid"><label><span>1. rozet</span><input [(ngModel)]="trustPrice" name="homeTrustPrice" maxlength="80" aria-label="Birinci güven rozeti" /></label><label><span>2. rozet</span><input [(ngModel)]="trustSupport" name="homeTrustSupport" maxlength="80" aria-label="İkinci güven rozeti" /></label><label><span>3. rozet</span><input [(ngModel)]="trustVerified" name="homeTrustVerified" maxlength="80" aria-label="Üçüncü güven rozeti" /></label></div></fieldset>
-              <p class="hint">Teslim noktaları ve araç/tur sonuçları mevcut canlı şube ve katalog verilerinden otomatik gelir.</p>
+              <p class="hint">Bu alan telefonda gösterilmez. Tablet ve bilgisayarda teslim noktaları ile araç/tur sonuçları mevcut canlı şube ve katalog verilerinden otomatik gelir.</p>
             </section>
           </div>
         </section>

@@ -1,0 +1,22 @@
+/* Runtime-only safeguards for native controls. Keep this file deliberately
+   small so legacy visual patches cannot become a second design system. */
+app-home-v71 input[type="date"],
+app-booking-checkout input[type="date"] {
+  color-scheme: dark;
+  appearance: auto;
+  -webkit-appearance: auto;
+}
+
+app-home-v71 input[type="date"]::-webkit-calendar-picker-indicator,
+app-booking-checkout input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1;
+  filter: invert(.86);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  app-home-v71 *,
+  app-booking-checkout * {
+    scroll-behavior: auto !important;
+  }
+}

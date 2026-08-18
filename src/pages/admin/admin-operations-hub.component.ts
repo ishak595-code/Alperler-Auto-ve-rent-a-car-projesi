@@ -31,6 +31,7 @@ interface OperationsTab { id: OperationsSection; label: string; area: AdminArea;
         </nav>
       </header>
       <main class="content">
+        @if (ready()) {
         @switch (active()) {
           @case ('vehicles') { <app-admin-partner-requests /> }
           @case ('branches-requests') { <app-admin-branch-partner-requests /> }
@@ -38,6 +39,9 @@ interface OperationsTab { id: OperationsSection; label: string; area: AdminArea;
           @case ('newsletter') { <app-admin-subscribers /> }
           @case ('branches') { <app-admin-branches /> }
           @default { <app-admin-reservations /> }
+        }
+        } @else {
+          <div class="p-8 text-center text-sm font-bold text-slate-500">Yönetim alanı hazırlanıyor…</div>
         }
       </main>
     </div>

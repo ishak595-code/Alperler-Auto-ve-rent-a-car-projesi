@@ -27,10 +27,14 @@ interface TeamTab { id: TeamSection; label: string; area: AdminArea; }
         </nav>
       </header>
       <main class="content">
+        @if (ready()) {
         @switch (active()) {
           @case ('assignments') { <app-admin-assignment-center /> }
           @case ('audit') { <app-admin-audit /> }
           @default { <app-admin-team /> }
+        }
+        } @else {
+          <div class="p-8 text-center text-sm font-bold text-slate-500">Yönetim alanı hazırlanıyor…</div>
         }
       </main>
     </div>

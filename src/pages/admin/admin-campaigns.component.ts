@@ -17,12 +17,12 @@ import { AdminMediaService } from "../../services/admin-media.service";
         <header class="rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8">
           <p class="text-xs font-black uppercase tracking-[.2em] text-amber-400">Kampanya ve dönüşüm merkezi</p>
           <h1 class="mt-2 text-3xl font-black md:text-4xl">Kampanyayı Buradan Yönet, Ana Sayfada Anında Yayınla</h1>
-          <p class="mt-2 max-w-4xl text-sm leading-relaxed text-slate-300">Aktif ve “Yayınlandı” durumundaki kampanyalar tek Supabase kaynağından okunur. Sıralamadaki ilk 3 kampanya ana sayfa vitrinine otomatik bağlanır. Yeni kampanya ekleme, metin, görsel, fiyat, gerçek bitiş süresi, CTA ve WhatsApp mesajı burada yönetilir.</p>
+          <p class="mt-2 max-w-4xl text-sm leading-relaxed text-slate-300">Yayınladığınız kampanyalar müşterilere gösterilir. Sıralamadaki ilk 3 kampanya ana sayfa vitrinine çıkar. Metin, görsel, fiyat, bitiş zamanı, buton ve WhatsApp mesajını buradan yönetebilirsiniz.</p>
 
           <div class="mt-5 grid gap-3 sm:grid-cols-3">
             <div class="rounded-2xl border border-white/10 bg-white/5 p-4"><div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Yayındaki kampanya</div><div class="mt-1 text-2xl font-black">{{ publishedCampaigns().length }}</div></div>
             <div class="rounded-2xl border border-white/10 bg-white/5 p-4"><div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Ana sayfa vitrini</div><div class="mt-1 text-2xl font-black">{{ homepageCampaigns().length }} / 3</div></div>
-            <div class="rounded-2xl border border-white/10 bg-white/5 p-4"><div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Tek kaynak</div><div class="mt-1 text-sm font-black text-emerald-300">Admin → Supabase → Ana sayfa</div></div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4"><div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Yayın akışı</div><div class="mt-1 text-sm font-black text-emerald-300">Kaydet → Ana sayfada göster</div></div>
           </div>
         </header>
 
@@ -34,7 +34,8 @@ import { AdminMediaService } from "../../services/admin-media.service";
           </div>
         </section>
 
-        <section class="grid gap-5 xl:grid-cols-[430px_1fr]">
+        <section [class]="editorOpen() ? 'grid gap-5 xl:grid-cols-[430px_1fr]' : 'grid gap-5'">
+          @if (editorOpen()) {
           <form id="campaign-editor" (ngSubmit)="save()" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-20 xl:self-start">
             <div class="flex items-center justify-between gap-3">
               <div><h2 class="text-xl font-black text-slate-900">{{ editingId ? 'Kampanyayı Düzenle' : 'Yeni Kampanya' }}</h2><p class="text-xs text-slate-500">Müşterinin göreceği vitrin içeriğini hazırlayın.</p></div>
@@ -104,6 +105,7 @@ import { AdminMediaService } from "../../services/admin-media.service";
               <button type="submit" [disabled]="saving() || !title.trim()" class="min-h-12 w-full rounded-xl bg-amber-500 font-black text-slate-950 shadow-lg shadow-amber-200 disabled:opacity-40">{{ saving() ? 'Kaydediliyor…' : editingId ? 'Değişiklikleri Yayınla' : 'Kampanyayı Kaydet' }}</button>
             </div>
           </form>
+          }
 
           <section class="space-y-4">
             <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -155,7 +157,7 @@ import { AdminMediaService } from "../../services/admin-media.service";
                 </div>
               </article>
             } @empty {
-              <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-14 text-center text-slate-500">Henüz kampanya yok. Soldaki formdan ilk kampanyayı oluşturabilirsiniz.</div>
+              <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-14 text-center text-slate-500">Henüz kampanya yok. Üstteki Yeni Kampanya düğmesiyle ilk kampanyayı oluşturabilirsiniz.</div>
             }
           </section>
         </section>
@@ -174,6 +176,7 @@ export class AdminCampaignsComponent implements OnInit {
   readonly campaigns = this.campaignService.campaigns;
   readonly saving = signal(false);
   readonly searchQuery = signal("");
+  readonly editorOpen = signal(false);
 
   editingId = "";
   title = "";
@@ -256,6 +259,7 @@ export class AdminCampaignsComponent implements OnInit {
         },
       });
       this.reset();
+      this.editorOpen.set(false);
       this.toast.show("Kampanya ve ana sayfa vitrini güncellendi.", "success");
     } catch (error) {
       this.toast.show(this.message(error), "error");
@@ -272,12 +276,13 @@ export class AdminCampaignsComponent implements OnInit {
       const entityId = this.editingId || `draft-${Date.now()}`;
       const uploaded = await this.adminMedia.uploadImage(file, "CAMPAIGN", entityId, "cover");
       this.coverImage = uploaded.publicUrl;
-      this.toast.show("Kampanya görseli Supabase Storage'a yüklendi.", "success");
+      this.toast.show("Kampanya görseli yüklendi.", "success");
     } catch (error) { this.toast.show(this.message(error), "error"); }
     finally { input.value = ""; }
   }
 
   edit(campaign: CampaignRecord): void {
+    this.editorOpen.set(true);
     const benefits = this.benefitsOf(campaign);
     this.editingId = campaign.id;
     this.title = campaign.title;
@@ -310,6 +315,7 @@ export class AdminCampaignsComponent implements OnInit {
 
   startNewCampaign(): void {
     this.reset();
+    this.editorOpen.set(true);
     if (typeof document !== "undefined") document.getElementById("campaign-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 

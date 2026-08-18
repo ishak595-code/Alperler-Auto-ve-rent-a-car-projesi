@@ -404,7 +404,13 @@ export class AdminCatalogEditorComponent implements OnInit {
     }
     car.recordOrigin = "REAL";
     this.saving.set(true);
-    try { await this.editor.saveVehicle(car); await this.reloadCurrent(); this.toast.show("Araç bilgileri kaydedildi.", "success"); }
+    try {
+      await this.editor.saveVehicle(car);
+      await this.reloadCurrent();
+      this.selectedVehicle.set(null);
+      this.media.set([]);
+      this.toast.show("Araç bilgileri kaydedildi.", "success");
+    }
     catch (error) { this.toast.show(this.message(error), "error"); }
     finally { this.saving.set(false); }
   }
@@ -445,7 +451,13 @@ export class AdminCatalogEditorComponent implements OnInit {
     }
     tour.recordOrigin = "REAL";
     this.saving.set(true);
-    try { await this.editor.saveTour(tour); await this.reloadCurrent(); this.toast.show("Tur bilgileri kaydedildi.", "success"); }
+    try {
+      await this.editor.saveTour(tour);
+      await this.reloadCurrent();
+      this.selectedTour.set(null);
+      this.media.set([]);
+      this.toast.show("Tur bilgileri kaydedildi.", "success");
+    }
     catch (error) { this.toast.show(this.message(error), "error"); }
     finally { this.saving.set(false); }
   }

@@ -15,7 +15,7 @@ import { ConfirmService } from '../../services/confirm.service';
       <header class="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-5 shadow-sm md:px-8">
         <div class="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p class="text-[10px] font-black uppercase tracking-[.18em] text-blue-600">Canlı Supabase Verisi</p>
+            <p class="text-[10px] font-black uppercase tracking-[.18em] text-blue-600">Bülten Yönetimi</p>
             <h1 class="mt-1 text-2xl font-black text-slate-950">Bülten & Abone Merkezi</h1>
             <p class="mt-1 text-sm text-slate-500">Abonelik, izin durumu, kampanya gönderimi ve teslimat sonuçlarını tek merkezden yönetin.</p>
           </div>
@@ -46,7 +46,7 @@ import { ConfirmService } from '../../services/confirm.service';
         <section class="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
           <article class="panel">
             <div class="panel-head">
-              <div><h2>Aboneler</h2><p>Her kayıt doğrudan <code>subscribers</code> tablosundan gelir.</p></div>
+              <div><h2>Aboneler</h2><p>Arama ve filtre sonucundaki aboneleri buradan yönetin.</p></div>
 
             </div>
             <div class="divide-y divide-slate-100">
@@ -79,7 +79,7 @@ import { ConfirmService } from '../../services/confirm.service';
           </article>
 
           <article class="panel h-fit xl:sticky xl:top-28">
-            <div class="panel-head"><div><h2>Yeni Kampanya</h2><p>Gönderim sonucu veritabanında alıcı bazında saklanır.</p></div></div>
+            <div class="panel-head"><div><h2>Yeni Kampanya</h2><p>Gönderim sonuçlarını kampanya bazında takip edebilirsiniz.</p></div></div>
             <form (submit)="send($event)" class="space-y-4 p-5">
               @if (singleEmail()) {
                 <div class="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs font-bold text-blue-800">Yalnızca: {{ singleEmail() }} <button type="button" (click)="singleEmail.set(null)" class="ml-2 underline">Tüm abonelere dön</button></div>
@@ -90,13 +90,13 @@ import { ConfirmService } from '../../services/confirm.service';
               <button type="submit" [disabled]="sending()" class="flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 font-black text-white hover:bg-blue-700 disabled:opacity-50">
                 <mat-icon aria-hidden="true">send</mat-icon>{{ sending() ? 'Gönderim işleniyor...' : singleEmail() ? 'Seçili Aboneye Gönder' : 'Tüm Aktif Abonelere Gönder' }}
               </button>
-              <p class="text-[11px] leading-5 text-slate-500">Sağlayıcı bağlı değilse kampanya ve teslimat kayıtları yine oluşturulur ancak panel gerçek durumu “E-posta sağlayıcısı bağlı değil” olarak gösterir. Sahte başarı verilmez.</p>
+              <p class="text-[11px] leading-5 text-slate-500">E-posta gönderim hizmeti bağlı değilse panel bunu açıkça belirtir ve gönderimi başarılı göstermeye çalışmaz.</p>
             </form>
           </article>
         </section>
 
         <section class="panel">
-          <div class="panel-head"><div><h2>Kampanya Geçmişi</h2><p>Gönderim toplamları ve sonuçları Supabase kayıtlarından hesaplanır.</p></div></div>
+          <div class="panel-head"><div><h2>Kampanya Geçmişi</h2><p>Gönderilen, başarısız ve atlanan alıcıları kampanya bazında görün.</p></div></div>
           <div class="overflow-x-auto">
             <table class="w-full min-w-[820px] text-left text-sm">
               <thead class="bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Kampanya</th><th class="px-5 py-3">Durum</th><th class="px-5 py-3">Hedef</th><th class="px-5 py-3">Gönderildi</th><th class="px-5 py-3">Başarısız</th><th class="px-5 py-3">Atlandı</th><th class="px-5 py-3">Tarih</th></tr></thead>
@@ -152,7 +152,7 @@ export class AdminSubscribersComponent implements OnInit {
       const [subscribers, campaigns] = await Promise.all([this.newsletter.listSubscribers(), this.newsletter.listCampaigns()]);
       this.subscribers.set(subscribers); this.campaigns.set(campaigns);
     } catch (error) {
-      console.error(error); this.error.set('Bülten verileri Supabase üzerinden yüklenemedi. Yönetici oturumunu ve bağlantıyı kontrol edin.');
+      console.error(error); this.error.set('Bülten bilgileri yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.');
     } finally { this.loading.set(false); }
   }
 
@@ -170,7 +170,7 @@ export class AdminSubscribersComponent implements OnInit {
       await this.newsletter.setSubscriberStatus(subscriber.email, status);
       this.toast.show(status === 'ACTIVE' ? 'Abonelik yeniden etkinleştirildi.' : 'Abone listeden çıkarıldı.', 'success');
       await this.reload();
-    } catch (error) { console.error(error); this.toast.show('Abone durumu veritabanında güncellenemedi.', 'error'); }
+    } catch (error) { console.error(error); this.toast.show('Abone durumu güncellenemedi. Lütfen tekrar deneyin.', 'error'); }
   }
 
   async send(event: Event): Promise<void> {

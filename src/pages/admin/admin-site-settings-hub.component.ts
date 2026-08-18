@@ -39,6 +39,7 @@ interface SettingsTab { id: SettingsSection; label: string; shortLabel: string; 
       </header>
 
       <main class="content">
+        @if (accessReady()) {
         @switch (activeSection()) {
           @case ('homepage') { <app-admin-homepage /> }
           @case ('navigation') { <app-admin-navigation /> }
@@ -48,6 +49,9 @@ interface SettingsTab { id: SettingsSection; label: string; shortLabel: string; 
           @case ('faq') { <app-admin-faq-management /> }
           @case ('whatsapp') { <app-admin-whatsapp-settings /> }
           @default { <app-admin-settings /> }
+        }
+        } @else {
+          <div class="p-8 text-center text-sm font-bold text-slate-500">Yönetim alanı hazırlanıyor…</div>
         }
       </main>
     </div>

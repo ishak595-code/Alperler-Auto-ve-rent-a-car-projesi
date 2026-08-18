@@ -184,7 +184,7 @@ export class AdminBlogComponent {
           const entityId = String(this.newPost.cloudId || this.newPost.id || `draft-${Date.now()}`);
           const uploaded = await this.mediaService.uploadImage(file, 'BLOG', entityId, 'cover');
           this.newPost.image = uploaded.publicUrl;
-          this.toastService.show("Blog görseli Supabase Storage'a yüklendi.", 'success');
+          this.toastService.show("Blog görseli yüklendi.", 'success');
       } catch (error) {
           this.toastService.show(error instanceof Error ? error.message : 'Blog görseli yüklenemedi.', 'error');
       } finally { input.value = ''; }

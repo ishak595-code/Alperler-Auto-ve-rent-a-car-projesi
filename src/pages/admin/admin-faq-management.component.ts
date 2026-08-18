@@ -14,8 +14,8 @@ import { ToastService } from '../../services/toast.service';
     <main class="min-h-screen bg-slate-50 text-slate-950">
       <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-4 shadow-sm backdrop-blur md:px-8">
         <div class="mx-auto flex max-w-6xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div><p class="text-[11px] font-black uppercase tracking-[.18em] text-emerald-600">Canlı faqs tablosu</p><h1 class="mt-1 text-2xl font-black md:text-3xl">SSS Yönetimi</h1><p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Müşteri sitesindeki sık sorulan soruları doğrudan veritabanından yönetin.</p></div>
-          <div class="flex flex-wrap gap-2"><button type="button" (click)="toggleCreate()" class="min-h-11 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20">{{ createOpen() ? 'Yeni Soruyu Kapat' : '+ Yeni Soru' }}</button><button type="button" (click)="reload()" [disabled]="loading()" class="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 disabled:opacity-50">{{ loading() ? 'Yenileniyor…' : 'Yenile' }}</button></div>
+          <div><p class="text-[11px] font-black uppercase tracking-[.18em] text-emerald-600">Müşteri yardım içeriği</p><h1 class="mt-1 text-2xl font-black md:text-3xl">SSS Yönetimi</h1><p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Müşterilerin Sık Sorulan Sorular bölümünde gördüğü soru ve cevapları buradan ekleyin, düzenleyin veya yayından kaldırın.</p></div>
+          <div class="flex flex-wrap gap-2"><button type="button" (click)="toggleCreate()" class="min-h-11 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20">{{ createOpen() ? 'Yeni Soruyu Kapat' : '+ Yeni Soru' }}</button><button type="button" (click)="reload()" [disabled]="loading()" class="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 disabled:opacity-50">{{ loading() ? 'Yenileniyor…' : 'Kayıtları Yenile' }}</button></div>
         </div>
         <div class="mx-auto mt-4 max-w-6xl"><label class="sr-only" for="faq-search">Sorularda ara</label><input id="faq-search" [ngModel]="search()" (ngModelChange)="search.set($event)" type="search" autocomplete="off" placeholder="Soru, cevap veya kategori ara…" class="min-h-12 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10" /></div>
       </header>
@@ -32,21 +32,21 @@ import { ToastService } from '../../services/toast.service';
           </section>
         }
 
-        <div class="flex items-center justify-between gap-3"><p class="text-sm font-bold text-slate-500">{{ filteredFaqs().length }} kayıt gösteriliyor</p><p class="text-xs text-slate-400">Her kayıt ayrı kaydedilir</p></div>
+        <div class="flex items-center justify-between gap-3"><p class="text-sm font-bold text-slate-500">{{ filteredFaqs().length }} soru gösteriliyor</p><p class="text-xs text-slate-400">Her soru ayrı kaydedilir</p></div>
 
         <section class="space-y-4">
           @for (faq of filteredFaqs(); track faq.cloudId || faq.id) {
             <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
               <div class="grid gap-4">
-                <div class="flex flex-wrap items-center justify-between gap-2"><span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-500">{{ faq.category || 'Genel' }}</span><span class="text-[10px] font-mono text-slate-400">{{ faq.cloudId || faq.id }}</span></div>
+                <div class="flex flex-wrap items-center justify-between gap-2"><span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-500">{{ faq.category || 'Genel' }}</span></div>
                 <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Soru</span><input [(ngModel)]="faq.question" [ngModelOptions]="{standalone:true}" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500 focus:bg-white" /></label>
                 <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Cevap</span><textarea [(ngModel)]="faq.answer" [ngModelOptions]="{standalone:true}" rows="5" class="rounded-xl border border-slate-300 bg-slate-50 p-4 outline-none focus:border-emerald-500 focus:bg-white"></textarea></label>
                 <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Kategori</span><input [(ngModel)]="faq.category" [ngModelOptions]="{standalone:true}" class="min-h-11 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-emerald-500 focus:bg-white" /></label>
-                <div class="flex flex-wrap justify-end gap-2"><button type="button" (click)="deleteFaq(faq)" [disabled]="busyId() === keyOf(faq)" class="min-h-11 rounded-xl border border-red-200 bg-red-50 px-4 text-xs font-black text-red-700 disabled:opacity-50">Sil</button><button type="button" (click)="saveFaq(faq)" [disabled]="busyId() === keyOf(faq)" class="min-h-11 rounded-xl bg-slate-950 px-5 text-xs font-black text-white disabled:opacity-50">{{ busyId() === keyOf(faq) ? 'İşleniyor…' : 'Kaydet' }}</button></div>
+                <div class="flex flex-wrap justify-end gap-2"><button type="button" (click)="deleteFaq(faq)" [disabled]="busyId() === keyOf(faq)" class="min-h-11 rounded-xl border border-red-200 bg-red-50 px-4 text-xs font-black text-red-700 disabled:opacity-50">Yayından Kaldır</button><button type="button" (click)="saveFaq(faq)" [disabled]="busyId() === keyOf(faq)" class="min-h-11 rounded-xl bg-slate-950 px-5 text-xs font-black text-white disabled:opacity-50">{{ busyId() === keyOf(faq) ? 'İşleniyor…' : 'Kaydet' }}</button></div>
               </div>
             </article>
           } @empty {
-            <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm font-bold text-slate-500">Aramanızla eşleşen SSS kaydı yok.</div>
+            <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm font-bold text-slate-500">Aramanızla eşleşen soru bulunamadı.</div>
           }
         </section>
       </div>
@@ -84,10 +84,10 @@ export class AdminFaqManagementComponent implements OnInit {
     this.loading.set(true);
     try {
       await this.cars.refreshCloudCatalog(true);
-      if (showToast) this.toast.show('SSS kayıtları canlı veritabanından yenilendi.', 'success');
+      if (showToast) this.toast.show('Sık sorulan sorular yenilendi.', 'success');
     } catch (error) {
       console.error(error);
-      this.toast.show('SSS kayıtları yenilenemedi.', 'error');
+      this.toast.show('Sık sorulan sorular yenilenemedi.', 'error');
     } finally { this.loading.set(false); }
   }
 
@@ -106,10 +106,10 @@ export class AdminFaqManagementComponent implements OnInit {
       this.newAnswer = '';
       this.newCategory = 'Genel';
       this.createOpen.set(false);
-      this.toast.show('Yeni SSS kaydı veritabanına eklendi.', 'success');
+      this.toast.show('Yeni soru eklendi ve müşteri yardım bölümünde kullanılmaya hazır.', 'success');
     } catch (error) {
       console.error(error);
-      this.toast.show('Yeni SSS kaydı eklenemedi.', 'error');
+      this.toast.show('Yeni soru eklenemedi.', 'error');
     } finally { this.creating.set(false); }
   }
 
@@ -124,24 +124,24 @@ export class AdminFaqManagementComponent implements OnInit {
     try {
       await this.catalog.saveFaq({ ...faq });
       await this.cars.refreshCloudCatalog(true);
-      this.toast.show('SSS kaydı güncellendi.', 'success');
+      this.toast.show('Soru ve cevap güncellendi.', 'success');
     } catch (error) {
       console.error(error);
-      this.toast.show('SSS kaydı güncellenemedi.', 'error');
+      this.toast.show('Soru güncellenemedi.', 'error');
     } finally { this.busyId.set(''); }
   }
 
   async deleteFaq(faq: FaqItem): Promise<void> {
-    const accepted = await this.confirm.confirm({ title: 'SSS Kaydını Sil', message: 'Bu soru ve cevabı yayından kaldırmak istediğinize emin misiniz?' });
+    const accepted = await this.confirm.confirm({ title: 'Soruyu Yayından Kaldır', message: 'Bu soru ve cevabı müşteri yardım bölümünden kaldırmak istediğinize emin misiniz?' });
     if (!accepted || this.busyId()) return;
     this.busyId.set(this.keyOf(faq));
     try {
       await this.catalog.disableFaq({ ...faq });
       await this.cars.refreshCloudCatalog(true);
-      this.toast.show('SSS kaydı yayından kaldırıldı.', 'success');
+      this.toast.show('Soru müşteri yardım bölümünden kaldırıldı.', 'success');
     } catch (error) {
       console.error(error);
-      this.toast.show('SSS kaydı silinemedi.', 'error');
+      this.toast.show('Soru yayından kaldırılamadı.', 'error');
     } finally { this.busyId.set(''); }
   }
 }

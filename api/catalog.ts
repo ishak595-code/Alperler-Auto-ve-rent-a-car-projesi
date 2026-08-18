@@ -18,12 +18,6 @@ function booleanValue(value: unknown): boolean {
   return value === true;
 }
 
-const VEHICLE_MEDIA_PREFIX = "https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/";
-
-function trustedVehicleMediaUrl(value: unknown): value is string {
-  return typeof value === "string" && value.trim().startsWith(VEHICLE_MEDIA_PREFIX);
-}
-
 function slugify(value: string): string {
   return value
     .toLocaleLowerCase("tr-TR")
@@ -51,6 +45,39 @@ function legacyIdFrom(value: unknown): number | string | null {
 
 function jsonSize(value: unknown): number {
   return new TextEncoder().encode(JSON.stringify(value)).length;
+}
+
+function autoVehicleStockCode(category: "RENTAL" | "SALE", id: number | string): string {
+  const suffix = String(id).replace(/[^a-zA-Z0-9]/g, "").slice(-10).toUpperCase() || String(Date.now()).slice(-10);
+  return `ALP-${category === "RENTAL" ? "R" : "S"}-${suffix}`;
+}
+
+const VEHICLE_METADATA_EXCLUDED = new Set([
+  "id", "cloudId", "cloudStockCode", "stock_code", "category", "brand", "model", "year", "model_year",
+  "price", "rental_price_daily", "km", "mileage_km", "fuel", "fuel_type", "transmission", "type", "body_type",
+  "color", "engineVolume", "engine", "seats", "location", "description", "features", "image", "images", "gallery",
+  "videos", "cover_image", "isFeatured", "is_featured", "isAvailable", "availability", "availability_status",
+  "publicationStatus", "publication_status", "publishedAt", "published_at", "scheduledAt", "scheduled_at", "branchId",
+  "branch_id", "listingOrigin", "listing_origin", "createdAt", "created_at", "updatedAt", "updated_at",
+]);
+
+const TOUR_METADATA_EXCLUDED = new Set([
+  "id", "cloudId", "cloudSlug", "seo_slug", "title", "category", "categoryName", "shortDescription", "short_description",
+  "description", "price", "price_per_person", "duration", "capacity", "meetingPoint", "meeting_point", "itinerary",
+  "includedItems", "included_items", "excludedItems", "excluded_items", "image", "images", "gallery", "videos", "cover_image",
+  "isFeatured", "is_featured", "publicationStatus", "publication_status", "branchId", "branch_id", "listingOrigin",
+  "listing_origin", "createdAt", "created_at", "updatedAt", "updated_at",
+]);
+
+function sanitizedMetadata(input: unknown, excluded: Set<string>, legacyId: number | string): Record<string, unknown> {
+  const source = input && typeof input === "object" ? input as Record<string, unknown> : {};
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (excluded.has(key) || value === undefined) continue;
+    result[key] = value;
+  }
+  result["legacyId"] = legacyId;
+  return result;
 }
 
 function publicCache(resource: Resource): string {
@@ -228,34 +255,24 @@ function normalizeVehicle(input: any): Record<string, unknown> {
   if (!input || (input.category !== "RENTAL" && input.category !== "SALE")) {
     throw new Error("INVALID_VEHICLE_CATEGORY");
   }
+  const category: "RENTAL" | "SALE" = input.category;
   const id = legacyIdFrom(input.id) ?? Date.now();
   const brand = clean(input.brand, 120);
   const model = clean(input.model, 160);
   if (!brand || !model) throw new Error("VEHICLE_BRAND_MODEL_REQUIRED");
   if (jsonSize(input) > 350_000) throw new Error("VEHICLE_PAYLOAD_TOO_LARGE");
-  const submittedImages = Array.isArray(input.images)
-    ? input.images.filter((value: unknown) => typeof value === "string" && value.length <= 2048).slice(0, 30)
-    : [];
-  const submittedCover = clean(input.image, 2048);
-  if (submittedImages.some((value: string) => !trustedVehicleMediaUrl(value))) {
-    throw new Error("VEHICLE_MEDIA_STORAGE_ONLY");
-  }
-  if (submittedCover && !trustedVehicleMediaUrl(submittedCover)) {
-    throw new Error("VEHICLE_MEDIA_STORAGE_ONLY");
-  }
-  const images = submittedImages;
   const price = Math.max(0, Number(input.price) || 0);
   const availability = clean(input.availability, 40).toLocaleLowerCase("tr-TR");
   return {
-    stock_code: clean(input.cloudStockCode, 120) || `LEGACY-${String(id).slice(0, 100)}`,
-    category: input.category,
+    stock_code: clean(input.cloudStockCode, 120) || autoVehicleStockCode(category, id),
+    category,
     brand,
     model,
     model_year: numberOrNull(input.year),
     price,
     currency: "TRY",
-    rental_price_daily: input.category === "RENTAL" ? price : null,
-    mileage_km: input.category === "SALE" ? numberOrNull(input.km) : null,
+    rental_price_daily: category === "RENTAL" ? price : null,
+    mileage_km: category === "SALE" ? numberOrNull(input.km) : null,
     fuel_type: clean(input.fuel, 40) || null,
     transmission: clean(input.transmission, 40) || null,
     body_type: clean(input.type, 60) || null,
@@ -265,12 +282,10 @@ function normalizeVehicle(input: any): Record<string, unknown> {
     location: clean(input.location, 240) || null,
     description: clean(input.description, 10_000) || null,
     features: Array.isArray(input.features) ? input.features.slice(0, 100) : [],
-    images,
-    cover_image: submittedCover || images[0] || null,
     is_featured: booleanValue(input.isFeatured),
     is_active: true,
-    availability_status: input.category === "SALE" && availability === "satıldı" ? "SOLD" : "AVAILABLE",
-    metadata: { ...input, legacyId: id, cloudId: undefined, cloudStockCode: undefined },
+    availability_status: category === "SALE" && availability === "satıldı" ? "SOLD" : "AVAILABLE",
+    metadata: sanitizedMetadata(input, VEHICLE_METADATA_EXCLUDED, id),
   };
 }
 
@@ -279,12 +294,9 @@ function normalizeTour(input: any): Record<string, unknown> {
   const title = clean(input?.title, 240);
   if (!title) throw new Error("TOUR_TITLE_REQUIRED");
   if (jsonSize(input) > 350_000) throw new Error("TOUR_PAYLOAD_TOO_LARGE");
-  const images = Array.isArray(input.images)
-    ? input.images.filter((value: unknown) => typeof value === "string" && value.length <= 2048).slice(0, 30)
-    : [];
   return {
     title,
-    seo_slug: clean(input.cloudSlug, 140) || `legacy-${String(id).slice(0, 80)}-${slugify(title)}`,
+    seo_slug: clean(input.cloudSlug, 140) || `tour-${String(id).slice(0, 80)}-${slugify(title)}`,
     category: clean(input.categoryName, 80) || null,
     short_description: clean(input.shortDescription, 1000) || null,
     description: clean(input.description, 10_000) || null,
@@ -296,11 +308,9 @@ function normalizeTour(input: any): Record<string, unknown> {
     itinerary: Array.isArray(input.itinerary) ? input.itinerary.slice(0, 100) : [],
     included_items: Array.isArray(input.includedItems) ? input.includedItems.slice(0, 100) : [],
     excluded_items: Array.isArray(input.excludedItems) ? input.excludedItems.slice(0, 100) : [],
-    images,
-    cover_image: clean(input.image, 2048) || images[0] || null,
     is_featured: booleanValue(input.isFeatured),
     is_active: true,
-    metadata: { ...input, legacyId: id, cloudId: undefined, cloudSlug: undefined },
+    metadata: sanitizedMetadata(input, TOUR_METADATA_EXCLUDED, id),
   };
 }
 
@@ -311,7 +321,7 @@ function normalizeBlog(input: any): Record<string, unknown> {
   if (jsonSize(input) > 500_000) throw new Error("BLOG_PAYLOAD_TOO_LARGE");
   return {
     title,
-    slug: clean(input.cloudSlug, 140) || `legacy-blog-${String(id).slice(0, 80)}-${slugify(title)}`,
+    slug: clean(input.cloudSlug, 140) || `blog-${String(id).slice(0, 80)}-${slugify(title)}`,
     excerpt: clean(input.summary, 2000) || null,
     content: clean(input.content, 100_000),
     cover_image: clean(input.image, 2048) || null,
@@ -408,10 +418,14 @@ async function upsert(resource: Resource, input: any, authorization: string): Pr
 
 async function disable(resource: Resource, input: any, authorization: string): Promise<Response> {
   if (resource === "vehicles") {
-    const stockCode = clean(input?.cloudStockCode, 120) || (legacyIdFrom(input?.id) !== null ? `LEGACY-${String(legacyIdFrom(input.id))}` : "");
-    if (!stockCode) throw new Error("VEHICLE_ID_REQUIRED");
+    const stockCode = clean(input?.cloudStockCode, 120);
+    const cloudId = clean(input?.cloudId, 80);
+    if (!stockCode && !cloudId) throw new Error("VEHICLE_ID_REQUIRED");
+    const filter = stockCode
+      ? `stock_code=eq.${encodeURIComponent(stockCode)}`
+      : `id=eq.${encodeURIComponent(cloudId)}`;
     const upstream = await rest(
-      `vehicles?stock_code=eq.${encodeURIComponent(stockCode)}`,
+      `vehicles?${filter}`,
       { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ is_active: false }) },
       authorization,
     );
@@ -419,10 +433,11 @@ async function disable(resource: Resource, input: any, authorization: string): P
   }
   if (resource === "tours") {
     const cloudSlug = clean(input?.cloudSlug, 140);
-    const legacyId = legacyIdFrom(input?.id);
-    const slug = cloudSlug || (legacyId !== null ? `legacy-${String(legacyId)}` : "");
-    if (!slug) throw new Error("TOUR_ID_REQUIRED");
-    const filter = cloudSlug ? `seo_slug=eq.${encodeURIComponent(cloudSlug)}` : `seo_slug=like.${encodeURIComponent(slug + "-%")}`;
+    const cloudId = clean(input?.cloudId, 80);
+    if (!cloudSlug && !cloudId) throw new Error("TOUR_ID_REQUIRED");
+    const filter = cloudSlug
+      ? `seo_slug=eq.${encodeURIComponent(cloudSlug)}`
+      : `id=eq.${encodeURIComponent(cloudId)}`;
     const upstream = await rest(
       `tours?${filter}`,
       { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ is_active: false }) },

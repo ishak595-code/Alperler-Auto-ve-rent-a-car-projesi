@@ -17,12 +17,12 @@ import { ToastService } from '../../services/toast.service';
         <header class="hero">
           <p>Alt bilgi yönetimi</p>
           <h1>Footer, Sosyal Medya ve Bülten</h1>
-          <span>Burada kaydettiğin bilgiler production Supabase'e yazılır ve Realtime ile müşteri footer'ına yansır.</span>
+          <span>Sitenin en alt bölümünde görünecek metinleri, sosyal medya hesaplarını ve bülten alanını buradan yönetin.</span>
         </header>
 
         <form (submit)="save($event)" class="stack" novalidate>
           <section class="panel" aria-labelledby="footer-visibility-title">
-            <div class="heading"><div><h2 id="footer-visibility-title">Görünürlük</h2><p>İhtiyacın olmayan alanları footer'dan kaldırabilirsin. Veri silinmez.</p></div></div>
+            <div class="heading"><div><h2 id="footer-visibility-title">Görünürlük</h2><p>Footer'da hangi alanların gösterileceğini seçin. Bir alanı kapatmanız kayıtlı bilgiyi silmez.</p></div></div>
             <div class="toggles">
               <label><input type="checkbox" [(ngModel)]="form.isEnabled" name="footerEnabled" aria-label="Footer bölümünü aç veya kapat" /><span>Footer açık</span></label>
               <label><input type="checkbox" [(ngModel)]="form.showPhone" name="showPhone" aria-label="Footer telefon bağlantısını göster veya gizle" /><span>Telefon</span></label>
@@ -35,7 +35,7 @@ import { ToastService } from '../../services/toast.service';
           </section>
 
           <section class="panel" aria-labelledby="footer-content-title">
-            <div class="heading"><div><h2 id="footer-content-title">Footer metinleri</h2><p>Başlık ve açıklamalar doğrudan veritabanında tutulur.</p></div></div>
+            <div class="heading"><div><h2 id="footer-content-title">Footer metinleri</h2><p>Bu başlık ve açıklamalar müşterilerin sitenin alt bölümünde gördüğü kurumsal metinlerdir.</p></div></div>
             <div class="grid two">
               <label><span>Marka açıklaması</span><textarea [(ngModel)]="form.brandSummary" name="brandSummary" rows="4" maxlength="700" aria-label="Footer marka açıklaması"></textarea></label>
               <div class="grid">
@@ -47,7 +47,7 @@ import { ToastService } from '../../services/toast.service';
           </section>
 
           <section class="panel" aria-labelledby="social-title">
-            <div class="heading"><div><h2 id="social-title">Sosyal medya hesapları</h2><p>Bu alan sosyal medya hesaplarının tek yönetim noktasıdır. Boş bıraktığın hesap footer'da görünmez.</p></div></div>
+            <div class="heading"><div><h2 id="social-title">Sosyal medya hesapları</h2><p>Footer'daki sosyal medya ikonlarının hangi hesaba gideceğini belirleyin. Boş bıraktığınız hesap gösterilmez.</p></div></div>
             <div class="grid two">
               <label><span>Instagram URL</span><input [(ngModel)]="instagramUrl" name="instagramUrl" inputmode="url" placeholder="https://instagram.com/..." aria-label="Instagram profil URL adresi" /></label>
               <label><span>TikTok URL</span><input [(ngModel)]="tiktokUrl" name="tiktokUrl" inputmode="url" placeholder="https://tiktok.com/@..." aria-label="TikTok profil URL adresi" /></label>
@@ -58,7 +58,7 @@ import { ToastService } from '../../services/toast.service';
           </section>
 
           <section class="panel" aria-labelledby="newsletter-title-admin">
-            <div class="heading"><div><h2 id="newsletter-title-admin">Ücretsiz bülten</h2><p>Buton yazısı ve açıklaması burada yönetilir; abonelik yine güvenli newsletter gateway üzerinden kaydedilir.</p></div></div>
+            <div class="heading"><div><h2 id="newsletter-title-admin">Ücretsiz bülten</h2><p>Müşterilerin bültene katılırken gördüğü başlığı, açıklamayı ve buton yazısını buradan düzenleyin.</p></div></div>
             <div class="grid two">
               <label><span>Bülten başlığı</span><input [(ngModel)]="form.newsletterTitle" name="newsletterTitle" maxlength="180" aria-label="Footer bülten başlığı" /></label>
               <label><span>Buton yazısı</span><input [(ngModel)]="form.newsletterButtonText" name="newsletterButtonText" maxlength="80" aria-label="Footer bülten abonelik butonu yazısı" /></label>
@@ -67,7 +67,7 @@ import { ToastService } from '../../services/toast.service';
           </section>
 
           <section class="panel" aria-labelledby="legal-status-title">
-            <div class="heading"><div><h2 id="legal-status-title">Yasal metin durumu</h2><p>Footer her belgeyi ayrı bağlantı olarak gösterecek. Metinlerin asıl kaynağı Yasal Metin Merkezi'dir.</p></div><a routerLink="/admin/legal" aria-label="Yasal Metin Merkezi sayfasını aç">Yasal metinleri düzenle</a></div>
+            <div class="heading"><div><h2 id="legal-status-title">Yasal metin durumu</h2><p>Footer'da bağlantısı gösterilecek yasal metinlerin hazır olup olmadığını buradan kontrol edin.</p></div><a routerLink="/admin/legal" aria-label="Yasal Metin Merkezi sayfasını aç">Yasal metinleri düzenle</a></div>
             <div class="legal-grid">
               @for (doc of legalStatus(); track doc.label) {
                 <div [class.ok]="doc.ready" class="legal-row"><strong>{{ doc.label }}</strong><span>{{ doc.ready ? 'Hazır' : 'Eksik' }}</span></div>
@@ -76,7 +76,7 @@ import { ToastService } from '../../services/toast.service';
           </section>
 
           <div class="savebar">
-            <button type="submit" [disabled]="saving" aria-label="Footer ve sosyal medya ayarlarını kaydet ve yayınla">{{ saving ? 'Kaydediliyor…' : 'Kaydet ve Yayınla' }}</button>
+            <button type="submit" [disabled]="saving" aria-label="Footer ve sosyal medya ayarlarını kaydet ve yayınla">{{ saving ? 'Kaydediliyor…' : 'Kaydet ve Uygula' }}</button>
           </div>
         </form>
       </div>
@@ -140,7 +140,7 @@ export class AdminFooterComponent implements OnInit {
     if (this.saving) return;
     try {
       const socials = [this.instagramUrl, this.tiktokUrl, this.youtubeUrl, this.xUrl, this.facebookUrl];
-      if (socials.some((url) => !this.validExternalUrl(url))) throw new Error('Sosyal medya URL adresleri boş olmalı veya https:// ile başlamalıdır.');
+      if (socials.some((url) => !this.validExternalUrl(url))) throw new Error('Sosyal medya bağlantısı boş bırakılmalı veya https:// ile başlayan geçerli bir adres olmalıdır.');
       this.saving = true;
       await this.footer.save(this.form);
       const current = this.carService.getConfig()();
@@ -154,7 +154,7 @@ export class AdminFooterComponent implements OnInit {
       });
       await this.carService.refreshCloudCatalog(true);
       this.form = { ...this.footer.settings() };
-      this.toast.show('Footer ve sosyal medya ayarları canlıya yayınlandı.', 'success');
+      this.toast.show('Footer ve sosyal medya ayarları kaydedildi ve siteye uygulandı.', 'success');
     } catch (error) {
       this.toast.show(this.message(error), 'error');
     } finally {

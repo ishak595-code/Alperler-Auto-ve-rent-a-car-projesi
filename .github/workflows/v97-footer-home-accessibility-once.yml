@@ -1,0 +1,143 @@
+name: V97 Footer Home Accessibility Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v97-footer-home-accessibility-once.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply focused V97 fixes
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'Expected block not found in {path}: {old[:120]!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          # 1) Admin menu opens directly below the fixed trigger.
+          replace_once(
+              'src/pages/admin/admin-layout.component.ts',
+              '.module-menu{position:fixed;top:64px;right:12px;',
+              '.module-menu{position:fixed;top:58px;right:12px;'
+          )
+          replace_once(
+              'src/pages/admin/admin-layout.component.ts',
+              '@media(max-width:520px){.menu-trigger{top:10px;right:10px;width:42px;height:42px}.module-menu{top:60px;right:10px;',
+              '@media(max-width:520px){.menu-trigger{top:10px;right:10px;width:42px;height:42px}.module-menu{top:54px;right:10px;'
+          )
+
+          # 2) Make site-config writes resilient when the Vercel catalog endpoint is temporarily unavailable.
+          old_save = '''  async saveConfig(config: SiteConfig): Promise<SiteConfig> {\n    const payload = await this.adminRequest<CatalogListResponse<never>>(\n      "PUT",\n      "config",\n      config,\n    );\n    if (!payload.ok) throw new Error(payload.code || "CONFIG_SAVE_FAILED");\n    return (payload.value || config) as SiteConfig;\n  }'''
+          new_save = '''  async saveConfig(config: SiteConfig): Promise<SiteConfig> {\n    try {\n      const payload = await this.adminRequest<CatalogListResponse<never>>(\n        "PUT",\n        "config",\n        config,\n      );\n      if (!payload.ok) throw new Error(payload.code || "CONFIG_SAVE_FAILED");\n      return (payload.value || config) as SiteConfig;\n    } catch (apiError) {\n      console.warn("Catalog config API unavailable; using authenticated Supabase fallback.", apiError);\n      const token = await this.authService.getAccessToken();\n      if (!token) throw apiError;\n      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/site_config?on_conflict=key&select=value`, {\n        method: "POST",\n        headers: {\n          apikey: SUPABASE_PUBLISHABLE_KEY,\n          authorization: `Bearer ${token}`,\n          "content-type": "application/json",\n          Prefer: "resolution=merge-duplicates,return=representation",\n        },\n        body: JSON.stringify({ key: "site_settings", value: config, is_public: true }),\n        signal: AbortSignal.timeout(10_000),\n      });\n      if (!response.ok) {\n        const payload = await response.json().catch(() => ({})) as { message?: string; code?: string };\n        throw new Error(payload.message || payload.code || `CONFIG_DIRECT_SAVE_${response.status}`);\n      }\n      const rows = await response.json() as Array<{ value?: SiteConfig }>;\n      return rows[0]?.value || config;\n    }\n  }'''
+          replace_once('src/services/catalog.service.ts', old_save, new_save)
+
+          # 3) Footer socials: render Facebook too, compact legal links, retain concise newsletter consent link.
+          replace_once(
+              'src/components/customer-footer-v70.component.ts',
+              "  socialLinks(): {name:string;url:string;icon:string}[] { const cfg=this.config(); return [{name:'Instagram',url:cfg.instagramUrl||'',icon:'/brand-icons/instagram.svg'},{name:'TikTok',url:cfg.tiktokUrl||'',icon:'/brand-icons/tiktok.svg'},{name:'YouTube',url:cfg.youtubeUrl||'',icon:'/brand-icons/youtube.svg'},{name:'X',url:cfg.twitterUrl||'',icon:'/brand-icons/x.svg'}].filter(item=>/^https:\\/\\//i.test(item.url)); }",
+              "  socialLinks(): {name:string;url:string;icon:string}[] { const cfg=this.config(); return [{name:'Instagram',url:cfg.instagramUrl||'',icon:'/brand-icons/instagram.svg'},{name:'TikTok',url:cfg.tiktokUrl||'',icon:'/brand-icons/tiktok.svg'},{name:'YouTube',url:cfg.youtubeUrl||'',icon:'/brand-icons/youtube.svg'},{name:'Facebook',url:cfg.facebookUrl||'',icon:'/brand-icons/facebook.svg'},{name:'X',url:cfg.twitterUrl||'',icon:'/brand-icons/x.svg'}].filter(item=>/^https:\\/\\//i.test(item.url)); }"
+          )
+
+          old_legal = '''            <nav class="link-column legal-column" aria-label="Yasal bilgiler">\n              <h2>{{ footer.settings().legalTitle }}</h2>\n              <a routerLink="/legal" [queryParams]="{type:'rental'}">Kiralama Koşulları</a>\n              <a routerLink="/legal" [queryParams]="{type:'sales'}">Satış & İlan Koşulları</a>\n              <a routerLink="/legal" [queryParams]="{type:'tour'}">Tur & Transfer Koşulları</a>\n              <a routerLink="/legal" [queryParams]="{type:'partner'}">Aracını Değerlendir Koşulları</a>\n              <a routerLink="/legal" [queryParams]="{type:'branch'}">Şube & Bayilik Koşulları</a>\n              <a routerLink="/legal" [queryParams]="{type:'commercial-communication'}">Bülten & Ticari İleti</a>\n              <a routerLink="/legal" [queryParams]="{type:'terms'}">Genel Kullanım Şartları</a>\n              <a routerLink="/legal" [queryParams]="{type:'kvkk'}">KVKK Aydınlatma</a>\n              <a routerLink="/legal" [queryParams]="{type:'privacy'}">Gizlilik</a>\n              <a routerLink="/legal" [queryParams]="{type:'cookies'}">Çerez</a>\n              <a routerLink="/legal" [queryParams]="{type:'distance-selling'}">Mesafeli İşlem</a>\n              <a routerLink="/legal" [queryParams]="{type:'cancellation'}">İade ve İptal</a>\n              <a routerLink="/legal" [queryParams]="{type:'insurance'}">Sigorta ve Sorumluluk</a>\n            </nav>'''
+          new_legal = '''            <nav class="link-column legal-column" aria-label="Yasal bilgiler">\n              <h2>{{ footer.settings().legalTitle }}</h2>\n              <div class="legal-primary">\n                <a routerLink="/legal" [queryParams]="{type:'rental'}">Kiralama Koşulları</a>\n                <a routerLink="/legal" [queryParams]="{type:'insurance'}">Sigorta ve Sorumluluk</a>\n                <a routerLink="/legal" [queryParams]="{type:'cancellation'}">İade ve İptal</a>\n                <a routerLink="/legal" [queryParams]="{type:'kvkk'}">KVKK Aydınlatma</a>\n                <a routerLink="/legal" [queryParams]="{type:'privacy'}">Gizlilik</a>\n              </div>\n              <details class="legal-more">\n                <summary>Diğer yasal bilgiler</summary>\n                <div class="legal-more-links">\n                  <a routerLink="/legal" [queryParams]="{type:'sales'}">Satış & İlan Koşulları</a>\n                  <a routerLink="/legal" [queryParams]="{type:'tour'}">Tur & Transfer Koşulları</a>\n                  <a routerLink="/legal" [queryParams]="{type:'partner'}">Aracını Değerlendir Koşulları</a>\n                  <a routerLink="/legal" [queryParams]="{type:'branch'}">Şube & Bayilik Koşulları</a>\n                  <a routerLink="/legal" [queryParams]="{type:'commercial-communication'}">Bülten & Ticari İleti</a>\n                  <a routerLink="/legal" [queryParams]="{type:'terms'}">Genel Kullanım Şartları</a>\n                  <a routerLink="/legal" [queryParams]="{type:'cookies'}">Çerez Politikası</a>\n                  <a routerLink="/legal" [queryParams]="{type:'distance-selling'}">Mesafeli İşlem</a>\n                </div>\n              </details>\n            </nav>'''
+          replace_once('src/components/customer-footer-v70.component.ts', old_legal, new_legal)
+          replace_once(
+              'src/components/customer-footer-v70.component.ts',
+              '''<p class="consent-note">Abone olarak kampanya ve fırsat e-postaları talep edersiniz. <a routerLink="/legal" [queryParams]="{type:'commercial-communication'}">İleti ve abonelik koşullarını inceleyin.</a></p>''',
+              '''<p class="consent-note">Abonelik ücretsizdir. <a routerLink="/legal" [queryParams]="{type:'commercial-communication'}">Ticari ileti ve abonelik koşulları</a></p>'''
+          )
+          replace_once(
+              'src/components/customer-footer-v70.component.ts',
+              '.link-column a,.link-column button{display:flex;min-height:40px;align-items:center;border:0;background:transparent;padding:0;color:#9ba9bc;font:750 .78rem/1.2 inherit;text-decoration:none}',
+              '.link-column a,.link-column button{display:flex;min-height:40px;align-items:center;border:0;background:transparent;padding:0;color:#9ba9bc;font:750 .78rem/1.2 inherit;text-decoration:none}.legal-primary{display:flex;flex-direction:column;align-items:flex-start}.legal-more{width:100%;margin-top:.15rem}.legal-more summary{min-height:38px;display:flex;align-items:center;cursor:pointer;color:#93c5fd;font-size:.7rem;font-weight:900;list-style:none}.legal-more summary::-webkit-details-marker{display:none}.legal-more summary::after{content:"＋";margin-left:.35rem;font-size:.72rem}.legal-more[open] summary::after{content:"−"}.legal-more-links{display:flex;flex-direction:column;align-items:flex-start;padding:.1rem 0 .25rem}.legal-more-links a{min-height:34px;font-size:.7rem;color:#7f8da1}'
+          )
+
+          # 4) Home and appointment date controls get explicit accessible names.
+          replace_once(
+              'src/pages/home-v71.component.ts',
+              '<input type="date" [(ngModel)]="startDate" name="homeStartDate" [min]="today" (ngModelChange)="onStartDateChanged($event)" />',
+              '<input type="date" [(ngModel)]="startDate" name="homeStartDate" [min]="today" (ngModelChange)="onStartDateChanged($event)" [attr.aria-label]="serviceType === \'tour\' ? \'Tur tarihi seç\' : \'Araç alış tarihi seç\'" [attr.title]="serviceType === \'tour\' ? \'Tur tarihi seç\' : \'Araç alış tarihi seç\'" />'
+          )
+          replace_once(
+              'src/pages/home-v71.component.ts',
+              '<input type="date" [(ngModel)]="endDate" name="homeEndDate" [min]="startDate || today" (ngModelChange)="clearPlannerError()" />',
+              '<input type="date" [(ngModel)]="endDate" name="homeEndDate" [min]="startDate || today" (ngModelChange)="clearPlannerError()" aria-label="Araç iade tarihi seç" title="Araç iade tarihi seç" />'
+          )
+          replace_once(
+              'src/pages/appointment.component.ts',
+              '<input type="date" [min]="minDate" formControlName="date" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />',
+              '<input type="date" [min]="minDate" formControlName="date" aria-label="Randevu tarihi seç" title="Randevu tarihi seç" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />'
+          )
+          replace_once(
+              'src/pages/appointment.component.ts',
+              '<input type="time" formControlName="time" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />',
+              '<input type="time" formControlName="time" aria-label="Randevu saati seç" title="Randevu saati seç" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />'
+          )
+
+          # 5) Add top-of-home hero/planner management to the existing homepage admin.
+          hero_panel = '''\n        <section class="new-panel" aria-labelledby="homepage-top-area-title">\n          <div class="content-head">\n            <div><h2 id="homepage-top-area-title">Ana Sayfa Üst Alanı</h2><p>Hero başlığı, açıklaması, arka plan görseli ve hızlı planlama metinleri doğrudan ana sayfanın en üstünde kullanılır.</p></div>\n            <button type="button" class="save-button" (click)="saveTopArea()" [disabled]="topAreaSaving()" aria-label="Ana sayfa üst alanını kaydet ve uygula">{{ topAreaSaving() ? 'Kaydediliyor…' : 'Üst Alanı Kaydet' }}</button>\n          </div>\n          <div class="editor-grid">\n            <section class="editor-block">\n              <h4>Hero</h4>\n              <label><span>Ana başlık</span><input [(ngModel)]="heroTitle" name="homeHeroTitle" maxlength="180" aria-label="Ana sayfa hero başlığı" /></label>\n              <label><span>Açıklama</span><textarea [(ngModel)]="heroSubtitle" name="homeHeroSubtitle" rows="4" maxlength="700" aria-label="Ana sayfa hero açıklaması"></textarea></label>\n              <label><span>Arka plan görseli URL</span><input [(ngModel)]="heroImage" name="homeHeroImage" type="url" placeholder="https://..." aria-label="Ana sayfa hero arka plan görseli URL adresi" /></label>\n              <label class="file-button"><span>Hero Görseli Yükle</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" (change)="onHeroImageSelected($event)" aria-label="Ana sayfa hero görseli dosyası seç" /></label>\n              @if (topAreaUploading()) { <p class="upload-state" role="status">Hero görseli yükleniyor…</p> }\n            </section>\n            <section class="editor-block">\n              <h4>Hızlı Planlama</h4>\n              <label><span>Planlama başlığı</span><input [(ngModel)]="bookingTitle" name="homeBookingTitle" maxlength="180" aria-label="Ana sayfa hızlı planlama başlığı" /></label>\n              <label><span>Planlama açıklaması</span><textarea [(ngModel)]="bookingSubtitle" name="homeBookingSubtitle" rows="4" maxlength="500" aria-label="Ana sayfa hızlı planlama açıklaması"></textarea></label>\n              <p class="hint">Teslim noktaları ve araç/tur sonuçları mevcut canlı şube ve katalog verilerinden otomatik gelir.</p>\n            </section>\n          </div>\n        </section>\n'''
+          marker = '''        @if (error()) { <div class="alert" role="alert">{{ error() }}</div> }\n\n        @if (creating()) {'''
+          replace_once('src/pages/admin/admin-homepage.component.ts', marker, '''        @if (error()) { <div class="alert" role="alert">{{ error() }}</div> }\n''' + hero_panel + '''\n        @if (creating()) {''')
+
+          replace_once(
+              'src/pages/admin/admin-homepage.component.ts',
+              "  readonly candidateSelection = signal<Record<string, string>>({});\n",
+              "  readonly candidateSelection = signal<Record<string, string>>({});\n  readonly topAreaSaving = signal(false);\n  readonly topAreaUploading = signal(false);\n  heroTitle = '';\n  heroSubtitle = '';\n  heroImage = '';\n  bookingTitle = '';\n  bookingSubtitle = '';\n"
+          )
+          replace_once(
+              'src/pages/admin/admin-homepage.component.ts',
+              "      await Promise.all([this.homepage.refresh(), this.campaignsService.refreshAdmin(), this.cars.refreshCloudCatalog(true)]);\n",
+              "      await Promise.all([this.homepage.refresh(), this.campaignsService.refreshAdmin(), this.cars.refreshCloudCatalog(true)]);\n      this.syncTopArea();\n"
+          )
+          insert_before = '''  async createSection(): Promise<void> {'''
+          top_methods = '''  async saveTopArea(): Promise<void> {\n    if (this.topAreaSaving()) return;\n    this.topAreaSaving.set(true);\n    try {\n      const current = this.cars.getConfig()();\n      const homeContent = { ...(current.homeContent || {}) } as Record<string, unknown>;\n      homeContent['heroTitle'] = this.heroTitle.trim();\n      homeContent['heroSubtitle'] = this.heroSubtitle.trim();\n      homeContent['heroImage'] = this.heroImage.trim();\n      homeContent['bookingTitle'] = this.bookingTitle.trim();\n      homeContent['bookingSubtitle'] = this.bookingSubtitle.trim();\n      await this.cars.updateConfig({ ...current, homeContent: homeContent as any });\n      await this.cars.refreshCloudCatalog(true);\n      this.syncTopArea();\n      this.toast.show('Ana sayfa üst alanı kaydedildi ve uygulandı.', 'success');\n    } catch (error) { this.toast.show(this.message(error), 'error'); }\n    finally { this.topAreaSaving.set(false); }\n  }\n\n  async onHeroImageSelected(event: Event): Promise<void> {\n    const input = event.target as HTMLInputElement;\n    const file = input.files?.[0];\n    if (!file) return;\n    this.topAreaUploading.set(true);\n    try {\n      const result = await this.media.uploadHomepageImage(file, 'hero', 'background');\n      this.heroImage = result.publicUrl;\n      this.toast.show('Hero görseli hazır. Üst Alanı Kaydet düğmesiyle yayınlayabilirsiniz.', 'success');\n    } catch (error) { this.toast.show(this.message(error), 'error'); }\n    finally { this.topAreaUploading.set(false); input.value = ''; }\n  }\n\n  private syncTopArea(): void {\n    const home = (this.cars.getConfig()().homeContent || {}) as Record<string, unknown>;\n    this.heroTitle = String(home['heroTitle'] || '');\n    this.heroSubtitle = String(home['heroSubtitle'] || '');\n    this.heroImage = String(home['heroImage'] || '');\n    this.bookingTitle = String(home['bookingTitle'] || '');\n    this.bookingSubtitle = String(home['bookingSubtitle'] || '');\n  }\n\n'''
+          replace_once('src/pages/admin/admin-homepage.component.ts', insert_before, top_methods + insert_before)
+
+          # 6) Facebook brand icon.
+          Path('public/brand-icons/facebook.svg').write_text('''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M13.7 22v-9h3l.5-3.5h-3.5V7.3c0-1 .3-1.7 1.8-1.7h1.9V2.5c-.3 0-1.5-.1-2.8-.1-2.8 0-4.7 1.7-4.7 4.8v2.3H7V13h2.9v9h3.8Z"/></svg>''')
+          PY
+      - name: Static V97 assertions
+        run: |
+          grep -q "Facebook.*facebook.svg" src/components/customer-footer-v70.component.ts
+          grep -q "Diğer yasal bilgiler" src/components/customer-footer-v70.component.ts
+          grep -q "CONFIG_DIRECT_SAVE" src/services/catalog.service.ts
+          grep -q "Ana Sayfa Üst Alanı" src/pages/admin/admin-homepage.component.ts
+          grep -q "Araç iade tarihi seç" src/pages/home-v71.component.ts
+          grep -q "Randevu tarihi seç" src/pages/appointment.component.ts
+          test -f public/brand-icons/facebook.svg
+          git diff --check
+      - run: npm run lint
+      - run: npx tsc --noEmit -p tsconfig.api.json
+      - run: npm run build
+      - name: Commit V97 changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/admin/admin-layout.component.ts src/services/catalog.service.ts src/components/customer-footer-v70.component.ts src/pages/home-v71.component.ts src/pages/appointment.component.ts src/pages/admin/admin-homepage.component.ts public/brand-icons/facebook.svg
+          git commit -m "V97: tighten admin menu footer socials and accessibility"
+          git push origin main
+      - name: Remove one-shot workflow
+        run: |
+          git rm .github/workflows/v97-footer-home-accessibility-once.yml
+          git commit -m "ci: remove V97 one-shot workflow"
+          git push origin main

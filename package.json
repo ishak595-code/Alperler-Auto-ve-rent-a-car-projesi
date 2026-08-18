@@ -11,6 +11,8 @@
     "start": "node --import tsx server.ts",
     "build": "ng build",
     "lint": "tsc --noEmit",
+    "a11y:buttons": "node scripts/check-accessible-buttons.mjs",
+    "media:vehicles": "node scripts/check-vehicle-media.mjs",
     "preview": "ng serve --configuration=production"
   },
   "dependencies": {

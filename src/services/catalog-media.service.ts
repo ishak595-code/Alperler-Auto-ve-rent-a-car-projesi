@@ -29,21 +29,6 @@ export interface CatalogMediaItem {
   metadata?: Record<string, unknown>;
 }
 
-export interface ExternalMediaInput {
-  entityType: CatalogEntityType;
-  entityId: string;
-  kind: CatalogMediaKind;
-  url: string;
-  posterUrl?: string;
-  sourceUrl?: string;
-  sourceName?: string;
-  license?: string;
-  attribution?: string;
-  altText: string;
-  isCover?: boolean;
-  sortOrder?: number;
-  metadata?: Record<string, unknown>;
-}
 
 interface CatalogMediaRow {
   id: string;
@@ -169,66 +154,6 @@ export class CatalogMediaService {
     }
   }
 
-  async addExternal(input: ExternalMediaInput): Promise<CatalogMediaItem> {
-    const token = await this.requiredToken();
-    if (input.isCover && input.kind !== "IMAGE") throw new Error("CATALOG_COVER_REQUIRES_IMAGE");
-    const mediaUrl = this.requireHttpsUrl(input.url, "MEDIA_URL_INVALID");
-    const rawSourceUrl = input.sourceUrl?.trim() || "";
-    const rawSourceName = input.sourceName?.trim() || "";
-    const rawLicense = input.license?.trim() || "";
-    const rawAttribution = input.attribution?.trim() || "";
-    const rawAltText = input.altText.trim();
-    const provenanceComplete = Boolean(rawSourceUrl && rawSourceName && rawLicense && rawAttribution && rawAltText);
-    const sourceUrl = rawSourceUrl ? this.requireHttpsUrl(rawSourceUrl, "MEDIA_SOURCE_MUST_BE_HTTPS") : mediaUrl;
-    const sourceHost = new URL(sourceUrl).hostname.replace(/^www\./, "");
-    const sourceName = rawSourceName || sourceHost;
-    const license = rawLicense || "REVIEW_REQUIRED";
-    const attribution = rawAttribution || sourceName;
-    const altText = (rawAltText || `${sourceName} katalog medyası`).slice(0, 300);
-
-    if (await this.externalDuplicateExists(input.entityType, input.entityId, mediaUrl, token)) {
-      throw new Error("MEDIA_ALREADY_EXISTS");
-    }
-
-    const requestedVerified = input.metadata?.["sourceVerified"] === true;
-    const verified = provenanceComplete && requestedVerified;
-    const active = provenanceComplete;
-    const row = {
-      ...this.ownerPayload(input.entityType, input.entityId),
-      kind: input.kind,
-      storage_bucket: null,
-      object_path: null,
-      external_url: mediaUrl,
-      poster_url: input.posterUrl || null,
-      source_url: sourceUrl,
-      source_name: sourceName,
-      license,
-      attribution,
-      alt_text: altText,
-      sort_order: input.sortOrder ?? 0,
-      is_cover: false,
-      is_active: active,
-      metadata: {
-        ...(input.metadata || {}),
-        provenanceComplete,
-        sourceVerified: verified,
-        reviewStatus: provenanceComplete ? (verified ? "VERIFIED" : "SOURCE_COMPLETE") : "REVIEW_REQUIRED",
-        verificationScope: input.metadata?.["verificationScope"] || "REFERENCE",
-      },
-    };
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?select=*`, {
-      method: "POST",
-      headers: { ...this.authHeaders(token), Prefer: "return=representation" },
-      body: JSON.stringify(row),
-    });
-    if (!response.ok) throw new Error(`EXTERNAL_MEDIA_CREATE_${response.status}`);
-    const created = this.fromRow(((await response.json()) as CatalogMediaRow[])[0]);
-    if (active && input.isCover) {
-      await this.setCoverRpc(created.id, token);
-      return { ...created, isCover: true };
-    }
-    return created;
-  }
 
   async update(item: CatalogMediaItem, patch: MediaPatch): Promise<CatalogMediaItem> {
     const token = await this.requiredToken();
@@ -358,16 +283,6 @@ export class CatalogMediaService {
     }
   }
 
-  private async externalDuplicateExists(entityType: CatalogEntityType, entityId: string, mediaUrl: string, token: string): Promise<boolean> {
-    const column = this.ownerColumn(entityType);
-    const response = await fetch(
-      `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?${column}=eq.${encodeURIComponent(entityId)}&external_url=eq.${encodeURIComponent(mediaUrl)}&select=id&limit=1`,
-      { headers: this.authHeaders(token) },
-    );
-    if (!response.ok) throw new Error(`CATALOG_MEDIA_DUPLICATE_CHECK_${response.status}`);
-    const rows = await response.json();
-    return Array.isArray(rows) && rows.length > 0;
-  }
 
   private async uploadStandard(file: File, objectPath: string, token: string): Promise<void> {
     const response = await fetch(

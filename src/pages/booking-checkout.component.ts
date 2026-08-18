@@ -2,6 +2,7 @@ import { CommonModule, Location } from "@angular/common";
 import { Component, OnInit, computed, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
+import { AccessibleNativeDateComponent } from "../components/accessible-native-date.component";
 import { Router } from "@angular/router";
 import { Branch } from "../models/branch.model";
 import { RentalExtraOption } from "../models/site-config.model";
@@ -19,7 +20,7 @@ interface LocationChoice {
 @Component({
   selector: "app-booking-checkout",
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, AccessibleNativeDateComponent],
   template: `
     <main class="min-h-screen bg-slate-950 pb-24 text-slate-200">
       <header class="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/95 backdrop-blur">
@@ -66,16 +67,8 @@ interface LocationChoice {
                   </select>
                 </label>
                 <div class="hidden sm:block"></div>
-
-                <label for="booking-start-date" class="block">
-                  <span class="mb-2 block text-xs font-bold uppercase text-slate-400">Alış Tarihi</span>
-                  <input id="booking-start-date" type="date" [min]="today" [(ngModel)]="startDate" (ngModelChange)="setStartDate($event)" aria-label="Araç alış tarihi seç" title="Araç alış tarihi seç" class="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-white outline-none focus:ring-2 focus:ring-blue-500" />
-                </label>
-
-                <label for="booking-end-date" class="block">
-                  <span class="mb-2 block text-xs font-bold uppercase text-slate-400">İade Tarihi</span>
-                  <input id="booking-end-date" type="date" [min]="startDate || today" [(ngModel)]="endDate" (ngModelChange)="setEndDate($event)" aria-label="Araç iade tarihi seç" title="Araç iade tarihi seç" class="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-white outline-none focus:ring-2 focus:ring-blue-500" />
-                </label>
+                <app-accessible-native-date label="Alış Tarihi" [value]="startDate" [min]="today" (valueChange)="setStartDate($event)" />
+                <app-accessible-native-date label="İade Tarihi" [value]="endDate" [min]="startDate || today" (valueChange)="setEndDate($event)" />
               </div>
 
               <div class="mt-5 grid gap-3 sm:grid-cols-3" aria-label="Hızlı hizmet seçenekleri">

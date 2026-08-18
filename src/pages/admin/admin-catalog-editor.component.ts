@@ -11,7 +11,6 @@ import {
 } from "../../services/catalog-admin-editor.service";
 import {
   CatalogMediaItem,
-  CatalogMediaKind,
   CatalogMediaService,
 } from "../../services/catalog-media.service";
 import { AdminManagementService } from "../../services/admin-management.service";
@@ -262,16 +261,10 @@ import { ToastService } from "../../services/toast.service";
         <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
           <div class="flex items-center justify-between gap-3"><div><h2 class="text-lg font-black text-slate-900">Fotoğraf & Video</h2><p class="text-xs text-slate-500">Yüklenen medya canlı karta ve detay sayfasına otomatik bağlanır.</p></div><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-black">{{ media().length }}</span></div>
           <label class="mt-4 flex min-h-12 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 px-4 text-sm font-black text-blue-700">
-            <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm" class="sr-only" (change)="uploadFiles($event, entityType, id)" />
+            <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm" class="sr-only" aria-label="Fotoğraf veya video dosyaları seç" (change)="uploadFiles($event, entityType, id)" />
             {{ uploading() ? 'Yükleniyor %' + mediaService.uploadProgress() : 'Fotoğraf / Video Yükle' }}
           </label>
-          <div class="mt-4 grid grid-cols-2 gap-2">
-            <select [(ngModel)]="externalKind" class="min-h-11 rounded-xl border border-slate-200 px-2 text-xs font-bold"><option value="IMAGE">Dış görsel</option><option value="VIDEO">Dış video</option></select>
-            <input [(ngModel)]="externalUrl" type="url" placeholder="https://…" class="min-h-11 rounded-xl border border-slate-200 px-3 text-xs" />
-            <input [(ngModel)]="externalSource" placeholder="Kaynak adı" class="min-h-11 rounded-xl border border-slate-200 px-3 text-xs" />
-            <input [(ngModel)]="externalAttribution" placeholder="Atıf / lisans sahibi" class="min-h-11 rounded-xl border border-slate-200 px-3 text-xs" />
-            <button type="button" (click)="addExternalMedia(entityType,id)" [disabled]="!externalUrl.trim() || uploading()" class="col-span-2 min-h-11 rounded-xl bg-slate-900 px-4 text-xs font-black text-white disabled:opacity-40">Kaynaklı Medyayı Ekle</button>
-          </div>
+          <p class="mt-3 rounded-xl bg-emerald-50 p-3 text-xs font-bold leading-5 text-emerald-800">Medya yalnız dosya yükleyerek eklenir. Yeni dosyalar doğrudan Alperler Auto medya deposuna kaydedilir; dış URL yapıştırma kullanılmaz.</p>
           <div class="mt-4 space-y-2">
             @for (item of media(); track item.id) {
               <article class="rounded-2xl border border-slate-200 p-2">
@@ -323,10 +316,6 @@ export class AdminCatalogEditorComponent implements OnInit {
   readonly uploading = signal(false);
   readonly error = signal("");
   search = "";
-  externalUrl = "";
-  externalSource = "";
-  externalAttribution = "";
-  externalKind: CatalogMediaKind = "IMAGE";
 
   readonly branches = computed(() => this.management.branches().filter((branch) => branch.isActive));
   readonly filteredVehicles = computed(() => {
@@ -510,18 +499,6 @@ export class AdminCatalogEditorComponent implements OnInit {
     finally { this.uploading.set(false); input.value = ""; }
   }
 
-  async addExternalMedia(entityType: "VEHICLE" | "TOUR", id: string): Promise<void> {
-    if (!this.externalUrl.trim()) return;
-    this.uploading.set(true);
-    try {
-      const isCover = this.externalKind === "IMAGE" && !this.media().some((item) => item.kind === "IMAGE" && item.isCover);
-      await this.mediaService.addExternal({ entityType, entityId: id, kind: this.externalKind, url: this.externalUrl.trim(), sourceUrl: this.externalUrl.trim(), sourceName: this.externalSource.trim() || undefined, attribution: this.externalAttribution.trim() || undefined, altText: this.externalSource.trim() || "Katalog medyası", isCover, sortOrder: this.media().length + 1 });
-      this.externalUrl = ""; this.externalSource = ""; this.externalAttribution = "";
-      await this.loadMedia(entityType, id); await this.reloadCurrent();
-      this.toast.show("Kaynaklı medya eklendi.", "success");
-    } catch (error) { this.toast.show(this.message(error), "error"); }
-    finally { this.uploading.set(false); }
-  }
 
   async makeCover(item: CatalogMediaItem): Promise<void> {
     try { await this.mediaService.update(item, { isCover: true }); await this.loadMediaForSelection(); await this.reloadCurrent(); this.toast.show("Kapak görseli değiştirildi.", "success"); }

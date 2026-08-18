@@ -104,7 +104,7 @@ export class PublicCatalogMediaService {
   private fromRow(row: PublicCatalogMediaRow): PublicCatalogMediaItem | null {
     const kind = row.kind === "VIDEO" ? "VIDEO" : row.kind === "IMAGE" ? "IMAGE" : null;
     if (!kind) return null;
-    const url = this.resolveUrl(row.external_url, row.storage_bucket, row.object_path);
+    const url = this.resolveUrl(row.external_url, row.storage_bucket, row.object_path, Boolean(row.vehicle_id));
     if (!url) return null;
     return {
       id: row.id,
@@ -127,8 +127,11 @@ export class PublicCatalogMediaService {
     externalUrl?: string | null,
     storageBucket?: string | null,
     objectPath?: string | null,
+    vehicleOwned = false,
   ): string {
-    if (externalUrl?.startsWith("https://")) return this.proxyExternalUrl(externalUrl);
+    // Vehicle media is file-backed only. External proxy support is retained solely
+    // for older tour content until those records are migrated separately.
+    if (!vehicleOwned && externalUrl?.startsWith("https://")) return this.proxyExternalUrl(externalUrl);
     if (!storageBucket || !objectPath) return "";
     const encodedBucket = encodeURIComponent(storageBucket);
     const encodedPath = objectPath.split("/").map(encodeURIComponent).join("/");

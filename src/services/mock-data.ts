@@ -19,11 +19,10 @@ export const fallbackInventory: Vehicle[] = [
     dailyMileageLimit: 250,
     isAvailable: true,
     driverOption: 'WITH_DRIVER',
-    image: 'https://images.unsplash.com/photo-1549558548-e87f17424ad3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    image: 'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/aa9de081-aa39-4200-a903-9dc2257e7a0b/v109-01-7c1276ad-4615-46e9-8530-6cf485ec1db3.jpg',
     images: [
-      'https://images.unsplash.com/photo-1549558548-e87f17424ad3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1617531653332-bd46c24f2068?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1563720360172-67b8f3dce741?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/aa9de081-aa39-4200-a903-9dc2257e7a0b/v109-01-7c1276ad-4615-46e9-8530-6cf485ec1db3.jpg',
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/aa9de081-aa39-4200-a903-9dc2257e7a0b/v109-02-a1d97d3b-a235-47f8-9967-3aa59e4327ce.jpg'
     ],
     description: 'Özel günleriniz için özenle süslenmiş şoförlü VIP gelin arabası. Çiçek süslemeleri ve deneyimli şoförümüz fiyata dâhildir.',
     features: ['Şoförlü Hizmet', 'Süsleme Dâhil', 'Klima', 'Deri Koltuklar', 'Sunroof'],
@@ -44,7 +43,11 @@ export const fallbackInventory: Vehicle[] = [
     seats: 9,
     isAvailable: true,
     driverOption: 'WITH_DRIVER',
-    image: 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    image: 'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/16fcb05c-4b4b-4008-920f-b9abf0a7d9ec/v109-01-a1111111-1111-4111-8111-111111111111.jpg',
+    images: [
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/16fcb05c-4b4b-4008-920f-b9abf0a7d9ec/v109-01-a1111111-1111-4111-8111-111111111111.jpg',
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/16fcb05c-4b4b-4008-920f-b9abf0a7d9ec/v109-02-24d89d5d-f2eb-4fb8-b4fc-1a9b68664eb3.jpg'
+    ],
     description: 'Geniş aileler, özel gruplar ve turlar için ultra lüks içi yapılı VIP Mercedes Vito. TV, buzdolabı ve özel aydınlatma mevcuttur.',
     features: ['Deri Koltuklar', 'Buzdolabı', 'TV & Multimedya', 'VIP Tasarım', 'Arka Klima'],
     badge: 'VIP',
@@ -64,7 +67,11 @@ export const fallbackInventory: Vehicle[] = [
     seats: 5,
     isAvailable: true,
     driverOption: 'BOTH',
-    image: 'https://images.unsplash.com/photo-1559416523-140ddc3d238c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    image: 'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/01c95ee1-6e6e-455e-9309-fffbaa1c60ea/v109-01-cd8c06e0-d5b6-4424-b049-192866cfd389.jpg',
+    images: [
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/01c95ee1-6e6e-455e-9309-fffbaa1c60ea/v109-01-cd8c06e0-d5b6-4424-b049-192866cfd389.jpg',
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/01c95ee1-6e6e-455e-9309-fffbaa1c60ea/v109-02-76eb75ed-677c-4323-908a-4d2bcd73dedd.jpg'
+    ],
     description: 'Zorlu arazi şartlarında üstün performans gösteren, 4x4 çekiş sistemine sahip, en dolu paket VW Amarok.',
     features: ['4x4 Çeker', 'Deri Koltuk', 'Arazi Modu', 'Aventura Paket', 'Navigasyon'],
     badge: '4x4 OFFROAD',
@@ -84,7 +91,11 @@ export const fallbackInventory: Vehicle[] = [
     seats: 5,
     isAvailable: true,
     driverOption: 'WITHOUT_DRIVER',
-    image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    image: 'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/90f029e8-8a8f-4fa6-aca8-f9d7c17c0a5a/v109-01-43cb06a2-3c4d-4bba-bdb0-c3ece7ccfb9b.jpg',
+    images: [
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/90f029e8-8a8f-4fa6-aca8-f9d7c17c0a5a/v109-01-43cb06a2-3c4d-4bba-bdb0-c3ece7ccfb9b.jpg',
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/90f029e8-8a8f-4fa6-aca8-f9d7c17c0a5a/v109-02-01290bf3-439b-4cce-a75e-7a9916a81ab7.jpg'
+    ],
     description: 'Şehir içi ve uzun yolculuklarınız için konforlu, geniş iç hacimli ve yakıt cimrisi güncel kasa Renault Megane.',
     features: ['Klima', 'Apple CarPlay', 'Hız Sabitleyici', 'Geri Görüş Kamerası'],
     isFeatured: true
@@ -102,7 +113,12 @@ export const fallbackInventory: Vehicle[] = [
     seats: 5,
     isAvailable: true,
     driverOption: 'BOTH',
-    image: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    image: 'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/efdd5ada-f11a-4684-999d-984dd9740ff6/v109-01-5f0c7f6a-505b-4f30-99cf-b62335e9b738.jpg',
+    images: [
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/efdd5ada-f11a-4684-999d-984dd9740ff6/v109-01-5f0c7f6a-505b-4f30-99cf-b62335e9b738.jpg',
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/efdd5ada-f11a-4684-999d-984dd9740ff6/v109-02-9f2dfb02-0850-407a-8b3b-2a54b04efe8d.jpg',
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/efdd5ada-f11a-4684-999d-984dd9740ff6/v109-03-0dd39bbd-8a79-4f5d-9f49-c62556b4c995.jpg'
+    ],
     description: 'Konfor ve prestiji bir arada sunan D segmenti VW Passat. Uzun yol seyahatleri ve iş gezileri için mükemmel tercih.',
     features: ['Deri/Kumaş Koltuk', 'Navigasyon', 'ErgoComfort', 'Üç Bölgeli Klima'],
     badge: 'PREMIUM',
@@ -121,7 +137,12 @@ export const fallbackInventory: Vehicle[] = [
     seats: 5,
     isAvailable: true,
     driverOption: 'WITHOUT_DRIVER',
-    image: 'https://images.unsplash.com/photo-1555008872-f03b347ffb53?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    image: 'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/529bff5d-3f6c-4d12-9f3e-8da84a5f3579/v109-01-9a92c1f0-6038-426a-b52b-5ac96e733e2e.jpg',
+    images: [
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/529bff5d-3f6c-4d12-9f3e-8da84a5f3579/v109-01-9a92c1f0-6038-426a-b52b-5ac96e733e2e.jpg',
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/529bff5d-3f6c-4d12-9f3e-8da84a5f3579/v109-02-2deac001-032c-4bbc-9aff-0cb81101b9a6.jpg',
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/529bff5d-3f6c-4d12-9f3e-8da84a5f3579/v109-03-7d5c6537-66bf-48c7-8f0f-2b2c0b6c3ae6.jpg'
+    ],
     description: 'Sportif sürüş keyfi arayanlar için lüks donanımlı BMW 3.20i. Dinamik performans ve üst düzey konfor.',
     features: ['M Sport Paket', 'Hayalet Ekran', 'Sunroof', 'Harman/Kardon', 'Sürüş Asistanları'],
     badge: 'SPORT',
@@ -140,7 +161,11 @@ export const fallbackInventory: Vehicle[] = [
     seats: 5,
     isAvailable: true,
     driverOption: 'WITHOUT_DRIVER',
-    image: 'https://images.unsplash.com/photo-1522818610332-9cbceeb97b1a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    image: 'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/f48f8dd1-f361-4a82-8d55-43848cdd79ba/v109-01-1c4ed9b8-ab9a-4915-a8e9-4224df726735.jpg',
+    images: [
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/f48f8dd1-f361-4a82-8d55-43848cdd79ba/v109-01-1c4ed9b8-ab9a-4915-a8e9-4224df726735.jpg',
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/f48f8dd1-f361-4a82-8d55-43848cdd79ba/v109-02-fa938e1c-adb7-42d2-9358-a86d2ff698d5.jpg'
+    ],
     description: 'Eşsiz yol tutuşu ve verimli motoruyla sınıf lideri Ford Focus. Hem aileler hem de iş seyahatleri için ideal.',
     features: ['Geniş Bagaj', 'Apple CarPlay', 'Otomatik Vites', 'Sürüş Modları']
   },
@@ -165,10 +190,10 @@ export const fallbackInventory: Vehicle[] = [
     expertReport: 'https://example.com/report1.pdf',
     color: 'Siyah',
     warranty: '2 Yıl Garantili',
-    image: 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    image: 'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/59278f92-2a37-4aa8-bea4-a886b8459535/v109-01-a2222222-2222-4222-8222-222222222222.jpg',
     images: [
-      'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1542282088-fe8426682b8f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/59278f92-2a37-4aa8-bea4-a886b8459535/v109-01-a2222222-2222-4222-8222-222222222222.jpg',
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/59278f92-2a37-4aa8-bea4-a886b8459535/v109-02-e9d5749c-8cd9-41ab-97c4-ea6923cc83ff.jpg'
     ],
     description: 'Ekspertiz garantili, yetkili servis bakımlı tramersiz Audi A3 Sportback. Hata, boya ve değişen yoktur.',
     isFeatured: true,
@@ -195,10 +220,10 @@ export const fallbackInventory: Vehicle[] = [
     expertReport: 'https://example.com/report2.pdf',
     color: 'Siyah',
     warranty: 'Garantisi Bitti',
-    image: 'https://images.unsplash.com/photo-1563720223185-11003d516935?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    image: 'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/64460f16-b018-4e86-9448-e4b872352f8d/v109-01-90344845-0317-455d-b668-d029d9df7e48.jpg',
     images: [
-      'https://images.unsplash.com/photo-1563720223185-11003d516935?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/64460f16-b018-4e86-9448-e4b872352f8d/v109-01-90344845-0317-455d-b668-d029d9df7e48.jpg',
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/64460f16-b018-4e86-9448-e4b872352f8d/v109-02-a4fc12c9-9e59-4f29-830e-d7f6d0c54474.jpg'
     ],
     description: 'En dolu paket Icon donanımıyla muazzam siyah renkli Megane. İç kondisyonu sıfır ayarında.',
     isFeatured: true,
@@ -224,10 +249,10 @@ export const fallbackInventory: Vehicle[] = [
     expertReport: 'https://example.com/report3.pdf',
     color: 'Beyaz',
     warranty: 'Garantisi Bitti',
-    image: 'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    image: 'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/d9c97b76-0b3d-4ff3-9818-106ed6676161/v109-01-92b2fd70-e9f1-4b67-9da8-5df8eef77151.jpg',
     images: [
-      'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/d9c97b76-0b3d-4ff3-9818-106ed6676161/v109-01-92b2fd70-e9f1-4b67-9da8-5df8eef77151.jpg',
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/d9c97b76-0b3d-4ff3-9818-106ed6676161/v109-02-789c9f4b-e433-461b-b9d7-b554a657349c.jpg'
     ],
     description: 'Ailenizle güvenle binebileceğiniz, efsane tasarımı ve gelişmiş kokpiti ile Peugeot 3008.',
     isFeatured: true,
@@ -254,10 +279,11 @@ export const fallbackInventory: Vehicle[] = [
     expertReport: 'https://example.com/report-hilux.pdf',
     color: 'Siyah',
     warranty: 'Garantisi Devam Ediyor',
-    image: 'https://images.unsplash.com/photo-1626262444655-b441a1eb7ce6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    image: 'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/e46ca951-2aac-4dfc-87ee-ac0da0942fe3/v109-01-e98662f8-a9cf-4b9c-bcf4-0cd2b5da547a.jpg',
     images: [
-      'https://images.unsplash.com/photo-1626262444655-b441a1eb7ce6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1626262444655-b441a1eb7ce6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/e46ca951-2aac-4dfc-87ee-ac0da0942fe3/v109-01-e98662f8-a9cf-4b9c-bcf4-0cd2b5da547a.jpg',
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/e46ca951-2aac-4dfc-87ee-ac0da0942fe3/v109-20-c95ab30f-6635-4480-a967-68cd6775a6cd.jpg',
+      'https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/vehicle/e46ca951-2aac-4dfc-87ee-ac0da0942fe3/v109-21-b8a3bde4-c542-4e38-a1b9-aaf0d9e47846.jpg'
     ],
     description: 'Off-road donanımlı, sıfır ayarında, yenilmez Toyota Hilux. Yüksekova ve Hakkari coğrafyasına tam uyumlu.',
     isFeatured: true,

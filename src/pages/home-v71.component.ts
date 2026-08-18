@@ -4,6 +4,7 @@ import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { Router, RouterLink } from "@angular/router";
 import { VehicleListItemComponent } from "../components/vehicle-list-item.component";
+import { AccessibleNativeDateComponent } from "../components/accessible-native-date.component";
 import { DynamicHomeSectionComponent } from "../components/dynamic-home-section.component";
 import { Branch } from "../models/branch.model";
 import { Vehicle } from "../models/car.model";
@@ -23,7 +24,7 @@ interface PickupChoice {
 @Component({
   selector: "app-home-v71",
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, RouterLink, VehicleListItemComponent, DynamicHomeSectionComponent],
+  imports: [CommonModule, FormsModule, MatIconModule, RouterLink, VehicleListItemComponent, DynamicHomeSectionComponent, AccessibleNativeDateComponent],
   template: `
     <main class="home-root">
       <section class="hero" [style.backgroundImage]="'url(' + heroImage() + ')'" aria-labelledby="home-title">
@@ -86,15 +87,19 @@ interface PickupChoice {
               }
 
               <div class="date-grid">
-                <label class="field">
-                  <span>{{ serviceType === 'tour' ? 'Tur tarihi' : 'Alış tarihi' }}</span>
-                  <input type="date" [(ngModel)]="startDate" name="homeStartDate" [min]="today" (ngModelChange)="onStartDateChanged($event)" [attr.aria-label]="serviceType === 'tour' ? 'Tur tarihi seç' : 'Araç alış tarihi seç'" [attr.title]="serviceType === 'tour' ? 'Tur tarihi seç' : 'Araç alış tarihi seç'" />
-                </label>
+                <app-accessible-native-date
+                  [label]="serviceType === 'tour' ? 'Tur tarihi' : 'Alış tarihi'"
+                  [value]="startDate"
+                  [min]="today"
+                  (valueChange)="onStartDateChanged($event)"
+                />
                 @if (serviceType !== 'tour') {
-                  <label class="field">
-                    <span>İade tarihi</span>
-                    <input type="date" [(ngModel)]="endDate" name="homeEndDate" [min]="startDate || today" (ngModelChange)="clearPlannerError()" aria-label="Araç iade tarihi seç" title="Araç iade tarihi seç" />
-                  </label>
+                  <app-accessible-native-date
+                    label="İade tarihi"
+                    [value]="endDate"
+                    [min]="startDate || today"
+                    (valueChange)="endDate = $event; clearPlannerError()"
+                  />
                 }
               </div>
             </div>

@@ -1,3 +1,4 @@
+# Re-triggered on latest main after obsolete runtime CSS cleanup.
 name: V114 Cloud Vehicle Truth Once
 
 on:
@@ -30,8 +31,6 @@ jobs:
           from pathlib import Path
           import re
 
-          # A Supabase/cloud vehicle must be self-contained. Static fallback data
-          # is used only when there is no cloud record at all.
           p=Path('src/services/car.service.ts'); text=p.read_text(encoding='utf-8')
           pattern=re.compile(r'''  private mergeVehicleWithFallback\(vehicle: Vehicle\): Vehicle \{[\s\S]*?\n  \}\n\n  private replaceVehicleCatalog''')
           replacement='''  private mergeVehicleWithFallback(vehicle: Vehicle): Vehicle {\n    if (vehicle.cloudId) {\n      return {\n        ...vehicle,\n        images: Array.isArray(vehicle.images) ? vehicle.images : [],\n        gallery: Array.isArray(vehicle.gallery)\n          ? vehicle.gallery\n          : Array.isArray(vehicle.images)\n            ? vehicle.images\n            : [],\n        videos: Array.isArray(vehicle.videos) ? vehicle.videos : [],\n      };\n    }\n\n    const fallback = fallbackInventory.find(\n      (candidate) => String(candidate.id) === String(vehicle.id),\n    );\n    return {\n      ...(fallback || {}),\n      ...vehicle,\n      category: vehicle.category || fallback?.category || "RENTAL",\n    } as Vehicle;\n  }\n\n  private replaceVehicleCatalog'''
@@ -39,8 +38,6 @@ jobs:
           if n!=1: raise SystemExit('mergeVehicleWithFallback block not found')
           p.write_text(text,encoding='utf-8')
 
-          # Generic vehicle mutation is metadata-only for business fields. Media
-          # is never written by this endpoint, even when a trusted URL is sent.
           p=Path('api/catalog.ts'); text=p.read_text(encoding='utf-8')
           text,n1=re.subn(r'\n    images,\n    cover_image: submittedCover \|\| images\[0\] \|\| null,','',text,count=1)
           if n1!=1: raise SystemExit('api media column writes not found')
@@ -50,7 +47,6 @@ jobs:
           text=text.replace(old,new,1)
           p.write_text(text,encoding='utf-8')
 
-          # Permanent regression guard.
           p=Path('scripts/check-vehicle-media.mjs'); text=p.read_text(encoding='utf-8')
           marker='''if (!catalogApi.includes("VEHICLE_MEDIA_STORAGE_ONLY") || !catalogApi.includes("trustedVehicleMediaUrl") || !catalogApi.includes('case "vehicles":\\n      return "no-store"')) failures.push("vehicle API media/cache guard missing");\n'''
           if marker not in text: raise SystemExit('media authority guard marker missing')

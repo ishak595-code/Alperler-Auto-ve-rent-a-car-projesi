@@ -13,20 +13,11 @@ import { MainLayoutComponent } from './components/main-layout.component';
 import { RentalDetailShellComponent, SaleDetailShellComponent, TourDetailShellComponent } from './pages/catalog-detail-shells.component';
 
 import { AdminLayoutComponent } from './pages/admin/admin-layout.component';
-import { AdminDashboardShellComponent } from './pages/admin/admin-dashboard-shell.component';
-import { AdminReservationsComponent } from './pages/admin/admin-reservations.component';
-import { AdminBlogComponent } from './pages/admin/admin-blog.component';
+import { AdminOverviewHubComponent } from './pages/admin/admin-overview-hub.component';
 import { AdminSiteSettingsHubComponent } from './pages/admin/admin-site-settings-hub.component';
-import { AdminPartnerRequestsComponent } from './pages/admin/admin-partner-requests.component';
-import { AdminBranchPartnerRequestsComponent } from './pages/admin/admin-branch-partner-requests.component';
-import { AdminFeedbackComponent } from './pages/admin/admin-feedback.component';
-import { AdminTeamComponent } from './pages/admin/admin-team.component';
-import { AdminBranchesComponent } from './pages/admin/admin-branches.component';
-import { AdminCampaignsComponent } from './pages/admin/admin-campaigns.component';
-import { AdminCatalogEditorComponent } from './pages/admin/admin-catalog-editor.component';
-import { AdminAuditComponent } from './pages/admin/admin-audit.component';
-import { AdminSystemHealthComponent } from './pages/admin/admin-system-health.component';
-import { AdminAnalyticsComponent } from './pages/admin/admin-analytics.component';
+import { AdminContentHubComponent } from './pages/admin/admin-content-hub.component';
+import { AdminOperationsHubComponent } from './pages/admin/admin-operations-hub.component';
+import { AdminTeamHubComponent } from './pages/admin/admin-team-hub.component';
 
 const adminGuard: CanActivateFn = async () => {
   const auth = inject(AuthService); const router = inject(Router); await auth.waitUntilReady();
@@ -62,34 +53,46 @@ export const routes: Routes = [
   { path: 'track-car/:id', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
   { path: 'track-car', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
   { path: '', component: MainLayoutComponent, children: [{ path: '', component: HomeV71Component }] },
+
   { path: 'admin', component: AdminLayoutComponent, canActivate: [adminGuard], children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'dashboard', component: AdminDashboardShellComponent },
-      { path: 'analytics', component: AdminAnalyticsComponent, canActivate: [adminAreaGuard('analytics')] },
+
+      { path: 'dashboard', component: AdminOverviewHubComponent, data: { overviewSection: 'summary' } },
+      { path: 'analytics', component: AdminOverviewHubComponent, data: { overviewSection: 'analytics' }, canActivate: [adminAreaGuard('analytics')] },
+      { path: 'system-health', component: AdminOverviewHubComponent, data: { overviewSection: 'health' }, canActivate: [adminAreaGuard('settings')] },
+
+      { path: 'settings', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'general' }, canActivate: [adminAreaGuard('settings')] },
       { path: 'homepage', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'homepage' }, canActivate: [adminAreaGuard('content')] },
       { path: 'navigation', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'navigation' }, canActivate: [adminAreaGuard('settings')] },
       { path: 'footer', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'footer' }, canActivate: [adminAreaGuard('settings')] },
       { path: 'legal', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'legal' }, canActivate: [adminAreaGuard('settings')] },
-      { path: 'settings', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'general' }, canActivate: [adminAreaGuard('settings')] },
       { path: 'seo', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'seo' }, canActivate: [adminAreaGuard('settings')] },
       { path: 'faq-management', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'faq' }, canActivate: [adminAreaGuard('content')] },
-      { path: 'campaigns', component: AdminCampaignsComponent, canActivate: [adminAreaGuard('content')] },
-      { path: 'media', redirectTo: 'catalog-editor', pathMatch: 'full' },
-      { path: 'catalog-editor', component: AdminCatalogEditorComponent, canActivate: [adminAreaGuard('content')] },
       { path: 'whatsapp', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'whatsapp' }, canActivate: [adminAreaGuard('settings')] },
-      { path: 'team', component: AdminTeamComponent, canActivate: [adminAreaGuard('team')] },
-      { path: 'assignments', canActivate: [adminAreaGuard('team')], loadComponent: () => import('./pages/admin/admin-assignment-center.component').then(m => m.AdminAssignmentCenterComponent) },
-      { path: 'branches', component: AdminBranchesComponent, canActivate: [adminAreaGuard('settings')] },
+
+      { path: 'content', component: AdminContentHubComponent, data: { contentSection: 'catalog' }, canActivate: [adminAreaGuard('content')] },
+      { path: 'catalog-editor', component: AdminContentHubComponent, data: { contentSection: 'catalog' }, canActivate: [adminAreaGuard('content')] },
+      { path: 'campaigns', component: AdminContentHubComponent, data: { contentSection: 'campaigns' }, canActivate: [adminAreaGuard('content')] },
+      { path: 'blog', component: AdminContentHubComponent, data: { contentSection: 'blog' }, canActivate: [adminAreaGuard('content')] },
+      { path: 'media', component: AdminContentHubComponent, data: { contentSection: 'catalog' }, canActivate: [adminAreaGuard('content')] },
+      { path: 'cars', component: AdminContentHubComponent, data: { contentSection: 'catalog' }, canActivate: [adminAreaGuard('content')] },
+      { path: 'sales', component: AdminContentHubComponent, data: { contentSection: 'catalog' }, canActivate: [adminAreaGuard('content')] },
+      { path: 'tours', component: AdminContentHubComponent, data: { contentSection: 'catalog' }, canActivate: [adminAreaGuard('content')] },
+
+      { path: 'operations', component: AdminOperationsHubComponent, data: { operationsSection: 'reservations' } },
+      { path: 'reservations', component: AdminOperationsHubComponent, data: { operationsSection: 'reservations' }, canActivate: [adminAreaGuard('operations')] },
+      { path: 'partner-requests', component: AdminOperationsHubComponent, data: { operationsSection: 'vehicles' }, canActivate: [adminAreaGuard('operations')] },
+      { path: 'branch-partner-requests', component: AdminOperationsHubComponent, data: { operationsSection: 'branches-requests' }, canActivate: [adminAreaGuard('operations')] },
+      { path: 'feedback', component: AdminOperationsHubComponent, data: { operationsSection: 'messages' }, canActivate: [adminAreaGuard('operations')] },
+      { path: 'subscribers', component: AdminOperationsHubComponent, data: { operationsSection: 'newsletter' }, canActivate: [adminAreaGuard('operations')] },
+      { path: 'branches', component: AdminOperationsHubComponent, data: { operationsSection: 'branches' }, canActivate: [adminAreaGuard('settings')] },
       { path: 'branch-network/:id', canActivate: [adminAreaGuard('settings')], loadComponent: () => import('./pages/admin/admin-branch-network.component').then(m => m.AdminBranchNetworkComponent) },
-      { path: 'audit', component: AdminAuditComponent, canActivate: [adminAreaGuard('finance')] },
-      { path: 'system-health', component: AdminSystemHealthComponent, canActivate: [adminAreaGuard('settings')] },
-      { path: 'cars', redirectTo: 'catalog-editor', pathMatch: 'full' }, { path: 'sales', redirectTo: 'catalog-editor', pathMatch: 'full' }, { path: 'tours', redirectTo: 'catalog-editor', pathMatch: 'full' },
-      { path: 'reservations', component: AdminReservationsComponent, canActivate: [adminAreaGuard('operations')] },
-      { path: 'blog', component: AdminBlogComponent, canActivate: [adminAreaGuard('content')] },
-      { path: 'partner-requests', component: AdminPartnerRequestsComponent, canActivate: [adminAreaGuard('operations')] },
-      { path: 'branch-partner-requests', component: AdminBranchPartnerRequestsComponent, canActivate: [adminAreaGuard('operations')] },
-      { path: 'feedback', component: AdminFeedbackComponent, canActivate: [adminAreaGuard('operations')] },
-      { path: 'subscribers', canActivate: [adminAreaGuard('operations')], loadComponent: () => import('./pages/admin/admin-subscribers.component').then(m => m.AdminSubscribersComponent) }
+
+      { path: 'team-center', component: AdminTeamHubComponent, data: { teamSection: 'people' } },
+      { path: 'team', component: AdminTeamHubComponent, data: { teamSection: 'people' }, canActivate: [adminAreaGuard('team')] },
+      { path: 'assignments', component: AdminTeamHubComponent, data: { teamSection: 'assignments' }, canActivate: [adminAreaGuard('team')] },
+      { path: 'audit', component: AdminTeamHubComponent, data: { teamSection: 'audit' }, canActivate: [adminAreaGuard('finance')] }
     ] },
+
   { path: '**', component: MainLayoutComponent, children: [{ path: '', loadComponent: () => import('./pages/not-found.component').then(m => m.NotFoundComponent) }] }
 ];

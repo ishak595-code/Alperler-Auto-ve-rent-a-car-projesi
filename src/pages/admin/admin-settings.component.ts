@@ -16,13 +16,13 @@ import { SiteConfig } from '../../models/site-config.model';
       <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-4 shadow-sm backdrop-blur md:px-8">
         <div class="mx-auto flex max-w-6xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p class="text-[11px] font-black uppercase tracking-[.18em] text-blue-600">Canlı site_config</p>
+            <p class="text-[11px] font-black uppercase tracking-[.18em] text-blue-600">Profil ve temel site bilgileri</p>
             <h1 class="mt-1 text-2xl font-black md:text-3xl">Genel Ayarlar ve Profil</h1>
-            <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Marka kimliği, temel iletişim ve yönetici profilini tek kaynaktan yönetin. Ana sayfa, yasal metinler, ekip, footer ve sosyal medya, WhatsApp, SEO ve SSS kendi uzman yönetim sayfalarındadır.</p>
+            <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Yönetici profilinizi, marka bilgilerini, logoyu ve temel iletişim bilgilerini buradan düzenleyin.</p>
           </div>
           <div class="flex flex-wrap gap-2">
-            <button type="button" (click)="reload()" [disabled]="loading() || saving()" class="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 disabled:opacity-50">{{ loading() ? 'Yenileniyor…' : 'Veritabanından Yenile' }}</button>
-            <button type="button" (click)="save()" [disabled]="loading() || saving()" class="min-h-11 rounded-xl bg-blue-600 px-5 text-sm font-black text-white shadow-lg shadow-blue-600/20 disabled:opacity-50">{{ saving() ? 'Kaydediliyor…' : 'Kaydet ve Yayınla' }}</button>
+            <button type="button" (click)="reload()" [disabled]="loading() || saving()" class="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 disabled:opacity-50">{{ loading() ? 'Yenileniyor…' : 'Kayıtlı Bilgileri Yenile' }}</button>
+            <button type="button" (click)="save()" [disabled]="loading() || saving()" class="min-h-11 rounded-xl bg-blue-600 px-5 text-sm font-black text-white shadow-lg shadow-blue-600/20 disabled:opacity-50">{{ saving() ? 'Kaydediliyor…' : 'Kaydet ve Uygula' }}</button>
           </div>
         </div>
       </header>
@@ -31,7 +31,7 @@ import { SiteConfig } from '../../models/site-config.model';
         <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <header class="border-b border-slate-200 p-5 md:p-6">
             <h2 class="text-xl font-black">Yönetici Profili</h2>
-            <p class="mt-1 text-sm leading-6 text-slate-500">Bu profil yalnız yönetim arayüzünde kullanılır. Yetkiler Supabase yönetici kayıtlarından gelir.</p>
+            <p class="mt-1 text-sm leading-6 text-slate-500">Bu bilgiler yalnız yönetim ekranında sizi tanımak ve hesabınızı ayırt etmek için kullanılır.</p>
           </header>
           <div class="grid gap-6 p-5 md:grid-cols-[180px_1fr] md:p-6">
             <div class="space-y-3">
@@ -51,13 +51,13 @@ import { SiteConfig } from '../../models/site-config.model';
             <div class="grid content-start gap-4 md:grid-cols-2">
               <label class="grid gap-1.5 md:col-span-2"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Yönetimde Görünen Ad</span><input [(ngModel)]="formConfig.adminDisplayName" name="adminDisplayName" autocomplete="name" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10" placeholder="Yönetici adı" /></label>
               <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4"><span class="text-[10px] font-black uppercase tracking-wide text-slate-400">Aktif Hesap</span><p class="mt-2 break-all text-sm font-black">{{ auth.getCurrentEmail() }}</p></div>
-              <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><span class="text-[10px] font-black uppercase tracking-wide text-emerald-600">Yetki Sistemi</span><p class="mt-2 text-sm font-black text-emerald-950">Supabase Auth + admin_users</p></div>
+              <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><span class="text-[10px] font-black uppercase tracking-wide text-emerald-600">Hesap Durumu</span><p class="mt-2 text-sm font-black text-emerald-950">Yönetici hesabı doğrulandı</p></div>
             </div>
           </div>
         </section>
 
         <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <header class="border-b border-slate-200 p-5 md:p-6"><h2 class="text-xl font-black">Marka ve Kimlik</h2><p class="mt-1 text-sm leading-6 text-slate-500">Müşteri tarafında kullanılan temel kurumsal bilgiler.</p></header>
+          <header class="border-b border-slate-200 p-5 md:p-6"><h2 class="text-xl font-black">Marka ve Kimlik</h2><p class="mt-1 text-sm leading-6 text-slate-500">Bu alanlar müşterilerin sitede gördüğü şirket adını, sloganı, logoyu ve görünüm tercihlerini belirler.</p></header>
           <div class="grid gap-5 p-5 md:grid-cols-2 md:p-6">
             <div class="md:col-span-2 grid gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[150px_1fr]">
               <div class="grid h-32 w-32 place-items-center overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -78,7 +78,7 @@ import { SiteConfig } from '../../models/site-config.model';
         </section>
 
         <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <header class="border-b border-slate-200 p-5 md:p-6"><h2 class="text-xl font-black">Temel İletişim</h2><p class="mt-1 text-sm leading-6 text-slate-500">Telefon, e-posta ve adres burada yönetilir. WhatsApp ayarları kendi yönetim sayfasındadır.</p></header>
+          <header class="border-b border-slate-200 p-5 md:p-6"><h2 class="text-xl font-black">Temel İletişim</h2><p class="mt-1 text-sm leading-6 text-slate-500">Telefon, e-posta ve adres müşterilerin iletişim alanlarında kullanılır. WhatsApp ayarını üstteki WhatsApp sekmesinden yönetebilirsiniz.</p></header>
           <div class="grid gap-5 p-5 md:grid-cols-2 md:p-6">
             <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Telefon</span><input [(ngModel)]="formConfig.phone" name="phone" autocomplete="tel" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
             <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">E-posta</span><input [(ngModel)]="formConfig.email" name="email" type="email" autocomplete="email" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
@@ -87,7 +87,7 @@ import { SiteConfig } from '../../models/site-config.model';
         </section>
 
         <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <header class="border-b border-slate-200 p-5 md:p-6"><h2 class="text-xl font-black">Hesap Güvenliği</h2><p class="mt-1 text-sm leading-6 text-slate-500">Şifre değişikliği doğrudan oturum açtığınız Supabase Auth hesabına uygulanır.</p></header>
+          <header class="border-b border-slate-200 p-5 md:p-6"><h2 class="text-xl font-black">Hesap Güvenliği</h2><p class="mt-1 text-sm leading-6 text-slate-500">Buradan yönetici hesabınızın giriş şifresini değiştirebilirsiniz.</p></header>
           <div class="grid gap-5 p-5 md:grid-cols-2 md:p-6">
             <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Yeni Şifre</span><input [(ngModel)]="newPassword" name="newPassword" [type]="showPassword() ? 'text' : 'password'" autocomplete="new-password" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
             <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Yeni Şifre Tekrar</span><input [(ngModel)]="confirmPassword" name="confirmPassword" [type]="showPassword() ? 'text' : 'password'" autocomplete="new-password" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
@@ -96,7 +96,7 @@ import { SiteConfig } from '../../models/site-config.model';
         </section>
 
         <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
-          <strong class="font-black">Tek kaynak kuralı aktif:</strong> Bu sayfa ana sayfa metinlerini, ekip üyelerini, yasal içerikleri, footer ve sosyal medya ayarlarını, WhatsApp ayarlarını, SEO değerlerini veya SSS kayıtlarını ikinci kez tutmaz. Her veri yalnız kendi uzman admin modülünden canlı veritabanına yazılır.
+          <strong class="font-black">Diğer site ayarları:</strong> Ana sayfa, menü, footer, sosyal medya, yasal metinler, SEO, SSS ve WhatsApp için üstteki ilgili sekmeyi seçin. Böylece her ayarı doğru yerde bulabilir ve aynı bilgiyle iki farklı yerde uğraşmak zorunda kalmazsınız.
         </div>
       </form>
     </main>
@@ -129,10 +129,10 @@ export class AdminSettingsComponent implements OnInit {
     try {
       await this.cars.refreshCloudCatalog(true);
       this.formConfig = this.cloneConfig(this.config());
-      if (showToast) this.toast.show('Genel ayarlar canlı veritabanından yenilendi.', 'success');
+      if (showToast) this.toast.show('Kayıtlı genel ayarlar yenilendi.', 'success');
     } catch (error) {
       console.error(error);
-      this.toast.show('Canlı ayarlar yüklenemedi. Mevcut değerler korunuyor.', 'error');
+      this.toast.show('Kayıtlı ayarlar yüklenemedi. Mevcut değerler korunuyor.', 'error');
     } finally {
       this.loading.set(false);
     }
@@ -145,10 +145,10 @@ export class AdminSettingsComponent implements OnInit {
       await this.cars.updateConfig(this.cloneConfig(this.formConfig));
       await this.cars.refreshCloudCatalog(true);
       this.formConfig = this.cloneConfig(this.config());
-      this.toast.show('Genel ayarlar Supabase’e kaydedildi ve yayımlandı.', 'success');
+      this.toast.show('Genel ayarlar kaydedildi ve siteye uygulandı.', 'success');
     } catch (error) {
       console.error(error);
-      this.toast.show('Ayarlar kaydedilemedi. Oturum ve veritabanı bağlantısını kontrol edin.', 'error');
+      this.toast.show('Ayarlar kaydedilemedi. Bağlantınızı kontrol edip yeniden deneyin.', 'error');
     } finally {
       this.saving.set(false);
     }
@@ -162,7 +162,7 @@ export class AdminSettingsComponent implements OnInit {
     try {
       const uploaded = await this.media.uploadImage(file, 'SITE_CONFIG', 'main', 'admin-profile');
       this.formConfig.adminProfileUrl = uploaded.publicUrl;
-      this.toast.show('Profil görseli yüklendi. Yayınlamak için Kaydet ve Yayınla düğmesine basın.', 'success');
+      this.toast.show('Profil görseli yüklendi. Kaydet ve Uygula düğmesine bastığınızda yönetici profilinde kullanılacak.', 'success');
     } catch (error) {
       this.toast.show(error instanceof Error ? error.message : 'Profil görseli yüklenemedi.', 'error');
     } finally {
@@ -179,7 +179,7 @@ export class AdminSettingsComponent implements OnInit {
     try {
       const uploaded = await this.media.uploadImage(file, 'SITE_CONFIG', 'main', 'logo');
       this.formConfig.logoUrl = uploaded.publicUrl;
-      this.toast.show('Logo yüklendi. Yayınlamak için Kaydet ve Yayınla düğmesine basın.', 'success');
+      this.toast.show('Logo yüklendi. Kaydet ve Uygula düğmesine bastığınızda sitede kullanılacak.', 'success');
     } catch (error) {
       this.toast.show(error instanceof Error ? error.message : 'Logo yüklenemedi.', 'error');
     } finally {
@@ -205,7 +205,7 @@ export class AdminSettingsComponent implements OnInit {
       if (!ok) throw new Error(this.auth.lastErrorMessage() || 'Şifre güncellenemedi.');
       this.newPassword = '';
       this.confirmPassword = '';
-      this.toast.show('Yönetici şifresi Supabase hesabında güncellendi.', 'success');
+      this.toast.show('Yönetici şifresi başarıyla güncellendi.', 'success');
     } catch (error) {
       this.toast.show(error instanceof Error ? error.message : 'Şifre güncellenemedi.', 'error');
     } finally {

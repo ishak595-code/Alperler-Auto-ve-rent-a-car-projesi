@@ -9,11 +9,6 @@ import {
   CatalogService,
 } from "./catalog.service";
 import { DEFAULT_SITE_CONFIG } from "./default-site-config";
-import {
-  fallbackBlogPosts,
-  fallbackFaqs,
-  fallbackInventory,
-} from "./mock-data";
 import { PublicCatalogMediaService } from "./public-catalog-media.service";
 import { PublicContentRealtimeService } from "./public-content-realtime.service";
 
@@ -101,13 +96,11 @@ export class CarService {
   >([]);
 
   private readonly _config = signal<SiteConfig>({ ...DEFAULT_SITE_CONFIG });
-  private readonly _faqs = signal<FaqItem[]>([...fallbackFaqs]);
-  private readonly _inventory = signal<Vehicle[]>([...fallbackInventory]);
-  private readonly _blogPosts = signal<BlogPost[]>([...fallbackBlogPosts]);
+  private readonly _faqs = signal<FaqItem[]>([]);
+  private readonly _inventory = signal<Vehicle[]>([]);
+  private readonly _blogPosts = signal<BlogPost[]>([]);
   private readonly _reservations = signal<BookingRequest[]>([]);
-  private readonly _tours = signal<Tour[]>([
-    ...fallbackInventory.filter((vehicle) => vehicle.category === "TOUR"),
-  ]);
+  private readonly _tours = signal<Tour[]>([]);
 
   private cloudRefreshTimer?: number;
   private cloudRefreshInFlight = false;
@@ -171,23 +164,18 @@ export class CarService {
         const source = media.status === "fulfilled"
           ? this.catalogMediaService.hydrate(vehicles.value, media.value)
           : vehicles.value;
-        const mergedVehicles = source.map((vehicle) =>
-          this.mergeVehicleWithFallback(vehicle),
-        );
-        this.replaceVehicleCatalog(mergedVehicles);
+        this.replaceVehicleCatalog(source);
       }
 
       if (tours.status === "fulfilled") {
         const source = media.status === "fulfilled"
           ? this.catalogMediaService.hydrate(tours.value, media.value)
           : tours.value;
-        const mergedTours = source.map((tour) =>
-          this.mergeVehicleWithFallback(tour) as Tour,
-        );
-        this._tours.set(mergedTours);
+        const liveTours = source as Tour[];
+        this._tours.set(liveTours);
         this._inventory.update((inventory) => [
           ...inventory.filter((vehicle) => vehicle.category !== "TOUR"),
-          ...mergedTours,
+          ...liveTours,
         ]);
       }
 
@@ -403,7 +391,7 @@ export class CarService {
     this.setTourLocally(candidate);
     void this.catalogService
       .saveTour(candidate)
-      .then((saved) => this.setTourLocally(this.mergeVehicleWithFallback(saved) as Tour))
+      .then((saved) => this.setTourLocally(saved as Tour))
       .catch((error) => {
         console.error("Tour cloud save failed", error);
         this._tours.set(previous);
@@ -451,9 +439,7 @@ export class CarService {
       id: car.id || Date.now(),
       category: "RENTAL",
     };
-    const saved = this.mergeVehicleWithFallback(
-      await this.catalogService.saveVehicle(candidate),
-    ) as Car;
+    const saved = await this.catalogService.saveVehicle(candidate) as Car;
     this._inventory.update((items) => this.upsertById(items, saved));
     return saved;
   }
@@ -475,9 +461,7 @@ export class CarService {
       id: car.id || Date.now(),
       category: "SALE",
     };
-    const saved = this.mergeVehicleWithFallback(
-      await this.catalogService.saveVehicle(candidate),
-    ) as SaleCar;
+    const saved = await this.catalogService.saveVehicle(candidate) as SaleCar;
     this._inventory.update((items) => this.upsertById(items, saved));
     return saved;
   }
@@ -748,34 +732,6 @@ export class CarService {
     }
   }
 
-  private mergeVehicleWithFallback(vehicle: Vehicle): Vehicle {
-    const fallback = fallbackInventory.find(
-      (candidate) => String(candidate.id) === String(vehicle.id),
-    );
-    const safeFallback: Partial<Vehicle> = fallback ? { ...fallback } : {};
-    delete safeFallback.image;
-    delete safeFallback.images;
-    delete safeFallback.gallery;
-    delete safeFallback.videos;
-    const cloudBacked = Boolean(vehicle.cloudId);
-    const merged = {
-      ...safeFallback,
-      ...vehicle,
-      category: vehicle.category || fallback?.category,
-    } as Vehicle;
-    if (cloudBacked) {
-      merged.image = vehicle.image;
-      merged.images = Array.isArray(vehicle.images) ? vehicle.images : [];
-      merged.gallery = Array.isArray(vehicle.gallery)
-        ? vehicle.gallery
-        : Array.isArray(vehicle.images)
-          ? vehicle.images
-          : [];
-      merged.videos = Array.isArray(vehicle.videos) ? vehicle.videos : [];
-    }
-    return merged;
-  }
-
   private replaceVehicleCatalog(vehicles: Vehicle[]): void {
     this._inventory.update((inventory) => [
       ...inventory.filter((vehicle) => vehicle.category === "TOUR"),
@@ -796,27 +752,29 @@ export class CarService {
   }
 
   private catalogBlogToBlogPost(post: CatalogBlogPost): BlogPost {
-    const fallback = fallbackBlogPosts.find(
-      (candidate) => String(candidate.id) === String(post.id),
-    );
-    const numericId = Number(post.id);
     return {
-      ...(fallback || {}),
       ...post,
-      id: Number.isFinite(numericId) ? numericId : fallback?.id || Date.now(),
+      id: this.stableNumericId(post.id),
     } as BlogPost;
   }
 
   private catalogFaqToFaq(faq: CatalogFaqItem): FaqItem {
-    const numericId = Number(faq.id);
-    const fallback = fallbackFaqs.find(
-      (candidate) => String(candidate.id) === String(faq.id),
-    );
     return {
-      ...(fallback || {}),
       ...faq,
-      id: Number.isFinite(numericId) ? numericId : fallback?.id || Date.now(),
+      id: this.stableNumericId(faq.id),
     } as FaqItem;
+  }
+
+  private stableNumericId(value: number | string): number {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    const normalized = String(value || "").trim();
+    if (/^\d+$/.test(normalized)) return Number(normalized);
+    let hash = 2166136261;
+    for (let index = 0; index < normalized.length; index += 1) {
+      hash ^= normalized.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0) || 1;
   }
 
   private normalizeConfig(config: Partial<SiteConfig>): SiteConfig {
@@ -860,13 +818,11 @@ export class CarService {
   private installLocalPersistence(): void {
     if (typeof localStorage === "undefined") return;
 
-    effect(() => localStorage.setItem("db_config_v12", JSON.stringify(this._config())));
-    effect(() => localStorage.setItem("db_tours_v14", JSON.stringify(this._tours())));
-    effect(() => localStorage.setItem("db_blog_v12", JSON.stringify(this._blogPosts())));
+    // Only user/session state is persisted locally. Published catalogue content
+    // is server-authoritative and is intentionally never cached as browser truth.
     effect(() => localStorage.setItem("db_reservations_v2", JSON.stringify(this._reservations())));
     effect(() => localStorage.setItem("db_partnerRequests_v2", JSON.stringify(this._partnerRequests())));
     effect(() => localStorage.setItem("db_visits", String(this._visitCount())));
-    effect(() => localStorage.setItem("db_faqs_v12", JSON.stringify(this._faqs())));
     effect(() => localStorage.setItem("db_feedbacks_v2", JSON.stringify(this._feedbacks())));
     effect(() => localStorage.setItem("db_subscribers", JSON.stringify(this._subscribers())));
     effect(() => localStorage.setItem("db_notifications", JSON.stringify(this._notifications())));
@@ -876,33 +832,14 @@ export class CarService {
   private loadFromStorage(): void {
     if (typeof localStorage === "undefined") return;
 
-    localStorage.removeItem("db_config");
-    localStorage.removeItem("db_faqs");
-
-    // Vehicle inventory is server-authoritative. Purge every historical local
-    // rental/sale snapshot before the current cloud catalogue is loaded.
+    // Purge every historical catalogue snapshot. This duplicates the bootstrap
+    // guard intentionally so CarService remains safe in tests and alternate entrypoints.
+    const catalogCacheKey = /^db_(?:cars|rental_?cars?|sale_?cars?|sales?|vehicles?|tours?|inventory|config|faqs?|blog)(?:_|$)/i;
     for (let index = localStorage.length - 1; index >= 0; index -= 1) {
       const key = localStorage.key(index);
-      if (key && (key.startsWith("db_cars") || key.startsWith("db_saleCars"))) {
-        localStorage.removeItem(key);
-      }
+      if (key && catalogCacheKey.test(key)) localStorage.removeItem(key);
     }
 
-    this.readStorage("db_config_v12", (value) => {
-      this._config.set(this.normalizeConfig(value as Partial<SiteConfig>));
-    });
-    this.readStorage("db_tours_v14", (value) => {
-      if (Array.isArray(value) && value.length > 0) {
-        this._tours.set(value as Tour[]);
-        this.syncToursIntoInventory();
-      }
-    });
-    this.readStorage("db_blog_v12", (value) => {
-      if (Array.isArray(value) && value.length > 0) this._blogPosts.set(value as BlogPost[]);
-    });
-    this.readStorage("db_faqs_v12", (value) => {
-      if (Array.isArray(value) && value.length > 0) this._faqs.set(value as FaqItem[]);
-    });
     this.readStorage("db_reservations_v2", (value) => {
       if (Array.isArray(value)) this._reservations.set(value as BookingRequest[]);
     });

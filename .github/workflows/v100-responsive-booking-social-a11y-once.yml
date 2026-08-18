@@ -1,0 +1,220 @@
+name: V100 Responsive Booking Social A11y Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v100-responsive-booking-social-a11y-once.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply V100 cleanup
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'Expected block not found in {path}: {old[:140]!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          # 1) Per-device homepage section visibility. Defaults stay visible everywhere.
+          path = 'src/components/dynamic-home-section.component.ts'
+          replace_once(
+              path,
+              "return [`theme-${['light','soft','dark','brand','ocean','emerald','sunset','violet','sand','graphite'].includes(theme) ? theme : 'light'}`, `width-${['standard','wide','full'].includes(width) ? width : 'wide'}`];",
+              "const classes = [`theme-${['light','soft','dark','brand','ocean','emerald','sunset','violet','sand','graphite'].includes(theme) ? theme : 'light'}`, `width-${['standard','wide','full'].includes(width) ? width : 'wide'}`];\n    if (!this.boolSetting('showOnMobile', true)) classes.push('hide-mobile');\n    if (!this.boolSetting('showOnTablet', true)) classes.push('hide-tablet');\n    if (!this.boolSetting('showOnDesktop', true)) classes.push('hide-desktop');\n    return classes;"
+          )
+          replace_once(
+              path,
+              "@media(min-width:720px){.view-all{display:flex}.mobile-view-all{display:none}.content-rail.grid-layout{grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}.partner-card{grid-template-columns:1fr auto;align-items:center}.promo-card{grid-template-columns:minmax(240px,.8fr) 1.2fr;align-items:center}.promo-card:not(:has(.promo-media)){grid-template-columns:1fr}}",
+              "@media(max-width:767px){.hide-mobile{display:none!important}}@media(min-width:768px) and (max-width:1023px){.hide-tablet{display:none!important}}@media(min-width:1024px){.hide-desktop{display:none!important}}@media(min-width:720px){.view-all{display:flex}.mobile-view-all{display:none}.content-rail.grid-layout{grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}.partner-card{grid-template-columns:1fr auto;align-items:center}.promo-card{grid-template-columns:minmax(240px,.8fr) 1.2fr;align-items:center}.promo-card:not(:has(.promo-media)){grid-template-columns:1fr}}"
+          )
+          replace_once(
+              path,
+              "private setting(key: string, fallback: unknown): unknown { const settings = this.section.settings && typeof this.section.settings === 'object' ? this.section.settings : {}; return Object.prototype.hasOwnProperty.call(settings, key) ? settings[key] : fallback; }",
+              "private setting(key: string, fallback: unknown): unknown { const settings = this.section.settings && typeof this.section.settings === 'object' ? this.section.settings : {}; return Object.prototype.hasOwnProperty.call(settings, key) ? settings[key] : fallback; }\n  private boolSetting(key: string, fallback: boolean): boolean { const value = this.setting(key, fallback); return typeof value === 'boolean' ? value : fallback; }"
+          )
+
+          # Admin controls for phone/tablet/desktop section visibility.
+          path = 'src/pages/admin/admin-homepage.component.ts'
+          replace_once(
+              path,
+              '<div class="editor-toolbar">\n                    <label class="visibility-toggle"><input type="checkbox" [(ngModel)]="section.isEnabled" [name]="section.sectionKey + \'-visible\'" (change)="saveSection(section)" [attr.aria-label]="section.title + \' bölümünü ana sayfada göster\'" /> <span>Ana sayfada göster</span></label>\n                    <button type="button" class="save-button" (click)="saveSection(section)" [attr.aria-label]="section.title + \' bölümünü kaydet ve yayınla\'">Kaydet ve Uygula</button>\n                  </div>',
+              '<div class="editor-toolbar">\n                    <label class="visibility-toggle"><input type="checkbox" [(ngModel)]="section.isEnabled" [name]="section.sectionKey + \'-visible\'" (change)="saveSection(section)" [attr.aria-label]="section.title + \' bölümünü ana sayfada göster\'" /> <span>Ana sayfada göster</span></label>\n                    <button type="button" class="save-button" (click)="saveSection(section)" [attr.aria-label]="section.title + \' bölümünü kaydet ve yayınla\'">Kaydet ve Uygula</button>\n                  </div>\n                  <fieldset class="device-visibility" [attr.aria-label]="section.title + \' cihaz görünürlüğü\'">\n                    <legend>Cihaz görünürlüğü</legend>\n                    <label><input type="checkbox" [ngModel]="boolSetting(section,\'showOnMobile\',true)" (ngModelChange)="setSetting(section,\'showOnMobile\',$event)" [name]="section.sectionKey + \'-mobile\'" [attr.aria-label]="section.title + \' bölümünü telefonda göster\'" /><span>Telefon</span></label>\n                    <label><input type="checkbox" [ngModel]="boolSetting(section,\'showOnTablet\',true)" (ngModelChange)="setSetting(section,\'showOnTablet\',$event)" [name]="section.sectionKey + \'-tablet\'" [attr.aria-label]="section.title + \' bölümünü tablette göster\'" /><span>Tablet</span></label>\n                    <label><input type="checkbox" [ngModel]="boolSetting(section,\'showOnDesktop\',true)" (ngModelChange)="setSetting(section,\'showOnDesktop\',$event)" [name]="section.sectionKey + \'-desktop\'" [attr.aria-label]="section.title + \' bölümünü bilgisayarda göster\'" /><span>Bilgisayar</span></label>\n                  </fieldset>'
+          )
+          replace_once(
+              path,
+              '.editor-toolbar{display:flex;align-items:center;justify-content:space-between;gap:.75rem}.visibility-toggle,.mini-toggle{display:flex;align-items:center;gap:.4rem;font-size:.7rem;font-weight:850}',
+              '.editor-toolbar{display:flex;align-items:center;justify-content:space-between;gap:.75rem}.device-visibility{display:flex;flex-wrap:wrap;gap:.45rem;border:1px solid #dbe4ef;border-radius:14px;background:#f8fafc;padding:.7rem}.device-visibility legend{padding:0 .25rem;color:#475569;font-size:.62rem;font-weight:950;text-transform:uppercase;letter-spacing:.05em}.device-visibility label{display:flex;min-height:42px;align-items:center;gap:.4rem;border-radius:10px;background:#fff;padding:0 .7rem;font-size:.68rem;font-weight:900}.device-visibility input{width:18px;height:18px}.visibility-toggle,.mini-toggle{display:flex;align-items:center;gap:.4rem;font-size:.7rem;font-weight:850}'
+          )
+          replace_once(
+              path,
+              "setting(section: HomepageSectionRecord, key: string, fallback = ''): any { return Object.prototype.hasOwnProperty.call(section.settings || {}, key) ? section.settings[key] : fallback; }\n  setSetting(section: HomepageSectionRecord, key: string, value: unknown): void { section.settings = { ...(section.settings || {}), [key]: value }; }",
+              "setting(section: HomepageSectionRecord, key: string, fallback: any = ''): any { return Object.prototype.hasOwnProperty.call(section.settings || {}, key) ? section.settings[key] : fallback; }\n  boolSetting(section: HomepageSectionRecord, key: string, fallback = true): boolean { const value = this.setting(section, key, fallback); return typeof value === 'boolean' ? value : fallback; }\n  setSetting(section: HomepageSectionRecord, key: string, value: unknown): void { section.settings = { ...(section.settings || {}), [key]: value }; }"
+          )
+
+          # 2) Rental detail: remove duplicate calculator and keep one clear booking CTA.
+          path = 'src/pages/car-detail.component.ts'
+          replace_once(path, 'import { AccessibleDateFieldComponent } from "../components/accessible-date-field.component";\n', '')
+          replace_once(path, 'imports: [CommonModule, MatIconModule, AccessibleDateFieldComponent, TurkishCurrencyPipe],', 'imports: [CommonModule, MatIconModule, TurkishCurrencyPipe],')
+          old_aside = '''          <aside id="rental-calculator" class="rounded-2xl border border-blue-200 bg-white p-4 shadow-xl shadow-blue-950/5 sm:p-6 lg:sticky lg:top-[116px]" aria-labelledby="calculator-title">
+            <p class="text-xs font-black uppercase tracking-wider text-blue-600">Hızlı Rezervasyon</p><h2 id="calculator-title" class="mt-1 font-serif text-2xl font-black">Tarihinizi seçin</h2><p class="mt-2 text-sm leading-6 text-slate-500">Önce tarihleri belirleyin. Ek hizmet ve teslim noktasını sonraki adımda seçebilirsiniz.</p>
+            <div class="mt-5 space-y-4"><app-accessible-date-field label="Alış tarihi" [value]="startDate()" [min]="today" (valueChange)="setStartDate($event)" /><app-accessible-date-field label="İade tarihi" [value]="endDate()" [min]="startDate() || today" (valueChange)="setEndDate($event)" /></div>
+            @if (dateError()) { <p class="mt-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700" role="alert">{{ dateError() }}</p> }
+            <div class="mt-5 rounded-2xl bg-slate-950 p-4 text-white" aria-live="polite" aria-atomic="true">
+              @if (validDates()) { <div class="flex items-center justify-between gap-3 text-sm"><span class="text-slate-300">{{ totalDays() }} gün × {{ vehicle.price | turkishCurrency }}</span><strong>{{ totalPrice() | turkishCurrency }}</strong></div><div class="mt-3 border-t border-white/10 pt-3"><span class="text-xs font-bold uppercase text-blue-300">Tahmini araç bedeli</span><strong class="mt-1 block text-3xl">{{ totalPrice() | turkishCurrency }}</strong></div> }
+              @else { <p class="text-sm text-slate-300">Fiyatı hesaplamak için alış ve iade tarihini seçin.</p> }
+            </div>
+            <button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false || !validDates()" aria-label="Hemen rezerve et" class="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 font-black text-white shadow-lg shadow-blue-600/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><mat-icon aria-hidden="true">event_available</mat-icon>Hemen Rezerve Et</button>
+            <button type="button" (click)="whatsappInquiry()" aria-label="WhatsApp ile bilgi al" class="mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 font-black text-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"><mat-icon aria-hidden="true">chat</mat-icon>WhatsApp ile Sor</button>
+            <p class="mt-3 text-xs leading-5 text-slate-500">Ek hizmetler, teslim ve iade noktası rezervasyon ekranında seçilir. Seçimler fiyatı anında günceller.</p>
+          </aside>'''
+          new_aside = '''          <aside id="rental-reservation" class="rounded-2xl border border-blue-200 bg-white p-4 shadow-xl shadow-blue-950/5 sm:p-6 lg:sticky lg:top-[116px]" aria-labelledby="reservation-title">
+            <p class="text-xs font-black uppercase tracking-wider text-blue-600">Rezervasyon</p>
+            <h2 id="reservation-title" class="mt-1 font-serif text-2xl font-black">Bu aracı rezerve edin</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-500">Tarih, teslim ve iade noktası, şoför tercihi ve ek hizmetlerin tamamını tek rezervasyon ekranında seçin.</p>
+            <div class="mt-5 rounded-2xl bg-slate-950 p-4 text-white"><span class="text-xs font-bold uppercase text-blue-300">Günlük başlangıç fiyatı</span><strong class="mt-1 block text-3xl">{{ vehicle.price | turkishCurrency }}</strong><p class="mt-2 text-xs leading-5 text-slate-400">Nihai tutar rezervasyondaki tarih ve hizmet seçimlerinize göre otomatik güncellenir.</p></div>
+            <button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Bu araç için rezervasyon oluştur" class="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 font-black text-white shadow-lg shadow-blue-600/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><mat-icon aria-hidden="true">event_available</mat-icon>Rezervasyon Oluştur</button>
+            <button type="button" (click)="whatsappInquiry()" aria-label="Bu araç hakkında WhatsApp ile bilgi al" class="mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 font-black text-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"><mat-icon aria-hidden="true">chat</mat-icon>WhatsApp ile Sor</button>
+          </aside>'''
+          replace_once(path, old_aside, new_aside)
+          replace_once(
+              path,
+              '<div class="mx-auto grid max-w-2xl grid-cols-[.75fr_1.25fr] gap-2"><a [href]="phoneHref()" aria-label="Telefonla ara" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-100 font-black text-slate-800"><mat-icon aria-hidden="true">call</mat-icon>Ara</a><button type="button" (click)="reserveFromSticky(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Rezervasyon" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 font-black text-white disabled:bg-slate-300 disabled:text-slate-500"><mat-icon aria-hidden="true">event_available</mat-icon>{{ validDates() ? \'Hemen Rezerve Et\' : \'Tarih Seç\' }}</button></div>',
+              '<div class="mx-auto grid max-w-2xl grid-cols-[.75fr_1.25fr] gap-2"><a [href]="phoneHref()" aria-label="Telefonla ara" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-100 font-black text-slate-800"><mat-icon aria-hidden="true">call</mat-icon>Ara</a><button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Bu araç için rezervasyon oluştur" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 font-black text-white disabled:bg-slate-300 disabled:text-slate-500"><mat-icon aria-hidden="true">event_available</mat-icon>Rezervasyon Oluştur</button></div>'
+          )
+          replace_once(
+              path,
+              '  readonly today = new Date().toISOString().slice(0, 10);\n  readonly startDate = signal(this.validQueryDate(this.route.snapshot.queryParamMap.get("start")));\n  readonly endDate = signal(this.validQueryDate(this.route.snapshot.queryParamMap.get("end")));\n  readonly currentSlide = signal(0);\n  readonly techOpen = signal(false);\n  readonly dateError = signal("");',
+              '  private readonly presetStartDate = this.validQueryDate(this.route.snapshot.queryParamMap.get("start"));\n  private readonly presetEndDate = this.validQueryDate(this.route.snapshot.queryParamMap.get("end"));\n  readonly currentSlide = signal(0);\n  readonly techOpen = signal(false);'
+          )
+          start = Path(path).read_text()
+          import re
+          start = re.sub(r'\n  readonly totalDays = computed\(\(\) => \{.*?\n  readonly technicalSpecs = computed', '\n  readonly technicalSpecs = computed', start, flags=re.S)
+          start = re.sub(r'\n  setStartDate\(value: string\): void \{.*?\n  previousMedia\(\): void', '\n  previousMedia(): void', start, flags=re.S)
+          start = re.sub(r'\n  reserve\(vehicle: Car\): void \{.*?\n  toggleFav\(id: string \| number\): void', '''\n  reserve(vehicle: Car): void {\n    if (vehicle.isAvailable === false) return;\n    this.carService.setBookingRequest({\n      type: "RENTAL",\n      item: vehicle,\n      itemName: `${vehicle.brand || ""} ${vehicle.model || ""}`.trim(),\n      image: vehicle.image || vehicle.images?.[0],\n      basePrice: Number(vehicle.price || 0),\n      totalPrice: Number(vehicle.price || 0),\n      startDate: this.presetStartDate || undefined,\n      endDate: this.presetEndDate || undefined,\n      rentalDuration: "daily",\n      withDriver: vehicle.driverOption === "WITH_DRIVER",\n    });\n    void this.router.navigate(["/contact"]);\n  }\n\n  toggleFav(id: string | number): void''', start, flags=re.S)
+          start = re.sub(r'\n  private validateDateRange\(\): void \{.*?\n  private validQueryDate', '\n  private validQueryDate', start, flags=re.S)
+          start = re.sub(r'\n  private parseLocalDate\(value: string\): Date \| null \{.*?\n\}', '\n}', start, flags=re.S)
+          Path(path).write_text(start)
+
+          # 3) Booking checkout: keep all price-changing choices in one place and make the UI explicit.
+          path = 'src/pages/booking-checkout.component.ts'
+          replace_once(
+              path,
+              '<h2 id="rental-details-title" class="mb-5 text-lg font-black text-white">1. Kiralama Detayları</h2>',
+              '<h2 id="rental-details-title" class="text-lg font-black text-white">1. Kiralama Detayları</h2><p class="mb-5 mt-1 text-sm leading-6 text-slate-400">Tarih, şoför tercihi, teslimat ve ek hizmetler değiştikçe tahmini toplam otomatik güncellenir.</p>'
+          )
+          replace_once(
+              path,
+              '<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-300"><mat-icon aria-hidden="true">tune</mat-icon></span>',
+              '<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-300" aria-hidden="true"><mat-icon aria-hidden="true">tune</mat-icon></span>'
+          )
+
+          # 4) Social save must be verified after a round-trip to the live config.
+          path = 'src/pages/admin/admin-footer.component.ts'
+          replace_once(path, "import { CatalogService } from '../../services/catalog.service';\n", '')
+          replace_once(path, "  private readonly catalog = inject(CatalogService);\n", '')
+          old = '''      const current = this.carService.getConfig()();
+      await this.catalog.saveConfig({
+        ...current,
+        instagramUrl: this.instagramUrl.trim(),
+        tiktokUrl: this.tiktokUrl.trim(),
+        youtubeUrl: this.youtubeUrl.trim(),
+        twitterUrl: this.xUrl.trim(),
+        facebookUrl: this.facebookUrl.trim(),
+      });
+      await this.carService.refreshCloudCatalog(true);
+      this.form = { ...this.footer.settings() };
+      this.toast.show('Footer ve sosyal medya ayarları kaydedildi ve siteye uygulandı.', 'success');'''
+          new = '''      const desired = {
+        instagramUrl: this.instagramUrl.trim(),
+        tiktokUrl: this.tiktokUrl.trim(),
+        youtubeUrl: this.youtubeUrl.trim(),
+        twitterUrl: this.xUrl.trim(),
+        facebookUrl: this.facebookUrl.trim(),
+      };
+      const current = this.carService.getConfig()();
+      await this.carService.updateConfig({ ...current, ...desired });
+      await this.carService.refreshCloudCatalog(true);
+      const verified = this.carService.getConfig()();
+      const mismatch = Object.entries(desired).find(([key, value]) => String((verified as any)[key] || '').trim() !== value);
+      if (mismatch) throw new Error('Sosyal medya bağlantıları kaydedildi olarak doğrulanamadı. Lütfen tekrar deneyin.');
+      this.instagramUrl = verified.instagramUrl || '';
+      this.tiktokUrl = verified.tiktokUrl || '';
+      this.youtubeUrl = verified.youtubeUrl || '';
+      this.xUrl = verified.twitterUrl || '';
+      this.facebookUrl = verified.facebookUrl || '';
+      this.form = { ...this.footer.settings() };
+      this.toast.show('Footer ve sosyal medya bağlantıları doğrulandı ve siteye uygulandı.', 'success');'''
+          replace_once(path, old, new)
+
+          # 5) Runtime accessibility also protects icon-only links, not only buttons/forms.
+          path = 'src/services/accessibility-runtime.service.ts'
+          replace_once(
+              path,
+              "if (control.matches('input,select,textarea,button')) {\n      this.ensureAccessibleName(control);\n    }",
+              "if (control.matches('input,select,textarea,button,a[href]')) {\n      this.ensureAccessibleName(control);\n    }"
+          )
+          replace_once(
+              path,
+              "if (control.tagName === 'BUTTON' && this.visibleText(control)) return true;",
+              "if ((control.tagName === 'BUTTON' || control.tagName === 'A') && this.visibleText(control)) return true;"
+          )
+          replace_once(
+              path,
+              "add: 'Ekle', remove: 'Kaldır', expand_more: 'Seçenekler', more_vert: 'Seçenekler',",
+              "add: 'Ekle', remove: 'Kaldır', expand_more: 'Seçenekler', more_vert: 'Seçenekler',\n        event_available: 'Rezervasyon', call: 'Telefonla ara', share: 'Paylaş',\n        chevron_left: 'Önceki', chevron_right: 'Sonraki', tune: 'Ayarlar', save: 'Kaydet',"
+          )
+          replace_once(
+              path,
+              "    if (control.tagName === 'SELECT') return 'Seçim';",
+              "    if (control.tagName === 'A') {\n      const icon = control.querySelector('mat-icon')?.textContent?.trim();\n      const title = control.getAttribute('title')?.trim();\n      if (title) return title;\n      if (icon) { const names: Record<string,string> = { home:'Ana sayfa', call:'Telefonla ara', chat:'Mesaj gönder', event_available:'Rezervasyon', arrow_back:'Geri', search:'Ara', favorite:'Favoriler', favorite_border:'Favoriler' }; if (names[icon]) return names[icon]; }\n      return 'Bağlantıyı aç';\n    }\n    if (control.tagName === 'SELECT') return 'Seçim';"
+          )
+
+          # Optional future per-km pricing hook without inventing a rate.
+          path = 'src/models/site-config.model.ts'
+          replace_once(path, '  pricePerHour?: number;\n  flatPrice?: number;', '  pricePerHour?: number;\n  pricePerKm?: number;\n  flatPrice?: number;')
+          PY
+
+      - name: Verify requested behavior
+        run: |
+          grep -q "showOnMobile" src/pages/admin/admin-homepage.component.ts
+          grep -q "hide-tablet" src/components/dynamic-home-section.component.ts
+          ! grep -q "rental-calculator" src/pages/car-detail.component.ts
+          ! grep -q "app-accessible-date-field" src/pages/car-detail.component.ts
+          grep -q "Rezervasyon Oluştur" src/pages/car-detail.component.ts
+          grep -q "sosyal medya bağlantıları doğrulandı" <(tr '[:upper:]' '[:lower:]' < src/pages/admin/admin-footer.component.ts)
+          grep -q "a\[href\]" src/services/accessibility-runtime.service.ts
+          git diff --check
+      - run: npm run lint
+      - run: npx tsc --noEmit -p tsconfig.api.json
+      - run: npm run build
+      - name: Commit V100
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/dynamic-home-section.component.ts src/pages/admin/admin-homepage.component.ts src/pages/car-detail.component.ts src/pages/booking-checkout.component.ts src/pages/admin/admin-footer.component.ts src/services/accessibility-runtime.service.ts src/models/site-config.model.ts
+          git commit -m "V100: responsive admin booking social and accessibility cleanup"
+          git push origin main
+      - name: Remove one-shot workflow
+        run: |
+          git rm .github/workflows/v100-responsive-booking-social-a11y-once.yml
+          git commit -m "ci: remove V100 one-shot workflow"
+          git push origin main

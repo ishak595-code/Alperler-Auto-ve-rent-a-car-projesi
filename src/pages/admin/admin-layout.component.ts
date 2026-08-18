@@ -55,7 +55,7 @@ interface AdminMenuGroup { id: string; title: string; icon: string; items: Admin
 
         <section class="drawer-brand" aria-label="Alperler Auto yönetim alanı">
           <span class="brand-mark" aria-hidden="true">A</span>
-          <div><strong>ALPERLER AUTO</strong><small>Canlı Yönetim Merkezi</small></div>
+          <div><strong>ALPERLER AUTO</strong><small>Yönetim Merkezi</small></div>
         </section>
 
         <div class="menu-search">
@@ -67,7 +67,7 @@ interface AdminMenuGroup { id: string; title: string; icon: string; items: Admin
               [(ngModel)]="menuSearch"
               type="search"
               autocomplete="off"
-              placeholder="Araç, bülten, yasal, SEO…"
+              placeholder="Araç, ayarlar, bülten, görev…"
               aria-label="Yönetim menüsünde sayfa ara"
             />
             @if (menuSearch.trim()) {
@@ -147,14 +147,7 @@ export class AdminLayoutComponent {
       {route:'/admin/system-health',label:'Sistem Sağlığı',icon:'♡',keywords:'hata servis bağlantı'},
     ]},
     { id:'site', title:'Site & Görünüm', icon:'▦', items:[
-      {route:'/admin/homepage',label:'Ana Sayfa Vitrini',icon:'▦',keywords:'bölüm sıra tema vitrin'},
-      {route:'/admin/navigation',label:'Mobil Menü & Alt Bar',icon:'☰',keywords:'hamburger navigasyon buton'},
-      {route:'/admin/footer',label:'Footer & Sosyal Medya',icon:'↓',keywords:'instagram tiktok youtube x bülten'},
-      {route:'/admin/legal',label:'Yasal Metin Merkezi',icon:'§',keywords:'kvkk kiralama satış tur bayilik sözleşme'},
-      {route:'/admin/settings',label:'Genel Ayarlar & Profil',icon:'⚙',keywords:'logo şirket iletişim profil hesap şifre'},
-      {route:'/admin/seo',label:'SEO & Ölçüm',icon:'◎',keywords:'google analytics ads meta og arama'},
-      {route:'/admin/faq-management',label:'SSS Yönetimi',icon:'?',keywords:'sık sorulan sorular cevap'},
-      {route:'/admin/whatsapp',label:'WhatsApp Ayarları',icon:'✆',keywords:'mesaj iletişim'},
+      {route:'/admin/settings',label:'Site Ayarları',icon:'⚙',keywords:'profil genel ana sayfa vitrin menü alt bar footer sosyal medya yasal seo sss whatsapp logo iletişim'},
     ]},
     { id:'content', title:'İçerik & Katalog', icon:'◇', items:[
       {route:'/admin/catalog-editor',label:'Araç & Tur Yayın Stüdyosu',icon:'◇',keywords:'kiralık satılık tur fotoğraf video yeni'},
@@ -197,12 +190,15 @@ export class AdminLayoutComponent {
   closeMenu(): void { this.isMenuOpen.set(false); }
   toggleGroup(id: string): void { this.activeGroup.set(this.activeGroup() === id ? '' : id); }
   groupOpen(id: string): boolean { return this.activeGroup() === id; }
-  isActive(route: string): boolean { return this.currentPath() === route || this.currentPath().startsWith(route + '/'); }
+  isActive(route: string): boolean {
+    if (route === '/admin/settings' && this.isSiteSettingsPath(this.currentPath())) return true;
+    return this.currentPath() === route || this.currentPath().startsWith(route + '/');
+  }
 
   async go(route: string): Promise<void> {
     this.closeMenu();
     this.menuSearch = '';
-    if (this.currentPath() === route) {
+    if (this.currentPath() === route || (route === '/admin/settings' && this.currentPath() === '/admin/settings')) {
       queueMicrotask(() => document.getElementById('admin-page-content')?.focus({ preventScroll: true }));
       return;
     }
@@ -215,13 +211,22 @@ export class AdminLayoutComponent {
   }
 
   pageTitle(): string {
+    if (this.isSiteSettingsPath(this.currentPath())) return 'Site Ayarları';
     const item = this.menuGroups.flatMap(group => group.items).find(item => this.currentPath() === item.route || this.currentPath().startsWith(item.route + '/'));
     return item?.label || 'Kontrol Merkezi';
   }
 
   private openCurrentGroup(path: string): void {
+    if (this.isSiteSettingsPath(path)) {
+      this.activeGroup.set('site');
+      return;
+    }
     const group = this.menuGroups.find(candidate => candidate.items.some(item => path === item.route || path.startsWith(item.route + '/')));
     if (group) this.activeGroup.set(group.id);
+  }
+
+  private isSiteSettingsPath(path: string): boolean {
+    return ['/admin/settings','/admin/homepage','/admin/navigation','/admin/footer','/admin/legal','/admin/seo','/admin/faq-management','/admin/whatsapp'].some(route => path === route || path.startsWith(route + '/'));
   }
 
   private cleanPath(url: string): string {

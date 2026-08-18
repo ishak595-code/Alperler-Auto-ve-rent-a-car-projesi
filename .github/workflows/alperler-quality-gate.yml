@@ -1,5 +1,5 @@
 # Validates the complete latest tree, including frontend, Vercel Functions and Supabase runtime.
-# V120B validation checkpoint: catalogue is server-authoritative and TalkBack controls stay labelled.
+# V121 PR validation checkpoint: no static catalogue, stale browser cache, URL media authoring or unlabeled TalkBack controls.
 name: Alperler Professional Quality Gate
 
 on:

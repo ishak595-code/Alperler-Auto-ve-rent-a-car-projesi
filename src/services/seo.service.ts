@@ -1,128 +1,171 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, effect, inject } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
-import { Router, NavigationEnd } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
-import { CarService } from '../services/car.service';
+import { SiteConfig } from '../models/site-config.model';
+import { CarService } from './car.service';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class SeoService {
-  private title = inject(Title);
-  private meta = inject(Meta);
-  private router = inject(Router);
-  private carService = inject(CarService);
+  private readonly title = inject(Title);
+  private readonly meta = inject(Meta);
+  private readonly router = inject(Router);
+  private readonly carService = inject(CarService);
+  private readonly config = this.carService.getConfig();
 
-  private scriptsInjected = false;
+  private initialized = false;
+  private trackingSignature = '';
 
-  init() {
-    // Inject scripts once on app load
-    this.injectTrackingScripts();
+  private readonly configEffect = effect(() => {
+    const config = this.config();
+    if (!this.initialized || typeof document === 'undefined') return;
+    this.setDefaults(config);
+    this.syncTrackingScripts(config);
+  });
 
-    // Reset default SEO tags on navigation
-    this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe((event: any) => {
-      // Don't auto-reset if it's a detail page (it will set its own immediately)
-      // but to be safe, we reset to home defaults and let components override
-      if (
-        !event.urlAfterRedirects.includes('/fleet/') &&
-        !event.urlAfterRedirects.includes('/sales/') &&
-        !event.urlAfterRedirects.includes('/tours/')
-      ) {
-        this.setDefaults();
-      }
-    });
+  init(): void {
+    if (this.initialized) return;
+    this.initialized = true;
 
-    // Make sure we set initially
-    this.setDefaults();
+    const config = this.config();
+    this.setDefaults(config);
+    this.syncTrackingScripts(config);
+
+    this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe((event) => {
+        const url = (event as NavigationEnd).urlAfterRedirects;
+        if (!url.includes('/fleet/') && !url.includes('/sales/') && !url.includes('/tour/')) {
+          this.setDefaults();
+        } else {
+          this.updateCanonicalUrl();
+        }
+      });
   }
 
-  setDefaults() {
-    const config = this.carService.getConfig()();
-    const defaultTitle = `${config.companyName} | Rent a Car - Tur - Araç Alım Satım`;
-    const defaultDesc = config.seoDescription || `Hayalinizdeki aracı kiralayın veya satın alın. ${config.companyName} güvencesiyle 7/24 hizmet, geniş filo ve kusursuz müşteri deneyimi. Global standartlarda rent a car hizmeti.`;
-    const defaultKeywords = config.seoKeywords || 'rent a car, araç kiralama, araba kiralama, araba satın al, lüks araç kiralama, havaalanı transfer, vip transfer, egea kiralama, clio kiralama, en iyi rent a car';
+  setDefaults(config: SiteConfig = this.config()): void {
+    const title = config.seoTitle?.trim() || `${config.companyName} | Rent a Car - Tur - Araç Alım Satım`;
+    const description = config.seoDescription?.trim() || `Hayalinizdeki aracı kiralayın veya satın alın. ${config.companyName} güvencesiyle araç kiralama, satış ve tur hizmetlerini inceleyin.`;
+    const keywords = config.seoKeywords?.trim() || 'rent a car, araç kiralama, araba kiralama, araba satın al, tur, transfer';
+    const image = config.seoOgImage?.trim() || config.logoUrl?.trim() || 'https://images.unsplash.com/photo-1503376762279-7fce1c4c1aef?q=80&w=1200&auto=format&fit=crop';
 
     this.updateSeoTags({
-      title: defaultTitle,
-      description: defaultDesc,
-      keywords: defaultKeywords,
-      image: config.logoUrl || 'https://images.unsplash.com/photo-1503376762279-7fce1c4c1aef?q=80&w=1200&auto=format&fit=crop'
+      title,
+      description,
+      keywords,
+      image,
+      author: config.seoAuthor?.trim(),
+      ogTitle: config.seoOgTitle?.trim(),
+      ogDescription: config.seoOgDescription?.trim(),
+      twitterHandle: config.seoTwitterHandle?.trim(),
     });
   }
 
-  updateSeoTags(config: { title: string, description: string, image?: string, keywords?: string }) {
+  updateSeoTags(config: {
+    title: string;
+    description: string;
+    image?: string;
+    keywords?: string;
+    author?: string;
+    ogTitle?: string;
+    ogDescription?: string;
+    twitterHandle?: string;
+  }): void {
     this.title.setTitle(config.title);
 
-    // Standard Tags
     this.meta.updateTag({ name: 'description', content: config.description });
-    if (config.keywords) {
-      this.meta.updateTag({ name: 'keywords', content: config.keywords });
-    }
+    if (config.keywords) this.meta.updateTag({ name: 'keywords', content: config.keywords });
+    else this.meta.removeTag('name="keywords"');
 
-    // Open Graph / Facebook
+    if (config.author) this.meta.updateTag({ name: 'author', content: config.author });
+    else this.meta.removeTag('name="author"');
+
+    const socialTitle = config.ogTitle || config.title;
+    const socialDescription = config.ogDescription || config.description;
+
     this.meta.updateTag({ property: 'og:type', content: 'website' });
-    this.meta.updateTag({ property: 'og:title', content: config.title });
-    this.meta.updateTag({ property: 'og:description', content: config.description });
-    if (config.image) {
-      this.meta.updateTag({ property: 'og:image', content: config.image });
-    }
+    this.meta.updateTag({ property: 'og:title', content: socialTitle });
+    this.meta.updateTag({ property: 'og:description', content: socialDescription });
+    if (config.image) this.meta.updateTag({ property: 'og:image', content: config.image });
+    else this.meta.removeTag('property="og:image"');
 
-    // Twitter
-    this.meta.updateTag({ property: 'twitter:card', content: 'summary_large_image' });
-    this.meta.updateTag({ property: 'twitter:title', content: config.title });
-    this.meta.updateTag({ property: 'twitter:description', content: config.description });
-    if (config.image) {
-      this.meta.updateTag({ property: 'twitter:image', content: config.image });
-    }
+    this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
+    this.meta.updateTag({ name: 'twitter:title', content: socialTitle });
+    this.meta.updateTag({ name: 'twitter:description', content: socialDescription });
+    if (config.image) this.meta.updateTag({ name: 'twitter:image', content: config.image });
+    else this.meta.removeTag('name="twitter:image"');
+
+    if (config.twitterHandle) this.meta.updateTag({ name: 'twitter:site', content: config.twitterHandle });
+    else this.meta.removeTag('name="twitter:site"');
+
+    this.updateCanonicalUrl();
   }
 
-  private injectTrackingScripts() {
-    if (this.scriptsInjected) return;
-    
-    // Server Side Rendering check if applied in future, but we are client side.
-    const config = this.carService.getConfig()();
-    const head = document.getElementsByTagName('head')[0];
+  updateJsonLd(schema: unknown): void {
+    if (typeof document === 'undefined') return;
+    const head = document.head;
+    const scriptId = 'dynamic-json-ld';
+    document.getElementById(scriptId)?.remove();
 
-    // Google Analytics
-    if (config.googleAnalyticsId) {
-      const gtmScript = document.createElement('script');
-      gtmScript.async = true;
-      gtmScript.src = `https://www.googletagmanager.com/gtag/js?id=${config.googleAnalyticsId}`;
-      head.appendChild(gtmScript);
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(schema);
+    head.appendChild(script);
+  }
 
-      const gtmInit = document.createElement('script');
-      gtmInit.innerHTML = `
+  private updateCanonicalUrl(): void {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+    const canonicalUrl = `${window.location.origin}${window.location.pathname}`;
+
+    let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = canonicalUrl;
+    this.meta.updateTag({ property: 'og:url', content: canonicalUrl });
+  }
+
+  private syncTrackingScripts(config: SiteConfig): void {
+    if (typeof document === 'undefined') return;
+
+    const analyticsId = this.cleanTrackingId(config.googleAnalyticsId);
+    const adsId = this.cleanTrackingId(config.googleAdsId);
+    const pixelId = this.cleanTrackingId(config.metaPixelId);
+    const signature = `${analyticsId}|${adsId}|${pixelId}`;
+    if (signature === this.trackingSignature) return;
+    this.trackingSignature = signature;
+
+    document.querySelectorAll('[data-alperler-tracking="true"]').forEach((node) => node.remove());
+
+    const head = document.head;
+    const googleIds = Array.from(new Set([analyticsId, adsId].filter(Boolean)));
+    for (const id of googleIds) {
+      const external = document.createElement('script');
+      external.async = true;
+      external.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`;
+      external.dataset['alperlerTracking'] = 'true';
+      head.appendChild(external);
+    }
+
+    if (googleIds.length) {
+      const googleInit = document.createElement('script');
+      googleInit.dataset['alperlerTracking'] = 'true';
+      googleInit.text = `
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
-        gtag('config', '${config.googleAnalyticsId}');
+        ${googleIds.map((id) => `gtag('config', '${this.escapeInline(id)}');`).join('\n        ')}
       `;
-      head.appendChild(gtmInit);
+      head.appendChild(googleInit);
     }
 
-    // Google Ads
-    if (config.googleAdsId && config.googleAdsId !== config.googleAnalyticsId) {
-      const adsScript = document.createElement('script');
-      adsScript.async = true;
-      adsScript.src = `https://www.googletagmanager.com/gtag/js?id=${config.googleAdsId}`;
-      head.appendChild(adsScript);
-
-      const adsInit = document.createElement('script');
-      adsInit.innerHTML = `
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', '${config.googleAdsId}');
-      `;
-      head.appendChild(adsInit);
-    }
-
-    // Meta Pixel
-    if (config.metaPixelId) {
+    if (pixelId) {
       const metaInit = document.createElement('script');
-      metaInit.innerHTML = `
+      metaInit.dataset['alperlerTracking'] = 'true';
+      metaInit.text = `
         !function(f,b,e,v,n,t,s)
         {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
         n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -131,32 +174,23 @@ export class SeoService {
         t.src=v;s=b.getElementsByTagName(e)[0];
         s.parentNode.insertBefore(t,s)}(window, document,'script',
         'https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init', '${config.metaPixelId}');
+        fbq('init', '${this.escapeInline(pixelId)}');
         fbq('track', 'PageView');
       `;
       head.appendChild(metaInit);
 
       const noscript = document.createElement('noscript');
-      noscript.innerHTML = `<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${config.metaPixelId}&ev=PageView&noscript=1"/>`;
-      head.appendChild(noscript);
+      noscript.dataset['alperlerTracking'] = 'true';
+      noscript.innerHTML = `<img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=${encodeURIComponent(pixelId)}&ev=PageView&noscript=1"/>`;
+      document.body?.appendChild(noscript);
     }
-    
-    this.scriptsInjected = true;
   }
 
-  updateJsonLd(schema: any) {
-    const head = document.getElementsByTagName('head')[0];
-    const scriptId = 'dynamic-json-ld';
-    
-    let existingScript = document.getElementById(scriptId);
-    if (existingScript) {
-      head.removeChild(existingScript);
-    }
+  private cleanTrackingId(value?: string): string {
+    return String(value || '').trim().replace(/[^A-Za-z0-9_-]/g, '').slice(0, 80);
+  }
 
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.type = 'application/ld+json';
-    script.text = JSON.stringify(schema);
-    head.appendChild(script);
+  private escapeInline(value: string): string {
+    return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   }
 }

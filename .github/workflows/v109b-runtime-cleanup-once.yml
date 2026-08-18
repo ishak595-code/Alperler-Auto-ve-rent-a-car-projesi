@@ -1,0 +1,59 @@
+name: V109B Runtime Cleanup Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v109b-runtime-cleanup-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Apply repository cleanup
+        run: |
+          set -euo pipefail
+          python scripts/v109_runtime_cleanup.py
+          git diff --check
+
+      - name: Validate media and accessibility report
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run media:vehicles
+          node scripts/check-accessible-buttons.mjs --report-only
+          npx tsc --noEmit
+          npx tsc -p tsconfig.api.json --noEmit
+          npm run build
+
+      - name: Commit verified cleanup
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/v109b-runtime-cleanup-once.yml
+          rm -f .github/workflows/v109-local-vehicle-media-once.yml
+          rm -f scripts/v109_localize_vehicle_media.py
+          rm -f scripts/v109_runtime_cleanup.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "V109: remove legacy vehicle media paths and harden TalkBack controls"
+          git push origin HEAD:main

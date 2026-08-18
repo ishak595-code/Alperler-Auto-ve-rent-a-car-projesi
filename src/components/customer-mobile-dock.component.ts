@@ -2,6 +2,7 @@ import { Component, HostListener, inject, signal } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from "@angular/router";
 import { filter } from "rxjs/operators";
+import { CarService } from "../services/car.service";
 import { NavigationConfigService } from "../services/navigation-config.service";
 
 @Component({
@@ -47,6 +48,7 @@ import { NavigationConfigService } from "../services/navigation-config.service";
 export class CustomerMobileDockComponent {
   readonly router = inject(Router);
   readonly navigation = inject(NavigationConfigService);
+  private readonly carService = inject(CarService);
   readonly hidden = signal(false);
   private lastScrollY = 0;
 
@@ -77,7 +79,6 @@ export class CustomerMobileDockComponent {
 
     const delta = currentY - this.lastScrollY;
     if (Math.abs(delta) < 6) return;
-
     if (delta > 0 && currentY > 96) this.navigation.setMobileDockAutoHidden(true);
     if (delta < 0) this.navigation.setMobileDockAutoHidden(false);
     this.lastScrollY = currentY;
@@ -85,7 +86,9 @@ export class CustomerMobileDockComponent {
 
   private updateVisibility(rawUrl: string): void {
     const path = this.cleanPath(rawUrl);
+    const bookingCheckoutActive = path.startsWith("/contact") && this.carService.getBookingRequest() !== null;
     const shouldHide =
+      bookingCheckoutActive ||
       path.startsWith("/admin") ||
       path.startsWith("/branch-portal") ||
       /^\/(fleet|sales)\/[^/]+$/.test(path) ||

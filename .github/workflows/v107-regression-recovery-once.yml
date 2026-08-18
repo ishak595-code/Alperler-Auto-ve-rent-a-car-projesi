@@ -1,3 +1,4 @@
+# Retry marker: apply the verified V107 recovery exactly once.
 name: V107 Regression Recovery Once
 
 on:
@@ -35,21 +36,14 @@ jobs:
               p.write_text(text.replace(old, new, 1))
               print("patched", path)
 
-          # 1) Restore the approved mobile homepage Hero + Hızlı Planlama.
           home = "src/pages/home-v71.component.ts"
           replace_once(home,
               '.hero-copy-block{transform:none}.hero-stage{display:block;padding-top:1.05rem;padding-bottom:1.4rem}.desktop-search,.planner,.trust-row{display:none!important}',
               '.hero-copy-block,.planner{transform:none}.hero-stage{display:block;padding-top:1.05rem;padding-bottom:1.4rem}.desktop-search{display:none!important}.trust-row{margin-bottom:.15rem}')
 
-          # 2) Booking checkout: native date controls instead of three Day/Month/Year selects.
           booking = "src/pages/booking-checkout.component.ts"
-          replace_once(booking,
-              'import { AccessibleDateFieldComponent } from "../components/accessible-date-field.component";\n',
-              '')
-          replace_once(booking,
-              'imports: [CommonModule, FormsModule, MatIconModule, AccessibleDateFieldComponent],',
-              'imports: [CommonModule, FormsModule, MatIconModule],')
-
+          replace_once(booking, 'import { AccessibleDateFieldComponent } from "../components/accessible-date-field.component";\n', '')
+          replace_once(booking, 'imports: [CommonModule, FormsModule, MatIconModule, AccessibleDateFieldComponent],', 'imports: [CommonModule, FormsModule, MatIconModule],')
           old_dates = '''                <div class="[--date-bg:#020617] [--date-border:#334155] [--date-color:#fff] [--date-muted:#94a3b8]">
                   <app-accessible-date-field label="Alış tarihi" [value]="startDate" [min]="today" (valueChange)="setStartDate($event)" />
                 </div>
@@ -67,7 +61,6 @@ jobs:
                   <input id="booking-end-date" type="date" [min]="startDate || today" [(ngModel)]="endDate" (ngModelChange)="setEndDate($event)" aria-label="Araç iade tarihi seç" title="Araç iade tarihi seç" class="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-white outline-none focus:ring-2 focus:ring-blue-500" />
                 </label>'''
           replace_once(booking, old_dates, new_dates)
-
           old_extras_button = '''              <button type="button" (click)="openExtras()" class="mt-5 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-950 px-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400" aria-label="Teslimat, şoför tercihi ve ek hizmetleri seç">
                 <span class="flex min-w-0 items-center gap-3">
                   <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-300"><mat-icon aria-hidden="true">tune</mat-icon></span>
@@ -99,10 +92,9 @@ jobs:
               </button>'''
           replace_once(booking, old_extras_button, new_extras_button)
           replace_once(booking,
-              '''  readonly pickupChoices = computed(() => this.buildLocationChoices(this.branchService.pickupPoints(), "pickupLocations"));''',
-              '''  readonly quickExtras = computed(() => this.rentalExtras().filter((item) => ["driver", "child-seat", "extra-protection"].includes(item.id)));\n\n  readonly pickupChoices = computed(() => this.buildLocationChoices(this.branchService.pickupPoints(), "pickupLocations"));''')
+              '  readonly pickupChoices = computed(() => this.buildLocationChoices(this.branchService.pickupPoints(), "pickupLocations"));',
+              '  readonly quickExtras = computed(() => this.rentalExtras().filter((item) => ["driver", "child-seat", "extra-protection"].includes(item.id)));\n\n  readonly pickupChoices = computed(() => this.buildLocationChoices(this.branchService.pickupPoints(), "pickupLocations"));')
 
-          # 3) Rental detail: retain data, fix dark-theme contrast and mobile action bar.
           detail = "src/pages/car-detail.component.ts"
           p = Path(detail)
           text = p.read_text()
@@ -139,33 +131,16 @@ jobs:
         </div>'''
           replace_once(detail, old_bar, new_bar)
 
-          # 4) The global mobile dock must not cover checkout embedded under /contact.
           dock = "src/components/customer-mobile-dock.component.ts"
-          replace_once(dock,
-              'import { NavigationConfigService } from "../services/navigation-config.service";\n',
-              'import { NavigationConfigService } from "../services/navigation-config.service";\nimport { CarService } from "../services/car.service";\n')
-          replace_once(dock,
-              '  readonly navigation = inject(NavigationConfigService);\n  readonly hidden = signal(false);',
-              '  readonly navigation = inject(NavigationConfigService);\n  private readonly carService = inject(CarService);\n  readonly hidden = signal(false);')
-          replace_once(dock,
-              '''    const shouldHide =
-      path.startsWith("/admin") ||''',
-              '''    const bookingCheckoutActive = path.startsWith("/contact") && this.carService.getBookingRequest() !== null;\n    const shouldHide =\n      bookingCheckoutActive ||\n      path.startsWith("/admin") ||''')
+          replace_once(dock, 'import { NavigationConfigService } from "../services/navigation-config.service";\n', 'import { NavigationConfigService } from "../services/navigation-config.service";\nimport { CarService } from "../services/car.service";\n')
+          replace_once(dock, '  readonly navigation = inject(NavigationConfigService);\n  readonly hidden = signal(false);', '  readonly navigation = inject(NavigationConfigService);\n  private readonly carService = inject(CarService);\n  readonly hidden = signal(false);')
+          replace_once(dock, '    const shouldHide =\n      path.startsWith("/admin") ||', '    const bookingCheckoutActive = path.startsWith("/contact") && this.carService.getBookingRequest() !== null;\n    const shouldHide =\n      bookingCheckoutActive ||\n      path.startsWith("/admin") ||')
 
-          # Regression invariants before committing.
-          home_text = Path(home).read_text()
-          booking_text = Path(booking).read_text()
-          detail_text = Path(detail).read_text()
-          dock_text = Path(dock).read_text()
+          home_text = Path(home).read_text(); booking_text = Path(booking).read_text(); detail_text = Path(detail).read_text(); dock_text = Path(dock).read_text()
           assert '.desktop-search,.planner,.trust-row{display:none!important}' not in home_text
-          assert '.desktop-search{display:none!important}' in home_text
-          assert '<aside class="planner"' in home_text
-          assert 'AccessibleDateFieldComponent' not in booking_text
-          assert '<app-accessible-date-field' not in booking_text
-          assert 'type="date"' in booking_text
-          assert 'quickExtras' in booking_text
-          assert 'rental-calculator' not in detail_text
-          assert '>Ara</a>' in detail_text and '>WhatsApp</button>' in detail_text and '>Rezerve Et</button>' in detail_text
+          assert '.desktop-search{display:none!important}' in home_text and '<aside class="planner"' in home_text
+          assert 'AccessibleDateFieldComponent' not in booking_text and '<app-accessible-date-field' not in booking_text and 'type="date"' in booking_text and 'quickExtras' in booking_text
+          assert 'rental-calculator' not in detail_text and '>Ara</a>' in detail_text and '>WhatsApp</button>' in detail_text and '>Rezerve Et</button>' in detail_text
           assert 'bookingCheckoutActive' in dock_text
           print('V107 regression invariants passed')
           PY

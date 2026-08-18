@@ -24,13 +24,13 @@ interface LegalField {
         <header class="rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8">
           <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div class="max-w-3xl">
-              <p class="text-[11px] font-black uppercase tracking-[.18em] text-blue-400">Tek kaynak · site_config</p>
+              <p class="text-[11px] font-black uppercase tracking-[.18em] text-blue-400">Yasal içerik yönetimi</p>
               <h1 class="mt-2 text-3xl font-black">Yasal Metin Merkezi</h1>
-              <p class="mt-2 text-sm leading-6 text-slate-300">Genel politikalar ile kiralama, satış, tur, araç değerlendirme, şube/bayilik ve bülten süreçlerine özel metinleri aynı canlı veritabanından yönetin.</p>
+              <p class="mt-2 text-sm leading-6 text-slate-300">Kiralama, satış, tur, araç değerlendirme, şube, bülten ve genel kullanım süreçlerinde müşteriye gösterilecek metinleri buradan yönetin.</p>
             </div>
             <div class="flex flex-wrap gap-2">
-              <a routerLink="/legal" target="_blank" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-black text-white" aria-label="Müşteri yasal sayfasını yeni sekmede aç"><mat-icon aria-hidden="true">open_in_new</mat-icon>Canlı Sayfayı Aç</a>
-              <button type="button" (click)="reload()" class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-black text-slate-950" aria-label="Yasal metinleri veritabanından yeniden yükle"><mat-icon aria-hidden="true">refresh</mat-icon>Yenile</button>
+              <a routerLink="/legal" target="_blank" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-black text-white" aria-label="Müşteri yasal sayfasını yeni sekmede aç"><mat-icon aria-hidden="true">open_in_new</mat-icon>Müşteri Sayfasını Aç</a>
+              <button type="button" (click)="reload()" class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-black text-slate-950" aria-label="Kayıtlı yasal metinleri yeniden yükle"><mat-icon aria-hidden="true">refresh</mat-icon>Yenile</button>
             </div>
           </div>
         </header>
@@ -50,19 +50,19 @@ interface LegalField {
               <div><h2 class="text-xl font-black text-slate-950">{{ field.title }}</h2><p class="mt-1 text-sm leading-6 text-slate-500">{{ field.description }}</p></div>
             </header>
             <div class="p-5 md:p-6">
-              <label [for]="'legal-'+field.key" class="mb-2 block text-xs font-black uppercase tracking-wider text-slate-600">Yayımlanan metin</label>
+              <label [for]="'legal-'+field.key" class="mb-2 block text-xs font-black uppercase tracking-wider text-slate-600">Müşteriye gösterilecek metin</label>
               <textarea [id]="'legal-'+field.key" [ngModel]="fieldValue(field.key)" (ngModelChange)="setFieldValue(field.key,$event)" rows="24" class="min-h-[520px] w-full resize-y rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm leading-7 text-slate-800 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10" [attr.aria-label]="field.title + ' içeriği'"></textarea>
               <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p class="text-xs leading-5 text-slate-500">{{ fieldValue(field.key).length }} karakter · Kaydettiğinizde Supabase site_config güncellenir ve public legal sayfa Realtime ile yenilenir.</p>
-                <button type="button" (click)="save()" [disabled]="saving()" class="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-black text-white shadow-lg disabled:opacity-50" aria-label="Yasal metin değişikliklerini kaydet ve yayınla"><mat-icon aria-hidden="true">save</mat-icon>{{ saving() ? 'Kaydediliyor…' : 'Kaydet ve Yayınla' }}</button>
+                <p class="text-xs leading-5 text-slate-500">{{ fieldValue(field.key).length }} karakter · Kaydettiğinizde bu içerik müşterilerin gördüğü yasal bilgilendirme sayfasında güncellenir.</p>
+                <button type="button" (click)="save()" [disabled]="saving()" class="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-black text-white shadow-lg disabled:opacity-50" aria-label="Yasal metin değişikliklerini kaydet ve yayınla"><mat-icon aria-hidden="true">save</mat-icon>{{ saving() ? 'Kaydediliyor…' : 'Kaydet ve Uygula' }}</button>
               </div>
             </div>
           </section>
         }
 
         <section class="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950">
-          <strong class="block font-black">Operasyonel belge uyarısı</strong>
-          Bu ekran metinleri yönetir; vergi levhası, ticaret sicili, ikinci el motorlu kara taşıtı ticareti yetki belgesi, EİDS yetkilendirmesi veya faaliyet türüne göre gerekebilecek diğer resmî izinlerin yerine geçmez. Mevcut olmayan belge numaralarını metinlere eklemeyin.
+          <strong class="block font-black">Resmî belge hatırlatması</strong>
+          Bu bölüm müşteriye gösterilecek açıklama ve koşulları düzenler. Vergi levhası, ticaret sicili, ikinci el araç ticareti yetki belgesi, EİDS yetkilendirmesi veya faaliyet türüne göre gereken diğer resmî belgelerin yerine geçmez. Sahip olmadığınız belge veya izin numarasını metinlere eklemeyin.
         </section>
       </div>
     </main>
@@ -100,7 +100,7 @@ export class AdminLegalCenterComponent implements OnInit {
   async reload(): Promise<void> {
     await this.cars.refreshCloudCatalog(true);
     this.copyConfig();
-    this.toast.show('Yasal metinler canlı veritabanından yenilendi.', 'success');
+    this.toast.show('Kayıtlı yasal metinler yenilendi.', 'success');
   }
 
   async save(): Promise<void> {
@@ -109,10 +109,10 @@ export class AdminLegalCenterComponent implements OnInit {
     try {
       await this.cars.updateConfig({ ...this.form });
       this.copyConfig();
-      this.toast.show('Yasal metinler Supabase’e kaydedildi ve yayımlandı.', 'success');
+      this.toast.show('Yasal metinler kaydedildi ve müşteri sayfasına uygulandı.', 'success');
     } catch (error) {
       console.error(error);
-      this.toast.show('Yasal metinler kaydedilemedi. Oturum ve bağlantıyı kontrol edin.', 'error');
+      this.toast.show('Yasal metinler kaydedilemedi. Bağlantınızı kontrol edip yeniden deneyin.', 'error');
     } finally { this.saving.set(false); }
   }
 

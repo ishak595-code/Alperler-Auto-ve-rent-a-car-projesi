@@ -41,6 +41,12 @@ interface PublicCatalogMediaRow {
   is_cover?: boolean | null;
 }
 
+const PROXIED_MEDIA_HOSTS = new Set([
+  "commons.wikimedia.org",
+  "upload.wikimedia.org",
+  "images.unsplash.com",
+]);
+
 @Injectable({ providedIn: "root" })
 export class PublicCatalogMediaService {
   async loadAll(): Promise<PublicCatalogMediaItem[]> {
@@ -106,7 +112,7 @@ export class PublicCatalogMediaService {
       tourId: row.tour_id || undefined,
       kind,
       url,
-      posterUrl: row.poster_url || undefined,
+      posterUrl: row.poster_url ? this.proxyExternalUrl(row.poster_url) : undefined,
       sourceUrl: row.source_url || undefined,
       sourceName: row.source_name || undefined,
       license: row.license || undefined,
@@ -122,10 +128,20 @@ export class PublicCatalogMediaService {
     storageBucket?: string | null,
     objectPath?: string | null,
   ): string {
-    if (externalUrl?.startsWith("https://")) return externalUrl;
+    if (externalUrl?.startsWith("https://")) return this.proxyExternalUrl(externalUrl);
     if (!storageBucket || !objectPath) return "";
     const encodedBucket = encodeURIComponent(storageBucket);
     const encodedPath = objectPath.split("/").map(encodeURIComponent).join("/");
     return `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${encodedBucket}/${encodedPath}`;
+  }
+
+  private proxyExternalUrl(value: string): string {
+    try {
+      const url = new URL(value);
+      if (url.protocol !== "https:" || !PROXIED_MEDIA_HOSTS.has(url.hostname)) return value;
+      return `/api/media-proxy?url=${encodeURIComponent(url.toString())}`;
+    } catch {
+      return "";
+    }
   }
 }

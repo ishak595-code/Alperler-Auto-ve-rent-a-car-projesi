@@ -41,12 +41,6 @@ interface PublicCatalogMediaRow {
   is_cover?: boolean | null;
 }
 
-const PROXIED_MEDIA_HOSTS = new Set([
-  "commons.wikimedia.org",
-  "upload.wikimedia.org",
-  "images.unsplash.com",
-]);
-
 @Injectable({ providedIn: "root" })
 export class PublicCatalogMediaService {
   async loadAll(): Promise<PublicCatalogMediaItem[]> {
@@ -104,7 +98,7 @@ export class PublicCatalogMediaService {
   private fromRow(row: PublicCatalogMediaRow): PublicCatalogMediaItem | null {
     const kind = row.kind === "VIDEO" ? "VIDEO" : row.kind === "IMAGE" ? "IMAGE" : null;
     if (!kind) return null;
-    const url = this.resolveUrl(row.external_url, row.storage_bucket, row.object_path, Boolean(row.vehicle_id));
+    const url = this.resolveUrl(row.external_url, row.storage_bucket, row.object_path);
     if (!url) return null;
     return {
       id: row.id,
@@ -112,7 +106,7 @@ export class PublicCatalogMediaService {
       tourId: row.tour_id || undefined,
       kind,
       url,
-      posterUrl: row.poster_url ? this.proxyExternalUrl(row.poster_url) : undefined,
+      posterUrl: row.poster_url ? this.safeExternalUrl(row.poster_url) : undefined,
       sourceUrl: row.source_url || undefined,
       sourceName: row.source_name || undefined,
       license: row.license || undefined,
@@ -127,22 +121,20 @@ export class PublicCatalogMediaService {
     externalUrl?: string | null,
     storageBucket?: string | null,
     objectPath?: string | null,
-    vehicleOwned = false,
   ): string {
-    // Vehicle media is file-backed only. External proxy support is retained solely
-    // for older tour content until those records are migrated separately.
-    if (!vehicleOwned && externalUrl?.startsWith("https://")) return this.proxyExternalUrl(externalUrl);
-    if (!storageBucket || !objectPath) return "";
-    const encodedBucket = encodeURIComponent(storageBucket);
-    const encodedPath = objectPath.split("/").map(encodeURIComponent).join("/");
-    return `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${encodedBucket}/${encodedPath}`;
+    if (storageBucket && objectPath) {
+      const encodedPath = objectPath.split("/").map(encodeURIComponent).join("/");
+      if (storageBucket === "catalog-media") return `/vehicle-media/${encodedPath}`;
+      const encodedBucket = encodeURIComponent(storageBucket);
+      return `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${encodedBucket}/${encodedPath}`;
+    }
+    return this.safeExternalUrl(externalUrl || "");
   }
 
-  private proxyExternalUrl(value: string): string {
+  private safeExternalUrl(value: string): string {
     try {
       const url = new URL(value);
-      if (url.protocol !== "https:" || !PROXIED_MEDIA_HOSTS.has(url.hostname)) return value;
-      return `/api/media-proxy?url=${encodeURIComponent(url.toString())}`;
+      return url.protocol === "https:" ? url.toString() : "";
     } catch {
       return "";
     }

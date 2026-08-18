@@ -3,7 +3,6 @@ import { Component, OnInit, computed, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { Router } from "@angular/router";
-import { AccessibleDateFieldComponent } from "../components/accessible-date-field.component";
 import { Branch } from "../models/branch.model";
 import { RentalExtraOption } from "../models/site-config.model";
 import { BookingService } from "../services/booking.service";
@@ -20,7 +19,7 @@ interface LocationChoice {
 @Component({
   selector: "app-booking-checkout",
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, AccessibleDateFieldComponent],
+  imports: [CommonModule, FormsModule, MatIconModule],
   template: `
     <main class="min-h-screen bg-slate-950 pb-24 text-slate-200">
       <header class="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/95 backdrop-blur">
@@ -66,23 +65,33 @@ interface LocationChoice {
                     <option value="longterm">Uzun Dönem</option>
                   </select>
                 </label>
-
                 <div class="hidden sm:block"></div>
 
-                <div class="[--date-bg:#020617] [--date-border:#334155] [--date-color:#fff] [--date-muted:#94a3b8]">
-                  <app-accessible-date-field label="Alış tarihi" [value]="startDate" [min]="today" (valueChange)="setStartDate($event)" />
-                </div>
+                <label for="booking-start-date" class="block">
+                  <span class="mb-2 block text-xs font-bold uppercase text-slate-400">Alış Tarihi</span>
+                  <input id="booking-start-date" type="date" [min]="today" [(ngModel)]="startDate" (ngModelChange)="setStartDate($event)" aria-label="Araç alış tarihi seç" title="Araç alış tarihi seç" class="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-white outline-none focus:ring-2 focus:ring-blue-500" />
+                </label>
 
-                <div class="[--date-bg:#020617] [--date-border:#334155] [--date-color:#fff] [--date-muted:#94a3b8]">
-                  <app-accessible-date-field label="İade tarihi" [value]="endDate" [min]="startDate || today" (valueChange)="setEndDate($event)" />
-                </div>
+                <label for="booking-end-date" class="block">
+                  <span class="mb-2 block text-xs font-bold uppercase text-slate-400">İade Tarihi</span>
+                  <input id="booking-end-date" type="date" [min]="startDate || today" [(ngModel)]="endDate" (ngModelChange)="setEndDate($event)" aria-label="Araç iade tarihi seç" title="Araç iade tarihi seç" class="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-white outline-none focus:ring-2 focus:ring-blue-500" />
+                </label>
               </div>
 
-              <button type="button" (click)="openExtras()" class="mt-5 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-950 px-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400" aria-label="Teslimat, şoför tercihi ve ek hizmetleri seç">
+              <div class="mt-5 grid gap-3 sm:grid-cols-3" aria-label="Hızlı hizmet seçenekleri">
+                @for (extra of quickExtras(); track extra.id) {
+                  <label class="flex min-h-16 items-center gap-3 rounded-xl border border-slate-700 bg-slate-950 px-4" [class.opacity-50]="extraUnavailable(extra)">
+                    <input type="checkbox" class="h-5 w-5 shrink-0" [checked]="isExtraSelected(extra.id)" [disabled]="extraLocked(extra) || extraUnavailable(extra)" (change)="toggleExtra(extra)" [attr.aria-label]="extra.label + ' seçeneğini aç veya kapat'" />
+                    <span class="min-w-0"><strong class="block text-sm text-white">{{ extra.label }}</strong><small class="mt-1 block text-xs text-slate-400">{{ extraPriceLabel(extra) }}</small></span>
+                  </label>
+                }
+              </div>
+
+              <button type="button" (click)="openExtras()" class="mt-4 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-950 px-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400" aria-label="Teslimat ve diğer hizmetleri seç">
                 <span class="flex min-w-0 items-center gap-3">
                   <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-300"><mat-icon aria-hidden="true">tune</mat-icon></span>
                   <span class="min-w-0">
-                    <strong class="block text-sm text-white">Teslimat, Şoför ve Ek Hizmetler</strong>
+                    <strong class="block text-sm text-white">Teslimat ve Diğer Hizmetler</strong>
                     <small class="block truncate text-xs text-slate-400">{{ extrasButtonSummary() }}</small>
                   </span>
                 </span>
@@ -90,29 +99,10 @@ interface LocationChoice {
               </button>
 
               <div class="mt-5 space-y-2 rounded-xl border border-blue-500/20 bg-blue-500/10 p-4" aria-live="polite" aria-atomic="true">
-                <div class="flex items-center justify-between gap-3 text-sm">
-                  <span class="text-slate-300">Araç bedeli · {{ totalDays() }} gün</span>
-                  <strong class="text-white">{{ baseRentalTotal() | number }} ₺</strong>
-                </div>
-                @if (extrasTotal() > 0) {
-                  <div class="flex items-center justify-between gap-3 text-sm">
-                    <span class="text-slate-300">Şoför ve ek hizmetler</span>
-                    <strong class="text-white">{{ extrasTotal() | number }} ₺</strong>
-                  </div>
-                }
-                @if (matchedDistanceKm() > 0) {
-                  <div class="flex items-center justify-between gap-3 text-sm">
-                    <span class="text-slate-300">Mesafe / yakıt · {{ matchedDistanceKm() | number:'1.0-1' }} km</span>
-                    <strong class="text-white">{{ routeFuelTotal() | number }} ₺</strong>
-                  </div>
-                }
-                <div class="mt-2 flex items-end justify-between gap-3 border-t border-blue-300/15 pt-3">
-                  <div>
-                    <div class="text-xs font-bold uppercase text-blue-300">Tahmini Toplam</div>
-                    <div class="mt-1 text-xs text-slate-400">Rezervasyon onayından önce tekrar doğrulanır.</div>
-                  </div>
-                  <div class="text-2xl font-black text-blue-300">{{ totalPrice() | number }} ₺</div>
-                </div>
+                <div class="flex items-center justify-between gap-3 text-sm"><span class="text-slate-300">Araç bedeli · {{ totalDays() }} gün</span><strong class="text-white">{{ baseRentalTotal() | number }} ₺</strong></div>
+                @if (extrasTotal() > 0) { <div class="flex items-center justify-between gap-3 text-sm"><span class="text-slate-300">Şoför ve ek hizmetler</span><strong class="text-white">{{ extrasTotal() | number }} ₺</strong></div> }
+                @if (matchedDistanceKm() > 0) { <div class="flex items-center justify-between gap-3 text-sm"><span class="text-slate-300">Mesafe / yakıt · {{ matchedDistanceKm() | number:'1.0-1' }} km</span><strong class="text-white">{{ routeFuelTotal() | number }} ₺</strong></div> }
+                <div class="mt-2 flex items-end justify-between gap-3 border-t border-blue-300/15 pt-3"><div><div class="text-xs font-bold uppercase text-blue-300">Tahmini Toplam</div><div class="mt-1 text-xs text-slate-400">Rezervasyon onayından önce tekrar doğrulanır.</div></div><div class="text-2xl font-black text-blue-300">{{ totalPrice() | number }} ₺</div></div>
               </div>
             </section>
           }
@@ -156,19 +146,17 @@ interface LocationChoice {
         <div class="fixed inset-0 z-[120] flex items-end justify-center sm:items-center" role="presentation">
           <button type="button" class="absolute inset-0 bg-black/70" (click)="closeExtras()" aria-label="Ek hizmetler penceresini kapat"></button>
           <section class="relative z-10 max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl border border-slate-700 bg-slate-900 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-slate-100 shadow-2xl sm:rounded-3xl sm:p-6" role="dialog" aria-modal="true" aria-labelledby="extras-title">
-            <div class="flex items-start justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wider text-blue-400">Rezervasyonu Özelleştir</p><h2 id="extras-title" class="mt-1 text-xl font-black text-white">Teslimat, Şoför ve Ek Hizmetler</h2></div><button type="button" (click)="closeExtras()" aria-label="Kapat" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">close</mat-icon></button></div>
+            <div class="flex items-start justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wider text-blue-400">Rezervasyonu Özelleştir</p><h2 id="extras-title" class="mt-1 text-xl font-black text-white">Teslimat ve Diğer Hizmetler</h2></div><button type="button" (click)="closeExtras()" aria-label="Kapat" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">close</mat-icon></button></div>
 
             <div class="mt-5 grid gap-4 sm:grid-cols-2">
               <label for="pickup-location" class="block"><span class="mb-2 block text-xs font-bold uppercase text-slate-400">Teslim Alma Noktası</span><select id="pickup-location" [ngModel]="pickupLocation()" (ngModelChange)="setPickupLocation($event)" aria-label="Teslim alma noktası" class="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-white">@for (choice of pickupChoices(); track choice.key) { <option [value]="choice.label">{{ choice.label }}</option> }</select></label>
               <label for="dropoff-location" class="block"><span class="mb-2 block text-xs font-bold uppercase text-slate-400">İade Noktası</span><select id="dropoff-location" [ngModel]="dropoffLocation()" (ngModelChange)="setDropoffLocation($event)" aria-label="İade noktası" class="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-white">@for (choice of returnChoices(); track choice.key) { <option [value]="choice.label">{{ choice.label }}</option> }</select></label>
             </div>
 
-            @if (matchedDistanceKm() > 0) {
-              <div class="mt-4 rounded-xl border border-blue-500/25 bg-blue-500/10 p-3 text-sm text-blue-100" aria-live="polite">Tanımlı rota: {{ matchedDistanceKm() | number:'1.0-1' }} km · Tahmini yakıt bedeli {{ routeFuelTotal() | number }} ₺</div>
-            }
+            @if (matchedDistanceKm() > 0) { <div class="mt-4 rounded-xl border border-blue-500/25 bg-blue-500/10 p-3 text-sm text-blue-100" aria-live="polite">Tanımlı rota: {{ matchedDistanceKm() | number:'1.0-1' }} km · Tahmini yakıt bedeli {{ routeFuelTotal() | number }} ₺</div> }
 
             <div class="mt-6 space-y-3">
-              <h3 class="text-sm font-black text-white">Şoför ve ek hizmetler</h3>
+              <h3 class="text-sm font-black text-white">Tüm ek hizmetler</h3>
               @for (extra of rentalExtras(); track extra.id) {
                 <label class="flex min-h-16 items-center gap-3 rounded-xl border border-slate-700 bg-slate-950 p-3" [class.opacity-50]="extraUnavailable(extra)">
                   <input type="checkbox" [checked]="isExtraSelected(extra.id)" (change)="toggleExtra(extra)" [disabled]="extraUnavailable(extra) || extraLocked(extra)" [attr.aria-label]="extra.label" class="h-5 w-5 shrink-0" />
@@ -241,7 +229,7 @@ export class BookingCheckoutComponent implements OnInit {
     const source = Array.isArray(configured) && configured.length ? configured : this.fallbackExtras;
     return source.filter((item) => item.enabled).slice().sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
   });
-
+  readonly quickExtras = computed(() => this.rentalExtras().filter((item) => ["driver", "child-seat", "extra-protection"].includes(item.id)));
   readonly pickupChoices = computed(() => this.buildLocationChoices(this.branchService.pickupPoints(), "pickupLocations"));
   readonly returnChoices = computed(() => {
     const dedicated = this.buildLocationChoices(this.branchService.returnPoints(), "returnLocations");
@@ -266,8 +254,8 @@ export class BookingCheckoutComponent implements OnInit {
   isRental(): boolean { return this.request()?.type === "RENTAL"; }
   setStartDate(value: string): void { this.startDate = value; if (this.endDate && value && this.endDate <= value) this.endDate = ""; this.calculatePrice(); }
   setEndDate(value: string): void { this.endDate = value; this.calculatePrice(); }
-  setPickupLocation(value: string): void { this.pickupLocation.set(String(value || '')); this.calculatePrice(); }
-  setDropoffLocation(value: string): void { this.dropoffLocation.set(String(value || '')); this.calculatePrice(); }
+  setPickupLocation(value: string): void { this.pickupLocation.set(String(value || "")); this.calculatePrice(); }
+  setDropoffLocation(value: string): void { this.dropoffLocation.set(String(value || "")); this.calculatePrice(); }
   openExtras(): void { this.extrasOpen.set(true); }
   closeExtras(): void { this.extrasOpen.set(false); this.calculatePrice(); }
   isExtraSelected(id: string): boolean { return this.selectedExtraIds().includes(id); }
@@ -296,7 +284,7 @@ export class BookingCheckoutComponent implements OnInit {
     const count = this.selectedExtraIds().filter((id) => this.rentalExtras().some((extra) => extra.id === id)).length;
     const pickup = this.pickupLocation();
     const distance = this.matchedDistanceKm();
-    return `${pickup || "Teslim noktası seç"} · ${count ? count + " hizmet" : "Hizmet seçilmedi"}${distance > 0 ? ` · ${distance} km` : ''}`;
+    return `${pickup || "Teslim noktası seç"} · ${count ? count + " hizmet" : "Hizmet seçilmedi"}${distance > 0 ? ` · ${distance} km` : ""}`;
   }
 
   calculatePrice(): void {
@@ -354,8 +342,8 @@ export class BookingCheckoutComponent implements OnInit {
         extrasText ? `Şoför / ek hizmetler: ${extrasText}` : "Şoför / ek hizmetler: Yok",
         `Araç bedeli: ${this.baseRentalTotal()} TRY`,
         `Ek hizmet toplamı: ${this.extrasTotal()} TRY`,
-        this.matchedDistanceKm() > 0 ? `Tanımlı rota mesafesi: ${this.matchedDistanceKm()} km` : '',
-        this.matchedDistanceKm() > 0 ? `Mesafe / yakıt bedeli: ${this.routeFuelTotal()} TRY` : '',
+        this.matchedDistanceKm() > 0 ? `Tanımlı rota mesafesi: ${this.matchedDistanceKm()} km` : "",
+        this.matchedDistanceKm() > 0 ? `Mesafe / yakıt bedeli: ${this.routeFuelTotal()} TRY` : "",
       ] : [];
 
       const record = await this.bookingService.create({
@@ -415,7 +403,7 @@ export class BookingCheckoutComponent implements OnInit {
     });
   }
 
-  private normalizeLocation(value: string): string { return String(value || '').replace(/\s+/g, ' ').trim().toLocaleLowerCase('tr-TR'); }
+  private normalizeLocation(value: string): string { return String(value || "").replace(/\s+/g, " ").trim().toLocaleLowerCase("tr-TR"); }
 
   private buildLocationChoices(branches: Branch[], serviceRuleKey: string): LocationChoice[] {
     const values: LocationChoice[] = [];

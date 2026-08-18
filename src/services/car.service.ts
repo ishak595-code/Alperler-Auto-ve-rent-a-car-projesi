@@ -862,18 +862,6 @@ export class CarService {
 
     effect(() => localStorage.setItem("db_config_v12", JSON.stringify(this._config())));
     effect(() => localStorage.setItem("db_tours_v14", JSON.stringify(this._tours())));
-    effect(() =>
-      localStorage.setItem(
-        "db_cars_v12",
-        JSON.stringify(this._inventory().filter((vehicle) => vehicle.category === "RENTAL")),
-      ),
-    );
-    effect(() =>
-      localStorage.setItem(
-        "db_saleCars_v12",
-        JSON.stringify(this._inventory().filter((vehicle) => vehicle.category === "SALE")),
-      ),
-    );
     effect(() => localStorage.setItem("db_blog_v12", JSON.stringify(this._blogPosts())));
     effect(() => localStorage.setItem("db_reservations_v2", JSON.stringify(this._reservations())));
     effect(() => localStorage.setItem("db_partnerRequests_v2", JSON.stringify(this._partnerRequests())));
@@ -891,22 +879,17 @@ export class CarService {
     localStorage.removeItem("db_config");
     localStorage.removeItem("db_faqs");
 
+    // Vehicle inventory is server-authoritative. Purge every historical local
+    // rental/sale snapshot before the current cloud catalogue is loaded.
+    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+      const key = localStorage.key(index);
+      if (key && (key.startsWith("db_cars") || key.startsWith("db_saleCars"))) {
+        localStorage.removeItem(key);
+      }
+    }
+
     this.readStorage("db_config_v12", (value) => {
       this._config.set(this.normalizeConfig(value as Partial<SiteConfig>));
-    });
-    this.readStorage("db_cars_v12", (value) => {
-      if (!Array.isArray(value) || value.length === 0) return;
-      this._inventory.update((inventory) => [
-        ...inventory.filter((vehicle) => vehicle.category !== "RENTAL"),
-        ...value.map((vehicle) => ({ ...(vehicle as Vehicle), category: "RENTAL" as const })),
-      ]);
-    });
-    this.readStorage("db_saleCars_v12", (value) => {
-      if (!Array.isArray(value) || value.length === 0) return;
-      this._inventory.update((inventory) => [
-        ...inventory.filter((vehicle) => vehicle.category !== "SALE"),
-        ...value.map((vehicle) => ({ ...(vehicle as Vehicle), category: "SALE" as const })),
-      ]);
     });
     this.readStorage("db_tours_v14", (value) => {
       if (Array.isArray(value) && value.length > 0) {

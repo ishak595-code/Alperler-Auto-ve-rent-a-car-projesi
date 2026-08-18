@@ -1,0 +1,36 @@
+name: V115 Date Control Audit Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v115-date-control-audit-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - name: Audit raw native date controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p scripts
+          grep -RIn --include='*.ts' --include='*.html' 'type="date"' src | sort > scripts/v115-date-control-audit.txt || true
+          printf '\nRaw datetime-local controls:\n' >> scripts/v115-date-control-audit.txt
+          grep -RIn --include='*.ts' --include='*.html' 'type="datetime-local"' src | sort >> scripts/v115-date-control-audit.txt || true
+          cat scripts/v115-date-control-audit.txt
+      - name: Commit audit report
+        run: |
+          rm -f .github/workflows/v115-date-control-audit-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "audit: inventory raw date controls for TalkBack"
+          git push origin HEAD:main

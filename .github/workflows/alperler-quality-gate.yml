@@ -1,5 +1,5 @@
 # Validates the complete latest tree, including frontend, Vercel Functions and Supabase runtime.
-# V110 validation checkpoint: vehicle media is file-backed and icon-only controls must stay TalkBack-labelled.
+# V120B validation checkpoint: catalogue is server-authoritative and TalkBack controls stay labelled.
 name: Alperler Professional Quality Gate
 
 on:
@@ -83,7 +83,10 @@ jobs:
       - name: TalkBack button accessibility guard
         run: npm run a11y:buttons
 
-      - name: Rental and sale vehicle media guard
+      - name: TalkBack date accessibility guard
+        run: npm run a11y:dates
+
+      - name: Rental and sale vehicle truth/media guard
         run: npm run media:vehicles
 
       - name: Frontend TypeScript quality check

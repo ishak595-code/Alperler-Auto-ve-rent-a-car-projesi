@@ -80,29 +80,11 @@ register();
         <div
           class="relative w-full aspect-square md:aspect-[16/9] bg-[#f8f9fa] overflow-hidden border-b border-slate-200"
         >
-          <!-- FOMO Overlay -->
-          <div class="absolute top-4 left-4 z-40 flex flex-col gap-2">
-            @if (car()?.badge || car()?.isPopular) {
-              <div
-                class="flex items-center gap-1 bg-red-600 px-3 py-1.5 rounded-md shadow-lg animate-pulse w-fit"
-              >
-                <mat-icon class="text-white text-[16px] w-[16px] h-[16px]"
-                  >local_fire_department</mat-icon
-                >
-                <span class="text-white text-xs font-bold tracking-wider">{{
-                  car()?.badge || "ACİL SATILIK"
-                }}</span>
-              </div>
-            }
-            <div
-              class="flex items-center gap-1 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-md text-white shadow-lg w-fit"
-            >
-              <div class="w-2 h-2 rounded-full bg-green-400 animate-ping"></div>
-              <span class="text-xs font-medium"
-                >{{ viewersCount() }} kişi inceliyor</span
-              >
+          @if (car()?.badge) {
+            <div class="absolute left-4 top-4 z-40 rounded-md bg-slate-950/85 px-3 py-1.5 text-xs font-bold tracking-wider text-white shadow-lg backdrop-blur">
+              {{ car()?.badge }}
             </div>
-          </div>
+          }
 
           <swiper-container
             #swiper
@@ -135,20 +117,6 @@ register();
             {{ currentSlide() + 1 }} / {{ allImages().length }}
           </div>
 
-          <!-- Premium Badge Overlay -->
-          <div class="absolute bottom-0 right-0 z-10 flex flex-col items-end">
-            <button
-              class="bg-[#e0e0e0] text-[#666] px-4 py-1 text-[10px] font-bold rounded-tl-lg shadow-sm border-l border-t border-white/50 hover:bg-[#d0d0d0] transition-colors cursor-pointer text-left"
-            >
-              Premium Galeri
-            </button>
-            <button
-              class="bg-blue-400 text-white p-1 rounded-bl-lg shadow-md flex items-center justify-center w-[60px] hover:bg-blue-500 transition-colors cursor-pointer"
-            >
-              <mat-icon class="text-[18px] w-[18px] h-[18px]">stars</mat-icon>
-              <span class="text-[10px] font-black ml-0.5">3. YIL</span>
-            </button>
-          </div>
         </div>
 
         <!-- 3. Title & Price & Basic Info -->
@@ -221,7 +189,7 @@ register();
                 >
                   <span class="text-slate-500">İlan Tarihi</span>
                   <span class="font-medium text-slate-900">{{
-                    car()?.createdAt || "05 Nisan 2026"
+                    listingDate(car())
                   }}</span>
                 </div>
                 <div class="flex justify-between px-4 py-3.5 text-[14px]">
@@ -305,7 +273,7 @@ register();
                 >
                   <span class="text-slate-500">Garanti</span>
                   <span class="font-medium text-slate-900">{{
-                    car()?.warranty || "Yok"
+                    car()?.warranty || "Belirtilmedi"
                   }}</span>
                 </div>
               </div>
@@ -501,7 +469,7 @@ register();
                 class="aspect-[16/9] md:aspect-[21/9] bg-slate-100 rounded-xl flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 mb-4"
               >
                 <mat-icon class="text-4xl mb-2">map</mat-icon>
-                <span class="text-sm font-medium">Harita Yükleniyor...</span>
+                <span class="text-sm font-medium">{{ car()?.location || carService.getConfig()().address || 'Konum bilgisi mevcut değil' }}</span>
               </div>
               <div
                 class="p-4 bg-white shadow-sm rounded-xl border border-slate-100 flex items-start gap-4"
@@ -513,7 +481,7 @@ register();
                 </div>
                 <div>
                   <div class="font-bold text-[16px] text-slate-900">
-                    Alperler Auto
+                    {{ carService.getConfig()().companyName }}
                   </div>
                   <div class="text-[14px] text-slate-600 mt-1 leading-snug">
                     {{ carService.getConfig()().address }}
@@ -536,6 +504,7 @@ register();
             <span class="text-sm">Ara</span>
           </a>
           <button
+            type="button"
             (click)="inquireCar(car())"
             aria-label="Satış Talebi Gönder"
             class="flex-1 bg-[#005c8d] text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
@@ -546,6 +515,7 @@ register();
 
           <!-- Floating WhatsApp/Action Button (Green) -->
           <button
+            type="button"
             (click)="whatsappInquiry()"
             aria-label="WhatsApp ile İletişime Geç"
             class="w-14 h-14 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-lg shadow-green-500/30 active:scale-90 transition-all border-4 border-white"
@@ -572,6 +542,7 @@ register();
                 >{{ activeImageIndex() + 1 }} / {{ allImages().length }}</span
               >
               <button
+                type="button"
                 (click)="closeLightbox()"
                 aria-label="Kapat"
                 class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center"
@@ -598,6 +569,7 @@ register();
                   >
                     <img
                       [src]="img"
+                      [alt]="(car()?.brand || '') + ' ' + (car()?.model || '') + ' galeri görseli ' + ($index + 1)"
                       class="max-w-full max-h-full object-contain cursor-zoom-out"
                       referrerpolicy="no-referrer"
                       (click)="closeLightbox()"
@@ -640,7 +612,6 @@ export class SaleCarDetailComponent implements OnInit, OnDestroy {
   car = signal<Car | null>(null);
   isScrolled = signal(false);
   isLightboxOpen = signal(false);
-  viewersCount = signal(Math.floor(Math.random() * 25) + 8);
   isTechSpecsOpen = signal(false);
   activeImageIndex = signal(0);
   activeTab = signal<"info" | "desc" | "loc">("info");
@@ -668,27 +639,7 @@ export class SaleCarDetailComponent implements OnInit, OnDestroy {
       getTechnicalSpecs(c.brand || "", c.model || "")
     );
     
-    // Provide a generic fallback so the button always appears for all cars
-    if (!specs) {
-      return {
-        maxSpeed: 'Belirtilmemiş',
-        acceleration: 'Belirtilmemiş',
-        cityFuel: 'Belirtilmemiş',
-        highwayFuel: 'Belirtilmemiş',
-        combinedFuel: 'Belirtilmemiş',
-        tankCapacity: 'Belirtilmemiş',
-        trunkCapacity: 'Belirtilmemiş',
-        wheels: 'Orijinal Standart Özelik',
-        dimensions: 'Belirtilmemiş',
-        cylinders: '-',
-        engineVolume: c.engineVolume || 'Belirtilmemiş',
-        enginePower: c.enginePower || 'Belirtilmemiş',
-        torque: 'Belirtilmemiş',
-        weight: 'Belirtilmemiş',
-        drivetrain: c.drivetrain || 'Belirtilmemiş'
-      };
-    }
-    
+    // The panel is shown only when this exact model has a verified specification record.
     return specs;
   });
 
@@ -737,12 +688,12 @@ export class SaleCarDetailComponent implements OnInit, OnDestroy {
         if (found) {
           this.car.set(found);
           const config = this.carService.getConfig()();
-          const pageTitle = `Fırsat Aracı: ${found.title || found.brand + " " + found.model} 💎 | ${config.companyName}`;
+          const pageTitle = `${found.title || found.brand + " " + found.model} | ${config.companyName}`;
 
           this.seoService.updateSeoTags({
             title: pageTitle,
-            description: `Yeni sahibini bekleyen kusursuz ${found.brand} ${found.model} (${found.year}). Detaylı ekspertiz raporu ve kaçırılmayacak fiyat avantajıyla hemen inceleyin ve hayallerinize kavuşun.`,
-            keywords: `${found.brand} güvenilir ikinci el araba, ${found.model} sahibinden garantili, Yüksekova fırsat araçları, Hakkari premium oto galeri, ekspertizli satılık arabalar`,
+            description: `${found.year || ""} ${found.brand} ${found.model} satılık araç ilanı. Kayıtlı fiyat, kilometre, donanım ve araç bilgilerini inceleyin.`,
+            keywords: `${found.brand} ${found.model}, satılık araç, Yüksekova araç ilanı, Hakkari otomobil`,
             image:
               found.image ||
               (found.images && found.images.length > 0
@@ -762,11 +713,11 @@ export class SaleCarDetailComponent implements OnInit, OnDestroy {
             },
             "offers": {
               "@type": "Offer",
-              "url": `https://alperrentacar.online/sales/${found.id}`,
+              "url": window.location.href,
               "priceCurrency": "TRY",
               "price": `${found.price}`,
               "itemCondition": "https://schema.org/UsedCondition",
-              "availability": "https://schema.org/InStock",
+              "availability": found.availability === "Satıldı" ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
               "seller": {
                 "@type": "Organization",
                 "name": config.companyName
@@ -788,6 +739,15 @@ export class SaleCarDetailComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {}
+
+  listingDate(car: Car | null): string {
+    const value = car?.createdAt || car?.updatedAt;
+    if (!value) return "Tarih bilgisi yok";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? "Tarih bilgisi yok"
+      : new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" }).format(date);
+  }
 
   goBack() {
     if (window.history.length > 1) {

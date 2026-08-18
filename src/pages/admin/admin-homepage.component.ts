@@ -62,14 +62,19 @@ interface ThemeOption { value: HomepageTheme; label: string; preview: string; te
               <h4>Hero</h4>
               <label><span>Ana başlık</span><input [(ngModel)]="heroTitle" name="homeHeroTitle" maxlength="180" aria-label="Ana sayfa hero başlığı" /></label>
               <label><span>Açıklama</span><textarea [(ngModel)]="heroSubtitle" name="homeHeroSubtitle" rows="4" maxlength="700" aria-label="Ana sayfa hero açıklaması"></textarea></label>
+              <label><span>Üst güven satırı</span><input [(ngModel)]="heroTrustLine" name="homeHeroTrustLine" maxlength="140" aria-label="Ana sayfa üst güven satırı" /></label>
+              <label><span>Arama kutusu örnek metni</span><input [(ngModel)]="searchPlaceholder" name="homeSearchPlaceholder" maxlength="120" aria-label="Ana sayfa arama kutusu örnek metni" /></label>
               <label><span>Arka plan görseli URL</span><input [(ngModel)]="heroImage" name="homeHeroImage" type="url" placeholder="https://..." aria-label="Ana sayfa hero arka plan görseli URL adresi" /></label>
               <label class="file-button"><span>Hero Görseli Yükle</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" (change)="onHeroImageSelected($event)" aria-label="Ana sayfa hero görseli dosyası seç" /></label>
               @if (topAreaUploading()) { <p class="upload-state" role="status">Hero görseli yükleniyor…</p> }
             </section>
             <section class="editor-block">
               <h4>Hızlı Planlama</h4>
+              <label><span>Üst etiket</span><input [(ngModel)]="plannerKicker" name="homePlannerKicker" maxlength="100" aria-label="Ana sayfa hızlı planlama üst etiketi" /></label>
               <label><span>Planlama başlığı</span><input [(ngModel)]="bookingTitle" name="homeBookingTitle" maxlength="180" aria-label="Ana sayfa hızlı planlama başlığı" /></label>
               <label><span>Planlama açıklaması</span><textarea [(ngModel)]="bookingSubtitle" name="homeBookingSubtitle" rows="4" maxlength="500" aria-label="Ana sayfa hızlı planlama açıklaması"></textarea></label>
+              <label><span>Planlama alt notu</span><textarea [(ngModel)]="plannerNote" name="homePlannerNote" rows="3" maxlength="300" aria-label="Ana sayfa hızlı planlama alt notu"></textarea></label>
+              <fieldset class="themes"><legend>Güven rozetleri</legend><div class="new-grid"><label><span>1. rozet</span><input [(ngModel)]="trustPrice" name="homeTrustPrice" maxlength="80" aria-label="Birinci güven rozeti" /></label><label><span>2. rozet</span><input [(ngModel)]="trustSupport" name="homeTrustSupport" maxlength="80" aria-label="İkinci güven rozeti" /></label><label><span>3. rozet</span><input [(ngModel)]="trustVerified" name="homeTrustVerified" maxlength="80" aria-label="Üçüncü güven rozeti" /></label></div></fieldset>
               <p class="hint">Teslim noktaları ve araç/tur sonuçları mevcut canlı şube ve katalog verilerinden otomatik gelir.</p>
             </section>
           </div>
@@ -216,9 +221,16 @@ export class AdminHomepageComponent implements OnInit {
   readonly topAreaUploading = signal(false);
   heroTitle = '';
   heroSubtitle = '';
+  heroTrustLine = '';
   heroImage = '';
+  searchPlaceholder = '';
+  plannerKicker = '';
   bookingTitle = '';
   bookingSubtitle = '';
+  plannerNote = '';
+  trustPrice = '';
+  trustSupport = '';
+  trustVerified = '';
 
   readonly themes: ThemeOption[] = [
     { value: 'light', label: 'Beyaz', preview: '#ffffff', text: '#0f172a' },
@@ -258,9 +270,16 @@ export class AdminHomepageComponent implements OnInit {
       const homeContent = { ...(current.homeContent || {}) } as Record<string, unknown>;
       homeContent['heroTitle'] = this.heroTitle.trim();
       homeContent['heroSubtitle'] = this.heroSubtitle.trim();
+      homeContent['heroTrustLine'] = this.heroTrustLine.trim();
       homeContent['heroImage'] = this.heroImage.trim();
+      homeContent['searchPlaceholder'] = this.searchPlaceholder.trim();
+      homeContent['plannerKicker'] = this.plannerKicker.trim();
       homeContent['bookingTitle'] = this.bookingTitle.trim();
       homeContent['bookingSubtitle'] = this.bookingSubtitle.trim();
+      homeContent['plannerNote'] = this.plannerNote.trim();
+      homeContent['trustPrice'] = this.trustPrice.trim();
+      homeContent['trustSupport'] = this.trustSupport.trim();
+      homeContent['trustVerified'] = this.trustVerified.trim();
       await this.cars.updateConfig({ ...current, homeContent: homeContent as any });
       await this.cars.refreshCloudCatalog(true);
       this.syncTopArea();
@@ -286,9 +305,16 @@ export class AdminHomepageComponent implements OnInit {
     const home = (this.cars.getConfig()().homeContent || {}) as Record<string, unknown>;
     this.heroTitle = String(home['heroTitle'] || '');
     this.heroSubtitle = String(home['heroSubtitle'] || '');
+    this.heroTrustLine = String(home['heroTrustLine'] || '');
     this.heroImage = String(home['heroImage'] || '');
+    this.searchPlaceholder = String(home['searchPlaceholder'] || '');
+    this.plannerKicker = String(home['plannerKicker'] || '');
     this.bookingTitle = String(home['bookingTitle'] || '');
     this.bookingSubtitle = String(home['bookingSubtitle'] || '');
+    this.plannerNote = String(home['plannerNote'] || '');
+    this.trustPrice = String(home['trustPrice'] || '');
+    this.trustSupport = String(home['trustSupport'] || '');
+    this.trustVerified = String(home['trustVerified'] || '');
   }
 
   async createSection(): Promise<void> {

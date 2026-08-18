@@ -31,7 +31,7 @@ interface PickupChoice {
         <div class="hero-grid" aria-hidden="true"></div>
         <div class="hero-stage">
           <div class="hero-copy-block">
-            <p class="eyebrow">{{ brandName() }} · Hakkâri'den yola çıkan güven</p>
+            <p class="eyebrow">{{ homeContent().heroTrustLine || (brandName() + ' · Hakkâri’den yola çıkan güven') }}</p>
             <h1 id="home-title">{{ homeContent().heroTitle || 'Yolculuğunuz doğru araçla başlasın.' }}</h1>
             <p class="hero-copy">{{ homeContent().heroSubtitle || 'Kiralama, satış ve seçili rotaları tek yerde keşfedin. Size uyan seçeneği bulun, ayrıntıları görün, kararınızı güvenle verin.' }}</p>
 
@@ -39,22 +39,22 @@ interface PickupChoice {
               <label class="sr-only" for="home-search-v80">Araç, tur veya ilan ara</label>
               <div class="search-shell">
                 <mat-icon aria-hidden="true">search</mat-icon>
-                <input id="home-search-v80" type="search" [(ngModel)]="searchQuery" (keyup.enter)="performSearch()" autocomplete="off" placeholder="Marka, model, tur veya ilan no" />
+                <input id="home-search-v80" type="search" [(ngModel)]="searchQuery" (keyup.enter)="performSearch()" autocomplete="off" [placeholder]="homeContent().searchPlaceholder || 'Marka, model, tur veya ilan no'" />
                 <button type="button" (click)="performSearch()">Ara</button>
               </div>
             </div>
 
             <div class="trust-row" aria-label="Alperler Auto hizmet güvenceleri">
-              <span><mat-icon aria-hidden="true">verified</mat-icon> Açık fiyat</span>
-              <span><mat-icon aria-hidden="true">support_agent</mat-icon> Yerel destek</span>
-              <span><mat-icon aria-hidden="true">fact_check</mat-icon> Kontrol edilmiş ilan</span>
+              <span><mat-icon aria-hidden="true">verified</mat-icon> {{ homeContent().trustPrice || 'Açık fiyat' }}</span>
+              <span><mat-icon aria-hidden="true">support_agent</mat-icon> {{ homeContent().trustSupport || 'Yerel destek' }}</span>
+              <span><mat-icon aria-hidden="true">fact_check</mat-icon> {{ homeContent().trustVerified || 'Kontrol edilmiş ilan' }}</span>
             </div>
           </div>
 
           <aside class="planner" aria-labelledby="planner-title">
             <div class="planner-head">
               <div>
-                <p class="planner-kicker">Hızlı Planlama</p>
+                <p class="planner-kicker">{{ homeContent().plannerKicker || 'Hızlı Planlama' }}</p>
                 <h2 id="planner-title">{{ homeContent().bookingTitle || 'Nereden başlayacağınızı seçin' }}</h2>
                 <p class="planner-copy">{{ homeContent().bookingSubtitle || 'Teslim noktanızı ve tarihinizi belirleyin; size uygun seçenekleri birlikte gösterelim.' }}</p>
               </div>
@@ -104,7 +104,7 @@ interface PickupChoice {
               <span>{{ bookingButtonLabel() }}</span><mat-icon aria-hidden="true">arrow_forward</mat-icon>
             </button>
             @if (plannerSummary()) { <p class="planner-summary" aria-live="polite">{{ plannerSummary() }}</p> }
-            <p class="planner-note">Teslim bölgesi ve kesin uygunluk rezervasyon öncesinde doğrulanır.</p>
+            <p class="planner-note">{{ homeContent().plannerNote || 'Teslim bölgesi ve kesin uygunluk rezervasyon öncesinde doğrulanır.' }}</p>
           </aside>
         </div>
       </section>

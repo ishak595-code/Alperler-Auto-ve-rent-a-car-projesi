@@ -99,6 +99,13 @@ export interface SiteConfig {
     heroTitle?: string;
     heroSubtitle?: string;
     heroTrustLine?: string;
+    heroImage?: string;
+    plannerKicker?: string;
+    plannerNote?: string;
+    searchPlaceholder?: string;
+    trustPrice?: string;
+    trustSupport?: string;
+    trustVerified?: string;
     heroCtaSubtext?: string;
     heroCta?: string;
 

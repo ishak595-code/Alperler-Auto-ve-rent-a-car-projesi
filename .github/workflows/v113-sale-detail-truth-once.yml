@@ -1,0 +1,103 @@
+name: V113 Sale Detail Truth Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v113-sale-detail-truth-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Make sale detail factual and dynamic
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('src/pages/sale-car-detail.component.ts')
+          text=p.read_text(encoding='utf-8')
+
+          # Replace random FOMO with the actual configured badge only.
+          pattern=re.compile(r'''          <!-- FOMO Overlay -->\n          <div class="absolute top-4 left-4 z-40 flex flex-col gap-2">[\s\S]*?          </div>\n\n          <swiper-container''')
+          text,n=pattern.subn('''          @if (car()?.badge) {\n            <div class="absolute left-4 top-4 z-40 rounded-md bg-slate-950/85 px-3 py-1.5 text-xs font-bold tracking-wider text-white shadow-lg backdrop-blur">\n              {{ car()?.badge }}\n            </div>\n          }\n\n          <swiper-container''',text,count=1)
+          if n!=1: raise SystemExit('FOMO overlay not found')
+
+          # Delete fake Premium Gallery / 3rd year overlay.
+          pattern=re.compile(r'''\n          <!-- Premium Badge Overlay -->\n          <div class="absolute bottom-0 right-0 z-10 flex flex-col items-end">[\s\S]*?          </div>\n''')
+          text,n=pattern.subn('\n',text,count=1)
+          if n!=1: raise SystemExit('premium overlay not found')
+
+          text=text.replace('car()?.createdAt || "05 Nisan 2026"','listingDate(car())',1)
+          text=text.replace('car()?.warranty || "Yok"','car()?.warranty || "Belirtilmedi"',1)
+          text=text.replace('  viewersCount = signal(Math.floor(Math.random() * 25) + 8);\n','',1)
+
+          # No synthetic technical specifications.
+          pattern=re.compile(r'''    // Provide a generic fallback so the button always appears for all cars\n    if \(!specs\) \{[\s\S]*?\n    \}\n\s*\n    return specs;''')
+          text,n=pattern.subn('''    // The panel is shown only when this exact model has a verified specification record.\n    return specs;''',text,count=1)
+          if n!=1: raise SystemExit('generic technical fallback not found')
+
+          # Real creation/update date, never a fabricated date.
+          anchor='''  goBack() {\n'''
+          if anchor not in text: raise SystemExit('goBack anchor missing')
+          text=text.replace(anchor,'''  listingDate(car: Car | null): string {\n    const value = car?.createdAt || car?.updatedAt;\n    if (!value) return "Tarih bilgisi yok";\n    const date = new Date(value);\n    return Number.isNaN(date.getTime())\n      ? "Tarih bilgisi yok"\n      : new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" }).format(date);\n  }\n\n  goBack() {\n''',1)
+
+          # SEO must describe only fields that are actually present in the record.
+          old='''          const pageTitle = `Fırsat Aracı: ${found.title || found.brand + " " + found.model} 💎 | ${config.companyName}`;\n\n          this.seoService.updateSeoTags({\n            title: pageTitle,\n            description: `Yeni sahibini bekleyen kusursuz ${found.brand} ${found.model} (${found.year}). Detaylı ekspertiz raporu ve kaçırılmayacak fiyat avantajıyla hemen inceleyin ve hayallerinize kavuşun.`,\n            keywords: `${found.brand} güvenilir ikinci el araba, ${found.model} sahibinden garantili, Yüksekova fırsat araçları, Hakkari premium oto galeri, ekspertizli satılık arabalar`,'''
+          new='''          const pageTitle = `${found.title || found.brand + " " + found.model} | ${config.companyName}`;\n\n          this.seoService.updateSeoTags({\n            title: pageTitle,\n            description: `${found.year || ""} ${found.brand} ${found.model} satılık araç ilanı. Kayıtlı fiyat, kilometre, donanım ve araç bilgilerini inceleyin.`,\n            keywords: `${found.brand} ${found.model}, satılık araç, Yüksekova araç ilanı, Hakkari otomobil`,'''
+          if old not in text: raise SystemExit('SEO claim block not found')
+          text=text.replace(old,new,1)
+          text=text.replace('''              "url": `https://alperrentacar.online/sales/${found.id}`,''','''              "url": window.location.href,''',1)
+          text=text.replace('''              "availability": "https://schema.org/InStock",''','''              "availability": found.availability === "Satıldı" ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",''',1)
+
+          # Company/location labels come from current configuration.
+          text=text.replace('''                    Alperler Auto\n                  </div>''','''                    {{ carService.getConfig()().companyName }}\n                  </div>''',1)
+          text=text.replace('''                <span class="text-sm font-medium">Harita Yükleniyor...</span>''','''                <span class="text-sm font-medium">{{ car()?.location || carService.getConfig()().address || 'Konum bilgisi mevcut değil' }}</span>''',1)
+
+          # Lightbox image needs an accessible name.
+          text=text.replace('''                    <img\n                      [src]="img"\n                      class="max-w-full max-h-full object-contain cursor-zoom-out"''','''                    <img\n                      [src]="img"\n                      [alt]="(car()?.brand || '') + ' ' + (car()?.model || '') + ' galeri görseli ' + ($index + 1)"\n                      class="max-w-full max-h-full object-contain cursor-zoom-out"''',1)
+
+          # All action buttons are explicit buttons.
+          text=text.replace('''          <button\n            (click)="inquireCar(car())"''','''          <button\n            type="button"\n            (click)="inquireCar(car())"''',1)
+          text=text.replace('''          <button\n            (click)="whatsappInquiry()"''','''          <button\n            type="button"\n            (click)="whatsappInquiry()"''',1)
+          text=text.replace('''              <button\n                (click)="closeLightbox()"''','''              <button\n                type="button"\n                (click)="closeLightbox()"''',1)
+
+          p.write_text(text,encoding='utf-8')
+
+          # Regression check for the removed fake claims.
+          bad=['05 Nisan 2026','viewersCount','Premium Galeri','3. YIL','ACİL SATILIK','kusursuz ${found.brand}','sahibinden garantili','alperrentacar.online/sales']
+          for token in bad:
+            if token in text: raise SystemExit(f'sale detail stale token remains: {token}')
+          PY
+          git diff --check
+      - name: Validate sale detail cleanup
+        run: |
+          npm ci --no-audit --no-fund
+          npm run media:vehicles
+          npm run a11y:buttons
+          npm run lint
+          npx tsc --noEmit -p tsconfig.api.json
+          npm run build
+      - name: Commit verified sale detail cleanup
+        run: |
+          rm -f .github/workflows/v113-sale-detail-truth-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "V113: remove fabricated sale detail fallbacks"
+          git push origin HEAD:main

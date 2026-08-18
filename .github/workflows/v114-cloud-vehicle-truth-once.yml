@@ -1,0 +1,78 @@
+name: V114 Cloud Vehicle Truth Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v114-cloud-vehicle-truth-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Remove static fallback facts from cloud vehicles
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+          import re
+
+          # A Supabase/cloud vehicle must be self-contained. Static fallback data
+          # is used only when there is no cloud record at all.
+          p=Path('src/services/car.service.ts'); text=p.read_text(encoding='utf-8')
+          pattern=re.compile(r'''  private mergeVehicleWithFallback\(vehicle: Vehicle\): Vehicle \{[\s\S]*?\n  \}\n\n  private replaceVehicleCatalog''')
+          replacement='''  private mergeVehicleWithFallback(vehicle: Vehicle): Vehicle {\n    if (vehicle.cloudId) {\n      return {\n        ...vehicle,\n        images: Array.isArray(vehicle.images) ? vehicle.images : [],\n        gallery: Array.isArray(vehicle.gallery)\n          ? vehicle.gallery\n          : Array.isArray(vehicle.images)\n            ? vehicle.images\n            : [],\n        videos: Array.isArray(vehicle.videos) ? vehicle.videos : [],\n      };\n    }\n\n    const fallback = fallbackInventory.find(\n      (candidate) => String(candidate.id) === String(vehicle.id),\n    );\n    return {\n      ...(fallback || {}),\n      ...vehicle,\n      category: vehicle.category || fallback?.category || "RENTAL",\n    } as Vehicle;\n  }\n\n  private replaceVehicleCatalog'''
+          text,n=pattern.subn(replacement,text,count=1)
+          if n!=1: raise SystemExit('mergeVehicleWithFallback block not found')
+          p.write_text(text,encoding='utf-8')
+
+          # Generic vehicle mutation is metadata-only for business fields. Media
+          # is never written by this endpoint, even when a trusted URL is sent.
+          p=Path('api/catalog.ts'); text=p.read_text(encoding='utf-8')
+          text,n1=re.subn(r'\n    images,\n    cover_image: submittedCover \|\| images\[0\] \|\| null,','',text,count=1)
+          if n1!=1: raise SystemExit('api media column writes not found')
+          old='''    metadata: { ...input, legacyId: id, cloudId: undefined, cloudStockCode: undefined },'''
+          new='''    metadata: (() => {\n      const {\n        image: _image,\n        images: _images,\n        gallery: _gallery,\n        videos: _videos,\n        expertReport: _expertReport,\n        viewers: _viewers,\n        viewersCount: _viewersCount,\n        cloudId: _cloudId,\n        cloudStockCode: _cloudStockCode,\n        ...businessMetadata\n      } = input;\n      return { ...businessMetadata, legacyId: id };\n    })(),'''
+          if old not in text: raise SystemExit('api metadata spread not found')
+          text=text.replace(old,new,1)
+          p.write_text(text,encoding='utf-8')
+
+          # Permanent regression guard.
+          p=Path('scripts/check-vehicle-media.mjs'); text=p.read_text(encoding='utf-8')
+          marker='''if (!catalogApi.includes("VEHICLE_MEDIA_STORAGE_ONLY") || !catalogApi.includes("trustedVehicleMediaUrl") || !catalogApi.includes('case "vehicles":\\n      return "no-store"')) failures.push("vehicle API media/cache guard missing");\n'''
+          if marker not in text: raise SystemExit('media authority guard marker missing')
+          extra='''if (/\.\.\.safeFallback[\\s\\S]*\.\.\.vehicle/.test(carService)) failures.push("cloud vehicles can still inherit static fallback facts");\nconst normalizeStart = catalogApi.indexOf("function normalizeVehicle");\nconst normalizeEnd = catalogApi.indexOf("function normalizeTour", normalizeStart);\nconst normalizeVehicle = catalogApi.slice(normalizeStart, normalizeEnd);\nif (/\\n\\s*images,/.test(normalizeVehicle) || /cover_image:/.test(normalizeVehicle)) failures.push("generic vehicle API can still write media columns");\nif (/metadata:\\s*\\{\\s*\.\.\.input/.test(normalizeVehicle)) failures.push("generic vehicle API still stores raw media shadow fields in metadata");\n'''
+          text=text.replace(marker,marker+extra,1)
+          p.write_text(text,encoding='utf-8')
+          PY
+          git diff --check
+      - name: Validate cloud-only vehicle truth
+        run: |
+          npm ci --no-audit --no-fund
+          npm run media:vehicles
+          npm run a11y:buttons
+          npm run lint
+          npx tsc --noEmit -p tsconfig.api.json
+          npm run build
+      - name: Commit verified truth model
+        run: |
+          rm -f .github/workflows/v114-cloud-vehicle-truth-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "V114: stop mixing static fallback facts into cloud vehicles"
+          git push origin HEAD:main

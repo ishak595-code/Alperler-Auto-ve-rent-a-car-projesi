@@ -9,16 +9,15 @@ let nextDateControlId = 0;
   imports: [MatIconModule],
   template: `
     <div class="date-control">
-      <span class="date-label" [id]="labelId">{{ label }}</span>
+      <span class="date-label">{{ label }}</span>
       <button
         type="button"
         class="date-button"
         [disabled]="disabled"
-        [attr.aria-labelledby]="labelId + ' ' + valueId"
         [attr.aria-label]="accessibleName()"
         (click)="openPicker(dateInput)"
       >
-        <span [id]="valueId" class="date-value">{{ displayValue() }}</span>
+        <span class="date-value" aria-hidden="true">{{ displayValue() }}</span>
         <mat-icon aria-hidden="true">calendar_month</mat-icon>
       </button>
       <input
@@ -50,8 +49,6 @@ export class AccessibleNativeDateComponent {
   @Output() readonly valueChange = new EventEmitter<string>();
 
   readonly inputId = `accessible-date-${++nextDateControlId}`;
-  readonly labelId = `${this.inputId}-label`;
-  readonly valueId = `${this.inputId}-value`;
 
   emitInput(event: Event): void {
     const next = (event.target as HTMLInputElement).value;
@@ -68,7 +65,16 @@ export class AccessibleNativeDateComponent {
   }
 
   accessibleName(): string {
-    return `${this.label}: ${this.displayValue()}`;
+    if (this.value) return `${this.normalizedLabel()} ${this.displayValue()}`;
+    return `${this.normalizedLabel()} seç`;
+  }
+
+  private normalizedLabel(): string {
+    const raw = this.label.trim().toLocaleLowerCase("tr-TR");
+    if (raw.includes("alış")) return "Alış tarihini";
+    if (raw.includes("iade")) return "İade tarihini";
+    if (raw.includes("tur")) return "Tur tarihini";
+    return "Tarihi";
   }
 
   openPicker(input: HTMLInputElement): void {

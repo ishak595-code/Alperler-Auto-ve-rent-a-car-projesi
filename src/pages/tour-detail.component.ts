@@ -1,450 +1,123 @@
-import { Component, inject, OnInit, signal, computed, effect } from "@angular/core";
 import { CommonModule, Location } from "@angular/common";
+import { Component, OnInit, computed, inject, signal } from "@angular/core";
+import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
-import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
-import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
-import { CarService } from "../services/car.service";
-import { Tour } from "../models/car.model";
-import { UiService } from "../services/ui.service";
 import { MatIconModule } from "@angular/material/icon";
+import { AccessibleNativeDateComponent } from "../components/accessible-native-date.component";
+import { Tour } from "../models/car.model";
+import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
+import { BookingService } from "../services/booking.service";
+import { CarService } from "../services/car.service";
+import { PublicDetailDataService } from "../services/public-detail-data.service";
 import { SeoService } from "../services/seo.service";
-import { VehicleCardComponent } from "../components/vehicle-card.component";
-import { TourMediaGalleryComponent } from "../components/tour-media-gallery.component";
 
 @Component({
   selector: "app-tour-detail",
   standalone: true,
-  imports: [CommonModule, MatIconModule, VehicleCardComponent, TourMediaGalleryComponent, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, MatIconModule, AccessibleNativeDateComponent, TurkishCurrencyPipe],
   template: `
-    @if (tour()) {
-      <div class="min-h-screen bg-white animate-fade-in flex flex-col pb-24 lg:pb-0 relative">
-        <div class="sticky top-0 bg-white/90 backdrop-blur-md border-b border-slate-100 px-4 py-4 flex items-center justify-between shadow-sm z-50">
-          <button (click)="goBack()" class="flex items-center text-slate-900 hover:text-blue-600 font-bold transition-colors text-lg">
-            <mat-icon class="mr-2">arrow_back</mat-icon>
-            Geri Dön
-          </button>
-        </div>
+    <main class="tour-page">
+      @if (tour(); as item) {
+        <header class="topbar"><div class="topbar-inner"><button type="button" class="icon-button" (click)="goBack()" aria-label="Turlardan geri dön"><mat-icon aria-hidden="true">arrow_back</mat-icon></button><div><span>Alperler Auto Tur</span><h1>{{ item.title }}</h1></div></div></header>
 
-        <div class="flex-grow pb-24">
-          <div class="relative h-[40vh] sm:h-[50vh] min-h-[300px] w-full">
-            <img [src]="tour()!.image" [alt]="tour()!.title" class="w-full h-full object-cover" />
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent"></div>
-            <div class="absolute bottom-6 left-6 sm:left-12 right-6">
-              <span class="bg-blue-500 text-slate-900 font-bold text-xs px-3 py-1 rounded-full shadow-lg mb-4 inline-block">{{ tour()!.duration }}</span>
-              <h2 class="text-3xl sm:text-5xl font-serif font-bold text-white leading-tight">{{ tour()!.title }}</h2>
-            </div>
+        <section class="gallery" [attr.aria-label]="item.title + ' tur görselleri'">
+          @if (activeImage(); as image) {
+            <div class="gallery-frame"><img [src]="image" [alt]="item.title + ' tur görseli'" loading="eager" decoding="async" (error)="imageFailed(image)" /><div class="gallery-shade"></div><div class="hero-copy"><p>{{ item.duration || 'Tur deneyimi' }}</p><h2>{{ item.title }}</h2></div><div class="gallery-toolbar"><span>{{ currentSlide() + 1 }} / {{ images().length }}</span>@if (images().length > 1) {<div><button type="button" (click)="previousImage()" aria-label="Önceki görsel"><mat-icon aria-hidden="true">chevron_left</mat-icon></button><button type="button" (click)="nextImage()" aria-label="Sonraki görsel"><mat-icon aria-hidden="true">chevron_right</mat-icon></button></div>}</div></div>
+          } @else {<div class="gallery-empty" role="status"><mat-icon aria-hidden="true">landscape</mat-icon><strong>Tur görseli yüklenemedi</strong></div>}
+        </section>
+
+        <div class="detail-layout">
+          <div class="detail-main">
+            <section class="panel summary-panel" aria-labelledby="tour-summary-title"><div class="summary-head"><div><p class="eyebrow">Seçili Rota</p><h2 id="tour-summary-title">{{ item.title }}</h2><p>{{ summaryMeta(item) }}</p></div><div class="price"><span>Kişi başı</span><strong>{{ item.price | turkishCurrency }}</strong></div></div><dl class="facts"><div><dt>Süre</dt><dd>{{ display(item.duration) }}</dd></div><div><dt>Kapasite</dt><dd>{{ item.capacity ? item.capacity + ' kişi' : 'Belirtilmedi' }}</dd></div><div><dt>Buluşma</dt><dd>{{ display(item.meetingPoint) }}</dd></div><div><dt>Durum</dt><dd class="available">Rezervasyona açık</dd></div></dl></section>
+
+            @if (item.description) {<section class="panel accordion-panel"><button type="button" class="accordion-toggle" (click)="aboutOpen.update(v => !v)" [attr.aria-expanded]="aboutOpen()" aria-controls="tour-about"><span><strong>Tur Hakkında</strong><small>Rota ve deneyim açıklaması</small></span><mat-icon aria-hidden="true">{{ aboutOpen() ? 'expand_less' : 'expand_more' }}</mat-icon></button>@if (aboutOpen()) {<p id="tour-about" class="description">{{ item.description }}</p>}</section>}
+
+            @if (itineraryRows().length) {<section class="panel accordion-panel"><button type="button" class="accordion-toggle" (click)="routeOpen.update(v => !v)" [attr.aria-expanded]="routeOpen()" aria-controls="tour-route"><span><strong>Tur Programı</strong><small>{{ itineraryRows().length }} planlı durak / adım</small></span><mat-icon aria-hidden="true">{{ routeOpen() ? 'expand_less' : 'expand_more' }}</mat-icon></button>@if (routeOpen()) {<ol id="tour-route" class="route-list">@for (row of itineraryRows(); track $index) {<li><span>{{ $index + 1 }}</span><p>{{ row }}</p></li>}</ol>}</section>}
+
+            @if (item.highlights?.length || item.includedItems?.length || item.excludedItems?.length) {<section class="panel accordion-panel"><button type="button" class="accordion-toggle" (click)="scopeOpen.update(v => !v)" [attr.aria-expanded]="scopeOpen()" aria-controls="tour-scope"><span><strong>Kapsam ve Öne Çıkanlar</strong><small>Dahil olanlar, hariç olanlar ve deneyimler</small></span><mat-icon aria-hidden="true">{{ scopeOpen() ? 'expand_less' : 'expand_more' }}</mat-icon></button>@if (scopeOpen()) {<div id="tour-scope" class="scope-grid">@if (item.highlights?.length) {<div><h3>Öne Çıkanlar</h3><ul>@for (value of item.highlights; track value) {<li><mat-icon aria-hidden="true">star</mat-icon>{{ value }}</li>}</ul></div>}@if (item.includedItems?.length) {<div><h3>Dahil</h3><ul>@for (value of item.includedItems; track value) {<li><mat-icon aria-hidden="true">check_circle</mat-icon>{{ value }}</li>}</ul></div>}@if (item.excludedItems?.length) {<div><h3>Hariç</h3><ul>@for (value of item.excludedItems; track value) {<li><mat-icon aria-hidden="true">remove_circle_outline</mat-icon>{{ value }}</li>}</ul></div>}</div>}</section>}
           </div>
 
-          <app-tour-media-gallery [tour]="tour()!"></app-tour-media-gallery>
-
-          <div class="max-w-5xl mx-auto px-4 sm:px-6 py-12">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
-              <div class="lg:col-span-2 space-y-10">
-                <section>
-                  <h3 class="text-2xl font-bold text-slate-900 mb-4 flex items-center">
-                    <mat-icon class="text-blue-500 mr-2">explore</mat-icon>
-                    Tur Hakkında Özel Detaylar
-                  </h3>
-                  <p class="text-slate-600 leading-relaxed text-lg bg-slate-50 p-6 rounded-2xl border-l-4 border-blue-500 shadow-sm">{{ tour()!.description }}</p>
-                </section>
-
-                <section>
-                  <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center">
-                    <mat-icon class="text-blue-500 mr-2">star</mat-icon>
-                    Neler Yaşayacaksınız?
-                  </h3>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    @for (highlight of tour()!.highlights; track highlight) {
-                      <div class="flex items-start bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-blue-400 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
-                        <mat-icon class="text-blue-500 mr-3 flex-shrink-0 mt-0.5">check_circle</mat-icon>
-                        <span class="text-slate-700 font-bold tracking-wide">{{ highlight }}</span>
-                      </div>
-                    }
-                  </div>
-                </section>
-
-                @if (tour()!.mapIframeUrl) {
-                  <section class="mt-12">
-                    <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center">
-                      <mat-icon class="text-blue-500 mr-2">map</mat-icon>
-                      Tur Rotası & Konum
-                    </h3>
-                    <div class="w-full h-[250px] md:h-[300px] rounded-3xl overflow-hidden shadow-lg border border-slate-200">
-                      <iframe [src]="safeMapUrl()" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-                    </div>
-                  </section>
-                }
-
-                <section class="mt-12">
-                  <details class="group bg-slate-50 rounded-3xl border border-slate-200 overflow-hidden cursor-pointer">
-                    <summary class="text-xl font-bold text-slate-900 p-6 sm:p-8 flex items-center justify-between select-none">
-                      <div class="flex items-center">
-                        <mat-icon class="text-blue-500 mr-3">info</mat-icon>
-                        İptal, İade ve Kurallar
-                      </div>
-                      <mat-icon class="text-slate-400 group-open:rotate-180 transition-transform duration-300">expand_more</mat-icon>
-                    </summary>
-                    <div class="px-6 sm:px-8 pb-6 sm:pb-8 text-slate-600 space-y-4 text-sm leading-relaxed border-t border-slate-200 pt-6 mt-2">
-                      <p><strong class="text-slate-800">Ücretsiz İptal:</strong> Tur saatinden 48 saat öncesine kadar yapılan iptallerde %100 kesintisiz ücret iadesi.</p>
-                      <p><strong class="text-slate-800">Geç İptal:</strong> Tura 24-48 saat kala yapılan iptallerde %50 kesinti uygulanarak iade yapılır.</p>
-                      <p><strong class="text-slate-800">Son Gün:</strong> Tur gününe 24 saatten az bir süre kala yapılan iptallerde maalesef ücret iadesi yapılamamaktadır.</p>
-                      <p><strong class="text-slate-800">Hava Muhalefeti:</strong> Olumsuz hava koşulları veya mücbir sebepler nedeniyle iptal edilen turlarda ücretsiz tarih değişikliği veya tam iade imkanı sunulur.</p>
-                      <p><strong class="text-slate-800">Seyahat Sigortası:</strong> İsteğe bağlı kapsamlı seyahat ve sağlık sigortası ekibimiz tarafından sizin adınıza yapılabilir.</p>
-                    </div>
-                  </details>
-                </section>
-              </div>
-
-              <div class="lg:col-span-1">
-                <div class="bg-white rounded-t-2xl sm:rounded-3xl p-4 sm:p-8 border-t sm:border border-slate-200 fixed bottom-0 left-0 right-0 sm:relative sm:top-24 sm:sticky shadow-[0_-10px_40px_rgba(0,0,0,0.15)] sm:shadow-xl z-40">
-                  <div class="mb-3 sm:mb-8 flex sm:block items-center justify-between gap-4">
-                    <div class="shrink-0 flex flex-col justify-center">
-                      <div class="text-3xl sm:text-5xl font-black text-slate-900 drop-shadow-sm flex items-baseline gap-1">
-                        <span>{{ tour()!.price }}₺</span>
-                        <span class="text-sm font-bold text-slate-500 uppercase tracking-wide">/ Kişi</span>
-                      </div>
-                    </div>
-
-                    <div class="flex sm:hidden flex-1 justify-end items-center gap-3">
-                      <a [href]="'https://wa.me/905379594851?text=' + tour()!.title + ' turunuz hakkında bilgi almak istiyorum.'" target="_blank" class="bg-[#25D366] text-white w-12 h-12 rounded-xl hover:bg-[#1ebe57] transition-all shadow-md active:scale-95 flex items-center justify-center shrink-0" aria-label="WhatsApp'tan Sor">
-                        <mat-icon class="text-[24px]">chat</mat-icon>
-                      </a>
-                      <button (click)="openReservationModal()" class="bg-slate-900 text-white px-2 h-12 rounded-xl font-bold text-sm hover:bg-blue-600 transition-all shadow-md active:scale-95 flex-1 max-w-[180px] text-center flex items-center justify-center uppercase tracking-wide">Rezervasyon Yap</button>
-                    </div>
-                  </div>
-
-                  <div class="hidden sm:block space-y-4 mb-8">
-                    <div class="flex items-center text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <mat-icon class="text-blue-500 mr-3">verified</mat-icon>
-                      <span class="font-bold">Özel VIP Rehberli Tur</span>
-                    </div>
-                    <div class="flex items-center text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <mat-icon class="text-emerald-500 mr-3">shield</mat-icon>
-                      <span class="font-bold">Seyahat Sigortası Dahil</span>
-                    </div>
-                  </div>
-
-                  <div class="hidden sm:block space-y-3">
-                    <button (click)="openReservationModal()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-lg hover:bg-blue-600 hover:text-white transition-all shadow-lg hover:shadow-blue-500/30 active:scale-95 flex items-center justify-center transform">
-                      <mat-icon class="mr-2">book_online</mat-icon>
-                      Rezervasyon Yap
-                    </button>
-                    <a [href]="'https://wa.me/905379594851?text=' + tour()!.title + ' turunuz hakkında bilgi almak istiyorum.'" target="_blank" class="w-full bg-[#25D366] text-white py-4 rounded-2xl font-bold text-lg hover:bg-[#1ebe57] transition-all shadow-lg active:scale-95 flex items-center justify-center" aria-label="WhatsApp'tan Sor">
-                      <mat-icon class="mr-2 text-[24px]">chat</mat-icon>
-                      WhatsApp'tan Sor
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            @if (recommendedCars().length > 0) {
-              <div class="mt-20 border-t border-slate-100 pt-16">
-                <div class="flex justify-between items-end mb-8">
-                  <div>
-                    <h3 class="text-2xl font-bold text-slate-900">Bu Tura Uygun Araçlar</h3>
-                    <p class="text-slate-500 mt-2">Kendi aracınızla özgürce keşfetmek isterseniz size özel lüks kiralık araç listemiz.</p>
-                  </div>
-                  <button (click)="router.navigate(['/fleet'])" class="hidden sm:flex text-blue-600 font-bold hover:text-blue-800 transition-colors items-center text-sm">
-                    Tüm Araçları Gör
-                    <mat-icon class="ml-1 w-4 h-4 text-[16px]">arrow_forward</mat-icon>
-                  </button>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  @for (car of recommendedCars(); track car.id) {
-                    <div class="h-full">
-                      <app-vehicle-card [car]="car"></app-vehicle-card>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-          </div>
+          <aside class="reserve-panel" aria-labelledby="tour-reserve-title"><p>Rezervasyon</p><h2 id="tour-reserve-title">Bu turu planlayın</h2><span>Tarih ve kişi sayısını seçin; iletişim bilgilerinizi sonraki adımda tamamlayın.</span><div class="reserve-price"><small>Kişi başı başlangıç</small><strong>{{ item.price | turkishCurrency }}</strong></div><button type="button" class="primary-action" (click)="openReservation()">Rezervasyon Oluştur</button><button type="button" class="whatsapp-action" (click)="whatsapp()">WhatsApp ile Sor</button></aside>
         </div>
 
-        @if (isReservationModalOpen()) {
-          <div class="fixed inset-0 z-[999] bg-white flex flex-col animate-fade-in pb-16 lg:pb-0 overflow-y-auto">
-            <div class="sticky top-0 bg-white/90 backdrop-blur-md border-b border-slate-100 px-4 py-4 flex items-center justify-between shadow-sm z-50">
-              <button (click)="closeReservationModal()" [disabled]="isSubmittingReservation()" class="flex items-center text-slate-600 hover:text-slate-900 font-bold transition-colors disabled:opacity-50">
-                <mat-icon class="mr-1">close</mat-icon>
-                Kapat
-              </button>
-              <div class="font-bold text-slate-900 truncate px-4 flex-1 text-center font-serif text-xl">{{ reservationStep() === 1 ? 'Tur Rezervasyonu' : 'Rezervasyon Kaydı' }}</div>
-              <div class="w-16"></div>
-            </div>
+        <nav class="mobile-actions" aria-label="Tur hızlı işlemleri"><button type="button" class="whatsapp" (click)="whatsapp()">WhatsApp</button><button type="button" class="reserve" (click)="openReservation()">Rezerve Et</button></nav>
 
-            <div class="flex-1 w-full max-w-3xl mx-auto px-4 py-8">
-              @if (reservationStep() === 1) {
-                <div class="bg-slate-50 p-6 rounded-3xl mb-8 flex items-center gap-4">
-                  <img [src]="tour()!.image" [alt]="tour()!.title" class="w-20 h-20 object-cover rounded-xl shadow-sm" referrerpolicy="no-referrer">
-                  <div>
-                    <h3 class="font-bold text-xl text-slate-900">{{ tour()!.title }}</h3>
-                    <p class="text-slate-500">{{ tour()!.duration }} - VIP Tur</p>
-                  </div>
-                </div>
-
-                <div class="bg-white border text-center p-6 rounded-3xl mb-8 flex flex-col items-center shadow-[0_10px_40px_rgba(0,0,0,0.03)] border-slate-100">
-                  <label class="font-bold text-slate-700 mb-4 block text-lg">Kaç Kişi Gideceksiniz?</label>
-                  <div class="flex items-center gap-6 bg-slate-50 p-3 rounded-2xl border border-slate-200">
-                    <button (click)="decreasePerson()" aria-label="Kişi Sayısını Azalt" type="button" [disabled]="isSubmittingReservation()" class="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-700 active:scale-95 border border-slate-100 disabled:opacity-50">
-                      <mat-icon>remove</mat-icon>
-                    </button>
-                    <span class="font-black text-3xl w-12 text-center text-slate-900">{{ personCount() }}</span>
-                    <button (click)="increasePerson()" aria-label="Kişi Sayısını Artır" type="button" [disabled]="isSubmittingReservation()" class="w-12 h-12 rounded-xl bg-slate-900 shadow-sm flex items-center justify-center text-white active:scale-95 hover:bg-blue-600 transition-colors disabled:opacity-50">
-                      <mat-icon>add</mat-icon>
-                    </button>
-                  </div>
-                  <div class="mt-6 flex flex-col items-center">
-                    <span class="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Toplam Tutar</span>
-                    <span class="text-4xl font-black text-blue-600">{{ tour()!.price * personCount() }}₺</span>
-                  </div>
-                </div>
-
-                <form [formGroup]="reservationForm" (ngSubmit)="proceedToPayment()" class="space-y-6">
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <label for="tour_first_name" class="block text-sm font-bold text-slate-700 mb-2">Adınız</label>
-                      <input id="tour_first_name" type="text" autocomplete="given-name" formControlName="firstName" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium text-slate-900 placeholder-slate-400" placeholder="Adınız">
-                    </div>
-                    <div>
-                      <label for="tour_last_name" class="block text-sm font-bold text-slate-700 mb-2">Soyadınız</label>
-                      <input id="tour_last_name" type="text" autocomplete="family-name" formControlName="lastName" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium text-slate-900 placeholder-slate-400" placeholder="Soyadınız">
-                    </div>
-                    <div>
-                      <label for="tour_phone" class="block text-sm font-bold text-slate-700 mb-2">Telefon Numaranız</label>
-                      <input id="tour_phone" type="tel" inputmode="tel" autocomplete="tel" formControlName="phone" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium text-slate-900 placeholder-slate-400" placeholder="05XX XXX XX XX">
-                    </div>
-                    <div>
-                      <label for="tour_email" class="block text-sm font-bold text-slate-700 mb-2">E-posta Adresiniz</label>
-                      <input id="tour_email" type="email" inputmode="email" autocomplete="email" formControlName="email" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium text-slate-900 placeholder-slate-400" placeholder="ornek@email.com">
-                    </div>
-                  </div>
-                  <div>
-                    <label for="tour_notes" class="block text-sm font-bold text-slate-700 mb-2">Ek Notlar (İsteğe Bağlı)</label>
-                    <textarea id="tour_notes" formControlName="notes" rows="4" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium text-slate-900 placeholder-slate-400 resize-none" placeholder="Bize iletmek istediğiniz özel bir durum var mı?"></textarea>
-                  </div>
-
-                  @if (reservationSubmitError()) {
-                    <div role="alert" aria-live="assertive" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">
-                      {{ reservationSubmitError() }}
-                    </div>
-                  }
-
-                  <div class="pt-6 border-t border-slate-100 flex justify-end">
-                    <button type="submit" [disabled]="reservationForm.invalid || isSubmittingReservation()" class="bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] active:scale-95 w-full sm:w-auto flex items-center justify-center">
-                      @if (isSubmittingReservation()) {
-                        <mat-icon class="mr-2 animate-spin">progress_activity</mat-icon>
-                        Rezervasyon Kaydediliyor
-                      } @else {
-                        Rezervasyonu Oluştur
-                        <mat-icon class="ml-2">arrow_forward</mat-icon>
-                      }
-                    </button>
-                  </div>
-                </form>
-              }
-
-              @if (reservationStep() === 2) {
-                <div class="text-center py-12 flex flex-col items-center">
-                  <div class="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
-                    <mat-icon class="text-emerald-500 text-[48px] w-[48px] h-[48px]">check_circle</mat-icon>
-                  </div>
-                  <h2 class="text-3xl font-serif font-bold text-slate-900 mb-4">Rezervasyon Talebiniz Kaydedildi</h2>
-                  <p class="text-lg text-slate-600 mb-8 max-w-md mx-auto">
-                    Talebiniz sistemimize kalıcı olarak kaydedildi. Kesin tur onayı, ödeme gereksinimi ve buluşma detayları kayıtlı e-posta veya telefon bilgileriniz üzerinden ayrıca bildirilecektir.
-                  </p>
-                  <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 text-left w-full max-w-sm mb-10 shadow-sm">
-                    <div class="flex justify-between mb-3 text-sm">
-                      <span class="text-slate-500 font-medium">Tur:</span>
-                      <span class="font-bold text-slate-900 text-right">{{ tour()!.title }}</span>
-                    </div>
-                    <div class="flex justify-between mb-3 text-sm">
-                      <span class="text-slate-500 font-medium">Kişi:</span>
-                      <span class="font-bold text-slate-900">{{ personCount() }} Kişi</span>
-                    </div>
-                    <div class="flex justify-between text-sm border-t border-slate-200 pt-3 mt-3">
-                      <span class="text-slate-500 font-bold">Toplam:</span>
-                      <span class="font-black text-blue-600">{{ tour()!.price * personCount() }}₺</span>
-                    </div>
-                  </div>
-                  <button (click)="finishReservation()" class="bg-slate-900 text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-slate-800 transition-all active:scale-95 shadow-md">Ana Sayfaya Dön</button>
-                </div>
+        @if (reservationOpen()) {
+          <div class="reservation-overlay" role="dialog" aria-modal="true" aria-labelledby="tour-booking-title">
+            <header><button type="button" (click)="closeReservation()" aria-label="Tur rezervasyonunu kapat"><mat-icon aria-hidden="true">close</mat-icon></button><div><span>Adım {{ reservationStep() }} / 3</span><h2 id="tour-booking-title">Tur Rezervasyonu</h2></div></header>
+            <div class="reservation-content">
+              @if (reservationSuccess()) {<section class="success" role="status"><mat-icon aria-hidden="true">check_circle</mat-icon><h3>Rezervasyon talebiniz kaydedildi</h3><p>Referans: {{ reservationReference() }}</p><button type="button" (click)="closeReservation()">Tura Dön</button></section>}
+              @else if (reservationStep() === 1) {
+                <section class="step-card"><p class="step-kicker">1. Tarih ve kişi sayısı</p><h3>Ne zaman ve kaç kişi?</h3><app-accessible-native-date label="Tur Tarihi" [value]="tourDate" [min]="today" (valueChange)="tourDate = $event; reservationError.set('')" /><div class="people"><span>Kişi Sayısı</span><div><button type="button" (click)="decreasePerson()" aria-label="Kişi sayısını azalt"><mat-icon aria-hidden="true">remove</mat-icon></button><strong>{{ personCount() }}</strong><button type="button" (click)="increasePerson()" aria-label="Kişi sayısını artır"><mat-icon aria-hidden="true">add</mat-icon></button></div></div><div class="total"><span>Tahmini toplam</span><strong>{{ totalTourPrice() | turkishCurrency }}</strong></div>@if (reservationError()) {<p class="form-error" role="alert">{{ reservationError() }}</p>}<button type="button" class="next" (click)="goToContact()">Sonraki Adım</button></section>
+              } @else if (reservationStep() === 2) {
+                <section class="step-card"><p class="step-kicker">2. İletişim</p><h3>Size nasıl ulaşalım?</h3><div class="form-grid"><label><span>Ad</span><input [(ngModel)]="firstName" autocomplete="given-name" /></label><label><span>Soyad</span><input [(ngModel)]="lastName" autocomplete="family-name" /></label><label><span>Telefon</span><input type="tel" [(ngModel)]="phone" autocomplete="tel" /></label><label><span>E-posta</span><input type="email" [(ngModel)]="email" autocomplete="email" /></label></div><label class="note"><span>Not</span><textarea rows="3" [(ngModel)]="notes"></textarea></label>@if (reservationError()) {<p class="form-error" role="alert">{{ reservationError() }}</p>}<div class="step-actions"><button type="button" class="secondary" (click)="reservationStep.set(1)">Geri</button><button type="button" class="next" (click)="goToReview()">Sonraki Adım</button></div></section>
+              } @else {
+                <section class="step-card"><p class="step-kicker">3. Onay</p><h3>Rezervasyonu kontrol edin</h3><dl class="review"><div><dt>Tur</dt><dd>{{ item.title }}</dd></div><div><dt>Tarih</dt><dd>{{ formattedTourDate() }}</dd></div><div><dt>Kişi</dt><dd>{{ personCount() }}</dd></div><div><dt>Toplam</dt><dd>{{ totalTourPrice() | turkishCurrency }}</dd></div></dl>@if (reservationError()) {<p class="form-error" role="alert">{{ reservationError() }}</p>}<div class="step-actions"><button type="button" class="secondary" (click)="reservationStep.set(2)">Geri</button><button type="button" class="next" (click)="submitReservation()" [disabled]="submitting()">{{ submitting() ? 'Kaydediliyor...' : 'Rezervasyon Talebi Gönder' }}</button></div></section>
               }
             </div>
           </div>
         }
-      </div>
-    } @else {
-      <div class="min-h-screen flex items-center justify-center bg-slate-50">
-        <div class="text-center">
-          <mat-icon class="text-6xl text-slate-300 mb-4">error_outline</mat-icon>
-          <h2 class="text-2xl font-bold text-slate-900 mb-2">Tur Bulunamadı</h2>
-          <p class="text-slate-500 mb-6">Aradığınız tur mevcut değil veya kaldırılmış olabilir.</p>
-          <button (click)="goBack()" class="bg-blue-500 text-slate-900 px-6 py-3 rounded-full font-bold hover:bg-slate-900 hover:text-white transition-colors">Geri Dön</button>
-        </div>
-      </div>
-    }
+      } @else if (loading()) {<section class="state-panel" role="status"><div class="spinner"></div><strong>Tur veritabanından yükleniyor</strong></section>}
+      @else {<section class="state-panel error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><strong>Tur yüklenemedi</strong><span>{{ loadError() }}</span><button type="button" (click)="reload()">Tekrar Dene</button></section>}
+    </main>
   `,
+  styles: [`
+    :host{display:block;background:#050b18;color:#fff}.tour-page{min-height:100dvh;padding-bottom:88px;background:#050b18;font-family:Inter,system-ui,sans-serif}.topbar{border-bottom:1px solid #1e293b;background:#071020}.topbar-inner{width:min(100% - 24px,1180px);min-height:72px;margin:auto;display:flex;align-items:center;gap:10px}.topbar span{color:#fbbf24;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.08em}.topbar h1{margin:2px 0 0;max-width:70vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:900 20px/1.15 Georgia,serif}.icon-button{display:grid;width:46px;height:46px;place-items:center;border:0;border-radius:50%;background:transparent;color:#fff}.gallery{background:#000}.gallery-frame{position:relative;width:min(100%,1180px);margin:auto;aspect-ratio:4/3;overflow:hidden;background:#020617}.gallery-frame>img{width:100%;height:100%;object-fit:cover}.gallery-shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(2,6,23,.92),transparent 62%)}.hero-copy{position:absolute;left:18px;right:18px;bottom:62px}.hero-copy p{margin:0;color:#fcd34d;font-size:12px;font-weight:950;text-transform:uppercase}.hero-copy h2{margin:5px 0 0;font:900 clamp(28px,8vw,52px)/1.05 Georgia,serif}.gallery-toolbar{position:absolute;left:14px;right:14px;bottom:12px;display:flex;justify-content:space-between;align-items:center;pointer-events:none}.gallery-toolbar>span{border-radius:999px;background:rgba(0,0,0,.72);padding:7px 12px;font-size:12px;font-weight:900}.gallery-toolbar>div{display:flex;gap:8px;pointer-events:auto}.gallery-toolbar button{display:grid;width:44px;height:44px;place-items:center;border:0;border-radius:50%;background:rgba(0,0,0,.72);color:#fff}.gallery-empty{min-height:42vh;display:grid;place-content:center;text-align:center;gap:8px}.detail-layout{width:min(100% - 24px,1180px);margin:auto;padding:22px 0;display:grid;gap:18px}.detail-main{display:grid;gap:14px}.panel,.reserve-panel{border:1px solid #253149;border-radius:20px;background:#0b1220;padding:18px;box-shadow:0 14px 34px rgba(0,0,0,.18)}.summary-head{display:flex;flex-direction:column;gap:14px}.eyebrow,.reserve-panel>p,.step-kicker{margin:0;color:#fbbf24;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.08em}.summary-head h2,.reserve-panel h2{margin:5px 0 0;font:900 clamp(30px,8vw,46px)/1.08 Georgia,serif}.summary-head>div>p:last-child,.reserve-panel>span{display:block;margin:8px 0 0;color:#cbd5e1;line-height:1.6}.price span,.reserve-price small{color:#94a3b8;font-size:11px;font-weight:900;text-transform:uppercase}.price strong,.reserve-price strong{display:block;margin-top:4px;color:#fcd34d!important;font-size:30px!important}.facts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0 0}.facts>div{border:1px solid #27344f;border-radius:14px;background:#050b18;padding:14px}.facts dt{color:#94a3b8;font-size:11px;font-weight:900;text-transform:uppercase}.facts dd{margin:7px 0 0;color:#fff;font-weight:900}.facts dd.available{color:#86efac}.accordion-panel{padding:0;overflow:hidden}.accordion-toggle{display:flex;width:100%;min-height:72px;align-items:center;justify-content:space-between;gap:12px;border:0;background:transparent;padding:16px 18px;color:#fff;text-align:left}.accordion-toggle strong{display:block;font-size:17px}.accordion-toggle small{display:block;margin-top:4px;color:#94a3b8}.description{margin:0;padding:0 18px 18px;white-space:pre-line;color:#cbd5e1;line-height:1.75}.route-list{list-style:none;margin:0;padding:0 18px 18px;display:grid;gap:10px}.route-list li{display:flex;gap:10px;align-items:flex-start;border:1px solid #1e293b;border-radius:13px;background:#050b18;padding:12px}.route-list li>span{display:grid;width:28px;height:28px;flex:none;place-items:center;border-radius:50%;background:#1d4ed8;font-weight:900}.route-list p{margin:4px 0 0;color:#e2e8f0}.scope-grid{display:grid;gap:12px;padding:0 18px 18px}.scope-grid>div{border:1px solid #1e293b;border-radius:14px;background:#050b18;padding:14px}.scope-grid h3{margin:0 0 8px;font-size:14px}.scope-grid ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}.scope-grid li{display:flex;gap:8px;color:#cbd5e1}.scope-grid mat-icon{width:19px;height:19px;font-size:19px;color:#fbbf24}.reserve-price{margin-top:16px;border-radius:14px;background:#050b18;padding:14px}.primary-action,.whatsapp-action{width:100%;min-height:52px;margin-top:10px;border:0;border-radius:13px;font-weight:950}.primary-action{background:#d4af37;color:#071020}.whatsapp-action{background:#059669;color:#fff}.mobile-actions{position:fixed;z-index:70;left:0;right:0;bottom:0;display:grid;grid-template-columns:1fr 1.2fr;gap:8px;border-top:1px solid #334155;background:#050b18;padding:10px 12px calc(10px + env(safe-area-inset-bottom))}.mobile-actions button{min-height:52px;border:0;border-radius:13px;font-weight:950}.mobile-actions .whatsapp{background:#059669;color:#fff}.mobile-actions .reserve{background:#d4af37;color:#071020}.reservation-overlay{position:fixed;z-index:999;inset:0;overflow-y:auto;background:#050b18}.reservation-overlay>header{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:12px;border-bottom:1px solid #1e293b;background:rgba(5,11,24,.96);padding:12px 16px}.reservation-overlay>header button{display:grid;width:46px;height:46px;place-items:center;border:0;border-radius:50%;background:#111827;color:#fff}.reservation-overlay>header span{color:#93c5fd;font-size:11px;font-weight:900}.reservation-overlay>header h2{margin:2px 0 0;font:900 20px Georgia,serif}.reservation-content{width:min(100% - 24px,680px);margin:auto;padding:24px 0}.step-card,.success{border:1px solid #253149;border-radius:22px;background:#0b1220;padding:20px}.step-card h3,.success h3{margin:5px 0 18px;font:900 28px Georgia,serif}.people{margin-top:18px}.people>span,.form-grid label>span,.note>span{display:block;margin-bottom:7px;color:#94a3b8;font-size:11px;font-weight:900;text-transform:uppercase}.people>div{display:flex;align-items:center;justify-content:center;gap:20px;border:1px solid #253149;border-radius:14px;background:#050b18;padding:10px}.people button{display:grid;width:44px;height:44px;place-items:center;border:0;border-radius:12px;background:#1e293b;color:#fff}.people strong{min-width:50px;text-align:center;font-size:28px}.total{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-top:16px;border-radius:14px;background:#111827;padding:14px}.total span{color:#94a3b8}.total strong{font-size:25px;color:#fcd34d}.form-grid{display:grid;gap:12px}.form-grid input,.note textarea{width:100%;border:1px solid #334155;border-radius:12px;background:#050b18;padding:13px;color:#fff;font:inherit}.note{display:block;margin-top:12px}.form-error{margin:14px 0 0;border-radius:12px;background:#7f1d1d;padding:12px;color:#fecaca;font-weight:800}.next,.secondary{min-height:50px;border:0;border-radius:12px;font-weight:950}.next{width:100%;margin-top:16px;background:#2563eb;color:#fff}.step-actions{display:grid;grid-template-columns:.7fr 1.3fr;gap:10px;margin-top:16px}.step-actions .next{margin-top:0}.secondary{background:#1e293b;color:#fff}.review{margin:0}.review>div{display:flex;justify-content:space-between;gap:16px;border-top:1px solid #1e293b;padding:12px 0}.review dt{color:#94a3b8}.review dd{margin:0;text-align:right;font-weight:900}.success{text-align:center}.success mat-icon{width:54px;height:54px;font-size:54px;color:#34d399}.success button{min-height:48px;margin-top:14px;border:0;border-radius:12px;background:#fff;padding:0 20px;font-weight:900}.state-panel{min-height:70vh;display:grid;place-content:center;gap:10px;text-align:center;padding:24px}.state-panel button{min-height:46px;border:0;border-radius:12px;background:#2563eb;color:#fff;font-weight:900;padding:0 18px}.spinner{width:40px;height:40px;margin:auto;border:4px solid #334155;border-top-color:#fbbf24;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}@media(min-width:700px){.gallery-frame{aspect-ratio:16/9}.summary-head{flex-direction:row;align-items:end;justify-content:space-between}.price{text-align:right}.scope-grid,.form-grid{grid-template-columns:1fr 1fr}}@media(min-width:1024px){.tour-page{padding-bottom:24px}.gallery-frame{aspect-ratio:21/9}.detail-layout{grid-template-columns:minmax(0,1fr) 360px;align-items:start}.reserve-panel{position:sticky;top:24px}.mobile-actions{display:none}}
+  `],
 })
 export class TourDetailComponent implements OnInit {
-  route = inject(ActivatedRoute);
-  router = inject(Router);
-  location = inject(Location);
-  carService = inject(CarService);
-  uiService = inject(UiService);
-  seoService = inject(SeoService);
-  sanitizer = inject(DomSanitizer);
-  fb = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly location = inject(Location);
+  private readonly detailData = inject(PublicDetailDataService);
+  private readonly carService = inject(CarService);
+  private readonly bookingService = inject(BookingService);
+  private readonly seo = inject(SeoService);
+  private readonly routeId = this.route.snapshot.paramMap.get("id") || "";
 
-  tour = signal<Tour | null>(null);
-  recommendedCars = signal<any[]>([]);
-  personCount = signal<number>(1);
-  isReservationModalOpen = signal(false);
-  reservationStep = signal(1);
-  isSubmittingReservation = signal(false);
-  reservationSubmitError = signal<string | null>(null);
+  readonly tour = signal<Tour | null>(null);
+  readonly loading = signal(true);
+  readonly loadError = signal("");
+  readonly currentSlide = signal(0);
+  readonly aboutOpen = signal(false);
+  readonly routeOpen = signal(false);
+  readonly scopeOpen = signal(false);
+  private readonly failedImages = signal<string[]>([]);
 
-  reservationForm = this.fb.group({
-    firstName: ["", Validators.required],
-    lastName: ["", Validators.required],
-    phone: ["", Validators.required],
-    email: ["", [Validators.required, Validators.email]],
-    notes: [""],
-  });
+  readonly reservationOpen = signal(false);
+  readonly reservationStep = signal<1 | 2 | 3>(1);
+  readonly personCount = signal(1);
+  readonly reservationError = signal("");
+  readonly submitting = signal(false);
+  readonly reservationSuccess = signal(false);
+  readonly reservationReference = signal("");
+  readonly today = new Date().toISOString().slice(0, 10);
+  tourDate = ""; firstName = ""; lastName = ""; phone = ""; email = ""; notes = "";
 
-  safeMapUrl = computed<SafeResourceUrl | null>(() => {
-    const t = this.tour();
-    if (t && t.mapIframeUrl) {
-      return this.sanitizer.bypassSecurityTrustResourceUrl(t.mapIframeUrl);
-    }
-    return null;
-  });
+  readonly images = computed(() => { const item = this.tour(); if (!item) return []; const failed = new Set(this.failedImages()); return this.detailData.mediaUrls(item).filter((url) => !failed.has(url)); });
+  readonly activeImage = computed(() => { const list = this.images(); return list.length ? list[Math.min(this.currentSlide(), list.length - 1)] : ""; });
+  readonly totalTourPrice = computed(() => Number(this.tour()?.price || 0) * this.personCount());
+  readonly itineraryRows = computed(() => (this.tour()?.itinerary || []).map((value, index) => this.itineraryText(value, index)).filter(Boolean));
 
-  private routeId = signal<string | null>(null);
+  async ngOnInit(): Promise<void> { await this.reload(); }
+  async reload(): Promise<void> { this.loading.set(true); this.loadError.set(""); try { const item = await this.detailData.load("TOUR", this.routeId) as Tour; this.tour.set(item); this.failedImages.set([]); this.currentSlide.set(0); const config = this.carService.getConfig()(); this.seo.updateSeoTags({ title: `${item.title || "Tur"} | ${config.companyName}`, description: `${item.title || "Tur"} rota, süre, kişi başı fiyat ve rezervasyon bilgileri.`, image: item.image || config.seoOgImage }); } catch (error) { this.tour.set(null); this.loadError.set(error instanceof Error ? error.message : "Tur verisi alınamadı."); } finally { this.loading.set(false); } }
 
-  constructor() {
-    effect(() => {
-      const id = this.routeId();
-      if (id) {
-        const foundTour = this.carService.getTours()().find((t) => t.id == id);
-        if (foundTour) {
-          this.tour.set(foundTour);
-          const allCars = this.carService.getAllVehicles()();
-          let suggestions = allCars.filter(
-            (c) => c.category === "RENTAL" && (c.type === "SUV" || c.type === "Pickup"),
-          );
+  display(value: unknown): string { return this.detailData.display(value); }
+  summaryMeta(item: Tour): string { return [item.duration, item.location, item.meetingPoint].filter(Boolean).join(" · ") || "Alperler Auto tur deneyimi"; }
+  previousImage(): void { const length = this.images().length; if (length > 1) this.currentSlide.update((i) => (i - 1 + length) % length); }
+  nextImage(): void { const length = this.images().length; if (length > 1) this.currentSlide.update((i) => (i + 1) % length); }
+  imageFailed(url: string): void { this.failedImages.update((items) => items.includes(url) ? items : [...items, url]); this.currentSlide.set(0); }
+  openReservation(): void { this.reservationOpen.set(true); this.reservationStep.set(1); this.reservationError.set(""); this.reservationSuccess.set(false); }
+  closeReservation(): void { if (!this.submitting()) this.reservationOpen.set(false); }
+  increasePerson(): void { const max = Math.max(1, Number(this.tour()?.capacity || 20)); if (this.personCount() < max) this.personCount.update((v) => v + 1); }
+  decreasePerson(): void { if (this.personCount() > 1) this.personCount.update((v) => v - 1); }
+  goToContact(): void { if (!this.tourDate || this.tourDate < this.today) { this.reservationError.set("Geçerli bir tur tarihi seçin."); return; } this.reservationError.set(""); this.reservationStep.set(2); }
+  goToReview(): void { if (!this.firstName.trim() || !this.lastName.trim() || !/^[+0-9()\s-]{7,24}$/.test(this.phone.trim()) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email.trim())) { this.reservationError.set("Ad, soyad, telefon ve geçerli e-posta bilgilerini tamamlayın."); return; } this.reservationError.set(""); this.reservationStep.set(3); }
 
-          if (suggestions.length < 4) {
-            const others = allCars.filter(
-              (c) => c.category === "RENTAL" && !suggestions.includes(c),
-            );
-            suggestions.push(...others.slice(0, 4 - suggestions.length));
-          }
-          this.recommendedCars.set(suggestions.slice(0, 4));
+  async submitReservation(): Promise<void> { const item = this.tour(); if (!item || this.submitting()) return; this.submitting.set(true); this.reservationError.set(""); try { const record = await this.bookingService.create({ type: "TOUR", itemId: item.cloudId || item.id, itemName: item.title || "Tur", image: item.image, customerName: `${this.firstName.trim()} ${this.lastName.trim()}`, customerEmail: this.email.trim(), customerPhone: this.phone.trim(), basePrice: Number(item.price || 0), totalPrice: this.totalTourPrice(), currency: "TRY", personCount: this.personCount(), startDate: this.tourDate, endDate: this.tourDate, notes: this.notes.trim(), paymentMethod: "NONE", source: "WEB" }); this.reservationReference.set(record.id); this.reservationSuccess.set(true); } catch (error) { console.error("Tour booking failed", error); this.reservationError.set("Rezervasyon kaydedilemedi. Lütfen tekrar deneyin."); } finally { this.submitting.set(false); } }
 
-          const config = this.carService.getConfig()();
-          this.seoService.updateSeoTags({
-            title: `${foundTour.title || ""} - Vip Tur | ${config.companyName}`,
-            description: `Alperler Auto güvencesiyle ${foundTour.title || ""} turu. Lüks sınıf araçlar ve deneyimli şoförlerle konforlu bir yolculuk deneyimi.`,
-            keywords: `vip tur, ${(foundTour.title || "").toLowerCase()}, hakkari vip transfer, yüksekova şoförlü araç kiralama, turistik geziler`,
-            image: foundTour.image || config.logoUrl,
-          });
-        }
-      }
-    });
-  }
-
-  ngOnInit() {
-    this.route.params.subscribe((params) => {
-      const id = params["id"];
-      if (id) {
-        this.routeId.set(id);
-      }
-    });
-  }
-
-  goBack() {
-    if (window.history.length > 1) {
-      this.location.back();
-    } else {
-      this.router.navigate(["/"]);
-    }
-  }
-
-  openReservationModal() {
-    this.isReservationModalOpen.set(true);
-    this.reservationStep.set(1);
-    this.reservationSubmitError.set(null);
-    this.isSubmittingReservation.set(false);
-    this.reservationForm.reset();
-  }
-
-  closeReservationModal() {
-    if (this.isSubmittingReservation()) return;
-    this.isReservationModalOpen.set(false);
-  }
-
-  async proceedToPayment(): Promise<void> {
-    if (this.reservationForm.invalid || this.isSubmittingReservation()) {
-      this.reservationForm.markAllAsTouched();
-      return;
-    }
-
-    const val = this.reservationForm.getRawValue();
-    const t = this.tour();
-    if (!t) {
-      this.reservationSubmitError.set("Tur bilgisi yüklenemedi. Lütfen sayfayı yenileyip tekrar deneyin.");
-      return;
-    }
-
-    this.isSubmittingReservation.set(true);
-    this.reservationSubmitError.set(null);
-    const now = new Date().toISOString();
-    const tourReq: any = {
-      type: "TOUR",
-      item: t,
-      itemName: t.title,
-      image: t.image,
-      customerName: `${val.firstName || ""} ${val.lastName || ""}`.trim(),
-      customerPhone: val.phone || "",
-      customerEmail: val.email || "",
-      startDate: now,
-      endDate: now,
-      personCount: this.personCount(),
-      notes: `Tur Rezervasyonu: ${t.title} | Kişi Sayısı: ${this.personCount()}${val.notes ? ` | Not: ${val.notes}` : ""}`,
-      status: "PENDING",
-      basePrice: t.price || 0,
-      totalPrice: (t.price || 0) * this.personCount(),
-    };
-
-    try {
-      await this.carService.addReservation(tourReq);
-      this.reservationStep.set(2);
-    } catch (error) {
-      console.error("Tour reservation could not be persisted.", error);
-      this.reservationSubmitError.set(
-        "Rezervasyon kaydı oluşturulamadı. Hiçbir ödeme adımına geçilmedi. Lütfen bağlantınızı kontrol edip tekrar deneyin.",
-      );
-    } finally {
-      this.isSubmittingReservation.set(false);
-    }
-  }
-
-  finishReservation() {
-    this.closeReservationModal();
-    this.router.navigate(["/"]);
-  }
-
-  increasePerson() {
-    if (this.personCount() < 20 && !this.isSubmittingReservation()) {
-      this.personCount.update((count) => count + 1);
-    }
-  }
-
-  decreasePerson() {
-    if (this.personCount() > 1 && !this.isSubmittingReservation()) {
-      this.personCount.update((count) => count - 1);
-    }
-  }
+  formattedTourDate(): string { if (!this.tourDate) return "Seçilmedi"; const date = new Date(`${this.tourDate}T12:00:00`); return Number.isNaN(date.getTime()) ? this.tourDate : new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" }).format(date); }
+  whatsapp(): void { const item = this.tour(); if (!item) return; const config = this.carService.getConfig()(); const phone = String(config.whatsapp || config.phone || "").replace(/\D/g, ""); if (!phone) return; const message = `Merhaba, ${item.title || "tur"} hakkında bilgi almak istiyorum. ${window.location.href}`; window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer"); }
+  goBack(): void { if (window.history.length > 1) this.location.back(); else void this.router.navigate(["/tours"]); }
+  private itineraryText(value: unknown, index: number): string { if (typeof value === "string") return value.trim(); if (value && typeof value === "object") { const row = value as Record<string, unknown>; return String(row["title"] || row["name"] || row["description"] || row["label"] || `Program adımı ${index + 1}`).trim(); } return ""; }
 }

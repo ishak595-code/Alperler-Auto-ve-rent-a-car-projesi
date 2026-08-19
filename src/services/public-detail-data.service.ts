@@ -1,5 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 import { Vehicle } from "../models/car.model";
+import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { CatalogService } from "./catalog.service";
 
 export type DetailKind = "RENTAL" | "SALE" | "TOUR";
@@ -7,11 +8,11 @@ export type DetailKind = "RENTAL" | "SALE" | "TOUR";
 @Injectable({ providedIn: "root" })
 export class PublicDetailDataService {
   private readonly catalog = inject(CatalogService);
-  private readonly storagePrefix = "https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/";
+  private readonly storagePrefix = `${SUPABASE_PROJECT_URL}/storage/v1/object/public/catalog-media/`;
 
   async load(kind: DetailKind, routeId: string): Promise<Vehicle> {
     const records = kind === "TOUR"
-      ? await this.catalog.loadTours(true)
+      ? await this.loadToursDirect()
       : await this.catalog.loadVehicles(true);
 
     const match = records.find((item) => {
@@ -28,14 +29,14 @@ export class PublicDetailDataService {
       try {
         const tour = await this.load("TOUR", cleanTargetId);
         return `/tour/${encodeURIComponent(String(tour.id))}`;
-      } catch { /* fall through to internal CTA */ }
+      } catch { /* fall through */ }
     }
     if (targetType === "VEHICLE" && cleanTargetId) {
       try {
         const vehicles = await this.catalog.loadVehicles(true);
         const vehicle = vehicles.find((item) => this.matches(item, cleanTargetId));
         if (vehicle) return `${vehicle.category === "SALE" ? "/sales" : "/fleet"}/${encodeURIComponent(String(vehicle.id))}`;
-      } catch { /* fall through to internal CTA */ }
+      } catch { /* fall through */ }
     }
 
     const cta = String(ctaUrl || "").trim();
@@ -68,6 +69,53 @@ export class PublicDetailDataService {
     return text || fallback;
   }
 
+  private async loadToursDirect(): Promise<Vehicle[]> {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/tours?is_active=eq.true&select=*&order=is_featured.desc,updated_at.desc`, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        accept: "application/json",
+        "cache-control": "no-cache",
+      },
+    });
+    if (!response.ok) throw new Error(`TOUR_DETAIL_DB_${response.status}`);
+    const rows = (await response.json()) as Record<string, any>[];
+    return rows.map((row) => this.mapTour(row));
+  }
+
+  private mapTour(row: Record<string, any>): Vehicle {
+    const metadata = row["metadata"] && typeof row["metadata"] === "object" ? row["metadata"] : {};
+    const images = Array.isArray(row["images"])
+      ? row["images"].filter((value: unknown): value is string => typeof value === "string" && Boolean(value.trim()))
+      : [];
+    return {
+      ...metadata,
+      id: this.legacyId(metadata["legacyId"]) ?? row["id"],
+      category: "TOUR",
+      title: String(row["title"] || ""),
+      description: String(row["description"] || row["short_description"] || ""),
+      price: Number(row["price_per_person"] || 0),
+      duration: row["duration"] || undefined,
+      capacity: Number(row["capacity"] || 0) || undefined,
+      meetingPoint: row["meeting_point"] || undefined,
+      itinerary: Array.isArray(row["itinerary"]) ? row["itinerary"] : [],
+      includedItems: Array.isArray(row["included_items"]) ? row["included_items"] : [],
+      excludedItems: Array.isArray(row["excluded_items"]) ? row["excluded_items"] : [],
+      image: row["cover_image"] || images[0] || undefined,
+      images,
+      gallery: images,
+      isFeatured: Boolean(row["is_featured"]),
+      cloudId: row["id"],
+      cloudSlug: row["seo_slug"],
+      publicationStatus: row["publication_status"],
+      branchId: row["branch_id"] || undefined,
+      listingOrigin: row["listing_origin"] || undefined,
+      createdAt: row["created_at"] || undefined,
+      updatedAt: row["updated_at"] || undefined,
+    } as Vehicle;
+  }
+
   private prepare(item: Vehicle, kind: DetailKind): Vehicle {
     const images = this.mediaUrls(item);
     const videos = (item.videos || []).map((video) => ({
@@ -96,6 +144,13 @@ export class PublicDetailDataService {
     const id = String(routeId || "").trim();
     return [item.id, item.cloudId, item.cloudStockCode, item.cloudSlug]
       .some((value) => value !== undefined && value !== null && String(value) === id);
+  }
+
+  private legacyId(value: unknown): number | string | null {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value !== "string" || !value.trim()) return null;
+    const normalized = value.trim();
+    return /^\d+$/.test(normalized) ? Number(normalized) : normalized;
   }
 
   private notFoundMessage(kind: DetailKind): string {

@@ -1,19 +1,23 @@
-/* Runtime-only safeguards for native controls. Keep this file deliberately
-   small so legacy visual patches cannot become a second design system. */
+/* Runtime safeguards only. Component-specific design belongs to components. */
 input[type="date"],
 input[type="datetime-local"] {
   color-scheme: dark;
-  appearance: auto;
-  -webkit-appearance: auto;
 }
 
-/* Chromium/Android can expose its internal calendar glyph to TalkBack as a
-   second, unlabeled button. The date input itself already has an explicit
-   accessible name and remains the single interactive date control. */
+/* Native date inputs used behind the accessible date button must not expose a
+   second Chromium calendar affordance to TalkBack. */
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   display: none;
   -webkit-appearance: none;
+}
+
+/* The quick planner already exposes its choices in the select and validates at
+   submit time. These duplicate helper lines add noise on mobile and to screen
+   readers, so they are intentionally omitted from the rendered experience. */
+app-home-v71 .field small,
+app-home-v71 .planner-note {
+  display: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -22,5 +26,3 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     scroll-behavior: auto !important;
   }
 }
-
-/* Deployment checkpoint: V125 database-authoritative catalogue verified. */

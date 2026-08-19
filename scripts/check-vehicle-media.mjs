@@ -6,10 +6,12 @@ const service = fs.readFileSync("src/services/catalog-media.service.ts", "utf8")
 const publicMedia = fs.readFileSync("src/services/public-catalog-media.service.ts", "utf8");
 const carService = fs.readFileSync("src/services/car.service.ts", "utf8");
 const catalogService = fs.readFileSync("src/services/catalog.service.ts", "utf8");
+const carDetail = fs.readFileSync("src/pages/car-detail.component.ts", "utf8");
 const adminEditor = fs.readFileSync("src/services/catalog-admin-editor.service.ts", "utf8");
 const catalogApi = fs.readFileSync("api/catalog.ts", "utf8");
 const bootstrap = fs.readFileSync("index.tsx", "utf8");
 const vercel = fs.readFileSync("vercel.json", "utf8");
+const campaignMigration = "supabase/migrations/20260819221500_sync_targeted_campaign_cover_from_catalog.sql";
 
 if (fs.existsSync("src/services/mock-data.ts")) {
   failures.push("legacy src/services/mock-data.ts must not be reintroduced");
@@ -46,6 +48,14 @@ if (!catalogService.includes("records.map((record) => this.normalizeVehicleRecor
   failures.push("vehicle API results can bypass the database canonicalizer");
 }
 
+if (!carDetail.includes("this.catalog.loadVehicles(true)")) {
+  failures.push("rental detail does not perform its own fresh database-backed vehicle read");
+}
+if (!carDetail.includes('transmission: car.transmission || "Belirtilmedi"') ||
+    !carDetail.includes('fuel: car.fuel || "Belirtilmedi"')) {
+  failures.push("rental detail canonical fact normalization is missing");
+}
+
 for (const token of ["externalUrl", "addExternalMedia", "Kaynaklı Medyayı Ekle", "Dış görsel", "Dış video"]) {
   if (admin.includes(token)) failures.push(`admin still exposes ${token}`);
 }
@@ -79,12 +89,19 @@ if (!catalogApi.includes('case "vehicles":\n      return "no-store"')) {
   failures.push("vehicle API cache guard missing");
 }
 
-if (!publicMedia.includes("SUPABASE_PROJECT_URL") ||
-    !publicMedia.includes("/storage/v1/object/public/${encodedBucket}/${encodedPath}")) {
-  failures.push("catalog media is not resolved from database-selected Supabase Storage files");
+if (!publicMedia.includes('return `/catalog-media/${encodedPath}`')) {
+  failures.push("catalog media does not resolve through the stable same-origin Storage path");
+}
+if (!vercel.includes('"source": "/catalog-media/:path*"') ||
+    !vercel.includes('supabase.co/storage/v1/object/public/catalog-media/:path*')) {
+  failures.push("same-origin catalog-media external rewrite is missing");
 }
 if (publicMedia.includes("/vehicle-media/") || vercel.includes("/vehicle-media/")) {
-  failures.push("obsolete Vercel vehicle-media proxy layer is still present");
+  failures.push("obsolete Vercel vehicle-media function/proxy layer is still present");
+}
+
+if (!fs.existsSync(campaignMigration)) {
+  failures.push("targeted campaign cover synchronization migration is missing");
 }
 
 if (failures.length) {
@@ -92,4 +109,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("Vehicle truth guard passed: Supabase DB is authoritative, media is upload-only Storage data, canonical facts are not duplicated and no legacy/browser/proxy source can override them.");
+console.log("Vehicle truth guard passed: Supabase DB is authoritative, rental detail refreshes directly from DB, media is upload-only Storage data behind a stable same-origin rewrite, and targeted campaign covers follow canonical catalog media.");

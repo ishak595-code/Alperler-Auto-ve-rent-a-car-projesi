@@ -1,10 +1,11 @@
 import { CommonModule, Location } from "@angular/common";
-import { Component, computed, effect, inject, signal } from "@angular/core";
+import { Component, OnInit, computed, effect, inject, signal } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 import { Car } from "../models/car.model";
 import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
 import { CarService } from "../services/car.service";
+import { CatalogService } from "../services/catalog.service";
 import { SeoService } from "../services/seo.service";
 import { getTechnicalSpecs } from "../data/technical-specs.data";
 
@@ -20,148 +21,169 @@ interface GalleryMedia {
   standalone: true,
   imports: [CommonModule, MatIconModule, TurkishCurrencyPipe],
   template: `
-    <main class="min-h-screen bg-slate-950 pb-32 text-slate-100 lg:pb-8">
-      @if (car(); as vehicle) {
-        <header class="relative z-20 border-b border-slate-800 bg-slate-950 text-white">
-          <div class="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-2 px-3 sm:px-5">
-            <div class="flex min-w-0 items-center gap-2">
-              <button type="button" (click)="goBack()" aria-label="Geri" class="grid h-11 w-11 shrink-0 place-items-center rounded-full hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
-              <div class="min-w-0"><p class="truncate text-xs font-bold uppercase tracking-wider text-blue-300">Kiralık Araç</p><h1 class="truncate text-base font-black text-white sm:text-lg">{{ vehicle.brand }} {{ vehicle.model }}</h1></div>
+    <main class="detail-page">
+      @if (vehicle(); as car) {
+        <header class="detail-header">
+          <div class="detail-header-inner">
+            <div class="header-left">
+              <button type="button" class="icon-button" (click)="goBack()" aria-label="Geri">
+                <mat-icon aria-hidden="true">arrow_back</mat-icon>
+              </button>
+              <div class="header-copy">
+                <span>Kiralık Araç</span>
+                <h1>{{ car.brand }} {{ car.model }}</h1>
+              </div>
             </div>
-            <div class="flex shrink-0 gap-1">
-              <button type="button" (click)="shareCar(vehicle)" aria-label="Paylaş" class="grid h-11 w-11 place-items-center rounded-full hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">share</mat-icon></button>
-              <button type="button" (click)="toggleFav(vehicle.id)" [attr.aria-label]="isFav(vehicle.id) ? 'Favorilerden çıkar' : 'Favorilere ekle'" class="grid h-11 w-11 place-items-center rounded-full hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true" [class.text-red-400]="isFav(vehicle.id)">{{ isFav(vehicle.id) ? 'favorite' : 'favorite_border' }}</mat-icon></button>
+            <div class="header-actions">
+              <button type="button" class="icon-button" (click)="shareCar(car)" aria-label="Paylaş"><mat-icon aria-hidden="true">share</mat-icon></button>
+              <button type="button" class="icon-button" (click)="toggleFav(car.id)" [attr.aria-label]="isFav(car.id) ? 'Favorilerden çıkar' : 'Favorilere ekle'">
+                <mat-icon aria-hidden="true" [class.favorite-active]="isFav(car.id)">{{ isFav(car.id) ? 'favorite' : 'favorite_border' }}</mat-icon>
+              </button>
             </div>
           </div>
         </header>
 
-        <section class="bg-black" aria-label="Araç görselleri ve videoları">
-          <div class="relative mx-auto max-w-6xl overflow-hidden bg-black">
-            @if (activeMedia(); as item) {
-              <div class="aspect-[4/3] w-full bg-black sm:aspect-[16/9] lg:aspect-[21/9]">
-                @if (item.type === 'image') {
-                  <img [src]="item.url" [alt]="vehicle.brand + ' ' + vehicle.model + ' araç görseli'" class="block h-full w-full object-cover" loading="eager" decoding="async" (error)="onMediaError(item.url)" />
-                } @else {
-                  <video class="h-full w-full bg-black object-contain" controls playsinline preload="metadata" [poster]="item.posterUrl || ''" [attr.aria-label]="item.title || (vehicle.brand + ' ' + vehicle.model + ' araç videosu')"><source [src]="item.url" /></video>
-                }
-              </div>
-              <div class="pointer-events-none absolute inset-x-3 bottom-3 z-20 flex items-center justify-between gap-2">
-                <div class="rounded-full bg-black/75 px-3 py-1.5 text-xs font-black text-white backdrop-blur">{{ currentSlide() + 1 }} / {{ media().length }}</div>
+        <section class="gallery" [attr.aria-label]="car.brand + ' ' + car.model + ' araç görselleri'">
+          @if (activeMedia(); as item) {
+            <div class="gallery-frame">
+              @if (item.type === 'image') {
+                <img [src]="item.url" [alt]="car.brand + ' ' + car.model + ' araç görseli'" loading="eager" decoding="async" (error)="onMediaError(item.url)" />
+              } @else {
+                <video controls playsinline preload="metadata" [poster]="item.posterUrl || ''" [attr.aria-label]="item.title || (car.brand + ' ' + car.model + ' araç videosu')"><source [src]="item.url" /></video>
+              }
+              <div class="gallery-toolbar">
+                <span>{{ currentSlide() + 1 }} / {{ media().length }}</span>
                 @if (media().length > 1) {
-                  <div class="pointer-events-auto flex gap-2">
-                    <button type="button" (click)="previousMedia()" aria-label="Önceki görsel" class="grid h-11 w-11 place-items-center rounded-full bg-black/75 text-white backdrop-blur focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">chevron_left</mat-icon></button>
-                    <button type="button" (click)="nextMedia()" aria-label="Sonraki görsel" class="grid h-11 w-11 place-items-center rounded-full bg-black/75 text-white backdrop-blur focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">chevron_right</mat-icon></button>
+                  <div>
+                    <button type="button" (click)="previousMedia()" aria-label="Önceki görsel"><mat-icon aria-hidden="true">chevron_left</mat-icon></button>
+                    <button type="button" (click)="nextMedia()" aria-label="Sonraki görsel"><mat-icon aria-hidden="true">chevron_right</mat-icon></button>
                   </div>
                 }
               </div>
-            } @else {
-              <div class="grid aspect-[4/3] place-items-center bg-slate-900 text-slate-400 sm:aspect-[16/9]"><div class="text-center"><mat-icon aria-hidden="true" class="!h-12 !w-12 !text-[48px]">directions_car</mat-icon><p class="mt-2 text-sm font-bold">Araç görseli hazırlanıyor</p></div></div>
-            }
-          </div>
+            </div>
+          } @else {
+            <div class="gallery-empty" role="status"><mat-icon aria-hidden="true">directions_car</mat-icon><strong>Araç görseli yüklenemedi</strong><span>Medya kaydı yenileniyor veya dosya geçici olarak erişilemiyor.</span></div>
+          }
         </section>
 
-        <div class="mx-auto grid max-w-6xl gap-5 px-3 py-5 sm:px-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-          <div class="space-y-5">
-            <section class="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-sm sm:p-6" aria-labelledby="vehicle-summary-title">
-              <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div><p class="text-xs font-black uppercase tracking-wider text-amber-300">Araç No {{ vehicle.id }}</p><h2 id="vehicle-summary-title" class="mt-1 font-serif text-3xl font-black tracking-tight text-white">{{ vehicle.brand }} {{ vehicle.model }}</h2><p class="mt-1 text-sm text-slate-300">{{ [vehicle.year, vehicle.type, vehicle.location].filter(Boolean).join(' · ') }}</p></div>
-                <div class="sm:text-right"><strong class="block text-3xl font-black text-blue-300">{{ vehicle.price | turkishCurrency }}</strong><span class="text-xs font-bold uppercase text-slate-400">Günlük kiralama</span></div>
+        <div class="detail-layout">
+          <div class="detail-main">
+            <section class="panel summary-panel" aria-labelledby="vehicle-summary-title">
+              <div class="summary-head">
+                <div>
+                  <p class="stock-code">{{ car.cloudStockCode || ('Araç No ' + car.id) }}</p>
+                  <h2 id="vehicle-summary-title">{{ car.brand }} {{ car.model }}</h2>
+                  <p class="summary-meta">{{ summaryMeta(car) }}</p>
+                </div>
+                <div class="price-block">
+                  <span>Günlük kiralama</span>
+                  <strong>{{ car.price | turkishCurrency }}</strong>
+                </div>
               </div>
-              <div class="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <div class="rounded-xl border border-slate-800 bg-slate-950 p-3"><span class="block text-[11px] font-bold uppercase text-slate-400">Vites</span><strong class="mt-1 block text-sm text-white">{{ vehicle.transmission || 'Belirtilmedi' }}</strong></div>
-                <div class="rounded-xl border border-slate-800 bg-slate-950 p-3"><span class="block text-[11px] font-bold uppercase text-slate-400">Yakıt</span><strong class="mt-1 block text-sm text-white">{{ vehicle.fuel || 'Belirtilmedi' }}</strong></div>
-                <div class="rounded-xl border border-slate-800 bg-slate-950 p-3"><span class="block text-[11px] font-bold uppercase text-slate-400">Koltuk</span><strong class="mt-1 block text-sm text-white">{{ vehicle.seats || 'Belirtilmedi' }}</strong></div>
-                <div class="rounded-xl border border-slate-800 bg-slate-950 p-3"><span class="block text-[11px] font-bold uppercase text-slate-400">Durum</span><strong class="mt-1 block text-sm" [class.text-emerald-400]="vehicle.isAvailable !== false" [class.text-red-400]="vehicle.isAvailable === false">{{ vehicle.isAvailable === false ? 'Müsait değil' : 'Müsait' }}</strong></div>
-              </div>
-            </section>
 
-            <section class="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-sm sm:p-6" aria-labelledby="vehicle-details-title">
-              <h2 id="vehicle-details-title" class="text-lg font-black text-white">Araç Bilgileri</h2>
-              <dl class="mt-4 divide-y divide-slate-800 text-sm text-slate-100">
-                @if (vehicle.deposit !== undefined) { <div class="flex justify-between gap-4 py-3"><dt class="text-slate-400">Depozito</dt><dd class="font-bold text-white">{{ vehicle.deposit | turkishCurrency }}</dd></div> }
-                @if (vehicle.dailyMileageLimit) { <div class="flex justify-between gap-4 py-3"><dt class="text-slate-400">Günlük kilometre</dt><dd class="font-bold text-white">{{ vehicle.dailyMileageLimit }} km</dd></div> }
-                @if (vehicle.minAge) { <div class="flex justify-between gap-4 py-3"><dt class="text-slate-400">Minimum yaş</dt><dd class="font-bold text-white">{{ vehicle.minAge }}</dd></div> }
-                @if (vehicle.minLicenseYears) { <div class="flex justify-between gap-4 py-3"><dt class="text-slate-400">Minimum ehliyet</dt><dd class="font-bold text-white">{{ vehicle.minLicenseYears }} yıl</dd></div> }
-                <div class="flex justify-between gap-4 py-3"><dt class="text-slate-400">Sürücü seçeneği</dt><dd class="font-bold text-white">{{ driverOptionLabel(vehicle.driverOption) }}</dd></div>
+              <dl class="facts" aria-label="Temel araç bilgileri">
+                <div><dt>Vites</dt><dd>{{ displayValue(car.transmission) }}</dd></div>
+                <div><dt>Yakıt</dt><dd>{{ displayValue(car.fuel) }}</dd></div>
+                <div><dt>Koltuk</dt><dd>{{ car.seats ? (car.seats + ' kişi') : 'Belirtilmedi' }}</dd></div>
+                <div><dt>Durum</dt><dd [class.available]="car.isAvailable !== false" [class.unavailable]="car.isAvailable === false">{{ car.isAvailable === false ? 'Müsait değil' : 'Müsait' }}</dd></div>
               </dl>
             </section>
 
-            @if (vehicle.description) { <section class="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-sm sm:p-6" aria-labelledby="description-title"><h2 id="description-title" class="text-lg font-black text-white">Açıklama</h2><p class="mt-3 whitespace-pre-line text-sm leading-7 text-slate-300">{{ vehicle.description }}</p></section> }
+            <section class="panel" aria-labelledby="vehicle-details-title">
+              <h2 id="vehicle-details-title">Araç Bilgileri</h2>
+              <dl class="detail-list">
+                <div><dt>Gövde tipi</dt><dd>{{ displayValue(car.type) }}</dd></div>
+                <div><dt>Konum</dt><dd>{{ displayValue(car.location) }}</dd></div>
+                <div><dt>Sürücü seçeneği</dt><dd>{{ driverOptionLabel(car.driverOption) }}</dd></div>
+                @if (car.dailyMileageLimit) { <div><dt>Günlük kilometre</dt><dd>{{ car.dailyMileageLimit }} km</dd></div> }
+                @if (car.deposit !== undefined) { <div><dt>Depozito</dt><dd>{{ car.deposit | turkishCurrency }}</dd></div> }
+                @if (car.minAge) { <div><dt>Minimum yaş</dt><dd>{{ car.minAge }}</dd></div> }
+                @if (car.minLicenseYears) { <div><dt>Minimum ehliyet</dt><dd>{{ car.minLicenseYears }} yıl</dd></div> }
+              </dl>
+            </section>
 
-            @if (vehicle.features?.length) {
-              <section class="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-sm sm:p-6" aria-labelledby="features-title">
-                <h2 id="features-title" class="text-lg font-black text-white">Araç Özellikleri</h2>
-                <div class="mt-4 grid gap-2 sm:grid-cols-2">@for (feature of vehicle.features; track feature) { <div class="flex items-start gap-2 rounded-xl border border-slate-800 bg-slate-950 p-3 text-sm text-slate-100"><mat-icon aria-hidden="true" class="!h-5 !w-5 !text-[20px] text-emerald-400">check_circle</mat-icon><span>{{ feature }}</span></div> }</div>
+            @if (car.description) {
+              <section class="panel" aria-labelledby="description-title"><h2 id="description-title">Açıklama</h2><p class="description">{{ car.description }}</p></section>
+            }
+
+            @if (car.features?.length) {
+              <section class="panel" aria-labelledby="features-title">
+                <h2 id="features-title">Araç Özellikleri</h2>
+                <ul class="feature-list">@for (feature of car.features; track feature) { <li><mat-icon aria-hidden="true">check_circle</mat-icon><span>{{ feature }}</span></li> }</ul>
               </section>
             }
 
             @if (technicalSpecs(); as specs) {
-              <section class="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-sm sm:p-6" aria-labelledby="tech-title">
-                <button type="button" (click)="techOpen.update(v => !v)" [attr.aria-expanded]="techOpen()" aria-controls="rental-tech-specs" class="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl text-left text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><span><strong id="tech-title" class="block text-lg">Teknik Özellikler</strong><small class="text-slate-400">Motor, performans ve ölçüler</small></span><mat-icon aria-hidden="true">{{ techOpen() ? 'expand_less' : 'expand_more' }}</mat-icon></button>
-                @if (techOpen()) { <dl id="rental-tech-specs" class="mt-4 grid gap-2 sm:grid-cols-2">@for (row of specRows(specs); track row.label) { <div class="rounded-xl border border-slate-800 bg-slate-950 p-3"><dt class="text-xs font-bold uppercase text-slate-400">{{ row.label }}</dt><dd class="mt-1 text-sm font-black text-white">{{ row.value }}</dd></div> }</dl> }
+              <section class="panel" aria-labelledby="tech-title">
+                <button type="button" class="tech-toggle" (click)="techOpen.update(v => !v)" [attr.aria-expanded]="techOpen()" aria-controls="rental-tech-specs">
+                  <span><strong id="tech-title">Teknik Özellikler</strong><small>Motor, performans ve ölçüler</small></span><mat-icon aria-hidden="true">{{ techOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+                </button>
+                @if (techOpen()) { <dl id="rental-tech-specs" class="tech-grid">@for (row of specRows(specs); track row.label) { <div><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div> }</dl> }
               </section>
             }
           </div>
 
-          <aside id="rental-reservation" class="rounded-2xl border border-blue-900/60 bg-slate-900 p-4 shadow-xl shadow-black/20 sm:p-6 lg:sticky lg:top-6" aria-labelledby="reservation-title">
-            <p class="text-xs font-black uppercase tracking-wider text-blue-300">Rezervasyon</p>
-            <h2 id="reservation-title" class="mt-1 font-serif text-2xl font-black text-white">Bu aracı rezerve edin</h2>
-            <p class="mt-2 text-sm leading-6 text-slate-300">Tarih, teslim ve iade noktası, şoför tercihi ve ek hizmetlerin tamamını rezervasyon ekranında seçin.</p>
-            <div class="mt-5 rounded-2xl bg-slate-950 p-4 text-white"><span class="text-xs font-bold uppercase text-blue-300">Günlük başlangıç fiyatı</span><strong class="mt-1 block text-3xl">{{ vehicle.price | turkishCurrency }}</strong><p class="mt-2 text-xs leading-5 text-slate-400">Nihai tutar rezervasyondaki tarih, hizmet ve varsa tanımlı rota mesafesine göre otomatik güncellenir.</p></div>
-            <button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Bu araç için rezervasyon oluştur" class="mt-4 flex min-h-14 w-full items-center justify-center rounded-xl bg-blue-600 px-5 font-black text-white shadow-lg shadow-blue-600/20 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Rezervasyon Oluştur</button>
-            <button type="button" (click)="whatsappInquiry()" aria-label="Bu araç hakkında WhatsApp ile bilgi al" class="mt-2 flex min-h-12 w-full items-center justify-center rounded-xl border border-emerald-700 bg-emerald-950/50 px-5 font-black text-emerald-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">WhatsApp ile Sor</button>
+          <aside class="reservation-panel" aria-labelledby="reservation-title">
+            <p>Rezervasyon</p>
+            <h2 id="reservation-title">Bu aracı rezerve edin</h2>
+            <span>Tarih, teslim ve iade noktası, şoför tercihi ve ek hizmetleri rezervasyon ekranında seçin.</span>
+            <div class="reservation-price"><small>Günlük başlangıç fiyatı</small><strong>{{ car.price | turkishCurrency }}</strong></div>
+            <button type="button" class="primary-action" (click)="reserve(car)" [disabled]="car.isAvailable === false" aria-label="Bu araç için rezervasyon oluştur">Rezervasyon Oluştur</button>
+            <button type="button" class="whatsapp-action" (click)="whatsappInquiry()" aria-label="Bu araç hakkında WhatsApp ile bilgi al">WhatsApp ile Sor</button>
           </aside>
         </div>
 
-        <div class="fixed inset-x-0 bottom-0 z-[70] border-t border-slate-700 bg-slate-950/98 p-2 pb-[max(.5rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden" aria-label="Araç hızlı işlemleri">
-          <div class="mx-auto grid max-w-2xl grid-cols-3 gap-2">
-            <a [href]="phoneHref()" aria-label="Telefonla ara" class="flex min-h-12 min-w-0 items-center justify-center rounded-xl bg-slate-100 px-1 text-xs font-black text-slate-900 no-underline whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Ara</a>
-            <button type="button" (click)="whatsappInquiry()" aria-label="WhatsApp ile bilgi al" class="min-h-12 min-w-0 rounded-xl bg-emerald-600 px-1 text-xs font-black text-white whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">WhatsApp</button>
-            <button type="button" (click)="reserve(vehicle)" [disabled]="vehicle.isAvailable === false" aria-label="Bu araç için rezervasyon oluştur" class="min-h-12 min-w-0 rounded-xl bg-blue-600 px-1 text-xs font-black text-white whitespace-nowrap disabled:bg-slate-700 disabled:text-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Rezerve Et</button>
-          </div>
-        </div>
+        <nav class="mobile-actions" aria-label="Araç hızlı işlemleri">
+          @if (phoneHref()) { <a [href]="phoneHref()" aria-label="Telefonla ara">Ara</a> } @else { <button type="button" disabled aria-label="Telefon numarası henüz tanımlı değil">Ara</button> }
+          <button type="button" class="whatsapp" (click)="whatsappInquiry()" aria-label="WhatsApp ile bilgi al">WhatsApp</button>
+          <button type="button" class="reserve" (click)="reserve(car)" [disabled]="car.isAvailable === false" aria-label="Bu araç için rezervasyon oluştur">Rezerve Et</button>
+        </nav>
+      } @else if (loading()) {
+        <section class="state-panel" role="status"><div class="spinner"></div><strong>Araç bilgileri veritabanından yükleniyor</strong></section>
       } @else {
-        <section class="grid min-h-[70vh] place-items-center bg-slate-950 px-6 text-center" role="status"><div><div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-700 border-t-blue-500"></div><p class="mt-4 font-bold text-slate-300">Araç bilgileri yükleniyor...</p></div></section>
+        <section class="state-panel error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><strong>Araç kaydı yüklenemedi</strong><span>{{ loadError() || 'Lütfen sayfayı yenileyin.' }}</span><button type="button" (click)="reload()">Tekrar Dene</button></section>
       }
     </main>
   `,
+  styles: [`
+    :host{display:block;background:#050914;color:#f8fafc}.detail-page{min-height:100vh;padding-bottom:92px;background:#050914;color:#f8fafc;font-family:Inter,system-ui,sans-serif}.detail-header{position:relative;z-index:20;border-bottom:1px solid #1e293b;background:#071020}.detail-header-inner{width:min(100% - 24px,1180px);min-height:72px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}.header-left,.header-actions{display:flex;align-items:center;gap:8px}.header-copy{min-width:0}.header-copy span{display:block;color:#93c5fd;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.header-copy h1{margin:2px 0 0;color:#fff;font:900 20px/1.15 Georgia,serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.icon-button{display:grid;width:46px;height:46px;place-items:center;border:0;border-radius:50%;background:transparent;color:#fff}.icon-button:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}.favorite-active{color:#fb7185}.gallery{background:#000}.gallery-frame{position:relative;width:min(100%,1180px);margin:auto;aspect-ratio:4/3;background:#020617;overflow:hidden}.gallery-frame img,.gallery-frame video{display:block;width:100%;height:100%;object-fit:cover}.gallery-toolbar{position:absolute;left:12px;right:12px;bottom:12px;display:flex;align-items:center;justify-content:space-between;pointer-events:none}.gallery-toolbar>span{border-radius:999px;background:rgba(0,0,0,.72);padding:7px 12px;color:#fff;font-size:12px;font-weight:900}.gallery-toolbar>div{display:flex;gap:8px;pointer-events:auto}.gallery-toolbar button{display:grid;width:44px;height:44px;place-items:center;border:0;border-radius:50%;background:rgba(0,0,0,.72);color:#fff}.gallery-empty{width:min(100%,1180px);margin:auto;aspect-ratio:4/3;display:grid;place-content:center;gap:8px;text-align:center;background:#0f172a;color:#cbd5e1;padding:24px}.gallery-empty mat-icon{margin:auto;width:48px;height:48px;font-size:48px}.gallery-empty strong{color:#fff;font-size:16px}.gallery-empty span{max-width:420px;font-size:13px;line-height:1.5}.detail-layout{width:min(100% - 24px,1180px);margin:0 auto;padding:22px 0;display:grid;gap:18px}.detail-main{display:grid;gap:18px}.panel,.reservation-panel{border:1px solid #253149;border-radius:20px;background:#0b1220;padding:18px;box-shadow:0 14px 34px rgba(0,0,0,.18)}.panel h2,.reservation-panel h2{margin:0;color:#fff;font:900 24px/1.12 Georgia,serif}.summary-head{display:flex;flex-direction:column;gap:16px}.stock-code{margin:0;color:#fbbf24;font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.08em}.summary-head h2{margin:5px 0 0;font-size:clamp(30px,8vw,46px)}.summary-meta{margin:8px 0 0;color:#cbd5e1;font-size:13px}.price-block{display:flex;flex-direction:column;gap:4px}.price-block span{color:#94a3b8;font-size:12px;font-weight:900;text-transform:uppercase}.price-block strong{display:block;color:#93c5fd!important;font-size:30px!important;line-height:1.1!important}.facts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0 0}.facts>div{min-width:0;border:1px solid #27344f;border-radius:14px;background:#050b18;padding:14px}.facts dt{color:#94a3b8;font-size:12px;font-weight:900;text-transform:uppercase}.facts dd{display:block!important;margin:7px 0 0!important;color:#fff!important;font-size:16px!important;font-weight:900!important;line-height:1.25!important;min-height:20px}.facts dd.available{color:#86efac!important}.facts dd.unavailable{color:#fda4af!important}.detail-list{margin:12px 0 0}.detail-list>div{display:flex;justify-content:space-between;gap:18px;border-top:1px solid #1e293b;padding:12px 0}.detail-list>div:first-child{border-top:0}.detail-list dt{color:#94a3b8}.detail-list dd{margin:0;color:#fff;font-weight:850;text-align:right}.description{margin:12px 0 0;white-space:pre-line;color:#cbd5e1;font-size:14px;line-height:1.75}.feature-list{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}.feature-list li{display:flex;align-items:flex-start;gap:8px;border:1px solid #1e293b;border-radius:12px;background:#050b18;padding:11px;color:#e2e8f0}.feature-list mat-icon{width:20px;height:20px;font-size:20px;color:#34d399}.tech-toggle{display:flex;width:100%;min-height:52px;align-items:center;justify-content:space-between;gap:12px;border:0;background:transparent;color:#fff;text-align:left}.tech-toggle strong{display:block;color:#fff;font-size:18px}.tech-toggle small{display:block;margin-top:3px;color:#94a3b8}.tech-grid{display:grid;gap:8px;margin:12px 0 0}.tech-grid>div{border:1px solid #1e293b;border-radius:12px;background:#050b18;padding:11px}.tech-grid dt{color:#94a3b8;font-size:11px;font-weight:900;text-transform:uppercase}.tech-grid dd{margin:4px 0 0;color:#fff;font-weight:900}.reservation-panel>p{margin:0;color:#93c5fd;font-size:12px;font-weight:950;text-transform:uppercase}.reservation-panel>span{display:block;margin-top:8px;color:#cbd5e1;font-size:14px;line-height:1.6}.reservation-price{margin-top:16px;border-radius:14px;background:#050b18;padding:14px}.reservation-price small{display:block;color:#93c5fd;font-size:11px;font-weight:900;text-transform:uppercase}.reservation-price strong{display:block;margin-top:4px;color:#fff!important;font-size:30px!important}.primary-action,.whatsapp-action{width:100%;min-height:52px;margin-top:10px;border:0;border-radius:13px;font-weight:950}.primary-action{background:#2563eb;color:#fff}.whatsapp-action{background:#064e3b;color:#d1fae5;border:1px solid #047857}.primary-action:disabled{background:#334155;color:#94a3b8}.mobile-actions{position:fixed;z-index:80;left:0;right:0;bottom:0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;border-top:1px solid #334155;background:#050914;padding:10px max(12px,env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-right))}.mobile-actions a,.mobile-actions button{display:flex;min-width:0;min-height:52px;align-items:center;justify-content:center;border:0;border-radius:13px;padding:0 6px;text-decoration:none;font-size:14px;font-weight:950;white-space:nowrap}.mobile-actions a,.mobile-actions button:first-child{background:#e2e8f0;color:#0f172a}.mobile-actions .whatsapp{background:#059669;color:#fff}.mobile-actions .reserve{background:#d4af37;color:#fff}.mobile-actions button:disabled{opacity:.45}.state-panel{min-height:68vh;display:grid;place-content:center;gap:10px;text-align:center;padding:24px;background:#050914;color:#cbd5e1}.state-panel strong{color:#fff}.state-panel.error mat-icon{margin:auto;color:#fda4af}.state-panel button{min-height:46px;border:0;border-radius:12px;background:#2563eb;color:#fff;font-weight:900;padding:0 18px}.spinner{width:40px;height:40px;margin:auto;border:4px solid #334155;border-top-color:#60a5fa;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}@media(min-width:700px){.gallery-frame,.gallery-empty{aspect-ratio:16/9}.summary-head{flex-direction:row;align-items:end;justify-content:space-between}.price-block{text-align:right}.tech-grid{grid-template-columns:1fr 1fr}}@media(min-width:1024px){.detail-page{padding-bottom:24px}.gallery-frame,.gallery-empty{aspect-ratio:21/9}.detail-layout{grid-template-columns:minmax(0,1fr) 360px;align-items:start}.reservation-panel{position:sticky;top:24px}.mobile-actions{display:none}}
+  `],
 })
-export class CarDetailComponent {
+export class CarDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
+  private readonly catalog = inject(CatalogService);
   readonly carService = inject(CarService);
   private readonly seoService = inject(SeoService);
 
   private readonly routeId = this.route.snapshot.paramMap.get("id") || "";
   private readonly presetStartDate = this.validQueryDate(this.route.snapshot.queryParamMap.get("start"));
   private readonly presetEndDate = this.validQueryDate(this.route.snapshot.queryParamMap.get("end"));
+  readonly vehicle = signal<Car | null>(null);
+  readonly loading = signal(true);
+  readonly loadError = signal("");
   readonly currentSlide = signal(0);
   readonly techOpen = signal(false);
   private readonly failedMediaUrls = signal<string[]>([]);
 
-  readonly car = computed<Car | null>(() => {
-    const match = this.carService.getAllVehicles()().find((item) => item.category === "RENTAL" && (String(item.id) === this.routeId || String(item.cloudId || "") === this.routeId));
-    return (match as Car | undefined) || null;
-  });
-
   readonly media = computed<GalleryMedia[]>(() => {
-    const vehicle = this.car();
-    if (!vehicle) return [];
+    const car = this.vehicle();
+    if (!car) return [];
     const failed = new Set(this.failedMediaUrls());
     const seen = new Set<string>();
     const items: GalleryMedia[] = [];
-    for (const url of [vehicle.image, ...(vehicle.images || []), ...(vehicle.gallery || [])]) {
-      const clean = String(url || "").trim();
+    for (const url of [car.image, ...(car.images || []), ...(car.gallery || [])]) {
+      const clean = this.toMediaUrl(url);
       if (!clean || failed.has(clean) || seen.has(clean)) continue;
       seen.add(clean);
       items.push({ type: "image", url: clean });
     }
-    for (const video of vehicle.videos || []) {
-      const clean = String(video?.url || "").trim();
+    for (const video of car.videos || []) {
+      const clean = this.toMediaUrl(video?.url);
       if (!clean || failed.has(clean) || seen.has(clean)) continue;
       seen.add(clean);
-      items.push({ type: "video", url: clean, posterUrl: video.posterUrl, title: video.title });
+      items.push({ type: "video", url: clean, posterUrl: this.toMediaUrl(video.posterUrl), title: video.title });
     }
     return items.slice(0, 30);
   });
@@ -169,81 +191,116 @@ export class CarDetailComponent {
   readonly activeMedia = computed(() => {
     const items = this.media();
     if (!items.length) return null;
-    const index = Math.min(Math.max(0, this.currentSlide()), items.length - 1);
-    return items[index] || items[0];
+    return items[Math.min(Math.max(0, this.currentSlide()), items.length - 1)] || items[0];
   });
 
   readonly technicalSpecs = computed(() => {
-    const vehicle = this.car();
-    if (!vehicle) return null;
-    const modelKey = vehicle.series ? `${vehicle.series} ${vehicle.model || ""}`.trim() : vehicle.model || "";
-    return getTechnicalSpecs(vehicle.brand || "", modelKey) || getTechnicalSpecs(vehicle.brand || "", vehicle.model || "") || null;
+    const car = this.vehicle();
+    if (!car) return null;
+    const modelKey = car.series ? `${car.series} ${car.model || ""}`.trim() : car.model || "";
+    return getTechnicalSpecs(car.brand || "", modelKey) || getTechnicalSpecs(car.brand || "", car.model || "") || null;
   });
 
   constructor() {
     effect(() => {
-      const vehicle = this.car();
-      if (!vehicle) return;
+      const car = this.vehicle();
+      if (!car) return;
       const config = this.carService.getConfig()();
-      this.seoService.updateSeoTags({ title: `${vehicle.brand || "Araç"} ${vehicle.model || ""} Kiralama | ${config.companyName}`, description: `${vehicle.brand || "Araç"} ${vehicle.model || ""} kiralama detayları, günlük fiyat, özellikler ve rezervasyon seçenekleri.`, image: vehicle.image || vehicle.images?.[0] || config.seoOgImage });
+      this.seoService.updateSeoTags({ title: `${car.brand || "Araç"} ${car.model || ""} Kiralama | ${config.companyName}`, description: `${car.brand || "Araç"} ${car.model || ""} kiralama detayları, günlük fiyat, özellikler ve rezervasyon seçenekleri.`, image: this.toMediaUrl(car.image || car.images?.[0]) || config.seoOgImage });
     });
   }
 
-  previousMedia(): void {
-    const length = this.media().length;
-    if (length <= 1) return;
-    this.currentSlide.update((index) => (index - 1 + length) % length);
+  async ngOnInit(): Promise<void> {
+    const shared = this.findVehicle(this.carService.getAllVehicles()());
+    if (shared) this.vehicle.set(this.prepareVehicle(shared as Car));
+    await this.reload();
   }
 
-  nextMedia(): void {
-    const length = this.media().length;
-    if (length <= 1) return;
-    this.currentSlide.update((index) => (index + 1) % length);
+  async reload(): Promise<void> {
+    this.loading.set(true);
+    this.loadError.set("");
+    try {
+      const records = await this.catalog.loadVehicles(true);
+      const match = this.findVehicle(records);
+      if (!match) throw new Error("Bu kiralık araç veritabanında bulunamadı.");
+      this.vehicle.set(this.prepareVehicle(match as Car));
+      this.failedMediaUrls.set([]);
+      this.currentSlide.set(0);
+    } catch (error) {
+      this.loadError.set(error instanceof Error ? error.message : "Araç verisi alınamadı.");
+      if (!this.vehicle()) this.vehicle.set(null);
+    } finally {
+      this.loading.set(false);
+    }
   }
 
-  onMediaError(url: string): void {
-    this.failedMediaUrls.update((items) => items.includes(url) ? items : [...items, url]);
-    this.currentSlide.set(0);
+  private findVehicle(records: Car[]): Car | undefined {
+    return records.find((item) => item.category === "RENTAL" && (String(item.id) === this.routeId || String(item.cloudId || "") === this.routeId || String(item.cloudStockCode || "") === this.routeId));
   }
 
-  reserve(vehicle: Car): void {
-    if (vehicle.isAvailable === false) return;
+  private prepareVehicle(car: Car): Car {
+    const images = (car.images || []).map((url) => this.toMediaUrl(url)).filter(Boolean);
+    const gallery = (car.gallery || []).map((url) => this.toMediaUrl(url)).filter(Boolean);
+    return {
+      ...car,
+      price: Number(car.price || 0),
+      image: this.toMediaUrl(car.image || images[0]),
+      images,
+      gallery,
+      transmission: car.transmission || "Belirtilmedi",
+      fuel: car.fuel || "Belirtilmedi",
+      seats: Number(car.seats || 0) || undefined,
+      isAvailable: car.isAvailable !== false,
+    };
+  }
+
+  private toMediaUrl(value?: string): string {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const prefix = "https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/";
+    if (raw.startsWith(prefix)) return `/catalog-media/${raw.slice(prefix.length)}`;
+    return raw;
+  }
+
+  summaryMeta(car: Car): string {
+    return [car.year, car.type, car.location].filter(Boolean).join(" · ") || "Alperler Auto kiralık araç";
+  }
+
+  displayValue(value: unknown): string {
+    const text = String(value ?? "").trim();
+    return text || "Belirtilmedi";
+  }
+
+  previousMedia(): void { const length = this.media().length; if (length > 1) this.currentSlide.update((index) => (index - 1 + length) % length); }
+  nextMedia(): void { const length = this.media().length; if (length > 1) this.currentSlide.update((index) => (index + 1) % length); }
+  onMediaError(url: string): void { this.failedMediaUrls.update((items) => items.includes(url) ? items : [...items, url]); this.currentSlide.set(0); }
+
+  reserve(car: Car): void {
+    if (car.isAvailable === false) return;
     const days = this.rentalDays(this.presetStartDate, this.presetEndDate);
-    this.carService.setBookingRequest({
-      type: "RENTAL",
-      item: vehicle,
-      itemName: `${vehicle.brand || ""} ${vehicle.model || ""}`.trim(),
-      image: vehicle.image || vehicle.images?.[0],
-      basePrice: Number(vehicle.price || 0),
-      totalPrice: days > 0 ? days * Number(vehicle.price || 0) : Number(vehicle.price || 0),
-      startDate: days > 0 ? this.presetStartDate : undefined,
-      endDate: days > 0 ? this.presetEndDate : undefined,
-      days: days > 0 ? days : undefined,
-      rentalDuration: "daily",
-      withDriver: vehicle.driverOption === "WITH_DRIVER",
-    });
+    this.carService.setBookingRequest({ type: "RENTAL", item: car, itemName: `${car.brand || ""} ${car.model || ""}`.trim(), image: car.image || car.images?.[0], basePrice: Number(car.price || 0), totalPrice: days > 0 ? days * Number(car.price || 0) : Number(car.price || 0), startDate: days > 0 ? this.presetStartDate : undefined, endDate: days > 0 ? this.presetEndDate : undefined, days: days > 0 ? days : undefined, rentalDuration: "daily", withDriver: car.driverOption === "WITH_DRIVER" });
     void this.router.navigate(["/contact"]);
   }
 
   toggleFav(id: string | number): void { this.carService.toggleFavorite(id); }
   isFav(id: string | number): boolean { return this.carService.isFavorite(id); }
 
-  async shareCar(vehicle: Car): Promise<void> {
-    const payload = { title: `${vehicle.brand || ""} ${vehicle.model || ""} | Alperler Auto`.trim(), text: "Bu kiralık aracı inceleyin.", url: window.location.href };
-    try { if (navigator.share) await navigator.share(payload); else if (navigator.clipboard) await navigator.clipboard.writeText(window.location.href); } catch { /* user cancelled share */ }
+  async shareCar(car: Car): Promise<void> {
+    const payload = { title: `${car.brand || ""} ${car.model || ""} | Alperler Auto`.trim(), text: "Bu kiralık aracı inceleyin.", url: window.location.href };
+    try { if (navigator.share) await navigator.share(payload); else if (navigator.clipboard) await navigator.clipboard.writeText(window.location.href); } catch { /* paylaşım iptal edildi */ }
   }
 
   whatsappInquiry(): void {
-    const vehicle = this.car();
-    if (!vehicle) return;
+    const car = this.vehicle();
+    if (!car) return;
     const config = this.carService.getConfig()();
     const phone = String(config.whatsapp || config.phone || "").replace(/\D/g, "");
     if (!phone) return;
-    const message = `Merhaba, ${vehicle.brand || ""} ${vehicle.model || ""} kiralık araç hakkında bilgi almak istiyorum. ${window.location.href}`.trim();
+    const message = `Merhaba, ${car.brand || ""} ${car.model || ""} kiralık araç hakkında bilgi almak istiyorum. ${window.location.href}`.trim();
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   }
 
-  phoneHref(): string { const phone = String(this.carService.getConfig()().phone || "").replace(/[^+\d]/g, ""); return phone ? `tel:${phone}` : "#"; }
+  phoneHref(): string { const phone = String(this.carService.getConfig()().phone || "").replace(/[^+\d]/g, ""); return phone ? `tel:${phone}` : ""; }
   driverOptionLabel(value: Car["driverOption"]): string { if (value === "WITH_DRIVER") return "Şoförlü"; if (value === "BOTH") return "Şoförlü veya şoförsüz"; return "Şoförsüz"; }
 
   specRows(specs: any): { label: string; value: string }[] {
@@ -252,14 +309,7 @@ export class CarDetailComponent {
   }
 
   goBack(): void { if (window.history.length > 1) this.location.back(); else void this.router.navigate(["/fleet"]); }
-
-  private rentalDays(startValue: string, endValue: string): number {
-    const start = this.parseLocalDate(startValue);
-    const end = this.parseLocalDate(endValue);
-    if (!start || !end) return 0;
-    return Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86_400_000));
-  }
-
+  private rentalDays(startValue: string, endValue: string): number { const start = this.parseLocalDate(startValue); const end = this.parseLocalDate(endValue); if (!start || !end) return 0; return Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86_400_000)); }
   private validQueryDate(value: string | null): string { return /^\d{4}-\d{2}-\d{2}$/.test(value || "") ? String(value) : ""; }
   private parseLocalDate(value: string): Date | null { const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || ""); if (!match) return null; const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])); return Number.isNaN(date.getTime()) ? null : date; }
 }

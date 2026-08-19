@@ -122,6 +122,10 @@ export class PublicCatalogMediaService {
     storageBucket?: string | null,
     objectPath?: string | null,
   ): string {
+    if (storageBucket === "catalog-media" && objectPath) {
+      const encodedPath = objectPath.split("/").map(encodeURIComponent).join("/");
+      return `/catalog-media/${encodedPath}`;
+    }
     if (storageBucket && objectPath) {
       const encodedBucket = encodeURIComponent(storageBucket);
       const encodedPath = objectPath.split("/").map(encodeURIComponent).join("/");

@@ -17,9 +17,19 @@
         { "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" },
         { "key": "CDN-Cache-Control", "value": "no-store" }
       ]
+    },
+    {
+      "source": "/catalog-media/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+      ]
     }
   ],
   "rewrites": [
+    {
+      "source": "/catalog-media/:path*",
+      "destination": "https://hrztrgjvgdnaurejnsgs.supabase.co/storage/v1/object/public/catalog-media/:path*"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

@@ -8,32 +8,37 @@ let nextDateControlId = 0;
   standalone: true,
   imports: [MatIconModule],
   template: `
-    <label class="date-label" [for]="inputId">{{ label }}</label>
-    <div class="date-shell">
+    <div class="date-control">
+      <span class="date-label" [id]="labelId">{{ label }}</span>
+      <button
+        type="button"
+        class="date-button"
+        [disabled]="disabled"
+        [attr.aria-labelledby]="labelId + ' ' + valueId"
+        [attr.aria-label]="accessibleName()"
+        (click)="openPicker(dateInput)"
+      >
+        <span [id]="valueId" class="date-value">{{ displayValue() }}</span>
+        <mat-icon aria-hidden="true">calendar_month</mat-icon>
+      </button>
       <input
         #dateInput
+        class="native-date-input"
         [id]="inputId"
         type="date"
         [value]="value"
         [min]="min"
         [max]="max"
         [disabled]="disabled"
-        [attr.aria-label]="label"
+        tabindex="-1"
+        aria-hidden="true"
         (input)="emitInput($event)"
+        (change)="emitInput($event)"
       />
-      <button
-        type="button"
-        class="picker-button"
-        [disabled]="disabled"
-        [attr.aria-label]="label + ' takvimini aç'"
-        (click)="openPicker(dateInput)"
-      >
-        <mat-icon aria-hidden="true">calendar_month</mat-icon>
-      </button>
     </div>
   `,
   styles: [`
-    :host{display:block;min-width:0}.date-label{display:block;margin-bottom:.28rem;color:var(--date-label,#b9c3d2);font-size:.61rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase}.date-shell{display:grid;grid-template-columns:minmax(0,1fr) 48px;overflow:hidden;border:1px solid var(--date-border,rgba(148,163,184,.24));border-radius:12px;background:var(--date-bg,#050c1a)}input{width:100%;min-width:0;min-height:47px;border:0;background:transparent;padding:0 .72rem;color:var(--date-color,#fff);font:750 .78rem/1.2 ui-sans-serif,system-ui,sans-serif;outline:none;color-scheme:dark}.picker-button{display:grid;min-width:48px;min-height:47px;place-items:center;border:0;border-left:1px solid var(--date-border,rgba(148,163,184,.24));background:rgba(37,99,235,.14);color:#93c5fd}.picker-button:focus-visible,input:focus{outline:2px solid #60a5fa;outline-offset:-2px}.picker-button:disabled,input:disabled{opacity:.55}input::-webkit-calendar-picker-indicator{display:none;-webkit-appearance:none}mat-icon{width:20px;height:20px;font-size:20px}
+    :host{display:block;min-width:0}.date-control{position:relative}.date-label{display:block;margin-bottom:.38rem;color:var(--date-label,#b9c3d2);font-size:.66rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase}.date-button{display:flex;width:100%;min-height:52px;align-items:center;justify-content:space-between;gap:.75rem;border:1px solid var(--date-border,rgba(148,163,184,.24));border-radius:12px;background:var(--date-bg,#050c1a);padding:0 .9rem;color:var(--date-color,#fff);font:800 .83rem/1.2 ui-sans-serif,system-ui,sans-serif;text-align:left}.date-button:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}.date-button:disabled{opacity:.55}.date-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.date-button mat-icon{width:20px;height:20px;flex:0 0 auto;font-size:20px;color:#93c5fd}.native-date-input{position:absolute;left:0;bottom:0;width:1px;height:1px;min-width:1px;min-height:1px;border:0;padding:0;margin:0;opacity:0;pointer-events:none;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   `],
 })
 export class AccessibleNativeDateComponent {
@@ -43,19 +48,38 @@ export class AccessibleNativeDateComponent {
   @Input() max = "";
   @Input() disabled = false;
   @Output() readonly valueChange = new EventEmitter<string>();
+
   readonly inputId = `accessible-date-${++nextDateControlId}`;
+  readonly labelId = `${this.inputId}-label`;
+  readonly valueId = `${this.inputId}-value`;
 
   emitInput(event: Event): void {
-    this.valueChange.emit((event.target as HTMLInputElement).value);
+    const next = (event.target as HTMLInputElement).value;
+    if (next !== this.value) this.valueChange.emit(next);
+  }
+
+  displayValue(): string {
+    if (!this.value) return "Tarih seç";
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(this.value);
+    if (!match) return this.value;
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    if (Number.isNaN(date.getTime())) return this.value;
+    return new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" }).format(date);
+  }
+
+  accessibleName(): string {
+    return `${this.label}: ${this.displayValue()}`;
   }
 
   openPicker(input: HTMLInputElement): void {
     if (this.disabled) return;
-    input.focus();
     const nativeInput = input as HTMLInputElement & { showPicker?: () => void };
     try {
-      if (typeof nativeInput.showPicker === "function") nativeInput.showPicker();
-      else input.click();
+      if (typeof nativeInput.showPicker === "function") {
+        nativeInput.showPicker();
+        return;
+      }
+      input.click();
     } catch {
       input.click();
     }

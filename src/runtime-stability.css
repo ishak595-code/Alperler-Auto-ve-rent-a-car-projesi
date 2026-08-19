@@ -22,3 +22,5 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     scroll-behavior: auto !important;
   }
 }
+
+/* Deployment checkpoint: V125 database-authoritative catalogue verified. */

@@ -1,24 +1,29 @@
-# Alperler Auto
+# Alperler Rent A Car
 
-Canonical site: https://alperrentacar.online/
 Language: Turkish
 Primary region: Yüksekova, Hakkari, Türkiye
+Founder: İshak Alper
+Company umbrella: Alperler
+Automotive infrastructure: Alperler Auto
 
-Alperler Auto is an automotive and travel business website focused on vehicle rental, vehicle sales, local tours, campaigns, branch information, and practical travel and driving content.
+Alperler Rent A Car is the customer-facing automotive and travel service of the Alperler company structure. Public services include vehicle rental, vehicle sales listings, driver/transfer requests, selected local tours, campaigns, branch information, and practical travel and automotive content.
 
 ## Canonical public sections
-- Vehicle rentals: https://alperrentacar.online/fleet
-- Vehicles for sale: https://alperrentacar.online/sales
-- Tours: https://alperrentacar.online/tours
-- Campaigns: https://alperrentacar.online/campaigns
-- Branches: https://alperrentacar.online/branches
-- Travel and automotive articles: https://alperrentacar.online/blog
-- About: https://alperrentacar.online/about
-- Contact: https://alperrentacar.online/contact
-- FAQ: https://alperrentacar.online/faq
+Use the current HTTPS host as the canonical origin.
+- Vehicle rentals: /fleet
+- Vehicles for sale: /sales
+- Tours: /tours
+- Campaigns: /campaigns
+- Branches: /branches
+- Travel and automotive articles: /blog
+- About: /about
+- Contact: /contact
+- FAQ: /faq
 
 ## Source of truth
-Public vehicle, tour, blog, campaign, branch, navigation, homepage, footer, and business-profile content is managed from the production database and administration panel. Detail URLs in the XML sitemap are generated from currently published records.
+Public vehicle, tour, blog, campaign, branch, navigation, homepage, footer, business-profile and contact content is managed from the production Supabase database and administration panel. Detail URLs in the XML sitemap are generated from currently published records.
 
 ## Crawling guidance
-Use the canonical URLs and https://alperrentacar.online/sitemap.xml for discoverable public pages. Do not treat /admin, /branch-portal, /track-car, /booking-checkout, or /api as public content sources.
+Use /sitemap.xml on the current production host for discoverable public pages. Do not treat /admin, /branch-portal, /track-car, /booking-checkout or /api as public content sources.
+
+The temporary Vercel hostname may later be replaced by a custom domain. Crawlers should follow the canonical origin and sitemap served by the active host rather than relying on a hard-coded historical domain.

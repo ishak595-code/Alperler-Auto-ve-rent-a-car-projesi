@@ -9,111 +9,67 @@ import { MatIconModule } from "@angular/material/icon";
   standalone: true,
   imports: [CommonModule, RouterLink, MatIconModule],
   template: `
-    <div class="bg-slate-950 text-slate-300 min-h-screen font-sans pb-20">
-      <!-- Sticky Module Header -->
-      <div
-        class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg"
-      >
-        <div class="max-w-7xl mx-auto px-4">
-          <div class="h-16 flex items-center gap-3">
-            <button
-              (click)="goBack()"
-              class="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors shrink-0"
-              aria-label="Geri Dön"
-            >
-              <mat-icon>arrow_back</mat-icon>
+    <main class="min-h-screen bg-slate-950 pb-20 font-sans text-slate-300">
+      <header class="sticky top-0 z-50 border-b border-slate-800 bg-slate-900 shadow-lg">
+        <div class="mx-auto max-w-7xl px-4">
+          <div class="flex h-16 items-center gap-3">
+            <button type="button" (click)="goBack()" class="-ml-2 grid min-h-12 min-w-12 place-items-center rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Geri dön">
+              <mat-icon aria-hidden="true">arrow_back</mat-icon>
             </button>
-            <h1 class="text-lg font-bold text-white">
-              Alperler Keşif Rehberi
-            </h1>
+            <h1 class="min-w-0 text-lg font-bold text-white">Alperler Keşif Rehberi</h1>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="text-center mb-16">
-          <p class="text-slate-500 max-w-2xl mx-auto">
-            Yüksekova'nın doğası, tarihi ve araç kiralama dünyasına dair her
-            şey.
-          </p>
+      <section class="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8" aria-label="Blog yazıları">
+        <div class="mb-8 text-center sm:mb-12">
+          <p class="mx-auto max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">Yüksekova'nın doğası, tarihi, yolculuk ve araç dünyasına dair güncel içerikler.</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          @for (post of blogPosts(); track post.id) {
-            <div
-              [routerLink]="['/blog', post.id]"
-              class="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 group flex flex-col h-full cursor-pointer relative top-0 hover:-top-2 border border-slate-100"
-            >
-              <div class="h-60 overflow-hidden relative">
-                <img
-                  [src]="post.image"
-                  class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                />
-                <div
-                  class="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                ></div>
-                <div
-                  class="absolute top-4 left-4 bg-white text-slate-800 px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full shadow-sm"
-                >
-                  {{ post.readTime }}
+        @if (blogPosts().length) {
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+            @for (post of blogPosts(); track post.id) {
+              <a [routerLink]="['/blog', post.cloudSlug || post.cloudId || post.id]" class="group relative top-0 flex h-full min-w-0 cursor-pointer flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white text-slate-900 shadow-sm transition-all duration-300 hover:-top-1 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                <div class="relative aspect-[16/10] overflow-hidden bg-slate-100">
+                  @if (post.image) {
+                    <img [src]="post.image" [alt]="post.title + ' yazısı kapak görseli'" loading="lazy" decoding="async" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  } @else {
+                    <div class="grid h-full w-full place-items-center bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400" aria-label="Bu yazı için kapak görseli eklenmedi">
+                      <mat-icon aria-hidden="true" class="!h-12 !w-12 !text-5xl">article</mat-icon>
+                    </div>
+                  }
+                  <span class="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-800 shadow-sm">{{ post.readTime }}</span>
                 </div>
-              </div>
-              <div class="p-8 flex flex-col flex-grow bg-white">
-                <div
-                  class="flex items-center text-xs text-slate-400 font-medium mb-3"
-                >
-                  <mat-icon class="text-[14px] w-[14px] h-[14px] mr-1"
-                    >calendar_today</mat-icon
-                  >
-                  {{ post.date }}
-                </div>
-                <h3
-                  class="font-bold text-xl text-slate-900 mb-3 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight"
-                >
-                  {{ post.title }}
-                </h3>
-                <p
-                  class="text-slate-500 text-sm leading-relaxed mb-6 line-clamp-3"
-                >
-                  {{ post.summary }}
-                </p>
 
-                <div class="mt-auto border-t border-slate-100 pt-4">
-                  <div class="flex items-center justify-between w-full py-2 hover:opacity-80 active:opacity-60 transition-opacity">
-                    <span
-                      class="text-blue-600 font-bold uppercase text-xs tracking-widest"
-                    >
-                      Devamını Oku
-                    </span>
-                    <div
-                      class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-600 transition-colors"
-                    >
-                      <mat-icon class="text-blue-600 text-[18px] group-hover:text-white"
-                        >arrow_forward</mat-icon
-                      >
+                <div class="flex flex-grow flex-col p-5 sm:p-6 lg:p-7">
+                  <div class="mb-3 flex items-center text-xs font-medium text-slate-400"><mat-icon aria-hidden="true" class="mr-1 !h-[14px] !w-[14px] !text-[14px]">calendar_today</mat-icon>{{ post.date }}</div>
+                  <h2 class="line-clamp-2 text-xl font-black leading-tight text-slate-900 transition-colors group-hover:text-blue-600">{{ post.title }}</h2>
+                  <p class="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-500">{{ post.summary }}</p>
+                  <div class="mt-auto border-t border-slate-100 pt-5">
+                    <div class="flex min-h-11 items-center justify-between gap-3">
+                      <span class="text-xs font-black uppercase tracking-widest text-blue-600">Devamını Oku</span>
+                      <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-50 transition-colors group-hover:bg-blue-600"><mat-icon aria-hidden="true" class="text-[18px] text-blue-600 group-hover:text-white">arrow_forward</mat-icon></span>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          }
-        </div>
-      </div>
-    </div>
+              </a>
+            }
+          </div>
+        } @else {
+          <div class="rounded-3xl border border-dashed border-slate-700 bg-slate-900 px-6 py-12 text-center"><mat-icon aria-hidden="true" class="!h-12 !w-12 !text-5xl text-slate-600">article</mat-icon><h2 class="mt-3 text-lg font-black text-white">Henüz yayınlanmış yazı yok</h2><p class="mt-2 text-sm text-slate-400">Yönetim panelinden yayınlanan içerikler burada otomatik görünür.</p></div>
+        }
+      </section>
+    </main>
   `,
 })
 export class BlogListComponent {
-  carService = inject(CarService);
-  router = inject(Router);
-  blogPosts = this.carService.getBlogPosts();
+  private readonly carService = inject(CarService);
+  private readonly router = inject(Router);
+  private readonly location = inject(Location);
+  readonly blogPosts = this.carService.getBlogPosts();
 
-  location = inject(Location);
-
-  goBack() {
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      this.router.navigate(["/"]);
-    }
+  goBack(): void {
+    if (typeof window !== "undefined" && window.history.length > 1) this.location.back();
+    else void this.router.navigate(["/"]);
   }
 }

@@ -50,8 +50,8 @@ export const routes: Routes = [
   { path: 'faq', component: FaqComponent }, { path: 'legal', component: LegalComponent },
   { path: 'appointment', loadComponent: () => import('./pages/appointment.component').then(m => m.AppointmentComponent) },
   { path: 'list-your-car', loadComponent: () => import('./pages/list-your-car.component').then(m => m.ListYourCarComponent) },
-  { path: 'track-car/:id', canActivate: [adminAreaGuard('operations')], loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
-  { path: 'track-car', redirectTo: 'admin/reservations', pathMatch: 'full' },
+  { path: 'track-car/:id', canActivate: [adminAreaGuard('telematics')], loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
+  { path: 'track-car', redirectTo: 'admin/telematics', pathMatch: 'full' },
   { path: '', component: MainLayoutComponent, children: [{ path: '', component: HomeV71Component }] },
 
   { path: 'admin', component: AdminLayoutComponent, canActivate: [adminGuard], children: [
@@ -62,6 +62,7 @@ export const routes: Routes = [
       { path: 'system-health', component: AdminOverviewHubComponent, data: { overviewSection: 'health' }, canActivate: [adminAreaGuard('settings')] },
 
       { path: 'settings', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'general' }, canActivate: [adminAreaGuard('settings')] },
+      { path: 'company', canActivate: [adminAreaGuard('settings')], loadComponent: () => import('./pages/admin/admin-company-profile.component').then(m => m.AdminCompanyProfileComponent) },
       { path: 'homepage', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'homepage' }, canActivate: [adminAreaGuard('content')] },
       { path: 'navigation', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'navigation' }, canActivate: [adminAreaGuard('settings')] },
       { path: 'footer', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'footer' }, canActivate: [adminAreaGuard('settings')] },
@@ -87,11 +88,15 @@ export const routes: Routes = [
       { path: 'subscribers', component: AdminOperationsHubComponent, data: { operationsSection: 'newsletter' }, canActivate: [adminAreaGuard('operations')] },
       { path: 'branches', component: AdminOperationsHubComponent, data: { operationsSection: 'branches' }, canActivate: [adminAreaGuard('settings')] },
       { path: 'branch-network/:id', canActivate: [adminAreaGuard('settings')], loadComponent: () => import('./pages/admin/admin-branch-network.component').then(m => m.AdminBranchNetworkComponent) },
+      { path: 'telematics', canActivate: [adminAreaGuard('telematics')], loadComponent: () => import('./pages/admin/admin-telematics.component').then(m => m.AdminTelematicsComponent) },
+
+      { path: 'finance', canActivate: [adminAreaGuard('finance')], loadComponent: () => import('./pages/admin/admin-finance.component').then(m => m.AdminFinanceComponent) },
+      { path: 'marketing', canActivate: [adminAreaGuard('marketing')], loadComponent: () => import('./pages/admin/admin-marketing.component').then(m => m.AdminMarketingComponent) },
 
       { path: 'team-center', component: AdminTeamHubComponent, data: { teamSection: 'people' } },
       { path: 'team', component: AdminTeamHubComponent, data: { teamSection: 'people' }, canActivate: [adminAreaGuard('team')] },
       { path: 'assignments', component: AdminTeamHubComponent, data: { teamSection: 'assignments' }, canActivate: [adminAreaGuard('team')] },
-      { path: 'audit', component: AdminTeamHubComponent, data: { teamSection: 'audit' }, canActivate: [adminAreaGuard('finance')] }
+      { path: 'audit', component: AdminTeamHubComponent, data: { teamSection: 'audit' }, canActivate: [adminAreaGuard('team')] }
     ] },
 
   { path: '**', component: MainLayoutComponent, children: [{ path: '', loadComponent: () => import('./pages/not-found.component').then(m => m.NotFoundComponent) }] }

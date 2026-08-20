@@ -117,7 +117,7 @@ export class AuthService {
       if (!allowed) {
         await this.clearSession(false);
         if (!this._lastErrorMessage()) {
-          this.setError("forbidden", "Bu hesap Alperler Auto yönetici yetkisine sahip değil.");
+          this.setError("forbidden", "Bu hesap Alperler Rent A Car yönetici yetkisine sahip değil.");
         }
         return false;
       }
@@ -133,6 +133,9 @@ export class AuthService {
     const validationError = this.validateStrongPassword(password);
     if (validationError) {
       this.setError("weak_password", validationError);
+      return { created: false, confirmationRequired: false };
+    }
+    if (!(await this.ensurePasswordNotPwned(password))) {
       return { created: false, confirmationRequired: false };
     }
 
@@ -215,6 +218,7 @@ export class AuthService {
       this.setError("weak_password", validationError);
       return false;
     }
+    if (!(await this.ensurePasswordNotPwned(newPassword))) return false;
 
     const accessToken = await this.getAccessToken();
     if (!accessToken) {
@@ -241,9 +245,11 @@ export class AuthService {
   }
 
   validateStrongPassword(password: string): string | null {
-    if (password.length < 8) return "Şifre en az 8 karakter olmalı.";
-    if (!/[A-Za-zÇĞİÖŞÜçğıöşü]/.test(password)) return "Şifrede en az bir harf bulunmalı.";
+    if (password.length < 10) return "Şifre en az 10 karakter olmalı.";
+    if (!/[a-zçğıöşü]/.test(password)) return "Şifrede en az bir küçük harf bulunmalı.";
+    if (!/[A-ZÇĞİÖŞÜ]/.test(password)) return "Şifrede en az bir büyük harf bulunmalı.";
     if (!/[0-9]/.test(password)) return "Şifrede en az bir rakam bulunmalı.";
+    if (!/[^A-Za-z0-9ÇĞİÖŞÜçğıöşü\s]/.test(password)) return "Şifrede en az bir özel karakter bulunmalı.";
     return null;
   }
 
@@ -457,6 +463,48 @@ export class AuthService {
     }
     this.setError("owner_bootstrap_failed", "Yönetici yetkisi doğrulanamadı.");
     return false;
+  }
+
+  private async ensurePasswordNotPwned(password: string): Promise<boolean> {
+    try {
+      const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(password));
+      const hash = Array.from(new Uint8Array(digest))
+        .map((byte) => byte.toString(16).padStart(2, "0"))
+        .join("")
+        .toUpperCase();
+      const prefix = hash.slice(0, 5);
+      const suffix = hash.slice(5);
+      const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+        method: "GET",
+        headers: { "Add-Padding": "true" },
+      });
+      if (!response.ok) {
+        this.setError(
+          "password_safety_unavailable",
+          "Şifre sızıntı denetimi şu anda tamamlanamadı. Güvenlik için biraz sonra tekrar deneyin.",
+        );
+        return false;
+      }
+      const body = await response.text();
+      const compromised = body.split(/\r?\n/).some((line) => {
+        const [candidate, count] = line.split(":");
+        return candidate?.trim().toUpperCase() === suffix && Number(count || 0) > 0;
+      });
+      if (compromised) {
+        this.setError(
+          "pwned_password",
+          "Bu şifre daha önce bir veri sızıntısında görülmüş. Lütfen benzersiz ve farklı bir şifre seçin.",
+        );
+        return false;
+      }
+      return true;
+    } catch {
+      this.setError(
+        "password_safety_unavailable",
+        "Şifre sızıntı denetimi şu anda tamamlanamadı. Güvenlik için biraz sonra tekrar deneyin.",
+      );
+      return false;
+    }
   }
 
   private adminLoginRedirect(): string {

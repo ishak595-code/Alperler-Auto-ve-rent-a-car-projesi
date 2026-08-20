@@ -26,6 +26,8 @@ export interface RentalRoutePricing {
   enabled: boolean;
 }
 
+export type MotionPreference = 'system' | 'reduced' | 'full';
+
 export interface SiteConfig {
   logoUrl: string;
   logoWidthDesktop?: number;
@@ -84,7 +86,13 @@ export interface SiteConfig {
   branchTermsText?: string;
   commercialCommunicationText?: string;
 
-  theme: "light" | "dark" | "luxury" | "corporate";
+  theme: 'light' | 'dark' | 'luxury' | 'corporate';
+  accentColor?: string;
+  pageBackground?: string;
+  contentMaxWidth?: number;
+  cornerRadius?: number;
+  fontScale?: number;
+  motionPreference?: MotionPreference;
 
   heroTitle?: string;
   heroSubtitle?: string;

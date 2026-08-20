@@ -5,6 +5,9 @@ import {
 
 type Resource = "vehicles" | "tours" | "blog" | "faqs" | "config";
 
+const PUBLIC_PAGE_SIZE = 500;
+const PUBLIC_MAX_PAGES = 100;
+
 function clean(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
@@ -82,15 +85,11 @@ function sanitizedMetadata(input: unknown, excluded: Set<string>, legacyId: numb
 
 function publicCache(resource: Resource): string {
   switch (resource) {
-    case "vehicles":
-      return "no-store";
-    case "tours":
-      return "public, max-age=60, s-maxage=300, stale-while-revalidate=7200";
+    case "vehicles": return "no-store";
+    case "tours": return "public, max-age=60, s-maxage=300, stale-while-revalidate=7200";
     case "blog":
-    case "faqs":
-      return "public, max-age=120, s-maxage=600, stale-while-revalidate=21600";
-    case "config":
-      return "public, max-age=60, s-maxage=300, stale-while-revalidate=3600";
+    case "faqs": return "public, max-age=120, s-maxage=600, stale-while-revalidate=21600";
+    case "config": return "public, max-age=60, s-maxage=300, stale-while-revalidate=3600";
   }
 }
 
@@ -104,11 +103,7 @@ function response(body: unknown, status = 200, cache = "no-store"): Response {
   });
 }
 
-async function rest(
-  path: string,
-  init: RequestInit = {},
-  authorization?: string | null,
-): Promise<Response> {
+async function rest(path: string, init: RequestInit = {}, authorization?: string | null): Promise<Response> {
   return fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
     ...init,
     headers: {
@@ -116,6 +111,44 @@ async function rest(
     },
     signal: AbortSignal.timeout(10_000),
   });
+}
+
+function totalFromContentRange(value: string | null): number | null {
+  if (!value) return null;
+  const total = value.split("/").pop();
+  if (!total || total === "*") return null;
+  const parsed = Number(total);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function readAllRows(path: string): Promise<any[]> {
+  const rows: any[] = [];
+  for (let page = 0; page < PUBLIC_MAX_PAGES; page += 1) {
+    const start = page * PUBLIC_PAGE_SIZE;
+    const end = start + PUBLIC_PAGE_SIZE - 1;
+    const upstream = await rest(path, {
+      method: "GET",
+      headers: {
+        Prefer: "count=exact",
+        Range: `${start}-${end}`,
+        "Range-Unit": "items",
+      },
+    }).catch(() => null);
+
+    if (upstream?.status === 416 && start > 0) break;
+    if (!upstream?.ok) throw new Error("CATALOG_SOURCE_UNAVAILABLE");
+
+    const pageRows = await upstream.json();
+    const list = Array.isArray(pageRows) ? pageRows : [];
+    rows.push(...list);
+
+    const total = totalFromContentRange(upstream.headers.get("content-range"));
+    if (total !== null && rows.length >= total) return rows;
+    if (!list.length) return rows;
+    if (total === null && list.length < PUBLIC_PAGE_SIZE) return rows;
+  }
+
+  throw new Error("CATALOG_PUBLIC_PAGE_LIMIT_REACHED");
 }
 
 function vehicleFromRow(row: any): Record<string, unknown> {
@@ -145,12 +178,9 @@ function vehicleFromRow(row: any): Record<string, unknown> {
     image: row.cover_image || images[0] || undefined,
     isFeatured: Boolean(row.is_featured),
     isAvailable: row.availability_status === "AVAILABLE",
-    availability:
-      category === "SALE"
-        ? row.availability_status === "SOLD"
-          ? "Satıldı"
-          : metadata.availability || "Satışta"
-        : metadata.availability,
+    availability: category === "SALE"
+      ? row.availability_status === "SOLD" ? "Satıldı" : metadata.availability || "Satışta"
+      : metadata.availability,
     cloudId: row.id,
     cloudStockCode: row.stock_code,
     publicationStatus: row.publication_status,
@@ -174,11 +204,19 @@ function tourFromRow(row: any): Record<string, unknown> {
     description: row.description || row.short_description || "",
     price: Number(row.price_per_person || 0),
     duration: row.duration || undefined,
+    capacity: row.capacity ?? undefined,
+    meetingPoint: row.meeting_point || undefined,
+    itinerary: Array.isArray(row.itinerary) ? row.itinerary : [],
+    includedItems: Array.isArray(row.included_items) ? row.included_items : [],
+    excludedItems: Array.isArray(row.excluded_items) ? row.excluded_items : [],
     image: row.cover_image || images[0] || undefined,
     images,
     isFeatured: Boolean(row.is_featured),
     cloudId: row.id,
     cloudSlug: row.seo_slug,
+    publicationStatus: row.publication_status,
+    branchId: row.branch_id || undefined,
+    listingOrigin: row.listing_origin || undefined,
     updatedAt: row.updated_at,
   };
 }
@@ -211,6 +249,14 @@ function faqFromRow(row: any): Record<string, unknown> {
 }
 
 async function getPublic(resource: Resource): Promise<Response> {
+  if (resource === "config") {
+    const upstream = await rest("site_config?key=eq.site_settings&is_public=eq.true&select=value,updated_at&limit=1").catch(() => null);
+    if (!upstream?.ok) return response({ ok: false, code: "CATALOG_SOURCE_UNAVAILABLE", resource }, 503);
+    const rows = await upstream.json();
+    const value = Array.isArray(rows) && rows[0]?.value ? rows[0].value : null;
+    return response({ ok: true, resource, value }, 200, publicCache(resource));
+  }
+
   let path = "";
   let map: (row: any) => Record<string, unknown> = (row) => row;
   switch (resource) {
@@ -230,31 +276,21 @@ async function getPublic(resource: Resource): Promise<Response> {
       path = "faqs?is_active=eq.true&select=*&order=sort_order.asc";
       map = faqFromRow;
       break;
-    case "config":
-      path = "site_config?key=eq.site_settings&is_public=eq.true&select=value,updated_at&limit=1";
-      break;
+    default:
+      return response({ ok: false, code: "INVALID_CATALOG_RESOURCE" }, 400);
   }
 
-  const upstream = await rest(path).catch(() => null);
-  if (!upstream?.ok) {
-    return response({ ok: false, code: "CATALOG_SOURCE_UNAVAILABLE", resource }, 503);
+  try {
+    const rows = await readAllRows(path);
+    return response({ ok: true, resource, records: rows.map(map) }, 200, publicCache(resource));
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "CATALOG_SOURCE_UNAVAILABLE";
+    return response({ ok: false, code, resource }, code === "CATALOG_PUBLIC_PAGE_LIMIT_REACHED" ? 507 : 503);
   }
-  const rows = await upstream.json();
-  if (resource === "config") {
-    const value = Array.isArray(rows) && rows[0]?.value ? rows[0].value : null;
-    return response({ ok: true, resource, value }, 200, publicCache(resource));
-  }
-  return response(
-    { ok: true, resource, records: Array.isArray(rows) ? rows.map(map) : [] },
-    200,
-    publicCache(resource),
-  );
 }
 
 function normalizeVehicle(input: any): Record<string, unknown> {
-  if (!input || (input.category !== "RENTAL" && input.category !== "SALE")) {
-    throw new Error("INVALID_VEHICLE_CATEGORY");
-  }
+  if (!input || (input.category !== "RENTAL" && input.category !== "SALE")) throw new Error("INVALID_VEHICLE_CATEGORY");
   const category: "RENTAL" | "SALE" = input.category;
   const id = legacyIdFrom(input.id) ?? Date.now();
   const brand = clean(input.brand, 120);
@@ -325,7 +361,7 @@ function normalizeBlog(input: any): Record<string, unknown> {
     excerpt: clean(input.summary, 2000) || null,
     content: clean(input.content, 100_000),
     cover_image: clean(input.image, 2048) || null,
-    author_name: "Alperler Auto",
+    author_name: "Alperler Rent A Car",
     status: "PUBLISHED",
     published_at: input.publishedAt || new Date().toISOString(),
     metadata: {
@@ -363,9 +399,7 @@ async function upsert(resource: Resource, input: any, authorization: string): Pr
     conflict = "slug";
     map = blogFromRow;
   } else if (resource === "config") {
-    if (!input || typeof input !== "object" || jsonSize(input) > 750_000) {
-      throw new Error("INVALID_SITE_CONFIG");
-    }
+    if (!input || typeof input !== "object" || jsonSize(input) > 750_000) throw new Error("INVALID_SITE_CONFIG");
     row = { key: "site_settings", value: input, is_public: true };
     path = "site_config?on_conflict=key&select=*";
     conflict = "key";
@@ -383,15 +417,11 @@ async function upsert(resource: Resource, input: any, authorization: string): Pr
     };
     const faqPath = cloudId ? `faqs?id=eq.${encodeURIComponent(cloudId)}&select=*` : "faqs?select=*";
     const method = cloudId ? "PATCH" : "POST";
-    const faqResponse = await rest(
-      faqPath,
-      {
-        method,
-        headers: { Prefer: "return=representation" },
-        body: JSON.stringify(faqRow),
-      },
-      authorization,
-    );
+    const faqResponse = await rest(faqPath, {
+      method,
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify(faqRow),
+    }, authorization);
     if (!faqResponse.ok) return response({ ok: false, code: "FAQ_SAVE_DENIED" }, faqResponse.status);
     const rows = await faqResponse.json();
     return response({ ok: true, resource, record: faqFromRow(rows[0]) });
@@ -399,18 +429,12 @@ async function upsert(resource: Resource, input: any, authorization: string): Pr
     throw new Error("UNSUPPORTED_RESOURCE");
   }
 
-  const upstream = await rest(
-    path,
-    {
-      method: "POST",
-      headers: { Prefer: `resolution=merge-duplicates,return=representation`, "x-upsert-conflict": conflict },
-      body: JSON.stringify(row),
-    },
-    authorization,
-  );
-  if (!upstream.ok) {
-    return response({ ok: false, code: "CATALOG_SAVE_DENIED", resource }, upstream.status);
-  }
+  const upstream = await rest(path, {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=representation", "x-upsert-conflict": conflict },
+    body: JSON.stringify(row),
+  }, authorization);
+  if (!upstream.ok) return response({ ok: false, code: "CATALOG_SAVE_DENIED", resource }, upstream.status);
   const rows = await upstream.json();
   if (resource === "config") return response({ ok: true, resource, value: rows[0]?.value || input });
   return response({ ok: true, resource, record: map(rows[0]) });
@@ -421,48 +445,36 @@ async function disable(resource: Resource, input: any, authorization: string): P
     const stockCode = clean(input?.cloudStockCode, 120);
     const cloudId = clean(input?.cloudId, 80);
     if (!stockCode && !cloudId) throw new Error("VEHICLE_ID_REQUIRED");
-    const filter = stockCode
-      ? `stock_code=eq.${encodeURIComponent(stockCode)}`
-      : `id=eq.${encodeURIComponent(cloudId)}`;
-    const upstream = await rest(
-      `vehicles?${filter}`,
-      { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ is_active: false }) },
-      authorization,
-    );
+    const filter = stockCode ? `stock_code=eq.${encodeURIComponent(stockCode)}` : `id=eq.${encodeURIComponent(cloudId)}`;
+    const upstream = await rest(`vehicles?${filter}`, {
+      method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ is_active: false }),
+    }, authorization);
     return upstream.ok ? response({ ok: true, resource, disabled: true }) : response({ ok: false, code: "CATALOG_DISABLE_DENIED" }, upstream.status);
   }
   if (resource === "tours") {
     const cloudSlug = clean(input?.cloudSlug, 140);
     const cloudId = clean(input?.cloudId, 80);
     if (!cloudSlug && !cloudId) throw new Error("TOUR_ID_REQUIRED");
-    const filter = cloudSlug
-      ? `seo_slug=eq.${encodeURIComponent(cloudSlug)}`
-      : `id=eq.${encodeURIComponent(cloudId)}`;
-    const upstream = await rest(
-      `tours?${filter}`,
-      { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ is_active: false }) },
-      authorization,
-    );
+    const filter = cloudSlug ? `seo_slug=eq.${encodeURIComponent(cloudSlug)}` : `id=eq.${encodeURIComponent(cloudId)}`;
+    const upstream = await rest(`tours?${filter}`, {
+      method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ is_active: false }),
+    }, authorization);
     return upstream.ok ? response({ ok: true, resource, disabled: true }) : response({ ok: false, code: "CATALOG_DISABLE_DENIED" }, upstream.status);
   }
   if (resource === "blog") {
     const cloudSlug = clean(input?.cloudSlug, 140);
     if (!cloudSlug) throw new Error("BLOG_ID_REQUIRED");
-    const upstream = await rest(
-      `blog_posts?slug=eq.${encodeURIComponent(cloudSlug)}`,
-      { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: "ARCHIVED" }) },
-      authorization,
-    );
+    const upstream = await rest(`blog_posts?slug=eq.${encodeURIComponent(cloudSlug)}`, {
+      method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: "ARCHIVED" }),
+    }, authorization);
     return upstream.ok ? response({ ok: true, resource, disabled: true }) : response({ ok: false, code: "CATALOG_DISABLE_DENIED" }, upstream.status);
   }
   if (resource === "faqs") {
     const cloudId = clean(input?.cloudId, 80);
     if (!cloudId) throw new Error("FAQ_ID_REQUIRED");
-    const upstream = await rest(
-      `faqs?id=eq.${encodeURIComponent(cloudId)}`,
-      { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ is_active: false }) },
-      authorization,
-    );
+    const upstream = await rest(`faqs?id=eq.${encodeURIComponent(cloudId)}`, {
+      method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ is_active: false }),
+    }, authorization);
     return upstream.ok ? response({ ok: true, resource, disabled: true }) : response({ ok: false, code: "CATALOG_DISABLE_DENIED" }, upstream.status);
   }
   throw new Error("RESOURCE_DELETE_NOT_SUPPORTED");
@@ -489,12 +501,8 @@ export default {
     }
 
     try {
-      if (request.method === "PUT" || request.method === "POST") {
-        return await upsert(resource, body, authorization);
-      }
-      if (request.method === "DELETE") {
-        return await disable(resource, body, authorization);
-      }
+      if (request.method === "PUT" || request.method === "POST") return await upsert(resource, body, authorization);
+      if (request.method === "DELETE") return await disable(resource, body, authorization);
       return response({ ok: false, code: "METHOD_NOT_ALLOWED" }, 405);
     } catch (error) {
       const code = error instanceof Error ? error.message : "CATALOG_OPERATION_FAILED";

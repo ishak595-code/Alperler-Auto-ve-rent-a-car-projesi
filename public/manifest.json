@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Alperler Auto",
+  "name": "Alperler Rent A Car",
   "short_name": "Alperler",
-  "description": "Yüksekova'da araç kiralama, ikinci el araç satışı ve bölgesel tur hizmetleri.",
+  "description": "Yüksekova'da araç kiralama, satılık araç, transfer ve bölgesel tur hizmetlerini tek yerden planlayın.",
   "lang": "tr",
   "dir": "ltr",
   "start_url": "/",

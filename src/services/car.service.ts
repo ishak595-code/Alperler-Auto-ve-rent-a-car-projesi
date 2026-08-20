@@ -633,7 +633,7 @@ export class CarService {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         to: normalizedRecipient,
-        subject: subject || "Alperler Auto Bildirim",
+        subject: subject || "Alperler Rent A Car Bildirim",
         text: message,
         html: htmlMessage,
       }),
@@ -698,12 +698,7 @@ export class CarService {
   }
 
   private normalizeConfig(config: Partial<SiteConfig>): SiteConfig {
-    const serialized = JSON.stringify({ ...DEFAULT_SITE_CONFIG, ...config })
-      .replace(/Alperler Rent A Car/g, "Alperler Auto")
-      .replace(/Alperler Oto/g, "Alperler Auto")
-      .replace(/ALPERLER RENT A CAR/g, "ALPERLER AUTO")
-      .replace(/ALPERLER OTO/g, "ALPERLER AUTO");
-    return JSON.parse(serialized) as SiteConfig;
+    return { ...DEFAULT_SITE_CONFIG, ...config } as SiteConfig;
   }
 
   private upsertById<T extends { id: number | string }>(items: T[], value: T): T[] {
@@ -738,8 +733,6 @@ export class CarService {
   private installLocalPersistence(): void {
     if (typeof localStorage === "undefined") return;
 
-    // Only user/session state is persisted locally. Published catalogue content
-    // is server-authoritative and is intentionally never cached as browser truth.
     effect(() => localStorage.setItem("db_reservations_v2", JSON.stringify(this._reservations())));
     effect(() => localStorage.setItem("db_partnerRequests_v2", JSON.stringify(this._partnerRequests())));
     effect(() => localStorage.setItem("db_visits", String(this._visitCount())));
@@ -752,8 +745,6 @@ export class CarService {
   private loadFromStorage(): void {
     if (typeof localStorage === "undefined") return;
 
-    // Purge every historical catalogue snapshot. This duplicates the bootstrap
-    // guard intentionally so CarService remains safe in tests and alternate entrypoints.
     const catalogCacheKey = /^db_(?:cars|rental_?cars?|sale_?cars?|sales?|vehicles?|tours?|inventory|config|faqs?|blog)(?:_|$)/i;
     for (let index = localStorage.length - 1; index >= 0; index -= 1) {
       const key = localStorage.key(index);

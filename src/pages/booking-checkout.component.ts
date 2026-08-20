@@ -124,12 +124,12 @@ export class BookingCheckoutComponent implements OnInit {
   readonly selectedAdditionalCount = computed(() => this.selectedExtraIds().filter((id) => id !== "driver").length);
   readonly pickupChoices = computed(() => this.buildLocationChoices(this.branchService.pickupPoints(), "pickupLocations"));
   readonly returnChoices = computed(() => { const dedicated = this.buildLocationChoices(this.branchService.returnPoints(), "returnLocations"); return dedicated.length ? dedicated : this.buildLocationChoices(this.branchService.returnPoints(), "pickupLocations"); });
-  readonly withDriver = computed(() => this.selectedExtraIds().includes("driver") || this.request()?.item?.driverOption === "WITH_DRIVER");
+  readonly withDriver = computed(() => this.selectedExtraIds().includes("driver"));
 
   async ngOnInit(): Promise<void> {
     const booking = this.request(); if (!booking) { await this.router.navigate(["/contact"]); return; }
     this.startDate = booking.startDate || ""; this.endDate = booking.endDate || ""; this.rentalDuration = booking.rentalDuration || "daily";
-    if (booking.withDriver || booking.item?.driverOption === "WITH_DRIVER") this.selectedExtraIds.set(["driver"]);
+    if (booking.withDriver === true && this.driverAllowed(true)) this.selectedExtraIds.set(["driver"]);
     await Promise.allSettled([this.branchService.refresh(), this.paymentService.refreshIntegrationStatus()]);
     const configAddress = String(this.carService.getConfig()().address || "");
     const pickup = booking.pickupLocation || this.pickupChoices()[0]?.label || configAddress;
@@ -138,7 +138,7 @@ export class BookingCheckoutComponent implements OnInit {
   }
 
   isRental(): boolean { return this.request()?.type === "RENTAL"; }
-  driverAllowed(withDriver: boolean): boolean { const option = this.request()?.item?.driverOption; if (option === "WITH_DRIVER") return withDriver; if (option === "WITHOUT_DRIVER") return !withDriver; return true; }
+  driverAllowed(withDriver: boolean): boolean { const option = this.request()?.item?.driverOption; if (!withDriver) return true; return option !== "WITHOUT_DRIVER" && this.rentalExtras().some((item) => item.id === "driver" && item.enabled); }
   setDriver(value: boolean): void { if (!this.driverAllowed(value)) return; this.selectedExtraIds.update((items) => value ? (items.includes("driver") ? items : ["driver", ...items]) : items.filter((id) => id !== "driver")); this.calculatePrice(); }
   driverPriceLabel(): string { const extra = this.rentalExtras().find((item) => item.id === "driver"); return extra ? this.extraPriceLabel(extra) : "Şoför hizmeti"; }
   setStartDate(value: string): void { this.startDate = value; if (this.endDate && value && this.endDate <= value) this.endDate = ""; this.errorMessage.set(""); this.calculatePrice(); }
@@ -173,7 +173,7 @@ export class BookingCheckoutComponent implements OnInit {
       const record = await this.bookingService.create({ type: booking.type, itemId: booking.item?.cloudId || booking.item?.id, itemName: booking.itemName, image: booking.image, customerName: `${this.firstName.trim()} ${this.lastName.trim()}`, customerEmail: this.email.trim(), customerPhone: this.phone.trim(), basePrice: booking.basePrice, totalPrice: this.isRental() ? this.totalPrice() : booking.basePrice, currency: "TRY", startDate: this.isRental() ? this.startDate : booking.startDate, endDate: this.isRental() ? this.endDate : booking.endDate, days: this.isRental() ? this.totalDays() : undefined, withDriver: this.isRental() ? this.withDriver() : undefined, pickupLocation: this.isRental() ? this.pickupLocation() : booking.pickupLocation, dropoffLocation: this.isRental() ? (this.dropoffLocation() || this.pickupLocation()) : undefined, rentalDuration: this.isRental() ? this.rentalDuration : undefined, notes: [this.notes.trim(), ...detailNotes].filter(Boolean).join("\n"), paymentMethod: this.isRental() ? this.paymentMethod() : "NONE", source: "WEB" });
       this.bookingReference.set(record.id);
       if (this.isRental() && this.paymentMethod() === "CARD") { const origin = window.location.origin; const payment = await this.paymentService.createCardSession({ bookingReference: record.id, amount: record.totalPrice || 0, currency: "TRY", method: "CARD", customer: { name: record.customerName, email: record.customerEmail || this.email.trim(), phone: record.customerPhone }, returnUrl: `${origin}/contact?payment=success&booking=${encodeURIComponent(record.id)}`, cancelUrl: `${origin}/contact?payment=cancel&booking=${encodeURIComponent(record.id)}`, description: record.itemName, metadata: { bookingType: record.type } }); if (payment.ok && payment.checkoutUrl) { window.location.assign(payment.checkoutUrl); return; } this.successMessage.set("Rezervasyon kaydedildi ancak kart ödeme oturumu başlatılamadı. Talebiniz kaybolmadı."); return; }
-      this.successMessage.set(this.isRental() ? "Rezervasyon talebiniz kaydedildi. Uygunluk doğrulandıktan sonra sizinle iletişime geçilecektir." : "Talebiniz kaydedildi. Ekibimiz sizinle iletişime geçecektir.");
+      this.successMessage.set(this.isRental() ? "Rezervasyon talebiniz kaydedildi. Uygunluk doğrulandıktan sonra sizinle iletişime geçilecektir." : "Talebiniz kaydedildi. Ekibimiz sizinle iletişime geçilecektir.");
     } catch (error) { console.error("Checkout submission failed.", error); const detail = error instanceof Error ? error.message : ""; this.errorMessage.set(detail.includes("INVALID_RENTAL_VEHICLE") ? "Araç kaydı doğrulanamadı. Araç sayfasına dönüp tekrar deneyin." : "Talep kaydedilemedi. Bilgilerinizi kontrol edip tekrar deneyin."); this.toastService.show("Talep kaydedilemedi.", "error"); }
     finally { this.isSubmitting.set(false); }
   }

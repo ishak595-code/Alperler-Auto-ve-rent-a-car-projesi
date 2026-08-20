@@ -3,6 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AdminAccessService, AdminArea } from '../../services/admin-access.service';
 import { AdminSettingsComponent } from './admin-settings.component';
+import { AdminAppearanceSettingsComponent } from './admin-appearance-settings.component';
 import { AdminHomepageComponent } from './admin-homepage.component';
 import { AdminHomepageDeviceVisibilityComponent } from './admin-homepage-device-visibility.component';
 import { AdminHomepagePlannerCopyComponent } from './admin-homepage-planner-copy.component';
@@ -21,7 +22,7 @@ interface SettingsTab { id: SettingsSection; label: string; shortLabel: string; 
 @Component({
   selector: 'app-admin-site-settings-hub',
   standalone: true,
-  imports: [CommonModule, AdminSettingsComponent, AdminHomepageComponent, AdminHomepageDeviceVisibilityComponent, AdminHomepagePlannerCopyComponent, AdminRentalPricingComponent, AdminPaymentSettingsComponent, AdminNavigationComponent, AdminFooterComponent, AdminLegalCenterComponent, AdminSeoSettingsComponent, AdminFaqManagementComponent, AdminWhatsappSettingsComponent],
+  imports: [CommonModule, AdminSettingsComponent, AdminAppearanceSettingsComponent, AdminHomepageComponent, AdminHomepageDeviceVisibilityComponent, AdminHomepagePlannerCopyComponent, AdminRentalPricingComponent, AdminPaymentSettingsComponent, AdminNavigationComponent, AdminFooterComponent, AdminLegalCenterComponent, AdminSeoSettingsComponent, AdminFaqManagementComponent, AdminWhatsappSettingsComponent],
   template: `
     <div class="workspace">
       <header class="workspace-head">
@@ -54,7 +55,7 @@ interface SettingsTab { id: SettingsSection; label: string; shortLabel: string; 
           @case ('seo') { <app-admin-seo-settings /> }
           @case ('faq') { <app-admin-faq-management /> }
           @case ('whatsapp') { <app-admin-whatsapp-settings /> }
-          @default { <app-admin-settings /> }
+          @default { <app-admin-settings /><app-admin-appearance-settings /> }
         }
         } @else {
           <div class="p-8 text-center text-sm font-bold text-slate-500">Yönetim alanı hazırlanıyor…</div>
@@ -75,9 +76,9 @@ export class AdminSiteSettingsHubComponent implements OnInit {
   readonly accessReady = signal(false);
 
   readonly tabs: SettingsTab[] = [
-    { id:'general', label:'Profil ve Genel Ayarlar', shortLabel:'Profil & Genel', description:'Profil, marka, logo ve iletişim.', area:'settings' },
+    { id:'general', label:'Profil ve Genel Ayarlar', shortLabel:'Profil & Genel', description:'Profil, marka, logo, görünüm ve iletişim.', area:'settings' },
     { id:'homepage', label:'Ana Sayfa Vitrini', shortLabel:'Ana Sayfa', description:'Bölümler, metinler, cihazlar, sıra ve öne çıkanlar.', area:'content' },
-    { id:'rental', label:'Kiralama ve Mesafe Ücretleri', shortLabel:'Kiralama Ücretleri', description:'Yakıt, tüketim ve rota kilometreleri.', area:'settings' },
+    { id:'rental', label:'Kiralama, Ek Hizmet ve Mesafe', shortLabel:'Kiralama', description:'İsteğe bağlı hizmetler, yakıt ve rota ücretleri.', area:'settings' },
     { id:'payments', label:'Ödeme ve Depozito', shortLabel:'Ödeme', description:'Kart, EFT, teslimde ödeme ve depozito.', area:'settings' },
     { id:'navigation', label:'Menü ve Alt Bar', shortLabel:'Menü & Alt Bar', description:'Mobil menü ve hızlı erişim.', area:'settings' },
     { id:'footer', label:'Footer ve Sosyal Medya', shortLabel:'Footer & Sosyal', description:'Alt bilgi, sosyal hesap ve bülten.', area:'settings' },

@@ -35,6 +35,9 @@ interface CatalogListResponse<T> {
 
 type PublicResource = "vehicles" | "tours" | "blog" | "faqs" | "config";
 
+const DIRECT_PAGE_SIZE = 500;
+const DIRECT_MAX_PAGES = 100;
+
 @Injectable({ providedIn: "root" })
 export class CatalogService {
   private readonly authService = inject(AuthService);
@@ -99,11 +102,7 @@ export class CatalogService {
 
   async saveConfig(config: SiteConfig): Promise<SiteConfig> {
     try {
-      const payload = await this.adminRequest<CatalogListResponse<never>>(
-        "PUT",
-        "config",
-        config,
-      );
+      const payload = await this.adminRequest<CatalogListResponse<never>>("PUT", "config", config);
       if (!payload.ok) throw new Error(payload.code || "CONFIG_SAVE_FAILED");
       return (payload.value || config) as SiteConfig;
     } catch (apiError) {
@@ -132,27 +131,13 @@ export class CatalogService {
 
   private async loadList<T>(resource: Exclude<PublicResource, "config">, fresh = false): Promise<T[]> {
     const payload = await this.publicRequest<T>(resource, fresh);
-    if (!payload.ok || !Array.isArray(payload.records)) {
-      throw new Error(payload.code || "CATALOG_LOAD_FAILED");
-    }
+    if (!payload.ok || !Array.isArray(payload.records)) throw new Error(payload.code || "CATALOG_LOAD_FAILED");
     return payload.records;
   }
 
-  /**
-   * Public catalogue content is intentionally resilient to Vercel Function routing.
-   * We prefer /api/catalog so one mapper remains authoritative, but if a new deployment,
-   * rewrite or transient function outage makes that endpoint unavailable, the browser
-   * can safely read the same published rows directly through Supabase RLS.
-   */
   private async publicRequest<T>(resource: PublicResource, fresh: boolean): Promise<CatalogListResponse<T>> {
     try {
-      const payload = await this.request<CatalogListResponse<T>>(
-        "GET",
-        resource,
-        undefined,
-        undefined,
-        fresh,
-      );
+      const payload = await this.request<CatalogListResponse<T>>("GET", resource, undefined, undefined, fresh);
       if (payload.ok) return payload;
     } catch (error) {
       console.warn(`Public catalog API fallback activated for ${resource}`, error);
@@ -162,51 +147,86 @@ export class CatalogService {
 
   private async directPublicRequest<T>(resource: PublicResource, fresh: boolean): Promise<CatalogListResponse<T>> {
     const path = this.publicRestPath(resource);
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
-      method: "GET",
-      cache: fresh ? "no-store" : "default",
-      headers: {
-        apikey: SUPABASE_PUBLISHABLE_KEY,
-        accept: "application/json",
-        ...(fresh ? { "cache-control": "no-cache" } : {}),
-      },
-    });
-    if (!response.ok) throw new Error(`CATALOG_DIRECT_${resource.toUpperCase()}_${response.status}`);
-    const rows = (await response.json()) as unknown;
-    const list = Array.isArray(rows) ? rows : [];
 
     if (resource === "config") {
+      const list = await this.directPage(path, 0, 0, fresh);
       const value = list[0] && typeof list[0] === "object"
         ? (list[0] as Record<string, unknown>)["value"]
         : null;
       return { ok: true, resource, value } as CatalogListResponse<T>;
     }
 
-    const records = list.map((row) => this.mapPublicRow(resource, row)) as T[];
+    const allRows: unknown[] = [];
+    let expectedTotal: number | null = null;
+
+    for (let page = 0; page < DIRECT_MAX_PAGES; page += 1) {
+      const start = page * DIRECT_PAGE_SIZE;
+      const end = start + DIRECT_PAGE_SIZE - 1;
+      const pageResult = await this.directPageWithTotal(path, start, end, fresh);
+      allRows.push(...pageResult.rows);
+      expectedTotal = pageResult.total ?? expectedTotal;
+
+      if (expectedTotal !== null && allRows.length >= expectedTotal) break;
+      if (!pageResult.rows.length) break;
+      if (expectedTotal === null && pageResult.rows.length < DIRECT_PAGE_SIZE) break;
+
+      if (page === DIRECT_MAX_PAGES - 1) throw new Error("CATALOG_DIRECT_PAGE_LIMIT_REACHED");
+    }
+
+    const records = allRows.map((row) => this.mapPublicRow(resource, row)) as T[];
     return { ok: true, resource, records };
+  }
+
+  private async directPage(path: string, start: number, end: number, fresh: boolean): Promise<unknown[]> {
+    const result = await this.directPageWithTotal(path, start, end, fresh);
+    return result.rows;
+  }
+
+  private async directPageWithTotal(path: string, start: number, end: number, fresh: boolean): Promise<{ rows: unknown[]; total: number | null }> {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
+      method: "GET",
+      cache: fresh ? "no-store" : "default",
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        accept: "application/json",
+        Prefer: "count=exact",
+        Range: `${start}-${end}`,
+        "Range-Unit": "items",
+        ...(fresh ? { "cache-control": "no-cache" } : {}),
+      },
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (response.status === 416 && start > 0) return { rows: [], total: start };
+    if (!response.ok) throw new Error(`CATALOG_DIRECT_HTTP_${response.status}`);
+
+    const payload = await response.json() as unknown;
+    const rows = Array.isArray(payload) ? payload : [];
+    return { rows, total: this.totalFromContentRange(response.headers.get("content-range")) };
+  }
+
+  private totalFromContentRange(value: string | null): number | null {
+    if (!value) return null;
+    const rawTotal = value.split("/").pop();
+    if (!rawTotal || rawTotal === "*") return null;
+    const total = Number(rawTotal);
+    return Number.isFinite(total) ? total : null;
   }
 
   private publicRestPath(resource: PublicResource): string {
     switch (resource) {
-      case "vehicles":
-        return "vehicles?is_active=eq.true&select=*&order=is_featured.desc,updated_at.desc";
-      case "tours":
-        return "tours?is_active=eq.true&select=*&order=is_featured.desc,updated_at.desc";
-      case "blog":
-        return "blog_posts?status=eq.PUBLISHED&select=*&order=published_at.desc";
-      case "faqs":
-        return "faqs?is_active=eq.true&select=*&order=sort_order.asc";
-      case "config":
-        return "site_config?key=eq.site_settings&is_public=eq.true&select=value,updated_at&limit=1";
+      case "vehicles": return "vehicles?is_active=eq.true&select=*&order=is_featured.desc,updated_at.desc";
+      case "tours": return "tours?is_active=eq.true&select=*&order=is_featured.desc,updated_at.desc";
+      case "blog": return "blog_posts?status=eq.PUBLISHED&select=*&order=published_at.desc";
+      case "faqs": return "faqs?is_active=eq.true&select=*&order=sort_order.asc";
+      case "config": return "site_config?key=eq.site_settings&is_public=eq.true&select=value,updated_at&limit=1";
     }
   }
 
   private mapPublicRow(resource: Exclude<PublicResource, "config">, raw: unknown): Record<string, unknown> {
     const row = raw && typeof raw === "object" ? raw as Record<string, any> : {};
     const metadata = row["metadata"] && typeof row["metadata"] === "object" ? row["metadata"] : {};
-    if (resource === "vehicles") {
-      return this.normalizeVehicleRecord({ ...row, metadata }) as unknown as Record<string, unknown>;
-    }
+    if (resource === "vehicles") return this.normalizeVehicleRecord({ ...row, metadata }) as unknown as Record<string, unknown>;
 
     if (resource === "tours") {
       const images = Array.isArray(row["images"]) ? row["images"] : [];
@@ -271,11 +291,7 @@ export class CatalogService {
     const legacyId = this.legacyId(metadata["legacyId"]);
     const mappedId = this.legacyId(row["id"]);
     const availabilityStatus = row["availability_status"] ?? row["availabilityStatus"];
-    const price = Number(
-      category === "RENTAL"
-        ? row["rental_price_daily"] ?? row["price"] ?? 0
-        : row["price"] ?? 0,
-    );
+    const price = Number(category === "RENTAL" ? row["rental_price_daily"] ?? row["price"] ?? 0 : row["price"] ?? 0);
 
     return {
       ...metadata,
@@ -301,9 +317,7 @@ export class CatalogService {
       isFeatured: typeof row["isFeatured"] === "boolean" ? row["isFeatured"] : Boolean(row["is_featured"]),
       isAvailable: typeof row["isAvailable"] === "boolean"
         ? row["isAvailable"]
-        : availabilityStatus
-          ? availabilityStatus === "AVAILABLE"
-          : true,
+        : availabilityStatus ? availabilityStatus === "AVAILABLE" : true,
       availability: category === "SALE"
         ? availabilityStatus === "SOLD" ? "Satıldı" : row["availability"] || metadata["availability"] || "Satışta"
         : row["availability"] ?? metadata["availability"],
@@ -327,14 +341,8 @@ export class CatalogService {
   }
 
   private async saveRecord<T>(resource: string, record: unknown): Promise<T> {
-    const payload = await this.adminRequest<CatalogListResponse<T>>(
-      "PUT",
-      resource,
-      record,
-    );
-    if (!payload.ok || !payload.record) {
-      throw new Error(payload.code || "CATALOG_SAVE_FAILED");
-    }
+    const payload = await this.adminRequest<CatalogListResponse<T>>("PUT", resource, record);
+    if (!payload.ok || !payload.record) throw new Error(payload.code || "CATALOG_SAVE_FAILED");
     return payload.record;
   }
 
@@ -356,25 +364,18 @@ export class CatalogService {
     fresh = false,
   ): Promise<T> {
     const freshQuery = fresh && method === "GET" ? `&fresh=${Date.now()}` : "";
-    const response = await fetch(
-      `/api/catalog?resource=${encodeURIComponent(resource)}${freshQuery}`,
-      {
-        method,
-        cache: fresh ? "no-store" : "default",
-        headers: {
-          ...(token ? { authorization: `Bearer ${token}` } : {}),
-          ...(fresh ? { "cache-control": "no-cache" } : {}),
-          ...(method === "GET" ? {} : { "content-type": "application/json" }),
-        },
-        body: method === "GET" ? undefined : JSON.stringify(body),
+    const response = await fetch(`/api/catalog?resource=${encodeURIComponent(resource)}${freshQuery}`, {
+      method,
+      cache: fresh ? "no-store" : "default",
+      headers: {
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+        ...(fresh ? { "cache-control": "no-cache" } : {}),
+        ...(method === "GET" ? {} : { "content-type": "application/json" }),
       },
-    );
-    const payload = (await response.json().catch(() => ({}))) as T & {
-      code?: string;
-    };
-    if (!response.ok) {
-      throw new Error(payload.code || `CATALOG_HTTP_${response.status}`);
-    }
+      body: method === "GET" ? undefined : JSON.stringify(body),
+    });
+    const payload = (await response.json().catch(() => ({}))) as T & { code?: string };
+    if (!response.ok) throw new Error(payload.code || `CATALOG_HTTP_${response.status}`);
     return payload;
   }
 }

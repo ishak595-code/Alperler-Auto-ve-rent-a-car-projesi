@@ -5,90 +5,59 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#081426">
-  <meta name="application-name" content="Alperler Auto">
+  <meta name="application-name" content="Alperler Rent A Car">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Alperler">
-  <title>Alperler Auto | Yüksekova Araç Kiralama, 2. El Galeri & Turlar</title>
-  
-  <!-- Polyfill for process (Fixes ReferenceError: process is not defined) -->
+  <meta name="apple-mobile-web-app-title" content="Alperler Rent A Car">
+  <title>Alperler Rent A Car | Yüksekova Araç Kiralama, Satılık Araç, Transfer ve Turlar</title>
+
   <script>
     window.process = { env: { NODE_ENV: 'production' } };
   </script>
 
-  <!-- Advanced SEO & Meta Tags for Maximum AI & Search Engine Discovery -->
-  <meta name="description" content="Yüksekova'da kaskolu araç kiralama, VIP transfer, 2. el oto alım-satım ve Cilo-Sat turları. Online rezervasyon yapın veya WhatsApp'tan hemen yazın.">
-  <meta name="author" content="Alperler Auto">
+  <meta name="description" content="Yüksekova ve Hakkâri çevresinde araç kiralama, satılık araç, şoförlü transfer, düğün ve özel gün aracı ile bölgesel tur seçeneklerini hızlı talep süreciyle inceleyin.">
+  <meta name="author" content="Alperler Rent A Car">
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
-  <link rel="canonical" href="https://alperrentacar.online/" />
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
-  
-  <!-- Open Graph / Facebook / WhatsApp -->
-  <meta property="og:locale" content="tr_TR" />
+
+  <meta property="og:locale" content="tr_TR">
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Alperler Auto" />
-  <meta property="og:url" content="https://alperrentacar.online/">
-  <meta property="og:title" content="Alperler Auto | Yüksekova Araç Kiralama, 2. El Galeri & Turlar">
-  <meta property="og:description" content="Hayallerinizin Yol Arkadaşı! Yüksekova'da güvenli, kaskolu araç kiralama, 2. el otomotiv ve Cilo-Sat turları.">
-  <meta property="og:image" content="https://alperrentacar.online/og-image.jpg">
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name" content="Alperler Rent A Car">
+  <meta property="og:title" content="Alperler Rent A Car | Yüksekova Araç Kiralama, Satış, Transfer ve Turlar">
+  <meta property="og:description" content="Araç kiralama, satılık araç, şoförlü transfer, özel gün araçları ve bölgesel turlar için hızlı talep ve yerel ekip desteği.">
+  <meta property="og:image" content="/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
 
-  <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Alperler Auto | Yüksekova Araç Kiralama, 2. El Galeri & Turlar">
-  <meta name="twitter:description" content="Cilo-Sat Dağları turları, geniş araç filosu ve 2. el galeri hizmetimizle Yüksekova'nın lider firmasıyız.">
-  <meta name="twitter:image" content="https://alperrentacar.online/og-image.jpg">
+  <meta name="twitter:title" content="Alperler Rent A Car | Yüksekova Araç Kiralama, Satış, Transfer ve Turlar">
+  <meta name="twitter:description" content="Yüksekova ve Hakkâri çevresinde araç kiralama, satış, transfer, özel gün aracı ve tur seçeneklerini inceleyin.">
+  <meta name="twitter:image" content="/og-image.jpg">
 
-  <!-- AI Discovery & Knowledge Graph JSON-LD -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@graph": [
       {
+        "@type": "Organization",
+        "@id": "#alperler",
+        "name": "Alperler",
+        "founder": { "@type": "Person", "name": "İshak Alper" }
+      },
+      {
         "@type": "AutoRental",
-        "@id": "https://alperrentacar.online/#autorental",
-        "name": "Alperler Auto",
-        "url": "https://alperrentacar.online/",
-        "logo": "https://alperrentacar.online/icons/icon-512.png",
-        "image": "https://alperrentacar.online/og-image.jpg",
-        "description": "Yüksekova'da lüks, ekonomik ve şoförlü VIP araç kiralama hizmeti.",
-        "telephone": "+905379594851",
-        "address": {
-          "@type": "PostalAddress",
-          "streetAddress": "Cengiz Topel Caddesi",
-          "addressLocality": "Yüksekova",
-          "addressRegion": "Hakkari",
-          "postalCode": "30300",
-          "addressCountry": "TR"
-        },
-        "geo": {
-          "@type": "GeoCoordinates",
-          "latitude": 37.5756,
-          "longitude": 44.2936
-        },
-        "priceRange": "₺₺",
-        "founder": [
-          { "@type": "Person", "name": "Erkan Alper" },
-          { "@type": "Person", "name": "Hicran Alper" }
-        ]
-      },
-      {
-        "@type": "AutoDealer",
-        "@id": "https://alperrentacar.online/#autodealer",
-        "name": "Alperler Auto",
-        "url": "https://alperrentacar.online/",
-        "description": "Yüksekova'da güvenilir 2. el otomobil ve ticari araç alım satımı."
-      },
-      {
-        "@type": "TravelAgency",
-        "@id": "https://alperrentacar.online/#travelagency",
-        "name": "Alperler Turizm & Cilo-Sat Turları",
-        "url": "https://alperrentacar.online/tours",
-        "description": "Profesyonel rehberler eşliğinde Cilo-Sat Dağları ve Gölleri gezi turları."
+        "@id": "#alperler-rent-a-car",
+        "name": "Alperler Rent A Car",
+        "parentOrganization": { "@id": "#alperler" },
+        "founder": { "@type": "Person", "name": "İshak Alper" },
+        "areaServed": [
+          { "@type": "City", "name": "Yüksekova" },
+          { "@type": "AdministrativeArea", "name": "Hakkâri" }
+        ],
+        "description": "Yüksekova ve Hakkâri çevresinde araç kiralama, satılık araç, şoförlü transfer, özel gün araçları ve bölgesel tur hizmetleri."
       }
     ]
   }
@@ -183,13 +152,12 @@
     }
 
     h1, h2, h3, .serif-font { font-family: 'Playfair Display', serif; }
-    
-    /* Custom Scrollbar */
+
     ::-webkit-scrollbar { width: 10px; }
     ::-webkit-scrollbar-track { background: #0a0a0a; }
     ::-webkit-scrollbar-thumb { background: #262626; border-radius: 5px; border: 2px solid #0a0a0a; }
     ::-webkit-scrollbar-thumb:hover { background: #404040; }
-    
+
     .glass-panel {
       background: rgba(255, 255, 255, 0.03);
       backdrop-filter: blur(12px);
@@ -204,9 +172,6 @@
       border: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    /* THEME OVERRIDES */
-    
-    /* Dark Theme */
     body.theme-dark {
         background-color: #0f172a !important;
         color: #f8fafc !important;
@@ -228,7 +193,6 @@
         border-color: #334155 !important;
     }
 
-    /* Luxury Theme (Black & Gold) */
     body.theme-luxury {
         background-color: #1c1917 !important;
         color: #e7e5e4 !important;
@@ -259,7 +223,6 @@
         border-color: #44403c !important;
     }
 
-    /* Corporate Theme (Blue & White) */
     body.theme-corporate {
         background-color: #f0f9ff !important;
         color: #0c4a6e !important;
@@ -277,11 +240,10 @@
         color: #0c4a6e !important;
     }
 
-    /* Modal Animations */
     .animate-fade-in {
       animation: fadeIn 0.3s ease-out forwards;
     }
-    
+
     .animate-slide-up {
       animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }

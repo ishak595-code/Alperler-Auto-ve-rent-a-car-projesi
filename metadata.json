@@ -1,5 +1,258 @@
-{
-  "name": "Remix Alperler Auto",
-  "description": "Alperler Auto ile güvenli, konforlu ve hızlı araç kiralama deneyimi.",
-  "requestFramePermissions": []
+from pathlib import Path
+import json, os, re, subprocess, sys
+
+BASE_SHA = "6661438eb658e8ed515a8a733b54442139adcd8e"
+TARGETS = [
+    "src/firebase.ts", "firestore.rules", "firebase.json", "firebase-applet-config.json",
+    "firebase-blueprint.json", "src/components/gemini-advisor.component.ts",
+    "api/_lib/firestore-rest.ts", "api/_lib/booking-notification-template.ts",
+    "api/_lib/sms.ts", "api/_lib/webhook-config.ts", "nginx.conf", "deno.json",
+    "deno.lock", "lazy.js", "metadata.json",
+]
+
+def run(*args, capture=False):
+    print("+", " ".join(args))
+    return subprocess.run(args, check=True, text=True, capture_output=capture)
+
+def git_grep(needle, excludes=()):
+    cmd = ["git", "grep", "-n", "-F", needle, "--", "."]
+    for item in excludes:
+        cmd.append(f":(exclude){item}")
+    result = subprocess.run(cmd, text=True, capture_output=True)
+    if result.returncode not in (0, 1):
+        raise SystemExit(result.stderr)
+    return result.stdout.strip()
+
+# 1) Real git grep before deletion.
+for target in TARGETS:
+    if not Path(target).is_file():
+        raise SystemExit(f"Missing deletion target: {target}")
+    refs = git_grep(Path(target).name, (target, ".github/workflows/booking-security-gate.yml", ".github/workflows/alperler-quality-gate.yml"))
+    print(f"=== git grep {target} ===")
+    print(refs or "no external references")
+    if refs:
+        raise SystemExit(f"Unexpected reference found for {target}")
+
+for pattern, excluded in [
+    (r"(\.\./firebase|\./firebase|src/firebase)", "src/firebase.ts"),
+    (r"(GeminiAdvisorComponent|gemini-advisor)", "src/components/gemini-advisor.component.ts"),
+    (r"firestore-rest", "api/_lib/firestore-rest.ts"),
+    (r"booking-notification-template", "api/_lib/booking-notification-template.ts"),
+    (r"webhook-config", "api/_lib/webhook-config.ts"),
+]:
+    result = subprocess.run(["git", "grep", "-n", "-E", pattern, "--", "src", "api", f":(exclude){excluded}"], text=True, capture_output=True)
+    if result.returncode == 0:
+        print(result.stdout)
+        raise SystemExit(f"Unexpected source reference: {pattern}")
+    if result.returncode not in (0, 1):
+        raise SystemExit(result.stderr)
+
+# 2) package.json
+p = Path("package.json")
+data = json.loads(p.read_text())
+data["dependencies"].pop("firebase", None)
+data["dependencies"].pop("@google/genai", None)
+data["devDependencies"].pop("@firebase/eslint-plugin-security-rules", None)
+p.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+
+# 3) car.service.ts
+p = Path("src/services/car.service.ts")
+s = p.read_text()
+s = s.replace('import { GoogleGenAI } from "@google/genai";\n', '')
+s = re.sub(r'\n  private genAI: GoogleGenAI \| null = null;\n  private readonly apiKey =\n    \(typeof process !== "undefined" && process\.env\?\.\["API_KEY"\]\) \|\| "";\n', '\n', s, count=1)
+s = s.replace('    if (this.apiKey) this.genAI = new GoogleGenAI({ apiKey: this.apiKey });\n\n', '')
+
+def remove_method(src, signature):
+    start = src.find(signature)
+    if start < 0:
+        raise SystemExit(f"Method not found: {signature}")
+    brace = src.find("{", start)
+    depth = 0
+    quote = None
+    escape = False
+    for i in range(brace, len(src)):
+        ch = src[i]
+        if quote:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == quote:
+                quote = None
+        else:
+            if ch in ("'", '"', "`"):
+                quote = ch
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i + 1
+                    while end < len(src) and src[end] in "\r\n":
+                        end += 1
+                    return src[:start] + src[end:]
+    raise SystemExit(f"Unclosed method: {signature}")
+
+s = remove_method(s, "  async analyzeFeedback()")
+s = remove_method(s, "  async getAIRecommendation(")
+p.write_text(s)
+
+# 4) home-v71.component.ts
+p = Path("src/pages/home-v71.component.ts")
+s = p.read_text()
+s = s.replace('import { Router, RouterLink } from "@angular/router";', 'import { Router } from "@angular/router";')
+s = s.replace('import { VehicleListItemComponent } from "../components/vehicle-list-item.component";\n', '')
+s = s.replace('CommonModule, FormsModule, MatIconModule, RouterLink, VehicleListItemComponent, DynamicHomeSectionComponent, AccessibleNativeDateComponent', 'CommonModule, FormsModule, MatIconModule, DynamicHomeSectionComponent, AccessibleNativeDateComponent')
+p.write_text(s)
+
+# 5) track-car.component.ts
+p = Path("src/pages/track-car.component.ts")
+s = p.read_text()
+replacement = '<div aria-hidden="true" class="w-16 h-16 rounded-full border-2 border-white shadow-md bg-gradient-to-br from-blue-600 to-blue-800 text-white flex items-center justify-center font-black text-xl">AY</div>'
+s, count = re.subn(r'<img\b[^>]*i\.pravatar\.cc[^>]*>', replacement, s, count=1, flags=re.S)
+if count != 1:
+    raise SystemExit(f"Expected one pravatar image, got {count}")
+p.write_text(s)
+
+# 6) default-site-config.ts
+p = Path("src/services/default-site-config.ts")
+s = p.read_text()
+for key in ("instagramUrl", "facebookUrl", "tiktokUrl", "youtubeUrl"):
+    s = re.sub(rf'{key}:\s*"[^"]*"', f'{key}: ""', s, count=1)
+team = '''team: [
+    {
+      id: 1,
+      name: "Erkan Alper",
+      role: "Kurucu",
+      description:
+        "Yüksekova'da yılların saha tecrübesiyle araç kiralama ve galeri operasyonunu yöneten kurucu ortak.",
+      image: "",
+    },
+    {
+      id: 2,
+      name: "Hicran Alper",
+      role: "Kurucu Ortak",
+      description:
+        "Müşteri ilişkileri, rezervasyon süreçleri ve tur planlamasında operasyonun güvenilir yüzü.",
+      image: "",
+    },
+  ],'''
+s, count = re.subn(r'team:\s*\[.*?\n  \],', team, s, count=1, flags=re.S)
+if count != 1:
+    raise SystemExit("team replacement failed")
+p.write_text(s)
+
+# 7) index.html
+p = Path("index.html")
+s = p.read_text()
+title = "Alperler Auto | Yüksekova Araç Kiralama, 2. El Galeri & Turlar"
+desc = "Yüksekova'da kaskolu araç kiralama, VIP transfer, 2. el oto alım-satım ve Cilo-Sat turları. Online rezervasyon yapın veya WhatsApp'tan hemen yazın."
+s = re.sub(r'<title>.*?</title>', f'<title>{title}</title>', s, count=1)
+s = re.sub(r'<meta name="description" content="[^"]*">', f'<meta name="description" content="{desc}">', s, count=1)
+s = re.sub(r'^\s*<meta name="keywords"[^>]*>\s*\n', '', s, count=1, flags=re.M)
+s = re.sub(r'<meta property="og:title" content="[^"]*">', f'<meta property="og:title" content="{title}">', s, count=1)
+s = re.sub(r'<meta name="twitter:title" content="[^"]*">', f'<meta name="twitter:title" content="{title}">', s, count=1)
+s = re.sub(r'^\s*<meta name="twitter:site"[^>]*>\s*\n', '', s, count=1, flags=re.M)
+s = s.replace('https://picsum.photos/id/1072/1200/630', 'https://alperrentacar.online/og-image.jpg')
+s = s.replace('"telephone": "+905320000000"', '"telephone": "+905379594851"')
+s = re.sub(r'"logo":\s*"[^"]*"', '"logo": "https://alperrentacar.online/icons/icon-512.png"', s, count=1)
+s = re.sub(r'"image":\s*"[^"]*"', '"image": "https://alperrentacar.online/og-image.jpg"', s, count=1)
+marker = '  <script src="https://cdn.tailwindcss.com"></script>'
+s = s.replace(marker, '  <link rel="preconnect" href="https://fonts.googleapis.com">\n  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n' + marker, 1)
+p.write_text(s)
+
+# 8) angular.json
+p = Path("angular.json")
+data = json.loads(p.read_text())
+data["projects"]["app"]["architect"]["build"]["options"]["assets"] = [{"glob": "**/*", "input": "public"}]
+p.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+
+# 9) robots.txt
+Path("public/robots.txt").write_text("User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /branch-portal\nDisallow: /track-car\nDisallow: /booking-checkout\n\nSitemap: https://alperrentacar.online/sitemap.xml\n")
+
+# 10) sitemap.xml
+routes = [
+    ("/", "1.0"), ("/tours", "0.8"), ("/fleet", "0.8"), ("/sales", "0.8"),
+    ("/campaigns", "0.8"), ("/branches", "0.8"), ("/about", "0.8"),
+    ("/contact", "0.8"), ("/faq", "0.8"), ("/blog", "0.8"),
+    ("/appointment", "0.8"), ("/list-your-car", "0.8"), ("/legal", "0.8"),
+]
+lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+for route, priority in routes:
+    loc = "https://alperrentacar.online/" if route == "/" else "https://alperrentacar.online" + route
+    lines += ["  <url>", f"    <loc>{loc}</loc>", "    <lastmod>2026-08-20</lastmod>", f"    <priority>{priority}</priority>", "  </url>"]
+lines.append("</urlset>")
+Path("public/sitemap.xml").write_text("\n".join(lines) + "\n")
+
+# 11) final workflow edits sourced from clean base.
+booking = subprocess.check_output(["git", "show", f"{BASE_SHA}:.github/workflows/booking-security-gate.yml"], text=True)
+for line in (
+    '      - "api/_lib/firestore-rest.ts"\n', '      - "firestore.rules"\n', '      - "firebase.json"\n',
+    '          test -f firebase.json\n', '          grep -Fq \'"rules": "firestore.rules"\' firebase.json\n',
+    "          ! grep -Eq 'allow[[:space:]]+create:[[:space:]]*if[[:space:]]+true' firestore.rules\n",
+):
+    booking = booking.replace(line, "")
+Path(".github/workflows/booking-security-gate.yml").write_text(booking)
+quality = subprocess.check_output(["git", "show", f"{BASE_SHA}:.github/workflows/alperler-quality-gate.yml"], text=True)
+quality = quality.replace('      - "firestore.rules"\n', "")
+Path(".github/workflows/alperler-quality-gate.yml").write_text(quality)
+
+# Delete exact requested files (including this script at the end).
+for target in TARGETS:
+    if target != "metadata.json":
+        Path(target).unlink()
+
+# 12) OG image.
+run(sys.executable, "-m", "pip", "install", "--quiet", "pillow")
+from PIL import Image, ImageDraw, ImageFont
+img = Image.new("RGB", (1200, 630), "#081426")
+draw = ImageDraw.Draw(img)
+gold, white, gray = "#d4af37", "#ffffff", "#aeb7c4"
+bold = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+regular = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+draw.rounded_rectangle((84, 82, 258, 94), radius=6, fill=gold)
+draw.text((84, 135), "ALPERLER AUTO", font=ImageFont.truetype(bold, 86), fill=white)
+draw.text((84, 255), "Yüksekova Araç Kiralama", font=ImageFont.truetype(bold, 42), fill=gold)
+draw.text((84, 330), "2. El Galeri • VIP Transfer • Cilo-Sat Turları", font=ImageFont.truetype(regular, 31), fill=gray)
+draw.text((84, 510), "0537 959 48 51 • alperrentacar.online", font=ImageFont.truetype(regular, 27), fill=white)
+og = Path("public/og-image.jpg")
+img.save(og, "JPEG", quality=88, optimize=True, progressive=True)
+if og.stat().st_size >= 300_000:
+    raise SystemExit("og-image.jpg exceeds 300KB")
+
+# Remove this temporary script now that all edits are applied.
+Path("metadata.json").unlink()
+
+# 13) npm install + lint + zero-warning build.
+run("npm", "install", "--no-audit", "--no-fund")
+run("npm", "run", "lint")
+build = subprocess.run(["npm", "run", "build"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+print(build.stdout)
+if build.returncode != 0:
+    raise SystemExit(build.returncode)
+if re.search(r'(^|[^A-Za-z])warning([^A-Za-z]|$)', build.stdout, re.I):
+    raise SystemExit("Build emitted warning output")
+
+if not Path("src/pages/list-your-car-v2.component.ts").is_file():
+    raise SystemExit("list-your-car-v2.component.ts must remain")
+
+allowed = {
+    ".github/workflows/booking-security-gate.yml", ".github/workflows/alperler-quality-gate.yml",
+    "angular.json", "index.html", "package.json", "package-lock.json", "public/og-image.jpg",
+    "public/robots.txt", "public/sitemap.xml", "src/services/car.service.ts",
+    "src/pages/home-v71.component.ts", "src/pages/track-car.component.ts",
+    "src/services/default-site-config.ts", *TARGETS,
 }
+status = subprocess.check_output(["git", "status", "--porcelain"], text=True)
+for line in status.splitlines():
+    path = line[3:]
+    if " -> " in path:
+        path = path.split(" -> ", 1)[1]
+    if path not in allowed:
+        raise SystemExit(f"Unrequested modified file: {path}")
+
+run("git", "config", "user.name", "ishak595-code")
+run("git", "config", "user.email", "ishak595@gmail.com")
+run("git", "add", "-A")
+run("git", "commit", "-m", "Temizlik: Firebase+Gemini kaldırıldı, sahte içerik düzeltildi, assets path bug fix")
+run("git", "push", "origin", "HEAD:cleanup-exact")

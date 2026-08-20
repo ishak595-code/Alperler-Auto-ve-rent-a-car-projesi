@@ -2,175 +2,98 @@ import { SiteConfig } from "../models/site-config.model";
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
   logoUrl: "",
+  adminDisplayName: "İshak Alper",
   adminEmails: ["ishak595@gmail.com", "ramcofero.yt@gmail.com"],
-  companyName: "Alperler Auto",
-  tagline: "Premium Araç Kiralama",
+  companyName: "Alperler Rent A Car",
+  tagline: "Kiralama • Satış • Tur",
   phone: "0537 959 48 51",
   email: "alperlerauto@gmail.com",
   address: "Hakkari Yüksekova Merkez",
   whatsapp: "905379594851",
-  whatsappMessage:
-    "Merhaba, araç kiralama veya satılık araçlar hakkında bilgi almak istiyorum.",
-  instagramUrl: "",
-  twitterUrl: "https://x.com/",
+  whatsappMessage: "Merhaba, Alperler Rent A Car hizmetleri hakkında hızlı bilgi almak istiyorum.",
+  instagramUrl: "https://www.instagram.com/umut.alperr/",
+  twitterUrl: "",
   facebookUrl: "",
-  tiktokUrl: "",
   youtubeUrl: "",
+  tiktokUrl: "",
 
-  seoTitle: "Alperler Auto | Araç Kiralama, Satış ve Turlar",
-  seoKeywords:
-    "yüksekova araç kiralama, hakkari rent a car, satılık ikinci el araba, yüksekova turları, vip transfer, alperler auto",
-  seoDescription:
-    "Alperler Auto ile Yüksekova ve çevresinde güvenli, konforlu ve hızlı araç kiralama, ikinci el araç alım-satım ve özel turlar. %100 uyumlu online rezervasyon.",
-  seoAuthor: "Alperler Auto",
-  seoOgTitle: "",
-  seoOgDescription: "",
+  rentalExtras: [
+    { id: "driver", label: "Şoförlü kiralama", description: "Profesyonel sürücü hizmeti", icon: "person_pin", enabled: true, sortOrder: 10, pricePerDay: 1500, pricePerHour: 100 },
+    { id: "child-seat", label: "Bebek / çocuk koltuğu", description: "Yaşa uygun güvenlik koltuğu", icon: "child_friendly", enabled: true, sortOrder: 20, pricePerDay: 250 },
+    { id: "extra-protection", label: "Ek güvence paketi", description: "Standart kapsama ek koruma talebi", icon: "verified_user", enabled: true, sortOrder: 30, pricePerDay: 450 },
+    { id: "additional-driver", label: "Ek sürücü", description: "Sözleşmeye ikinci sürücü eklenmesi", icon: "group_add", enabled: true, sortOrder: 40, pricePerDay: 350 },
+    { id: "airport-delivery", label: "Havalimanı teslim / iade", description: "Havalimanı teslimat hizmeti", icon: "flight", enabled: true, sortOrder: 50, flatPrice: 750 },
+    { id: "after-hours", label: "Mesai dışı teslim / iade", description: "Normal operasyon saatleri dışındaki teslimat", icon: "schedule", enabled: true, sortOrder: 60, flatPrice: 500 },
+    { id: "snow-chain", label: "Kar zinciri seti", description: "Kış koşulları için zincir seti", icon: "ac_unit", enabled: true, sortOrder: 70, flatPrice: 300 },
+  ],
+  rentalFuelPricePerLiter: 85,
+  rentalAverageConsumptionPer100Km: 8.5,
+  rentalRoutePricing: [],
+
+  seoTitle: "Alperler Rent A Car | Yüksekova Araç Kiralama, Satış, Transfer ve Turlar",
+  seoKeywords: "yüksekova araç kiralama, hakkari rent a car, satılık araç, vip transfer, yüksekova tur, alperler rent a car",
+  seoDescription: "Yüksekova ve Hakkâri çevresinde araç kiralama, satılık araç, şoförlü transfer, özel gün aracı ve bölgesel tur seçeneklerini Alperler Rent A Car ile tek yerden planlayın.",
+  seoAuthor: "Alperler Rent A Car",
+  seoOgTitle: "Alperler Rent A Car | Yüksekova",
+  seoOgDescription: "Araç kiralama, satış, transfer ve bölgesel tur seçeneklerini tek yerden planlayın.",
   seoOgImage: "",
   seoTwitterHandle: "",
 
-  aboutTitle: `Bölgenin Yükselen Güneşinde\nYenilikçi Seyahat ve Otomotiv Çözümleri`,
-  aboutText: `Alperler Auto olarak, Yüksekova'nın eşsiz coğrafyasında uzun yıllardır hemşehrilerimize ve şehrimizi ziyaret eden bürokratlardan turistlere kadar tüm misafirlerimize kesintisiz, güven dolu bir otomotiv deneyimi sunuyoruz.
+  aboutTitle: "Alperler Güvencesiyle Yüksekova’da Otomotiv ve Yolculuk Çözümleri",
+  aboutText: `Alperler, farklı iş alanlarında büyümek üzere oluşturulan şirket çatımızdır. Alperler Rent A Car, bu yapının müşteriye dönük araç kiralama, araç satışı, şoförlü transfer, özel gün aracı ve bölgesel tur hizmetidir. Alperler Auto ise otomotiv ve filo operasyonlarımızın altyapı adıdır.
 
-"Daima Bir Adım İleri" vizyonu ile kurduğumuz bu yapı, standart bir rent a car mantığının ötesine geçerek; 2. el şeffaf otomobil ticareti, transfer hizmetleri, uzun dönem filo kiralama ve Hakkari bölgesinin bakir doğasına ulaşım sağlayan özel tur organizasyonlarını tek bir çatı altında toplamıştır.
-
-Müşteri memnuniyetini satıştan veya kiralamadan çok daha ileride; dürüst, güler yüzlü ve anında çözüm sağlayan bir aile bağı gibi görüyoruz. Bölgenin fiziki şartlarına uyumlu, bakımlı arazi ve binek araçlarımızla yollardaki güveniniz olmaya devam ediyoruz. Alperler Auto, Yüksekova'dan Hakkari'ye, oradan tüm bölgeye yayılan sağlam kilit taşlarıyla örülmüş, sizin için var olan öncü bir otomotiv platformudur.`,
+Alperler Rent A Car’ın kurucusu İshak Alper’dir. Amacımız gerçek araç ve güncel bilgiyi göstermek, müşterinin ihtiyacını hızlı anlamak, talebi kayıt altına almak ve rezervasyon, teslim, ödeme ve operasyon süreçlerini izlenebilir hale getirmektir.`,
   team: [
-    { id: 1, name: "Erkan Alper", role: "Kurucu", description: "Yüksekova'da yılların saha tecrübesiyle araç kiralama ve galeri operasyonunu yöneten kurucu ortak.", image: "" },
-    { id: 2, name: "Hicran Alper", role: "Kurucu Ortak", description: "Müşteri ilişkileri, rezervasyon süreçleri ve tur planlamasında operasyonun güvenilir yüzü.", image: "" },
+    { id: 1, name: "İshak Alper", role: "Kurucu · Strateji ve Dijital Operasyon", description: "Alperler Rent A Car’ın kurucusu. Marka stratejisi, dijital sistem, müşteri deneyimi ve büyüme modelini yönetir.", image: "" },
   ],
 
-  kvkkText: `Alperler Auto olarak kişisel verilerinizin güvenliği hususuna azami hassasiyet göstermekteyiz. Şirketimiz ile her türlü ilişkiniz kapsamında paylaştığınız kişisel verileriniz, 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK")'na uygun olarak muhafaza edilmektedir.
+  kvkkText: `KVKK AYDINLATMA METNİ\n\nAlperler Rent A Car hizmetleri kapsamında paylaştığınız kişisel veriler, talep ve rezervasyonların yürütülmesi, müşteri iletişimi, güvenlik, yasal yükümlülükler ve açık onay verilmişse pazarlama/analitik işlemleri için ilgili mevzuata uygun şekilde işlenir.\n\nİşlenen veri ve hukuki sebep kullanılan hizmete göre değişebilir. KVKK kapsamındaki başvuru ve bilgi talepleri için güncel iletişim kanallarımızı kullanabilirsiniz.`,
+  privacyText: `GİZLİLİK POLİTİKASI\n\nAlperler Rent A Car, hizmetin gerektirmediği kişisel verileri toplamamayı ve ödeme kartı sırları gibi hassas bilgileri kendi uygulama veritabanında saklamamayı hedefler. Rezervasyon ve iletişim bilgileri yalnız ilgili işlemin yürütülmesi, güvenlik ve yasal yükümlülükler için kullanılır.\n\nZorunlu olmayan analitik ve pazarlama teknolojileri geçerli kullanıcı tercihine tabidir.`,
+  cookiesText: `ÇEREZ VE ANALİTİK POLİTİKASI\n\nSitenin çalışması için gerekli teknik depolama mekanizmaları kullanılabilir. Zorunlu olmayan analitik ve pazarlama teknolojileri yalnız geçerli tercih/onay mekanizması kapsamında etkinleştirilir. Kullanıcı tercihi daha sonra değiştirilebilir.`,
+  termsText: `KULLANIM ŞARTLARI\n\nSitedeki talep, ilan, fiyat ve uygunluk bilgileri güncel kayıtlar üzerinden sunulur. Kesin kiralama, satış veya tur işlemi gerekli teyit ve sözleşme adımları tamamlandığında oluşur. Kullanıcı formlarda doğru ve güncel bilgi vermekle yükümlüdür. Emredici tüketici hakları saklıdır.`,
+  distanceSellingText: `MESAFELİ İŞLEM VE ÖN BİLGİLENDİRME ESASLARI\n\nBağlayıcı bir uzaktan işlem kurulmadan önce hizmetin temel nitelikleri, toplam bedel, ödeme/ifa koşulları, sağlayıcı bilgileri ve uygulanabilir iptal/cayma hükümleri müşteriye açıkça gösterilir. Belirli tarihli araç kiralama ve bazı belirli tarihli hizmetlerde mevzuattaki istisnalar uygulanabilir.`,
+  cancellationText: `İADE VE İPTAL POLİTİKASI\n\nİptal ve iade şartları hizmet türü, tarih ve rezervasyon koşullarına göre işlem öncesinde gösterilir. Her işlem için koşulsuz aynı cayma/iade kuralı varmış gibi beyanda bulunulmaz. Kanundan doğan tüketici hakları saklıdır.`,
+  insuranceText: `ARAÇ SİGORTA VE SORUMLULUK BİLGİLENDİRMESİ\n\nSigorta, kasko, muafiyet, depozito ve hasar sorumluluğu araç ve poliçe bazında değişebilir. Nihai kapsam ilgili poliçe ve kiralama sözleşmesiyle belirlenir; işlem öncesinde araç özelindeki koşullar müşteriye teyit edilir.`,
+  rentalTermsText: `ARAÇ KİRALAMA KOŞULLARI\n\nKesin kiralama; araç, tarih, sürücü tercihi, ücret, teslim/iade ve uygulanabilir sözleşme şartları doğrulandığında oluşur. Şoför, ek sürücü, teslimat ve diğer ücretli hizmetler yalnız müşteri seçtiğinde toplam fiyata eklenir.`,
+  salesTermsText: `İKİNCİ EL SATIŞ VE İLAN KOŞULLARI\n\nWeb ilanı tek başına resmi satış veya mülkiyet devri oluşturmaz. Araç bilgileri mevcut kayıt ve belgelere dayanmalı; resmi satış ve devir yürürlükteki mevzuata uygun kanallardan tamamlanmalıdır.`,
+  tourTermsText: `TUR VE TRANSFER HİZMET KOŞULLARI\n\nRota, kapasite, araç, buluşma noktası, dahil/hariç hizmetler ve ücret ilgili kayıt üzerinden gösterilir. Kesin işlem tarih, kapasite ve operasyon uygunluğu doğrulandığında oluşur.`,
+  partnerTermsText: `ARACINI DEĞERLENDİR BAŞVURU KOŞULLARI\n\nBaşvuru bir ön değerlendirme talebidir; aracın satın alındığı, filoya kabul edildiği veya ilanının otomatik yayımlandığı anlamına gelmez. Mülkiyet, yetki ve araç bilgileri gerektiğinde doğrulanır.`,
+  branchTermsText: `ŞUBE VE BAYİLİK BAŞVURU KOŞULLARI\n\nBaşvuru tek başına franchise, acentelik veya marka kullanım hakkı oluşturmaz. Gerekli şirket, faaliyet, güvenlik ve operasyon belgeleri tamamlandıktan sonra merkezi onay süreci uygulanır.`,
+  commercialCommunicationText: `BÜLTEN VE TİCARİ ELEKTRONİK İLETİ BİLGİLENDİRMESİ\n\nPazarlama iletileri yürürlükteki onay ve ret kurallarına tabidir. Kullanıcı abonelikten çıkma hakkını her zaman kullanabilir. Hizmetin ifası için zorunlu işlem mesajları pazarlama mesajlarından ayrı değerlendirilir.`,
 
-1. Veri Sorumlusunun Kimliği
-Veri sorumlusu sıfatıyla, Alperler Auto unvanlı şirketimiz, Hakkari / Yüksekova merkezli faaliyet göstermektedir. Şirketimiz, kişisel verilerinizi KVKK ve ilgili mevzuat uyarınca aşağıda açıklanan kapsamda işleyebilecek, kaydedebilecek, muhafaza edebilecek ve kanunen izin verilen hallerde üçüncü kişilere aktarabilecektir.
-
-2. Kişisel Verilerin İşlenme Amacı
-Toplanan kişisel verileriniz (Kimlik bilgileri, iletişim bilgileri, adres, ehliyet, finansal bilgiler vb.), araç kiralama, araç satış ve turlarımız kapsamasındaki sözleşmelerin ifası, müşteri memnuniyeti, kampanya duyuruları, yasal bildirimler, kiralama sırasında kasko ve sigorta süreçlerinin yönetimi, güvenlik önlemlerinin sağlanması (GPS takibi vb.) amaçlarıyla işlenmektedir.
-
-3. İşlenen Kişisel Verilerin Kimlere ve Hangi Amaçla Aktarılabileceği
-İşlenen kişisel verileriniz, yasal mevzuat gereği talep halinde emniyet birimlerine, yetkili kamu kurum ve kuruluşlarına, adli makamlara aktarılabilir. Operasyonel süreçler (sigorta, kasko, yol yardım vs.) sebebiyle iş ortaklarımız, tedarikçilerimiz, sigorta ve finans şirketleri ile güvenli bir şekilde paylaşılabilmektedir. Kiralama süreçleri dışında üçüncü kişilerle ticari amaçla verileriniz paylaşılmaz.
-
-4. Kişisel Veri Toplamanın Yöntemi ve Hukuki Sebebi
-Kişisel verileriniz, merkez ofisimiz, web sitemiz (alperrentacar.online), çağrı merkezimiz veya e-posta aracılığıyla sözlü, yazılı veya elektronik ortamda toplanmaktadır. Sözleşmenin kurulması, yasal yükümlülüklerimizin yerine getirilmesi hukuki sebeplerine dayanarak işlenmektedir.
-
-5. İlgili Kişinin Hakları
-KVKK'nın 11. maddesi uyarınca;
-- Kişisel veri işlenip işlenmediğini öğrenme,
-- Kişisel verileri işlenmişse buna ilişkin bilgi talep etme,
-- İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme,
-- Yurt içinde veya yurt dışında kişisel verilerin aktarıldığı üçüncü kişileri bilme,
-- Eksik veya yanlış işlenmiş olması hâlinde düzeltilmesini isteme haklarına sahipsiniz.`,
-
-  privacyText: `1. Gizlilik Hedefimiz
-Alperler Auto ("Şirket") olarak, müşterilerimize ilişkin tüm bilgilerin gizliliği ve güvenliği birinci önceliğimizdir. İşbu Gizlilik Politikası, web sitemizi ziyaret eden ve hizmetlerimizden (Araç kiralama, İkinci el araç alım-satım, Tur organizasyonları) yararlanan kişilerin veri güvenliğini sağlamak için düzenlenmiştir.
-
-2. Hangi Bilgiler Toplanıyor?
-Hizmetlerimizden faydalanmak üzere bize sağladığınız Ad-Soyad, T.C. Kimlik No, Pasaport No, Ehliyet detayları, telefon, e-posta, fatura adresiniz, seyahat planlarınız, araç kullanım verileriniz (telemetri/GPS - araç güvenliği ve kiralama şartlarına uyum sağlamak için) tarafımızca güvenli sistemlerde tutulmaktadır. Kredi kartı verileriniz asla sunucularımızda saklanmaz, doğrudan BDDK onaylı ödeme sağlayıcısına iletilir.
-
-3. Bilgilerin Kullanımı
-Toplanan bilgiler, rezervasyon işlemlerinizin tamamlanması, faturalandırma, acil durumlarda iletişim sağlama, müşteri destek hizmetleri sunma ve rızanız dâhilinde özel kampanya bildirimleri yapmak için kullanılır. Araç satış veya alış süreçlerinde gerekli hukuki evrakların hazırlanması için kamu daireleri ve noterlerle bilgi paylaşımı gerekebilmektedir.
-
-4. Dış Bağlantılar
-Web sitemiz içerisinde zaman zaman ortaklık kurduğumuz firmalara ait bağlantılar bulunabilir. Ancak bu sitelerin gizlilik uygulamaları ve içeriklerinden Alperler Auto sorumlu değildir.
-
-5. Güncellemeler
-Şirketimiz, gizlilik ve veri koruma prensiplerini güncel tutarak bu politikayı önceden haber vermeksizin değiştirme hakkını saklı tutar. Tüm değişiklikler sitede yayımlandığı an yürürlüğe girer.`,
-
-  cookiesText: `Alperler Auto olarak web sitemizin daha verimli ve güvenli çalışmasını sağlamak ve kullanıcı deneyimini artırmak amacıyla çerezler kullanmaktayız.
-
-1. Çerez Nedir?
-Çerezler, bir web sitesini ziyaret ettiğinizde tarayıcınız aracılığıyla cihazınıza indirilen küçük veri dosyalarıdır. Siteyi tekrar ziyaret ettiğinizde sizi hatırlamamızı sağlar.
-
-2. Hangi Çerezleri Kullanıyoruz?
-- Zorunlu Çerezler: Sitenin çalışması için mecburidir. Oturum yönetimi ve güvenlik önlemleri bu çerezlerle sağlanır.
-- İşlevsel Çerezler: Dil tercihi gibi seçimlerinizin hatırlanmasını sağlar.
-- Performans/Analitik Çerezleri: Sitemizi nasıl kullandığınızı analiz eder ve hizmet kalitemizi artırmamıza yardımcı olur.
-
-3. Çerez Yönetimi
-Çerez kullanımını istemiyorsanız tarayıcınızın ayarlarından çerezleri silebilir veya engelleyebilirsiniz. Zorunlu olmayan çerezler için gerekli onay mekanizmaları uygulanır.`,
-
-  termsText: `Alperler Auto Araç Kiralama, Alım Satım ve Tur Kullanım Şartları
-
-Bu web sitesini ziyaret ederek veya Alperler Auto üzerinden rezervasyon yaparak aşağıdaki maddeleri ve şartları kabul etmiş sayılırsınız:
-
-1. Rezervasyon ve İptal Şartları
-Araç kiralama ve turlar için yapılan rezervasyonlar doğrulandıktan sonra geçerlidir. Rezervasyon bedelinin geri iadesi ve değiştirme hakları için İade ve İptal Politikası geçerlidir.
-
-2. Kiralama Yaşı ve Ehliyet
-Binek ve ekonomik araç grupları için en az 21 yaş ve 2 yıllık geçerli ehliyet, VIP ve lüks araç grupları için en az 25 yaş ve 3 yıllık geçerli ehliyet zorunludur.
-
-3. Araç Teslimatı ve İade
-Araçlar temiz, yakıt deposu belirtilen seviyede ve tam donanımlı teslim edilir, aynı şekilde iade edilmesi beklenir. Gecikmelerde sözleşmedeki koşullar uygulanır.
-
-4. Fiyatlara Dahil Olanlar ve Olmayanlar
-Araç kiralama fiyatlarına periyodik bakımlar, zorunlu trafik sigortası ve ilgili vergiler dahildir. Akaryakıt, otoyol/köprü geçişleri, trafik cezaları ve sözleşmede belirtilen ek hizmetler ayrıca ücretlendirilebilir.
-
-5. Yasaklar ve Kısıtlamalar
-Uyuşturucu veya alkol etkisi altında kullanım, yasadışı eşya taşımacılığı, yarış ve sözleşmede belirtilmeyen kişilere aracı kullandırmak yasaktır.
-
-6. Araç Alım - Satım İşlemleri
-İkinci el araç işlemleri resmi satış ve ekspertiz süreçlerine tabidir.`,
-
-  distanceSellingText: `Mesafeli Satış/Hizmet Sözleşmesi
-
-1. Taraflar
-SATICI/SAĞLAYICI: Alperler Auto.
-ALICI/MÜŞTERİ: Çevrimiçi kanallar üzerinden araç kiralama, satın alma veya tur organizasyonu için başvuru/ödeme yapan kişi veya kurum.
-
-2. Konu
-İşbu sözleşmenin konusu, elektronik ortamda siparişi veya rezervasyonu verilen ürün/hizmetin teslimi ve ilgili taraf hak ve yükümlülüklerinin belirlenmesidir.
-
-3. Hizmet Bedeli ve Ödeme
-Rezervasyon sırasında seçilen hizmetlere göre sözleşme tutarı belirlenir. Kiralama süreçlerinde provizyon işlemi gerçekleştirilebilir. İkinci el satışlarda ödeme mevzuata uygun resmi kanallardan tamamlanır.
-
-4. Haklar ve Yükümlülükler
-Mücbir sebepler nedeniyle araç temin edilememesi durumunda muadil çözüm veya uygun iade süreci uygulanır. Müşteri yürürlükteki mevzuata ve trafik kurallarına uymak zorundadır.
-
-5. Yetkili Merciler
-Uyuşmazlıklarda yürürlükteki tüketici mevzuatının öngördüğü yetkili merciler geçerlidir.`,
-
-  cancellationText: `İade ve İptal Politikası
-
-Araç kiralama, transfer ve tur hizmetlerinde iptal ve iade koşulları rezervasyon sırasında müşteriye sunulan sözleşmede açıkça belirtilir.
-
-- Alış saatinden 48 saat öncesine kadar yapılan iptallerde sözleşmede belirtilen iade koşulları uygulanır.
-- Alış saatine yaklaşıldıkça hizmet hazırlık maliyetleri nedeniyle kesinti uygulanabilir.
-- No-show durumunda sözleşmede belirtilen bedeller tahsil edilebilir.
-- İkinci el araç kapora ve satış işlemleri ilgili satış sözleşmesindeki koşullara tabidir.
-- Banka/kart iadelerinin hesaba yansıma süresi ilgili finans kuruluşuna bağlıdır.`,
-
-  insuranceText: `Araç Sigorta ve Sorumluluk Şartları
-
-Kiralık araçlarımız ilgili sigorta ve kasko koşullarına tabidir. Güvencelerin geçerliliği sözleşme ve poliçe şartlarına uyulmasına bağlıdır.
-
-Alkol veya uyuşturucu etkisi altında kullanım, sözleşmede yer almayan sürücüler, ağır trafik ihlalleri, yetkisiz arazi kullanımı ve gerekli kaza belgelerinin temin edilmemesi sigorta kapsamını etkileyebilir.
-
-Hasar veya kaza durumunda şirketle ve gerekli resmi birimlerle derhal iletişime geçilmeli, tutanak ve belgeler eksiksiz hazırlanmalıdır.`,
-
-  heroTitle: "Yüksekova'da Güvenli Kiralama, Satış ve Filo Hizmetleri",
-  heroSubtitle: "Rent a Car - Tur - Araç Alım Satım",
-  campaignEarlyBooking: "Erken Rezervasyon İndirimi",
-  campaignRoadside: "Kesintisiz Yol Yardım",
-  campaignFreeDelivery: "Havalimanı & Otogar Teslimat",
-  whyUsTitle: "Neden Alperler Auto?",
-  whyUsSubtitle:
-    "İlk seferde değil, her seferde tercihiniz olmak için buradayız. Çünkü biz, sadece anahtar teslim etmiyoruz, size yepyeni bir deneyimin kapılarını aralıyoruz.",
-  whyUsTrustTitle: "Güven ve Kasko",
-  whyUsTrustDesc:
-    "Tam kaskolu, yetkili servis bakımlı araçlar. Sürpriz masraf yok, tam güvence var.",
-  whyUsSupportTitle: "7/24 Canlı Destek",
-  whyUsSupportDesc:
-    "Yolculuğunuzun her anında yanınızdayız. Bize 0537 959 48 51 numaralı hattan her an ulaşabilirsiniz.",
-  whyUsComfortTitle: "Konforlu Yolculuk",
-  whyUsComfortDesc:
-    "Her teslimat öncesi detaylı temizlik. Yeni model araçlarla maksimum konfor.",
-  salesTitle: "Güvenilir Araç Sahibi Olun",
-  salesDesc:
-    "Ekspertiz garantili, bakımlı ve temiz ikinci el araçlarımızla hayalinizdeki arabaya kavuşun. Takas imkanı ve uygun ödeme seçenekleri sizi bekliyor.",
-  salesCta: "Satılık Araçları İncele",
-  partnerTitle: "Aracınızı Bize Kiralayın",
-  partnerSubtitle:
-    "Aracınız yatarak değil, çalışarak kazandırsın. Alperler güvencesiyle aracınızı filomuza katın, düzenli gelir elde edin.",
-  partnerRequirementYear: "En az 2017 Model olmalıdır.",
-  theme: "light",
+  theme: "luxury",
+  homeContent: {
+    heroTrustLine: "YÜKSEKOVA • 5 DAKİKADA TALEP • GERÇEK ARAÇ • YEREL EKİP",
+    heroTitle: "Aracı aramakla vakit kaybetmeyin. 5 dakikada planınızı başlatın.",
+    heroSubtitle: "Kiralık araç, şoförlü transfer, düğün aracı veya tur... İhtiyacınızı seçin; gerçek seçenekleri karşılaştırın, fiyatı görün ve yerel ekibe doğrudan ulaşın.",
+    searchPlaceholder: "Araç, model, tur veya ihtiyacınızı yazın",
+    searchButtonLabel: "Bul",
+    trustPrice: "Fiyatı baştan görün",
+    trustSupport: "5 dakikada talep bırakın",
+    trustVerified: "Gerçek araç, yerel ekip",
+    bookingTitle: "5 dakikada planınızı oluşturun",
+    bookingSubtitle: "Ne istediğinizi, tarihi ve teslim noktasını seçin. Size uyan seçenekleri hemen görün; kesin uygunluğu yerel ekibimiz doğrulasın.",
+    plannerKicker: "HIZLI PLANLAMA",
+    plannerNote: "Talep göndermek ücretsizdir. Kesin rezervasyon, araç ve tarih uygunluğu doğrulandıktan sonra oluşur.",
+    plannerServiceLabel: "Ne için araç veya hizmet arıyorsunuz?",
+    plannerServiceIndividual: "Şoförsüz araç kiralama",
+    plannerServiceDriver: "Şoförlü araç / transfer",
+    plannerServiceWedding: "Düğün / özel gün aracı",
+    plannerServiceTour: "Tur / gezi planı",
+    plannerPickupLabel: "Nereden teslim almak istiyorsunuz?",
+    plannerPickupPlaceholder: "Teslim noktasını seçin",
+    plannerTourDateLabel: "Tur tarihi",
+    plannerStartDateLabel: "Alış tarihi",
+    plannerEndDateLabel: "İade tarihi",
+    plannerButtonRental: "Bu Tarihe Uyan Araçları Göster",
+    plannerButtonDriver: "Şoförlü Seçenekleri Göster",
+    plannerButtonWedding: "Özel Gün Araçlarını Göster",
+    plannerButtonTour: "Bu Tarihe Uyan Turları Göster",
+    plannerLoadingText: "Size uygun seçenekler hazırlanıyor...",
+    plannerErrorTourDate: "Tur tarihini seçin.",
+    plannerErrorStartDate: "Alış tarihini seçin.",
+    plannerErrorEndDate: "İade tarihini seçin.",
+    plannerErrorDateOrder: "İade tarihi alış tarihinden sonra olmalıdır.",
+    plannerErrorPickup: "Teslim alma noktasını seçin."
+  }
 };

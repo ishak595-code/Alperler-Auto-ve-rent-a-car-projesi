@@ -50,8 +50,8 @@ export const routes: Routes = [
   { path: 'faq', component: FaqComponent }, { path: 'legal', component: LegalComponent },
   { path: 'appointment', loadComponent: () => import('./pages/appointment.component').then(m => m.AppointmentComponent) },
   { path: 'list-your-car', loadComponent: () => import('./pages/list-your-car.component').then(m => m.ListYourCarComponent) },
-  { path: 'track-car/:id', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
-  { path: 'track-car', loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
+  { path: 'track-car/:id', canActivate: [adminAreaGuard('operations')], loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },
+  { path: 'track-car', redirectTo: 'admin/reservations', pathMatch: 'full' },
   { path: '', component: MainLayoutComponent, children: [{ path: '', component: HomeV71Component }] },
 
   { path: 'admin', component: AdminLayoutComponent, canActivate: [adminGuard], children: [

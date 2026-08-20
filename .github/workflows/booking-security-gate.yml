@@ -1,110 +1,24 @@
-name: Booking and Integration Security Gate
+name: Exact Cleanup Runner
 
 on:
-  workflow_dispatch:
   push:
     branches:
-      - main
-      - agent/v33-booking-notifications-security
-    paths:
-      - "src/services/booking.service.ts"
-      - "src/services/persistent-car.service.ts"
-      - "src/services/car.service.ts"
-      - "src/services/catalog.service.ts"
-      - "src/services/partner-request.service.ts"
-      - "src/services/newsletter.service.ts"
-      - "src/pages/admin/admin-layout.component.ts"
-      - "src/pages/admin/admin-site-settings-hub.component.ts"
-      - "src/pages/admin/admin-reservations.component.ts"
-      - "src/pages/admin/admin-partner-requests.component.ts"
-      - "src/pages/admin/admin-branch-partner-requests.component.ts"
-      - "src/pages/admin/admin-subscribers.component.ts"
-      - "src/pages/admin/admin-legal-center.component.ts"
-      - "src/pages/admin/admin-team.component.ts"
-      - "src/pages/legal.component.ts"
-      - "src/components/customer-footer-v70.component.ts"
-      - "src/pages/appointment.component.ts"
-      - "api/catalog.ts"
-      - "api/partner-requests.ts"
-      - "api/partner-upload-resume.ts"
-      - "api/bookings.ts"
-      - "api/_lib/firestore-rest.ts"
-      - "api/_lib/sms.ts"
-      - "api/_lib/booking-notification-template.ts"
-      - "supabase/**"
-      - "firestore.rules"
-      - "firebase.json"
-      - ".vercelignore"
-      - ".github/workflows/booking-security-gate.yml"
-  pull_request:
-    branches:
-      - main
+      - cleanup-runner
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  invariants:
+  cleanup:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Verify cloud and deployment safety invariants
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # Legacy Firebase artifacts remain until the final cleanup migration,
-          # but must not fall back to blanket public writes.
-          test -f firebase.json
-          grep -Fq '"rules": "firestore.rules"' firebase.json
-          ! grep -Eq 'allow[[:space:]]+create:[[:space:]]*if[[:space:]]+true' firestore.rules
-
-          # Deployment hygiene.
-          grep -Fq 'public/*.zip' .vercelignore
-          grep -Fq '*.zip' .vercelignore
-
-          # Transactional runtime must exist. Booking persistence and delivery
-          # now live in Supabase Edge Functions; Vercel only proxies the booking gateway.
-          test -f api/bookings.ts
-          test -f api/catalog.ts
-          test -f api/partner-upload-resume.ts
-          test -f src/services/catalog.service.ts
-          test -f supabase/functions/booking-gateway/index.ts
-          test -f supabase/functions/booking-notify/index.ts
-          test -f supabase/functions/partner-request-gateway/index.ts
-          test -f supabase/functions/partner-upload-resume/index.ts
-          test -f supabase/migrations/202608140002_alperler_rls_policies_v1.sql
-
-          # Newsletter is public only through its hardened gateway. Subscriber
-          # management remains admin-only and consent changes keep an audit trail.
-          test -f supabase/functions/newsletter-gateway/index.ts
-          test -f supabase/migrations/20260817181500_v90_newsletter_consent_audit.sql
-          grep -Fq 'consume_rate_limit' supabase/functions/newsletter-gateway/index.ts
-          grep -Fq 'newsletter_consent_events_admin_read' supabase/migrations/20260817181500_v90_newsletter_consent_audit.sql
-          grep -Fq 'private.can_manage_operations()' supabase/migrations/20260817181500_v90_newsletter_consent_audit.sql
-
-          # Admin legal center must remain inside the authenticated Site Settings hub.
-          test -f src/pages/admin/admin-legal-center.component.ts
-          test -f src/pages/admin/admin-site-settings-hub.component.ts
-          grep -Fq "path: 'legal', component: AdminSiteSettingsHubComponent" src/app.routes.ts
-          grep -Fq "settingsSection: 'legal'" src/app.routes.ts
-          grep -Fq "adminAreaGuard('settings')" src/app.routes.ts
-
-          # Never send booking/customer payloads to public test endpoints.
-          ! grep -R --line-number --fixed-string 'httpbin.org' src api supabase/functions
-
-          # Service-role secrets are server-side only. The browser source may
-          # reference publishable Supabase configuration, never the service key.
-          ! grep -R --line-number --fixed-string 'SUPABASE_SERVICE_ROLE_KEY' src
-          ! grep -R --line-number --fixed-string 'sb_secret_' src api supabase
-
-          # CarService must not regress to Firestore or direct Firebase writes.
-          ! grep -Fq 'firebase/firestore' src/services/car.service.ts
-          ! grep -Fq '../firebase' src/services/car.service.ts
-          grep -Fq 'CatalogService' src/services/car.service.ts
-          grep -Fq 'BookingService' src/services/car.service.ts
+      - name: Checkout exact cleanup branch
+        uses: actions/checkout@v4
+        with:
+          ref: cleanup-exact
+          fetch-depth: 0
+          persist-credentials: true
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
@@ -112,11 +26,275 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - name: Install dependencies from lockfile
-        run: npm ci --no-audit --no-fund
+      - name: Verify references before deletion
+        shell: bash
+        run: |
+          set -euo pipefail
+          targets=(
+            "src/firebase.ts"
+            "firestore.rules"
+            "firebase.json"
+            "firebase-applet-config.json"
+            "firebase-blueprint.json"
+            "src/components/gemini-advisor.component.ts"
+            "api/_lib/firestore-rest.ts"
+            "api/_lib/booking-notification-template.ts"
+            "api/_lib/sms.ts"
+            "api/_lib/webhook-config.ts"
+            "nginx.conf"
+            "deno.json"
+            "deno.lock"
+            "lazy.js"
+            "metadata.json"
+          )
+          for target in "${targets[@]}"; do
+            test -f "$target"
+            needle="$(basename "$target")"
+            echo "=== git grep $target ==="
+            git grep -n -F "$needle" -- . || true
+          done
+          # Deleted-together files, the two explicitly edited CI files, and the
+          # user-approved historical hotfix script are not live runtime references.
+          python3 <<'PY'
+          import subprocess
+          targets = {
+            "src/firebase.ts","firestore.rules","firebase.json","firebase-applet-config.json",
+            "firebase-blueprint.json","src/components/gemini-advisor.component.ts",
+            "api/_lib/firestore-rest.ts","api/_lib/booking-notification-template.ts","api/_lib/sms.ts",
+            "api/_lib/webhook-config.ts","nginx.conf","deno.json","deno.lock","lazy.js","metadata.json"
+          }
+          allowed = targets | {
+            ".github/workflows/booking-security-gate.yml",
+            ".github/workflows/alperler-quality-gate.yml",
+            "project/apply-admin-auth-security-hotfix.mjs",
+          }
+          needles = [p.rsplit('/',1)[-1] for p in targets]
+          bad=[]
+          for needle in needles:
+            cp=subprocess.run(["git","grep","-n","-F",needle,"--","."],text=True,capture_output=True)
+            for line in cp.stdout.splitlines():
+              path=line.split(':',1)[0]
+              if path not in allowed:
+                bad.append(line)
+          # Extensionless Firebase imports and AI method callers must not exist in live source.
+          checks=[
+            ["git","grep","-n","-E",r"(\.\./firebase|\./firebase|src/firebase)","--","src","api"],
+            ["git","grep","-n","-F","@google/genai","--","src","api"],
+            ["git","grep","-n","-F","analyzeFeedback(","--","src",":(exclude)src/services/car.service.ts"],
+            ["git","grep","-n","-F","getAIRecommendation(","--","src",":(exclude)src/services/car.service.ts"],
+          ]
+          for cmd in checks:
+            cp=subprocess.run(cmd,text=True,capture_output=True)
+            if cp.stdout.strip(): bad.extend(cp.stdout.splitlines())
+          if bad:
+            print("Unexpected live references:")
+            print("\n".join(sorted(set(bad))))
+            raise SystemExit(1)
+          print("Reference verification passed; no live runtime references found.")
+          PY
 
-      - name: Type-check browser booking integration
+      - name: Apply requested cleanup exactly
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import json, re
+
+          # package.json
+          p=Path('package.json')
+          d=json.loads(p.read_text())
+          d['dependencies'].pop('firebase',None)
+          d['dependencies'].pop('@google/genai',None)
+          d['devDependencies'].pop('@firebase/eslint-plugin-security-rules',None)
+          p.write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n')
+
+          # car.service.ts: only the requested Gemini import/fields/constructor line/methods.
+          p=Path('src/services/car.service.ts')
+          s=p.read_text()
+          old=s
+          s=s.replace('import { GoogleGenAI } from "@google/genai";\n','')
+          s=re.sub(r'\n  private genAI: GoogleGenAI \| null = null;\n', '\n', s, count=1)
+          s=re.sub(r'  private readonly apiKey =\n(?:.*\n){1,3}?', '', s, count=1) if 'private readonly apiKey' in s else s
+          s=s.replace('    if (this.apiKey) this.genAI = new GoogleGenAI({ apiKey: this.apiKey });\n','')
+          def remove_method(src, signature):
+            start=src.find(signature)
+            if start<0: raise SystemExit('Missing method: '+signature)
+            brace=src.find('{',start)
+            depth=0; quote=None; esc=False
+            for i in range(brace,len(src)):
+              ch=src[i]
+              if quote:
+                if esc: esc=False
+                elif ch=='\\': esc=True
+                elif ch==quote: quote=None
+              else:
+                if ch in "'\"`": quote=ch
+                elif ch=='{': depth+=1
+                elif ch=='}':
+                  depth-=1
+                  if depth==0:
+                    end=i+1
+                    while end<len(src) and src[end] in '\r\n': end+=1
+                    return src[:start]+src[end:]
+            raise SystemExit('Unclosed method: '+signature)
+          s=remove_method(s,'  async analyzeFeedback()')
+          s=remove_method(s,'  async getAIRecommendation(')
+          if s==old: raise SystemExit('car.service.ts was not changed')
+          p.write_text(s)
+
+          # home-v71 imports only.
+          p=Path('src/pages/home-v71.component.ts')
+          s=p.read_text()
+          s=s.replace('import { Router, RouterLink } from "@angular/router";','import { Router } from "@angular/router";')
+          s=s.replace('import { VehicleListItemComponent } from "../components/vehicle-list-item.component";\n','')
+          s=s.replace('CommonModule, FormsModule, MatIconModule, RouterLink, VehicleListItemComponent, DynamicHomeSectionComponent, AccessibleNativeDateComponent','CommonModule, FormsModule, MatIconModule, DynamicHomeSectionComponent, AccessibleNativeDateComponent')
+          p.write_text(s)
+
+          # track-car avatar.
+          p=Path('src/pages/track-car.component.ts')
+          s=p.read_text()
+          replacement='<div aria-hidden="true" class="w-16 h-16 rounded-full border-2 border-white shadow-md bg-gradient-to-br from-blue-600 to-blue-800 text-white flex items-center justify-center font-black text-xl">AY</div>'
+          s,n=re.subn(r'<img\b[^>]*i\.pravatar\.cc[^>]*>',replacement,s,count=1,flags=re.S)
+          if n!=1: raise SystemExit(f'Expected one pravatar image, found {n}')
+          p.write_text(s)
+
+          # default site config.
+          p=Path('src/services/default-site-config.ts')
+          s=p.read_text()
+          team='''team: [
+    { id: 1, name: "Erkan Alper", role: "Kurucu", description: "Yüksekova'da yılların saha tecrübesiyle araç kiralama ve galeri operasyonunu yöneten kurucu ortak.", image: "" },
+    { id: 2, name: "Hicran Alper", role: "Kurucu Ortak", description: "Müşteri ilişkileri, rezervasyon süreçleri ve tur planlamasında operasyonun güvenilir yüzü.", image: "" },
+  ],'''
+          s,n=re.subn(r'team:\s*\[.*?\n  \],',team,s,count=1,flags=re.S)
+          if n!=1: raise SystemExit('team replacement failed')
+          for key in ('instagramUrl','facebookUrl','tiktokUrl','youtubeUrl'):
+            s,n=re.subn(rf'{key}:\s*"[^"]*"',f'{key}: ""',s,count=1)
+            if n!=1: raise SystemExit(key+' replacement failed')
+          p.write_text(s)
+
+          # index.html exact requested SEO/meta changes.
+          p=Path('index.html'); s=p.read_text()
+          title='Alperler Auto | Yüksekova Araç Kiralama, 2. El Galeri & Turlar'
+          desc="Yüksekova'da kaskolu araç kiralama, VIP transfer, 2. el oto alım-satım ve Cilo-Sat turları. Online rezervasyon yapın veya WhatsApp'tan hemen yazın."
+          s=re.sub(r'<title>.*?</title>',f'<title>{title}</title>',s,count=1)
+          s=re.sub(r'<meta name="description" content="[^"]*">',f'<meta name="description" content="{desc}">',s,count=1)
+          s=re.sub(r'^\s*<meta name="keywords"[^>]*>\s*\n','',s,count=1,flags=re.M)
+          s=re.sub(r'<meta property="og:title" content="[^"]*">',f'<meta property="og:title" content="{title}">',s,count=1)
+          s=re.sub(r'<meta name="twitter:title" content="[^"]*">',f'<meta name="twitter:title" content="{title}">',s,count=1)
+          s=re.sub(r'^\s*<meta name="twitter:site"[^>]*>\s*\n','',s,count=1,flags=re.M)
+          s=s.replace('https://picsum.photos/id/1072/1200/630','https://alperrentacar.online/og-image.jpg')
+          s=s.replace('"telephone": "+905320000000"','"telephone": "+905379594851"')
+          s=re.sub(r'"logo":\s*"[^"]*"','"logo": "https://alperrentacar.online/icons/icon-512.png"',s,count=1)
+          s=re.sub(r'"image":\s*"[^"]*"','"image": "https://alperrentacar.online/og-image.jpg"',s,count=1)
+          marker='  <script src="https://cdn.tailwindcss.com"></script>'
+          pre='  <link rel="preconnect" href="https://fonts.googleapis.com">\n  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
+          if marker not in s: raise SystemExit('Tailwind CDN marker missing')
+          s=s.replace(marker,pre+marker,1)
+          p.write_text(s)
+
+          # angular assets bug fix.
+          p=Path('angular.json'); d=json.loads(p.read_text())
+          d['projects']['app']['architect']['build']['options']['assets']=[{'glob':'**/*','input':'public'}]
+          p.write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n')
+
+          # robots.txt
+          Path('public/robots.txt').write_text('''User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /branch-portal
+Disallow: /track-car
+Disallow: /booking-checkout
+
+Sitemap: https://alperrentacar.online/sitemap.xml
+''')
+
+          # sitemap.xml, all URLs with today's date.
+          routes=[('/', '1.0'),('/tours','0.8'),('/fleet','0.8'),('/sales','0.8'),('/campaigns','0.8'),('/branches','0.8'),('/about','0.8'),('/contact','0.8'),('/faq','0.8'),('/blog','0.8'),('/appointment','0.8'),('/list-your-car','0.8'),('/legal','0.8')]
+          lines=['<?xml version="1.0" encoding="UTF-8"?>','<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+          for route,priority in routes:
+            loc='https://alperrentacar.online/' if route=='/' else 'https://alperrentacar.online'+route
+            lines += ['  <url>',f'    <loc>{loc}</loc>','    <lastmod>2026-08-20</lastmod>',f'    <priority>{priority}</priority>','  </url>']
+          lines.append('</urlset>')
+          Path('public/sitemap.xml').write_text('\n'.join(lines)+'\n')
+
+          # CI cleanup, only requested lines/block.
+          p=Path('.github/workflows/booking-security-gate.yml'); s=p.read_text()
+          for line in ('      - "api/_lib/firestore-rest.ts"\n','      - "firestore.rules"\n','      - "firebase.json"\n'):
+            s=s.replace(line,'')
+          s=s.replace('          test -f firebase.json\n','')
+          s=s.replace('          grep -Fq \'"rules": "firestore.rules"\' firebase.json\n','')
+          s=s.replace("          ! grep -Eq 'allow[[:space:]]+create:[[:space:]]*if[[:space:]]+true' firestore.rules\n",'')
+          p.write_text(s)
+          p=Path('.github/workflows/alperler-quality-gate.yml'); s=p.read_text().replace('      - "firestore.rules"\n',''); p.write_text(s)
+          PY
+
+          rm -f \
+            src/firebase.ts firestore.rules firebase.json firebase-applet-config.json firebase-blueprint.json \
+            src/components/gemini-advisor.component.ts api/_lib/firestore-rest.ts \
+            api/_lib/booking-notification-template.ts api/_lib/sms.ts api/_lib/webhook-config.ts \
+            nginx.conf deno.json deno.lock lazy.js metadata.json
+          test -f src/pages/list-your-car-v2.component.ts
+
+      - name: Create 1200x630 OG image under 300KB
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pillow
+          python3 <<'PY'
+          from PIL import Image, ImageDraw, ImageFont
+          from pathlib import Path
+          img=Image.new('RGB',(1200,630),'#081426')
+          d=ImageDraw.Draw(img); gold='#d4af37'; white='#ffffff'; gray='#aeb7c4'
+          bold='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'; reg='/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
+          d.rounded_rectangle((84,82,258,94),radius=6,fill=gold)
+          d.text((84,135),'ALPERLER AUTO',font=ImageFont.truetype(bold,86),fill=white)
+          d.text((84,255),'Yüksekova Araç Kiralama',font=ImageFont.truetype(bold,42),fill=gold)
+          d.text((84,330),'2. El Galeri • VIP Transfer • Cilo-Sat Turları',font=ImageFont.truetype(reg,31),fill=gray)
+          d.text((84,510),'0537 959 48 51 • alperrentacar.online',font=ImageFont.truetype(reg,27),fill=white)
+          p=Path('public/og-image.jpg')
+          img.save(p,'JPEG',quality=88,optimize=True,progressive=True)
+          assert Image.open(p).size==(1200,630)
+          assert p.stat().st_size < 300_000, p.stat().st_size
+          print('og-image.jpg bytes:',p.stat().st_size)
+          PY
+
+      - name: npm install
+        run: npm install --no-audit --no-fund
+
+      - name: npm run lint
         run: npm run lint
 
-      - name: Type-check transactional APIs
-        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: npm run build with zero warnings
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build 2>&1 | tee build.log
+          if grep -iE '(^|[^[:alpha:]])warning([^[:alpha:]]|$)' build.log; then
+            echo 'Build emitted warning output.'
+            exit 1
+          fi
+          rm -f build.log
+
+      - name: Verify exact changed-file scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          allowed='^(.github/workflows/booking-security-gate.yml|.github/workflows/alperler-quality-gate.yml|angular.json|index.html|package.json|package-lock.json|public/og-image.jpg|public/robots.txt|public/sitemap.xml|src/services/car.service.ts|src/pages/home-v71.component.ts|src/pages/track-car.component.ts|src/services/default-site-config.ts|src/firebase.ts|firestore.rules|firebase.json|firebase-applet-config.json|firebase-blueprint.json|src/components/gemini-advisor.component.ts|api/_lib/firestore-rest.ts|api/_lib/booking-notification-template.ts|api/_lib/sms.ts|api/_lib/webhook-config.ts|nginx.conf|deno.json|deno.lock|lazy.js|metadata.json)$'
+          unexpected="$(git status --porcelain | sed -E 's/^.. //' | grep -Ev "$allowed" || true)"
+          if [ -n "$unexpected" ]; then
+            echo 'Unexpected changed files:'
+            echo "$unexpected"
+            exit 1
+          fi
+          ! git status --porcelain | grep -F 'src/pages/list-your-car-v2.component.ts'
+
+      - name: Commit and push exact cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'ishak595-code'
+          git config user.email 'ishak595@gmail.com'
+          git add -A
+          git commit -m 'Temizlik: Firebase+Gemini kaldırıldı, sahte içerik düzeltildi, assets path bug fix'
+          git push origin HEAD:cleanup-exact

@@ -74,6 +74,8 @@ async function consumeRateLimit(keyHash: string, scope: string, seconds: number,
 }
 
 interface AdminIdentity { id: string; email: string; role: string }
+interface CustomerIdentity { id: string; email: string | null }
+
 async function requireAdmin(request: Request): Promise<AdminIdentity> {
   const authorization = request.headers.get("authorization") || "";
   if (!/^Bearer\s+\S+/i.test(authorization)) throw new Error("UNAUTHORIZED");
@@ -91,6 +93,36 @@ async function requireAdmin(request: Request): Promise<AdminIdentity> {
   const rows = await adminRes.json();
   if (!Array.isArray(rows) || !rows[0]) throw new Error("FORBIDDEN");
   return { id: userId, email, role: String(rows[0].role || "support") };
+}
+
+async function optionalCustomer(request: Request): Promise<CustomerIdentity | null> {
+  const authorization = request.headers.get("authorization") || "";
+  if (!/^Bearer\s+\S+/i.test(authorization)) return null;
+  try {
+    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: SERVICE_KEY, authorization },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!userRes.ok) return null;
+    const user = await userRes.json();
+    const id = clean(user?.id, 80);
+    if (!uuid(id)) return null;
+    const email = emailValue(user?.email);
+    const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/ensure_customer_profile`, {
+      method: "POST",
+      headers: { apikey: SERVICE_KEY, authorization, "content-type": "application/json" },
+      body: "{}",
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!profileRes.ok) {
+      console.error("Customer profile initialization failed", profileRes.status);
+      return null;
+    }
+    return { id, email };
+  } catch (error) {
+    console.error("Optional customer resolution failed", error);
+    return null;
+  }
 }
 
 function toApi(row: any) {
@@ -182,7 +214,9 @@ async function createBooking(request: Request): Promise<Response> {
     const customerName = required(body?.customerName, "customerName", 160);
     const customerPhone = required(body?.customerPhone, "customerPhone", 40);
     if (!/[0-9]/.test(customerPhone) || customerPhone.replace(/\D/g, "").length < 7) throw new Error("INVALID_PHONE");
-    const customerEmail = emailValue(body?.customerEmail);
+    const customer = await optionalCustomer(request);
+    const enteredCustomerEmail = emailValue(body?.customerEmail);
+    const customerEmail = customer?.email || enteredCustomerEmail;
     const idempotencyKey = clean(body?.idempotencyKey || request.headers.get("x-idempotency-key"), 120) || crypto.randomUUID();
     const ip = clean(request.headers.get("x-client-ip") || request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("cf-connecting-ip") || "unknown", 100);
     const ua = clean(request.headers.get("user-agent"), 300);
@@ -218,6 +252,8 @@ async function createBooking(request: Request): Promise<Response> {
       customer_name: customerName,
       customer_email: customerEmail,
       customer_phone: customerPhone,
+      customer_user_id: customer?.id || null,
+      customer_linked_at: customer ? new Date().toISOString() : null,
       start_at: dateValue(body?.startDate),
       end_at: dateValue(body?.endDate),
       pickup_location: clean(body?.pickupLocation, 240) || null,

@@ -47,7 +47,7 @@ for (const token of ["İLAN BİLGİLERİ", "AÇIKLAMA", "KONUM", "app-expertise-
   if (!saleDetail.includes(token)) failures.push(`sale listing identity is missing: ${token}`);
 }
 
-for (const token of ["checkoutStep", "Şoför Tercihi", "Nereden alınacak?", "Nereye iade edilecek?", "Sonraki Adım"]) {
+for (const token of ["checkoutStep", "Sürücü Tercihi", "Nereden alınacak?", "Nereye iade edilecek?", "Sonraki Adım"]) {
   if (!checkout.includes(token)) failures.push(`focused rental checkout is missing: ${token}`);
 }
 if (!checkout.includes('checkoutStep() === 1') || !checkout.includes('checkoutStep() === 2')) failures.push("rental checkout steps are not mutually exclusive views");

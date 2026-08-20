@@ -114,11 +114,34 @@ export interface SiteConfig {
     plannerKicker?: string;
     plannerNote?: string;
     searchPlaceholder?: string;
+    searchButtonLabel?: string;
     trustPrice?: string;
     trustSupport?: string;
     trustVerified?: string;
     heroCtaSubtext?: string;
     heroCta?: string;
+
+    plannerServiceLabel?: string;
+    plannerServiceIndividual?: string;
+    plannerServiceDriver?: string;
+    plannerServiceWedding?: string;
+    plannerServiceTour?: string;
+    plannerPickupLabel?: string;
+    plannerPickupPlaceholder?: string;
+    plannerPickupCountSuffix?: string;
+    plannerTourDateLabel?: string;
+    plannerStartDateLabel?: string;
+    plannerEndDateLabel?: string;
+    plannerButtonRental?: string;
+    plannerButtonDriver?: string;
+    plannerButtonWedding?: string;
+    plannerButtonTour?: string;
+    plannerLoadingText?: string;
+    plannerErrorTourDate?: string;
+    plannerErrorStartDate?: string;
+    plannerErrorEndDate?: string;
+    plannerErrorDateOrder?: string;
+    plannerErrorPickup?: string;
 
     quickActionLabel?: string;
     quickActionRentTitle?: string;

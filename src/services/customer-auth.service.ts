@@ -35,6 +35,7 @@ interface StoredCustomerSession {
 @Injectable({ providedIn: 'root' })
 export class CustomerAuthService {
   private readonly storageKey = 'alperler_customer_session_v1';
+  private readonly referralStorageKey = 'alperler_pending_referral_v1';
   private session: StoredCustomerSession | null = null;
   private readonly _ready = signal(false);
   private readonly _isLoggedIn = signal(false);
@@ -55,6 +56,23 @@ export class CustomerAuthService {
   async waitUntilReady(): Promise<void> { if (!this._ready()) await this.readyPromise; }
   providerEnabled(provider: CustomerSocialProvider): boolean { return this._socialProviders()[provider] === true; }
 
+  setPendingReferral(code: string | null | undefined): boolean {
+    if (typeof localStorage === 'undefined') return false;
+    const clean = String(code || '').trim().toUpperCase();
+    if (!/^[A-Z0-9]{8,16}$/.test(clean)) {
+      if (clean) localStorage.removeItem(this.referralStorageKey);
+      return false;
+    }
+    localStorage.setItem(this.referralStorageKey, clean);
+    return true;
+  }
+
+  pendingReferral(): string | null {
+    if (typeof localStorage === 'undefined') return null;
+    const code = (localStorage.getItem(this.referralStorageKey) || '').trim().toUpperCase();
+    return /^[A-Z0-9]{8,16}$/.test(code) ? code : null;
+  }
+
   async getAccessToken(): Promise<string | null> {
     await this.waitUntilReady();
     if (!this.session) return null;
@@ -74,6 +92,7 @@ export class CustomerAuthService {
       if (!response.ok || !payload.access_token || !payload.refresh_token) return this.fail(this.authMessage(payload, 'Giriş yapılamadı.'));
       this.savePayload(payload);
       await this.ensureProfile();
+      await this.claimPendingReferral();
       this.publishSession();
       return true;
     } catch { return this.fail('Giriş servisine şu anda ulaşılamıyor.'); }
@@ -97,17 +116,21 @@ export class CustomerAuthService {
       return { created: false, confirmationRequired: false };
     }
     try {
-      const redirectTo = `${window.location.origin}/account/callback`;
+      const referral = this.pendingReferral();
+      const redirectTo = this.customerCallbackUrl(referral);
       const response = await fetch(`${supabaseAuthUrl('signup')}?redirect_to=${encodeURIComponent(redirectTo)}`, {
         method: 'POST', headers: this.publicHeaders(), body: JSON.stringify({
           email: cleanEmail, password,
-          data: { full_name: cleanName, account_type: 'customer' },
+          data: { full_name: cleanName, account_type: 'customer', ...(referral ? { referral_code: referral } : {}) },
         }),
       });
       const payload = (await response.json().catch(() => ({}))) as AuthPayload;
       if (!response.ok) { this.fail(this.authMessage(payload, 'Üyelik oluşturulamadı.')); return { created: false, confirmationRequired: false }; }
       if (payload.access_token && payload.refresh_token) {
-        this.savePayload(payload); await this.ensureProfile(); this.publishSession();
+        this.savePayload(payload);
+        await this.ensureProfile();
+        await this.claimPendingReferral();
+        this.publishSession();
         return { created: true, confirmationRequired: false };
       }
       return { created: true, confirmationRequired: true };
@@ -120,7 +143,7 @@ export class CustomerAuthService {
       this.fail(`${this.providerLabel(provider)} ile giriş henüz sağlayıcı hesabına bağlanmadı.`);
       return;
     }
-    const redirectTo = `${window.location.origin}/account/callback`;
+    const redirectTo = this.customerCallbackUrl(this.pendingReferral());
     const url = new URL(supabaseAuthUrl('authorize'));
     url.searchParams.set('provider', provider);
     url.searchParams.set('redirect_to', redirectTo);
@@ -158,6 +181,7 @@ export class CustomerAuthService {
 
   private async initialize(): Promise<void> {
     try {
+      this.captureReferralFromLocation();
       await this.loadSocialProviders();
       this.consumeRedirectSession();
       if (!this.session) this.restoreSession();
@@ -165,12 +189,41 @@ export class CustomerAuthService {
         if (this.session.expiresAt <= Date.now() + 60_000) await this.refreshSession();
         if (this.session) {
           const user = await this.fetchUser(this.session.accessToken);
-          if (user) { this.session.user = user; this.persist(); await this.ensureProfile(); this.publishSession(); }
-          else this.clearSession();
+          if (user) {
+            this.session.user = user;
+            this.persist();
+            await this.ensureProfile();
+            await this.claimPendingReferral();
+            this.publishSession();
+          } else this.clearSession();
         }
       }
     } finally {
       this._ready.set(true); this.readyResolver();
+    }
+  }
+
+  private captureReferralFromLocation(): void {
+    if (typeof window === 'undefined') return;
+    const code = new URLSearchParams(window.location.search).get('ref');
+    if (code) this.setPendingReferral(code);
+  }
+
+  private async claimPendingReferral(): Promise<void> {
+    const code = this.pendingReferral();
+    const token = this.session?.accessToken;
+    if (!code || !token) return;
+    try {
+      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/claim_customer_referral`, {
+        method: 'POST', headers: this.userHeaders(token), body: JSON.stringify({ p_code: code }),
+      });
+      if (response.ok) {
+        localStorage.removeItem(this.referralStorageKey);
+        return;
+      }
+      if (response.status >= 400 && response.status < 500) localStorage.removeItem(this.referralStorageKey);
+    } catch {
+      // Network failures keep the referral locally so a later authenticated session can retry safely.
     }
   }
 
@@ -242,6 +295,11 @@ export class CustomerAuthService {
       user: payload.user || { id: '' },
     };
     this.persist();
+  }
+
+  private customerCallbackUrl(referral: string | null): string {
+    const base = `${window.location.origin}/account/callback`;
+    return referral ? `${base}?ref=${encodeURIComponent(referral)}` : base;
   }
 
   private publishSession(): void { this._user.set(this.session?.user || null); this._isLoggedIn.set(Boolean(this.session?.user?.id)); }

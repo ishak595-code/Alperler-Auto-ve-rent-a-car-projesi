@@ -16,10 +16,14 @@ export interface CustomerBooking { id: string; reference: string; booking_type: 
 export interface SafePaymentMethod { id: string; provider: string; brand?: string | null; last4?: string | null; expiry_month?: number | null; expiry_year?: number | null; label?: string | null; is_default: boolean; status: string; }
 export interface LoyaltySettings {
   enabled: boolean; points_per_rental_day: number; minimum_points_per_rental: number; silver_threshold: number; gold_threshold: number; platinum_threshold: number;
-  referral_inviter_points: number; referral_invitee_points: number; referral_milestone_3_points: number; referral_milestone_5_points: number; referral_milestone_10_points: number;
+  referral_inviter_points: number; referral_invitee_points: number;
+  referral_rental_inviter_points:number; referral_rental_invitee_points:number; referral_sale_inviter_points:number; referral_sale_invitee_points:number; referral_tour_inviter_points:number; referral_tour_invitee_points:number;
+  referral_milestone_3_points: number; referral_milestone_5_points: number; referral_milestone_10_points: number;
   benefits: Record<string,string[]>;
 }
-export interface ReferralSummary { code: string; registered: number; rewarded: number; pending: number; pointsEarned: number; successfulReferrals: number; }
+export interface ReferralSummary {
+  code:string; registered:number; rewarded:number; pending:number; rentalRewards:number; saleRewards:number; tourRewards:number; pointsEarned:number; successfulReferrals:number;
+}
 
 @Injectable({ providedIn: 'root' })
 export class CustomerAccountService {
@@ -45,7 +49,7 @@ export class CustomerAccountService {
         this.getRows<LoyaltyLedgerItem>('customer_loyalty_ledger?select=id,booking_id,referral_id,direction,points,reason,source,created_at&order=created_at.desc&limit=100', token),
         this.getRows<CustomerBooking>('bookings?deleted_at=is.null&select=id,reference,booking_type,item_name,image,start_at,end_at,total_price,currency,status,payment_status,loyalty_points_awarded,created_at&order=created_at.desc&limit=100', token),
         this.getRows<SafePaymentMethod>('customer_payment_methods?status=eq.ACTIVE&select=id,provider,brand,last4,expiry_month,expiry_year,label,is_default,status&order=is_default.desc,created_at.desc', token),
-        this.getRows<LoyaltySettings>('loyalty_program_settings?select=enabled,points_per_rental_day,minimum_points_per_rental,silver_threshold,gold_threshold,platinum_threshold,referral_inviter_points,referral_invitee_points,referral_milestone_3_points,referral_milestone_5_points,referral_milestone_10_points,benefits&limit=1', token),
+        this.getRows<LoyaltySettings>('loyalty_program_settings?select=enabled,points_per_rental_day,minimum_points_per_rental,silver_threshold,gold_threshold,platinum_threshold,referral_inviter_points,referral_invitee_points,referral_rental_inviter_points,referral_rental_invitee_points,referral_sale_inviter_points,referral_sale_invitee_points,referral_tour_inviter_points,referral_tour_invitee_points,referral_milestone_3_points,referral_milestone_5_points,referral_milestone_10_points,benefits&limit=1', token),
         this.rpc<ReferralSummary | null>('customer_referral_summary', {}, token),
       ]);
       this.profile.set(profile[0] || null);
@@ -75,7 +79,6 @@ export class CustomerAccountService {
     const extension = allowed.get(file.type);
     if (!extension) throw new Error('AVATAR_TYPE_INVALID');
     if (file.size <= 0 || file.size > 2 * 1024 * 1024) throw new Error('AVATAR_SIZE_INVALID');
-
     const token = await this.requireToken();
     const userId = this.auth.user()?.id || '';
     if (!userId) throw new Error('CUSTOMER_SESSION_REQUIRED');
@@ -83,12 +86,9 @@ export class CustomerAccountService {
     const objectPath = `${userId}/avatar.${extension}`;
     const endpoint = `${SUPABASE_PROJECT_URL}/storage/v1/object/customer-avatars/${encodeURIComponent(userId)}/avatar.${extension}`;
     const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}`, 'content-type': file.type, 'x-upsert': 'true' },
-      body: file,
+      method: 'POST', headers: { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}`, 'content-type': file.type, 'x-upsert': 'true' }, body: file,
     });
     if (!response.ok) throw new Error(`AVATAR_UPLOAD_${response.status}`);
-
     const publicUrl = `${SUPABASE_PROJECT_URL}/storage/v1/object/public/customer-avatars/${objectPath}?v=${Date.now()}`;
     await this.patchProfile({ avatar_url: publicUrl, updated_at: new Date().toISOString() }, token);
     if (previousUrl && this.avatarObjectPath(previousUrl) !== objectPath) await this.deleteOwnedAvatar(previousUrl, token).catch(() => undefined);
@@ -156,9 +156,7 @@ export class CustomerAccountService {
     const userId = this.auth.user()?.id || '';
     if (!path || !userId || !path.startsWith(`${userId}/`)) return;
     const encoded = path.split('/').map((part) => encodeURIComponent(part)).join('/');
-    await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/customer-avatars/${encoded}`, {
-      method: 'DELETE', headers: { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}` },
-    });
+    await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/customer-avatars/${encoded}`, { method: 'DELETE', headers: { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}` } });
   }
 
   private async requireToken(): Promise<string> { const token = await this.auth.getAccessToken(); if (!token) throw new Error('CUSTOMER_SESSION_REQUIRED'); return token; }

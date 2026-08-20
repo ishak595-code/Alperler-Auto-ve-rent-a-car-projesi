@@ -1,6 +1,5 @@
 export type PaymentMethod = "CARD" | "EFT" | "OFFICE";
-
-export type PaymentProvider = "none" | "generic_hosted";
+export type PaymentProvider = "none" | "generic_hosted" | "paytr";
 
 export interface PaymentIntegrationStatus {
   provider: PaymentProvider;
@@ -9,34 +8,17 @@ export interface PaymentIntegrationStatus {
   eftEnabled: boolean;
   officeEnabled: boolean;
 }
-
-export interface EmailIntegrationStatus {
-  configured: boolean;
-}
-
-export interface SmsIntegrationStatus {
-  provider: "none" | "twilio";
-  configured: boolean;
-}
-
+export interface EmailIntegrationStatus { configured: boolean; }
+export interface SmsIntegrationStatus { provider: "none" | "twilio"; configured: boolean; }
 export interface IntegrationStatusResponse {
   environment: "development" | "preview" | "production" | "unknown";
   appUrl: string | null;
   payment: PaymentIntegrationStatus;
   email: EmailIntegrationStatus;
   sms: SmsIntegrationStatus;
-  database: {
-    configured: boolean;
-    serverVerified?: boolean;
-  };
+  database: { configured: boolean; serverVerified?: boolean; };
 }
-
-export interface PaymentSessionCustomer {
-  name: string;
-  email: string;
-  phone: string;
-}
-
+export interface PaymentSessionCustomer { name: string; email: string; phone: string; }
 export interface PaymentSessionRequest {
   bookingReference: string;
   amount: number;
@@ -48,7 +30,6 @@ export interface PaymentSessionRequest {
   description?: string;
   metadata?: Record<string, string | number | boolean>;
 }
-
 export interface PaymentSessionResponse {
   ok: boolean;
   status: "ready" | "not_configured" | "rejected" | "error";

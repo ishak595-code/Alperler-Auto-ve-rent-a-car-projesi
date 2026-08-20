@@ -79,6 +79,7 @@ export class CustomerAccountService {
     const token = await this.requireToken();
     const userId = this.auth.user()?.id || '';
     if (!userId) throw new Error('CUSTOMER_SESSION_REQUIRED');
+    const previousUrl = this.profile()?.avatar_url || '';
     const objectPath = `${userId}/avatar.${extension}`;
     const endpoint = `${SUPABASE_PROJECT_URL}/storage/v1/object/customer-avatars/${encodeURIComponent(userId)}/avatar.${extension}`;
     const response = await fetch(endpoint, {
@@ -90,7 +91,7 @@ export class CustomerAccountService {
 
     const publicUrl = `${SUPABASE_PROJECT_URL}/storage/v1/object/public/customer-avatars/${objectPath}?v=${Date.now()}`;
     await this.patchProfile({ avatar_url: publicUrl, updated_at: new Date().toISOString() }, token);
-    await this.deletePreviousOwnedAvatar(publicUrl, token).catch(() => undefined);
+    if (previousUrl && this.avatarObjectPath(previousUrl) !== objectPath) await this.deleteOwnedAvatar(previousUrl, token).catch(() => undefined);
     return publicUrl;
   }
 
@@ -143,20 +144,17 @@ export class CustomerAccountService {
     this.profile.set(rows[0] || this.profile());
   }
 
-  private async deletePreviousOwnedAvatar(currentUrl: string, token: string): Promise<void> {
-    const previous = this.profile()?.avatar_url || '';
-    if (!previous || previous === currentUrl) return;
-    await this.deleteOwnedAvatar(previous, token);
+  private avatarObjectPath(url: string): string | null {
+    const marker = '/storage/v1/object/public/customer-avatars/';
+    const index = url.indexOf(marker);
+    if (index < 0) return null;
+    return decodeURIComponent(url.slice(index + marker.length).split('?')[0]);
   }
 
   private async deleteOwnedAvatar(url: string, token: string): Promise<void> {
-    const marker = '/storage/v1/object/public/customer-avatars/';
-    const index = url.indexOf(marker);
-    if (index < 0) return;
-    const rawPath = url.slice(index + marker.length).split('?')[0];
-    const path = decodeURIComponent(rawPath);
+    const path = this.avatarObjectPath(url);
     const userId = this.auth.user()?.id || '';
-    if (!userId || !path.startsWith(`${userId}/`)) return;
+    if (!path || !userId || !path.startsWith(`${userId}/`)) return;
     const encoded = path.split('/').map((part) => encodeURIComponent(part)).join('/');
     await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/customer-avatars/${encoded}`, {
       method: 'DELETE', headers: { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}` },

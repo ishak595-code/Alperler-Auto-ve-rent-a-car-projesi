@@ -13,35 +13,35 @@ import { PartnerIntent, PartnerRequestService } from "../services/partner-reques
     <main class="min-h-screen bg-slate-950 pb-20 text-slate-200">
       <header class="sticky top-0 z-40 border-b border-slate-800 bg-slate-900/95 shadow-lg backdrop-blur">
         <div class="mx-auto flex min-h-16 max-w-7xl items-center gap-3 px-4">
-          <button type="button" (click)="goBack()" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-300 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Geri dön"><mat-icon>arrow_back</mat-icon></button>
-          <div class="min-w-0"><h1 class="font-black text-white">Arabanı Değerlendir</h1><p class="truncate text-xs text-slate-400">Satış veya kiralama için güvenli başvuru</p></div>
+          <button type="button" (click)="goBack()" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-300 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Aracını Değerlendir sayfasından geri dön"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
+          <div class="min-w-0"><h1 class="font-black text-white">Aracını Değerlendir</h1><p class="truncate text-xs text-slate-400">Satış veya filo değerlendirme başvurusu</p></div>
         </div>
       </header>
 
       <section class="mx-auto max-w-5xl px-4 py-8 sm:py-12">
         @if (success()) {
           <div class="mx-auto max-w-2xl rounded-3xl border border-emerald-500/20 bg-white p-7 text-center text-slate-900 shadow-2xl sm:p-10" role="status" aria-live="polite">
-            <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><mat-icon class="!h-9 !w-9 !text-[36px]">check_circle</mat-icon></div>
+            <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><mat-icon aria-hidden="true" class="!h-9 !w-9 !text-[36px]">check_circle</mat-icon></div>
             <p class="mt-5 text-xs font-black uppercase tracking-[.18em] text-emerald-700">Başvuru tamamlandı</p>
-            <h2 class="mt-2 text-3xl font-black">Aracınız inceleme sırasına alındı</h2>
-            <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-600">Form bilgileriniz ve seçtiğiniz dosyalar güvenli şekilde kaydedildi. Ekibimiz değerlendirme sonrasında sizinle iletişime geçecektir.</p>
+            <h2 class="mt-2 text-3xl font-black">Aracınız değerlendirmeye alındı</h2>
+            <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-600">Bilgileriniz ve eklediğiniz dosyalar kaydedildi. İnceleme sonrasında uygun seçenek sizinle paylaşılacaktır.</p>
             <div class="mx-auto mt-6 max-w-md rounded-2xl bg-slate-100 px-5 py-4"><span class="block text-xs font-black uppercase tracking-wider text-slate-500">Referans numarası</span><strong class="mt-1 block break-all text-lg text-slate-950">{{ reference() }}</strong></div>
             <div class="mt-7 grid gap-3 sm:grid-cols-2"><button type="button" (click)="reset()" class="min-h-12 rounded-xl border border-slate-200 px-5 font-black text-slate-700">Yeni Başvuru</button><a routerLink="/" class="flex min-h-12 items-center justify-center rounded-xl bg-slate-950 px-5 font-black text-white">Ana Sayfaya Dön</a></div>
           </div>
         } @else {
           <div class="mb-8 max-w-3xl">
-            <span class="text-xs font-black uppercase tracking-[.18em] text-blue-400">Profesyonel değerlendirme</span>
-            <h2 class="mt-2 font-serif text-3xl font-black text-white sm:text-5xl">Aracınızı birkaç adımda bize gönderin</h2>
-            <p class="mt-3 text-sm leading-relaxed text-slate-400 sm:text-base">Araç bilgilerini ve fotoğraf/video/PDF dosyalarını gönderin. Büyük dosyalar bağlantı kesildiğinde kaldığı yerden devam edebilen parçalı yükleme sistemiyle aktarılır.</p>
+            <span class="text-xs font-black uppercase tracking-[.18em] text-blue-400">Alperler Rent A Car</span>
+            <h2 class="mt-2 font-serif text-3xl font-black text-white sm:text-5xl">Aracınız için doğru modeli birlikte netleştirelim</h2>
+            <p class="mt-3 text-sm leading-relaxed text-slate-400 sm:text-base">Temel araç bilgilerini ve varsa fotoğraf veya belgeleri paylaşın. Satış ya da kiralama filosuna uygunluk, inceleme sonrasında değerlendirilir.</p>
           </div>
 
           <form (ngSubmit)="submit()" class="grid gap-6 lg:grid-cols-[1fr_.72fr]" novalidate>
             <div class="space-y-6">
               <section class="panel">
-                <h3 class="section-title">1. İşlem türü</h3>
+                <h3 class="section-title">1. Nasıl değerlendirelim?</h3>
                 <div class="grid gap-3 sm:grid-cols-2">
-                  <button type="button" (click)="intent='sell'" [class.selected-option]="intent==='sell'" class="option-button"><mat-icon>sell</mat-icon><span><strong>Aracımı Satmak İstiyorum</strong><small>Alım/değerlendirme talebi oluştur</small></span></button>
-                  <button type="button" (click)="intent='rent'" [class.selected-option]="intent==='rent'" class="option-button"><mat-icon>car_rental</mat-icon><span><strong>Kiralamaya Vermek İstiyorum</strong><small>Filo/iş ortaklığı değerlendirmesi</small></span></button>
+                  <button type="button" (click)="intent='sell'" [class.selected-option]="intent==='sell'" [attr.aria-pressed]="intent==='sell'" class="option-button"><mat-icon aria-hidden="true">sell</mat-icon><span><strong>Satış için değerlendir</strong><small>Aracınız için satış talebi oluşturun</small></span></button>
+                  <button type="button" (click)="intent='rent'" [class.selected-option]="intent==='rent'" [attr.aria-pressed]="intent==='rent'" class="option-button"><mat-icon aria-hidden="true">car_rental</mat-icon><span><strong>Kiralama filosu için değerlendir</strong><small>Uygunluk ve çalışma modeli incelensin</small></span></button>
                 </div>
               </section>
 
@@ -52,10 +52,10 @@ import { PartnerIntent, PartnerRequestService } from "../services/partner-reques
                   <label class="field"><span>Model *</span><input [(ngModel)]="carModel" name="carModel" maxlength="100" required placeholder="Örn. Corolla" /></label>
                   <label class="field"><span>Model yılı *</span><input type="number" inputmode="numeric" [(ngModel)]="carYear" name="carYear" min="1950" [max]="maxYear" required /></label>
                   <label class="field"><span>Kilometre *</span><input type="number" inputmode="numeric" [(ngModel)]="carMileage" name="carMileage" min="0" max="5000000" required /></label>
-                  <label class="field sm:col-span-2"><span>Beklenen fiyat (opsiyonel)</span><input type="number" inputmode="decimal" [(ngModel)]="askingPrice" name="askingPrice" min="0" placeholder="TL" /></label>
+                  <label class="field sm:col-span-2"><span>Beklenen fiyat (isteğe bağlı)</span><input type="number" inputmode="decimal" [(ngModel)]="askingPrice" name="askingPrice" min="0" placeholder="TL" /></label>
                 </div>
                 @if (intent === 'rent') {
-                  <label class="mt-4 flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-700"><input type="checkbox" [(ngModel)]="withDriver" name="withDriver" class="h-5 w-5" /> Araç şoförlü olarak da değerlendirilebilir</label>
+                  <label class="mt-4 flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-700"><input type="checkbox" [(ngModel)]="withDriver" name="withDriver" class="h-5 w-5" /> Araç şoförlü hizmet için de değerlendirilebilir</label>
                 }
               </section>
 
@@ -69,20 +69,21 @@ import { PartnerIntent, PartnerRequestService } from "../services/partner-reques
               </section>
 
               <section class="panel">
-                <h3 class="section-title">4. Fotoğraf, video ve belge</h3>
+                <h3 class="section-title">4. Fotoğraf ve belgeler</h3>
+                <p class="-mt-2 mb-4 text-sm leading-6 text-slate-500">Mevcut araç fotoğrafları, kısa video veya ilgili PDF belgeleri değerlendirmeyi kolaylaştırır. Bu alan isteğe bağlıdır.</p>
                 <label class="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-5 text-center transition hover:border-blue-400 hover:bg-blue-50">
-                  <mat-icon class="!h-9 !w-9 !text-[36px] text-blue-600">cloud_upload</mat-icon>
+                  <mat-icon aria-hidden="true" class="!h-9 !w-9 !text-[36px] text-blue-600">cloud_upload</mat-icon>
                   <strong class="mt-2 text-slate-900">Dosya seç</strong>
-                  <span class="mt-1 text-xs text-slate-500">JPG, PNG, WebP, MP4 veya PDF. En fazla 10 dosya, dosya başına 50 MB, toplam 200 MB.</span>
-                  <input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,application/pdf" class="sr-only" (change)="selectFiles($event)" />
+                  <span class="mt-1 text-xs text-slate-500">JPG, PNG, WebP, MP4 veya PDF. En fazla 10 dosya.</span>
+                  <input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,application/pdf" class="sr-only" (change)="selectFiles($event)" aria-label="Araç fotoğrafı, video veya belge seç" />
                 </label>
                 @if (files().length) {
                   <div class="mt-4 space-y-2">
                     @for (file of files(); track file.name + file.size + $index) {
                       <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3">
-                        <mat-icon class="text-slate-400">{{ file.type.startsWith('image/') ? 'image' : file.type === 'video/mp4' ? 'videocam' : 'description' }}</mat-icon>
+                        <mat-icon aria-hidden="true" class="text-slate-400">{{ file.type.startsWith('image/') ? 'image' : file.type === 'video/mp4' ? 'videocam' : 'description' }}</mat-icon>
                         <div class="min-w-0 flex-1"><strong class="block truncate text-sm text-slate-800">{{ file.name }}</strong><small class="text-slate-500">{{ formatBytes(file.size) }}</small></div>
-                        <button type="button" (click)="removeFile($index)" class="flex h-11 w-11 items-center justify-center rounded-xl text-rose-600 hover:bg-rose-50" [attr.aria-label]="file.name + ' dosyasını kaldır'"><mat-icon>close</mat-icon></button>
+                        <button type="button" (click)="removeFile($index)" class="flex h-11 w-11 items-center justify-center rounded-xl text-rose-600 hover:bg-rose-50" [attr.aria-label]="file.name + ' dosyasını kaldır'"><mat-icon aria-hidden="true">close</mat-icon></button>
                       </div>
                     }
                     <div class="text-right text-xs font-bold text-slate-500">Toplam: {{ formatBytes(totalFileBytes()) }}</div>
@@ -92,7 +93,7 @@ import { PartnerIntent, PartnerRequestService } from "../services/partner-reques
                   <div class="mt-5 rounded-2xl bg-slate-950 p-4 text-white" aria-live="polite">
                     <div class="flex justify-between text-sm font-bold"><span>Dosyalar yükleniyor</span><span>{{ overallProgress() }}%</span></div>
                     <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-700"><div class="h-full rounded-full bg-blue-500 transition-all" [style.width.%]="overallProgress()"></div></div>
-                    <p class="mt-2 text-xs leading-relaxed text-slate-400">Bu ekranı yükleme tamamlanana kadar açık tutun. Büyük dosyalarda geçici bağlantı kesintileri otomatik yeniden denenir.</p>
+                    <p class="mt-2 text-xs leading-relaxed text-slate-400">Yükleme tamamlanana kadar bu ekranı açık tutun.</p>
                   </div>
                 }
               </section>
@@ -107,7 +108,7 @@ import { PartnerIntent, PartnerRequestService } from "../services/partner-reques
               <div class="panel">
                 <h3 class="section-title">Başvuru özeti</h3>
                 <div class="space-y-3 text-sm text-slate-600">
-                  <div class="summary-row"><span>İşlem</span><strong>{{ intent === 'sell' ? 'Satış' : 'Kiralama' }}</strong></div>
+                  <div class="summary-row"><span>Değerlendirme</span><strong>{{ intent === 'sell' ? 'Satış' : 'Kiralama filosu' }}</strong></div>
                   <div class="summary-row"><span>Araç</span><strong>{{ carBrand || '-' }} {{ carModel || '' }}</strong></div>
                   <div class="summary-row"><span>Yıl / KM</span><strong>{{ carYear || '-' }} / {{ carMileage || 0 | number:'1.0-0' }}</strong></div>
                   <div class="summary-row"><span>Dosya</span><strong>{{ files().length }}</strong></div>
@@ -119,14 +120,12 @@ import { PartnerIntent, PartnerRequestService } from "../services/partner-reques
                 <label class="consent"><input type="checkbox" [(ngModel)]="kvkkAccepted" name="kvkkAccepted" /><span>Kişisel verilerimin bu başvurunun değerlendirilmesi ve benimle iletişim kurulması amacıyla işlenmesini kabul ediyorum.</span></label>
               </div>
 
-              @if (errorMessage()) {
-                <div role="alert" class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold leading-relaxed text-rose-800">{{ errorMessage() }}</div>
-              }
+              @if (errorMessage()) {<div role="alert" class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold leading-relaxed text-rose-800">{{ errorMessage() }}</div>}
 
               <button type="submit" [disabled]="submitting() || !formValid()" class="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 font-black text-white shadow-xl transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-45 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
-                @if (submitting()) { <mat-icon class="animate-spin">progress_activity</mat-icon>{{ uploading() ? 'Dosyalar yükleniyor...' : 'Başvuru kaydediliyor...' }} } @else { <mat-icon>send</mat-icon>Başvuruyu Güvenle Gönder }
+                @if (submitting()) {<mat-icon aria-hidden="true" class="animate-spin">progress_activity</mat-icon>{{ uploading() ? 'Dosyalar yükleniyor...' : 'Başvuru kaydediliyor...' }}} @else {<mat-icon aria-hidden="true">send</mat-icon>Başvuruyu Gönder}
               </button>
-              <p class="text-center text-[11px] leading-relaxed text-slate-500">Başarı ekranı yalnız başvuru ve seçilen dosyalar sunucuda doğrulandıktan sonra açılır.</p>
+              <p class="text-center text-[11px] leading-relaxed text-slate-500">Başvurunuz kaydedildiğinde size takip edebileceğiniz bir referans numarası verilir.</p>
             </aside>
           </form>
         }
@@ -195,29 +194,15 @@ export class ListYourCarV2Component {
     if (!selected.length) return;
     const allowed = new Set(["image/jpeg", "image/png", "image/webp", "video/mp4", "application/pdf"]);
     const merged = [...this.files(), ...selected];
-    if (merged.length > 10) {
-      this.errorMessage.set("En fazla 10 dosya ekleyebilirsiniz.");
-      return;
-    }
-    if (merged.some((file) => !allowed.has(file.type))) {
-      this.errorMessage.set("Yalnız JPG, PNG, WebP, MP4 ve PDF dosyaları kabul edilir.");
-      return;
-    }
-    if (merged.some((file) => file.size <= 0 || file.size > 50 * 1024 * 1024)) {
-      this.errorMessage.set("Her dosya en fazla 50 MB olabilir.");
-      return;
-    }
-    if (merged.reduce((sum, file) => sum + file.size, 0) > 200 * 1024 * 1024) {
-      this.errorMessage.set("Toplam dosya boyutu 200 MB sınırını aşamaz.");
-      return;
-    }
+    if (merged.length > 10) { this.errorMessage.set("En fazla 10 dosya ekleyebilirsiniz."); return; }
+    if (merged.some((file) => !allowed.has(file.type))) { this.errorMessage.set("Yalnız JPG, PNG, WebP, MP4 ve PDF dosyaları kabul edilir."); return; }
+    if (merged.some((file) => file.size <= 0 || file.size > 50 * 1024 * 1024)) { this.errorMessage.set("Her dosya en fazla 50 MB olabilir."); return; }
+    if (merged.reduce((sum, file) => sum + file.size, 0) > 200 * 1024 * 1024) { this.errorMessage.set("Toplam dosya boyutu 200 MB sınırını aşamaz."); return; }
     this.errorMessage.set("");
     this.files.set(merged);
   }
 
-  removeFile(index: number): void {
-    this.files.update((files) => files.filter((_, current) => current !== index));
-  }
+  removeFile(index: number): void { this.files.update((files) => files.filter((_, current) => current !== index)); }
 
   async submit(): Promise<void> {
     if (!this.formValid() || this.submitting()) return;
@@ -248,7 +233,7 @@ export class ListYourCarV2Component {
           ? "Kısa sürede çok fazla başvuru yapıldı. Lütfen biraz sonra tekrar deneyin."
           : code.includes("UPLOAD") || code.includes("TUS")
             ? "Başvuru kaydı oluşturuldu ancak dosyalardan biri tamamlanamadı. Aynı formu tekrar gönderdiğinizde sistem çift kayıt oluşturmadan işlemi yeniden deneyecektir."
-            : "Başvuru tamamlanamadı. Bilgileriniz için sahte başarı gösterilmedi. Lütfen bağlantınızı kontrol edip tekrar deneyin.",
+            : "Başvuru tamamlanamadı. Lütfen bağlantınızı kontrol edip tekrar deneyin.",
       );
     } finally {
       this.uploading.set(false);

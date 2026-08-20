@@ -3,7 +3,7 @@ import { AuthService } from "./auth.service";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 
 export type AdminRole = "owner" | "admin" | "editor" | "support";
-export type AdminArea = "content" | "operations" | "team" | "settings" | "finance" | "analytics";
+export type AdminArea = "content" | "operations" | "team" | "settings" | "finance" | "analytics" | "marketing" | "telematics";
 
 export interface AdminAccessProfile {
   userId: string;
@@ -78,29 +78,28 @@ export class AdminAccessService {
 
   async can(area: AdminArea): Promise<boolean> {
     const profile = await this.refresh();
-    if (!profile?.isActive) return false;
-    if (profile.role === "owner" || profile.role === "admin") return true;
-    if (area === "content" && profile.role === "editor") return true;
-    if (area === "operations" && profile.role === "support") return true;
-    if (area === "analytics") return this.permission(profile.permissions, "analytics.read");
-    return this.permission(profile.permissions, `${area}.manage`) ||
-      (area === "finance" && this.permission(profile.permissions, "finance.read"));
+    return this.canWithProfile(profile, area);
   }
 
   canCached(area: AdminArea): boolean {
-    const profile = this._profile();
-    if (!profile?.isActive) return false;
-    if (profile.role === "owner" || profile.role === "admin") return true;
-    if (area === "content" && profile.role === "editor") return true;
-    if (area === "operations" && profile.role === "support") return true;
-    if (area === "analytics") return this.permission(profile.permissions, "analytics.read");
-    return this.permission(profile.permissions, `${area}.manage`) ||
-      (area === "finance" && this.permission(profile.permissions, "finance.read"));
+    return this.canWithProfile(this._profile(), area);
   }
 
   clear(): void {
     this._profile.set(null);
     this._loaded.set(false);
+  }
+
+  private canWithProfile(profile: AdminAccessProfile | null, area: AdminArea): boolean {
+    if (!profile?.isActive) return false;
+    if (profile.role === "owner" || profile.role === "admin") return true;
+    if (area === "content" && profile.role === "editor") return true;
+    if (area === "operations" && profile.role === "support") return true;
+    if (area === "analytics") return this.permission(profile.permissions, "analytics.read") || this.permission(profile.permissions, "analytics.manage");
+    if (area === "finance") return this.permission(profile.permissions, "finance.read") || this.permission(profile.permissions, "finance.manage");
+    if (area === "telematics") return this.permission(profile.permissions, "telematics.read") || this.permission(profile.permissions, "telematics.manage");
+    if (area === "marketing") return this.permission(profile.permissions, "marketing.manage");
+    return this.permission(profile.permissions, `${area}.manage`);
   }
 
   private permission(permissions: Record<string, unknown>, key: string): boolean {

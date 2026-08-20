@@ -87,6 +87,9 @@ jobs:
       - name: Rental and sale vehicle truth/media guard
         run: npm run media:vehicles
 
+      - name: Vercel Hobby function budget guard
+        run: npm run vercel:functions
+
       - name: Frontend TypeScript quality check
         run: npm run lint
 

@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const URL = Deno.env.get('SUPABASE_URL') || '';
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const CORS = {
   'access-control-allow-origin': '*',
@@ -12,12 +12,12 @@ type Admin = { id:string; email:string; role:string; permissions:Record<string,u
 function json(body:unknown,status=200){return Response.json(body,{status,headers:{...CORS,'cache-control':'no-store'}});}
 function clean(v:unknown,max=500){return typeof v==='string'?v.trim().slice(0,max):'';}
 function headers(extra:Record<string,string>={}){return{apikey:SERVICE,authorization:`Bearer ${SERVICE}`,'content-type':'application/json',...extra};}
-async function db(path:string,init:RequestInit={}){return fetch(`${URL}/rest/v1/${path}`,{...init,headers:{...headers(),...(init.headers||{})}});}
+async function db(path:string,init:RequestInit={}){return fetch(`${SUPABASE_URL}/rest/v1/${path}`,{...init,headers:{...headers(),...(init.headers||{})}});}
 
 async function requireFinance(request:Request,manage=false):Promise<Admin>{
   const auth=request.headers.get('authorization')||'';
   if(!/^Bearer\s+\S+/i.test(auth)) throw new Error('UNAUTHORIZED');
-  const userRes=await fetch(`${URL}/auth/v1/user`,{headers:{apikey:SERVICE,authorization:auth},signal:AbortSignal.timeout(8000)});
+  const userRes=await fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:{apikey:SERVICE,authorization:auth},signal:AbortSignal.timeout(8000)});
   if(!userRes.ok) throw new Error('UNAUTHORIZED');
   const user=await userRes.json(); const id=clean(user?.id,80); const email=clean(user?.email,180).toLowerCase();
   const adminRes=await db(`admin_users?user_id=eq.${encodeURIComponent(id)}&is_active=eq.true&select=user_id,email,role,permissions&limit=1`);
@@ -64,7 +64,7 @@ async function createTransaction(body:any,admin:Admin){
 }
 
 Deno.serve(async(request)=>{
-  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:CORS}); if(!URL||!SERVICE)return json({ok:false,code:'SERVER_CONFIG_MISSING'},503);
+  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:CORS}); if(!SUPABASE_URL||!SERVICE)return json({ok:false,code:'SERVER_CONFIG_MISSING'},503);
   try{
     if(request.method==='GET')return await listFinance(request); if(request.method!=='POST')return json({ok:false,code:'METHOD_NOT_ALLOWED'},405);
     const admin=await requireFinance(request,true); let body:any;try{body=await request.json();}catch{return json({ok:false,code:'INVALID_JSON'},400);} const action=clean(body?.action,40);

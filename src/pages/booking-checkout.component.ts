@@ -152,7 +152,7 @@ export class BookingCheckoutComponent implements OnInit {
     this.endDate = booking.endDate || "";
     this.rentalDuration = booking.rentalDuration || "daily";
     const option = booking.item?.driverOption || "BOTH";
-    if (option === "WITH_DRIVER_ONLY" && this.driverAllowed(true)) this.selectedExtraIds.set(["driver"]);
+    if (option === "WITH_DRIVER" && this.driverAllowed(true)) this.selectedExtraIds.set(["driver"]);
     else if (option !== "WITHOUT_DRIVER" && booking.withDriver === true && this.driverAllowed(true)) this.selectedExtraIds.set(["driver"]);
     else this.selectedExtraIds.set([]);
     await Promise.allSettled([this.branchService.refresh(), this.paymentService.refreshIntegrationStatus()]);
@@ -168,13 +168,13 @@ export class BookingCheckoutComponent implements OnInit {
 
   driverAllowed(withDriver: boolean): boolean {
     const option = this.request()?.item?.driverOption || "BOTH";
-    if (!withDriver) return option !== "WITH_DRIVER_ONLY";
+    if (!withDriver) return option !== "WITH_DRIVER";
     return option !== "WITHOUT_DRIVER" && this.rentalExtras().some((item) => item.id === "driver" && item.enabled);
   }
 
   driverAvailabilityNote(): string {
     const option = this.request()?.item?.driverOption || "BOTH";
-    if (option === "WITH_DRIVER_ONLY") return "Bu araç yalnız şoförlü sunuluyor";
+    if (option === "WITH_DRIVER") return "Bu araç yalnız şoförlü sunuluyor";
     if (option === "WITHOUT_DRIVER") return "Bu araç yalnız şoförsüz sunuluyor";
     return "Tercihinizi değiştirebilirsiniz";
   }

@@ -5,6 +5,7 @@ import { AdminAccessService, AdminArea } from '../../services/admin-access.servi
 import { AdminSettingsComponent } from './admin-settings.component';
 import { AdminHomepageComponent } from './admin-homepage.component';
 import { AdminHomepageDeviceVisibilityComponent } from './admin-homepage-device-visibility.component';
+import { AdminHomepagePlannerCopyComponent } from './admin-homepage-planner-copy.component';
 import { AdminNavigationComponent } from './admin-navigation.component';
 import { AdminFooterComponent } from './admin-footer.component';
 import { AdminLegalCenterComponent } from './admin-legal-center.component';
@@ -19,7 +20,7 @@ interface SettingsTab { id: SettingsSection; label: string; shortLabel: string; 
 @Component({
   selector: 'app-admin-site-settings-hub',
   standalone: true,
-  imports: [CommonModule, AdminSettingsComponent, AdminHomepageComponent, AdminHomepageDeviceVisibilityComponent, AdminRentalPricingComponent, AdminNavigationComponent, AdminFooterComponent, AdminLegalCenterComponent, AdminSeoSettingsComponent, AdminFaqManagementComponent, AdminWhatsappSettingsComponent],
+  imports: [CommonModule, AdminSettingsComponent, AdminHomepageComponent, AdminHomepageDeviceVisibilityComponent, AdminHomepagePlannerCopyComponent, AdminRentalPricingComponent, AdminNavigationComponent, AdminFooterComponent, AdminLegalCenterComponent, AdminSeoSettingsComponent, AdminFaqManagementComponent, AdminWhatsappSettingsComponent],
   template: `
     <div class="workspace">
       <header class="workspace-head">
@@ -43,7 +44,7 @@ interface SettingsTab { id: SettingsSection; label: string; shortLabel: string; 
       <main class="content">
         @if (accessReady()) {
         @switch (activeSection()) {
-          @case ('homepage') { <app-admin-homepage-device-visibility /><app-admin-homepage /> }
+          @case ('homepage') { <app-admin-homepage-device-visibility /><app-admin-homepage-planner-copy /><app-admin-homepage /> }
           @case ('rental') { <app-admin-rental-pricing /> }
           @case ('navigation') { <app-admin-navigation /> }
           @case ('footer') { <app-admin-footer /> }
@@ -73,7 +74,7 @@ export class AdminSiteSettingsHubComponent implements OnInit {
 
   readonly tabs: SettingsTab[] = [
     { id:'general', label:'Profil ve Genel Ayarlar', shortLabel:'Profil & Genel', description:'Profil, marka, logo ve iletişim.', area:'settings' },
-    { id:'homepage', label:'Ana Sayfa Vitrini', shortLabel:'Ana Sayfa', description:'Bölümler, cihazlar, sıra ve öne çıkanlar.', area:'content' },
+    { id:'homepage', label:'Ana Sayfa Vitrini', shortLabel:'Ana Sayfa', description:'Bölümler, metinler, cihazlar, sıra ve öne çıkanlar.', area:'content' },
     { id:'rental', label:'Kiralama ve Mesafe Ücretleri', shortLabel:'Kiralama Ücretleri', description:'Yakıt, tüketim ve rota kilometreleri.', area:'settings' },
     { id:'navigation', label:'Menü ve Alt Bar', shortLabel:'Menü & Alt Bar', description:'Mobil menü ve hızlı erişim.', area:'settings' },
     { id:'footer', label:'Footer ve Sosyal Medya', shortLabel:'Footer & Sosyal', description:'Alt bilgi, sosyal hesap ve bülten.', area:'settings' },

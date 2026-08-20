@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { Router, RouterLink, RouterLinkActive } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 import { CarService } from "../services/car.service";
+import { CustomerAuthService } from "../services/customer-auth.service";
 import { Language, UiService } from "../services/ui.service";
 import { NavigationConfigService } from "../services/navigation-config.service";
 
@@ -50,6 +51,7 @@ import { NavigationConfigService } from "../services/navigation-config.service";
               </div>
             }
             <a routerLink="/fleet" [queryParams]="{ favs: 'true' }" aria-label="Favoriler" class="relative hidden xl:flex h-11 w-11 items-center justify-center rounded-xl text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">favorite_border</mat-icon></a>
+            <a [routerLink]="customerAuth.isLoggedIn() ? '/account' : '/account/login'" [attr.aria-label]="customerAuth.isLoggedIn() ? 'Hesabım ve sadakat puanlarım' : 'Giriş yap veya üye ol'" class="relative hidden xl:flex h-11 w-11 items-center justify-center rounded-xl text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">{{ customerAuth.isLoggedIn() ? 'account_circle' : 'person_outline' }}</mat-icon></a>
             @if (navigation.mobileMenuEnabled()) {
               <button id="mobile-menu-trigger" type="button" (click)="toggleMenu()" [attr.aria-label]="isMenuOpen() ? 'Menüyü kapat' : 'Menüyü aç'" [attr.aria-expanded]="isMenuOpen()" aria-controls="mobile-navigation" class="xl:hidden flex h-12 w-12 items-center justify-center rounded-xl text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">{{ isMenuOpen() ? 'close' : 'menu' }}</mat-icon></button>
             }
@@ -81,6 +83,10 @@ import { NavigationConfigService } from "../services/navigation-config.service";
         </div>
 
         <div class="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0b1526] shadow-2xl" aria-label="Kişisel ayarlar">
+          <a [routerLink]="customerAuth.isLoggedIn() ? '/account' : '/account/login'" (click)="closeMenu(false)" class="menu-row" [attr.aria-label]="customerAuth.isLoggedIn() ? 'Hesabım ve sadakat puanlarım' : 'Giriş yap veya üye ol'">
+            <mat-icon aria-hidden="true">{{ customerAuth.isLoggedIn() ? 'account_circle' : 'person_outline' }}</mat-icon>
+            <span>{{ customerAuth.isLoggedIn() ? 'Hesabım & Sadakat Puanlarım' : 'Giriş Yap / Üye Ol' }}</span>
+          </a>
           <a routerLink="/fleet" [queryParams]="{ favs: 'true' }" (click)="closeMenu(false)" class="menu-row">
             <mat-icon aria-hidden="true">favorite_border</mat-icon>
             <span>Favoriler</span>
@@ -121,6 +127,7 @@ import { NavigationConfigService } from "../services/navigation-config.service";
 })
 export class NavbarComponent {
   carService = inject(CarService);
+  customerAuth = inject(CustomerAuthService);
   uiService = inject(UiService);
   navigation = inject(NavigationConfigService);
   router = inject(Router);

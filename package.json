@@ -14,6 +14,7 @@
     "a11y:buttons": "node scripts/check-accessible-buttons.mjs",
     "a11y:dates": "node scripts/check-date-controls.mjs",
     "media:vehicles": "node scripts/check-vehicle-media.mjs",
+    "vercel:functions": "node scripts/check-vercel-function-budget.mjs",
     "preview": "ng serve --configuration=production"
   },
   "dependencies": {

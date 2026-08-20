@@ -9,7 +9,9 @@ import {
   NotificationDeliveryReport,
   PaymentStatus,
 } from "../models/booking.model";
+import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { AuthService } from "./auth.service";
+import { CustomerAuthService } from "./customer-auth.service";
 import { currentAnalyticsSessionId } from "./analytics-link.util";
 import { AnalyticsIdentityService } from "./analytics-identity.service";
 
@@ -31,6 +33,7 @@ interface ApiBooking extends Omit<BookingRecord, "createdAt" | "updatedAt"> {
 export class BookingService {
   private readonly http = inject(HttpClient);
   private readonly authService = inject(AuthService);
+  private readonly customerAuth = inject(CustomerAuthService);
   private readonly analyticsIdentity = inject(AnalyticsIdentityService);
   private readonly bookings = signal<BookingRecord[]>([]);
   private readonly adminError = signal<string | null>(null);
@@ -54,6 +57,7 @@ export class BookingService {
     const record = this.fromApi(response.booking);
     if (response.notification) record.notification = response.notification;
     this.upsertLocal(record);
+    await this.linkOwnCustomerBooking(record.id);
     void this.analyticsIdentity.link({
       entityType: "BOOKING",
       reference: record.id,
@@ -161,8 +165,10 @@ export class BookingService {
   ): Promise<T> {
     try {
       if (method === "POST") {
+        const customerToken = await this.customerAuth.getAccessToken().catch(() => null);
+        const headers = customerToken ? { Authorization: `Bearer ${customerToken}` } : undefined;
         return await firstValueFrom(
-          this.http.post<T>("/api/bookings", body),
+          this.http.post<T>("/api/bookings", body, headers ? { headers } : {}),
         );
       }
 
@@ -195,6 +201,27 @@ export class BookingService {
         throw new Error(`${code}:${message}`);
       }
       throw error;
+    }
+  }
+
+  private async linkOwnCustomerBooking(reference: string): Promise<void> {
+    const token = await this.customerAuth.getAccessToken().catch(() => null);
+    if (!token) return;
+    try {
+      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/link_own_customer_booking`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ p_booking_reference: reference }),
+      });
+      if (!response.ok) {
+        console.warn("Authenticated booking could not be linked to customer account", response.status);
+      }
+    } catch (error) {
+      console.warn("Authenticated booking account link unavailable", error);
     }
   }
 

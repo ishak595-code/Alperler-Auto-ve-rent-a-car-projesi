@@ -11,6 +11,17 @@ function walk(dir) {
   }
 }
 
+function hasAccessibleWrappingLabel(source, index) {
+  const labelStart = source.lastIndexOf("<label", index);
+  if (labelStart < 0) return false;
+  const previousLabelEnd = source.lastIndexOf("</label>", index);
+  if (previousLabelEnd > labelStart) return false;
+  const labelEnd = source.indexOf("</label>", index);
+  if (labelEnd < 0) return false;
+  const beforeInput = source.slice(labelStart, index);
+  return /<span\b[^>]*>[\s\S]*?\S[\s\S]*?<\/span>/i.test(beforeInput);
+}
+
 function audit(file) {
   const source = fs.readFileSync(file, "utf8");
   const re = /<input\b[^>]*type=["'](?:date|datetime-local)["'][^>]*>/gi;
@@ -18,14 +29,15 @@ function audit(file) {
   while ((match = re.exec(source))) {
     const tag = match[0];
     const directlyNamed = /aria-label\s*=|\[attr\.aria-label\]\s*=/.test(tag);
+    const wrappingLabel = hasAccessibleWrappingLabel(source, match.index);
     const intentionallyHidden = /aria-hidden=["']true["']/.test(tag) && /tabindex=["']-1["']/.test(tag);
-    if (directlyNamed) continue;
+    if (directlyNamed || wrappingLabel) continue;
     if (intentionallyHidden) {
       const hasNamedProxy = /<button\b[\s\S]*?\[attr\.aria-label\]\s*=/.test(source);
       if (hasNamedProxy) continue;
     }
     const line = source.slice(0, match.index).split("\n").length;
-    failures.push(`${file}:${line}: native date control must be directly named or hidden behind one explicitly named date button`);
+    failures.push(`${file}:${line}: native date control must have an aria-label, an accessible wrapping label, or an explicitly named date-button proxy`);
   }
 }
 

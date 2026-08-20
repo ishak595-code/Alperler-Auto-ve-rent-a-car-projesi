@@ -249,7 +249,6 @@ export class AuthService {
     if (!/[a-zçğıöşü]/.test(password)) return "Şifrede en az bir küçük harf bulunmalı.";
     if (!/[A-ZÇĞİÖŞÜ]/.test(password)) return "Şifrede en az bir büyük harf bulunmalı.";
     if (!/[0-9]/.test(password)) return "Şifrede en az bir rakam bulunmalı.";
-    if (!/[^A-Za-z0-9ÇĞİÖŞÜçğıöşü\s]/.test(password)) return "Şifrede en az bir özel karakter bulunmalı.";
     return null;
   }
 

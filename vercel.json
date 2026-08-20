@@ -43,6 +43,13 @@
     ]}
   ],
   "rewrites": [
+    { "source": "/api/contact-admin", "destination": "/api/contact?mode=admin" },
+    { "source": "/api/partner-requests", "destination": "/api/partner?op=requests" },
+    { "source": "/api/partner-media", "destination": "/api/partner?op=media" },
+    { "source": "/api/partner-upload-resume", "destination": "/api/partner?op=resume" },
+    { "source": "/api/payments/create-session", "destination": "/api/payments?op=create-session" },
+    { "source": "/api/payments/paytr-callback", "destination": "/api/payments?op=paytr-callback" },
+    { "source": "/api/integrations/status", "destination": "/api/bookings?mode=integration-status" },
     { "source": "/robots.txt", "destination": "/api/robots" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     {

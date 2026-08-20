@@ -62,6 +62,12 @@ Alperler Rent A Car’ın kurucusu İshak Alper’dir. Amacımız gerçek araç 
   commercialCommunicationText: `BÜLTEN VE TİCARİ ELEKTRONİK İLETİ BİLGİLENDİRMESİ\n\nPazarlama iletileri yürürlükteki onay ve ret kurallarına tabidir. Kullanıcı abonelikten çıkma hakkını her zaman kullanabilir. Hizmetin ifası için zorunlu işlem mesajları pazarlama mesajlarından ayrı değerlendirilir.`,
 
   theme: "luxury",
+  accentColor: "#2563eb",
+  pageBackground: "#050914",
+  contentMaxWidth: 1280,
+  cornerRadius: 18,
+  fontScale: 1,
+  motionPreference: "system",
   homeContent: {
     heroTrustLine: "YÜKSEKOVA • 5 DAKİKADA TALEP • GERÇEK ARAÇ • YEREL EKİP",
     heroTitle: "Aracı aramakla vakit kaybetmeyin. 5 dakikada planınızı başlatın.",

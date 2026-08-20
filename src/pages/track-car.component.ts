@@ -97,7 +97,7 @@ import { MatIconModule } from "@angular/material/icon";
             <span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">Doğrulanmış</span>
           </div>
           <div class="flex items-center gap-4">
-            <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Renter" class="w-16 h-16 rounded-full border-2 border-white shadow-md object-cover">
+            <div aria-hidden="true" class="w-16 h-16 rounded-full border-2 border-white shadow-md bg-gradient-to-br from-blue-600 to-blue-800 text-white flex items-center justify-center font-black text-xl">AY</div>
             <div class="flex-1">
               <h3 class="font-bold text-slate-900 text-lg">Ahmet Yılmaz</h3>
               <p class="text-sm text-slate-500 font-medium">+90 532 123 45 67</p>

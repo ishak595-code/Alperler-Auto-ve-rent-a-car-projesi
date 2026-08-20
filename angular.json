@@ -12,25 +12,48 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": { "base": "./dist", "browser": "." },
+            "outputPath": {
+              "base": "./dist",
+              "browser": "."
+            },
             "index": "index.html",
             "browser": "index.tsx",
-            "assets": ["public"],
-            "styles": ["src/mobile-target-fixes.css", "src/runtime-stability.css"],
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": [
+              "src/mobile-target-fixes.css",
+              "src/runtime-stability.css"
+            ],
             "tsConfig": "tsconfig.json"
           },
           "configurations": {
-            "production": { "outputHashing": "all" },
-            "development": { "optimization": false, "extractLicenses": false, "sourceMap": true }
+            "production": {
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
           },
           "defaultConfiguration": "production"
         },
         "serve": {
           "builder": "@angular/build:dev-server",
-          "options": { "port": 3000 },
+          "options": {
+            "port": 3000
+          },
           "configurations": {
-            "production": { "buildTarget": "app:build:production" },
-            "development": { "buildTarget": "app:build:development" }
+            "production": {
+              "buildTarget": "app:build:production"
+            },
+            "development": {
+              "buildTarget": "app:build:development"
+            }
           },
           "defaultConfiguration": "development"
         }

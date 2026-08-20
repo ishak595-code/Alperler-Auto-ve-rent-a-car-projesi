@@ -1,5 +1,4 @@
 import { DestroyRef, Injectable, computed, effect, inject, signal } from "@angular/core";
-import { GoogleGenAI } from "@google/genai";
 import { Car, SaleCar, Tour, Vehicle } from "../models/car.model";
 import { SiteConfig } from "../models/site-config.model";
 import { BookingService } from "./booking.service";
@@ -105,13 +104,8 @@ export class CarService {
   private cloudRefreshTimer?: number;
   private cloudRefreshInFlight = false;
   private cloudRefreshQueued = false;
-  private genAI: GoogleGenAI | null = null;
-  private readonly apiKey =
-    (typeof process !== "undefined" && process.env?.["API_KEY"]) || "";
 
   constructor() {
-    if (this.apiKey) this.genAI = new GoogleGenAI({ apiKey: this.apiKey });
-
     this.loadFromStorage();
     this.incrementVisitCount();
     this.installLocalPersistence();
@@ -656,80 +650,6 @@ export class CarService {
 
   triggerWebhook(eventName: string, _payload: unknown): void {
     console.info(`External browser webhook disabled for ${eventName}.`);
-  }
-
-  async analyzeFeedback(): Promise<string> {
-    if (!this.apiKey || !this.genAI) return "AI servisi şu an kullanılamıyor.";
-    const feedbacks = this._feedbacks();
-    if (feedbacks.length === 0) return "Henüz analiz edilecek geri bildirim bulunmuyor.";
-
-    const feedbackText = feedbacks
-      .map((feedback) =>
-        `- [${feedback.category}] (${feedback.rating}/5): ${feedback.message}`,
-      )
-      .join("\n");
-
-    try {
-      const result = await this.genAI.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: `Müşteri geri bildirimlerini Türkçe, kısa ve profesyonel biçimde analiz et. Genel duygu, en önemli üç konu ve iki uygulanabilir iyileştirme önerisi ver.\n\n${feedbackText}`,
-      });
-      return result.text || "Analiz tamamlanamadı.";
-    } catch (error) {
-      console.error("Feedback Analysis Error", error);
-      return "Analiz sırasında bir hata oluştu.";
-    }
-  }
-
-  async getAIRecommendation(userQuery: string): Promise<string> {
-    if (!this.apiKey || !this.genAI) {
-      return `Üzgünüm, şu an bağlantı kurulamıyor. Lütfen telefonla bizi arayın: ${this._config().phone}`;
-    }
-
-    const contextData = {
-      availableRentalCars: this._inventory()
-        .filter((vehicle) => vehicle.category === "RENTAL" && vehicle.isAvailable)
-        .map((vehicle) => ({
-          brand: vehicle.brand,
-          model: vehicle.model,
-          type: vehicle.type,
-          price: vehicle.price,
-          fuel: vehicle.fuel,
-          transmission: vehicle.transmission,
-          seats: vehicle.seats,
-        })),
-      salesGallery: this._inventory()
-        .filter((vehicle) => vehicle.category === "SALE")
-        .map((vehicle) => ({
-          brand: vehicle.brand,
-          model: vehicle.model,
-          year: vehicle.year,
-          price: vehicle.price,
-          km: vehicle.km,
-        })),
-      tours: this._tours().map((tour) => ({
-        title: tour.title,
-        price: tour.price,
-        duration: tour.duration,
-      })),
-      companyInfo: {
-        name: this._config().companyName,
-        phone: this._config().phone,
-        address: this._config().address,
-        about: this._config().aboutText,
-      },
-    };
-
-    try {
-      const result = await this.genAI.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: `Sen Alperler Auto'nun Türkçe satış ve destek asistanısın. Yalnız araç kiralama, araç satışı, tur ve şirket bilgileri kapsamında yanıt ver. Envanterde olmayan bilgi uydurma. Kullanıcıya uygun olduğunda somut araç veya tur öner ve sonraki adımı belirt. Markdown kullanma.\n\nCANLI VERİ: ${JSON.stringify(contextData)}\n\nKULLANICI: ${userQuery}`,
-      });
-      return result.text || "Şu an yanıt veremiyorum.";
-    } catch (error) {
-      console.error("AI Error", error);
-      return `Şu an size yanıt veremiyorum. Lütfen ${this._config().phone} numarasından bize ulaşın.`;
-    }
   }
 
   private replaceVehicleCatalog(vehicles: Vehicle[]): void {

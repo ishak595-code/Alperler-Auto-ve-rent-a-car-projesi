@@ -11,11 +11,11 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   whatsapp: "905379594851",
   whatsappMessage:
     "Merhaba, araç kiralama veya satılık araçlar hakkında bilgi almak istiyorum.",
-  instagramUrl: "https://instagram.com/",
+  instagramUrl: "",
   twitterUrl: "https://x.com/",
-  facebookUrl: "https://facebook.com/",
-  tiktokUrl: "https://tiktok.com/",
-  youtubeUrl: "https://youtube.com/",
+  facebookUrl: "",
+  tiktokUrl: "",
+  youtubeUrl: "",
 
   seoTitle: "Alperler Auto | Araç Kiralama, Satış ve Turlar",
   seoKeywords:
@@ -35,33 +35,8 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
 
 Müşteri memnuniyetini satıştan veya kiralamadan çok daha ileride; dürüst, güler yüzlü ve anında çözüm sağlayan bir aile bağı gibi görüyoruz. Bölgenin fiziki şartlarına uyumlu, bakımlı arazi ve binek araçlarımızla yollardaki güveniniz olmaya devam ediyoruz. Alperler Auto, Yüksekova'dan Hakkari'ye, oradan tüm bölgeye yayılan sağlam kilit taşlarıyla örülmüş, sizin için var olan öncü bir otomotiv platformudur.`,
   team: [
-    {
-      id: 1,
-      name: "Alper Yılmaz",
-      role: "Kurucu / Yönetim Kurulu Başkanı",
-      description:
-        "Sektörde yılların tecrübesiyle, her detayı titizlikle planlayan güven inşacısı ve asıl lider.",
-      image:
-        "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=600",
-    },
-    {
-      id: 2,
-      name: "Emre Aslan",
-      role: "Operasyon & Satış Koordinatörü",
-      description:
-        "İkinci el ticareti ve anlık filo operasyonlarında müşterilerimize çözüm odaklı, hızlı yaklaşımlar sunar.",
-      image:
-        "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=600",
-    },
-    {
-      id: 3,
-      name: "Zeynep Kaya",
-      role: "Tur ve Seyahat Planlama",
-      description:
-        "Hakkari'nin eşsiz güzelliklerini misafirlerimize en konforlu ve samimi rotalarla hazırlayan tur uzmanımız.",
-      image:
-        "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=600",
-    },
+    { id: 1, name: "Erkan Alper", role: "Kurucu", description: "Yüksekova'da yılların saha tecrübesiyle araç kiralama ve galeri operasyonunu yöneten kurucu ortak.", image: "" },
+    { id: 2, name: "Hicran Alper", role: "Kurucu Ortak", description: "Müşteri ilişkileri, rezervasyon süreçleri ve tur planlamasında operasyonun güvenilir yüzü.", image: "" },
   ],
 
   kvkkText: `Alperler Auto olarak kişisel verilerinizin güvenliği hususuna azami hassasiyet göstermekteyiz. Şirketimiz ile her türlü ilişkiniz kapsamında paylaştığınız kişisel verileriniz, 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK")'na uygun olarak muhafaza edilmektedir.

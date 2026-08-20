@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /branch-portal
+Disallow: /track-car
+Disallow: /booking-checkout
 
 Sitemap: https://alperrentacar.online/sitemap.xml

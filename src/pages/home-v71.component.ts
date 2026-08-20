@@ -2,8 +2,7 @@ import { CommonModule } from "@angular/common";
 import { Component, computed, effect, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
-import { Router, RouterLink } from "@angular/router";
-import { VehicleListItemComponent } from "../components/vehicle-list-item.component";
+import { Router } from "@angular/router";
 import { AccessibleNativeDateComponent } from "../components/accessible-native-date.component";
 import { DynamicHomeSectionComponent } from "../components/dynamic-home-section.component";
 import { Branch } from "../models/branch.model";
@@ -24,7 +23,7 @@ interface PickupChoice {
 @Component({
   selector: "app-home-v71",
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, RouterLink, VehicleListItemComponent, DynamicHomeSectionComponent, AccessibleNativeDateComponent],
+  imports: [CommonModule, FormsModule, MatIconModule, DynamicHomeSectionComponent, AccessibleNativeDateComponent],
   template: `
     <main class="home-root">
       <section class="hero" [style.backgroundImage]="'url(' + heroImage() + ')'" aria-labelledby="home-title">

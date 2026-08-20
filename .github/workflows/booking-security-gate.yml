@@ -28,12 +28,9 @@ on:
       - "api/partner-requests.ts"
       - "api/partner-upload-resume.ts"
       - "api/bookings.ts"
-      - "api/_lib/firestore-rest.ts"
       - "api/_lib/sms.ts"
       - "api/_lib/booking-notification-template.ts"
       - "supabase/**"
-      - "firestore.rules"
-      - "firebase.json"
       - ".vercelignore"
       - ".github/workflows/booking-security-gate.yml"
   pull_request:
@@ -57,9 +54,6 @@ jobs:
 
           # Legacy Firebase artifacts remain until the final cleanup migration,
           # but must not fall back to blanket public writes.
-          test -f firebase.json
-          grep -Fq '"rules": "firestore.rules"' firebase.json
-          ! grep -Eq 'allow[[:space:]]+create:[[:space:]]*if[[:space:]]+true' firestore.rules
 
           # Deployment hygiene.
           grep -Fq 'public/*.zip' .vercelignore

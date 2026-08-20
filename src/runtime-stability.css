@@ -1,4 +1,60 @@
 /* Runtime safeguards only. Component-specific design belongs to components. */
+:root {
+  --brand-accent: #2563eb;
+  --site-page-bg: #050914;
+  --site-content-max: 1280px;
+  --site-radius: 18px;
+  --site-font-scale: 1;
+}
+
+html {
+  min-width: 320px;
+  max-width: 100%;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  max-width: 100%;
+  overflow-x: clip;
+  background: var(--site-page-bg);
+  font-size: calc(16px * var(--site-font-scale));
+}
+
+*, *::before, *::after {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+img, picture, video, canvas, svg {
+  max-width: 100%;
+}
+
+img, video {
+  height: auto;
+}
+
+p, h1, h2, h3, h4, h5, h6, a, button, label, span, strong, small, li, dd, dt {
+  overflow-wrap: anywhere;
+}
+
+input, select, textarea, button {
+  max-width: 100%;
+  font: inherit;
+}
+
+/* Shared tokens are intentionally opt-in for components that support them. */
+.site-shell {
+  width: min(calc(100% - 1.5rem), var(--site-content-max));
+  margin-inline: auto;
+}
+
+.site-accent-button {
+  background: var(--brand-accent);
+  border-radius: min(var(--site-radius), 18px);
+}
+
 input[type="date"],
 input[type="datetime-local"] {
   color-scheme: dark;
@@ -20,9 +76,29 @@ app-home-v71 .planner-note {
   display: none !important;
 }
 
+/* User-selected reduced motion is stronger than author animation. */
+body[data-motion="reduced"] *,
+body[data-motion="reduced"] *::before,
+body[data-motion="reduced"] *::after {
+  animation-duration: .01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: .01ms !important;
+  scroll-behavior: auto !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  app-home-v71 *,
-  app-booking-checkout * {
+  body:not([data-motion="full"]) *,
+  body:not([data-motion="full"]) *::before,
+  body:not([data-motion="full"]) *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .site-shell {
+    width: min(calc(100% - 1rem), var(--site-content-max));
   }
 }

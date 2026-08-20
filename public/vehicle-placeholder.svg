@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-labelledby="title desc">
+  <title id="title">Araç görseli henüz eklenmedi</title>
+  <desc id="desc">Nötr araç görseli yer tutucusu</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f1f5f9"/>
+      <stop offset="1" stop-color="#dbe3ee"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="750" fill="url(#bg)"/>
+  <g fill="none" stroke="#64748b" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
+    <path d="M300 450h600l-48-132c-14-38-50-64-91-64H456c-39 0-74 23-90 59l-66 137Z"/>
+    <path d="M250 450h700v105H250z"/>
+    <circle cx="390" cy="565" r="58" fill="#e2e8f0"/>
+    <circle cx="810" cy="565" r="58" fill="#e2e8f0"/>
+    <path d="M449 277 401 450M751 277l48 173"/>
+  </g>
+  <text x="600" y="675" text-anchor="middle" fill="#475569" font-family="Arial, sans-serif" font-size="34" font-weight="700">Araç görseli henüz eklenmedi</text>
+</svg>

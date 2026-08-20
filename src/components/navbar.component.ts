@@ -14,14 +14,14 @@ import { NavigationConfigService } from "../services/navigation-config.service";
     <nav class="fixed inset-x-0 top-0 z-[100] border-b border-white/10 bg-[#07101f] shadow-xl" aria-label="Ana navigasyon">
       <div class="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
         <div class="flex h-[72px] items-center justify-between gap-2 md:h-24">
-          <a routerLink="/" aria-label="Alperler Auto ana sayfa" class="inline-flex min-w-0 flex-1 items-center rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 md:max-w-[300px] xl:flex-none">
+          <a routerLink="/" [attr.aria-label]="(config().companyName || 'Alperler Rent A Car') + ' ana sayfa'" class="inline-flex min-w-0 flex-1 items-center rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 md:max-w-[300px] xl:flex-none">
             @if (config().logoUrl) {
-              <img [src]="config().logoUrl" alt="Alperler Auto" class="max-h-[54px] w-auto max-w-[220px] object-contain md:max-h-[72px] md:max-w-[280px]" />
+              <img [src]="config().logoUrl" [alt]="config().companyName || 'Alperler Rent A Car'" class="max-h-[54px] w-auto max-w-[220px] object-contain md:max-h-[72px] md:max-w-[280px]" />
             } @else {
               <div class="flex min-w-0 items-center gap-2.5 sm:gap-3">
                 <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-xl font-black text-white shadow-lg shadow-blue-950/30">A</div>
                 <div class="min-w-0">
-                  <div class="brand-name font-serif font-black uppercase tracking-[.04em] text-white">Alperler Auto</div>
+                  <div class="brand-name font-serif font-black uppercase tracking-[.04em] text-white">{{ config().companyName || 'Alperler Rent A Car' }}</div>
                   <div class="brand-sub mt-0.5 font-black uppercase tracking-[.13em] text-slate-400">Kiralama • Satış • Tur</div>
                 </div>
               </div>
@@ -70,7 +70,7 @@ import { NavigationConfigService } from "../services/navigation-config.service";
     >
       <div class="mx-auto w-full max-w-xl">
         <div class="mb-3 px-1">
-          <p class="text-[10px] font-black uppercase tracking-[.2em] text-blue-300">Alperler Auto</p>
+          <p class="text-[10px] font-black uppercase tracking-[.2em] text-blue-300">{{ config().companyName || 'Alperler Rent A Car' }}</p>
           <p class="mt-1 text-sm leading-6 text-slate-400">Kiralama, satış, tur ve müşteri işlemlerinin tamamına buradan ulaşın.</p>
         </div>
 

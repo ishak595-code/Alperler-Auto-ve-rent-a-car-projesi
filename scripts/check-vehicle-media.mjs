@@ -77,7 +77,7 @@ const apiVehicleEnd = catalogApi.indexOf("function normalizeTour(", apiVehicleSt
 const apiVehicle = catalogApi.slice(apiVehicleStart, apiVehicleEnd);
 if (/metadata:\s*\{\s*\.\.\.input/.test(apiVehicle)) failures.push("catalog API copies whole UI vehicle into metadata");
 if (/\bimages\s*,/.test(apiVehicle) || /cover_image\s*:/.test(apiVehicle)) failures.push("vehicle facts endpoint can overwrite media columns");
-if (!catalogApi.includes('case "vehicles":\n      return "no-store"')) failures.push("vehicle API cache guard missing");
+if (!/case\s+["']vehicles["']\s*:\s*return\s+["']no-store["']/.test(catalogApi)) failures.push("vehicle API cache guard missing");
 
 if (!publicMedia.includes('return `/catalog-media/${encodedPath}`')) failures.push("catalog media is not same-origin");
 if (!vercel.includes('"source": "/catalog-media/:path*"') || !vercel.includes('supabase.co/storage/v1/object/public/catalog-media/:path*')) failures.push("catalog-media rewrite missing");

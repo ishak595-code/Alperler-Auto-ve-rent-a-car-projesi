@@ -19,6 +19,7 @@ const catalogApi = read("api/catalog.ts");
 const bootstrap = read("index.tsx");
 const vercel = read("vercel.json");
 const campaignMigration = "supabase/migrations/20260819221500_sync_targeted_campaign_cover_from_catalog.sql";
+const campaignProofMigration = "supabase/migrations/20260820021500_v128_campaign_social_proof.sql";
 
 if (fs.existsSync("src/services/mock-data.ts")) failures.push("legacy mock catalogue must not be reintroduced");
 if (["fallbackInventory","fallbackBlogPosts","fallbackFaqs","mergeVehicleWithFallback"].some((token) => carService.includes(token))) failures.push("CarService contains a legacy catalogue fallback path");
@@ -41,6 +42,10 @@ for (const [name, source, token] of [
 }
 if (rentalDetail.includes("getAllVehicles()") || saleDetail.includes("getSaleCar(") || tourDetail.includes("getTours()().find")) failures.push("a detail page can still resolve from stale shared catalogue state");
 if (!rentalDetail.includes("Tüm Özellikler ve Açıklama") || !rentalDetail.includes("detailsOpen")) failures.push("rental detail compact accordion is missing");
+if (rentalDetail.includes("Tarih, nereden alınacağı, iade noktası")) failures.push("rental detail reintroduced the redundant reservation instruction paragraph");
+for (const token of ["İLAN BİLGİLERİ", "AÇIKLAMA", "KONUM", "app-expertise-graphic", "activeTab"]) {
+  if (!saleDetail.includes(token)) failures.push(`sale listing identity is missing: ${token}`);
+}
 
 for (const token of ["checkoutStep", "Şoför Tercihi", "Nereden alınacak?", "Nereye iade edilecek?", "Sonraki Adım"]) {
   if (!checkout.includes(token)) failures.push(`focused rental checkout is missing: ${token}`);
@@ -52,7 +57,11 @@ if (!dynamicHome.includes('(click)="openCampaign(campaign)"') || !dynamicHome.in
 if (!campaigns.includes("resolveCampaignTarget") || !campaigns.includes("navigateByUrl")) failures.push("campaign listing does not use internal target routing");
 for (const source of [dynamicHome, campaigns]) {
   if (!source.includes("countdown") && !source.includes("Countdown")) failures.push("campaign UI lacks real deadline countdown");
+  if (!source.includes("campaign_social_proof")) failures.push("campaign UI is not connected to aggregate real analytics social proof");
 }
+if (!dynamicHome.includes("KAMPANYA") || !dynamicHome.includes("campaignProofLabel")) failures.push("homepage campaign card lacks explicit campaign identity or proof label");
+if (!campaigns.includes("proofLabel")) failures.push("campaign listing lacks real interest proof label");
+if (!fs.existsSync(campaignProofMigration)) failures.push("campaign social proof migration missing");
 if (!detailData.includes("targetType === \"VEHICLE\"") || !detailData.includes("targetType === \"TOUR\"") || !detailData.includes("cta.startsWith(\"/\")")) failures.push("campaign target resolver is incomplete");
 if (!detailData.includes("loadToursDirect") || !detailData.includes("cache: \"no-store\"")) failures.push("tour detail does not perform direct no-cache DB read");
 
@@ -76,4 +85,4 @@ if (publicMedia.includes("/vehicle-media/") || vercel.includes("/vehicle-media/"
 if (!fs.existsSync(campaignMigration)) failures.push("campaign cover synchronization migration missing");
 
 if (failures.length) { console.error(failures.join("\n")); process.exit(1); }
-console.log("Unified catalogue guard passed: rental, sale and tour details use live database data; rental checkout is step-based; campaign navigation stays inside the app; Storage remains canonical.");
+console.log("Unified catalogue guard passed: sale keeps its dedicated listing UX; rental remains compact; campaign proof comes from real aggregate analytics; app routing and Storage remain canonical.");

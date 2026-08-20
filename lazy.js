@@ -25,3 +25,4 @@ function walkDir(dir) {
 
 walkDir('./src/pages');
 walkDir('./src/components');
+// cleanup validation trigger

@@ -28,15 +28,16 @@ import { NavigationConfigService } from "../services/navigation-config.service";
             }
           </a>
 
-          <div class="hidden xl:flex items-center gap-3 2xl:gap-5">
-            <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="!text-white !border-blue-400" class="nav-link">Ana Sayfa</a>
-            <a routerLink="/fleet" routerLinkActive="!text-white !border-blue-400" class="nav-link">{{ t().nav.fleet }}</a>
-            <a routerLink="/sales" routerLinkActive="!text-white !border-blue-400" class="nav-link">{{ t().nav.sales }}</a>
-            <a routerLink="/list-your-car" routerLinkActive="!text-white !border-blue-400" class="nav-link">{{ t().nav.earn }}</a>
-            <a routerLink="/tours" routerLinkActive="!text-white !border-blue-400" class="nav-link">{{ t().nav.tours }}</a>
-            <a routerLink="/branches" routerLinkActive="!text-white !border-blue-400" class="nav-link">Şubeler</a>
-            <a routerLink="/blog" routerLinkActive="!text-white !border-blue-400" class="nav-link">{{ t().nav.blog }}</a>
-            <a routerLink="/contact" routerLinkActive="!text-white !border-blue-400" class="nav-link">{{ t().nav.contact }}</a>
+          <div class="desktop-nav hidden xl:flex" aria-label="Masaüstü site menüsü">
+            @for (item of navigation.itemsFor('MOBILE_MENU'); track item.id) {
+              <a
+                [routerLink]="item.route"
+                [routerLinkActiveOptions]="{ exact: item.route === '/' }"
+                routerLinkActive="!text-white !border-blue-400"
+                class="nav-link"
+                [attr.aria-label]="item.label"
+              >{{ item.label }}</a>
+            }
           </div>
 
           <div class="relative flex shrink-0 items-center gap-1 sm:gap-2">
@@ -112,9 +113,10 @@ import { NavigationConfigService } from "../services/navigation-config.service";
   `,
   styles: [`
     .brand-name{font-size:15px;line-height:1.05;white-space:nowrap}.brand-sub{font-size:7.5px;line-height:1.2;white-space:nowrap}
-    .nav-link{border-bottom:2px solid transparent;padding:.5rem 0;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#cbd5e1;white-space:nowrap}
+    .desktop-nav{min-width:0;max-width:min(62vw,760px);flex:1;align-items:center;justify-content:flex-start;gap:.72rem;overflow-x:auto;scrollbar-width:none;padding:.3rem .2rem}.desktop-nav::-webkit-scrollbar{display:none}
+    .nav-link{flex:none;border-bottom:2px solid transparent;padding:.5rem 0;font-size:10px;font-weight:800;letter-spacing:.055em;text-transform:uppercase;color:#cbd5e1;white-space:nowrap;text-decoration:none}
     .menu-row{display:flex;width:100%;min-height:56px;align-items:center;gap:16px;border:0;border-bottom:1px solid rgba(255,255,255,.1);background:transparent;padding:0 16px;text-align:left;font-size:16px;font-weight:700;color:#f1f5f9;text-decoration:none}.menu-row span{flex:1}.menu-row.last{border-bottom:0}.menu-row:focus-visible{background:rgba(255,255,255,.08);outline:none}.menu-count{display:inline-flex;min-width:28px;height:28px;align-items:center;justify-content:center;border-radius:999px;background:#1d4ed8;padding:0 8px;color:white;font-size:11px;font-weight:900}
-    @media (min-width:390px){.brand-name{font-size:17px}.brand-sub{font-size:8px}}
+    @media (min-width:390px){.brand-name{font-size:17px}.brand-sub{font-size:8px}}@media(min-width:1536px){.desktop-nav{gap:1rem}.nav-link{font-size:10.5px}}
   `],
 })
 export class NavbarComponent {
@@ -127,7 +129,6 @@ export class NavbarComponent {
   isMenuOpen = signal(false);
   isLangMenuOpen = signal(false);
   mobileLanguageOpen = signal(false);
-  t = this.uiService.translations;
   languages: Language[] = ["TR", "EN", "DE", "FR", "KU", "ES", "RU", "ZH", "AR"];
 
   constructor() { effect(() => { if (!this.navigation.mobileMenuEnabled()) this.closeMenu(false); }); }

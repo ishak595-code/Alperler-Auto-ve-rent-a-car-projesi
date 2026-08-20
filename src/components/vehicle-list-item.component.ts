@@ -14,7 +14,7 @@ import { CarService } from "../services/car.service";
     <a
       [routerLink]="detailRoute"
       [attr.aria-label]="detailAriaLabel"
-      class="group block h-full min-w-0 cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 text-slate-900 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl active:translate-y-0 active:scale-[.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+      class="group block h-full min-w-0 cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 text-slate-900 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl active:translate-y-0 active:scale-[.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
     >
       <article class="flex h-full min-w-0 flex-col">
         <div class="relative h-[148px] w-full overflow-hidden rounded-xl bg-slate-100 sm:h-[160px]">
@@ -34,7 +34,7 @@ import { CarService } from "../services/car.service";
               @if (car.discountRate) { %{{ car.discountRate }} indirim } @else { Kampanya }
             </span>
           }
-          <span class="absolute bottom-2 right-2 grid h-9 w-9 place-items-center rounded-full bg-white/95 text-blue-700 shadow transition-transform group-hover:translate-x-0.5" aria-hidden="true">→</span>
+          <span class="absolute bottom-2 right-2 grid h-9 w-9 place-items-center rounded-full bg-white/95 text-blue-700 shadow transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
         </div>
 
         <div class="flex flex-1 flex-col px-1 pt-3">
@@ -48,10 +48,15 @@ import { CarService } from "../services/car.service";
             @if (variant === 'rental' && car.seats) { <span class="rounded-md bg-slate-100 px-2 py-1">{{ car.seats }} kişilik</span> }
           </div>
 
-          <div class="mt-3 flex min-w-0 items-end justify-between gap-2 border-t border-slate-100 pt-3">
+          <p class="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">{{ cardDescription }}</p>
+
+          <div class="mt-auto flex min-w-0 items-end justify-between gap-2 border-t border-slate-100 pt-3">
             <div class="min-w-0">
               <span class="block truncate text-[11px] font-semibold text-slate-500">{{ car.location || config().address }}</span>
-              <span class="mt-1 block text-[10px] font-black uppercase tracking-wider text-blue-700">{{ variant === 'sale' ? 'İlan detayını gör' : 'Aracı ve fiyatı incele' }}</span>
+              <span class="mt-1 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-blue-700">
+                {{ variant === 'sale' ? 'İlan detayını aç' : 'Aracı ve fiyatı incele' }}
+                <span aria-hidden="true">→</span>
+              </span>
             </div>
             <span class="shrink-0 text-right text-sm font-black text-slate-950 sm:text-base">
               {{ car.price | turkishCurrency }}@if (variant === "rental") {<span class="ml-0.5 block text-[9px] font-semibold text-slate-500">/ gün</span>}
@@ -76,6 +81,15 @@ export class VehicleListItemComponent {
   get displayTitle(): string {
     const fallback = [this.car.year, this.car.brand, this.car.model, this.car.series].filter(Boolean).join(" ");
     return this.car.title?.trim() || fallback || "Araç ilanı";
+  }
+
+  get cardDescription(): string {
+    const description = String(this.car.description || "").trim().replace(/\s+/g, " ");
+    if (description) return description;
+    if (this.variant === "sale") {
+      return "Fiyat, kilometre, teknik özellikler ve mevcut araç bilgilerini incelemek için ilan detayını açın.";
+    }
+    return "Günlük fiyatı, araç özelliklerini ve rezervasyonda kullanabileceğiniz teslim ve ek hizmet seçeneklerini inceleyin.";
   }
 
   get detailAriaLabel(): string {

@@ -124,7 +124,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          deno check supabase/functions/newsletter-gateway/index.ts 2>&1 | tee deno-newsletter.log
+          deno check --node-modules-dir=auto supabase/functions/newsletter-gateway/index.ts 2>&1 | tee deno-newsletter.log
 
       - name: Upload newsletter diagnostics
         if: failure() && steps.newsletter_check.outcome == 'failure'
@@ -140,7 +140,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          deno check supabase/functions/analytics-ingest/index.ts 2>&1 | tee deno-analytics-ingest.log
+          deno check --node-modules-dir=auto supabase/functions/analytics-ingest/index.ts 2>&1 | tee deno-analytics-ingest.log
 
       - name: Upload analytics ingest diagnostics
         if: failure() && steps.analytics_ingest_check.outcome == 'failure'
@@ -152,7 +152,7 @@ jobs:
           retention-days: 2
 
       - name: Analytics identity Edge Function type check
-        run: deno check supabase/functions/analytics-link/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/analytics-link/index.ts
 
       - name: Existing Supabase Edge Functions type check
         run: |
@@ -162,7 +162,7 @@ jobs:
               supabase/functions/newsletter-gateway/index.ts|supabase/functions/analytics-ingest/index.ts|supabase/functions/analytics-link/index.ts) continue ;;
             esac
             echo "Checking $file"
-            deno check "$file"
+            deno check --node-modules-dir=auto "$file"
           done
 
       - name: Production build

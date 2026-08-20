@@ -149,6 +149,7 @@ import { ToastService } from "../../services/toast.service";
                     }
 
                     <div class="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                      @if (res.type === 'RENTAL') {<button type="button" (click)="openTracking(res.id, $event)" class="action bg-blue-700 text-white" [attr.aria-label]="res.id + ' rezervasyonunun operasyon detayını aç'"><mat-icon aria-hidden="true">route</mat-icon>Operasyon Detayı</button>}
                       @if (res.status !== 'APPROVED') {<button type="button" (click)="updateStatus(res.id, 'APPROVED', $event)" [disabled]="updatingId() === res.id" class="action bg-emerald-600 text-white"><mat-icon>check</mat-icon>Onayla</button>}
                       @if (res.status !== 'REJECTED') {<button type="button" (click)="updateStatus(res.id, 'REJECTED', $event)" [disabled]="updatingId() === res.id" class="action bg-rose-600 text-white"><mat-icon>close</mat-icon>Reddet</button>}
                       @if (res.status === 'APPROVED') {<button type="button" (click)="updateStatus(res.id, 'COMPLETED', $event)" [disabled]="updatingId() === res.id" class="action bg-slate-900 text-white"><mat-icon>task_alt</mat-icon>Tamamla</button>}
@@ -261,6 +262,11 @@ export class AdminReservationsComponent implements OnInit, OnDestroy {
 
   toggleDetail(id: string): void {
     this.expandedId.set(this.expandedId() === id ? null : id);
+  }
+
+  openTracking(id: string, event?: Event): void {
+    event?.stopPropagation();
+    void this.router.navigate(["/track-car", id]);
   }
 
   async updateStatus(id: string, status: BookingStatus, event?: Event): Promise<void> {

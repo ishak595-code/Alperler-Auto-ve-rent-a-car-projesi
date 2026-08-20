@@ -13,6 +13,8 @@ on:
       - "src/services/catalog.service.ts"
       - "src/services/partner-request.service.ts"
       - "src/services/newsletter.service.ts"
+      - "src/pages/track-car.component.ts"
+      - "src/app.routes.ts"
       - "src/pages/admin/admin-layout.component.ts"
       - "src/pages/admin/admin-site-settings-hub.component.ts"
       - "src/pages/admin/admin-reservations.component.ts"
@@ -23,14 +25,16 @@ on:
       - "src/pages/admin/admin-team.component.ts"
       - "src/pages/legal.component.ts"
       - "src/components/customer-footer-v70.component.ts"
+      - "src/components/navbar.component.ts"
       - "src/pages/appointment.component.ts"
       - "api/catalog.ts"
       - "api/partner-requests.ts"
       - "api/partner-upload-resume.ts"
       - "api/bookings.ts"
-      - "api/_lib/sms.ts"
-      - "api/_lib/booking-notification-template.ts"
       - "supabase/**"
+      - "package.json"
+      - "package-lock.json"
+      - "project/**"
       - ".vercelignore"
       - ".github/workflows/booking-security-gate.yml"
   pull_request:
@@ -52,15 +56,23 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Legacy Firebase artifacts remain until the final cleanup migration,
-          # but must not fall back to blanket public writes.
+          # Supabase is the only active application database/auth runtime.
+          test ! -e src/firebase.ts
+          test ! -e firebase.json
+          test ! -e firestore.rules
+          test ! -e project/apply-admin-auth-security-hotfix.mjs
+          ! grep -Fq '"firebase"' package.json
+          ! grep -Fq '"@google/genai"' package.json
+          ! grep -R --line-number --fixed-string 'firebase/firestore' src api || false
+          ! grep -R --line-number --fixed-string 'firebase/auth' src api || false
+          ! grep -R --line-number --fixed-string '../firebase' src api || false
 
           # Deployment hygiene.
           grep -Fq 'public/*.zip' .vercelignore
           grep -Fq '*.zip' .vercelignore
 
           # Transactional runtime must exist. Booking persistence and delivery
-          # now live in Supabase Edge Functions; Vercel only proxies the booking gateway.
+          # live in Supabase Edge Functions; Vercel only proxies the booking gateway.
           test -f api/bookings.ts
           test -f api/catalog.ts
           test -f api/partner-upload-resume.ts
@@ -70,6 +82,13 @@ jobs:
           test -f supabase/functions/partner-request-gateway/index.ts
           test -f supabase/functions/partner-upload-resume/index.ts
           test -f supabase/migrations/202608140002_alperler_rls_policies_v1.sql
+
+          # Tracking must use authenticated operations data and must never regress to demo telemetry.
+          grep -Fq 'BookingService' src/pages/track-car.component.ts
+          grep -Fq 'adminAreaGuard('\''operations'\'')' src/app.routes.ts
+          ! grep -Fq 'Ahmet Yılmaz' src/pages/track-car.component.ts
+          ! grep -Fq 'GPS Bağlantısı Aktif' src/pages/track-car.component.ts
+          ! grep -Fq 'Math.random' src/pages/track-car.component.ts
 
           # Newsletter is public only through its hardened gateway. Subscriber
           # management remains admin-only and consent changes keep an audit trail.
@@ -94,9 +113,7 @@ jobs:
           ! grep -R --line-number --fixed-string 'SUPABASE_SERVICE_ROLE_KEY' src
           ! grep -R --line-number --fixed-string 'sb_secret_' src api supabase
 
-          # CarService must not regress to Firestore or direct Firebase writes.
-          ! grep -Fq 'firebase/firestore' src/services/car.service.ts
-          ! grep -Fq '../firebase' src/services/car.service.ts
+          # CarService must remain on the canonical Supabase catalog and booking services.
           grep -Fq 'CatalogService' src/services/car.service.ts
           grep -Fq 'BookingService' src/services/car.service.ts
 

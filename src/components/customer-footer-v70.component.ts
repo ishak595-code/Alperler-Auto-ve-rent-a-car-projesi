@@ -19,12 +19,12 @@ interface SocialPlatform {
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     @if (footer.settings().isEnabled) {
-      <footer class="customer-footer" aria-label="Alperler Auto alt bilgi">
+      <footer class="customer-footer" [attr.aria-label]="(config().companyName || 'Alperler Rent A Car') + ' alt bilgi'">
         <div class="footer-shell">
           <section class="brand-column" aria-labelledby="footer-brand-title">
-            <a routerLink="/" class="brand-link" aria-label="Alperler Auto ana sayfa">
+            <a routerLink="/" class="brand-link" [attr.aria-label]="(config().companyName || 'Alperler Rent A Car') + ' ana sayfa'">
               <span class="brand-mark" aria-hidden="true">A</span>
-              <span class="brand-copy"><strong id="footer-brand-title">{{ config().companyName || 'Alperler Auto' }}</strong><small>{{ cleanTagline() }}</small></span>
+              <span class="brand-copy"><strong id="footer-brand-title">{{ config().companyName || 'Alperler Rent A Car' }}</strong><small>{{ cleanTagline() }}</small></span>
             </a>
             <p class="brand-summary">{{ footer.settings().brandSummary }}</p>
             <div class="contact-row" aria-label="İletişim">
@@ -93,7 +93,7 @@ interface SocialPlatform {
             </section>
           }
         </div>
-        <div class="footer-bottom"><span>© {{ currentYear }} {{ config().companyName || 'Alperler Auto' }}. Tüm hakları saklıdır.</span><a routerLink="/admin/login">Yönetici</a></div>
+        <div class="footer-bottom"><span>© {{ currentYear }} {{ config().companyName || 'Alperler Rent A Car' }}. Tüm hakları saklıdır.</span><a routerLink="/admin/login">Yönetici</a></div>
       </footer>
     }
   `,
@@ -114,7 +114,7 @@ export class CustomerFooterV70Component {
 
   cleanTagline(): string { const raw=String(this.config().tagline||"").trim(); return !raw||/premium/i.test(raw)?"Kiralama • Satış • Tur":raw; }
   phoneHref(): string { const digits=String(this.config().phone||"").replace(/[^+\d]/g,""); return digits?`tel:${digits}`:""; }
-  whatsappHref(): string { const digits=String(this.config().whatsapp||this.config().phone||"").replace(/\D/g,""); if(!digits)return""; const message=this.config().whatsappMessage?.trim()||"Merhaba, Alperler Auto hizmetleri hakkında bilgi almak istiyorum."; return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`; }
+  whatsappHref(): string { const digits=String(this.config().whatsapp||this.config().phone||"").replace(/\D/g,""); if(!digits)return""; const message=this.config().whatsappMessage?.trim()||"Merhaba, Alperler Rent A Car hizmetleri hakkında bilgi almak istiyorum."; return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`; }
 
   socialLinks(): SocialPlatform[] {
     const cfg=this.config();

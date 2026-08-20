@@ -40,7 +40,7 @@ interface PickupChoice {
               <div class="search-shell">
                 <mat-icon aria-hidden="true">search</mat-icon>
                 <input id="home-search-v80" type="search" [(ngModel)]="searchQuery" (keyup.enter)="performSearch()" autocomplete="off" [placeholder]="homeContent().searchPlaceholder || 'Marka, model, tur veya ilan no'" />
-                <button type="button" (click)="performSearch()">Ara</button>
+                <button type="button" (click)="performSearch()">{{ homeContent().searchButtonLabel || 'Ara' }}</button>
               </div>
             </div>
 
@@ -63,38 +63,38 @@ interface PickupChoice {
 
             <div class="field-grid">
               <label class="field">
-                <span>Ne arıyorsunuz?</span>
+                <span>{{ homeContent().plannerServiceLabel || 'Ne arıyorsunuz?' }}</span>
                 <select [(ngModel)]="serviceType" name="homeService" (ngModelChange)="clearPlannerError()">
-                  <option value="individual">Şoförsüz araç kiralama</option>
-                  <option value="driver">Şoförlü transfer</option>
-                  <option value="wedding">Düğün / özel gün aracı</option>
-                  <option value="tour">Özel tur</option>
+                  <option value="individual">{{ homeContent().plannerServiceIndividual || 'Şoförsüz araç kiralama' }}</option>
+                  <option value="driver">{{ homeContent().plannerServiceDriver || 'Şoförlü transfer' }}</option>
+                  <option value="wedding">{{ homeContent().plannerServiceWedding || 'Düğün / özel gün aracı' }}</option>
+                  <option value="tour">{{ homeContent().plannerServiceTour || 'Özel tur' }}</option>
                 </select>
               </label>
 
               @if (serviceType !== 'tour') {
                 <label class="field">
-                  <span>Nereden?</span>
+                  <span>{{ homeContent().plannerPickupLabel || 'Nereden?' }}</span>
                   <select [(ngModel)]="selectedPickupKey" name="homePickup" (ngModelChange)="clearPlannerError()">
-                    <option value="">Teslim almak istediğiniz yeri seçin</option>
+                    <option value="">{{ homeContent().plannerPickupPlaceholder || 'Teslim almak istediğiniz yeri seçin' }}</option>
                     @for (choice of pickupChoices(); track choice.key) {
                       <option [value]="choice.key">{{ choice.label }}</option>
                     }
                   </select>
-                  @if (pickupChoices().length > 1) { <small>{{ pickupChoices().length }} teslim seçeneği mevcut</small> }
+                  @if (pickupChoices().length > 1) { <small>{{ pickupChoices().length }} {{ homeContent().plannerPickupCountSuffix || 'teslim seçeneği mevcut' }}</small> }
                 </label>
               }
 
               <div class="date-grid">
                 <app-accessible-native-date
-                  [label]="serviceType === 'tour' ? 'Tur tarihi' : 'Alış tarihi'"
+                  [label]="serviceType === 'tour' ? (homeContent().plannerTourDateLabel || 'Tur tarihi') : (homeContent().plannerStartDateLabel || 'Alış tarihi')"
                   [value]="startDate"
                   [min]="today"
                   (valueChange)="onStartDateChanged($event)"
                 />
                 @if (serviceType !== 'tour') {
                   <app-accessible-native-date
-                    label="İade tarihi"
+                    [label]="homeContent().plannerEndDateLabel || 'İade tarihi'"
                     [value]="endDate"
                     [min]="startDate || today"
                     (valueChange)="endDate = $event; clearPlannerError()"
@@ -114,7 +114,7 @@ interface PickupChoice {
       </section>
 
       @if (homepageLayout.loading() && managedSections().length === 0) {
-        <div class="loading" role="status"><mat-icon aria-hidden="true">sync</mat-icon><span>Size uygun vitrin hazırlanıyor...</span></div>
+        <div class="loading" role="status"><mat-icon aria-hidden="true">sync</mat-icon><span>{{ homeContent().plannerLoadingText || 'Size uygun vitrin hazırlanıyor...' }}</span></div>
       }
 
       @for (section of managedSections(); track section.sectionKey) {
@@ -225,9 +225,9 @@ export class HomeV71Component {
 
   searchAvailability(): void {
     this.clearPlannerError();
-    if (!this.startDate) { this.plannerError = this.serviceType === "tour" ? "Önce tur tarihini seçin." : "Önce alış tarihini seçin."; return; }
-    if (this.serviceType !== "tour" && !this.endDate) { this.plannerError = "İade tarihini de seçin."; return; }
-    if (this.serviceType !== "tour" && this.endDate < this.startDate) { this.plannerError = "İade tarihi alış tarihinden önce olamaz."; return; }
+    if (!this.startDate) { this.plannerError = this.serviceType === "tour" ? (this.homeContent().plannerErrorTourDate || "Önce tur tarihini seçin.") : (this.homeContent().plannerErrorStartDate || "Önce alış tarihini seçin."); return; }
+    if (this.serviceType !== "tour" && !this.endDate) { this.plannerError = this.homeContent().plannerErrorEndDate || "İade tarihini de seçin."; return; }
+    if (this.serviceType !== "tour" && this.endDate < this.startDate) { this.plannerError = this.homeContent().plannerErrorDateOrder || "İade tarihi alış tarihinden önce olamaz."; return; }
 
     if (this.serviceType === "tour") {
       void this.router.navigate(["/tours"], { queryParams: { start: this.startDate } });
@@ -235,7 +235,7 @@ export class HomeV71Component {
     }
 
     const pickup = this.pickupChoices().find((item) => item.key === this.selectedPickupKey);
-    if (!pickup) { this.plannerError = "Nereden teslim almak istediğinizi seçin."; return; }
+    if (!pickup) { this.plannerError = this.homeContent().plannerErrorPickup || "Nereden teslim almak istediğinizi seçin."; return; }
     void this.router.navigate(["/fleet"], {
       queryParams: {
         start: this.startDate,
@@ -257,10 +257,10 @@ export class HomeV71Component {
   }
 
   bookingButtonLabel(): string {
-    if (this.serviceType === "tour") return "Bu Tarihe Uyan Turları Göster";
-    if (this.serviceType === "driver") return "Şoförlü Araçları Göster";
-    if (this.serviceType === "wedding") return "Özel Gün Araçlarını Göster";
-    return "Tarihime Uyan Araçları Göster";
+    if (this.serviceType === "tour") return this.homeContent().plannerButtonTour || "Bu Tarihe Uyan Turları Göster";
+    if (this.serviceType === "driver") return this.homeContent().plannerButtonDriver || "Şoförlü Araçları Göster";
+    if (this.serviceType === "wedding") return this.homeContent().plannerButtonWedding || "Özel Gün Araçlarını Göster";
+    return this.homeContent().plannerButtonRental || "Tarihime Uyan Araçları Göster";
   }
 
   sectionVehicles(section: PublicHomepageSection): Vehicle[] {

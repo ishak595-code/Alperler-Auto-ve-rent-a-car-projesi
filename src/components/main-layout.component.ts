@@ -39,7 +39,7 @@ import { NavbarComponent } from "./navbar.component";
       <app-customer-footer-v70></app-customer-footer-v70>
       <app-feedback></app-feedback>
 
-      @if (showWhatsapp() && getWhatsappNumber()) {
+      @if (isHomePage() && showWhatsapp() && getWhatsappNumber()) {
         <a
           [href]="getWhatsappHref()"
           target="_blank"
@@ -126,6 +126,6 @@ export class MainLayoutComponent {
     if (url.startsWith("/legal")) return "Kurumsal";
     if (url.startsWith("/appointment")) return "Randevu Talebi";
     if (url.startsWith("/faq")) return "S.S.S.";
-    return "Alperler Auto";
+    return "Alperler Rent A Car";
   }
 }

@@ -1,171 +1,32 @@
 import { SUPABASE_PROJECT_URL, supabaseRestHeaders } from "./_lib/supabase-public";
 
-const DEFAULT_ORIGIN = "https://alperrentacar.online";
-const DEFAULT_IMAGE = `${DEFAULT_ORIGIN}/og-image.jpg`;
-
-type PreviewKind = "fleet" | "sales" | "tour" | "blog" | "branch";
+type PreviewKind = "home" | "fleet" | "sales" | "tour" | "blog" | "branch";
 type Row = Record<string, any>;
 
-function origin(): string {
-  const raw = String(process.env.PUBLIC_APP_URL || DEFAULT_ORIGIN).trim().replace(/\/$/, "");
-  try {
-    const parsed = new URL(raw);
-    return parsed.protocol === "https:" ? parsed.origin : DEFAULT_ORIGIN;
-  } catch {
-    return DEFAULT_ORIGIN;
+function origin(request: Request): string {
+  const explicit = String(process.env.PUBLIC_APP_URL || "").trim().replace(/\/$/, "");
+  if (explicit) {
+    try { const parsed = new URL(explicit); if (parsed.protocol === "https:") return parsed.origin; } catch { /* use request */ }
   }
+  const url = new URL(request.url);
+  if (url.protocol === "https:") return url.origin;
+  const host = String(process.env.VERCEL_PROJECT_PRODUCTION_URL || "").trim();
+  return host ? `https://${host}` : url.origin;
 }
+function clean(value: unknown, max = 300): string { return String(value ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, max); }
+function html(value: string): string { return value.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+function absoluteImage(request:Request,value:unknown):string{const raw=clean(value,1200);if(/^https:\/\//i.test(raw))return raw;return `${origin(request)}${raw.startsWith('/')?raw:'/og-image.jpg'}`;}
+function legacyId(row: Row): string { const value=row?.metadata?.legacyId;if(typeof value==="number"&&Number.isFinite(value))return String(value);return typeof value==="string"?value.trim():""; }
+function matches(row:Row,id:string):boolean{return[row.id,row.slug,row.seo_slug,row.stock_code,legacyId(row)].filter(v=>v!=null).map(String).includes(id);}
+async function rows(path:string):Promise<Row[]>{const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`,{method:"GET",headers:{...supabaseRestHeaders(),accept:"application/json"},signal:AbortSignal.timeout(8000)});if(!response.ok)throw new Error(`PREVIEW_SOURCE_${response.status}`);const payload=await response.json();return Array.isArray(payload)?payload:[];}
+async function siteSettings():Promise<Row>{const r=await rows("site_config?key=eq.site_settings&select=value&limit=1");return r[0]?.value||{};}
+async function load(kind:PreviewKind,id:string):Promise<Row|null>{switch(kind){case"home":return await siteSettings();case"fleet":case"sales":{const category=kind==="sales"?"SALE":"RENTAL";const records=await rows(`vehicles?is_active=eq.true&publication_status=eq.PUBLISHED&category=eq.${category}&select=id,category,brand,model,description,cover_image,images,metadata,seo_slug,stock_code`);return records.find(row=>matches(row,id))||null;}case"tour":{const records=await rows("tours?is_active=eq.true&publication_status=eq.PUBLISHED&select=id,title,short_description,description,cover_image,images,metadata,seo_slug");return records.find(row=>matches(row,id))||null;}case"blog":{const records=await rows("blog_posts?status=eq.PUBLISHED&select=id,slug,title,excerpt,content,cover_image,metadata");return records.find(row=>matches(row,id))||null;}case"branch":{const records=await rows("branches?is_active=eq.true&public_status=eq.ACTIVE&select=id,slug,name,public_description,hero_image");return records.find(row=>matches(row,id))||null;}}}
+function preview(request:Request,kind:PreviewKind,row:Row){if(kind==="home"){return{title:clean(row.seoOgTitle||row.seoTitle,160)||"Alperler Rent A Car | Yüksekova Araç Kiralama, Satış, Transfer ve Turlar",description:clean(row.seoOgDescription||row.seoDescription,240)||"Yüksekova ve Hakkâri çevresinde araç kiralama, satılık araç, şoförlü transfer, özel gün aracı ve bölgesel tur seçeneklerini inceleyin.",image:absoluteImage(request,row.seoOgImage),type:"website"};}if(kind==="fleet"||kind==="sales"){const vehicle=clean(`${row.brand||""} ${row.model||""}`,120)||"Araç";return{title:`${vehicle} | ${kind==="sales"?"Satılık":"Kiralık"} | Alperler Rent A Car`,description:clean(row.description,220)||`${vehicle} için güncel ${kind==="sales"?"satış":"kiralama"} detaylarını inceleyin.`,image:absoluteImage(request,row.cover_image||row.images?.[0]),type:"product"};}if(kind==="tour"){const title=clean(row.title,140)||"Bölgesel Tur";return{title:`${title} | Alperler Rent A Car`,description:clean(row.short_description||row.description,220)||"Tur programı, kapsamı ve güncel ayrıntıları inceleyin.",image:absoluteImage(request,row.cover_image||row.images?.[0]),type:"website"};}if(kind==="blog"){const title=clean(row.title,150)||"Alperler Keşif Rehberi";return{title:`${title} | Alperler Rent A Car`,description:clean(row.excerpt||row.content,220)||"Alperler Rent A Car keşif rehberindeki güncel yazıyı okuyun.",image:absoluteImage(request,row.cover_image),type:"article"};}const title=clean(row.name,140)||"Alperler Rent A Car Şubesi";return{title:`${title} | Alperler Rent A Car`,description:clean(row.public_description,220)||"Şube bilgileri, hizmetler ve iletişim detayları.",image:absoluteImage(request,row.hero_image),type:"website"};}
+function route(kind:PreviewKind,id:string):string{if(kind==="home")return"/";if(kind==="tour")return`/tour/${encodeURIComponent(id)}`;if(kind==="branch")return`/branches/${encodeURIComponent(id)}`;return`/${kind}/${encodeURIComponent(id)}`;}
 
-function clean(value: unknown, max = 300): string {
-  return String(value ?? "")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, max);
-}
-
-function html(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function absoluteImage(value: unknown): string {
-  const raw = clean(value, 1200);
-  if (!raw) return DEFAULT_IMAGE;
-  if (/^https:\/\//i.test(raw)) return raw;
-  if (raw.startsWith("/")) return `${origin()}${raw}`;
-  return DEFAULT_IMAGE;
-}
-
-function legacyId(row: Row): string {
-  const value = row?.metadata?.legacyId;
-  if (typeof value === "number" && Number.isFinite(value)) return String(value);
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function matches(row: Row, id: string): boolean {
-  const candidates = [row.id, row.slug, row.seo_slug, row.stock_code, legacyId(row)]
-    .filter((value) => value !== undefined && value !== null)
-    .map((value) => String(value));
-  return candidates.includes(id);
-}
-
-async function rows(path: string): Promise<Row[]> {
-  const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
-    method: "GET",
-    headers: { ...supabaseRestHeaders(), accept: "application/json" },
-    signal: AbortSignal.timeout(8_000),
-  });
-  if (!response.ok) throw new Error(`PREVIEW_SOURCE_${response.status}`);
-  const payload = await response.json();
-  return Array.isArray(payload) ? payload : [];
-}
-
-async function load(kind: PreviewKind, id: string): Promise<Row | null> {
-  switch (kind) {
-    case "fleet":
-    case "sales": {
-      const category = kind === "sales" ? "SALE" : "RENTAL";
-      const records = await rows(`vehicles?is_active=eq.true&publication_status=eq.PUBLISHED&category=eq.${category}&select=id,category,brand,model,description,cover_image,images,metadata,seo_slug,stock_code`);
-      return records.find((row) => matches(row, id)) || null;
-    }
-    case "tour": {
-      const records = await rows("tours?is_active=eq.true&publication_status=eq.PUBLISHED&select=id,title,short_description,description,cover_image,images,metadata,seo_slug");
-      return records.find((row) => matches(row, id)) || null;
-    }
-    case "blog": {
-      const records = await rows("blog_posts?status=eq.PUBLISHED&select=id,slug,title,excerpt,content,cover_image,metadata");
-      return records.find((row) => matches(row, id)) || null;
-    }
-    case "branch": {
-      const records = await rows("branches?is_active=eq.true&public_status=eq.ACTIVE&select=id,slug,name,public_description,hero_image");
-      return records.find((row) => matches(row, id)) || null;
-    }
-  }
-}
-
-function preview(kind: PreviewKind, row: Row): { title: string; description: string; image: string; type: string } {
-  if (kind === "fleet" || kind === "sales") {
-    const vehicle = clean(`${row.brand || ""} ${row.model || ""}`, 120) || "Alperler Auto Araç";
-    return {
-      title: `${vehicle} | ${kind === "sales" ? "Satılık" : "Kiralık"} | Alperler Auto`,
-      description: clean(row.description, 220) || `${vehicle} için güncel ${kind === "sales" ? "satış" : "kiralama"} detaylarını inceleyin.`,
-      image: absoluteImage(row.cover_image || row.images?.[0]),
-      type: "product",
-    };
-  }
-  if (kind === "tour") {
-    const title = clean(row.title, 140) || "Alperler Auto Tur";
-    return {
-      title: `${title} | Alperler Auto`,
-      description: clean(row.short_description || row.description, 220) || "Tur programı, kapsamı ve güncel ayrıntıları inceleyin.",
-      image: absoluteImage(row.cover_image || row.images?.[0]),
-      type: "website",
-    };
-  }
-  if (kind === "blog") {
-    const title = clean(row.title, 150) || "Alperler Keşif Rehberi";
-    return {
-      title: `${title} | Alperler Auto`,
-      description: clean(row.excerpt || row.content, 220) || "Alperler Auto keşif rehberindeki güncel yazıyı okuyun.",
-      image: absoluteImage(row.cover_image),
-      type: "article",
-    };
-  }
-  const title = clean(row.name, 140) || "Alperler Auto Şubesi";
-  return {
-    title: `${title} | Alperler Auto`,
-    description: clean(row.public_description, 220) || "Alperler Auto şube bilgileri, hizmetler ve iletişim detayları.",
-    image: absoluteImage(row.hero_image),
-    type: "website",
-  };
-}
-
-function route(kind: PreviewKind, id: string): string {
-  if (kind === "tour") return `/tour/${encodeURIComponent(id)}`;
-  if (kind === "branch") return `/branches/${encodeURIComponent(id)}`;
-  return `/${kind}/${encodeURIComponent(id)}`;
-}
-
-export default {
-  async fetch(request: Request): Promise<Response> {
-    if (request.method !== "GET" && request.method !== "HEAD") {
-      return new Response("Method Not Allowed", { status: 405, headers: { allow: "GET, HEAD" } });
-    }
-
-    const url = new URL(request.url);
-    const kind = clean(url.searchParams.get("kind"), 20) as PreviewKind;
-    const id = clean(url.searchParams.get("id"), 160);
-    if (!id || !["fleet", "sales", "tour", "blog", "branch"].includes(kind)) {
-      return new Response("Invalid preview target", { status: 400, headers: { "x-robots-tag": "noindex, nofollow" } });
-    }
-
-    try {
-      const record = await load(kind, id);
-      if (!record) return new Response("Not found", { status: 404, headers: { "x-robots-tag": "noindex, nofollow" } });
-
-      const data = preview(kind, record);
-      const canonical = `${origin()}${route(kind, id)}`;
-      const title = html(data.title);
-      const description = html(data.description);
-      const image = html(data.image);
-      const page = `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${html(canonical)}"><meta property="og:locale" content="tr_TR"><meta property="og:site_name" content="Alperler Auto"><meta property="og:type" content="${data.type}"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:url" content="${html(canonical)}"><meta property="og:image" content="${image}"><meta property="og:image:alt" content="${title}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${title}"><meta name="twitter:description" content="${description}"><meta name="twitter:image" content="${image}"><meta name="twitter:image:alt" content="${title}"></head><body><p><a href="${html(canonical)}">${title}</a></p></body></html>`;
-
-      return new Response(request.method === "HEAD" ? null : page, {
-        status: 200,
-        headers: {
-          "content-type": "text/html; charset=utf-8",
-          "cache-control": "public, max-age=60, s-maxage=300, stale-while-revalidate=1800",
-          "x-robots-tag": "noindex, nofollow",
-        },
-      });
-    } catch (error) {
-      console.error("[social-preview] failed", error);
-      return new Response("Preview unavailable", { status: 503, headers: { "x-robots-tag": "noindex, nofollow" } });
-    }
-  },
-};
+export default { async fetch(request:Request):Promise<Response>{
+  if(request.method!=="GET"&&request.method!=="HEAD")return new Response("Method Not Allowed",{status:405,headers:{allow:"GET, HEAD"}});
+  const url=new URL(request.url);const kind=clean(url.searchParams.get("kind"),20) as PreviewKind;const id=clean(url.searchParams.get("id"),160);
+  if(!["home","fleet","sales","tour","blog","branch"].includes(kind)||(kind!=="home"&&!id))return new Response("Invalid preview target",{status:400,headers:{"x-robots-tag":"noindex, nofollow"}});
+  try{const record=await load(kind,id);if(!record)return new Response("Not found",{status:404,headers:{"x-robots-tag":"noindex, nofollow"}});const data=preview(request,kind,record);const canonical=`${origin(request)}${route(kind,id)}`;const title=html(data.title),description=html(data.description),image=html(data.image);const page=`<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${html(canonical)}"><meta property="og:locale" content="tr_TR"><meta property="og:site_name" content="Alperler Rent A Car"><meta property="og:type" content="${data.type}"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:url" content="${html(canonical)}"><meta property="og:image" content="${image}"><meta property="og:image:alt" content="${title}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${title}"><meta name="twitter:description" content="${description}"><meta name="twitter:image" content="${image}"><meta name="twitter:image:alt" content="${title}"></head><body><p><a href="${html(canonical)}">${title}</a></p></body></html>`;return new Response(request.method==="HEAD"?null:page,{status:200,headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=60, s-maxage=300, stale-while-revalidate=1800","x-robots-tag":"noindex, nofollow"}});}catch(error){console.error("[social-preview] failed",error);return new Response("Preview unavailable",{status:503,headers:{"x-robots-tag":"noindex, nofollow"}});}
+}};

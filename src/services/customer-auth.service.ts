@@ -80,10 +80,19 @@ export class CustomerAuthService {
     this._lastError.set(null);
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = fullName.trim().slice(0, 160);
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return { created: false, confirmationRequired: !this.fail('Geçerli bir e-posta adresi girin.') };
-    if (!cleanName) return { created: false, confirmationRequired: !this.fail('Ad ve soyad alanını doldurun.') };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      this.fail('Geçerli bir e-posta adresi girin.');
+      return { created: false, confirmationRequired: false };
+    }
+    if (!cleanName) {
+      this.fail('Ad ve soyad alanını doldurun.');
+      return { created: false, confirmationRequired: false };
+    }
     const passwordError = await this.validatePassword(password);
-    if (passwordError) return { created: false, confirmationRequired: !this.fail(passwordError) };
+    if (passwordError) {
+      this.fail(passwordError);
+      return { created: false, confirmationRequired: false };
+    }
     try {
       const redirectTo = `${window.location.origin}/account/callback`;
       const response = await fetch(`${supabaseAuthUrl('signup')}?redirect_to=${encodeURIComponent(redirectTo)}`, {

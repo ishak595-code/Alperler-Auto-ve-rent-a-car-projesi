@@ -4,5 +4,22 @@ Disallow: /admin
 Disallow: /branch-portal
 Disallow: /track-car
 Disallow: /booking-checkout
+Disallow: /api
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /admin
+Disallow: /branch-portal
+Disallow: /track-car
+Disallow: /booking-checkout
+Disallow: /api
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /admin
+Disallow: /branch-portal
+Disallow: /track-car
+Disallow: /booking-checkout
+Disallow: /api
 
 Sitemap: https://alperrentacar.online/sitemap.xml

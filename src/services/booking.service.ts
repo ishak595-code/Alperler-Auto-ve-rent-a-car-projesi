@@ -10,6 +10,7 @@ import {
   PaymentStatus,
 } from "../models/booking.model";
 import { AuthService } from "./auth.service";
+import { CustomerAuthService } from "./customer-auth.service";
 import { currentAnalyticsSessionId } from "./analytics-link.util";
 import { AnalyticsIdentityService } from "./analytics-identity.service";
 
@@ -31,6 +32,7 @@ interface ApiBooking extends Omit<BookingRecord, "createdAt" | "updatedAt"> {
 export class BookingService {
   private readonly http = inject(HttpClient);
   private readonly authService = inject(AuthService);
+  private readonly customerAuth = inject(CustomerAuthService);
   private readonly analyticsIdentity = inject(AnalyticsIdentityService);
   private readonly bookings = signal<BookingRecord[]>([]);
   private readonly adminError = signal<string | null>(null);
@@ -161,8 +163,10 @@ export class BookingService {
   ): Promise<T> {
     try {
       if (method === "POST") {
+        const customerToken = await this.customerAuth.getAccessToken().catch(() => null);
+        const headers = customerToken ? { Authorization: `Bearer ${customerToken}` } : undefined;
         return await firstValueFrom(
-          this.http.post<T>("/api/bookings", body),
+          this.http.post<T>("/api/bookings", body, headers ? { headers } : {}),
         );
       }
 

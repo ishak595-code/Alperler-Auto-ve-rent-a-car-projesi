@@ -1,6 +1,7 @@
 import { Routes, CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthService } from './services/auth.service';
+import { CustomerAuthService } from './services/customer-auth.service';
 import { AdminAccessService, AdminArea } from './services/admin-access.service';
 import { HomeV71Component } from './pages/home-v71.component';
 import { FleetComponent } from './pages/fleet.component';
@@ -28,9 +29,17 @@ const adminAreaGuard = (area: AdminArea): CanActivateFn => async () => {
   await auth.waitUntilReady(); if (!auth.isLoggedIn()) return router.parseUrl('/admin/login');
   if (await access.can(area)) return true; return router.parseUrl(`/admin/dashboard?denied=${encodeURIComponent(area)}`);
 };
+const customerGuard: CanActivateFn = async () => {
+  const auth = inject(CustomerAuthService); const router = inject(Router);
+  await auth.waitUntilReady();
+  return auth.isLoggedIn() ? true : router.parseUrl('/account/login');
+};
 
 export const routes: Routes = [
   { path: 'admin/login', loadComponent: () => import('./pages/admin/admin-login.component').then(m => m.AdminLoginComponent) },
+  { path: 'account/login', loadComponent: () => import('./pages/account-login.component').then(m => m.AccountLoginComponent) },
+  { path: 'account/callback', loadComponent: () => import('./pages/account-callback.component').then(m => m.AccountCallbackComponent) },
+  { path: 'account', canActivate: [customerGuard], loadComponent: () => import('./pages/account-dashboard.component').then(m => m.AccountDashboardComponent) },
   { path: 'branch-portal/login', loadComponent: () => import('./pages/branch-portal-login.component').then(m => m.BranchPortalLoginComponent) },
   { path: 'branch-portal', loadComponent: () => import('./pages/branch-portal.component').then(m => m.BranchPortalComponent) },
   { path: 'search', loadComponent: () => import('./pages/search.component').then(m => m.SearchComponent) },
@@ -82,6 +91,7 @@ export const routes: Routes = [
 
       { path: 'operations', component: AdminOperationsHubComponent, data: { operationsSection: 'reservations' } },
       { path: 'reservations', component: AdminOperationsHubComponent, data: { operationsSection: 'reservations' }, canActivate: [adminAreaGuard('operations')] },
+      { path: 'customers', canActivate: [adminAreaGuard('operations')], loadComponent: () => import('./pages/admin/admin-customers.component').then(m => m.AdminCustomersComponent) },
       { path: 'partner-requests', component: AdminOperationsHubComponent, data: { operationsSection: 'vehicles' }, canActivate: [adminAreaGuard('operations')] },
       { path: 'branch-partner-requests', component: AdminOperationsHubComponent, data: { operationsSection: 'branches-requests' }, canActivate: [adminAreaGuard('operations')] },
       { path: 'feedback', component: AdminOperationsHubComponent, data: { operationsSection: 'messages' }, canActivate: [adminAreaGuard('operations')] },

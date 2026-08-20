@@ -3,10 +3,14 @@ import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.conf
 import { AuthService } from './auth.service';
 
 export interface AdminCustomerRow {
-  user_id: string; email?: string|null; full_name?: string|null; phone?: string|null; city?: string|null; preferred_branch_id?: string|null; status:string;
-  points_balance:number; lifetime_points:number; completed_rentals:number; lifetime_spend:number; tier:string;
+  user_id:string; email?:string|null; full_name?:string|null; phone?:string|null; city?:string|null; avatar_url?:string|null; preferred_branch_id?:string|null; status:string;
+  points_balance:number; lifetime_points:number; completed_rentals:number; lifetime_spend:number; tier:string; successful_referrals:number; referral_points_earned:number;
 }
-export interface AdminLoyaltySettings { enabled:boolean; points_per_rental_day:number; minimum_points_per_rental:number; silver_threshold:number; gold_threshold:number; platinum_threshold:number; benefits:Record<string,string[]>; }
+export interface AdminLoyaltySettings {
+  enabled:boolean; points_per_rental_day:number; minimum_points_per_rental:number; silver_threshold:number; gold_threshold:number; platinum_threshold:number;
+  referral_inviter_points:number; referral_invitee_points:number; referral_milestone_3_points:number; referral_milestone_5_points:number; referral_milestone_10_points:number;
+  benefits:Record<string,string[]>;
+}
 
 @Injectable({providedIn:'root'})
 export class CustomerAdminService{
@@ -19,12 +23,16 @@ export class CustomerAdminService{
     const token=await this.requireToken();this.loading.set(true);
     try{
       const [profiles,loyalty,settings]=await Promise.all([
-        this.rows<any>('customer_profiles?select=user_id,email,full_name,phone,city,preferred_branch_id,status&status=neq.DELETED&order=created_at.desc&limit=1000',token),
-        this.rows<any>('customer_loyalty_accounts?select=user_id,points_balance,lifetime_points,completed_rentals,lifetime_spend,tier&limit=1000',token),
-        this.rows<AdminLoyaltySettings>('loyalty_program_settings?select=enabled,points_per_rental_day,minimum_points_per_rental,silver_threshold,gold_threshold,platinum_threshold,benefits&limit=1',token),
+        this.rows<any>('customer_profiles?select=user_id,email,full_name,phone,city,avatar_url,preferred_branch_id,status&status=neq.DELETED&order=created_at.desc&limit=1000',token),
+        this.rows<any>('customer_loyalty_accounts?select=user_id,points_balance,lifetime_points,completed_rentals,lifetime_spend,tier,successful_referrals,referral_points_earned&limit=1000',token),
+        this.rows<AdminLoyaltySettings>('loyalty_program_settings?select=enabled,points_per_rental_day,minimum_points_per_rental,silver_threshold,gold_threshold,platinum_threshold,referral_inviter_points,referral_invitee_points,referral_milestone_3_points,referral_milestone_5_points,referral_milestone_10_points,benefits&limit=1',token),
       ]);
       const loyaltyByUser=new Map(loyalty.map((x:any)=>[x.user_id,x]));
-      this.customers.set(profiles.map((p:any)=>{const l=loyaltyByUser.get(p.user_id)||{};return{...p,points_balance:Number(l.points_balance||0),lifetime_points:Number(l.lifetime_points||0),completed_rentals:Number(l.completed_rentals||0),lifetime_spend:Number(l.lifetime_spend||0),tier:String(l.tier||'MEMBER')};}));
+      this.customers.set(profiles.map((p:any)=>{const l=loyaltyByUser.get(p.user_id)||{};return{
+        ...p,
+        points_balance:Number(l.points_balance||0),lifetime_points:Number(l.lifetime_points||0),completed_rentals:Number(l.completed_rentals||0),lifetime_spend:Number(l.lifetime_spend||0),tier:String(l.tier||'MEMBER'),
+        successful_referrals:Number(l.successful_referrals||0),referral_points_earned:Number(l.referral_points_earned||0),
+      };}));
       this.settings.set(settings[0]||null);
     }finally{this.loading.set(false);}
   }
@@ -35,7 +43,8 @@ export class CustomerAdminService{
   }
 
   async saveSettings(settings:AdminLoyaltySettings):Promise<void>{
-    if(settings.points_per_rental_day<1||settings.minimum_points_per_rental<0||settings.silver_threshold<0||settings.gold_threshold<settings.silver_threshold||settings.platinum_threshold<settings.gold_threshold)throw new Error('LOYALTY_THRESHOLDS_INVALID');
+    const referralValues=[settings.referral_inviter_points,settings.referral_invitee_points,settings.referral_milestone_3_points,settings.referral_milestone_5_points,settings.referral_milestone_10_points];
+    if(settings.points_per_rental_day<1||settings.minimum_points_per_rental<0||settings.silver_threshold<0||settings.gold_threshold<settings.silver_threshold||settings.platinum_threshold<settings.gold_threshold||referralValues.some(value=>!Number.isFinite(value)||value<0||value>1000000))throw new Error('LOYALTY_THRESHOLDS_INVALID');
     const token=await this.requireToken();
     const r=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/loyalty_program_settings?id=eq.true`,{method:'PATCH',headers:this.headers(token,{Prefer:'return=representation'}),body:JSON.stringify({...settings,updated_at:new Date().toISOString()})});
     if(!r.ok)throw new Error('LOYALTY_SETTINGS_SAVE_FAILED');

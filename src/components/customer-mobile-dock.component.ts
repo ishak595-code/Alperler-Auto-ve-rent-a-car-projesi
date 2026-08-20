@@ -2,7 +2,6 @@ import { Component, HostListener, inject, signal } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from "@angular/router";
 import { filter } from "rxjs/operators";
-import { CarService } from "../services/car.service";
 import { NavigationConfigService } from "../services/navigation-config.service";
 
 @Component({
@@ -48,7 +47,6 @@ import { NavigationConfigService } from "../services/navigation-config.service";
 export class CustomerMobileDockComponent {
   readonly router = inject(Router);
   readonly navigation = inject(NavigationConfigService);
-  private readonly carService = inject(CarService);
   readonly hidden = signal(false);
   private lastScrollY = 0;
 
@@ -86,16 +84,7 @@ export class CustomerMobileDockComponent {
 
   private updateVisibility(rawUrl: string): void {
     const path = this.cleanPath(rawUrl);
-    const bookingCheckoutActive = path.startsWith("/contact") && this.carService.getBookingRequest() !== null;
-    const shouldHide =
-      bookingCheckoutActive ||
-      path.startsWith("/admin") ||
-      path.startsWith("/branch-portal") ||
-      /^\/(fleet|sales)\/[^/]+$/.test(path) ||
-      /^\/tour\/[^/]+$/.test(path) ||
-      path.startsWith("/booking") ||
-      path.startsWith("/appointment") ||
-      path.startsWith("/track-car");
+    const shouldHide = path !== "/";
 
     this.hidden.set(shouldHide);
     this.navigation.setMobileDockRouteHidden(shouldHide);
@@ -104,6 +93,7 @@ export class CustomerMobileDockComponent {
   }
 
   private cleanPath(url: string): string {
-    return url.split("?")[0].split("#")[0];
+    const path = url.split("?")[0].split("#")[0];
+    return path || "/";
   }
 }

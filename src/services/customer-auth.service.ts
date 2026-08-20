@@ -40,6 +40,7 @@ export class CustomerAuthService {
   private readonly _isLoggedIn = signal(false);
   private readonly _user = signal<CustomerUser | null>(null);
   private readonly _lastError = signal<string | null>(null);
+  private readonly _socialProviders = signal<Record<CustomerSocialProvider, boolean>>({ google: false, facebook: false, apple: false });
   private readyResolver!: () => void;
   private readonly readyPromise = new Promise<void>((resolve) => (this.readyResolver = resolve));
 
@@ -47,10 +48,12 @@ export class CustomerAuthService {
   readonly isLoggedIn = this._isLoggedIn.asReadonly();
   readonly user = this._user.asReadonly();
   readonly lastError = this._lastError.asReadonly();
+  readonly socialProviders = this._socialProviders.asReadonly();
 
   constructor() { void this.initialize(); }
 
   async waitUntilReady(): Promise<void> { if (!this._ready()) await this.readyPromise; }
+  providerEnabled(provider: CustomerSocialProvider): boolean { return this._socialProviders()[provider] === true; }
 
   async getAccessToken(): Promise<string | null> {
     await this.waitUntilReady();
@@ -113,6 +116,10 @@ export class CustomerAuthService {
 
   async signInWithProvider(provider: CustomerSocialProvider): Promise<void> {
     this._lastError.set(null);
+    if (!this.providerEnabled(provider)) {
+      this.fail(`${this.providerLabel(provider)} ile giriş henüz sağlayıcı hesabına bağlanmadı.`);
+      return;
+    }
     const redirectTo = `${window.location.origin}/account/callback`;
     const url = new URL(supabaseAuthUrl('authorize'));
     url.searchParams.set('provider', provider);
@@ -151,6 +158,7 @@ export class CustomerAuthService {
 
   private async initialize(): Promise<void> {
     try {
+      await this.loadSocialProviders();
       this.consumeRedirectSession();
       if (!this.session) this.restoreSession();
       if (this.session) {
@@ -163,6 +171,21 @@ export class CustomerAuthService {
       }
     } finally {
       this._ready.set(true); this.readyResolver();
+    }
+  }
+
+  private async loadSocialProviders(): Promise<void> {
+    try {
+      const response = await fetch(supabaseAuthUrl('settings'), { headers: this.publicHeaders() });
+      if (!response.ok) return;
+      const data = await response.json() as { external?: Record<string, unknown> };
+      this._socialProviders.set({
+        google: data.external?.['google'] === true,
+        facebook: data.external?.['facebook'] === true,
+        apple: data.external?.['apple'] === true,
+      });
+    } catch {
+      this._socialProviders.set({ google: false, facebook: false, apple: false });
     }
   }
 
@@ -228,6 +251,7 @@ export class CustomerAuthService {
   private publicHeaders(): Record<string, string> { return { apikey: SUPABASE_PUBLISHABLE_KEY, 'content-type': 'application/json' }; }
   private userHeaders(token: string): Record<string, string> { return { ...this.publicHeaders(), authorization: `Bearer ${token}` }; }
   private fail(message: string): false { this._lastError.set(message); return false; }
+  private providerLabel(provider: CustomerSocialProvider): string { return ({ google: 'Google', facebook: 'Facebook', apple: 'Apple' } as const)[provider]; }
 
   private authMessage(payload: AuthPayload, fallback: string): string {
     const raw = String(payload.error_description || payload.msg || payload.message || payload.error || fallback);

@@ -28,6 +28,7 @@
               "src/mobile-target-fixes.css",
               "src/runtime-stability.css",
               "src/premium-design-system.css",
+              "src/prestige-palette-defaults.css",
               "src/premium-responsive.css"
             ],
             "tsConfig": "tsconfig.json"

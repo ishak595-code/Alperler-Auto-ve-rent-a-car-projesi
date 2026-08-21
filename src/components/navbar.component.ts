@@ -4,6 +4,7 @@ import { Router, RouterLink, RouterLinkActive } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 import { CarService } from "../services/car.service";
 import { CustomerAuthService } from "../services/customer-auth.service";
+import { CustomerAccountService } from "../services/customer-account.service";
 import { Language, UiService } from "../services/ui.service";
 import { NavigationConfigService } from "../services/navigation-config.service";
 
@@ -20,7 +21,7 @@ import { NavigationConfigService } from "../services/navigation-config.service";
               <img [src]="config().logoUrl" alt="Alperler Rent A Car" class="max-h-[54px] w-auto max-w-[220px] object-contain md:max-h-[72px] md:max-w-[280px]" />
             } @else {
               <div class="flex min-w-0 items-center gap-2.5 sm:gap-3">
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-xl font-black text-white shadow-lg shadow-blue-950/30">A</div>
+                <div class="brand-mark flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl font-black shadow-lg">A</div>
                 <div class="min-w-0">
                   <div class="brand-name font-serif font-black uppercase tracking-[.04em] text-white">Alperler Rent A Car</div>
                   <div class="brand-sub mt-0.5 font-black uppercase tracking-[.13em] text-slate-400">Kiralama • Satış • Tur</div>
@@ -31,7 +32,7 @@ import { NavigationConfigService } from "../services/navigation-config.service";
 
           <div class="desktop-nav hidden xl:flex" aria-label="Masaüstü site menüsü">
             @for (item of navigation.itemsFor('MOBILE_MENU'); track item.id) {
-              <a [routerLink]="item.route" [routerLinkActiveOptions]="{ exact: item.route === '/' }" routerLinkActive="!text-white !border-blue-400" class="nav-link" [attr.aria-label]="item.label">{{ item.label }}</a>
+              <a [routerLink]="item.route" [routerLinkActiveOptions]="{ exact: item.route === '/' }" routerLinkActive="nav-link-active" class="nav-link" [attr.aria-label]="item.label">{{ item.label }}</a>
             }
           </div>
 
@@ -45,7 +46,14 @@ import { NavigationConfigService } from "../services/navigation-config.service";
               </div>
             }
             <a routerLink="/fleet" [queryParams]="{ favs: 'true' }" aria-label="Favoriler" class="relative hidden xl:flex h-11 w-11 items-center justify-center rounded-xl text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">favorite_border</mat-icon></a>
-            <a [routerLink]="customerAuth.isLoggedIn() ? '/account' : '/account/login'" [attr.aria-label]="customerAuth.isLoggedIn() ? 'Hesabım ve sadakat puanlarım' : 'Giriş yap veya üye ol'" class="account-entry relative flex h-11 min-w-11 items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 px-2 text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">{{ customerAuth.isLoggedIn() ? 'account_circle' : 'person_outline' }}</mat-icon><span class="hidden lg:inline">{{ customerAuth.isLoggedIn() ? 'Hesabım' : 'Giriş' }}</span></a>
+            <a [routerLink]="customerAuth.isLoggedIn() ? '/account' : '/account/login'" [attr.aria-label]="customerAuth.isLoggedIn() ? 'Hesabım' : 'Giriş yap veya üye ol'" class="account-entry relative flex h-11 min-w-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.035] px-2 text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
+              @if (customerAuth.isLoggedIn() && customerAccount.profile()?.avatar_url) {
+                <img class="account-avatar" [src]="customerAccount.profile()?.avatar_url" alt="" aria-hidden="true" />
+              } @else {
+                <mat-icon aria-hidden="true">{{ customerAuth.isLoggedIn() ? 'account_circle' : 'person_outline' }}</mat-icon>
+              }
+              <span class="hidden lg:inline">{{ customerAuth.isLoggedIn() ? accountLabel() : 'Giriş' }}</span>
+            </a>
             @if (navigation.mobileMenuEnabled()) {
               <button id="mobile-menu-trigger" type="button" (click)="toggleMenu()" [attr.aria-label]="isMenuOpen() ? 'Menüyü kapat' : 'Menüyü aç'" [attr.aria-expanded]="isMenuOpen()" aria-controls="mobile-navigation" class="xl:hidden flex h-12 w-12 items-center justify-center rounded-xl text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><mat-icon aria-hidden="true">{{ isMenuOpen() ? 'close' : 'menu' }}</mat-icon></button>
             }
@@ -57,8 +65,8 @@ import { NavigationConfigService } from "../services/navigation-config.service";
     @if (navigation.mobileMenuEnabled()) {
     <nav id="mobile-navigation" aria-label="Mobil navigasyon" [class.hidden]="!isMenuOpen()" [attr.aria-hidden]="isMenuOpen() ? null : 'true'" [attr.inert]="isMenuOpen() ? null : ''" class="fixed inset-x-0 bottom-0 top-[72px] z-[95] overflow-y-auto overscroll-contain bg-[#050b16] px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-4 text-white md:top-[96px] sm:px-6 xl:hidden" style="touch-action: pan-y; -webkit-overflow-scrolling: touch;">
       <div class="mx-auto w-full max-w-xl">
-        <div class="mb-3 px-1">
-          <p class="text-[10px] font-black uppercase tracking-[.2em] text-blue-300">Alperler Rent A Car</p>
+        <div class="mb-4 px-1">
+          <p class="menu-kicker text-[10px] font-black uppercase tracking-[.2em]">Alperler Rent A Car</p>
           <p class="mt-1 text-sm leading-6 text-slate-400">Kiralama, satış, tur ve müşteri işlemlerinin tamamına buradan ulaşın.</p>
         </div>
 
@@ -69,9 +77,13 @@ import { NavigationConfigService } from "../services/navigation-config.service";
         </div>
 
         <div class="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0b1526] shadow-2xl" aria-label="Kişisel ayarlar">
-          <a [routerLink]="customerAuth.isLoggedIn() ? '/account' : '/account/login'" (click)="closeMenu(false)" class="menu-row" [attr.aria-label]="customerAuth.isLoggedIn() ? 'Hesabım ve sadakat puanlarım' : 'Giriş yap veya üye ol'">
-            <mat-icon aria-hidden="true">{{ customerAuth.isLoggedIn() ? 'account_circle' : 'person_outline' }}</mat-icon>
-            <span>{{ customerAuth.isLoggedIn() ? 'Hesabım & Sadakat Puanlarım' : 'Giriş Yap / Üye Ol' }}</span>
+          <a [routerLink]="customerAuth.isLoggedIn() ? '/account' : '/account/login'" (click)="closeMenu(false)" class="menu-row account-menu-row" [attr.aria-label]="customerAuth.isLoggedIn() ? 'Hesabım' : 'Giriş yap veya üye ol'">
+            @if (customerAuth.isLoggedIn() && customerAccount.profile()?.avatar_url) {
+              <img class="menu-avatar" [src]="customerAccount.profile()?.avatar_url" alt="" aria-hidden="true" />
+            } @else {
+              <mat-icon aria-hidden="true">{{ customerAuth.isLoggedIn() ? 'account_circle' : 'person_outline' }}</mat-icon>
+            }
+            <span>{{ customerAuth.isLoggedIn() ? accountLabel() : 'Giriş Yap / Üye Ol' }}</span>
           </a>
           <a routerLink="/fleet" [queryParams]="{ favs: 'true' }" (click)="closeMenu(false)" class="menu-row">
             <mat-icon aria-hidden="true">favorite_border</mat-icon>
@@ -86,8 +98,8 @@ import { NavigationConfigService } from "../services/navigation-config.service";
           @if (mobileLanguageOpen()) {
             <div id="mobile-language-options" class="grid grid-cols-2 gap-2 border-t border-white/10 bg-black/10 p-3 sm:grid-cols-3" aria-label="Dil seçenekleri">
               @for (lang of languages; track lang) {
-                <button type="button" (click)="setMobileLang(lang)" [attr.aria-pressed]="uiService.currentLang() === lang" class="min-h-12 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-sm font-bold text-slate-100 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
-                  <span class="block text-[10px] font-black uppercase tracking-wider text-blue-300">{{ lang }}</span>
+                <button type="button" (click)="setMobileLang(lang)" [attr.aria-pressed]="uiService.currentLang() === lang" class="min-h-12 rounded-xl border border-white/10 bg-white/[.035] px-3 py-2 text-left text-sm font-bold text-slate-100 hover:bg-white/[.07] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
+                  <span class="block text-[10px] font-black uppercase tracking-wider text-slate-400">{{ lang }}</span>
                   <span class="mt-0.5 block text-xs">{{ langName(lang) }}</span>
                 </button>
               }
@@ -99,16 +111,18 @@ import { NavigationConfigService } from "../services/navigation-config.service";
     }
   `,
   styles: [`
-    .brand-name{font-size:13.5px;line-height:1.05;white-space:nowrap}.brand-sub{font-size:7px;line-height:1.2;white-space:nowrap}.account-entry span{font-size:10px;font-weight:900;white-space:nowrap}
+    .brand-mark{background:#eabf35;color:#111827;box-shadow:0 10px 28px rgba(0,0,0,.28)}
+    .brand-name{font-size:13.5px;line-height:1.05;white-space:nowrap}.brand-sub{font-size:7px;line-height:1.2;white-space:nowrap}.account-entry span{max-width:110px;overflow:hidden;text-overflow:ellipsis;font-size:10px;font-weight:900;white-space:nowrap}.account-entry:hover{background:rgba(255,255,255,.065)}.account-avatar,.menu-avatar{width:30px;height:30px;flex:0 0 30px;border-radius:999px;object-fit:cover;border:1px solid rgba(255,255,255,.18)}.menu-avatar{width:32px;height:32px;flex-basis:32px}.menu-kicker{color:#d5b449}
     .desktop-nav{min-width:0;max-width:min(62vw,760px);flex:1;align-items:center;justify-content:flex-start;gap:.72rem;overflow-x:auto;scrollbar-width:none;padding:.3rem .2rem}.desktop-nav::-webkit-scrollbar{display:none}
-    .nav-link{flex:none;border-bottom:2px solid transparent;padding:.5rem 0;font-size:10px;font-weight:800;letter-spacing:.055em;text-transform:uppercase;color:#cbd5e1;white-space:nowrap;text-decoration:none}
-    .menu-row{display:flex;width:100%;min-height:56px;align-items:center;gap:16px;border:0;border-bottom:1px solid rgba(255,255,255,.1);background:transparent;padding:0 16px;text-align:left;font-size:16px;font-weight:700;color:#f1f5f9;text-decoration:none}.menu-row span{flex:1}.menu-row.last{border-bottom:0}.menu-row:focus-visible{background:rgba(255,255,255,.08);outline:none}.menu-count{display:inline-flex;min-width:28px;height:28px;align-items:center;justify-content:center;border-radius:999px;background:#1d4ed8;padding:0 8px;color:white;font-size:11px;font-weight:900}
+    .nav-link{flex:none;border-bottom:2px solid transparent;padding:.5rem 0;font-size:10px;font-weight:800;letter-spacing:.055em;text-transform:uppercase;color:#cbd5e1;white-space:nowrap;text-decoration:none}.nav-link:hover{color:#fff}.nav-link-active{color:#fff!important;border-color:#60a5fa!important}
+    .menu-row{display:flex;width:100%;min-height:58px;align-items:center;gap:16px;border:0;border-bottom:1px solid rgba(255,255,255,.1);background:transparent;padding:0 16px;text-align:left;font-size:16px;font-weight:700;color:#f1f5f9;text-decoration:none}.menu-row span{flex:1;min-width:0}.menu-row.last{border-bottom:0}.menu-row:focus-visible,.menu-row:hover{background:rgba(255,255,255,.055);outline:none}.menu-count{display:inline-flex;min-width:28px;height:28px;align-items:center;justify-content:center;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:#101a2e;padding:0 8px;color:#e2e8f0;font-size:11px;font-weight:900}
     @media (min-width:390px){.brand-name{font-size:14.5px}.brand-sub{font-size:7.5px}}@media(min-width:480px){.brand-name{font-size:16px}.brand-sub{font-size:8px}}@media(min-width:1536px){.desktop-nav{gap:1rem}.nav-link{font-size:10.5px}}
   `],
 })
 export class NavbarComponent {
   carService = inject(CarService);
   customerAuth = inject(CustomerAuthService);
+  customerAccount = inject(CustomerAccountService);
   uiService = inject(UiService);
   navigation = inject(NavigationConfigService);
   router = inject(Router);
@@ -119,7 +133,19 @@ export class NavbarComponent {
   mobileLanguageOpen = signal(false);
   languages: Language[] = ["TR", "EN", "DE", "FR", "KU", "ES", "RU", "ZH", "AR"];
 
-  constructor() { effect(() => { if (!this.navigation.mobileMenuEnabled()) this.closeMenu(false); }); }
+  constructor() {
+    effect(() => { if (!this.navigation.mobileMenuEnabled()) this.closeMenu(false); });
+    effect(() => {
+      if (this.customerAuth.isLoggedIn()) void this.customerAccount.refreshProfileSummary();
+      else this.customerAccount.clearLocalProfile();
+    });
+  }
+
+  accountLabel(): string {
+    const fullName = String(this.customerAccount.profile()?.full_name || '').trim();
+    return fullName ? fullName.split(/\s+/)[0] : 'Hesabım';
+  }
+
   toggleMenu(): void { this.isMenuOpen() ? this.closeMenu(false) : this.openMenu(); }
   openMenu(): void { if (this.isMenuOpen()) return; this.isLangMenuOpen.set(false); this.mobileLanguageOpen.set(false); this.isMenuOpen.set(true); }
   closeMenu(restoreFocus = false): void { if (!this.isMenuOpen()) return; this.isMenuOpen.set(false); this.mobileLanguageOpen.set(false); if (restoreFocus) this.focusElement("mobile-menu-trigger"); }

@@ -29,10 +29,11 @@ const adminAreaGuard = (area: AdminArea): CanActivateFn => async () => {
   await auth.waitUntilReady(); if (!auth.isLoggedIn()) return router.parseUrl('/admin/login');
   if (await access.can(area)) return true; return router.parseUrl(`/admin/dashboard?denied=${encodeURIComponent(area)}`);
 };
-const customerGuard: CanActivateFn = async () => {
+const customerGuard: CanActivateFn = async (_route, state) => {
   const auth = inject(CustomerAuthService); const router = inject(Router);
   await auth.waitUntilReady();
-  return auth.isLoggedIn() ? true : router.parseUrl('/account/login');
+  if (auth.isLoggedIn()) return true;
+  return router.createUrlTree(['/account/login'], { queryParams: { returnUrl: state.url } });
 };
 
 export const routes: Routes = [

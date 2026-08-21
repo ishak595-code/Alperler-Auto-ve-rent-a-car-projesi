@@ -1,5 +1,5 @@
-/* Alperler Rent A Car premium customer-facing design system.
-   Tokens are shared across list, detail, campaign, checkout and contact surfaces.
+/* Alperler Rent A Car customer-facing prestige design system.
+   Blue is an interaction color, not a surface color. Gold is reserved for real value/brand accents.
    Admin surfaces are intentionally excluded. */
 :root {
   --alper-bg: #050A18;
@@ -16,8 +16,10 @@
   --alper-subtle: #64748B;
   --alper-danger: #F87171;
   --alper-success: #34D399;
-  --alper-shadow: 0 18px 50px rgba(0, 0, 0, .28);
-  --alper-shadow-hover: 0 24px 64px rgba(0, 0, 0, .38);
+  --alper-shadow: 0 18px 50px rgba(0, 0, 0, .24);
+  --alper-shadow-hover: 0 22px 58px rgba(0, 0, 0, .3);
+  --alper-focus-ring: 0 0 0 3px color-mix(in srgb, var(--alper-blue-light) 20%, transparent);
+  --alper-border-hover: color-mix(in srgb, var(--alper-border) 62%, var(--alper-text) 38%);
 }
 
 body {
@@ -70,22 +72,42 @@ body {
   background-color: var(--alper-bg) !important;
 }
 
-/* Rental + sales result pages: remove the disconnected light-gray strip. */
+/* Long Turkish labels and dynamic content must never push layouts sideways. */
+:is(
+  app-rental-results,
+  app-sales-results,
+  app-car-detail,
+  app-sale-car-detail,
+  app-tour-detail,
+  app-campaigns,
+  app-booking-checkout,
+  app-contact,
+  app-appointment,
+  app-list-your-car-v2,
+  app-branches,
+  app-branch-detail,
+  app-blog-list,
+  app-blog-detail,
+  app-account-login,
+  app-account-dashboard,
+  app-account-wallet
+) :is(h1, h2, h3, p, span, strong, small, a, button, label) {
+  overflow-wrap: break-word;
+}
+
+/* Rental + sales result pages: no disconnected light-gray strip. */
 :is(app-rental-results, app-sales-results) section.sticky.top-16 {
   border-color: var(--alper-border) !important;
-  background: rgba(8, 15, 32, .96) !important;
+  background: color-mix(in srgb, var(--alper-list) 96%, transparent) !important;
   color: var(--alper-text) !important;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, .22) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .2) !important;
 }
 
 :is(app-rental-results, app-sales-results) section.sticky.top-16 strong {
   color: var(--alper-text) !important;
 }
 
-:is(app-rental-results, app-sales-results) section.sticky.top-16 span {
-  color: var(--alper-muted) !important;
-}
-
+:is(app-rental-results, app-sales-results) section.sticky.top-16 span,
 :is(app-rental-results, app-sales-results) section.sticky.top-16 button:not([class*="bg-slate-950"]) {
   color: var(--alper-muted) !important;
 }
@@ -100,12 +122,13 @@ body {
 }
 
 :is(app-rental-results, app-sales-results) section[aria-label$="araç sonuçları"] > div.grid {
-  gap: 14px !important;
+  gap: clamp(14px, 2vw, 22px) !important;
   background: transparent !important;
-  padding: 16px 12px 28px !important;
+  padding: clamp(16px, 2.4vw, 28px) clamp(12px, 2.2vw, 24px) clamp(28px, 4vw, 52px) !important;
 }
 
 :is(app-rental-results, app-sales-results) section[aria-label$="araç sonuçları"] > div.grid > div {
+  min-width: 0;
   background: transparent !important;
   padding: 0 !important;
 }
@@ -115,18 +138,23 @@ body {
   color: var(--alper-muted) !important;
 }
 
-/* Shared vehicle card appearance. */
+/* Vehicle cards. Hover gains depth, not a bright blue frame. */
 app-vehicle-list-item > a {
   border-color: var(--alper-border) !important;
   background: var(--alper-card) !important;
   color: var(--alper-text) !important;
-  box-shadow: 0 12px 34px rgba(0, 0, 0, .18) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .16) !important;
 }
 
 app-vehicle-list-item > a:hover {
-  border-color: var(--alper-blue) !important;
+  border-color: var(--alper-border-hover) !important;
   background: var(--alper-elevated) !important;
   box-shadow: var(--alper-shadow-hover) !important;
+}
+
+app-vehicle-list-item > a:focus-visible {
+  border-color: var(--alper-blue-light) !important;
+  box-shadow: var(--alper-focus-ring), var(--alper-shadow-hover) !important;
 }
 
 app-vehicle-list-item h3,
@@ -147,11 +175,12 @@ app-vehicle-list-item [class*="border-slate-100"] {
   border-color: var(--alper-border) !important;
 }
 
+/* Link-like card action may use blue. */
 app-vehicle-list-item [class*="text-blue-700"] {
   color: var(--alper-blue-light) !important;
 }
 
-/* Filter sheets use the same dark surface, not a separate white UI. */
+/* Filter sheets use a calm navy hierarchy. */
 :is(app-rental-results, app-sales-results) .filter-sheet {
   border-color: var(--alper-border) !important;
   background: var(--alper-surface) !important;
@@ -169,7 +198,9 @@ app-vehicle-list-item [class*="text-blue-700"] {
   color: var(--alper-text) !important;
 }
 
-:is(app-rental-results, app-sales-results) .filter-head button {
+:is(app-rental-results, app-sales-results) .filter-head button,
+:is(app-rental-results, app-sales-results) .filter-footer .secondary {
+  border-color: var(--alper-border) !important;
   background: var(--alper-elevated) !important;
   color: var(--alper-text) !important;
 }
@@ -186,8 +217,8 @@ app-vehicle-list-item [class*="text-blue-700"] {
 
 :is(app-rental-results, app-sales-results) .filter-control:focus {
   border-color: var(--alper-blue-light) !important;
-  background: #13213A !important;
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, .18) !important;
+  background: color-mix(in srgb, var(--alper-elevated) 92%, var(--alper-blue) 8%) !important;
+  box-shadow: var(--alper-focus-ring) !important;
 }
 
 app-rental-results .filter-grid app-accessible-native-date {
@@ -197,18 +228,12 @@ app-rental-results .filter-grid app-accessible-native-date {
   --date-border: var(--alper-border) !important;
 }
 
-:is(app-rental-results, app-sales-results) .filter-footer .secondary {
-  border-color: var(--alper-border) !important;
-  background: var(--alper-elevated) !important;
-  color: var(--alper-text) !important;
-}
-
 :is(app-rental-results, app-sales-results) .filter-footer .primary {
   background: var(--alper-blue) !important;
   color: #fff !important;
 }
 
-/* Campaign cards use navy surfaces. Gold is reserved for actual price advantage. */
+/* Campaigns: cards remain navy. Generic labels are neutral; actual savings are gold. */
 app-campaigns .offer,
 app-dynamic-home-section .campaign-card {
   border-color: var(--alper-border) !important;
@@ -218,7 +243,7 @@ app-dynamic-home-section .campaign-card {
 
 app-campaigns .offer:hover,
 app-dynamic-home-section .campaign-card:hover {
-  border-color: var(--alper-blue) !important;
+  border-color: var(--alper-border-hover) !important;
   background: var(--alper-elevated) !important;
 }
 
@@ -236,15 +261,12 @@ app-dynamic-home-section .campaign-copy {
 }
 
 app-campaigns .proof,
-app-dynamic-home-section .social-proof {
-  background: var(--alper-elevated) !important;
-  color: var(--alper-muted) !important;
-}
-
+app-dynamic-home-section .social-proof,
 app-campaigns .badge,
 app-dynamic-home-section .campaign-label {
-  background: var(--alper-blue) !important;
-  color: #fff !important;
+  border: 1px solid var(--alper-border) !important;
+  background: var(--alper-elevated) !important;
+  color: var(--alper-muted) !important;
 }
 
 app-campaigns .discount,
@@ -261,13 +283,12 @@ app-dynamic-home-section .campaign-cta {
   color: #fff !important;
 }
 
-/* Homepage vehicle shells no longer add a white frame around dark cards. */
 app-dynamic-home-section .vehicle-shell {
   border-color: var(--alper-border) !important;
   background: transparent !important;
 }
 
-/* Detail, tour and checkout surfaces share the same visual depth. */
+/* Detail, tour and checkout surfaces share the same restrained visual depth. */
 :is(app-car-detail, app-sale-car-detail, app-tour-detail, app-booking-checkout) :is(.panel, .step-card, .item-card, .reserve-panel, .price-summary, .review, .extras-details) {
   border-color: var(--alper-border) !important;
   background: var(--alper-surface) !important;
@@ -295,7 +316,7 @@ app-booking-checkout :is(input, select, textarea) {
 
 app-booking-checkout :is(input, select, textarea):focus {
   border-color: var(--alper-blue-light) !important;
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, .18) !important;
+  box-shadow: var(--alper-focus-ring) !important;
 }
 
 app-booking-checkout .choice-grid button,
@@ -308,8 +329,8 @@ app-booking-checkout .payment-grid button {
 app-booking-checkout .choice-grid button.active,
 app-booking-checkout .payment-grid button.active {
   border-color: var(--alper-blue-light) !important;
-  background: rgba(37, 99, 235, .16) !important;
-  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, .28) !important;
+  background: color-mix(in srgb, var(--alper-card) 88%, var(--alper-blue) 12%) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--alper-blue-light) 24%, transparent) !important;
 }
 
 app-booking-checkout :is(.next-button, .submit-button) {
@@ -327,10 +348,7 @@ app-list-your-car-v2 .panel {
 }
 
 app-contact :is(h2, h3, strong),
-app-list-your-car-v2 :is(h2, h3, strong) {
-  color: var(--alper-text) !important;
-}
-
+app-list-your-car-v2 :is(h2, h3, strong),
 app-contact :is(.text-slate-900, .text-slate-800),
 app-list-your-car-v2 :is(.text-slate-900, .text-slate-800, .text-slate-700) {
   color: var(--alper-text) !important;
@@ -351,10 +369,10 @@ app-list-your-car-v2 .option-button {
 
 app-list-your-car-v2 .selected-option {
   border-color: var(--alper-blue-light) !important;
-  background: rgba(37, 99, 235, .16) !important;
+  background: color-mix(in srgb, var(--alper-card) 88%, var(--alper-blue) 12%) !important;
 }
 
-/* Navigation/focus language: blue for action, gold only for premium/value accents. */
+/* Blue is kept for actual interaction focus, never broad decorative surfaces. */
 :is(
   app-rental-results,
   app-sales-results,
@@ -364,9 +382,13 @@ app-list-your-car-v2 .selected-option {
   app-campaigns,
   app-booking-checkout,
   app-contact,
-  app-list-your-car-v2
+  app-list-your-car-v2,
+  app-account-login,
+  app-account-dashboard,
+  app-account-wallet
 ) :focus-visible {
   outline-color: var(--alper-blue-light) !important;
+  outline-offset: 3px;
 }
 
 @media (hover: hover) {
@@ -379,8 +401,8 @@ app-list-your-car-v2 .selected-option {
 
 @media (max-width: 640px) {
   :is(app-rental-results, app-sales-results) section[aria-label$="araç sonuçları"] > div.grid {
-    gap: 10px !important;
-    padding-inline: 10px !important;
+    gap: 14px !important;
+    padding-inline: 14px !important;
   }
 }
 

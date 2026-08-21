@@ -44,7 +44,8 @@ const paletteVariables = [
 
 for (const variable of paletteVariables) {
   if (!design.includes(variable)) fail(`Shared design system does not reference ${variable}.`);
-  const defaultPattern = new RegExp(`${variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:\\s*#[0-9A-Fa-f]{6}`);
+  const escaped = variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const defaultPattern = new RegExp(`${escaped}\\s*:\\s*#[0-9A-Fa-f]{6}`);
   if (!defaultPattern.test(prestigeDefaults)) fail(`Prestige fallback palette does not define a valid HEX value for ${variable}.`);
   if (!themeService.includes(`setProperty('${variable}'`)) fail(`Runtime theme service does not apply ${variable}.`);
 }
@@ -77,8 +78,8 @@ for (const key of paletteKeys) {
 for (const setting of ['contentMaxWidth', 'cornerRadius', 'fontScale', 'motionPreference']) {
   if (!appearanceAdmin.includes(setting)) fail(`Admin appearance panel is missing responsive setting ${setting}.`);
 }
-if (!appearanceAdmin.includes('Müşteri sitesinin bütün premium renkleri')) {
-  fail('Admin premium palette section is missing.');
+if (!appearanceAdmin.includes('id="palette-title"') || !appearanceAdmin.includes('class="palette-grid"') || !appearanceAdmin.includes('colorFields')) {
+  fail('Admin premium palette section structure is missing.');
 }
 if (!appearanceAdmin.includes('Geri Yükle') || !appearanceAdmin.includes('resetPremiumPalette()')) {
   fail('Admin premium palette reset action is missing.');

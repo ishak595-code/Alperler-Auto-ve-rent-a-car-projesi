@@ -72,8 +72,8 @@ Deno.serve(async (request) => {
     if (!(await runtimeAllowed("CONTACT"))) return json({ ok: false, code: "SERVICE_TEMPORARILY_UNAVAILABLE", message: "İletişim formu kısa süreliğine bakımda. Lütfen daha sonra tekrar deneyin." }, 503);
 
     const ip = clean(request.headers.get("x-client-ip") || request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown", 100);
-    const network = await digest(`${ip}|${clean(request.headers.get("user-agent"), 300)}`);
-    const contact = await digest(email);
+    const network = await digest(`${KEY.slice(0, 24)}|${ip}|${clean(request.headers.get("user-agent"), 300)}`);
+    const contact = await digest(`${KEY.slice(24, 48)}|${email}`);
     if (!(await rate(network, "contact_network_minute", 60, 5)) || !(await rate(network, "contact_network_hour", 3600, 20)) || !(await rate(contact, "contact_email_day", 86400, 10))) {
       return json({ ok: false, code: "RATE_LIMITED", message: "Çok fazla mesaj gönderildi. Lütfen daha sonra tekrar deneyin." }, 429);
     }
@@ -98,7 +98,7 @@ Deno.serve(async (request) => {
     const adminMail = adminTo
       ? await sendMail(adminTo, `Yeni İletişim Mesajı | ${saved.reference}`, `<div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.65"><h2>Yeni iletişim mesajı</h2><p><strong>Referans:</strong> ${esc(saved.reference)}</p><p><strong>Ad Soyad:</strong> ${esc(`${name} ${surname}`)}</p><p><strong>Telefon:</strong> ${esc(phone)}</p><p><strong>E-posta:</strong> ${esc(email)}</p><hr><p>${esc(message).replaceAll("\n", "<br>")}</p>${footer ? `<hr><small>${footer}</small>` : ""}</div>`, `Yeni iletişim mesajı\nReferans: ${saved.reference}\nAd Soyad: ${name} ${surname}\nTelefon: ${phone}\nE-posta: ${email}\n\n${message}`)
       : { state: "not_configured", reason: "ADMIN_EMAIL_MISSING" };
-    const customerMail = await sendMail(email, `Mesajınız Alındı | ${saved.reference} | Alperler Auto`, `<div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.65"><h2>Mesajınız alındı</h2><p>Sayın ${esc(`${name} ${surname}`)},</p><p>Mesajınız güvenli şekilde kaydedildi. Referans numaranız <strong>${esc(saved.reference)}</strong>. Ekibimiz gerekli olduğunda sizinle iletişime geçecektir.</p>${footer ? `<hr><small>${footer}</small>` : ""}<p><strong>Alperler Auto</strong></p></div>`, `Sayın ${name} ${surname},\n\nMesajınız güvenli şekilde kaydedildi. Referans: ${saved.reference}.\n\nAlperler Auto`);
+    const customerMail = await sendMail(email, `Mesajınız Alındı | ${saved.reference} | Alperler Rent A Car`, `<div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.65"><h2>Mesajınız alındı</h2><p>Sayın ${esc(`${name} ${surname}`)},</p><p>Mesajınız güvenli şekilde kaydedildi. Referans numaranız <strong>${esc(saved.reference)}</strong>. Ekibimiz gerekli olduğunda sizinle iletişime geçecektir.</p>${footer ? `<hr><small>${footer}</small>` : ""}<p><strong>Alperler Rent A Car</strong></p></div>`, `Sayın ${name} ${surname},\n\nMesajınız güvenli şekilde kaydedildi. Referans: ${saved.reference}.\n\nAlperler Rent A Car`);
     await Promise.all([
       recordDelivery(saved.id, "ADMIN_EMAIL", adminTo || "", adminMail.state === "sent" ? "SENT" : adminMail.state === "failed" ? "FAILED" : "SKIPPED", "resend", adminMail.id, adminMail.reason),
       recordDelivery(saved.id, "EMAIL", email, customerMail.state === "sent" ? "SENT" : customerMail.state === "failed" ? "FAILED" : "SKIPPED", "resend", customerMail.id, customerMail.reason),

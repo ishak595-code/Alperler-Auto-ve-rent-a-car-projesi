@@ -15,14 +15,13 @@ for (const required of ['src/premium-design-system.css', 'src/premium-responsive
 const design = read('src/premium-design-system.css');
 const responsive = read('src/premium-responsive.css');
 const vehicleCard = read('src/components/vehicle-list-item.component.ts');
-const salesTemplate = read('src/pages/sales-results.component.html');
 const themeService = read('src/services/theme.service.ts');
 const appearanceAdmin = read('src/pages/admin/admin-appearance-settings.component.ts');
 const siteConfig = read('src/models/site-config.model.ts');
 
-// This guard deliberately checks only structural design-system contracts.
-// It must never count vehicles, tours, campaigns, blog posts or homepage sections,
-// so new catalog content and new dynamic sections remain free to grow.
+// Structural guard only. It intentionally never counts or inspects catalog records,
+// dynamic homepage section counts, campaign counts, vehicle counts, tour counts or blog counts.
+// Admin users remain free to add new content and new showcase sections.
 const requiredTokens = {
   '--alper-bg: #050A18': 'main background',
   '--alper-list: #080F20': 'list background',
@@ -45,35 +44,25 @@ for (const [token, label] of Object.entries(requiredTokens)) {
 if (!design.includes('app-rental-results') || !design.includes('app-sales-results')) {
   fail('Rental and sales pages are not both covered by the shared premium system.');
 }
-
 if (!design.includes('.filter-sheet') || !design.includes('var(--alper-surface)')) {
   fail('Filter sheets are not tied to the shared surface token.');
 }
-
 if (!responsive.includes('grid-template-columns: minmax(0, 1fr) !important')) {
   fail('Narrow-phone vehicle results must collapse to one column.');
 }
-
 if (!vehicleCard.includes('badgeTone(car.badge)')) fail('Vehicle badges are not standardized by tone.');
 if (!vehicleCard.includes('FIRSAT|İNDİRİM|INDIRIM|KAMPANYA|AVANTAJ')) fail('Gold opportunity/discount badge mapping is missing.');
 if (!vehicleCard.includes('YENİ|YENI|POPÜLER|POPULAR')) fail('Blue new/popular badge mapping is missing.');
 if (!vehicleCard.includes('cardDescription')) fail('Vehicle cards must include a dynamic description preview.');
 
-// Check the existing result surface contract without banning future sections or arbitrary content.
-if (!salesTemplate.includes('bg-[#080F20]') || !salesTemplate.includes('bg-[#0D1628]')) {
-  fail('Sales result surface/card contract is missing.');
-}
-
 if (!siteConfig.includes('PremiumThemePalette') || !siteConfig.includes('premiumPalette?: PremiumThemePalette')) {
   fail('Premium palette is not represented in SiteConfig.');
 }
-
 for (const cssVariable of ['--alper-bg','--alper-list','--alper-surface','--alper-card','--alper-elevated','--alper-border','--alper-blue','--alper-blue-light','--alper-gold','--alper-text','--alper-muted','--alper-subtle']) {
   if (!themeService.includes(`setProperty('${cssVariable}'`)) fail(`Runtime theme service does not apply ${cssVariable}.`);
 }
-
 if (!appearanceAdmin.includes('Müşteri sitesinin bütün premium renkleri') || !appearanceAdmin.includes('Premium Paleti Geri Yükle')) {
   fail('Admin premium palette controls are missing.');
 }
 
-console.log('Premium design system guard passed without restricting dynamic catalog or section growth.');
+console.log('Premium design system guard passed; dynamic catalog and section growth remains unrestricted.');

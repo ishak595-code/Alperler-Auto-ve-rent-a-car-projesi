@@ -7,11 +7,7 @@ import { FooterSettingsService } from "../services/footer-settings.service";
 import { UiService } from "../services/ui.service";
 import { SUPABASE_PUBLISHABLE_KEY, supabaseFunctionUrl } from "../supabase.config";
 
-interface SocialPlatform {
-  name: string;
-  url: string;
-  icon: string;
-}
+interface SocialPlatform { name: string; url: string; icon: string; }
 
 @Component({
   selector: "app-customer-footer-v70",
@@ -31,19 +27,12 @@ interface SocialPlatform {
               @if (footer.settings().showPhone && phoneHref()) { <a [href]="phoneHref()" class="contact-pill" aria-label="Telefonla ara">Telefon</a> }
               @if (footer.settings().showWhatsapp && whatsappHref()) { <a [href]="whatsappHref()" target="_blank" rel="noopener noreferrer" class="contact-pill whatsapp" aria-label="WhatsApp ile iletişim kur">WhatsApp</a> }
             </div>
-
-            @if (footer.settings().showSocial) {
+            @if (footer.settings().showSocial && socialLinks().length) {
               <nav class="social-row" aria-label="Sosyal medya hesapları">
                 @for (social of socialLinks(); track social.name) {
-                  @if (social.url) {
-                    <a [href]="social.url" target="_blank" rel="noopener noreferrer" class="social-link" [attr.aria-label]="social.name" [title]="social.name">
-                      <img class="social-icon" [src]="social.icon" [alt]="social.name + ' logosu'" />
-                    </a>
-                  } @else {
-                    <span class="social-link social-disabled" role="img" [attr.aria-label]="social.name + ' bağlantısı henüz eklenmedi'" [title]="social.name + ' bağlantısı admin panelinden eklendiğinde aktif olur'">
-                      <img class="social-icon" [src]="social.icon" [alt]="social.name + ' logosu'" />
-                    </span>
-                  }
+                  <a [href]="social.url" target="_blank" rel="noopener noreferrer" class="social-link" [attr.aria-label]="social.name" [title]="social.name">
+                    <img class="social-icon" [src]="social.icon" [alt]="social.name + ' logosu'" />
+                  </a>
                 }
               </nav>
             }
@@ -51,12 +40,22 @@ interface SocialPlatform {
 
           <nav class="link-column" aria-label="Hizmetler">
             <h2>{{ footer.settings().servicesTitle }}</h2>
-            <a routerLink="/fleet">Kiralık Araçlar</a><a routerLink="/sales">Satılık Araçlar</a><a routerLink="/tours">Turlar</a><a routerLink="/campaigns">Kampanyalar</a><a routerLink="/branches">Şubelerimiz</a><a routerLink="/appointment">Randevu</a>
+            <a routerLink="/fleet">Kiralık Araçlar</a>
+            <a routerLink="/sales">Satılık Araçlar</a>
+            <a routerLink="/list-your-car">Aracını Değerlendir</a>
+            <a routerLink="/tours">Turlar</a>
+            <a routerLink="/campaigns">Kampanyalar</a>
+            <a routerLink="/branches">Şubelerimiz</a>
+            <a routerLink="/appointment">Randevu</a>
           </nav>
 
-          <nav class="link-column" aria-label="Kurumsal">
+          <nav class="link-column" aria-label="Alperler hakkında">
             <h2>{{ footer.settings().corporateTitle }}</h2>
-            <a routerLink="/about">Hakkımızda</a><a routerLink="/contact">İletişim</a><a routerLink="/blog">Blog</a><a routerLink="/faq">Sık Sorulan Sorular</a>
+            <a routerLink="/about">Hakkımızda</a>
+            <a routerLink="/blog">Blog</a>
+            <a routerLink="/contact">İletişim</a>
+            <a routerLink="/faq">Sık Sorulan Sorular</a>
+            <a routerLink="/branch-partner">Şube Başvurusu</a>
             @if (footer.settings().showFeedback) { <button type="button" (click)="openFeedback()">Geri Bildirim Gönder</button> }
           </nav>
 
@@ -98,7 +97,7 @@ interface SocialPlatform {
     }
   `,
   styles: [`
-    :host{display:block}.customer-footer{background:#030817;color:#a8b4c7;border-top:1px solid rgba(148,163,184,.14);padding:2.4rem 0 calc(1rem + env(safe-area-inset-bottom));font-family:ui-sans-serif,system-ui,sans-serif}.footer-shell{width:min(100% - 1.5rem,80rem);margin:auto;display:grid;gap:2rem}.brand-link{display:flex;width:max-content;max-width:100%;align-items:center;gap:.8rem;color:#fff;text-decoration:none}.brand-mark{display:grid;width:48px;height:48px;place-items:center;border-radius:15px;background:linear-gradient(145deg,#2563eb,#1d4ed8);font:900 1.35rem/1 Georgia,serif}.brand-copy{display:flex;min-width:0;flex-direction:column}.brand-copy strong{font-family:Georgia,"Times New Roman",serif;font-size:1.3rem}.brand-copy small{margin-top:.2rem;color:#94a3b8;font-size:.65rem;font-weight:850;text-transform:uppercase}.brand-summary{max-width:430px;margin:1rem 0 0;font-size:.84rem;line-height:1.65;color:#8f9db2}.contact-row,.social-row{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:1rem}.contact-pill{display:inline-flex;min-height:42px;align-items:center;border:1px solid rgba(148,163,184,.2);border-radius:12px;background:#091224;padding:0 .85rem;color:#dbe7f6;font-size:.73rem;font-weight:850;text-decoration:none}.contact-pill.whatsapp{border-color:rgba(16,185,129,.28);color:#a7f3d0}.social-link{display:grid;width:44px;height:44px;place-items:center;border:1px solid rgba(148,163,184,.22);border-radius:13px;background:#fff;text-decoration:none;transition:transform .16s ease,border-color .16s ease,opacity .16s ease}.social-link[href]:hover{transform:translateY(-2px);border-color:#60a5fa}.social-disabled{opacity:.36;cursor:default}.social-icon{display:block;width:21px;height:21px;object-fit:contain}.link-column{display:flex;flex-direction:column;align-items:flex-start;gap:.2rem}.link-column h2,.newsletter h2{margin:0 0 .65rem;color:#fff;font-size:.78rem;font-weight:900;text-transform:uppercase}.link-column a,.link-column button{display:flex;min-height:39px;align-items:center;border:0;background:transparent;padding:0;color:#9ba9bc;font:750 .78rem/1.2 inherit;text-decoration:none}.legal-more{width:100%}.legal-more summary{min-height:38px;display:flex;align-items:center;cursor:pointer;color:#93c5fd;font-size:.7rem;font-weight:900;list-style:none}.legal-more-links{display:flex;flex-direction:column}.newsletter p{margin:0 0 .85rem;max-width:380px;color:#8391a6;font-size:.78rem;line-height:1.55}.newsletter label{display:block;margin-bottom:.35rem;color:#aab7ca;font-size:.69rem;font-weight:850}.subscribe-row{display:grid;grid-template-columns:1fr auto;gap:.45rem;max-width:440px}.subscribe-row input{min-width:0;min-height:46px;border:1px solid rgba(148,163,184,.22);border-radius:12px;background:#071020;padding:0 .75rem;color:#fff}.subscribe-row button{min-height:46px;border:0;border-radius:12px;background:#2563eb;padding:0 .85rem;color:#fff;font-weight:900}.newsletter .consent-note{margin:.55rem 0 0;font-size:.66rem;color:#64748b}.consent-note a{color:#93c5fd}.success{margin-top:.55rem!important;color:#86efac!important;font-weight:800}.error{margin-top:.55rem!important;color:#fda4af!important;font-weight:800}.footer-bottom{width:min(100% - 1.5rem,80rem);margin:2rem auto 0;border-top:1px solid rgba(148,163,184,.13);padding-top:1.2rem;display:flex;justify-content:space-between;gap:1rem;color:#64748b;font-size:.68rem}.footer-bottom a{color:#64748b;text-decoration:none}a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid #60a5fa;outline-offset:3px}@media(max-width:430px){.subscribe-row{grid-template-columns:1fr}.subscribe-row button{width:100%}}@media(min-width:720px){.footer-shell{grid-template-columns:1.3fr 1fr 1fr}.customer-footer{padding-bottom:2.25rem}}@media(min-width:1100px){.footer-shell{grid-template-columns:1.25fr .75fr .75fr 1fr 1.15fr}}
+    :host{display:block}.customer-footer{background:var(--alper-bg,#030817);color:var(--alper-muted,#a8b4c7);border-top:1px solid var(--alper-border,rgba(148,163,184,.14));padding:2.4rem 0 calc(1rem + env(safe-area-inset-bottom));font-family:ui-sans-serif,system-ui,sans-serif}.footer-shell{width:min(100% - 1.5rem,80rem);margin:auto;display:grid;gap:2rem}.brand-link{display:flex;width:max-content;max-width:100%;align-items:center;gap:.8rem;color:var(--alper-text,#fff);text-decoration:none}.brand-mark{display:grid;width:48px;height:48px;place-items:center;border-radius:15px;background:var(--alper-gold,#c6a15b);color:#111827;font:900 1.35rem/1 Georgia,serif}.brand-copy{display:flex;min-width:0;flex-direction:column}.brand-copy strong{font-family:Georgia,"Times New Roman",serif;font-size:1.3rem}.brand-copy small{margin-top:.2rem;color:var(--alper-muted,#94a3b8);font-size:.65rem;font-weight:850;text-transform:uppercase}.brand-summary{max-width:430px;margin:1rem 0 0;font-size:.84rem;line-height:1.65;color:var(--alper-muted,#8f9db2)}.contact-row,.social-row{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:1rem}.contact-pill{display:inline-flex;min-height:42px;align-items:center;border:1px solid var(--alper-border,rgba(148,163,184,.2));border-radius:12px;background:var(--alper-card,#091224);padding:0 .85rem;color:var(--alper-text,#dbe7f6);font-size:.73rem;font-weight:850;text-decoration:none}.contact-pill.whatsapp{border-color:rgba(16,185,129,.28);color:#a7f3d0}.social-link{display:grid;width:44px;height:44px;place-items:center;border:1px solid var(--alper-border,rgba(148,163,184,.22));border-radius:13px;background:#fff;text-decoration:none;transition:transform .16s ease,border-color .16s ease}.social-link:hover{transform:translateY(-2px);border-color:var(--alper-blue-light,#60a5fa)}.social-icon{display:block;width:21px;height:21px;object-fit:contain}.link-column{display:flex;flex-direction:column;align-items:flex-start;gap:.2rem}.link-column h2,.newsletter h2{margin:0 0 .65rem;color:var(--alper-text,#fff);font-size:.78rem;font-weight:900;text-transform:uppercase}.link-column a,.link-column button{display:flex;min-height:39px;align-items:center;border:0;background:transparent;padding:0;color:var(--alper-muted,#9ba9bc);font:750 .78rem/1.2 inherit;text-decoration:none}.link-column a:hover,.link-column button:hover{color:var(--alper-text,#fff)}.legal-more{width:100%}.legal-more summary{min-height:38px;display:flex;align-items:center;cursor:pointer;color:var(--alper-blue-light,#93c5fd);font-size:.7rem;font-weight:900;list-style:none}.legal-more-links{display:flex;flex-direction:column}.newsletter p{margin:0 0 .85rem;max-width:380px;color:var(--alper-muted,#8391a6);font-size:.78rem;line-height:1.55}.newsletter label{display:block;margin-bottom:.35rem;color:var(--alper-muted,#aab7ca);font-size:.69rem;font-weight:850}.subscribe-row{display:grid;grid-template-columns:1fr auto;gap:.45rem;max-width:440px}.subscribe-row input{min-width:0;min-height:46px;border:1px solid var(--alper-border,rgba(148,163,184,.22));border-radius:12px;background:var(--alper-card,#071020);padding:0 .75rem;color:var(--alper-text,#fff)}.subscribe-row button{min-height:46px;border:0;border-radius:12px;background:var(--alper-blue,#315e86);padding:0 .85rem;color:#fff;font-weight:900}.newsletter .consent-note{margin:.55rem 0 0;font-size:.66rem;color:var(--alper-subtle,#64748b)}.consent-note a{color:var(--alper-blue-light,#93c5fd)}.success{margin-top:.55rem!important;color:#86efac!important;font-weight:800}.error{margin-top:.55rem!important;color:#fda4af!important;font-weight:800}.footer-bottom{width:min(100% - 1.5rem,80rem);margin:2rem auto 0;border-top:1px solid var(--alper-border,rgba(148,163,184,.13));padding-top:1.2rem;display:flex;justify-content:space-between;gap:1rem;color:var(--alper-subtle,#64748b);font-size:.68rem}.footer-bottom a{color:inherit;text-decoration:none}a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--alper-blue-light,#60a5fa);outline-offset:3px}@media(max-width:430px){.subscribe-row{grid-template-columns:1fr}.subscribe-row button{width:100%}}@media(min-width:720px){.footer-shell{grid-template-columns:1.3fr 1fr 1fr}.customer-footer{padding-bottom:2.25rem}}@media(min-width:1100px){.footer-shell{grid-template-columns:1.25fr .75fr .75fr 1fr 1.15fr}}
   `],
 })
 export class CustomerFooterV70Component {
@@ -124,7 +123,7 @@ export class CustomerFooterV70Component {
       {name:'TikTok',url:this.safeSocialUrl(cfg.tiktokUrl),icon:'/brand-icons/tiktok.svg'},
       {name:'YouTube',url:this.safeSocialUrl(cfg.youtubeUrl),icon:'/brand-icons/youtube.svg'},
       {name:'X',url:this.safeSocialUrl(cfg.twitterUrl),icon:'/brand-icons/x.svg'},
-    ];
+    ].filter((item)=>Boolean(item.url));
   }
 
   async subscribe(event:Event):Promise<void>{

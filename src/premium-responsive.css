@@ -1,0 +1,154 @@
+/* Responsive and secondary customer-surface finishing for the V137 design system. */
+
+/* Rich vehicle cards need breathing room on narrow phones. */
+@media (max-width: 479px) {
+  app-rental-results section[aria-label="Kiralık araç sonuçları"] > div.grid,
+  app-sales-results section[aria-label="Satılık araç sonuçları"] > div.grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  app-vehicle-list-item > a {
+    padding: 12px !important;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  app-rental-results section[aria-label="Kiralık araç sonuçları"] > div.grid,
+  app-sales-results section[aria-label="Satılık araç sonuçları"] > div.grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Blog detail had a legacy white editorial shell. Keep article readability while
+   retaining the same navy surface hierarchy as the rest of the customer app. */
+app-blog-detail > div,
+app-blog-detail .bg-white {
+  background-color: var(--alper-bg) !important;
+  color: var(--alper-text) !important;
+}
+
+app-blog-detail .border-slate-200,
+app-blog-detail .border-slate-100 {
+  border-color: var(--alper-border) !important;
+}
+
+app-blog-detail .bg-slate-50,
+app-blog-detail .bg-slate-100 {
+  background: var(--alper-card) !important;
+}
+
+app-blog-detail :is(.text-slate-900, .text-slate-800) {
+  color: var(--alper-text) !important;
+}
+
+app-blog-detail :is(.text-slate-600, .text-slate-500, .text-slate-400) {
+  color: var(--alper-muted) !important;
+}
+
+app-blog-detail .prose {
+  color: #CBD5E1 !important;
+}
+
+app-blog-detail .prose :is(h1, h2, h3, h4, strong) {
+  color: var(--alper-text) !important;
+}
+
+app-blog-detail .prose a {
+  color: var(--alper-blue-light) !important;
+}
+
+/* Secondary customer pages: eliminate isolated light cards without touching admin. */
+:is(
+  app-contact,
+  app-appointment,
+  app-list-your-car-v2,
+  app-branches,
+  app-branch-detail,
+  app-account-login,
+  app-account-dashboard,
+  app-account-wallet
+) :is(.bg-white, .bg-slate-50) {
+  background-color: var(--alper-surface) !important;
+  color: var(--alper-text) !important;
+}
+
+:is(
+  app-contact,
+  app-appointment,
+  app-list-your-car-v2,
+  app-branches,
+  app-branch-detail,
+  app-account-login,
+  app-account-dashboard,
+  app-account-wallet
+) :is(.bg-slate-100, .bg-slate-200) {
+  background-color: var(--alper-elevated) !important;
+}
+
+:is(
+  app-contact,
+  app-appointment,
+  app-list-your-car-v2,
+  app-branches,
+  app-branch-detail,
+  app-account-login,
+  app-account-dashboard,
+  app-account-wallet
+) :is(.border-slate-100, .border-slate-200, .border-slate-300) {
+  border-color: var(--alper-border) !important;
+}
+
+:is(
+  app-contact,
+  app-appointment,
+  app-list-your-car-v2,
+  app-branches,
+  app-branch-detail,
+  app-account-login,
+  app-account-dashboard,
+  app-account-wallet
+) :is(.text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700) {
+  color: var(--alper-text) !important;
+}
+
+:is(
+  app-contact,
+  app-appointment,
+  app-list-your-car-v2,
+  app-branches,
+  app-branch-detail,
+  app-account-login,
+  app-account-dashboard,
+  app-account-wallet
+) :is(.text-slate-600, .text-slate-500, .text-slate-400) {
+  color: var(--alper-muted) !important;
+}
+
+:is(app-contact, app-appointment, app-list-your-car-v2, app-account-login, app-account-dashboard, app-account-wallet) :is(input, select, textarea) {
+  border-color: var(--alper-border) !important;
+  background: var(--alper-elevated) !important;
+  color: var(--alper-text) !important;
+}
+
+:is(app-contact, app-appointment, app-list-your-car-v2, app-account-login, app-account-dashboard, app-account-wallet) :is(input, select, textarea)::placeholder {
+  color: var(--alper-subtle) !important;
+}
+
+:is(app-contact, app-appointment, app-list-your-car-v2, app-account-login, app-account-dashboard, app-account-wallet) :is(input, select, textarea):focus {
+  border-color: var(--alper-blue-light) !important;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, .18) !important;
+}
+
+/* Keep blue as the dominant interaction color. Gold is not used for generic CTA. */
+:is(app-contact, app-appointment, app-list-your-car-v2, app-branches, app-branch-detail, app-account-login, app-account-dashboard, app-account-wallet) :is(button, a):focus-visible {
+  outline-color: var(--alper-blue-light) !important;
+}
+
+/* Avoid excessive animation while retaining a high-end hover response. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  :is(app-branches, app-blog-list, app-rental-results, app-sales-results) a[href] {
+    transition-property: transform, border-color, background-color, box-shadow, color;
+    transition-duration: 180ms;
+    transition-timing-function: ease;
+  }
+}

@@ -1,7 +1,7 @@
 /* Runtime safeguards only. Component-specific design belongs to components. */
 :root {
   --brand-accent: #2563eb;
-  --site-page-bg: #050914;
+  --site-page-bg: #050A18;
   --site-content-max: 1280px;
   --site-radius: 18px;
   --site-font-scale: 1;

@@ -1,17 +1,137 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { CustomerAuthService } from '../services/customer-auth.service';
+import { CustomerAuthService, CustomerSocialProvider } from '../services/customer-auth.service';
 
 @Component({
-  selector:'app-account-login',standalone:true,imports:[CommonModule,FormsModule,RouterLink],
-  template:`<main class="page"><section class="shell"><a routerLink="/" class="back">← Siteye dön</a><div class="hero"><p>Alperler Ayrıcalıkları</p><h1>Hesabınız, işlemleriniz ve Alperler ayrıcalıklarınız tek yerde.</h1><span>Üyelik zorunlu değildir. İsterseniz siteyi giriş yapmadan kullanmaya devam edebilirsiniz. Üye olduğunuzda rezervasyonlarınız, araç talepleriniz, turlarınız ve sadakat avantajlarınız hesabınıza bağlanır.</span></div>@if(auth.pendingReferral();as referral){<section class="invite" role="status"><strong>Bir Alperler üyesinin davetiyle geldiniz.</strong><span>Davet kodu: {{referral}}. Sadece kayıt olmak puan kazandırmaz. Uygun ilk araç kiralama, tamamlanan araç satın alma veya tur işleminizden sonra ilgili davet avantajı otomatik uygulanabilir. Kodu yeniden girmeniz gerekmez.</span></section>}<div class="grid"><section class="card"><div class="tabs"><button type="button" [class.active]="mode()==='login'" (click)="mode.set('login')">Giriş yap</button><button type="button" [class.active]="mode()==='register'" (click)="mode.set('register')">Üye ol</button></div><div class="social"><button type="button" (click)="social('google')" [disabled]="!auth.providerEnabled('google')">Google ile devam et{{auth.providerEnabled('google')?'':' - henüz bağlı değil'}}</button><button type="button" (click)="social('facebook')" [disabled]="!auth.providerEnabled('facebook')">Facebook ile devam et{{auth.providerEnabled('facebook')?'':' - henüz bağlı değil'}}</button><button type="button" (click)="social('apple')" [disabled]="!auth.providerEnabled('apple')">Apple ile devam et{{auth.providerEnabled('apple')?'':' - henüz bağlı değil'}}</button></div><p class="provider-note">Sosyal giriş yalnız ilgili sağlayıcı hesabı Supabase'e gerçekten bağlandığında etkinleşir. E-posta ile üyelik bundan bağımsız çalışır.</p><div class="divider"><span>veya e-posta ile</span></div><form (ngSubmit)="submit()">@if(mode()==='register'){<label><span>Ad Soyad</span><input name="fullName" [(ngModel)]="fullName" autocomplete="name" required /></label>}<label><span>E-posta</span><input name="email" [(ngModel)]="email" type="email" autocomplete="email" required /></label><label><span>Parola</span><input name="password" [(ngModel)]="password" type="password" [attr.autocomplete]="mode()==='register'?'new-password':'current-password'" required /></label>@if(mode()==='register'){<small>En az 10 karakter, en az bir küçük harf, bir büyük harf ve bir rakam. Bilinen sızdırılmış parolalar ayrıca reddedilir.</small>}<button class="primary" type="submit" [disabled]="working()">{{working()?'İşleniyor…':mode()==='login'?'Giriş yap':'Üyeliği oluştur'}}</button></form>@if(auth.lastError()){<p class="error" role="alert">{{auth.lastError()}}</p>}@if(message()){<p class="success" role="status">{{message()}}</p>}@if(mode()==='login'){<button class="link" type="button" (click)="reset()">Parolamı unuttum</button>}</section><aside class="benefits"><h2>Üye olunca ne değişir?</h2><article><b>Her işlem hesabınızda</b><span>Giriş yaptıktan sonra oluşturduğunuz kiralama, araç satın alma talebi ve tur rezervasyonu müşteri hesabınıza bağlanır. Şubedeki uygun işlemler de yetkili personel tarafından aynı hesaba eklenebilir.</span></article><article><b>Sadakat puanı</b><span>Tamamlanan uygun işlemler sadakat hareketlerinize işlenir. Seviye yükseldikçe şubede ve destek akışında sadık müşteri olarak görünürsünüz.</span></article><article><b>Arkadaşını davet et</b><span>Kişisel davet bağlantınızı paylaşın. Arkadaşınız yalnız kayıt olduğu için değil, gerçek bir kiralama, araç satın alma veya tur işlemini tamamladığında ilgili kategori için siz ve arkadaşınız ayrıcalık puanı kazanabilirsiniz.</span></article><article><b>Profil ve Alperler Cüzdan</b><span>Ad, iletişim ve adres bilgilerinizi bir kez kaydedin. İsterseniz kimlik ve ehliyet gibi belgelerinizi özel kasada tutarak sonraki işlemleri hızlandırın.</span></article><article><b>Güvenli ödeme yöntemi</b><span>Ham kart numarası veya CVV saklanmaz. Kart kaydı açıldığında yalnız ödeme sağlayıcısının güvenli tokenı ve son dört hane gibi sınırlı bilgiler kullanılır.</span></article></aside></div></section></main>`,
-  styles:[`:host{display:block}.page{min-height:100vh;background:linear-gradient(180deg,#07101f,#0f172a);padding:1rem;color:#0f172a}.shell{max-width:1100px;margin:auto}.back{display:inline-block;margin:.5rem 0 1rem;color:#bfdbfe;text-decoration:none;font-weight:800}.hero{color:white;padding:1rem 0 1.5rem}.hero p{margin:0;color:#60a5fa;font-size:.68rem;font-weight:950;letter-spacing:.14em;text-transform:uppercase}.hero h1{max-width:800px;margin:.35rem 0;font-size:clamp(1.7rem,5vw,3rem);line-height:1.05}.hero span{display:block;max-width:720px;color:#cbd5e1;line-height:1.6}.invite{margin:0 0 1rem;border:1px solid #93c5fd;border-radius:16px;background:#eff6ff;padding:.85rem;color:#1e3a8a}.invite strong,.invite span{display:block}.invite span{margin-top:.25rem;font-size:.74rem;line-height:1.5}.grid{display:grid;gap:1rem}.card,.benefits{border:1px solid #e2e8f0;border-radius:22px;background:white;padding:1rem;box-shadow:0 18px 55px rgba(2,6,23,.25)}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:1rem}.tabs button{min-height:44px;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc;font-weight:900}.tabs button.active{background:#0f172a;color:white;border-color:#0f172a}.social{display:grid;gap:.55rem}.social button{min-height:46px;border:1px solid #cbd5e1;border-radius:12px;background:white;font-weight:850}.social button:disabled{cursor:not-allowed;background:#f1f5f9;color:#94a3b8}.provider-note{margin:.65rem 0 0;color:#64748b;font-size:.68rem;line-height:1.45}.divider{display:flex;align-items:center;gap:.7rem;margin:1rem 0;color:#64748b;font-size:.68rem}.divider:before,.divider:after{content:'';height:1px;background:#e2e8f0;flex:1}form{display:grid;gap:.75rem}label{display:grid;gap:.32rem}label span{font-size:.68rem;font-weight:900;color:#334155}input{min-height:46px;border:1px solid #cbd5e1;border-radius:11px;padding:.65rem .75rem;font:inherit}small{color:#64748b;line-height:1.45}.primary{min-height:48px;border:0;border-radius:12px;background:#1d4ed8;color:white;font-weight:950}.primary:disabled{opacity:.55}.error,.success{border-radius:12px;padding:.75rem;font-size:.78rem}.error{background:#fff1f2;color:#9f1239}.success{background:#ecfdf5;color:#065f46}.link{border:0;background:transparent;color:#1d4ed8;font-weight:850;padding:.7rem 0}.benefits h2{margin:.2rem 0 1rem}.benefits article{padding:.8rem 0;border-top:1px solid #e2e8f0}.benefits article:first-of-type{border-top:0}.benefits b,.benefits span{display:block}.benefits span{margin-top:.25rem;color:#64748b;line-height:1.55;font-size:.8rem}@media(min-width:800px){.page{padding:2rem}.grid{grid-template-columns:1fr 1fr}.card,.benefits{padding:1.4rem}}`]
+  selector: 'app-account-login',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterLink],
+  template: `
+    <main class="page">
+      <section class="shell">
+        <header class="topbar">
+          <a routerLink="/" class="brand" aria-label="Alperler Rent A Car ana sayfa">
+            <span class="brand-mark" aria-hidden="true">A</span>
+            <span><strong>Alperler Rent A Car</strong><small>Kiralama • Satış • Tur</small></span>
+          </a>
+          <a routerLink="/" class="site-link">Siteye dön</a>
+        </header>
+
+        <div class="layout">
+          <section class="intro" aria-labelledby="account-title">
+            <p class="eyebrow">ALPERLER HESABI</p>
+            <h1 id="account-title">İşlemlerinizi tek hesapta, daha az uğraşla yönetin.</h1>
+            <p class="intro-copy">Araç kiralama, satın alma talebi ve tur işlemleriniz hesabınıza bağlanır. Profil bilgileriniz, sadakat puanlarınız, davet avantajlarınız ve Alperler Cüzdan aynı yerde kalır.</p>
+            <p class="guest-note">Üyelik zorunlu değildir. İsterseniz siteyi hesap açmadan gezebilir ve uygun işlemleri misafir olarak sürdürebilirsiniz.</p>
+
+            <div class="benefits" aria-label="Üyelik avantajları">
+              <article><span class="benefit-index">01</span><div><strong>Tekrar bilgi girmeyin</strong><p>Ad, telefon ve adres gibi temel bilgiler sonraki işlemlerde hazır olur.</p></div></article>
+              <article><span class="benefit-index">02</span><div><strong>İşlemleriniz kaybolmasın</strong><p>Kiralama, satış ve tur geçmişinizi hesabınızdan takip edin.</p></div></article>
+              <article><span class="benefit-index">03</span><div><strong>Sadakat avantajlarını görün</strong><p>Puan, seviye ve arkadaş daveti kazanımlarınız tek bakışta görünür.</p></div></article>
+            </div>
+          </section>
+
+          <section class="card" aria-label="Müşteri hesabı">
+            @if (auth.pendingReferral(); as referral) {
+              <div class="invite" role="status">
+                <span class="invite-icon" aria-hidden="true">✦</span>
+                <div><strong>Bir arkadaşınız sizi davet etti.</strong><p>Davet kodunuz {{ referral }} hesabınıza hazırlanacak. Puan, yalnız uygun gerçek işlem tamamlandığında oluşur.</p></div>
+              </div>
+            }
+
+            <div class="tabs" role="tablist" aria-label="Hesap işlemi">
+              <button type="button" role="tab" [attr.aria-selected]="mode()==='login'" [class.active]="mode()==='login'" (click)="mode.set('login')">Giriş yap</button>
+              <button type="button" role="tab" [attr.aria-selected]="mode()==='register'" [class.active]="mode()==='register'" (click)="mode.set('register')">Hesap oluştur</button>
+            </div>
+
+            <div class="card-heading">
+              <h2>{{ mode()==='login' ? 'Tekrar hoş geldiniz' : 'Alperler hesabınızı oluşturun' }}</h2>
+              <p>{{ mode()==='login' ? 'Hesabınıza güvenli şekilde devam edin.' : 'Birkaç bilgiyle hesabınızı oluşturup işlemlerinizi tek yerde toplayın.' }}</p>
+            </div>
+
+            @if (anySocialProviderEnabled()) {
+              <div class="social" aria-label="Sosyal hesap ile devam et">
+                @if (auth.providerEnabled('google')) { <button type="button" (click)="social('google')"><span class="provider-mark google" aria-hidden="true">G</span>Google ile devam et</button> }
+                @if (auth.providerEnabled('facebook')) { <button type="button" (click)="social('facebook')"><span class="provider-mark facebook" aria-hidden="true">f</span>Facebook ile devam et</button> }
+                @if (auth.providerEnabled('apple')) { <button type="button" (click)="social('apple')"><span class="provider-mark apple" aria-hidden="true">A</span>Apple ile devam et</button> }
+              </div>
+              <div class="divider"><span>veya e-posta ile</span></div>
+            }
+
+            <form (ngSubmit)="submit()">
+              @if (mode()==='register') {
+                <label><span>Ad Soyad</span><input name="fullName" [(ngModel)]="fullName" autocomplete="name" required placeholder="Adınız ve soyadınız" /></label>
+              }
+              <label><span>E-posta</span><input name="email" [(ngModel)]="email" type="email" autocomplete="email" inputmode="email" required placeholder="ornek@email.com" /></label>
+              <label><span>Parola</span><input name="password" [(ngModel)]="password" type="password" [attr.autocomplete]="mode()==='register' ? 'new-password' : 'current-password'" required [placeholder]="mode()==='register' ? 'En az 10 karakter' : 'Parolanız'" /></label>
+              @if (mode()==='register') {
+                <small class="password-note">Parolanız en az 10 karakter, bir büyük harf, bir küçük harf ve bir rakam içermelidir.</small>
+              }
+              <button class="primary" type="submit" [disabled]="working()">{{ working() ? 'İşleniyor…' : mode()==='login' ? 'Hesabıma gir' : 'Hesabımı oluştur' }}</button>
+            </form>
+
+            @if (auth.lastError()) { <p class="error" role="alert">{{ auth.lastError() }}</p> }
+            @if (message()) { <p class="success" role="status">{{ message() }}</p> }
+
+            <div class="secondary-actions">
+              @if (mode()==='login') { <button class="text-action" type="button" (click)="reset()">Parolamı unuttum</button> }
+              <a routerLink="/">Hesap açmadan devam et</a>
+            </div>
+
+            @if (mode()==='register') {
+              <p class="legal-note">Hesap oluşturarak üyelik işlemi için gerekli hesap verilerinin işlenmesini kabul etmiş olursunuz. Gizlilik ve kullanım koşullarını <a routerLink="/legal">buradan</a> inceleyebilirsiniz.</p>
+            }
+          </section>
+        </div>
+      </section>
+    </main>
+  `,
+  styles: [`
+    :host{display:block}.page{min-height:100vh;background:radial-gradient(circle at 15% 12%,rgba(234,191,53,.055),transparent 26rem),#050a18;color:#f8fafc;padding:clamp(18px,3vw,42px)}.shell{width:min(100%,1180px);margin:auto}.topbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:clamp(42px,7vw,88px)}.brand{display:inline-flex;align-items:center;gap:.75rem;color:#f8fafc;text-decoration:none;min-width:0}.brand-mark{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border-radius:13px;background:#eabf35;color:#111827;font-weight:950;box-shadow:0 10px 28px rgba(0,0,0,.26)}.brand strong,.brand small{display:block}.brand strong{font-family:Georgia,serif;font-size:.9rem;letter-spacing:.045em;text-transform:uppercase}.brand small{margin-top:.1rem;color:#64748b;font-size:.54rem;font-weight:850;letter-spacing:.12em;text-transform:uppercase}.site-link{display:inline-flex;min-height:42px;align-items:center;border:1px solid #24314a;border-radius:12px;padding:0 .85rem;color:#cbd5e1;text-decoration:none;font-size:.72rem;font-weight:800}.site-link:hover{border-color:#334155;color:#fff}.layout{display:grid;gap:clamp(34px,7vw,88px);align-items:start}.intro{padding-top:clamp(8px,2vw,22px)}.eyebrow{margin:0;color:#d5b449;font-size:.65rem;font-weight:950;letter-spacing:.18em}.intro h1{max-width:760px;margin:.65rem 0 1.15rem;font-family:Georgia,'Times New Roman',serif;font-size:clamp(2.15rem,6vw,4.7rem);font-weight:650;line-height:.99;letter-spacing:-.035em}.intro-copy{max-width:650px;margin:0;color:#cbd5e1;font-size:clamp(.94rem,1.8vw,1.08rem);line-height:1.72}.guest-note{max-width:620px;margin:1rem 0 0;color:#94a3b8;font-size:.78rem;line-height:1.65}.benefits{display:grid;gap:0;margin-top:clamp(34px,5vw,60px);border-top:1px solid #24314a}.benefits article{display:grid;grid-template-columns:42px 1fr;gap:1rem;padding:1.15rem 0;border-bottom:1px solid #1c293d}.benefit-index{color:#64748b;font-size:.62rem;font-weight:900;letter-spacing:.12em}.benefits strong{display:block;font-size:.82rem}.benefits p{margin:.28rem 0 0;color:#94a3b8;font-size:.72rem;line-height:1.55}.card{border:1px solid #24314a;border-radius:24px;background:#0b1224;padding:clamp(18px,3vw,30px);box-shadow:0 24px 70px rgba(0,0,0,.3)}.invite{display:grid;grid-template-columns:auto 1fr;gap:.8rem;align-items:start;margin-bottom:1.2rem;border:1px solid rgba(234,191,53,.32);border-radius:15px;background:rgba(234,191,53,.055);padding:.85rem}.invite-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:999px;background:#eabf35;color:#111827}.invite strong,.invite p{display:block}.invite strong{font-size:.76rem}.invite p{margin:.22rem 0 0;color:#94a3b8;font-size:.65rem;line-height:1.5}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;border:1px solid #24314a;border-radius:14px;background:#080f20;padding:4px}.tabs button{min-height:42px;border:0;border-radius:10px;background:transparent;color:#94a3b8;font-size:.72rem;font-weight:900}.tabs button.active{background:#101a2e;color:#f8fafc;box-shadow:inset 0 0 0 1px #334155}.card-heading{padding:1.45rem 0 1.05rem}.card-heading h2{margin:0;font-family:Georgia,serif;font-size:1.42rem;font-weight:650}.card-heading p{margin:.35rem 0 0;color:#94a3b8;font-size:.72rem;line-height:1.55}.social{display:grid;gap:.6rem}.social button{display:flex;min-height:48px;align-items:center;justify-content:center;gap:.65rem;border:1px solid #2b3950;border-radius:12px;background:#0d1628;color:#f8fafc;font:inherit;font-size:.75rem;font-weight:850}.social button:hover{border-color:#3a4a63;background:#101a2e}.provider-mark{display:grid;place-items:center;width:24px;height:24px;border-radius:999px;background:#f8fafc;color:#111827;font-weight:950}.provider-mark.facebook{background:#1877f2;color:#fff}.provider-mark.apple{background:#111827;color:#fff;border:1px solid #475569}.divider{display:flex;align-items:center;gap:.8rem;margin:1.15rem 0;color:#64748b;font-size:.62rem}.divider:before,.divider:after{content:'';height:1px;flex:1;background:#24314a}form{display:grid;gap:.85rem}label{display:grid;gap:.38rem}label span{color:#cbd5e1;font-size:.65rem;font-weight:850}input{width:100%;min-height:48px;border:1px solid #2a3850;border-radius:12px;background:#0d1628;padding:0 .8rem;color:#f8fafc;font:inherit;font-size:.8rem;outline:none}input::placeholder{color:#64748b}input:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.12)}.password-note{color:#64748b;font-size:.62rem;line-height:1.5}.primary{min-height:50px;margin-top:.15rem;border:0;border-radius:12px;background:#2563eb;color:white;font-weight:950;letter-spacing:.01em}.primary:hover{filter:brightness(1.05)}.primary:disabled{opacity:.58}.error,.success{margin:.8rem 0 0;border-radius:11px;padding:.72rem .78rem;font-size:.7rem;line-height:1.5}.error{border:1px solid rgba(248,113,113,.28);background:rgba(127,29,29,.15);color:#fecaca}.success{border:1px solid rgba(52,211,153,.25);background:rgba(6,78,59,.18);color:#a7f3d0}.secondary-actions{display:flex;justify-content:space-between;gap:1rem;align-items:center;margin-top:1rem}.secondary-actions a,.text-action{border:0;background:transparent;padding:.3rem 0;color:#94a3b8;text-decoration:none;font-size:.68rem;font-weight:800}.secondary-actions a:hover,.text-action:hover{color:#f8fafc}.legal-note{margin:1rem 0 0;border-top:1px solid #1c293d;padding-top:1rem;color:#64748b;font-size:.6rem;line-height:1.55}.legal-note a{color:#94a3b8}@media(min-width:900px){.layout{grid-template-columns:minmax(0,1.15fr) minmax(360px,.72fr)}.card{position:sticky;top:32px}}@media(max-width:899px){.topbar{margin-bottom:42px}.intro h1{max-width:680px}.benefits{margin-bottom:6px}}@media(max-width:520px){.page{padding:16px}.topbar{align-items:flex-start}.brand strong{font-size:.78rem}.brand small{font-size:.48rem}.site-link{min-height:38px;padding:0 .65rem}.intro h1{font-size:2.25rem}.card{border-radius:20px;padding:16px}.secondary-actions{align-items:flex-start;flex-direction:column;gap:.35rem}}
+  `],
 })
-export class AccountLoginComponent{
-  readonly auth=inject(CustomerAuthService);private readonly router=inject(Router);readonly mode=signal<'login'|'register'>(this.auth.pendingReferral()?'register':'login');readonly working=signal(false);readonly message=signal<string|null>(null);email='';password='';fullName='';
-  async submit(){this.working.set(true);this.message.set(null);try{if(this.mode()==='login'){if(await this.auth.signIn(this.email,this.password))await this.router.navigate(['/account']);}else{const result=await this.auth.signUp(this.email,this.password,this.fullName);if(result.created&&!result.confirmationRequired)await this.router.navigate(['/account']);else if(result.created)this.message.set('Üyelik oluşturuldu. E-posta doğrulama bağlantısına dokunduktan sonra hesabınız açılacak.');}}finally{this.working.set(false);}}
-  async social(provider:'google'|'facebook'|'apple'){await this.auth.signInWithProvider(provider);}
-  async reset(){if(await this.auth.resetPassword(this.email))this.message.set('Parola sıfırlama bağlantısı e-posta adresinize gönderildi.');}
+export class AccountLoginComponent implements OnInit {
+  readonly auth = inject(CustomerAuthService);
+  private readonly router = inject(Router);
+  readonly mode = signal<'login'|'register'>(this.auth.pendingReferral() ? 'register' : 'login');
+  readonly working = signal(false);
+  readonly message = signal<string|null>(null);
+  email = '';
+  password = '';
+  fullName = '';
+
+  async ngOnInit(): Promise<void> {
+    await this.auth.waitUntilReady();
+    if (this.auth.isLoggedIn()) await this.router.navigate(['/account']);
+  }
+
+  anySocialProviderEnabled(): boolean {
+    return this.auth.providerEnabled('google') || this.auth.providerEnabled('facebook') || this.auth.providerEnabled('apple');
+  }
+
+  async submit(): Promise<void> {
+    this.working.set(true);
+    this.message.set(null);
+    try {
+      if (this.mode() === 'login') {
+        if (await this.auth.signIn(this.email, this.password)) await this.router.navigate(['/account']);
+      } else {
+        const result = await this.auth.signUp(this.email, this.password, this.fullName);
+        if (result.created && !result.confirmationRequired) await this.router.navigate(['/account']);
+        else if (result.created) this.message.set('Hesabınız oluşturuldu. E-posta adresinize gelen doğrulama bağlantısına dokunduktan sonra giriş yapabilirsiniz.');
+      }
+    } finally {
+      this.working.set(false);
+    }
+  }
+
+  async social(provider: CustomerSocialProvider): Promise<void> {
+    await this.auth.signInWithProvider(provider);
+  }
+
+  async reset(): Promise<void> {
+    if (await this.auth.resetPassword(this.email)) this.message.set('Parola yenileme bağlantısı e-posta adresinize gönderildi.');
+  }
 }

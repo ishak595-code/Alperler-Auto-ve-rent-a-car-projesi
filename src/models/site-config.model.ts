@@ -28,6 +28,21 @@ export interface RentalRoutePricing {
 
 export type MotionPreference = 'system' | 'reduced' | 'full';
 
+export interface PremiumThemePalette {
+  background?: string;
+  listBackground?: string;
+  surface?: string;
+  card?: string;
+  elevated?: string;
+  border?: string;
+  primaryBlue?: string;
+  blueLight?: string;
+  brandGold?: string;
+  text?: string;
+  textMuted?: string;
+  textSubtle?: string;
+}
+
 export interface SiteConfig {
   logoUrl: string;
   logoWidthDesktop?: number;
@@ -89,6 +104,7 @@ export interface SiteConfig {
   theme: 'light' | 'dark' | 'luxury' | 'corporate';
   accentColor?: string;
   pageBackground?: string;
+  premiumPalette?: PremiumThemePalette;
   contentMaxWidth?: number;
   cornerRadius?: number;
   fontScale?: number;

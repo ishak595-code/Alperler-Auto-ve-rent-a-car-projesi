@@ -132,7 +132,7 @@ export class CustomerFooterV70Component {
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalized)||normalized.length>160){this.subscriptionError.set('Geçerli bir e-posta adresi girin.');return;}
     this.submitting.set(true);
     try{
-      const response=await fetch(supabaseFunctionUrl('newsletter-gateway'),{method:'POST',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,'content-type':'application/json'},body:JSON.stringify({email:normalized,locale:this.ui.currentLang().toLowerCase()}),signal:AbortSignal.timeout(12_000)});
+      const response=await fetch(supabaseFunctionUrl('newsletter-gateway'),{method:'POST',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,'content-type':'application/json','x-alperler-client':'alperler-web-v1'},body:JSON.stringify({email:normalized,locale:this.ui.currentLang().toLowerCase()}),signal:AbortSignal.timeout(12_000)});
       const payload=await response.json().catch(()=>({})) as {ok?:boolean;code?:string};
       if(!response.ok||!payload.ok)throw new Error(payload.code||`NEWSLETTER_HTTP_${response.status}`);
       this.email='';this.subscribed.set(true);

@@ -62,8 +62,8 @@ export class CustomerAuthService {
 
   private captureReferralFromLocation():void{
     if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);const code=params.get('ref');if(!code||!this.setPendingReferral(code))return;
-    const campaign=String(params.get('campaign')||'').trim().toLowerCase();if(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(campaign))localStorage.setItem(this.referralCampaignStorageKey,campaign);else localStorage.removeItem(this.referralCampaignStorageKey);
-    const landing=`${window.location.pathname}${window.location.search}`.slice(0,800);if(landing.startsWith('/')&&!landing.startsWith('//'))localStorage.setItem(this.referralLandingStorageKey,landing);
+    const campaign=String(params.get('campaign')||'').trim().toLowerCase();if(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(campaign))localStorage.setItem(this.referralCampaignStorageKey,campaign);else if(!localStorage.getItem(this.referralCampaignStorageKey))localStorage.removeItem(this.referralCampaignStorageKey);
+    const landing=`${window.location.pathname}${window.location.search}`.slice(0,800);const existingLanding=localStorage.getItem(this.referralLandingStorageKey);const authPath=window.location.pathname.startsWith('/account/callback')||window.location.pathname.startsWith('/account/login');if(!existingLanding&&!authPath&&landing.startsWith('/')&&!landing.startsWith('//'))localStorage.setItem(this.referralLandingStorageKey,landing);
   }
 
   private async claimPendingReferral():Promise<void>{

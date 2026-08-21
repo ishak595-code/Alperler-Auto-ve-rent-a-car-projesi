@@ -34,7 +34,7 @@ interface ContactResponse {
           </button>
           <div class="min-w-0">
             <h1 class="font-black text-white">İletişim</h1>
-            <p class="truncate text-xs text-slate-400">Alperler Auto destek ve bilgi hattı</p>
+            <p class="truncate text-xs text-slate-400">Alperler Rent A Car destek ve bilgi hattı</p>
           </div>
         </div>
       </header>

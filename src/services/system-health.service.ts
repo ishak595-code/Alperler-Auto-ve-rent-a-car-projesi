@@ -128,7 +128,11 @@ export class SystemHealthService {
     try {
       await fetch(supabaseFunctionUrl("system-event"), {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          "content-type": "application/json",
+          "x-alperler-client": "alperler-web-v1",
+        },
         body: JSON.stringify(payload),
         keepalive: true,
       });

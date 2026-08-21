@@ -139,6 +139,71 @@ app-blog-detail .prose a {
   box-shadow: 0 0 0 3px rgba(96, 165, 250, .18) !important;
 }
 
+/* Account surfaces previously used an isolated white card system. */
+app-account-login :is(.card, .benefits),
+app-account-dashboard :is(.card, .panel, .summary-card),
+app-account-wallet :is(.card, .panel, .wallet-card) {
+  border-color: var(--alper-border) !important;
+  background: var(--alper-surface) !important;
+  color: var(--alper-text) !important;
+  box-shadow: var(--alper-shadow) !important;
+}
+
+app-account-login .tabs button,
+app-account-login .social button {
+  border-color: var(--alper-border) !important;
+  background: var(--alper-elevated) !important;
+  color: var(--alper-text) !important;
+}
+
+app-account-login .tabs button.active {
+  border-color: var(--alper-blue) !important;
+  background: var(--alper-blue) !important;
+  color: #fff !important;
+}
+
+app-account-login .social button:disabled {
+  background: #0B1224 !important;
+  color: var(--alper-subtle) !important;
+  opacity: .72;
+}
+
+app-account-login :is(.provider-note, .divider, small, .benefits span) {
+  color: var(--alper-muted) !important;
+}
+
+app-account-login .divider::before,
+app-account-login .divider::after,
+app-account-login .benefits article {
+  border-color: var(--alper-border) !important;
+  background-color: var(--alper-border) !important;
+}
+
+app-account-login .benefits article {
+  background: transparent !important;
+}
+
+/* Branch network uses the same card and CTA hierarchy. */
+app-branches article,
+app-branch-detail :is(.panel, .card) {
+  border-color: var(--alper-border) !important;
+  background-color: var(--alper-card) !important;
+}
+
+app-branches article:hover {
+  border-color: var(--alper-blue) !important;
+  background-color: var(--alper-elevated) !important;
+}
+
+app-branches a.bg-white {
+  background: var(--alper-blue) !important;
+  color: #fff !important;
+}
+
+app-branches a.bg-white:hover {
+  background: #3B82F6 !important;
+}
+
 /* Keep blue as the dominant interaction color. Gold is not used for generic CTA. */
 :is(app-contact, app-appointment, app-list-your-car-v2, app-branches, app-branch-detail, app-account-login, app-account-dashboard, app-account-wallet) :is(button, a):focus-visible {
   outline-color: var(--alper-blue-light) !important;

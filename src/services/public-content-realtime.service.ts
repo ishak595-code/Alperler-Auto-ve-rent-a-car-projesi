@@ -37,16 +37,22 @@ const PUBLIC_CONTENT_TABLES = [
   'footer_settings',
 ] as const;
 
+const HEARTBEAT_MS = 25_000;
+const STALE_CONNECTION_MS = 80_000;
+const WATCHDOG_MS = 20_000;
+
 @Injectable({ providedIn: 'root' })
 export class PublicContentRealtimeService {
   private readonly destroyRef = inject(DestroyRef);
   private readonly handlers = new Map<string, Set<ChangeHandler>>();
+  private readonly intentionallyClosedSockets = new WeakSet<WebSocket>();
   private socket?: WebSocket;
   private heartbeatTimer?: number;
   private reconnectTimer?: number;
+  private watchdogTimer?: number;
   private reconnectAttempt = 0;
   private sequence = 0;
-  private intentionalClose = false;
+  private lastServerActivityAt = 0;
 
   private readonly _state = signal<RealtimeState>('IDLE');
   readonly state = this._state.asReadonly();
@@ -55,9 +61,13 @@ export class PublicContentRealtimeService {
     if (typeof window !== 'undefined') {
       window.addEventListener('online', this.handleOnline);
       window.addEventListener('offline', this.handleOffline);
+      document.addEventListener('visibilitychange', this.handleVisibilityChange);
+      this.watchdogTimer = window.setInterval(() => this.watchdog(), WATCHDOG_MS);
       this.destroyRef.onDestroy(() => {
         window.removeEventListener('online', this.handleOnline);
         window.removeEventListener('offline', this.handleOffline);
+        document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+        if (this.watchdogTimer !== undefined) window.clearInterval(this.watchdogTimer);
         this.shutdown();
       });
     }
@@ -87,12 +97,19 @@ export class PublicContentRealtimeService {
   private readonly handleOnline = () => {
     if (this.handlers.size === 0) return;
     this.reconnectAttempt = 0;
+    this.emitSubscribedTables();
     this.connect();
   };
 
   private readonly handleOffline = () => {
     this._state.set('OFFLINE');
-    this.closeSocket(false);
+    this.closeActiveSocket(true);
+  };
+
+  private readonly handleVisibilityChange = () => {
+    if (document.visibilityState !== 'visible' || this.handlers.size === 0) return;
+    this.emitSubscribedTables();
+    this.ensureConnected();
   };
 
   private ensureConnected(): void {
@@ -107,29 +124,43 @@ export class PublicContentRealtimeService {
 
   private connect(): void {
     if (typeof window === 'undefined' || typeof WebSocket === 'undefined' || this.handlers.size === 0) return;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      this._state.set('OFFLINE');
+      return;
+    }
+
     this.clearReconnectTimer();
-    this.closeSocket(false);
-    this.intentionalClose = false;
+    this.closeActiveSocket(true);
     this._state.set(this.reconnectAttempt > 0 ? 'RETRYING' : 'CONNECTING');
 
     const wsBase = SUPABASE_PROJECT_URL.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
     const socketUrl = `${wsBase}/realtime/v1/websocket?apikey=${encodeURIComponent(SUPABASE_PUBLISHABLE_KEY)}&vsn=1.0.0`;
     const socket = new WebSocket(socketUrl);
     this.socket = socket;
+    this.lastServerActivityAt = Date.now();
 
-    socket.onopen = () => this.join(socket);
-    socket.onmessage = (event) => this.handleMessage(event.data);
+    socket.onopen = () => {
+      if (this.socket !== socket) return;
+      this.lastServerActivityAt = Date.now();
+      this.join(socket);
+    };
+    socket.onmessage = (event) => this.handleMessage(socket, event.data);
     socket.onerror = () => {
       if (this.socket === socket && socket.readyState !== WebSocket.CLOSED) socket.close();
     };
     socket.onclose = () => {
-      if (this.socket === socket) this.socket = undefined;
-      this.stopHeartbeat();
-      if (!this.intentionalClose && this.handlers.size > 0) this.scheduleReconnect();
+      const wasActive = this.socket === socket;
+      const intentional = this.intentionallyClosedSockets.has(socket);
+      if (wasActive) {
+        this.socket = undefined;
+        this.stopHeartbeat();
+      }
+      if (wasActive && !intentional && this.handlers.size > 0) this.scheduleReconnect();
     };
   }
 
   private join(socket: WebSocket): void {
+    if (this.socket !== socket || socket.readyState !== WebSocket.OPEN) return;
     const ref = this.nextRef();
     socket.send(JSON.stringify({
       topic: 'realtime:public-content',
@@ -148,8 +179,10 @@ export class PublicContentRealtimeService {
     this.startHeartbeat(socket);
   }
 
-  private handleMessage(raw: unknown): void {
-    if (typeof raw !== 'string') return;
+  private handleMessage(socket: WebSocket, raw: unknown): void {
+    if (this.socket !== socket || typeof raw !== 'string') return;
+    this.lastServerActivityAt = Date.now();
+
     let message: RealtimeMessage;
     try {
       message = JSON.parse(raw) as RealtimeMessage;
@@ -190,12 +223,31 @@ export class PublicContentRealtimeService {
     }
   }
 
+  private emitSubscribedTables(): void {
+    const invoked = new Set<ChangeHandler>();
+    for (const [table, tableHandlers] of this.handlers) {
+      if (table === '*') continue;
+      for (const handler of tableHandlers) {
+        if (invoked.has(handler)) continue;
+        invoked.add(handler);
+        handler(table);
+      }
+    }
+    const wildcardHandlers = this.handlers.get('*');
+    if (wildcardHandlers) {
+      for (const handler of wildcardHandlers) {
+        if (invoked.has(handler)) continue;
+        handler('*');
+      }
+    }
+  }
+
   private startHeartbeat(socket: WebSocket): void {
     this.stopHeartbeat();
     this.heartbeatTimer = window.setInterval(() => {
       if (this.socket !== socket || socket.readyState !== WebSocket.OPEN) return;
       socket.send(JSON.stringify({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: this.nextRef(), join_ref: null }));
-    }, 25_000);
+    }, HEARTBEAT_MS);
   }
 
   private stopHeartbeat(): void {
@@ -205,13 +257,32 @@ export class PublicContentRealtimeService {
     }
   }
 
+  private watchdog(): void {
+    if (typeof window === 'undefined' || this.handlers.size === 0) return;
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      this._state.set('OFFLINE');
+      return;
+    }
+
+    const socket = this.socket;
+    if (!socket || socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
+      this.ensureConnected();
+      return;
+    }
+
+    if (socket.readyState === WebSocket.OPEN && Date.now() - this.lastServerActivityAt > STALE_CONNECTION_MS) {
+      this.forceReconnect();
+    }
+  }
+
   private forceReconnect(): void {
-    if (!this.socket) {
+    const socket = this.socket;
+    if (!socket) {
       this.scheduleReconnect();
       return;
     }
-    this.intentionalClose = false;
-    this.socket.close();
+    if (socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING) socket.close();
   }
 
   private scheduleReconnect(): void {
@@ -221,7 +292,9 @@ export class PublicContentRealtimeService {
       return;
     }
     const delays = [1_000, 2_000, 5_000, 10_000, 20_000, 30_000];
-    const delay = delays[Math.min(this.reconnectAttempt, delays.length - 1)];
+    const baseDelay = delays[Math.min(this.reconnectAttempt, delays.length - 1)];
+    const jitter = Math.floor(Math.random() * 500);
+    const delay = baseDelay + jitter;
     this.reconnectAttempt += 1;
     this._state.set('RETRYING');
     this.reconnectTimer = window.setTimeout(() => {
@@ -237,18 +310,19 @@ export class PublicContentRealtimeService {
     }
   }
 
-  private closeSocket(intentional: boolean): void {
-    this.intentionalClose = intentional;
+  private closeActiveSocket(intentional: boolean): void {
     const socket = this.socket;
     this.socket = undefined;
     this.stopHeartbeat();
-    if (socket && socket.readyState !== WebSocket.CLOSED) socket.close();
+    if (!socket) return;
+    if (intentional) this.intentionallyClosedSockets.add(socket);
+    if (socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING) socket.close();
   }
 
   private shutdown(): void {
     this.clearReconnectTimer();
     this.reconnectAttempt = 0;
-    this.closeSocket(true);
+    this.closeActiveSocket(true);
     this._state.set('IDLE');
   }
 

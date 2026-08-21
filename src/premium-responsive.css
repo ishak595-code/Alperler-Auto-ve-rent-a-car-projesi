@@ -1,15 +1,28 @@
 /* Responsive finishing for the customer prestige system. */
 
+/* Calm luxury fallback palette. Runtime admin settings can override these variables. */
+:root{
+  --alper-bg:#060A12;
+  --alper-list:#08101B;
+  --alper-surface:#0B1420;
+  --alper-card:#0E1724;
+  --alper-elevated:#121D2C;
+  --alper-border:#27364A;
+  --alper-blue:#315E86;
+  --alper-blue-light:#7899B8;
+  --alper-gold:#C6A15B;
+  --alper-text:#F4F6F8;
+  --alper-muted:#A2ADBA;
+  --alper-subtle:#718096;
+}
+
 /* Rich vehicle cards stay spacious. Two columns begin only when the screen can support them. */
 @media (max-width: 639px) {
   app-rental-results section[aria-label="Kiralık araç sonuçları"] > div.grid,
   app-sales-results section[aria-label="Satılık araç sonuçları"] > div.grid {
     grid-template-columns: minmax(0, 1fr) !important;
   }
-
-  app-vehicle-list-item > a {
-    padding: 14px !important;
-  }
+  app-vehicle-list-item > a { padding: 14px !important; }
 }
 
 @media (min-width: 640px) and (max-width: 899px) {
@@ -19,210 +32,65 @@
   }
 }
 
-/* Blog detail keeps editorial readability without becoming a separate light website. */
 app-blog-detail > div,
-app-blog-detail .bg-white {
-  background-color: var(--alper-bg) !important;
-  color: var(--alper-text) !important;
-}
-
+app-blog-detail .bg-white { background-color: var(--alper-bg) !important; color: var(--alper-text) !important; }
 app-blog-detail .border-slate-200,
-app-blog-detail .border-slate-100 {
-  border-color: var(--alper-border) !important;
-}
-
+app-blog-detail .border-slate-100 { border-color: var(--alper-border) !important; }
 app-blog-detail .bg-slate-50,
-app-blog-detail .bg-slate-100 {
-  background: var(--alper-card) !important;
-}
+app-blog-detail .bg-slate-100 { background: var(--alper-card) !important; }
+app-blog-detail :is(.text-slate-900, .text-slate-800) { color: var(--alper-text) !important; }
+app-blog-detail :is(.text-slate-600, .text-slate-500, .text-slate-400) { color: var(--alper-muted) !important; }
+app-blog-detail .prose { max-width:72ch; color:color-mix(in srgb,var(--alper-text) 82%,var(--alper-muted) 18%) !important; line-height:1.78; }
+app-blog-detail .prose :is(h1,h2,h3,h4,strong){color:var(--alper-text)!important}
+app-blog-detail .prose a{color:var(--alper-blue-light)!important}
 
-app-blog-detail :is(.text-slate-900, .text-slate-800) {
-  color: var(--alper-text) !important;
-}
+:is(app-contact,app-appointment,app-list-your-car-v2,app-branches,app-branch-detail,app-account-login,app-account-dashboard,app-account-wallet) :is(.bg-white,.bg-slate-50){background-color:var(--alper-surface)!important;color:var(--alper-text)!important}
+:is(app-contact,app-appointment,app-list-your-car-v2,app-branches,app-branch-detail,app-account-login,app-account-dashboard,app-account-wallet) :is(.bg-slate-100,.bg-slate-200){background-color:var(--alper-elevated)!important}
+:is(app-contact,app-appointment,app-list-your-car-v2,app-branches,app-branch-detail,app-account-login,app-account-dashboard,app-account-wallet) :is(.border-slate-100,.border-slate-200,.border-slate-300){border-color:var(--alper-border)!important}
+:is(app-contact,app-appointment,app-list-your-car-v2,app-branches,app-branch-detail,app-account-login,app-account-dashboard,app-account-wallet) :is(.text-slate-950,.text-slate-900,.text-slate-800,.text-slate-700){color:var(--alper-text)!important}
+:is(app-contact,app-appointment,app-list-your-car-v2,app-branches,app-branch-detail,app-account-login,app-account-dashboard,app-account-wallet) :is(.text-slate-600,.text-slate-500,.text-slate-400){color:var(--alper-muted)!important}
 
-app-blog-detail :is(.text-slate-600, .text-slate-500, .text-slate-400) {
-  color: var(--alper-muted) !important;
-}
+:is(app-contact,app-appointment,app-list-your-car-v2,app-account-login,app-account-dashboard,app-account-wallet) :is(input,select,textarea){border-color:var(--alper-border)!important;background:var(--alper-elevated)!important;color:var(--alper-text)!important}
+:is(app-contact,app-appointment,app-list-your-car-v2,app-account-login,app-account-dashboard,app-account-wallet) :is(input,select,textarea)::placeholder{color:var(--alper-subtle)!important}
+:is(app-contact,app-appointment,app-list-your-car-v2,app-account-login,app-account-dashboard,app-account-wallet) :is(input,select,textarea):focus{border-color:var(--alper-blue-light)!important;box-shadow:var(--alper-focus-ring)!important}
 
-app-blog-detail .prose {
-  max-width: 72ch;
-  color: color-mix(in srgb, var(--alper-text) 82%, var(--alper-muted) 18%) !important;
-  line-height: 1.78;
-}
-
-app-blog-detail .prose :is(h1, h2, h3, h4, strong) {
-  color: var(--alper-text) !important;
-}
-
-app-blog-detail .prose a {
-  color: var(--alper-blue-light) !important;
-}
-
-/* Secondary customer pages share the same calm navy hierarchy. */
-:is(
-  app-contact,
-  app-appointment,
-  app-list-your-car-v2,
-  app-branches,
-  app-branch-detail,
-  app-account-login,
-  app-account-dashboard,
-  app-account-wallet
-) :is(.bg-white, .bg-slate-50) {
-  background-color: var(--alper-surface) !important;
-  color: var(--alper-text) !important;
-}
-
-:is(
-  app-contact,
-  app-appointment,
-  app-list-your-car-v2,
-  app-branches,
-  app-branch-detail,
-  app-account-login,
-  app-account-dashboard,
-  app-account-wallet
-) :is(.bg-slate-100, .bg-slate-200) {
-  background-color: var(--alper-elevated) !important;
-}
-
-:is(
-  app-contact,
-  app-appointment,
-  app-list-your-car-v2,
-  app-branches,
-  app-branch-detail,
-  app-account-login,
-  app-account-dashboard,
-  app-account-wallet
-) :is(.border-slate-100, .border-slate-200, .border-slate-300) {
-  border-color: var(--alper-border) !important;
-}
-
-:is(
-  app-contact,
-  app-appointment,
-  app-list-your-car-v2,
-  app-branches,
-  app-branch-detail,
-  app-account-login,
-  app-account-dashboard,
-  app-account-wallet
-) :is(.text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700) {
-  color: var(--alper-text) !important;
-}
-
-:is(
-  app-contact,
-  app-appointment,
-  app-list-your-car-v2,
-  app-branches,
-  app-branch-detail,
-  app-account-login,
-  app-account-dashboard,
-  app-account-wallet
-) :is(.text-slate-600, .text-slate-500, .text-slate-400) {
-  color: var(--alper-muted) !important;
-}
-
-:is(app-contact, app-appointment, app-list-your-car-v2, app-account-login, app-account-dashboard, app-account-wallet) :is(input, select, textarea) {
-  border-color: var(--alper-border) !important;
-  background: var(--alper-elevated) !important;
-  color: var(--alper-text) !important;
-}
-
-:is(app-contact, app-appointment, app-list-your-car-v2, app-account-login, app-account-dashboard, app-account-wallet) :is(input, select, textarea)::placeholder {
-  color: var(--alper-subtle) !important;
-}
-
-:is(app-contact, app-appointment, app-list-your-car-v2, app-account-login, app-account-dashboard, app-account-wallet) :is(input, select, textarea):focus {
-  border-color: var(--alper-blue-light) !important;
-  box-shadow: var(--alper-focus-ring) !important;
-}
-
-/* Account surfaces use restrained depth. */
-app-account-login :is(.card, .benefits),
-app-account-dashboard :is(.card, .panel, .summary-card),
-app-account-wallet :is(.card, .panel, .wallet-card) {
-  border-color: var(--alper-border) !important;
-  background: var(--alper-surface) !important;
-  color: var(--alper-text) !important;
-  box-shadow: 0 16px 44px rgba(0, 0, 0, .18) !important;
-}
-
+/* Account controls inherit the admin-managed palette rather than hardcoded blues. */
+app-account-login .page,
+app-account-dashboard .page,
+app-account-wallet .page{background-color:var(--alper-bg)!important;color:var(--alper-text)!important}
+app-account-login :is(.card,.benefits),
+app-account-dashboard :is(.card,.panel,.summary-card),
+app-account-wallet :is(.card,.panel,.wallet-card){border-color:var(--alper-border)!important;background:var(--alper-surface)!important;color:var(--alper-text)!important;box-shadow:0 16px 44px rgba(0,0,0,.18)!important}
 app-account-login .tabs button,
-app-account-login .social button {
-  border-color: var(--alper-border) !important;
-  background: var(--alper-card) !important;
-  color: var(--alper-text) !important;
-}
-
-app-account-login .tabs button.active {
-  border-color: color-mix(in srgb, var(--alper-border) 45%, var(--alper-text) 55%) !important;
-  background: var(--alper-elevated) !important;
-  color: var(--alper-text) !important;
-}
-
-app-account-login :is(.provider-note, .divider, small, .benefits span) {
-  color: var(--alper-muted) !important;
-}
-
+app-account-login .social button{border-color:var(--alper-border)!important;background:var(--alper-card)!important;color:var(--alper-text)!important}
+app-account-login .tabs button.active{border-color:color-mix(in srgb,var(--alper-border) 45%,var(--alper-text) 55%)!important;background:var(--alper-elevated)!important;color:var(--alper-text)!important}
+app-account-login :is(.provider-note,.divider,small,.benefits span){color:var(--alper-muted)!important}
 app-account-login .divider::before,
-app-account-login .divider::after {
-  background-color: var(--alper-border) !important;
-}
+app-account-login .divider::after{background-color:var(--alper-border)!important}
+app-account-login .benefits article{border-color:var(--alper-border)!important;background:transparent!important}
+:is(app-account-login,app-account-dashboard,app-account-wallet) .primary{background:var(--alper-blue)!important;color:#fff!important}
+:is(app-account-login,app-account-dashboard,app-account-wallet) .secondary{border-color:var(--alper-border)!important;background:var(--alper-elevated)!important;color:var(--alper-text)!important}
+:is(app-account-login,app-account-dashboard) :is(.eyebrow,.identity-copy p,.plain-heading p,.section-heading p,.wallet-banner p){color:var(--alper-gold)!important}
+app-account-dashboard :is(.quick-grid a,.summary article,.wallet-banner,.service-rewards article){border-color:var(--alper-border)!important}
+app-account-dashboard :is(.quick-grid a,.summary article,.service-rewards article){background:var(--alper-card)!important}
+app-account-dashboard :is(.quick-grid a:hover,.summary .tier,.service-rewards .invite-summary){background:var(--alper-elevated)!important}
+app-account-dashboard .quick-grid b{color:var(--alper-blue-light)!important}
+app-account-dashboard :is(.summary .tier strong,.points strong,.ref-code,.invite-summary strong){color:var(--alper-gold)!important}
 
-app-account-login .benefits article {
-  border-color: var(--alper-border) !important;
-  background: transparent !important;
-}
-
-/* Branch cards gain depth without a bright blue frame. */
 app-branches article,
-app-branch-detail :is(.panel, .card) {
-  border-color: var(--alper-border) !important;
-  background-color: var(--alper-card) !important;
-}
+app-branch-detail :is(.panel,.card){border-color:var(--alper-border)!important;background-color:var(--alper-card)!important}
+app-branches article:hover{border-color:var(--alper-border-hover)!important;background-color:var(--alper-elevated)!important}
+app-branches a.bg-white{background:var(--alper-blue)!important;color:#fff!important}
+app-branches a.bg-white:hover{filter:brightness(1.05)}
 
-app-branches article:hover {
-  border-color: var(--alper-border-hover) !important;
-  background-color: var(--alper-elevated) !important;
-}
+:is(app-contact,app-appointment,app-list-your-car-v2,app-branches,app-branch-detail,app-account-login,app-account-dashboard,app-account-wallet) :is(button,a):focus-visible{outline-color:var(--alper-blue-light)!important;outline-offset:3px}
 
-/* Existing white CTA classes become one intentional primary action, not a blue surface system. */
-app-branches a.bg-white {
-  background: var(--alper-blue) !important;
-  color: #fff !important;
+@media (max-width:767px){
+  :is(app-account-login,app-account-dashboard,app-account-wallet,app-contact,app-appointment,app-list-your-car-v2) main{padding-inline:max(14px,env(safe-area-inset-left))!important;padding-right:max(14px,env(safe-area-inset-right))!important}
 }
-
-app-branches a.bg-white:hover {
-  filter: brightness(1.06);
+@media (min-width:900px){
+  :is(app-account-login,app-account-dashboard,app-account-wallet) main{padding-top:clamp(28px,4vw,58px)!important;padding-bottom:clamp(52px,7vw,96px)!important}
 }
-
-:is(app-contact, app-appointment, app-list-your-car-v2, app-branches, app-branch-detail, app-account-login, app-account-dashboard, app-account-wallet) :is(button, a):focus-visible {
-  outline-color: var(--alper-blue-light) !important;
-  outline-offset: 3px;
-}
-
-/* High-end layouts need negative space. Keep touch targets generous and text uncrowded. */
-@media (max-width: 767px) {
-  :is(app-account-login, app-account-dashboard, app-account-wallet, app-contact, app-appointment, app-list-your-car-v2) main {
-    padding-inline: max(14px, env(safe-area-inset-left)) !important;
-    padding-right: max(14px, env(safe-area-inset-right)) !important;
-  }
-}
-
-@media (min-width: 900px) {
-  :is(app-account-login, app-account-dashboard, app-account-wallet) main {
-    padding-top: clamp(28px, 4vw, 58px) !important;
-    padding-bottom: clamp(52px, 7vw, 96px) !important;
-  }
-}
-
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  :is(app-branches, app-blog-list, app-rental-results, app-sales-results) a[href] {
-    transition-property: transform, border-color, background-color, box-shadow, color;
-    transition-duration: 180ms;
-    transition-timing-function: ease;
-  }
+@media (hover:hover) and (prefers-reduced-motion:no-preference){
+  :is(app-branches,app-blog-list,app-rental-results,app-sales-results) a[href]{transition-property:transform,border-color,background-color,box-shadow,color;transition-duration:180ms;transition-timing-function:ease}
 }

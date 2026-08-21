@@ -1,47 +1,47 @@
-<main class="min-h-screen bg-slate-950 pb-28 text-slate-300">
-  <header class="sticky top-0 z-40 border-b border-slate-800 bg-slate-900/95 shadow-lg backdrop-blur-xl">
+<main class="min-h-screen bg-[#050A18] pb-28 text-[#94A3B8]">
+  <header class="sticky top-0 z-40 border-b border-[#24314A] bg-[#080F20]/95 shadow-xl backdrop-blur-xl">
     <div class="mx-auto flex min-h-16 max-w-7xl items-center gap-2 px-2 py-2 sm:px-4">
-      <button type="button" (click)="goBack()" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Satılık araçlardan geri dön"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
+      <button type="button" (click)="goBack()" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#94A3B8] transition hover:bg-[#101A2E] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#60A5FA]" aria-label="Satılık araçlardan geri dön"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
       <label for="sales-search" class="relative min-w-0 flex-1">
         <span class="sr-only">Satılık araçlarda ilan no, marka veya model ara</span>
-        <mat-icon aria-hidden="true" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">search</mat-icon>
-        <input id="sales-search" type="search" inputmode="search" autocomplete="off" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" placeholder="İlan no, marka veya model ara" class="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-800 pl-11 pr-4 text-sm font-semibold text-white outline-none placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+        <mat-icon aria-hidden="true" class="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]">search</mat-icon>
+        <input id="sales-search" type="search" inputmode="search" autocomplete="off" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" placeholder="İlan no, marka veya model ara" class="min-h-12 w-full rounded-xl border border-[#24314A] bg-[#101A2E] pl-11 pr-4 text-sm font-semibold text-[#F8FAFC] outline-none placeholder:text-[#64748B] focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
       </label>
     </div>
   </header>
 
-  <section class="border-b border-slate-800 bg-[#020617] px-4 py-6 sm:py-8">
+  <section class="border-b border-[#24314A] bg-[#050A18] px-4 py-7 sm:py-10">
     <div class="mx-auto max-w-7xl">
-      <p class="text-[10px] font-black uppercase tracking-[.16em] text-blue-400">İkinci El Araçlar</p>
-      <h1 class="mt-1 font-serif text-3xl font-black text-white sm:text-4xl">Satılık Araçlar</h1>
-      <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Fiyat, kilometre, model yılı ve temel araç bilgilerini karşılaştırın; size uyan ilanın detayını açın.</p>
+      <p class="text-[10px] font-black uppercase tracking-[.16em] text-[#60A5FA]">İkinci El Araçlar</p>
+      <h1 class="mt-1 font-serif text-3xl font-black text-[#F8FAFC] sm:text-4xl">Satılık Araçlar</h1>
+      <p class="mt-3 max-w-3xl text-sm leading-6 text-[#94A3B8]">İkinci el araçları yalnız fotoğraf ve fiyatla değil; model yılı, kilometre, yakıt, vites ve mevcut ilan açıklamalarıyla birlikte değerlendirin. Beğendiğiniz kartın tamamına dokunarak araç detayına geçin, mevcut ekspertiz ve hasar bilgilerini inceleyin ve görüşme ya da satın alma talebinizi başlatın.</p>
     </div>
   </section>
 
-  <section class="sticky top-16 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 text-slate-900 shadow-sm backdrop-blur" aria-label="Satılık araç araçları">
+  <section class="sticky top-16 z-30 border-b border-[#24314A] bg-[#080F20]/95 px-4 py-3 text-[#F8FAFC] shadow-lg backdrop-blur" aria-label="Satılık araç araçları">
     <div class="mx-auto flex max-w-7xl items-center justify-between gap-3">
       <div class="min-w-0" aria-live="polite">
-        <strong class="block text-sm font-black">{{ filteredVehicles().length }} araç bulundu</strong>
-        <span class="block truncate text-[11px] text-slate-500">@if (activeFilterCount()) { {{ activeFilterCount() }} filtre aktif } @else { Filtre uygulanmadı }</span>
+        <strong class="block text-sm font-black text-[#F8FAFC]">{{ filteredVehicles().length }} araç bulundu</strong>
+        <span class="block truncate text-[11px] text-[#94A3B8]">@if (activeFilterCount()) { {{ activeFilterCount() }} filtre aktif } @else { Filtre uygulanmadı }</span>
       </div>
       <div class="flex shrink-0 items-center gap-2">
         @if (activeFilterCount()) {
-          <button type="button" (click)="clearFilters()" class="min-h-11 rounded-xl px-3 text-xs font-black text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Temizle</button>
+          <button type="button" (click)="clearFilters()" class="min-h-11 rounded-xl px-3 text-xs font-black text-[#94A3B8] transition hover:bg-[#101A2E] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#60A5FA]">Temizle</button>
         }
-        <button type="button" (click)="filterOpen.set(true)" class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-black text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" [attr.aria-expanded]="filterOpen()" aria-controls="sales-filter-sheet">
+        <button type="button" (click)="filterOpen.set(true)" class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#2563EB] px-4 text-xs font-black text-white shadow-lg transition hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#60A5FA]" [attr.aria-expanded]="filterOpen()" aria-controls="sales-filter-sheet">
           <mat-icon aria-hidden="true">tune</mat-icon> Filtrele @if (activeFilterCount()) { <span class="count-badge">{{ activeFilterCount() }}</span> }
         </button>
       </div>
     </div>
   </section>
 
-  <section class="bg-white" aria-label="Satılık araç sonuçları">
+  <section class="bg-[#080F20]" aria-label="Satılık araç sonuçları">
     @if (filteredVehicles().length > 0) {
-      <div class="mx-auto grid max-w-7xl grid-cols-1 gap-px bg-slate-200 min-[430px]:grid-cols-2 sm:grid-cols-3 xl:grid-cols-4">
-        @for (car of filteredVehicles(); track car.id) { <div class="min-w-0 bg-white p-1"><app-vehicle-list-item [car]="car" variant="sale"></app-vehicle-list-item></div> }
+      <div class="mx-auto grid max-w-7xl grid-cols-1 gap-3 bg-transparent px-3 py-4 min-[430px]:grid-cols-2 sm:grid-cols-3 sm:px-4 xl:grid-cols-4">
+        @for (car of filteredVehicles(); track car.id) { <div class="min-w-0 bg-transparent"><app-vehicle-list-item [car]="car" variant="sale"></app-vehicle-list-item></div> }
       </div>
     } @else {
-      <div class="mx-auto flex min-h-80 max-w-2xl flex-col items-center justify-center px-6 text-center text-slate-700"><mat-icon class="!h-14 !w-14 !text-[56px] text-slate-300" aria-hidden="true">search_off</mat-icon><h2 class="mt-4 text-xl font-black">Bu seçimlere uyan araç bulunamadı</h2><p class="mt-2 text-sm text-slate-500">Filtrelerden birini değiştirin veya tüm filtreleri temizleyin.</p><button type="button" (click)="clearAll()" class="mt-5 min-h-11 rounded-xl bg-slate-900 px-5 font-black text-white">Tüm Araçları Göster</button></div>
+      <div class="mx-auto flex min-h-80 max-w-2xl flex-col items-center justify-center px-6 text-center text-[#94A3B8]"><mat-icon class="!h-14 !w-14 !text-[56px] text-[#64748B]" aria-hidden="true">search_off</mat-icon><h2 class="mt-4 text-xl font-black text-[#F8FAFC]">Bu seçimlere uyan araç bulunamadı</h2><p class="mt-2 text-sm text-[#94A3B8]">Filtrelerden birini değiştirin veya tüm filtreleri temizleyerek tüm ilanları yeniden görüntüleyin.</p><button type="button" (click)="clearAll()" class="mt-5 min-h-11 rounded-xl bg-[#2563EB] px-5 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#60A5FA]">Tüm Araçları Göster</button></div>
     }
   </section>
 

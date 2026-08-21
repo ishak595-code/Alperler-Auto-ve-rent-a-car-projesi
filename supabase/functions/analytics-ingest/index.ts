@@ -41,8 +41,9 @@ function originFor(request: Request): string {
   const origin = request.headers.get("origin") || "";
   if (!origin) return "*";
   try {
-    const host = new globalThis.URL(origin).hostname.toLowerCase();
-    if (host === "alperrentacar.online" || host === "www.alperrentacar.online" || host === "localhost" || host === "127.0.0.1" || host.endsWith(".vercel.app")) return origin;
+    const parsed = new globalThis.URL(origin);
+    const host = parsed.hostname.toLowerCase();
+    if (parsed.protocol === "https:" || host === "localhost" || host === "127.0.0.1") return origin;
   } catch { /* reject */ }
   return "null";
 }

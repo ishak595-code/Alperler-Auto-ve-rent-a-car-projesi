@@ -1,26 +1,25 @@
-/* Responsive and secondary customer-surface finishing for the V137 design system. */
+/* Responsive finishing for the customer prestige system. */
 
-/* Rich vehicle cards need breathing room on narrow phones. */
-@media (max-width: 479px) {
+/* Rich vehicle cards stay spacious. Two columns begin only when the screen can support them. */
+@media (max-width: 639px) {
   app-rental-results section[aria-label="Kiralık araç sonuçları"] > div.grid,
   app-sales-results section[aria-label="Satılık araç sonuçları"] > div.grid {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 
   app-vehicle-list-item > a {
-    padding: 12px !important;
+    padding: 14px !important;
   }
 }
 
-@media (min-width: 480px) and (max-width: 767px) {
+@media (min-width: 640px) and (max-width: 899px) {
   app-rental-results section[aria-label="Kiralık araç sonuçları"] > div.grid,
   app-sales-results section[aria-label="Satılık araç sonuçları"] > div.grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 
-/* Blog detail had a legacy white editorial shell. Keep article readability while
-   retaining the same navy surface hierarchy as the rest of the customer app. */
+/* Blog detail keeps editorial readability without becoming a separate light website. */
 app-blog-detail > div,
 app-blog-detail .bg-white {
   background-color: var(--alper-bg) !important;
@@ -46,7 +45,9 @@ app-blog-detail :is(.text-slate-600, .text-slate-500, .text-slate-400) {
 }
 
 app-blog-detail .prose {
-  color: #CBD5E1 !important;
+  max-width: 72ch;
+  color: color-mix(in srgb, var(--alper-text) 82%, var(--alper-muted) 18%) !important;
+  line-height: 1.78;
 }
 
 app-blog-detail .prose :is(h1, h2, h3, h4, strong) {
@@ -57,7 +58,7 @@ app-blog-detail .prose a {
   color: var(--alper-blue-light) !important;
 }
 
-/* Secondary customer pages: eliminate isolated light cards without touching admin. */
+/* Secondary customer pages share the same calm navy hierarchy. */
 :is(
   app-contact,
   app-appointment,
@@ -136,36 +137,30 @@ app-blog-detail .prose a {
 
 :is(app-contact, app-appointment, app-list-your-car-v2, app-account-login, app-account-dashboard, app-account-wallet) :is(input, select, textarea):focus {
   border-color: var(--alper-blue-light) !important;
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, .18) !important;
+  box-shadow: var(--alper-focus-ring) !important;
 }
 
-/* Account surfaces previously used an isolated white card system. */
+/* Account surfaces use restrained depth. */
 app-account-login :is(.card, .benefits),
 app-account-dashboard :is(.card, .panel, .summary-card),
 app-account-wallet :is(.card, .panel, .wallet-card) {
   border-color: var(--alper-border) !important;
   background: var(--alper-surface) !important;
   color: var(--alper-text) !important;
-  box-shadow: var(--alper-shadow) !important;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, .18) !important;
 }
 
 app-account-login .tabs button,
 app-account-login .social button {
   border-color: var(--alper-border) !important;
-  background: var(--alper-elevated) !important;
+  background: var(--alper-card) !important;
   color: var(--alper-text) !important;
 }
 
 app-account-login .tabs button.active {
-  border-color: var(--alper-blue) !important;
-  background: var(--alper-blue) !important;
-  color: #fff !important;
-}
-
-app-account-login .social button:disabled {
-  background: #0B1224 !important;
-  color: var(--alper-subtle) !important;
-  opacity: .72;
+  border-color: color-mix(in srgb, var(--alper-border) 45%, var(--alper-text) 55%) !important;
+  background: var(--alper-elevated) !important;
+  color: var(--alper-text) !important;
 }
 
 app-account-login :is(.provider-note, .divider, small, .benefits span) {
@@ -173,17 +168,16 @@ app-account-login :is(.provider-note, .divider, small, .benefits span) {
 }
 
 app-account-login .divider::before,
-app-account-login .divider::after,
-app-account-login .benefits article {
-  border-color: var(--alper-border) !important;
+app-account-login .divider::after {
   background-color: var(--alper-border) !important;
 }
 
 app-account-login .benefits article {
+  border-color: var(--alper-border) !important;
   background: transparent !important;
 }
 
-/* Branch network uses the same card and CTA hierarchy. */
+/* Branch cards gain depth without a bright blue frame. */
 app-branches article,
 app-branch-detail :is(.panel, .card) {
   border-color: var(--alper-border) !important;
@@ -191,25 +185,40 @@ app-branch-detail :is(.panel, .card) {
 }
 
 app-branches article:hover {
-  border-color: var(--alper-blue) !important;
+  border-color: var(--alper-border-hover) !important;
   background-color: var(--alper-elevated) !important;
 }
 
+/* Existing white CTA classes become one intentional primary action, not a blue surface system. */
 app-branches a.bg-white {
   background: var(--alper-blue) !important;
   color: #fff !important;
 }
 
 app-branches a.bg-white:hover {
-  background: #3B82F6 !important;
+  filter: brightness(1.06);
 }
 
-/* Keep blue as the dominant interaction color. Gold is not used for generic CTA. */
 :is(app-contact, app-appointment, app-list-your-car-v2, app-branches, app-branch-detail, app-account-login, app-account-dashboard, app-account-wallet) :is(button, a):focus-visible {
   outline-color: var(--alper-blue-light) !important;
+  outline-offset: 3px;
 }
 
-/* Avoid excessive animation while retaining a high-end hover response. */
+/* High-end layouts need negative space. Keep touch targets generous and text uncrowded. */
+@media (max-width: 767px) {
+  :is(app-account-login, app-account-dashboard, app-account-wallet, app-contact, app-appointment, app-list-your-car-v2) main {
+    padding-inline: max(14px, env(safe-area-inset-left)) !important;
+    padding-right: max(14px, env(safe-area-inset-right)) !important;
+  }
+}
+
+@media (min-width: 900px) {
+  :is(app-account-login, app-account-dashboard, app-account-wallet) main {
+    padding-top: clamp(28px, 4vw, 58px) !important;
+    padding-bottom: clamp(52px, 7vw, 96px) !important;
+  }
+}
+
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   :is(app-branches, app-blog-list, app-rental-results, app-sales-results) a[href] {
     transition-property: transform, border-color, background-color, box-shadow, color;

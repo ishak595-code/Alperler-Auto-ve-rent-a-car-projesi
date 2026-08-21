@@ -37,6 +37,25 @@ export class CustomerAccountService {
   readonly loyaltySettings = signal<LoyaltySettings | null>(null);
   readonly referralSummary = signal<ReferralSummary | null>(null);
 
+  async refreshProfileSummary(): Promise<void> {
+    const token = await this.auth.getAccessToken();
+    if (!token) {
+      this.profile.set(null);
+      return;
+    }
+    try {
+      await this.rpc('ensure_customer_profile', {}, token);
+      const profile = await this.getRows<CustomerProfile>('customer_profiles?select=user_id,email,full_name,phone,avatar_url,status&limit=1', token);
+      this.profile.set(profile[0] || null);
+    } catch {
+      // Navbar identity must never block customer browsing if the profile endpoint is temporarily unavailable.
+    }
+  }
+
+  clearLocalProfile(): void {
+    this.profile.set(null);
+  }
+
   async refresh(): Promise<void> {
     const token = await this.requireToken();
     this.loading.set(true);

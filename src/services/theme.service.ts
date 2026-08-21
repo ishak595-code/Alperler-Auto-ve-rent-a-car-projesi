@@ -5,18 +5,18 @@ import { CarService } from './car.service';
 export type Theme = 'light' | 'dark' | 'luxury' | 'corporate';
 
 const PREMIUM_DEFAULTS: Required<PremiumThemePalette> = {
-  background: '#050A18',
-  listBackground: '#080F20',
-  surface: '#0B1224',
-  card: '#0D1628',
-  elevated: '#101A2E',
-  border: '#24314A',
-  primaryBlue: '#2563EB',
-  blueLight: '#60A5FA',
-  brandGold: '#EABF35',
-  text: '#F8FAFC',
-  textMuted: '#94A3B8',
-  textSubtle: '#64748B',
+  background: '#060A12',
+  listBackground: '#08101B',
+  surface: '#0B1420',
+  card: '#0E1724',
+  elevated: '#121D2C',
+  border: '#27364A',
+  primaryBlue: '#315E86',
+  blueLight: '#7899B8',
+  brandGold: '#C6A15B',
+  text: '#F4F6F8',
+  textMuted: '#A2ADBA',
+  textSubtle: '#718096',
 };
 
 @Injectable({ providedIn: 'root' })

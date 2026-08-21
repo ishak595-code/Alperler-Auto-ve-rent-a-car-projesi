@@ -8,11 +8,16 @@ const fail = (message) => {
 
 const angular = JSON.parse(read('angular.json'));
 const styles = angular.projects?.app?.architect?.build?.options?.styles || [];
-for (const required of ['src/premium-design-system.css', 'src/premium-responsive.css']) {
+for (const required of [
+  'src/premium-design-system.css',
+  'src/prestige-palette-defaults.css',
+  'src/premium-responsive.css',
+]) {
   if (!styles.includes(required)) fail(`${required} is not loaded by Angular.`);
 }
 
 const design = read('src/premium-design-system.css');
+const prestigeDefaults = read('src/prestige-palette-defaults.css');
 const responsive = read('src/premium-responsive.css');
 const vehicleCard = read('src/components/vehicle-list-item.component.ts');
 const themeService = read('src/services/theme.service.ts');
@@ -22,23 +27,27 @@ const siteConfig = read('src/models/site-config.model.ts');
 // Structural guard only. It intentionally never counts or inspects catalog records,
 // dynamic homepage section counts, campaign counts, vehicle counts, tour counts or blog counts.
 // Admin users remain free to add new content and new showcase sections.
-const requiredTokens = {
-  '--alper-bg: #050A18': 'main background',
-  '--alper-list: #080F20': 'list background',
-  '--alper-surface: #0B1224': 'surface',
-  '--alper-card: #0D1628': 'card',
-  '--alper-elevated: #101A2E': 'elevated surface',
-  '--alper-border: #24314A': 'border',
-  '--alper-blue: #2563EB': 'primary blue',
-  '--alper-blue-light: #60A5FA': 'blue highlight',
-  '--alper-gold: #EABF35': 'brand gold',
-  '--alper-text: #F8FAFC': 'primary text',
-  '--alper-muted: #94A3B8': 'muted text',
-  '--alper-subtle: #64748B': 'subtle text',
-};
+const paletteVariables = [
+  '--alper-bg',
+  '--alper-list',
+  '--alper-surface',
+  '--alper-card',
+  '--alper-elevated',
+  '--alper-border',
+  '--alper-blue',
+  '--alper-blue-light',
+  '--alper-gold',
+  '--alper-text',
+  '--alper-muted',
+  '--alper-subtle',
+];
 
-for (const [token, label] of Object.entries(requiredTokens)) {
-  if (!design.includes(token)) fail(`Missing ${label} token (${token}).`);
+for (const variable of paletteVariables) {
+  if (!design.includes(variable)) fail(`Shared design system does not reference ${variable}.`);
+  const escaped = variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const defaultPattern = new RegExp(`${escaped}\\s*:\\s*#[0-9A-Fa-f]{6}`);
+  if (!defaultPattern.test(prestigeDefaults)) fail(`Prestige fallback palette does not define a valid HEX value for ${variable}.`);
+  if (!themeService.includes(`setProperty('${variable}'`)) fail(`Runtime theme service does not apply ${variable}.`);
 }
 
 if (!design.includes('app-rental-results') || !design.includes('app-sales-results')) {
@@ -58,11 +67,25 @@ if (!vehicleCard.includes('cardDescription')) fail('Vehicle cards must include a
 if (!siteConfig.includes('PremiumThemePalette') || !siteConfig.includes('premiumPalette?: PremiumThemePalette')) {
   fail('Premium palette is not represented in SiteConfig.');
 }
-for (const cssVariable of ['--alper-bg','--alper-list','--alper-surface','--alper-card','--alper-elevated','--alper-border','--alper-blue','--alper-blue-light','--alper-gold','--alper-text','--alper-muted','--alper-subtle']) {
-  if (!themeService.includes(`setProperty('${cssVariable}'`)) fail(`Runtime theme service does not apply ${cssVariable}.`);
+
+const paletteKeys = [
+  'background', 'listBackground', 'surface', 'card', 'elevated', 'border',
+  'primaryBlue', 'blueLight', 'brandGold', 'text', 'textMuted', 'textSubtle',
+];
+for (const key of paletteKeys) {
+  if (!appearanceAdmin.includes(`key: '${key}'`)) fail(`Admin appearance panel is missing the ${key} color control.`);
 }
-if (!appearanceAdmin.includes('Müşteri sitesinin bütün premium renkleri') || !appearanceAdmin.includes('Premium Paleti Geri Yükle')) {
-  fail('Admin premium palette controls are missing.');
+for (const setting of ['contentMaxWidth', 'cornerRadius', 'fontScale', 'motionPreference']) {
+  if (!appearanceAdmin.includes(setting)) fail(`Admin appearance panel is missing responsive setting ${setting}.`);
+}
+if (!appearanceAdmin.includes('id="palette-title"') || !appearanceAdmin.includes('class="palette-grid"') || !appearanceAdmin.includes('colorFields')) {
+  fail('Admin premium palette section structure is missing.');
+}
+if (!appearanceAdmin.includes('Geri Yükle') || !appearanceAdmin.includes('resetPremiumPalette()')) {
+  fail('Admin premium palette reset action is missing.');
+}
+if (!appearanceAdmin.includes('preview-wrap') || !appearanceAdmin.includes('Canlı tema ön izlemesi')) {
+  fail('Admin live theme preview is missing.');
 }
 
-console.log('Premium design system guard passed; dynamic catalog and section growth remains unrestricted.');
+console.log('Premium design system guard passed; admin palette controls, responsive layout and dynamic content growth remain compatible.');

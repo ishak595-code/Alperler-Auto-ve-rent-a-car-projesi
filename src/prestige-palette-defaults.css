@@ -1,0 +1,106 @@
+/* Initial paint fallback only. Runtime ThemeService and admin-managed site_settings override these variables after config load. */
+:root {
+  --alper-bg: #060A12;
+  --alper-list: #08101B;
+  --alper-surface: #0B1420;
+  --alper-card: #0E1724;
+  --alper-elevated: #121D2C;
+  --alper-border: #27364A;
+  --alper-blue: #315E86;
+  --alper-blue-light: #7899B8;
+  --alper-gold: #C6A15B;
+  --alper-text: #F4F6F8;
+  --alper-muted: #A2ADBA;
+  --alper-subtle: #718096;
+}
+
+/* Customer account chrome must stay connected to the admin-managed palette even when component CSS contains safe fallbacks. */
+app-navbar .brand-mark,
+app-account-login .brand-mark,
+app-account-login .invite-icon {
+  background: var(--alper-gold) !important;
+}
+
+app-navbar .nav-link-active {
+  border-color: var(--alper-blue-light) !important;
+}
+
+app-account-login :is(.eyebrow),
+app-account-dashboard :is(.identity-copy p, .plain-heading p, .section-heading p, .wallet-banner p) {
+  color: var(--alper-gold) !important;
+}
+
+app-account-login .card,
+app-account-dashboard .card,
+app-account-wallet .card {
+  border-color: var(--alper-border) !important;
+  background: var(--alper-surface) !important;
+  color: var(--alper-text) !important;
+}
+
+app-account-login :is(.tabs, input, .social button),
+app-account-dashboard :is(input, .quick-grid a, .summary article, .service-rewards article),
+app-account-wallet :is(input, select, .file, .spend-cards article) {
+  border-color: var(--alper-border) !important;
+  background: var(--alper-card) !important;
+  color: var(--alper-text) !important;
+}
+
+app-account-login :is(.tabs button.active, .social button:hover),
+app-account-dashboard :is(.header-actions .wallet-button, .wallet-banner, .wallet-banner a, .secondary, .payment-heading a),
+app-account-wallet :is(.actions a, .card-actions button, .privacy button) {
+  border-color: var(--alper-border) !important;
+  background: var(--alper-elevated) !important;
+  color: var(--alper-text) !important;
+}
+
+app-account-login .primary,
+app-account-dashboard .primary,
+app-account-wallet .primary {
+  background: var(--alper-blue) !important;
+  color: #fff !important;
+}
+
+app-account-login input:focus,
+app-account-dashboard input:focus,
+app-account-wallet :is(input, select):focus {
+  border-color: var(--alper-blue-light) !important;
+  box-shadow: var(--alper-focus-ring) !important;
+  outline: 0 !important;
+}
+
+app-account-dashboard .check input {
+  accent-color: var(--alper-blue) !important;
+}
+
+app-account-dashboard .quick-grid b,
+app-account-dashboard .payment-heading a,
+app-account-login :is(.secondary-actions a, .text-action) {
+  color: var(--alper-blue-light) !important;
+}
+
+app-account-dashboard :is(.summary .tier, .points, .ref-code, .invite-summary, .milestone) {
+  border-color: color-mix(in srgb, var(--alper-gold) 30%, var(--alper-border) 70%) !important;
+}
+
+app-account-dashboard :is(.summary .tier strong, .points strong, .ref-code, .invite-summary strong) {
+  color: var(--alper-gold) !important;
+}
+
+app-account-dashboard .progress i {
+  background: var(--alper-gold) !important;
+}
+
+app-account-dashboard .benefits-list span::before {
+  color: var(--alper-gold) !important;
+}
+
+app-account-wallet .file {
+  border-style: dashed !important;
+}
+
+app-account-login :is(.intro-copy, .guest-note, .card-heading p, .benefits p, .password-note),
+app-account-dashboard :is(.identity-copy span, .quick-grid span, .summary span, .wallet-banner span, .section-heading span, .points p, .benefits-list span, .rules),
+app-account-wallet :is(.top span, .intro span, .card header p, .empty, .privacy span) {
+  color: var(--alper-muted) !important;
+}

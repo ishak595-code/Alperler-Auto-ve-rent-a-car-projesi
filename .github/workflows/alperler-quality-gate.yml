@@ -90,6 +90,9 @@ jobs:
       - name: Vercel Hobby function budget guard
         run: npm run vercel:functions
 
+      - name: Premium customer design system guard
+        run: npm run design:premium
+
       - name: Frontend TypeScript quality check
         run: npm run lint
 

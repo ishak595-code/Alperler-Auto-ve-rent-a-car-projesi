@@ -5,18 +5,14 @@ import { MatIconModule } from "@angular/material/icon";
 import { Router } from "@angular/router";
 import { AccessibleNativeDateComponent } from "../components/accessible-native-date.component";
 import { DynamicHomeSectionComponent } from "../components/dynamic-home-section.component";
+import { RentalDuration } from "../models/booking.model";
 import { BranchService } from "../services/branch.service";
 import { CampaignService } from "../services/campaign.service";
 import { CarService } from "../services/car.service";
 import { HomepageLayoutService, PublicHomepageSection } from "../services/homepage-layout.service";
 import { SeoService } from "../services/seo.service";
 
-interface PickupChoice {
-  key: string;
-  branchId: string;
-  label: string;
-}
-
+interface PickupChoice { key:string; branchId:string; label:string; }
 type PlannerService = "individual" | "driver" | "wedding" | "tour";
 
 @Component({
@@ -32,249 +28,68 @@ type PlannerService = "individual" | "driver" | "wedding" | "tour";
             <p class="eyebrow">{{ homeContent().heroTrustLine || 'YÜKSEKOVA · KİRALAMA · SATIŞ · TUR · TRANSFER' }}</p>
             <h1 id="home-title">{{ homeContent().heroTitle || 'Yolculuğunuza yakışan aracı bulun.' }}</h1>
             <p class="hero-copy">{{ homeContent().heroSubtitle || 'Kiralık araçtan ikinci el seçeneğe, şoförlü transferden özel gün ve bölgesel turlara kadar ihtiyacınıza uygun seçeneği keşfedin.' }}</p>
-
-            <div class="desktop-search" role="search" aria-label="Araç, tur veya ilan ara">
-              <label class="sr-only" for="home-search-v80">Araç, tur veya ilan ara</label>
-              <div class="search-shell">
-                <mat-icon aria-hidden="true">search</mat-icon>
-                <input id="home-search-v80" type="search" [(ngModel)]="searchQuery" (keyup.enter)="performSearch()" autocomplete="off" [placeholder]="homeContent().searchPlaceholder || 'Marka, model, tur veya ilan no'" />
-                <button type="button" (click)="performSearch()">{{ homeContent().searchButtonLabel || 'Ara' }}</button>
-              </div>
-            </div>
-
-            <div class="trust-row" aria-label="Alperler Rent A Car hizmet avantajları">
-              <span><mat-icon aria-hidden="true">verified</mat-icon>{{ homeContent().trustPrice || 'Net fiyat bilgisi' }}</span>
-              <span><mat-icon aria-hidden="true">support_agent</mat-icon>{{ homeContent().trustSupport || 'Yerel ekip desteği' }}</span>
-              <span><mat-icon aria-hidden="true">fact_check</mat-icon>{{ homeContent().trustVerified || 'Güncel araç ve hizmetler' }}</span>
-            </div>
+            <div class="desktop-search" role="search" aria-label="Araç, tur veya ilan ara"><label class="sr-only" for="home-search-v80">Araç, tur veya ilan ara</label><div class="search-shell"><mat-icon aria-hidden="true">search</mat-icon><input id="home-search-v80" type="search" [(ngModel)]="searchQuery" (keyup.enter)="performSearch()" autocomplete="off" [placeholder]="homeContent().searchPlaceholder || 'Marka, model, tur veya ilan no'" /><button type="button" (click)="performSearch()">{{ homeContent().searchButtonLabel || 'Ara' }}</button></div></div>
+            <div class="trust-row" aria-label="Alperler Rent A Car hizmet avantajları"><span><mat-icon aria-hidden="true">verified</mat-icon>{{ homeContent().trustPrice || 'Net fiyat bilgisi' }}</span><span><mat-icon aria-hidden="true">support_agent</mat-icon>{{ homeContent().trustSupport || 'Yerel ekip desteği' }}</span><span><mat-icon aria-hidden="true">fact_check</mat-icon>{{ homeContent().trustVerified || 'Güncel araç ve hizmetler' }}</span></div>
           </div>
 
           <aside class="planner" aria-labelledby="planner-title">
-            <div class="planner-head">
-              <div>
-                <p class="planner-kicker">{{ homeContent().plannerKicker || 'HIZLI PLANLAMA' }}</p>
-                <h2 id="planner-title">{{ homeContent().bookingTitle || 'Planınızı oluşturun' }}</h2>
-                <p>{{ homeContent().bookingSubtitle || 'Hizmet türünü, tarihi ve teslim noktasını seçin. Uygun seçenekleri doğrudan görüntüleyin.' }}</p>
-              </div>
-              <span class="planner-icon" aria-hidden="true"><mat-icon>event_available</mat-icon></span>
-            </div>
+            <div class="planner-head"><div><p class="planner-kicker">{{ homeContent().plannerKicker || 'HIZLI PLANLAMA' }}</p><h2 id="planner-title">{{ homeContent().bookingTitle || 'Planınızı oluşturun' }}</h2><p>{{ homeContent().bookingSubtitle || 'Hizmet türünü, kiralama süresini ve teslim noktasını seçin. Uygun seçenekleri doğrudan görüntüleyin.' }}</p></div><span class="planner-icon" aria-hidden="true"><mat-icon>event_available</mat-icon></span></div>
 
             <div class="field-grid">
-              <label class="field">
-                <span>{{ homeContent().plannerServiceLabel || 'Ne için araç veya hizmet arıyorsunuz?' }}</span>
-                <select [(ngModel)]="serviceType" name="homeService" (ngModelChange)="onServiceChanged()">
-                  <option value="individual">{{ homeContent().plannerServiceIndividual || 'Şoförsüz araç kiralama' }}</option>
-                  <option value="driver">{{ homeContent().plannerServiceDriver || 'Şoförlü araç / transfer' }}</option>
-                  <option value="wedding">{{ homeContent().plannerServiceWedding || 'Düğün / özel gün aracı' }}</option>
-                  <option value="tour">{{ homeContent().plannerServiceTour || 'Tur / gezi planı' }}</option>
-                </select>
-              </label>
+              <label class="field"><span>{{ homeContent().plannerServiceLabel || 'Ne için araç veya hizmet arıyorsunuz?' }}</span><select [(ngModel)]="serviceType" name="homeService" (ngModelChange)="onServiceChanged()"><option value="individual">{{ homeContent().plannerServiceIndividual || 'Şoförsüz araç kiralama' }}</option><option value="driver">{{ homeContent().plannerServiceDriver || 'Şoförlü araç / transfer' }}</option><option value="wedding">{{ homeContent().plannerServiceWedding || 'Düğün / özel gün aracı' }}</option><option value="tour">{{ homeContent().plannerServiceTour || 'Tur / gezi planı' }}</option></select></label>
 
               @if (serviceType !== 'tour') {
-                <label class="field">
-                  <span>{{ homeContent().plannerPickupLabel || 'Nereden teslim almak istiyorsunuz?' }}</span>
-                  <select [(ngModel)]="selectedPickupKey" name="homePickup" (ngModelChange)="clearPlannerError()">
-                    <option value="">{{ homeContent().plannerPickupPlaceholder || 'Teslim noktasını seçin' }}</option>
-                    @for (choice of pickupChoices(); track choice.key) { <option [value]="choice.key">{{ choice.label }}</option> }
-                  </select>
-                </label>
+                <label class="field"><span>Kiralama Süresi</span><select [(ngModel)]="rentalDuration" name="homeDuration" (ngModelChange)="onDurationChanged()"><option value="hourly">Saatlik</option><option value="daily">Günlük</option><option value="monthly">Aylık</option><option value="longterm">Uzun Dönem</option></select></label>
+                <label class="field"><span>{{ homeContent().plannerPickupLabel || 'Nereden teslim almak istiyorsunuz?' }}</span><select [(ngModel)]="selectedPickupKey" name="homePickup" (ngModelChange)="clearPlannerError()"><option value="">{{ homeContent().plannerPickupPlaceholder || 'Teslim noktasını seçin' }}</option>@for (choice of pickupChoices(); track choice.key) { <option [value]="choice.key">{{ choice.label }}</option> }</select></label>
               }
 
-              <div class="date-grid" [class.single-date]="serviceType === 'tour'">
-                <app-accessible-native-date
-                  [label]="serviceType === 'tour' ? (homeContent().plannerTourDateLabel || 'Tur tarihi') : (homeContent().plannerStartDateLabel || 'Alış tarihi')"
-                  [value]="startDate"
-                  [min]="today"
-                  (valueChange)="onStartDateChanged($event)"
-                />
-                @if (serviceType !== 'tour') {
-                  <app-accessible-native-date
-                    [label]="homeContent().plannerEndDateLabel || 'İade tarihi'"
-                    [value]="endDate"
-                    [min]="startDate || today"
-                    (valueChange)="onEndDateChanged($event)"
-                  />
-                }
-              </div>
+              @if (serviceType === 'tour') {
+                <div class="date-grid single-date"><app-accessible-native-date [label]="homeContent().plannerTourDateLabel || 'Tur tarihi'" [value]="startDate" [min]="today" (valueChange)="onStartDateChanged($event)" /></div>
+              } @else if (rentalDuration === 'hourly') {
+                <div class="date-grid single-date"><app-accessible-native-date label="Kiralama tarihi" [value]="startDate" [min]="today" (valueChange)="onStartDateChanged($event)" /></div>
+                <div class="time-grid"><label class="field"><span>Alış Saati</span><input type="time" [(ngModel)]="startTime" name="homeStartTime" step="900" (ngModelChange)="clearPlannerError()" /></label><label class="field"><span>İade Saati</span><input type="time" [(ngModel)]="endTime" name="homeEndTime" step="900" (ngModelChange)="clearPlannerError()" /></label></div>
+              } @else {
+                <div class="date-grid"><app-accessible-native-date [label]="homeContent().plannerStartDateLabel || 'Alış tarihi'" [value]="startDate" [min]="today" (valueChange)="onStartDateChanged($event)" /><app-accessible-native-date [label]="homeContent().plannerEndDateLabel || 'İade tarihi'" [value]="endDate" [min]="startDate || today" (valueChange)="onEndDateChanged($event)" /></div>
+              }
             </div>
 
             @if (plannerError) { <p class="planner-error" role="alert">{{ plannerError }}</p> }
             @if (plannerSummary()) { <p class="planner-summary" aria-live="polite">{{ plannerSummary() }}</p> }
-            <button type="button" class="planner-action" (click)="searchAvailability()">
-              <span>{{ bookingButtonLabel() }}</span><mat-icon aria-hidden="true">arrow_forward</mat-icon>
-            </button>
-            <p class="planner-note">{{ homeContent().plannerNote || 'Kesin rezervasyon, araç ve tarih uygunluğu doğrulandıktan sonra oluşur.' }}</p>
+            <button type="button" class="planner-action" (click)="searchAvailability()"><span>{{ bookingButtonLabel() }}</span><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
+            <p class="planner-note">{{ homeContent().plannerNote || 'Kesin rezervasyon, araç ve seçilen zaman aralığı uygunluğu doğrulandıktan sonra oluşur.' }}</p>
           </aside>
         </div>
       </section>
 
-      @if (homepageLayout.loading() && managedSections().length === 0) {
-        <div class="loading" role="status"><mat-icon aria-hidden="true">sync</mat-icon><span>{{ homeContent().plannerLoadingText || 'Size uygun seçenekler hazırlanıyor...' }}</span></div>
-      }
-
-      @for (section of managedSections(); track section.sectionKey) {
-        <app-dynamic-home-section [section]="section"></app-dynamic-home-section>
-      }
+      @if (homepageLayout.loading() && managedSections().length === 0) {<div class="loading" role="status"><mat-icon aria-hidden="true">sync</mat-icon><span>{{ homeContent().plannerLoadingText || 'Size uygun seçenekler hazırlanıyor...' }}</span></div>}
+      @for (section of managedSections(); track section.sectionKey) {<app-dynamic-home-section [section]="section"></app-dynamic-home-section>}
     </main>
   `,
   styles: [`
-    :host{display:block}.home-root{min-height:100vh;padding-bottom:80px;background:#f8fafc;color:#0f172a}.hero{position:relative;isolation:isolate;overflow:hidden;background:#020617 center/cover no-repeat;color:#fff}.hero-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,rgba(2,6,23,.97),rgba(2,6,23,.88) 52%,rgba(2,6,23,.67)),radial-gradient(circle at 85% 12%,rgba(37,99,235,.28),transparent 32%)}.hero-stage{width:min(100% - 1.25rem,80rem);margin:auto;padding:1.35rem 0 1.65rem;display:grid;gap:1rem}.eyebrow,.planner-kicker{margin:0;color:#93c5fd;font-size:.64rem;font-weight:950;letter-spacing:.14em;text-transform:uppercase}.hero h1{max-width:850px;margin:.7rem 0 0;font-family:Georgia,"Times New Roman",serif;font-size:clamp(2.15rem,9.6vw,3.2rem);font-weight:750;line-height:.99;letter-spacing:-.03em}.hero-copy{max-width:720px;margin:.8rem 0 0;color:#d6deea;font-size:.88rem;line-height:1.65}.desktop-search{display:none;max-width:650px;margin-top:1.15rem}.search-shell{display:flex;align-items:center;gap:.5rem;border:1px solid rgba(255,255,255,.2);border-radius:16px;background:rgba(4,10,24,.72);padding:.4rem;backdrop-filter:blur(14px)}.search-shell mat-icon{color:#94a3b8}.search-shell input{min-width:0;flex:1;border:0;background:transparent;padding:.72rem .15rem;color:#fff;outline:none}.search-shell button{min-height:44px;border:0;border-radius:11px;background:#2563eb;padding:0 1.1rem;color:#fff;font-weight:900}.trust-row{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:1rem}.trust-row span{display:inline-flex;align-items:center;gap:.3rem;border:1px solid rgba(255,255,255,.11);border-radius:999px;background:rgba(255,255,255,.055);padding:.4rem .58rem;color:#d1d9e5;font-size:.63rem;font-weight:850}.trust-row mat-icon{width:14px;height:14px;font-size:14px;color:#93c5fd}
-    .planner{border:1px solid rgba(148,163,184,.25);border-radius:22px;background:rgba(6,14,29,.94);padding:1rem;box-shadow:0 34px 82px rgba(2,6,23,.42);backdrop-filter:blur(18px)}.planner-head{display:flex;justify-content:space-between;gap:.8rem}.planner h2{margin:.25rem 0 0;font-family:Georgia,"Times New Roman",serif;font-size:1.6rem;line-height:1.08}.planner-head p:not(.planner-kicker){margin:.4rem 0 0;color:#aab7ca;font-size:.74rem;line-height:1.52}.planner-icon{display:grid;width:42px;height:42px;flex:none;place-items:center;border-radius:13px;background:rgba(37,99,235,.17);color:#93c5fd}.field-grid{display:grid;gap:.7rem;margin-top:1rem}.field{display:flex;min-width:0;flex-direction:column;gap:.3rem}.field>span{color:#b9c3d2;font-size:.63rem;font-weight:900;letter-spacing:.055em;text-transform:uppercase}.field select{width:100%;min-height:49px;border:1px solid rgba(148,163,184,.23);border-radius:12px;background:#050c1a;padding:0 .75rem;color:#fff;font-size:.8rem;font-weight:750;outline:none}.field select:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.14)}.date-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}.date-grid.single-date{grid-template-columns:1fr}.planner-summary{margin:.65rem 0 0;border-radius:10px;background:rgba(37,99,235,.1);padding:.6rem .7rem;color:#cbd5e1;font-size:.68rem;font-weight:800}.planner-error{margin:.65rem 0 0;border-radius:10px;background:rgba(244,63,94,.12);padding:.6rem .7rem;color:#fecdd3;font-size:.7rem;font-weight:850}.planner-action{display:flex;width:100%;min-height:52px;margin-top:.8rem;align-items:center;justify-content:center;gap:.4rem;border:0;border-radius:12px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-size:.84rem;font-weight:950;box-shadow:0 14px 30px rgba(37,99,235,.22)}.planner-action:focus-visible{outline:3px solid #93c5fd;outline-offset:3px}.planner-note{margin:.5rem 0 0;color:#758399;font-size:.62rem;line-height:1.5}.loading{display:flex;min-height:110px;align-items:center;justify-content:center;gap:.4rem;background:#fff;color:#475569;font-size:.78rem;font-weight:850}.loading mat-icon{color:#2563eb}
-    @media(min-width:768px){.home-root{padding-bottom:0}.hero-stage{padding:3.5rem 0 4rem}.desktop-search{display:block}.hero h1{font-size:clamp(3.2rem,6vw,4.8rem)}.planner{padding:1.2rem}.field-grid{grid-template-columns:1fr 1fr}.date-grid{grid-column:1/-1}.date-grid.single-date{grid-column:auto}.hero-copy{font-size:1rem}}
-    @media(min-width:1024px){.hero-stage{grid-template-columns:minmax(0,1.12fr) minmax(380px,.88fr);align-items:center;gap:3rem;padding:4.8rem 0 5.4rem}.planner{padding:1.35rem}.planner h2{font-size:1.9rem}.field-grid{grid-template-columns:1fr}.date-grid{grid-column:auto}.hero h1{font-size:clamp(3.5rem,5.2vw,5.3rem)}}
-    @media(max-width:430px){.date-grid{grid-template-columns:1fr}.hero-stage{padding-top:1.05rem}.planner{padding:.9rem}.hero h1{font-size:2.3rem}}
-    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+    :host{display:block}.home-root{min-height:100vh;padding-bottom:80px;background:#f8fafc;color:#0f172a}.hero{position:relative;isolation:isolate;overflow:hidden;background:#020617 center/cover no-repeat;color:#fff}.hero-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,rgba(2,6,23,.97),rgba(2,6,23,.88) 52%,rgba(2,6,23,.67)),radial-gradient(circle at 85% 12%,rgba(37,99,235,.28),transparent 32%)}.hero-stage{width:min(100% - 1.25rem,80rem);margin:auto;padding:1.35rem 0 1.65rem;display:grid;gap:1rem}.eyebrow,.planner-kicker{margin:0;color:#93c5fd;font-size:.64rem;font-weight:950;letter-spacing:.14em;text-transform:uppercase}.hero h1{max-width:850px;margin:.7rem 0 0;font-family:Georgia,"Times New Roman",serif;font-size:clamp(2.15rem,9.6vw,3.2rem);font-weight:750;line-height:.99;letter-spacing:-.03em}.hero-copy{max-width:720px;margin:.8rem 0 0;color:#d6deea;font-size:.88rem;line-height:1.65}.desktop-search{display:none;max-width:650px;margin-top:1.15rem}.search-shell{display:flex;align-items:center;gap:.5rem;border:1px solid rgba(255,255,255,.2);border-radius:16px;background:rgba(4,10,24,.72);padding:.4rem;backdrop-filter:blur(14px)}.search-shell mat-icon{color:#94a3b8}.search-shell input{min-width:0;flex:1;border:0;background:transparent;padding:.72rem .15rem;color:#fff;outline:none}.search-shell button{min-height:44px;border:0;border-radius:11px;background:#2563eb;padding:0 1.1rem;color:#fff;font-weight:900}.trust-row{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:1rem}.trust-row span{display:inline-flex;align-items:center;gap:.3rem;border:1px solid rgba(255,255,255,.11);border-radius:999px;background:rgba(255,255,255,.055);padding:.4rem .58rem;color:#d1d9e5;font-size:.63rem;font-weight:850}.trust-row mat-icon{width:14px;height:14px;font-size:14px;color:#93c5fd}.planner{border:1px solid rgba(148,163,184,.25);border-radius:22px;background:rgba(6,14,29,.94);padding:1rem;box-shadow:0 34px 82px rgba(2,6,23,.42);backdrop-filter:blur(18px)}.planner-head{display:flex;justify-content:space-between;gap:.8rem}.planner h2{margin:.25rem 0 0;font-family:Georgia,"Times New Roman",serif;font-size:1.6rem;line-height:1.08}.planner-head p:not(.planner-kicker){margin:.4rem 0 0;color:#aab7ca;font-size:.74rem;line-height:1.52}.planner-icon{display:grid;width:42px;height:42px;flex:none;place-items:center;border-radius:13px;background:rgba(37,99,235,.17);color:#93c5fd}.field-grid{display:grid;gap:.7rem;margin-top:1rem}.field{display:flex;min-width:0;flex-direction:column;gap:.3rem}.field>span{color:#b9c3d2;font-size:.63rem;font-weight:900;letter-spacing:.055em;text-transform:uppercase}.field select,.field input{width:100%;min-height:49px;border:1px solid rgba(148,163,184,.23);border-radius:12px;background:#050c1a;padding:0 .75rem;color:#fff;font-size:.8rem;font-weight:750;outline:none;color-scheme:dark}.field select:focus,.field input:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.14)}.date-grid,.time-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}.date-grid.single-date{grid-template-columns:1fr}.planner-summary{margin:.65rem 0 0;border-radius:10px;background:rgba(37,99,235,.1);padding:.6rem .7rem;color:#cbd5e1;font-size:.68rem;font-weight:800}.planner-error{margin:.65rem 0 0;border-radius:10px;background:rgba(244,63,94,.12);padding:.6rem .7rem;color:#fecdd3;font-size:.7rem;font-weight:850}.planner-action{display:flex;width:100%;min-height:52px;margin-top:.8rem;align-items:center;justify-content:center;gap:.4rem;border:0;border-radius:12px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-size:.84rem;font-weight:950;box-shadow:0 14px 30px rgba(37,99,235,.22)}.planner-action:focus-visible{outline:3px solid #93c5fd;outline-offset:3px}.planner-note{margin:.5rem 0 0;color:#758399;font-size:.62rem;line-height:1.5}.loading{display:flex;min-height:110px;align-items:center;justify-content:center;gap:.4rem;background:#fff;color:#475569;font-size:.78rem;font-weight:850}.loading mat-icon{color:#2563eb}@media(min-width:768px){.home-root{padding-bottom:0}.hero-stage{padding:3.5rem 0 4rem}.desktop-search{display:block}.hero h1{font-size:clamp(3.2rem,6vw,4.8rem)}.planner{padding:1.2rem}.field-grid{grid-template-columns:1fr 1fr}.date-grid,.time-grid{grid-column:1/-1}.date-grid.single-date{grid-column:auto}.hero-copy{font-size:1rem}}@media(min-width:1024px){.hero-stage{grid-template-columns:minmax(0,1.12fr) minmax(380px,.88fr);align-items:center;gap:3rem;padding:4.8rem 0 5.4rem}.planner{padding:1.35rem}.planner h2{font-size:1.9rem}.field-grid{grid-template-columns:1fr}.date-grid,.time-grid{grid-column:auto}.hero h1{font-size:clamp(3.5rem,5.2vw,5.3rem)}}@media(max-width:430px){.date-grid,.time-grid{grid-template-columns:1fr}.hero-stage{padding-top:1.05rem}.planner{padding:.9rem}.hero h1{font-size:2.3rem}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
   `],
 })
 export class HomeV71Component {
-  readonly carService = inject(CarService);
-  readonly homepageLayout = inject(HomepageLayoutService);
-  private readonly campaignService = inject(CampaignService);
-  private readonly branchService = inject(BranchService);
-  private readonly router = inject(Router);
-  private readonly seo = inject(SeoService);
-
-  readonly config = this.carService.getConfig();
-  readonly homeContent = computed(() => this.config().homeContent || {});
-  readonly branches = this.branchService.branches;
-  private readonly fallbackHero = "https://images.unsplash.com/photo-1503376713028-98e6cd35549d?q=82&w=2200&auto=format&fit=crop";
-
-  searchQuery = "";
-  startDate = "";
-  endDate = "";
-  serviceType: PlannerService = "individual";
-  selectedPickupKey = "";
-  plannerError = "";
-  readonly today = this.toDateInput(new Date());
-
-  readonly heroImage = computed(() => {
-    const home = this.homeContent() as Record<string, unknown>;
-    const candidate = String(home["heroImage"] || this.config().seoOgImage || "").trim();
-    return /^https:\/\//i.test(candidate) ? candidate : this.fallbackHero;
-  });
-
-  readonly pickupChoices = computed<PickupChoice[]>(() => {
-    const choices: PickupChoice[] = [];
-    for (const branch of this.branches().filter((item) => item.isPickupPoint)) {
-      const raw = branch.serviceRules?.["pickupLocations"];
-      const locations = Array.isArray(raw) ? raw.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 16) : [];
-      if (locations.length) {
-        locations.forEach((label, index) => choices.push({ key: `${branch.id}:${index}`, branchId: String(branch.cloudId || branch.id), label }));
-      } else {
-        choices.push({ key: `${branch.id}:main`, branchId: String(branch.cloudId || branch.id), label: `${branch.name} · ${branch.district || branch.city}` });
-      }
-    }
-    return choices.filter((item, index, list) => list.findIndex((other) => other.key === item.key) === index);
-  });
-
-  private readonly fallbackSections: PublicHomepageSection[] = [
-    { sectionKey: "campaigns", title: "Planınızı Avantaja Çeviren Fırsatlar", sectionType: "CAMPAIGN", isEnabled: true, sortOrder: 5, maxItems: 3, settings: {} },
-    { sectionKey: "rental_featured", title: "Öne Çıkan Kiralık Araçlar", sectionType: "VEHICLES", isEnabled: true, sortOrder: 10, maxItems: 4, settings: { category: "RENTAL" } },
-    { sectionKey: "sale_featured", title: "Öne Çıkan İkinci El Araçlar", sectionType: "VEHICLES", isEnabled: true, sortOrder: 20, maxItems: 4, settings: { category: "SALE" } },
-    { sectionKey: "tour_featured", title: "Hakkâri ve Yüksekova Rotaları", sectionType: "TOURS", isEnabled: true, sortOrder: 30, maxItems: 4, settings: {} },
-    { sectionKey: "branches", title: "Size En Yakın Alperler Rent A Car", sectionType: "CUSTOM", isEnabled: true, sortOrder: 35, maxItems: 3, settings: {} },
-    { sectionKey: "partner", title: "Aracınız Değerini Bulsun", sectionType: "CUSTOM", isEnabled: true, sortOrder: 40, maxItems: 1, settings: {} },
-    { sectionKey: "blog_featured", title: "Yola Çıkmadan Önce", sectionType: "BLOG", isEnabled: true, sortOrder: 50, maxItems: 3, settings: {} },
-  ];
-
-  readonly managedSections = computed(() => {
-    const sections = this.homepageLayout.sections();
-    if (sections.length) return [...sections].filter((section) => section.isEnabled).sort((a,b) => a.sortOrder - b.sortOrder);
-    return this.homepageLayout.loaded() ? this.fallbackSections : [];
-  });
-
-  constructor() {
-    void this.homepageLayout.load();
-    void this.branchService.refresh();
-    void this.campaignService.loadPublic().catch(() => undefined);
-    effect(() => {
-      const cfg = this.config();
-      this.seo.updateSeoTags({ title: cfg.seoTitle || `${cfg.companyName} | Araç Kiralama, Satış ve Turlar`, description: cfg.seoDescription || this.homeContent().heroSubtitle || cfg.companyName, keywords: cfg.seoKeywords, image: cfg.seoOgImage || cfg.logoUrl || this.fallbackHero });
-    });
-  }
-
-  performSearch(): void {
-    const q = this.searchQuery.trim();
-    void this.router.navigate(["/search"], { queryParams: q ? { q } : undefined });
-  }
-
-  onServiceChanged(): void {
-    this.clearPlannerError();
-    if (this.serviceType === "tour") { this.endDate = ""; this.selectedPickupKey = ""; }
-  }
-
-  onStartDateChanged(value: string): void {
-    this.startDate = value;
-    if (this.endDate && value && this.endDate <= value) this.endDate = "";
-    this.clearPlannerError();
-  }
-
-  onEndDateChanged(value: string): void {
-    this.endDate = value;
-    this.clearPlannerError();
-  }
-
-  clearPlannerError(): void { this.plannerError = ""; }
-
-  searchAvailability(): void {
-    this.clearPlannerError();
-    if (!this.startDate) {
-      this.plannerError = this.serviceType === "tour" ? (this.homeContent().plannerErrorTourDate || "Tur tarihini seçin.") : (this.homeContent().plannerErrorStartDate || "Alış tarihini seçin.");
-      return;
-    }
-    if (this.serviceType !== "tour" && !this.endDate) { this.plannerError = this.homeContent().plannerErrorEndDate || "İade tarihini seçin."; return; }
-    if (this.serviceType !== "tour" && this.endDate <= this.startDate) { this.plannerError = this.homeContent().plannerErrorDateOrder || "İade tarihi alış tarihinden sonra olmalıdır."; return; }
-
-    if (this.serviceType === "tour") {
-      void this.router.navigate(["/tours"], { queryParams: { start: this.startDate } });
-      return;
-    }
-
-    const pickup = this.pickupChoices().find((item) => item.key === this.selectedPickupKey);
-    if (!pickup) { this.plannerError = this.homeContent().plannerErrorPickup || "Teslim alma noktasını seçin."; return; }
-    const driverMode = this.serviceType === "individual" ? "without" : "with";
-    void this.router.navigate(["/fleet"], {
-      queryParams: {
-        start: this.startDate,
-        end: this.endDate,
-        pickup: pickup.branchId,
-        pickupLocation: pickup.label,
-        driverMode,
-        availableOnly: "true",
-        occasion: this.serviceType === "wedding" ? "wedding" : undefined,
-      },
-    });
-  }
-
-  plannerSummary(): string {
-    if (!this.startDate) return "";
-    const pickup = this.pickupChoices().find((item) => item.key === this.selectedPickupKey);
-    const dates = this.serviceType === "tour" ? this.formatShortDate(this.startDate) : `${this.formatShortDate(this.startDate)} - ${this.endDate ? this.formatShortDate(this.endDate) : "?"}`;
-    const mode = this.serviceType === "individual" ? "Şoförsüz" : this.serviceType === "driver" ? "Şoförlü" : this.serviceType === "wedding" ? "Özel gün" : "Tur";
-    return [dates, mode, pickup?.label].filter(Boolean).join(" · ");
-  }
-
-  bookingButtonLabel(): string {
-    if (this.serviceType === "tour") return this.homeContent().plannerButtonTour || "Bu Tarihe Uyan Turları Göster";
-    if (this.serviceType === "driver") return this.homeContent().plannerButtonDriver || "Şoförlü Seçenekleri Göster";
-    if (this.serviceType === "wedding") return this.homeContent().plannerButtonWedding || "Özel Gün Araçlarını Göster";
-    return this.homeContent().plannerButtonRental || "Bu Tarihe Uyan Araçları Göster";
-  }
-
-  private parseLocalDate(value: string): Date | null {
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "");
-    if (!match) return null;
-    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  private formatShortDate(value: string): string {
-    const date = this.parseLocalDate(value);
-    return date ? new Intl.DateTimeFormat("tr-TR", { day:"2-digit", month:"short" }).format(date) : value;
-  }
-
-  private toDateInput(date: Date): string {
-    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-    return local.toISOString().slice(0,10);
-  }
+  readonly carService=inject(CarService);readonly homepageLayout=inject(HomepageLayoutService);private readonly campaignService=inject(CampaignService);private readonly branchService=inject(BranchService);private readonly router=inject(Router);private readonly seo=inject(SeoService);
+  readonly config=this.carService.getConfig();readonly homeContent=computed(()=>this.config().homeContent||{});readonly branches=this.branchService.branches;private readonly fallbackHero="https://images.unsplash.com/photo-1503376713028-98e6cd35549d?q=82&w=2200&auto=format&fit=crop";
+  searchQuery="";startDate="";endDate="";startTime="09:00";endTime="10:00";rentalDuration:RentalDuration="daily";serviceType:PlannerService="individual";selectedPickupKey="";plannerError="";readonly today=this.toDateInput(new Date());
+  readonly heroImage=computed(()=>{const home=this.homeContent() as Record<string,unknown>;const candidate=String(home["heroImage"]||this.config().seoOgImage||"").trim();return/^https:\/\//i.test(candidate)?candidate:this.fallbackHero;});
+  readonly pickupChoices=computed<PickupChoice[]>(()=>{const choices:PickupChoice[]=[];for(const branch of this.branches().filter((item)=>item.isPickupPoint)){const raw=branch.serviceRules?.["pickupLocations"];const locations=Array.isArray(raw)?raw.map((item)=>String(item||"").trim()).filter(Boolean).slice(0,16):[];if(locations.length)locations.forEach((label,index)=>choices.push({key:`${branch.id}:${index}`,branchId:String(branch.cloudId||branch.id),label}));else choices.push({key:`${branch.id}:main`,branchId:String(branch.cloudId||branch.id),label:`${branch.name} · ${branch.district||branch.city}`});}return choices.filter((item,index,list)=>list.findIndex((other)=>other.key===item.key)===index);});
+  private readonly fallbackSections:PublicHomepageSection[]=[{sectionKey:"campaigns",title:"Planınızı Avantaja Çeviren Fırsatlar",sectionType:"CAMPAIGN",isEnabled:true,sortOrder:5,maxItems:3,settings:{}},{sectionKey:"rental_featured",title:"Öne Çıkan Kiralık Araçlar",sectionType:"VEHICLES",isEnabled:true,sortOrder:10,maxItems:4,settings:{category:"RENTAL"}},{sectionKey:"sale_featured",title:"Öne Çıkan İkinci El Araçlar",sectionType:"VEHICLES",isEnabled:true,sortOrder:20,maxItems:4,settings:{category:"SALE"}},{sectionKey:"tour_featured",title:"Hakkâri ve Yüksekova Rotaları",sectionType:"TOURS",isEnabled:true,sortOrder:30,maxItems:4,settings:{}},{sectionKey:"branches",title:"Size En Yakın Alperler Rent A Car",sectionType:"CUSTOM",isEnabled:true,sortOrder:35,maxItems:3,settings:{}},{sectionKey:"partner",title:"Aracınız Değerini Bulsun",sectionType:"CUSTOM",isEnabled:true,sortOrder:40,maxItems:1,settings:{}},{sectionKey:"blog_featured",title:"Yola Çıkmadan Önce",sectionType:"BLOG",isEnabled:true,sortOrder:50,maxItems:3,settings:{}}];
+  readonly managedSections=computed(()=>{const sections=this.homepageLayout.sections();if(sections.length)return[...sections].filter((section)=>section.isEnabled).sort((a,b)=>a.sortOrder-b.sortOrder);return this.homepageLayout.loaded()?this.fallbackSections:[];});
+  constructor(){void this.homepageLayout.load();void this.branchService.refresh();void this.campaignService.loadPublic().catch(()=>undefined);effect(()=>{const cfg=this.config();this.seo.updateSeoTags({title:cfg.seoTitle||`${cfg.companyName} | Araç Kiralama, Satış ve Turlar`,description:cfg.seoDescription||this.homeContent().heroSubtitle||cfg.companyName,keywords:cfg.seoKeywords,image:cfg.seoOgImage||cfg.logoUrl||this.fallbackHero});});}
+  performSearch():void{const q=this.searchQuery.trim();void this.router.navigate(["/search"],{queryParams:q?{q}:undefined});}
+  onServiceChanged():void{this.clearPlannerError();if(this.serviceType==="tour"){this.endDate="";this.selectedPickupKey="";}else if(this.rentalDuration==="hourly"&&this.startDate)this.endDate=this.startDate;}
+  onDurationChanged():void{this.clearPlannerError();if(this.rentalDuration==="hourly"){this.endDate=this.startDate;}else if(this.endDate===this.startDate)this.endDate="";}
+  onStartDateChanged(value:string):void{this.startDate=value;if(this.serviceType!=="tour"&&this.rentalDuration==="hourly")this.endDate=value;else if(this.endDate&&value&&this.endDate<=value)this.endDate="";this.clearPlannerError();}
+  onEndDateChanged(value:string):void{this.endDate=value;this.clearPlannerError();}
+  clearPlannerError():void{this.plannerError="";}
+  searchAvailability():void{this.clearPlannerError();if(!this.startDate){this.plannerError=this.serviceType==="tour"?(this.homeContent().plannerErrorTourDate||"Tur tarihini seçin."):(this.homeContent().plannerErrorStartDate||"Alış tarihini seçin.");return;}if(this.serviceType==="tour"){void this.router.navigate(["/tours"],{queryParams:{start:this.startDate}});return;}if(this.rentalDuration==="hourly"){const start=this.minutes(this.startTime),end=this.minutes(this.endTime);if(start===null||end===null||end<=start){this.plannerError="İade saati alış saatinden sonra olmalıdır.";return;}if(Math.ceil((end-start)/60)>23){this.plannerError="23 saati aşan kiralamalar için günlük seçeneği kullanın.";return;}}else{if(!this.endDate){this.plannerError=this.homeContent().plannerErrorEndDate||"İade tarihini seçin.";return;}if(this.endDate<=this.startDate){this.plannerError=this.homeContent().plannerErrorDateOrder||"İade tarihi alış tarihinden sonra olmalıdır.";return;}}
+    const pickup=this.pickupChoices().find((item)=>item.key===this.selectedPickupKey);if(!pickup){this.plannerError=this.homeContent().plannerErrorPickup||"Teslim alma noktasını seçin.";return;}const driverMode=this.serviceType==="individual"?"without":"with";void this.router.navigate(["/fleet"],{queryParams:{duration:this.rentalDuration,start:this.startDate,end:this.rentalDuration==="hourly"?this.startDate:this.endDate,startTime:this.rentalDuration==="hourly"?this.startTime:undefined,endTime:this.rentalDuration==="hourly"?this.endTime:undefined,pickup:pickup.branchId,pickupLocation:pickup.label,driverMode,availableOnly:"true",occasion:this.serviceType==="wedding"?"wedding":undefined}});}
+  plannerSummary():string{if(!this.startDate)return"";const pickup=this.pickupChoices().find((item)=>item.key===this.selectedPickupKey);const dates=this.serviceType==="tour"?this.formatShortDate(this.startDate):this.rentalDuration==="hourly"?`${this.formatShortDate(this.startDate)} · ${this.startTime}-${this.endTime}`:`${this.formatShortDate(this.startDate)} - ${this.endDate?this.formatShortDate(this.endDate):"?"}`;const mode=this.serviceType==="individual"?"Şoförsüz":this.serviceType==="driver"?"Şoförlü":this.serviceType==="wedding"?"Özel gün":"Tur";const duration=this.serviceType==="tour"?"":this.rentalDuration==="hourly"?"Saatlik":this.rentalDuration==="daily"?"Günlük":this.rentalDuration==="monthly"?"Aylık":"Uzun dönem";return[dates,duration,mode,pickup?.label].filter(Boolean).join(" · ");}
+  bookingButtonLabel():string{if(this.serviceType==="tour")return this.homeContent().plannerButtonTour||"Bu Tarihe Uyan Turları Göster";if(this.rentalDuration==="hourly")return"Bu Saatlere Uyan Araçları Göster";if(this.serviceType==="driver")return this.homeContent().plannerButtonDriver||"Şoförlü Seçenekleri Göster";if(this.serviceType==="wedding")return this.homeContent().plannerButtonWedding||"Özel Gün Araçlarını Göster";return this.homeContent().plannerButtonRental||"Bu Tarihe Uyan Araçları Göster";}
+  private minutes(value:string):number|null{const match=/^(\d{2}):(\d{2})$/.exec(value||"");if(!match)return null;const h=Number(match[1]),m=Number(match[2]);return h>=0&&h<=23&&m>=0&&m<=59?h*60+m:null;}
+  private parseLocalDate(value:string):Date|null{const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(value||"");if(!match)return null;const date=new Date(Number(match[1]),Number(match[2])-1,Number(match[3]));return Number.isNaN(date.getTime())?null:date;}
+  private formatShortDate(value:string):string{const date=this.parseLocalDate(value);return date?new Intl.DateTimeFormat("tr-TR",{day:"2-digit",month:"short"}).format(date):value;}
+  private toDateInput(date:Date):string{const local=new Date(date.getTime()-date.getTimezoneOffset()*60_000);return local.toISOString().slice(0,10);}
 }

@@ -95,6 +95,7 @@ export interface SiteConfig {
   insuranceText: string;
 
   rentalTermsText?: string;
+  hourlyRentalTermsText?: string;
   salesTermsText?: string;
   tourTermsText?: string;
   partnerTermsText?: string;

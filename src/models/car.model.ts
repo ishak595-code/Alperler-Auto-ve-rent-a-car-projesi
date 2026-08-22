@@ -40,6 +40,10 @@ export interface Vehicle {
   minAge?: number;
   minLicenseYears?: number;
   dailyMileageLimit?: number;
+  hourlyMileageLimit?: number;
+  hourlyPrice?: number;
+  hourlyRentalEnabled?: boolean;
+  minimumRentalHours?: number;
   luggage?: number;
   group?: string;
 

@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { AuthService } from './services/auth.service';
 import { CustomerAuthService } from './services/customer-auth.service';
 import { AdminAccessService, AdminArea } from './services/admin-access.service';
+import { CarService } from './services/car.service';
 import { HomeV71Component } from './pages/home-v71.component';
 import { FleetComponent } from './pages/fleet.component';
 import { AboutComponent } from './pages/about.component';
@@ -22,12 +23,15 @@ import { AdminTeamHubComponent } from './pages/admin/admin-team-hub.component';
 
 const adminGuard: CanActivateFn = async () => {
   const auth = inject(AuthService); const router = inject(Router); await auth.waitUntilReady();
-  if (auth.isLoggedIn()) return true; return router.parseUrl('/admin/login');
+  if (auth.isLoggedIn()) return true;
+  return router.createUrlTree(['/account/login'], { queryParams: { returnUrl: '/account' } });
 };
 const adminAreaGuard = (area: AdminArea): CanActivateFn => async () => {
   const auth = inject(AuthService); const access = inject(AdminAccessService); const router = inject(Router);
-  await auth.waitUntilReady(); if (!auth.isLoggedIn()) return router.parseUrl('/admin/login');
-  if (await access.can(area)) return true; return router.parseUrl(`/admin/dashboard?denied=${encodeURIComponent(area)}`);
+  await auth.waitUntilReady();
+  if (!auth.isLoggedIn()) return router.createUrlTree(['/account/login'], { queryParams: { returnUrl: '/account' } });
+  if (await access.can(area)) return true;
+  return router.parseUrl(`/admin/dashboard?denied=${encodeURIComponent(area)}`);
 };
 const customerGuard: CanActivateFn = async (_route, state) => {
   const auth = inject(CustomerAuthService); const router = inject(Router);
@@ -35,9 +39,13 @@ const customerGuard: CanActivateFn = async (_route, state) => {
   if (auth.isLoggedIn()) return true;
   return router.createUrlTree(['/account/login'], { queryParams: { returnUrl: state.url } });
 };
+const checkoutGuard: CanActivateFn = () => {
+  const carService = inject(CarService); const router = inject(Router);
+  return carService.getBookingRequest() ? true : router.parseUrl('/');
+};
 
 export const routes: Routes = [
-  { path: 'admin/login', loadComponent: () => import('./pages/admin/admin-login.component').then(m => m.AdminLoginComponent) },
+  { path: 'admin/login', redirectTo: 'account/login', pathMatch: 'full' },
   { path: 'account/login', loadComponent: () => import('./pages/account-login.component').then(m => m.AccountLoginComponent) },
   { path: 'account/callback', loadComponent: () => import('./pages/account-callback.component').then(m => m.AccountCallbackComponent) },
   { path: 'account', canActivate: [customerGuard], loadComponent: () => import('./pages/account-shell.component').then(m => m.AccountShellComponent) },
@@ -55,10 +63,13 @@ export const routes: Routes = [
   { path: 'branches/:slug', loadComponent: () => import('./pages/branch-detail.component').then(m => m.BranchDetailComponent) },
   { path: 'branches', loadComponent: () => import('./pages/branches.component').then(m => m.BranchesComponent) },
   { path: 'branch-partner', loadComponent: () => import('./pages/branch-partner.component').then(m => m.BranchPartnerComponent) },
-  { path: 'blog', component: BlogListComponent }, { path: 'blog/:id', component: BlogDetailComponent },
+  { path: 'blog', component: BlogListComponent },
+  { path: 'blog/:id', component: BlogDetailComponent },
   { path: 'about', component: AboutComponent },
+  { path: 'booking-checkout', canActivate: [checkoutGuard], loadComponent: () => import('./pages/booking-checkout.component').then(m => m.BookingCheckoutComponent) },
   { path: 'contact', loadComponent: () => import('./pages/contact-entry.component').then(m => m.ContactEntryComponent) },
-  { path: 'faq', component: FaqComponent }, { path: 'legal', component: LegalComponent },
+  { path: 'faq', component: FaqComponent },
+  { path: 'legal', component: LegalComponent },
   { path: 'appointment', loadComponent: () => import('./pages/appointment.component').then(m => m.AppointmentComponent) },
   { path: 'list-your-car', loadComponent: () => import('./pages/list-your-car.component').then(m => m.ListYourCarComponent) },
   { path: 'track-car/:id', canActivate: [adminAreaGuard('telematics')], loadComponent: () => import('./pages/track-car.component').then(m => m.TrackCarComponent) },

@@ -43,6 +43,7 @@ export class AccessibilityRuntimeService {
     if (control.getAttribute('aria-hidden') === 'true' || control.hasAttribute('inert') || control.dataset['a11yProxy'] === 'true') return;
 
     this.applyConciseKnownName(control);
+    this.applyDateTimeActionName(control);
     this.ensureAccessibleName(control);
 
     if (control.matches('input[type="date"],input[type="time"],input[type="datetime-local"]')) {
@@ -55,6 +56,23 @@ export class AccessibilityRuntimeService {
     const next = this.clean(value);
     if (!next) return;
     if (control.getAttribute('aria-label') !== next) control.setAttribute('aria-label', next);
+  }
+
+  private applyDateTimeActionName(control: HTMLElement): void {
+    if (!control.matches('input[type="date"],input[type="time"],input[type="datetime-local"]')) return;
+    const type = (control.getAttribute('type') || '').toLowerCase();
+    const source = this.nearestLabelText(control)
+      || control.getAttribute('aria-label')?.trim()
+      || this.humanize(control.getAttribute('name') || '')
+      || this.humanize(control.id || '');
+    const normalized = this.clean(source).replace(/\s+seç$/i, '').trim();
+    if (normalized) {
+      this.setName(control, `${normalized} seç`);
+      return;
+    }
+    if (type === 'time') this.setName(control, 'Saati seç');
+    else if (type === 'datetime-local') this.setName(control, 'Tarih ve saati seç');
+    else this.setName(control, 'Tarihi seç');
   }
 
   private applyConciseKnownName(control: HTMLElement): void {
@@ -151,9 +169,9 @@ export class AccessibilityRuntimeService {
 
   private fallbackName(control: HTMLElement): string {
     const type = (control.getAttribute('type') || control.tagName).toLowerCase();
-    if (type === 'date') return 'Tarih';
-    if (type === 'time') return 'Saat';
-    if (type === 'datetime-local') return 'Tarih ve saat';
+    if (type === 'date') return 'Tarihi seç';
+    if (type === 'time') return 'Saati seç';
+    if (type === 'datetime-local') return 'Tarih ve saati seç';
     if (type === 'search') return 'Ara';
     if (type === 'email') return 'E-posta';
     if (type === 'tel') return 'Telefon';

@@ -232,7 +232,7 @@ export class CatalogService {
       const images = Array.isArray(row["images"]) ? row["images"] : [];
       return {
         ...metadata,
-        id: this.legacyId(metadata["legacyId"]) ?? row["id"],
+        id: row["id"],
         category: "TOUR",
         title: row["title"] || "",
         description: row["description"] || row["short_description"] || "",
@@ -257,7 +257,7 @@ export class CatalogService {
 
     if (resource === "blog") {
       return {
-        id: this.legacyId(metadata["legacyId"]) ?? row["id"],
+        id: row["id"],
         title: row["title"] || "",
         summary: row["excerpt"] || "",
         content: row["content"] || "",
@@ -288,15 +288,13 @@ export class CatalogService {
       ? row["images"].filter((value: unknown): value is string => typeof value === "string" && Boolean(value.trim()))
       : [];
     const databaseId = row["cloudId"] ?? row["id"];
-    const legacyId = this.legacyId(metadata["legacyId"]);
-    const mappedId = this.legacyId(row["id"]);
     const availabilityStatus = row["availability_status"] ?? row["availabilityStatus"];
     const price = Number(category === "RENTAL" ? row["rental_price_daily"] ?? row["price"] ?? 0 : row["price"] ?? 0);
 
     return {
       ...metadata,
       ...row,
-      id: legacyId ?? mappedId ?? databaseId,
+      id: databaseId,
       category,
       brand: String(row["brand"] || ""),
       model: String(row["model"] || ""),
@@ -331,13 +329,6 @@ export class CatalogService {
       createdAt: row["createdAt"] ?? row["created_at"] ?? undefined,
       updatedAt: row["updatedAt"] ?? row["updated_at"] ?? undefined,
     } as Vehicle;
-  }
-
-  private legacyId(value: unknown): number | string | null {
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-    if (typeof value !== "string" || !value.trim()) return null;
-    const normalized = value.trim();
-    return /^\d+$/.test(normalized) ? Number(normalized) : normalized.slice(0, 120);
   }
 
   private async saveRecord<T>(resource: string, record: unknown): Promise<T> {

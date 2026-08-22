@@ -33,7 +33,9 @@ export interface CreateBookingInput {
   pickupBranchId?: string;
   pickupLocation?: string;
   dropoffLocation?: string;
-  rentalDuration?: RentalDuration;
+  // A few older in-app entry points still carry this value as string. BookingService
+  // normalizes and validates it before any request reaches the backend.
+  rentalDuration?: RentalDuration | string;
   selectedExtraIds?: string[];
   campaignId?: string;
   notes?: string;

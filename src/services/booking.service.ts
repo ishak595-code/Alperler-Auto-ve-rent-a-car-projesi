@@ -42,12 +42,13 @@ export class BookingService {
 
   async create(input: CreateBookingInput): Promise<BookingRecord> {
     const normalized = this.normalizeInput(input);
-    const response = await this.request<BookingApiResponse>("POST", {
+    const envelope = {
       ...normalized,
       idempotencyKey: crypto.randomUUID(),
       analyticsSessionId: currentAnalyticsSessionId(),
-    });
-    if (!response.ok || !response.booking) throw new Error(response.code || "BOOKING_CREATE_FAILED");
+    };
+    const response = await this.request<BookingApiResponse>("POST", envelope);
+    if (!response.ok || !response.booking) throw new Error(`${response.code || "BOOKING_CREATE_FAILED"}:${response.message || "Talep kaydedilemedi."}`);
     const record = this.fromApi(response.booking);
     if (response.notification) record.notification = response.notification;
     this.upsertLocal(record);
@@ -114,16 +115,19 @@ export class BookingService {
       if (method === "GET") return await firstValueFrom(this.http.get<T>("/api/bookings", { headers: headers! }));
       return await firstValueFrom(this.http.request<T>(method, "/api/bookings", { body, headers: headers! }));
     } catch (error) {
-      if (error instanceof HttpErrorResponse && this.shouldTryDirectGateway(error)) {
-        console.warn("Primary booking API unavailable, using direct booking gateway.", error.status);
+      if (error instanceof HttpErrorResponse && this.shouldTryDirectGateway(error, method)) {
+        console.warn("Primary booking API failed, using direct booking gateway.", error.status);
         return await this.directGateway<T>(method, body, token);
       }
       throw this.normalizeRequestError(error);
     }
   }
 
-  private shouldTryDirectGateway(error: HttpErrorResponse): boolean {
-    return error.status === 0 || error.status === 404 || error.status === 405 || error.status === 408 || error.status === 502 || error.status === 503 || error.status === 504;
+  private shouldTryDirectGateway(error: HttpErrorResponse, method: "GET" | "POST" | "PATCH" | "DELETE"): boolean {
+    if (error.status === 0 || error.status === 404 || error.status === 405 || error.status === 408 || error.status === 502 || error.status === 503 || error.status === 504) return true;
+    // Public submissions must survive a transient Vercel function failure. The same
+    // idempotency key is reused by the direct gateway, so a retry cannot duplicate a booking.
+    return method === "POST" && error.status >= 500;
   }
 
   private async directGateway<T>(method: "GET" | "POST" | "PATCH" | "DELETE", body: unknown, token: string | null): Promise<T> {
@@ -174,6 +178,8 @@ export class BookingService {
     const selectedExtraIds = Array.isArray(input.selectedExtraIds)
       ? Array.from(new Set(input.selectedExtraIds.map((id) => String(id || "").trim()).filter((id) => /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(id)))).slice(0, 30)
       : undefined;
+    const rentalDuration = input.rentalDuration;
+    if (rentalDuration && !["hourly","daily","monthly","longterm"].includes(rentalDuration)) throw new Error("Kiralama türü geçerli değil.");
     return {
       ...input,
       itemId: input.itemId === undefined ? undefined : String(input.itemId).trim().slice(0, 128),
@@ -188,11 +194,12 @@ export class BookingService {
       personCount: this.optionalInteger(input.personCount, 1, 100),
       startDate: input.startDate?.slice(0, 64),
       endDate: input.endDate?.slice(0, 64),
-      days: this.optionalInteger(input.days, 1, 3650),
+      days: input.rentalHours ? undefined : this.optionalInteger(input.days, 1, 3650),
+      rentalHours: this.optionalInteger(input.rentalHours, 1, 23),
       pickupBranchId: this.optionalUuid(input.pickupBranchId),
       pickupLocation: input.pickupLocation?.trim().slice(0, 240),
       dropoffLocation: input.dropoffLocation?.trim().slice(0, 240),
-      rentalDuration: input.rentalDuration?.trim().slice(0, 40),
+      rentalDuration,
       selectedExtraIds,
       campaignId: this.optionalUuid(input.campaignId),
       notes: input.notes?.trim().slice(0, 4000),

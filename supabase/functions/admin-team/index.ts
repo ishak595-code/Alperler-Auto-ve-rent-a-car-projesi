@@ -42,7 +42,7 @@ function adminInviteRedirect(): string {
       console.warn("Ignoring invalid ADMIN_INVITE_REDIRECT_URL");
     }
   }
-  return "https://alperrentacar.online/admin/login";
+  return "https://alperrentacar.online/admin/login?invite=1";
 }
 
 function email(value: unknown): string | null {

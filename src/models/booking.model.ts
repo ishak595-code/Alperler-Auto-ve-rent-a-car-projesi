@@ -5,6 +5,7 @@ export type BookingStatus = "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED" | 
 export type PaymentStatus = "NOT_REQUIRED" | "PENDING" | "PAID" | "FAILED" | "REFUNDED";
 export type BookingSource = "WEB" | "ADMIN" | "PHONE";
 export type BookingCurrency = "TRY" | "EUR" | "USD" | "CHF";
+export type RentalDuration = "hourly" | "daily" | "monthly" | "longterm";
 
 export type BookingNotificationEvent = "booking_created" | "booking_pending" | "booking_approved" | "booking_rejected" | "booking_completed" | "booking_cancelled";
 export type NotificationChannelState = "sent" | "skipped" | "not_configured" | "failed";
@@ -27,11 +28,12 @@ export interface CreateBookingInput {
   startDate?: string;
   endDate?: string;
   days?: number;
+  rentalHours?: number;
   withDriver?: boolean;
   pickupBranchId?: string;
   pickupLocation?: string;
   dropoffLocation?: string;
-  rentalDuration?: string;
+  rentalDuration?: RentalDuration;
   selectedExtraIds?: string[];
   campaignId?: string;
   notes?: string;

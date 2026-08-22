@@ -1,40 +1,154 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { CustomerAccountService } from '../services/customer-account.service';
-import { CustomerDocument, CustomerDocumentType, CustomerExperiencePreferences, CustomerWalletService } from '../services/customer-wallet.service';
+import { CustomerDocument, CustomerDocumentType, CustomerWalletService } from '../services/customer-wallet.service';
 
-@Component({selector:'app-account-wallet',standalone:true,imports:[CommonModule,FormsModule,RouterLink],template:`
-<main class="page"><section class="shell"><header class="top"><div><p>Alperler Cüzdan</p><h1>Bir kez kaydedin, sonraki işlemler daha kolay olsun.</h1><span>Belgeleriniz, güvenli ödeme tercihleriniz ve harcama görünümünüz hesabınıza bağlı kalır.</span></div><div class="actions"><a routerLink="/account">Hesabıma dön</a><a routerLink="/">Siteye dön</a></div></header>
-@if(wallet.loading()){<section class="card loading" role="status">Cüzdanınız hazırlanıyor…</section>}@else{
-<section class="intro"><article><strong>Belgeleriniz hazır</strong><span>Kimlik ve ehliyetinizi her işlemde yeniden aramak zorunda kalmayın.</span></article><article><strong>Daha hızlı ödeme</strong><span>Güvenli kart kaydetme etkin olduğunda kayıtlı yönteminizi seçerek daha kısa sürede devam edin.</span></article><article><strong>Kontrol sizde</strong><span>Kaydettiğiniz bilgileri görün, belgeleri kaldırın ve isteğe bağlı harcama hedefinizi yönetin.</span></article></section>
-@if(!wallet.hasActiveConsent()){
-<section class="card consent"><header><h2>{{wallet.terms()?.title || 'Dijital Cüzdan Onayı'}}</h2><p>Bu özellik isteğe bağlıdır. Kullanmak isterseniz koşulları okuyup onaylayın.</p></header>@if(wallet.terms();as terms){<pre>{{terms.body}}</pre><label class="agree"><input type="checkbox" [(ngModel)]="termsChecked" name="termsChecked" /><span>Metni okudum ve dijital cüzdanı bu koşullarla kullanmayı kabul ediyorum.</span></label><button type="button" class="primary" (click)="acceptTerms()" [disabled]="working()||!termsChecked">Cüzdanı Etkinleştir</button>}@else{<p class="empty">Cüzdan koşulları şu anda yayınlanmamış.</p>}</section>
-}@else{
-<section class="grid"><section class="card docs"><header><div><h2>Belgelerim</h2><p>PDF, JPEG, PNG veya WebP. Dosya başına en fazla 10 MB.</p></div><span class="private">Özel kasa</span></header><div class="upload-grid"><label><span>Belge türü</span><select [(ngModel)]="documentType" name="documentType"><option value="IDENTITY_FRONT">Kimlik ön yüz</option><option value="IDENTITY_BACK">Kimlik arka yüz</option><option value="DRIVING_LICENSE_FRONT">Ehliyet ön yüz</option><option value="DRIVING_LICENSE_BACK">Ehliyet arka yüz</option><option value="PASSPORT">Pasaport</option><option value="ADDRESS_DOCUMENT">Adres belgesi</option><option value="OTHER">Diğer belge</option></select></label><label><span>Geçerlilik tarihi, varsa</span><input [(ngModel)]="documentExpiry" name="documentExpiry" type="date" /></label><label class="file"><span>{{selectedFile?.name || 'Belge seç'}}</span><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" (change)="selectFile($event)" aria-label="Belge dosyası seç" /></label><button type="button" class="primary" (click)="uploadDocument()" [disabled]="working()||!selectedFile">Belgeyi Güvenle Kaydet</button></div><div class="document-list">@for(doc of wallet.documents();track doc.id){<article><div class="doc-copy"><strong>{{documentLabel(doc.document_type)}}</strong><span>{{doc.original_name}} · {{fileSize(doc.file_size)}}</span>@if(doc.expiry_date){<small>Geçerlilik: {{doc.expiry_date|date:'dd.MM.yyyy'}}</small>}@if(doc.rejection_reason){<small class="reject">Not: {{doc.rejection_reason}}</small>}</div><div class="doc-side"><b [class.ok]="doc.verification_status==='VERIFIED'">{{statusLabel(doc.verification_status)}}</b><div><button type="button" (click)="openDocument(doc)">Görüntüle</button><button type="button" class="danger" (click)="deleteDocument(doc)">Kaldır</button></div></div></article>}@empty{<p class="empty">Henüz belge kaydetmediniz. İhtiyaç duyduğunuzda ekleyebilirsiniz.</p>}</div></section>
-<section class="card spend"><header><h2>Harcama Görünümüm</h2><p>İsterseniz kendi harcama görünümünüzü takip edin. Bu alan satın alma veya rezervasyon yapmanızı engellemez.</p></header><div class="spend-cards">@if(wallet.currentCurrencySummary();as s){<article><small>Bu ay</small><strong>{{s.monthSpend|number:'1.0-2'}} {{s.currency}}</strong></article><article><small>Bu yıl</small><strong>{{s.yearSpend|number:'1.0-2'}} {{s.currency}}</strong></article><article><small>Toplam indirim</small><strong>{{s.discountSavings|number:'1.0-2'}} {{s.currency}}</strong></article><article><small>Tamamlanan işlem</small><strong>{{s.completedTransactions}}</strong></article>}@else{<p class="empty">Seçili para biriminde tamamlanmış harcama bulunmuyor.</p>}</div><form (ngSubmit)="savePreferences()"><label><span>Takip etmek istediğim para birimi</span><select [(ngModel)]="prefs.preferred_currency" name="preferred_currency"><option>TRY</option><option>EUR</option><option>USD</option><option>CHF</option></select></label><label><span>Aylık kişisel hedef, isteğe bağlı</span><input [(ngModel)]="prefs.monthly_spend_target" name="monthly_spend_target" type="number" min="0" step="100" placeholder="Örn. 15000" /></label><label class="toggle"><input [(ngModel)]="prefs.spend_alert_enabled" name="spend_alert_enabled" type="checkbox" /><span>Hedefe yaklaşınca nazik bir hatırlatma göster</span></label><label><span>Hatırlatma eşiği</span><input [(ngModel)]="prefs.spend_alert_threshold_percent" name="spend_alert_threshold_percent" type="number" min="50" max="100" /></label><label class="toggle"><input [(ngModel)]="prefs.quick_checkout_enabled" name="quick_checkout_enabled" type="checkbox" /><span>Uygun işlemlerde kayıtlı profil ve belgelerimi hızlı doldurma için kullan</span></label><label><span>Belge bitiş hatırlatması</span><input [(ngModel)]="prefs.document_expiry_reminder_days" name="document_expiry_reminder_days" type="number" min="1" max="365" /></label><button type="submit" class="primary" [disabled]="working()">Tercihlerimi Kaydet</button></form></section></section>
-<section class="card cards"><header><div><h2>Ödeme Yöntemlerim</h2><p>Hassas kart verileri Alperler veritabanında tutulmaz. Güvenli kart kaydetme etkin olduğunda yalnız ödeme işlemi için gerekli sınırlı kart bilgileri hesabınızda gösterilir.</p></div><button type="button" class="add-card" disabled>Güvenli kart kaydetme şu anda kullanıma açık değil</button></header>@for(card of account.paymentMethods();track card.id){<article><div><strong>{{card.brand || card.provider}} •••• {{card.last4 || '----'}}</strong><span>@if(card.expiry_month&&card.expiry_year){Son kullanım {{card.expiry_month}}/{{card.expiry_year}}} {{card.label||''}}</span></div><div class="card-actions">@if(!card.is_default){<button type="button" (click)="makeDefault(card.id)">Varsayılan yap</button>}@else{<b>Varsayılan</b>}<button type="button" class="danger" (click)="removePayment(card.id)">Kaldır</button></div></article>}@empty{<p class="empty">Henüz kayıtlı güvenli ödeme yöntemi yok. Bu özellik kullanıma açıldığında kayıtlı yöntemlerinizi buradan yönetebileceksiniz.</p>}</section>
-<section class="card privacy"><strong>Cüzdan sizin seçiminiz.</strong><span>Yeni belge yüklemeyi durdurmak isterseniz cüzdan onayını geri çekebilirsiniz. Mevcut belgelerinizi ayrıca tek tek kaldırabilirsiniz.</span><button type="button" (click)="revokeTerms()" [disabled]="working()">Cüzdan onayını geri çek</button></section>
+interface DocumentSlot {
+  type: CustomerDocumentType;
+  title: string;
+  description: string;
+  icon: string;
 }
-@if(message()){<p class="toast ok" role="status">{{message()}}</p>}@if(error()){<p class="toast error" role="alert">{{error()}}</p>}
-}</section></main>`,styles:[`:host{display:block}.page{min-height:100vh;background:#f5f7fa;color:#0f172a;padding:1rem}.shell{max-width:1180px;margin:auto}.top{display:flex;justify-content:space-between;align-items:end;gap:1rem;padding:.5rem 0 1.2rem}.top p{margin:0;color:#315e86;font-size:.64rem;font-weight:950;letter-spacing:.14em;text-transform:uppercase}.top h1{max-width:760px;margin:.25rem 0;font-size:clamp(1.8rem,4vw,3rem);line-height:1.04;letter-spacing:-.035em}.top span{display:block;color:#64748b;line-height:1.55}.actions{display:flex;gap:.5rem}.actions a{display:inline-flex;min-height:42px;align-items:center;border:1px solid #dbe2ea;border-radius:12px;background:#fff;padding:0 .8rem;color:#0f172a;text-decoration:none;font-weight:850}.intro{display:grid;gap:.7rem;margin-bottom:1rem}.intro article,.card{border:1px solid #e2e8f0;border-radius:20px;background:#fff;box-shadow:0 10px 30px rgba(15,23,42,.05)}.intro article{padding:1rem}.intro strong,.intro span{display:block}.intro strong{font-size:.9rem}.intro span{margin-top:.25rem;color:#64748b;font-size:.72rem;line-height:1.5}.card{overflow:hidden;margin-bottom:1rem}.card>header{display:flex;justify-content:space-between;gap:1rem;align-items:start;padding:1rem;border-bottom:1px solid #eef2f7}.card h2{margin:0;font-size:1.05rem}.card header p{margin:.25rem 0 0;color:#64748b;font-size:.7rem;line-height:1.5}.loading,.empty{padding:1rem;color:#64748b}.consent pre{margin:0;padding:1rem;white-space:pre-wrap;font:inherit;font-size:.75rem;line-height:1.65;color:#334155;background:#fbfdff}.agree{display:grid;grid-template-columns:auto 1fr;gap:.6rem;padding:1rem;border-top:1px solid #eef2f7;font-size:.74rem;line-height:1.5}.consent>.primary{margin:0 1rem 1rem}.grid{display:grid;gap:1rem}.private{border-radius:999px;background:#ecfdf5;color:#047857;padding:.35rem .65rem;font-size:.62rem;font-weight:950}.upload-grid,.spend form{display:grid;gap:.7rem;padding:1rem}.upload-grid label,.spend form label{display:grid;gap:.3rem}.upload-grid label>span,.spend form label>span{font-size:.62rem;color:#475569;font-weight:900}.upload-grid input,.upload-grid select,.spend input,.spend select{min-height:44px;border:1px solid #cbd5e1;border-radius:11px;padding:.6rem;background:white;font:inherit}.file{position:relative;display:flex!important;align-items:center;justify-content:center;min-height:44px;border:1px dashed #93c5fd;border-radius:11px;background:#eff6ff;cursor:pointer}.file>span{color:#1d4ed8!important}.file input{position:absolute;width:1px;height:1px;opacity:0}.primary{min-height:44px;border:0;border-radius:11px;background:#0f172a;color:#fff;padding:0 1rem;font-weight:950}.primary:disabled{opacity:.45}.document-list article,.cards article{display:flex;justify-content:space-between;gap:1rem;padding:.9rem 1rem;border-top:1px solid #f1f5f9}.doc-copy strong,.doc-copy span,.doc-copy small,.cards strong,.cards span{display:block}.doc-copy span,.doc-copy small,.cards span{margin-top:.15rem;color:#64748b;font-size:.68rem}.doc-copy .reject{color:#b45309}.doc-side{text-align:right}.doc-side>b{display:inline-block;border-radius:999px;background:#f1f5f9;padding:.28rem .5rem;color:#475569;font-size:.58rem}.doc-side>b.ok{background:#ecfdf5;color:#047857}.doc-side div,.card-actions{display:flex;gap:.4rem;justify-content:flex-end;margin-top:.45rem}.doc-side button,.card-actions button,.privacy button{min-height:36px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;padding:0 .6rem;font-weight:800}.danger{color:#be123c!important;border-color:#fecdd3!important}.spend-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:.55rem;padding:1rem}.spend-cards article{border-radius:14px;background:#f8fafc;padding:.8rem}.spend-cards small,.spend-cards strong{display:block}.spend-cards small{color:#64748b;font-size:.6rem;text-transform:uppercase;font-weight:900}.spend-cards strong{margin-top:.15rem;font-size:1.05rem}.toggle{grid-template-columns:auto 1fr!important;align-items:center}.toggle input{min-height:auto}.cards .add-card{min-height:40px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;color:#64748b;padding:0 .7rem;font-weight:800}.card-actions b{align-self:center;color:#047857;font-size:.7rem}.privacy{display:grid;gap:.3rem;padding:1rem}.privacy span{color:#64748b;font-size:.7rem;line-height:1.5}.privacy button{justify-self:start;margin-top:.4rem}.toast{position:sticky;bottom:1rem;margin:1rem 0 0;border-radius:12px;padding:.8rem;box-shadow:0 8px 30px rgba(15,23,42,.12)}.toast.ok{background:#ecfdf5;color:#065f46}.toast.error{background:#fff1f2;color:#9f1239}@media(min-width:780px){.page{padding:1.5rem}.intro{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:1.15fr .85fr}.upload-grid{grid-template-columns:1fr 1fr}.upload-grid .primary{grid-column:1/-1}.spend form{grid-template-columns:1fr 1fr}.spend form>.primary{grid-column:1/-1}.spend-cards{grid-template-columns:repeat(4,1fr)}}@media(max-width:680px){.top{display:block}.actions{margin-top:1rem;display:grid;grid-template-columns:1fr 1fr}.card>header,.document-list article,.cards article{display:block}.private,.add-card{display:inline-block;margin-top:.6rem}.doc-side{text-align:left;margin-top:.7rem}.doc-side div,.card-actions{justify-content:flex-start}.cards .add-card{width:100%}}` ]})
-export class AccountWalletComponent implements OnInit{
-  readonly wallet=inject(CustomerWalletService);readonly account=inject(CustomerAccountService);readonly working=signal(false);readonly message=signal<string|null>(null);readonly error=signal<string|null>(null);termsChecked=false;documentType:CustomerDocumentType='DRIVING_LICENSE_FRONT';documentExpiry='';selectedFile:File|null=null;prefs:Partial<CustomerExperiencePreferences>={};
-  async ngOnInit(){await this.reload();}
-  async reload(){this.clear();try{await Promise.all([this.wallet.refresh(),this.account.refresh()]);this.prefs={...(this.wallet.preferences()||{})};}catch(e){this.error.set(this.errorText(e));}}
-  async acceptTerms(){this.working.set(true);this.clear();try{await this.wallet.acceptTerms();this.termsChecked=false;this.message.set('Alperler Cüzdan etkinleştirildi.');}catch(e){this.error.set(this.errorText(e));}finally{this.working.set(false);}}
-  async revokeTerms(){this.working.set(true);this.clear();try{await this.wallet.revokeTerms();this.message.set('Cüzdan onayınız geri çekildi. Yeni belge yükleme durduruldu.');}catch(e){this.error.set(this.errorText(e));}finally{this.working.set(false);}}
-  selectFile(event:Event){const input=event.target as HTMLInputElement;this.selectedFile=input.files?.[0]||null;}
-  async uploadDocument(){if(!this.selectedFile)return;this.working.set(true);this.clear();try{await this.wallet.uploadDocument(this.selectedFile,this.documentType,this.documentExpiry||null);this.selectedFile=null;this.documentExpiry='';this.message.set('Belgeniz özel kasanıza kaydedildi.');}catch(e){this.error.set(this.errorText(e));}finally{this.working.set(false);}}
-  async openDocument(doc:CustomerDocument){this.clear();try{await this.wallet.openDocument(doc);}catch(e){this.error.set(this.errorText(e));}}
-  async deleteDocument(doc:CustomerDocument){this.working.set(true);this.clear();try{await this.wallet.deleteDocument(doc);this.message.set('Belge cüzdanınızdan kaldırıldı.');}catch(e){this.error.set(this.errorText(e));}finally{this.working.set(false);}}
-  async savePreferences(){this.working.set(true);this.clear();try{await this.wallet.savePreferences(this.prefs);this.prefs={...(this.wallet.preferences()||{})};this.message.set('Cüzdan tercihleri kaydedildi.');}catch(e){this.error.set(this.errorText(e));}finally{this.working.set(false);}}
-  async makeDefault(id:string){this.working.set(true);this.clear();try{await this.wallet.setDefaultPaymentMethod(id);await Promise.all([this.wallet.refresh(),this.account.refresh()]);this.message.set('Varsayılan ödeme yönteminiz güncellendi.');}catch(e){this.error.set(this.errorText(e));}finally{this.working.set(false);}}
-  async removePayment(id:string){this.working.set(true);this.clear();try{await this.wallet.removePaymentMethod(id);await Promise.all([this.wallet.refresh(),this.account.refresh()]);this.message.set('Ödeme yöntemi kaldırıldı.');}catch(e){this.error.set(this.errorText(e));}finally{this.working.set(false);}}
-  documentLabel(type:CustomerDocumentType){return({IDENTITY_FRONT:'Kimlik ön yüz',IDENTITY_BACK:'Kimlik arka yüz',DRIVING_LICENSE_FRONT:'Ehliyet ön yüz',DRIVING_LICENSE_BACK:'Ehliyet arka yüz',PASSPORT:'Pasaport',ADDRESS_DOCUMENT:'Adres belgesi',OTHER:'Diğer belge'} as Record<CustomerDocumentType,string>)[type];}
-  statusLabel(status:string){return({PENDING:'Kontrol bekliyor',VERIFIED:'Doğrulandı',REJECTED:'Yeniden yüklenmeli',EXPIRED:'Süresi doldu'} as Record<string,string>)[status]||status;}
-  fileSize(bytes:number){if(bytes<1024)return `${bytes} B`;if(bytes<1024*1024)return `${Math.round(bytes/1024)} KB`;return `${(bytes/1024/1024).toFixed(1)} MB`;}
-  private clear(){this.message.set(null);this.error.set(null);}
-  private errorText(e:unknown){const c=e instanceof Error?e.message:'İşlem tamamlanamadı.';if(c.includes('VAULT_CONSENT_REQUIRED'))return 'Belge kaydetmeden önce dijital cüzdan onayını etkinleştirin.';if(c.includes('DOCUMENT_TYPE_INVALID'))return 'Belge PDF, JPEG, PNG veya WebP olmalıdır.';if(c.includes('DOCUMENT_SIZE_INVALID'))return 'Belge en fazla 10 MB olabilir.';if(c.includes('SPEND_TARGET_INVALID'))return 'Aylık hedef tutarını kontrol edin.';return c;}
+
+@Component({
+  selector: 'app-account-wallet',
+  standalone: true,
+  imports: [CommonModule, RouterLink],
+  template: `
+    <main class="vault-page">
+      <section class="shell">
+        <header class="topbar">
+          <div><p>GÜVENLİ BELGE KASASI</p><h1>Kimlik ve ehliyet belgeleriniz</h1><span>Rezervasyon doğrulamasında gerekli belgeleri bir kez yükleyin. Belgeleriniz herkese açık değildir ve yalnız yetkili ekip tarafından incelenir.</span></div>
+          <div><a routerLink="/account">Hesabıma Dön</a><a routerLink="/">Siteye Dön</a></div>
+        </header>
+
+        @if (message()) {<p class="notice ok" role="status">{{ message() }}</p>}
+        @if (error()) {<p class="notice error" role="alert">{{ error() }}</p>}
+
+        @if (wallet.loading()) {
+          <section class="loading" role="status">Belge kasanız hazırlanıyor...</section>
+        } @else if (!wallet.hasActiveConsent()) {
+          <section class="consent-card">
+            <div><p>GİZLİLİK ONAYI</p><h2>{{ wallet.terms()?.title || 'Güvenli Belge Kasası Onayı' }}</h2><span>Kimlik veya ehliyet yüklemeden önce belge saklama koşullarını onaylamanız gerekir.</span></div>
+            @if (wallet.terms(); as terms) {<pre>{{ terms.body }}</pre>}
+            <button type="button" (click)="acceptTerms()" [disabled]="working() || !wallet.terms()">{{ working() ? 'Onaylanıyor...' : 'Koşulları Kabul Et ve Kasayı Aç' }}</button>
+          </section>
+        } @else {
+          <section class="security-note" aria-label="Belge güvenliği bilgisi">
+            <strong>Özel ve kontrollü erişim</strong>
+            <span>Dosyalar özel depolama alanında tutulur. Yönetici görüntülemek istediğinde yalnız kısa süreli güvenli bağlantı oluşturulur.</span>
+          </section>
+
+          <section class="slot-grid" aria-label="Kimlik ve ehliyet belge alanları">
+            @for (slot of slots; track slot.type) {
+              <article class="slot-card">
+                <header><span class="slot-icon" aria-hidden="true">{{ slot.icon }}</span><div><h2>{{ slot.title }}</h2><p>{{ slot.description }}</p></div></header>
+                @if (documentFor(slot.type); as doc) {
+                  <div class="document-state">
+                    <div><small>DURUM</small><strong [class.verified]="doc.verification_status === 'VERIFIED'">{{ statusLabel(doc.verification_status) }}</strong></div>
+                    <span>{{ doc.original_name }}</span>
+                    <time>{{ doc.created_at | date:'dd.MM.yyyy HH:mm' }}</time>
+                    @if (doc.rejection_reason) {<p class="rejection">{{ doc.rejection_reason }}</p>}
+                  </div>
+                  <div class="document-actions">
+                    <button type="button" (click)="openDocument(doc)">Görüntüle</button>
+                    <label class="replace" [class.disabled]="workingType() === slot.type">
+                      <span>{{ workingType() === slot.type ? 'Yükleniyor...' : 'Yeni Fotoğraf Yükle' }}</span>
+                      <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" [disabled]="workingType() === slot.type" [attr.aria-label]="slot.title + ' için yeni fotoğraf çek veya seç'" (change)="upload(slot.type, $event, doc)" />
+                    </label>
+                    <button type="button" class="remove" (click)="removeDocument(doc)" [disabled]="workingType() === slot.type">Kaldır</button>
+                  </div>
+                } @else {
+                  <div class="empty-state"><strong>Henüz yüklenmedi</strong><span>Telefonunuzun kamerasıyla fotoğraf çekebilir veya galeriden görsel seçebilirsiniz.</span></div>
+                  <label class="capture" [class.disabled]="workingType() === slot.type">
+                    <span>{{ workingType() === slot.type ? 'Yükleniyor...' : 'Fotoğraf Çek veya Görsel Seç' }}</span>
+                    <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" [disabled]="workingType() === slot.type" [attr.aria-label]="slot.title + ' fotoğrafı çek veya seç'" (change)="upload(slot.type, $event)" />
+                  </label>
+                }
+              </article>
+            }
+          </section>
+
+          <section class="review-info">
+            <div><p>DOĞRULAMA SÜRECİ</p><h2>Belgeniz yüklendiğinde ne olur?</h2></div>
+            <ol><li><strong>1</strong><span>Belge hesabınıza güvenli şekilde kaydedilir.</span></li><li><strong>2</strong><span>Yetkili ekip kimlik ve ehliyet bilgilerini rezervasyonla birlikte kontrol eder.</span></li><li><strong>3</strong><span>Doğrulama sonucu burada “Doğrulandı” olarak görünür. Görüntü net değilse yeniden yükleme notu gösterilir.</span></li></ol>
+          </section>
+        }
+      </section>
+    </main>
+  `,
+  styles: [`
+    :host{display:block}.vault-page{min-height:100vh;background:#060a12;color:#f4f6f8;padding:clamp(14px,3vw,32px)}.shell{width:min(100%,1080px);margin:auto}.topbar{display:flex;align-items:end;justify-content:space-between;gap:1rem;padding-bottom:1.2rem;border-bottom:1px solid #27364a}.topbar p,.consent-card p,.review-info p{margin:0;color:#c6a15b;font-size:.58rem;font-weight:950;letter-spacing:.14em}.topbar h1,.consent-card h2,.review-info h2{margin:.3rem 0 0;font:700 clamp(1.6rem,4vw,2.5rem)/1.06 Georgia,serif}.topbar>div>span,.consent-card>div>span{display:block;max-width:720px;margin-top:.45rem;color:#9ba8b8;font-size:.72rem;line-height:1.55}.topbar>div:last-child{display:flex;gap:.45rem}.topbar a{display:inline-flex;min-height:44px;align-items:center;border:1px solid #304158;border-radius:11px;background:#0e1724;padding:0 .8rem;color:#fff;text-decoration:none;font-size:.68rem;font-weight:900}.notice,.loading{margin:1rem 0 0;border-radius:12px;padding:.8rem .9rem;font-size:.72rem;font-weight:850}.notice.ok{background:#0b2d25;color:#a7f3d0}.notice.error{background:#35131b;color:#fecdd3}.loading{border:1px solid #27364a;background:#0b1420;color:#aab5c4}.consent-card{margin-top:1rem;border:1px solid #39495d;border-radius:20px;background:#0b1420;overflow:hidden}.consent-card>div{padding:1rem}.consent-card h2{font-size:1.35rem}.consent-card pre{max-height:310px;overflow:auto;margin:0;border-top:1px solid #263548;border-bottom:1px solid #263548;background:#08111e;padding:1rem;white-space:pre-wrap;color:#bec8d4;font:inherit;font-size:.7rem;line-height:1.65}.consent-card button{min-height:48px;margin:1rem;border:0;border-radius:11px;background:#c6a15b;padding:0 1rem;color:#111827;font-weight:950}.security-note{display:flex;gap:.6rem;margin-top:1rem;border:1px solid #245045;border-radius:15px;background:#09251f;padding:.9rem;color:#d1fae5}.security-note strong{flex:none;font-size:.72rem}.security-note span{font-size:.68rem;line-height:1.5}.slot-grid{display:grid;gap:.8rem;margin-top:1rem}.slot-card{border:1px solid #29394e;border-radius:18px;background:#0b1420;padding:1rem}.slot-card header{display:flex;gap:.7rem;align-items:flex-start}.slot-icon{display:grid;width:42px;height:42px;flex:none;place-items:center;border-radius:12px;background:#172234;color:#c6a15b;font-size:1.1rem}.slot-card h2{margin:0;font-size:.94rem}.slot-card header p{margin:.25rem 0 0;color:#8998aa;font-size:.65rem;line-height:1.45}.document-state,.empty-state{margin-top:.8rem;border-radius:12px;background:#08111e;padding:.75rem}.document-state>div{display:flex;align-items:center;justify-content:space-between;gap:.6rem}.document-state small{color:#718096;font-size:.54rem;font-weight:950}.document-state strong{color:#fde68a;font-size:.65rem}.document-state strong.verified{color:#86efac}.document-state>span,.document-state>time{display:block;margin-top:.3rem;color:#98a6b8;font-size:.62rem}.rejection{margin:.55rem 0 0;border-radius:9px;background:#301b0c;padding:.55rem;color:#fdba74;font-size:.64rem}.empty-state strong,.empty-state span{display:block}.empty-state strong{font-size:.72rem}.empty-state span{margin-top:.3rem;color:#8998aa;font-size:.64rem;line-height:1.5}.document-actions{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.7rem}.document-actions button,.replace,.capture{display:inline-flex;min-height:43px;align-items:center;justify-content:center;border:1px solid #34465d;border-radius:10px;background:#111c2b;padding:0 .75rem;color:#fff;font-size:.64rem;font-weight:900}.replace,.capture{position:relative;cursor:pointer}.replace input,.capture input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.remove{color:#fda4af!important;border-color:#5b3440!important}.capture{width:100%;margin-top:.7rem;border-color:#75602f;background:#c6a15b;color:#111827}.disabled{opacity:.5;cursor:not-allowed}.review-info{margin-top:1rem;border:1px solid #29394e;border-radius:18px;background:#0b1420;padding:1rem}.review-info h2{font-size:1.25rem}.review-info ol{display:grid;gap:.6rem;margin:.9rem 0 0;padding:0;list-style:none}.review-info li{display:flex;align-items:flex-start;gap:.6rem;border-radius:11px;background:#08111e;padding:.7rem}.review-info li strong{display:grid;width:28px;height:28px;flex:none;place-items:center;border-radius:50%;background:#315e86;font-size:.65rem}.review-info li span{color:#aab5c4;font-size:.68rem;line-height:1.5}a:focus-visible,button:focus-visible,label:focus-within{outline:3px solid #7899b8;outline-offset:2px}@media(min-width:720px){.slot-grid{grid-template-columns:1fr 1fr}.review-info ol{grid-template-columns:repeat(3,1fr)}}@media(max-width:680px){.topbar{display:block}.topbar>div:last-child{margin-top:.8rem}.topbar a{flex:1;justify-content:center}.security-note{display:block}.security-note span{display:block;margin-top:.3rem}}
+  `],
+})
+export class AccountWalletComponent implements OnInit {
+  readonly wallet = inject(CustomerWalletService);
+  readonly working = signal(false);
+  readonly workingType = signal<CustomerDocumentType | null>(null);
+  readonly message = signal('');
+  readonly error = signal('');
+  readonly slots: DocumentSlot[] = [
+    { type: 'IDENTITY_FRONT', title: 'Kimlik Ön Yüz', description: 'Kimliğinizin fotoğraflı ön yüzünü net ve tam kadraj yükleyin.', icon: 'ID' },
+    { type: 'IDENTITY_BACK', title: 'Kimlik Arka Yüz', description: 'Kimliğinizin arka yüzündeki bilgilerin tamamı görünür olmalı.', icon: 'ID' },
+    { type: 'DRIVING_LICENSE_FRONT', title: 'Ehliyet Ön Yüz', description: 'Sürücü belgenizin ön yüzünü yansıma ve bulanıklık olmadan yükleyin.', icon: 'E' },
+    { type: 'DRIVING_LICENSE_BACK', title: 'Ehliyet Arka Yüz', description: 'Sürücü belgenizin arka yüzünü tam kadraj yükleyin.', icon: 'E' },
+  ];
+
+  async ngOnInit(): Promise<void> {
+    try { await this.wallet.refresh(); }
+    catch { this.error.set('Belge kasası şu anda açılamadı. Lütfen yeniden deneyin.'); }
+  }
+
+  documentFor(type: CustomerDocumentType): CustomerDocument | null {
+    return this.wallet.documents().find((document) => document.document_type === type) || null;
+  }
+
+  statusLabel(status: CustomerDocument['verification_status']): string {
+    if (status === 'VERIFIED') return 'Doğrulandı';
+    if (status === 'REJECTED') return 'Yeniden Yükleme Gerekli';
+    if (status === 'EXPIRED') return 'Süresi Doldu';
+    return 'İnceleniyor';
+  }
+
+  async acceptTerms(): Promise<void> {
+    if (this.working()) return;
+    this.working.set(true); this.clearMessages();
+    try { await this.wallet.acceptTerms(); this.message.set('Belge kasanız etkinleştirildi. Kimlik ve ehliyet belgelerinizi güvenle ekleyebilirsiniz.'); }
+    catch { this.error.set('Belge kasası onayı şu anda tamamlanamadı.'); }
+    finally { this.working.set(false); }
+  }
+
+  async upload(type: CustomerDocumentType, event: Event, previous?: CustomerDocument): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file || this.workingType()) return;
+    this.workingType.set(type); this.clearMessages();
+    try {
+      await this.wallet.uploadDocument(file, type);
+      if (previous) await this.wallet.deleteDocument(previous).catch(() => undefined);
+      await this.wallet.refresh();
+      this.message.set(`${this.slotTitle(type)} başarıyla yüklendi ve doğrulama sırasına alındı.`);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : '';
+      this.error.set(detail.includes('DOCUMENT_SIZE_INVALID') ? 'Belge dosyası en fazla 10 MB olabilir.' : detail.includes('DOCUMENT_TYPE_INVALID') ? 'Lütfen JPEG, PNG veya WebP formatında bir görsel seçin.' : 'Belge yüklenemedi. Lütfen görüntüyü kontrol edip tekrar deneyin.');
+    } finally { this.workingType.set(null); }
+  }
+
+  async openDocument(document: CustomerDocument): Promise<void> {
+    this.clearMessages();
+    try { await this.wallet.openDocument(document); }
+    catch { this.error.set('Belge şu anda güvenli görüntüleyicide açılamadı.'); }
+  }
+
+  async removeDocument(document: CustomerDocument): Promise<void> {
+    if (this.workingType()) return;
+    this.workingType.set(document.document_type); this.clearMessages();
+    try { await this.wallet.deleteDocument(document); this.message.set(`${this.slotTitle(document.document_type)} kaldırıldı.`); }
+    catch { this.error.set('Belge kaldırılamadı. Lütfen tekrar deneyin.'); }
+    finally { this.workingType.set(null); }
+  }
+
+  private slotTitle(type: CustomerDocumentType): string { return this.slots.find((slot) => slot.type === type)?.title || 'Belge'; }
+  private clearMessages(): void { this.message.set(''); this.error.set(''); }
 }

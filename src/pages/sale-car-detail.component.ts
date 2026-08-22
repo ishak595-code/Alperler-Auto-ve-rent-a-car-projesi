@@ -136,7 +136,7 @@ import { SeoService } from "../services/seo.service";
           </div>
         }
       } @else if (loading()) {
-        <section class="state" role="status"><div class="spinner"></div><strong>İlan bilgileri veritabanından yükleniyor</strong></section>
+        <section class="state" role="status"><div class="spinner"></div><strong>Satılık araç bilgileri hazırlanıyor</strong></section>
       } @else {
         <section class="state error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><strong>İlan yüklenemedi</strong><span>{{ loadError() }}</span><button type="button" (click)="reload()">Tekrar Dene</button></section>
       }

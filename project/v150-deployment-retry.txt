@@ -1,0 +1,3 @@
+V150 production deployment retry marker.
+
+The V150 merge passed all repository quality gates but the first Vercel Git deployment was rejected by the platform build-rate limit before a build started. This repository-only marker is excluded from Vercel runtime files through .vercelignore and exists solely to request a fresh Git deployment after the rate-limit window.

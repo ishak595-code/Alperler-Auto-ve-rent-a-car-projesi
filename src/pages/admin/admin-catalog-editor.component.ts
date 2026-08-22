@@ -30,9 +30,7 @@ import { ToastService } from "../../services/toast.service";
               <h1 class="text-2xl font-black md:text-4xl">Araç & Tur Yayın Stüdyosu</h1>
               <p class="mt-2 text-sm leading-relaxed text-slate-300">Kiralık araç, satılık araç ve turlar birbirinden ayrı gerçek kayıtlar olarak yönetilir. Yeni kayıt önce taslak açılır, bilgileri ve medyası tamamlandıktan sonra canlıya alınır veya ileri bir tarihe planlanır.</p>
             </div>
-
           </div>
-
         </header>
 
         <section class="sticky top-0 z-40 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur" aria-label="Katalog hızlı işlemleri">
@@ -51,9 +49,7 @@ import { ToastService } from "../../services/toast.service";
           </div>
         </section>
 
-        @if (error()) {
-          <div role="alert" class="rounded-2xl border border-rose-200 bg-rose-50 p-4 font-bold text-rose-800">{{ error() }}</div>
-        }
+        @if (error()) {<div role="alert" class="rounded-2xl border border-rose-200 bg-rose-50 p-4 font-bold text-rose-800">{{ error() }}</div>}
 
         <div class="grid gap-5 xl:grid-cols-[330px_minmax(0,1fr)]">
           <aside class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm xl:sticky xl:top-20 xl:max-h-[calc(100dvh-7rem)] xl:overflow-y-auto xl:self-start">
@@ -61,27 +57,21 @@ import { ToastService } from "../../services/toast.service";
               @if (filter() !== 'TOUR') {
                 @for (item of filteredVehicles(); track item.id) {
                   <button type="button" (click)="selectVehicle(item)" [class.border-blue-500]="selectedVehicle()?.id===item.id" [class.bg-blue-50]="selectedVehicle()?.id===item.id" class="w-full rounded-2xl border border-slate-200 p-3 text-left">
-                    <div class="flex items-center gap-2">
-                      <strong class="min-w-0 flex-1 truncate text-sm text-slate-900">{{ item.brand }} {{ item.model }}</strong>
-                      <span class="rounded-full px-2 py-1 text-[9px] font-black" [class.bg-emerald-100]="item.publicationStatus==='PUBLISHED'" [class.text-emerald-700]="item.publicationStatus==='PUBLISHED'" [class.bg-amber-100]="item.publicationStatus!=='PUBLISHED'">{{ statusLabel(item.publicationStatus) }}</span>
-                    </div>
+                    <div class="flex items-center gap-2"><strong class="min-w-0 flex-1 truncate text-sm text-slate-900">{{ item.brand }} {{ item.model }}</strong><span class="rounded-full px-2 py-1 text-[9px] font-black" [class.bg-emerald-100]="item.publicationStatus==='PUBLISHED'" [class.text-emerald-700]="item.publicationStatus==='PUBLISHED'" [class.bg-amber-100]="item.publicationStatus!=='PUBLISHED'">{{ statusLabel(item.publicationStatus) }}</span></div>
                     <span class="mt-1 block truncate text-[11px] text-slate-500">{{ item.category === 'RENTAL' ? 'Kiralık' : 'Satılık' }} · {{ item.modelYear || 'Yıl yok' }} · {{ item.stockCode }}</span>
                   </button>
-                } @empty { <div class="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-500">Kayıt bulunamadı.</div> }
+                } @empty {<div class="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-500">Kayıt bulunamadı.</div>}
               } @else {
                 @for (item of filteredTours(); track item.id) {
-                  <button type="button" (click)="selectTour(item)" [class.border-violet-500]="selectedTour()?.id===item.id" [class.bg-violet-50]="selectedTour()?.id===item.id" class="w-full rounded-2xl border border-slate-200 p-3 text-left">
-                    <strong class="block truncate text-sm text-slate-900">{{ item.title }}</strong>
-                    <span class="mt-1 block truncate text-[11px] text-slate-500">{{ item.duration || 'Süre yok' }} · {{ statusLabel(item.publicationStatus) }}</span>
-                  </button>
-                } @empty { <div class="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-500">Tur bulunamadı.</div> }
+                  <button type="button" (click)="selectTour(item)" [class.border-violet-500]="selectedTour()?.id===item.id" [class.bg-violet-50]="selectedTour()?.id===item.id" class="w-full rounded-2xl border border-slate-200 p-3 text-left"><strong class="block truncate text-sm text-slate-900">{{ item.title }}</strong><span class="mt-1 block truncate text-[11px] text-slate-500">{{ item.duration || 'Süre yok' }} · {{ statusLabel(item.publicationStatus) }}</span></button>
+                } @empty {<div class="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-500">Tur bulunamadı.</div>}
               }
             </div>
           </aside>
 
           <section class="min-w-0">
             @if (loading()) {
-              <div class="rounded-3xl bg-white p-12 text-center font-bold text-slate-500">Katalog yükleniyor…</div>
+              <div class="rounded-3xl bg-white p-12 text-center font-bold text-slate-500">Katalog hazırlanıyor…</div>
             } @else if (selectedVehicle(); as car) {
               <form (ngSubmit)="saveVehicle()" class="space-y-5">
                 <div class="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_390px]">
@@ -98,6 +88,10 @@ import { ToastService } from "../../services/toast.service";
                         <label class="field"><span>Rozet</span><input [ngModel]="meta(car,'badge')" (ngModelChange)="setMeta(car,'badge',$event)" name="badge" placeholder="FIRSAT, YENİ, PREMIUM…" /></label>
                         @if (car.category === 'RENTAL') {
                           <label class="field"><span>Günlük fiyat TL</span><input [(ngModel)]="car.rentalPriceDaily" name="rentalPrice" type="number" min="0" /></label>
+                          <label class="check md:col-span-2"><input type="checkbox" [ngModel]="meta(car,'hourlyRentalEnabled') === true" (ngModelChange)="setMeta(car,'hourlyRentalEnabled',$event)" name="hourlyRentalEnabled" /> Saatlik kiralamayı etkinleştir</label>
+                          <label class="field"><span>Saatlik fiyat TL</span><input [ngModel]="meta(car,'hourlyPrice')" (ngModelChange)="setMetaNumber(car,'hourlyPrice',$event)" name="hourlyPrice" type="number" min="0" step="0.01" /></label>
+                          <label class="field"><span>Minimum kiralama saati</span><input [ngModel]="meta(car,'minimumRentalHours') || 1" (ngModelChange)="setMetaNumber(car,'minimumRentalHours',$event)" name="minimumRentalHours" type="number" min="1" max="23" /></label>
+                          <label class="field"><span>Saatlik KM limiti</span><input [ngModel]="meta(car,'hourlyMileageLimit')" (ngModelChange)="setMetaNumber(car,'hourlyMileageLimit',$event)" name="hourlyMileageLimit" type="number" min="0" /></label>
                         } @else {
                           <label class="field"><span>Satış fiyatı TL</span><input [(ngModel)]="car.price" name="price" type="number" min="0" /></label>
                           <label class="field"><span>Kilometre</span><input [(ngModel)]="car.mileageKm" name="mileage" type="number" min="0" /></label>
@@ -149,17 +143,14 @@ import { ToastService } from "../../services/toast.service";
                         <label class="field"><span>Veri doğrulama</span><select [(ngModel)]="car.dataQualityStatus" name="quality"><option value="BUSINESS_VERIFIED">İşletme doğruladı</option><option value="RESEARCHED">Araştırma ile tamamlandı</option><option value="UNVERIFIED">Henüz kontrol edilmedi</option></select></label>
                         <label class="field"><span>Teknik kaynak adı</span><input [(ngModel)]="car.specSourceName" name="sourceName" /></label>
                         <label class="field"><span>Teknik kaynak URL</span><input [(ngModel)]="car.specSourceUrl" name="sourceUrl" type="url" /></label>
-                        <label class="field"><span>Şube</span><select [(ngModel)]="car.branchId" name="branch"><option [ngValue]="undefined">Şube seçilmedi</option>@for (branch of branches(); track branch.id) { <option [ngValue]="branch.id">{{ branch.name }} · {{ branch.city }}</option> }</select></label>
+                        <label class="field"><span>Şube</span><select [(ngModel)]="car.branchId" name="branch"><option [ngValue]="undefined">Şube seçilmedi</option>@for (branch of branches(); track branch.id) {<option [ngValue]="branch.id">{{ branch.name }} · {{ branch.city }}</option>}</select></label>
                         <label class="field"><span>Müsaitlik</span><select [(ngModel)]="car.availabilityStatus" name="availability"><option value="AVAILABLE">Müsait / Satışta</option><option value="RESERVED">Rezerve</option><option value="RENTED">Kirada</option><option value="SOLD">Satıldı</option><option value="MAINTENANCE">Bakımda</option></select></label>
                       </div>
                     </section>
                   </div>
 
                   <aside class="space-y-5 2xl:sticky 2xl:top-20 2xl:self-start">
-                    <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                      <h2 class="mb-3 text-lg font-black text-slate-900">Canlı Kart Önizlemesi</h2>
-                      <app-vehicle-card [car]="previewVehicle(car)"></app-vehicle-card>
-                    </section>
+                    <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"><h2 class="mb-3 text-lg font-black text-slate-900">Canlı Kart Önizlemesi</h2><app-vehicle-card [car]="previewVehicle(car)"></app-vehicle-card></section>
                     <ng-container *ngTemplateOutlet="mediaPanel; context: {$implicit: 'VEHICLE', id: car.id}"></ng-container>
                   </aside>
                 </div>
@@ -193,7 +184,7 @@ import { ToastService } from "../../services/toast.service";
                         <label class="field"><span>Süre</span><input [(ngModel)]="tour.duration" name="duration" /></label>
                         <label class="field"><span>Kapasite</span><input [(ngModel)]="tour.capacity" name="capacity" type="number" min="1" /></label>
                         <label class="field"><span>SEO adresi</span><input [(ngModel)]="tour.seoSlug" name="tourSlug" required /></label>
-                        <label class="field"><span>Şube</span><select [(ngModel)]="tour.branchId" name="tourBranch"><option [ngValue]="undefined">Şube seçilmedi</option>@for (branch of branches(); track branch.id) { <option [ngValue]="branch.id">{{ branch.name }} · {{ branch.city }}</option> }</select></label>
+                        <label class="field"><span>Şube</span><select [(ngModel)]="tour.branchId" name="tourBranch"><option [ngValue]="undefined">Şube seçilmedi</option>@for (branch of branches(); track branch.id) {<option [ngValue]="branch.id">{{ branch.name }} · {{ branch.city }}</option>}</select></label>
                         <label class="field md:col-span-2"><span>Kısa açıklama</span><textarea [(ngModel)]="tour.shortDescription" name="shortDescription" rows="3"></textarea></label>
                         <label class="field md:col-span-2"><span>Detaylı açıklama</span><textarea [(ngModel)]="tour.description" name="tourDescription" rows="7"></textarea></label>
                         <label class="field md:col-span-2"><span>Öne çıkanlar, satır başına bir</span><textarea [ngModel]="metaArray(tour,'highlights').join('\n')" (ngModelChange)="setMeta(tour,'highlights',splitLines($event))" name="highlights" rows="5"></textarea></label>
@@ -220,13 +211,8 @@ import { ToastService } from "../../services/toast.service";
 
                   <aside class="space-y-5 2xl:sticky 2xl:top-20 2xl:self-start">
                     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                      <div class="aspect-[4/3] overflow-hidden rounded-2xl bg-slate-100">
-                        @if (tour.coverImage || tour.images[0]) { <img [src]="tour.coverImage || tour.images[0]" [alt]="tour.title" class="h-full w-full object-cover" referrerpolicy="no-referrer" /> }
-                        @else { <div class="flex h-full items-center justify-center text-sm font-bold text-slate-400">Kapak görseli yüklenmedi</div> }
-                      </div>
-                      <h2 class="mt-4 text-xl font-black text-slate-900">{{ tour.title }}</h2>
-                      <p class="mt-1 text-sm text-slate-500">{{ tour.duration || 'Süre belirtilmedi' }} · {{ tour.locationName || tour.meetingPoint || 'Konum belirtilmedi' }}</p>
-                      <strong class="mt-3 block text-xl text-violet-700">{{ tour.pricePerPerson | number:'1.0-0' }} TL / kişi</strong>
+                      <div class="aspect-[4/3] overflow-hidden rounded-2xl bg-slate-100">@if (tour.coverImage || tour.images[0]) {<img [src]="tour.coverImage || tour.images[0]" [alt]="tour.title" class="h-full w-full object-cover" referrerpolicy="no-referrer" />} @else {<div class="flex h-full items-center justify-center text-sm font-bold text-slate-400">Kapak görseli yüklenmedi</div>}</div>
+                      <h2 class="mt-4 text-xl font-black text-slate-900">{{ tour.title }}</h2><p class="mt-1 text-sm text-slate-500">{{ tour.duration || 'Süre belirtilmedi' }} · {{ tour.locationName || tour.meetingPoint || 'Konum belirtilmedi' }}</p><strong class="mt-3 block text-xl text-violet-700">{{ tour.pricePerPerson | number:'1.0-0' }} TL / kişi</strong>
                     </section>
                     <ng-container *ngTemplateOutlet="mediaPanel; context: {$implicit: 'TOUR', id: tour.id}"></ng-container>
                   </aside>
@@ -240,19 +226,10 @@ import { ToastService } from "../../services/toast.service";
                     <label class="check"><input type="checkbox" [(ngModel)]="tour.isFeatured" name="tourFeatured" /> Ana sayfada öne çıkarılabilir</label>
                     <label class="check"><input type="checkbox" [(ngModel)]="tour.isActive" name="tourActive" /> Kayıt aktif</label>
                   </div>
-                  <div class="mt-5 grid gap-2 sm:grid-cols-4">
-                    <button type="button" (click)="saveAsTourDraft()" [disabled]="saving()" class="min-h-12 rounded-xl border border-slate-300 bg-white px-4 font-black">Taslak Kaydet</button>
-                    <button type="button" (click)="scheduleTour()" [disabled]="saving()" class="min-h-12 rounded-xl bg-amber-500 px-4 font-black text-slate-950">Planla</button>
-                    <button type="button" (click)="publishTour()" [disabled]="saving()" class="min-h-12 rounded-xl bg-violet-600 px-4 font-black text-white">Canlı Yayınla</button>
-                    <button type="button" (click)="archiveTour()" [disabled]="saving()" class="min-h-12 rounded-xl bg-slate-900 px-4 font-black text-white">Arşivle</button>
-                  </div>
+                  <div class="mt-5 grid gap-2 sm:grid-cols-4"><button type="button" (click)="saveAsTourDraft()" [disabled]="saving()" class="min-h-12 rounded-xl border border-slate-300 bg-white px-4 font-black">Taslak Kaydet</button><button type="button" (click)="scheduleTour()" [disabled]="saving()" class="min-h-12 rounded-xl bg-amber-500 px-4 font-black text-slate-950">Planla</button><button type="button" (click)="publishTour()" [disabled]="saving()" class="min-h-12 rounded-xl bg-violet-600 px-4 font-black text-white">Canlı Yayınla</button><button type="button" (click)="archiveTour()" [disabled]="saving()" class="min-h-12 rounded-xl bg-slate-900 px-4 font-black text-white">Arşivle</button></div>
                 </section>
               </form>
-            } @else {
-              <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center">
-                <h2 class="text-xl font-black text-slate-900">Düzenlemek için soldan bir kayıt seç</h2>
-              </div>
-            }
+            } @else {<div class="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center"><h2 class="text-xl font-black text-slate-900">Düzenlemek için soldan bir kayıt seç</h2></div>}
           </section>
         </div>
       </div>
@@ -260,27 +237,12 @@ import { ToastService } from "../../services/toast.service";
       <ng-template #mediaPanel let-entityType let-id="id">
         <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
           <div class="flex items-center justify-between gap-3"><div><h2 class="text-lg font-black text-slate-900">Fotoğraf & Video</h2><p class="text-xs text-slate-500">Yüklenen medya canlı karta ve detay sayfasına otomatik bağlanır.</p></div><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-black">{{ media().length }}</span></div>
-          <label class="mt-4 flex min-h-12 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 px-4 text-sm font-black text-blue-700">
-            <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm" class="sr-only" aria-label="Fotoğraf veya video dosyaları seç" (change)="uploadFiles($event, entityType, id)" />
-            {{ uploading() ? 'Yükleniyor %' + mediaService.uploadProgress() : 'Fotoğraf / Video Yükle' }}
-          </label>
+          <label class="mt-4 flex min-h-12 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 px-4 text-sm font-black text-blue-700"><input type="file" multiple accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm" class="sr-only" aria-label="Fotoğraf veya video dosyaları seç" (change)="uploadFiles($event, entityType, id)" />{{ uploading() ? 'Yükleniyor %' + mediaService.uploadProgress() : 'Fotoğraf / Video Yükle' }}</label>
           <p class="mt-3 rounded-xl bg-emerald-50 p-3 text-xs font-bold leading-5 text-emerald-800">Medya yalnız dosya yükleyerek eklenir. Yeni dosyalar doğrudan Alperler Auto medya deposuna kaydedilir; dış URL yapıştırma kullanılmaz.</p>
           <div class="mt-4 space-y-2">
             @for (item of media(); track item.id) {
-              <article class="rounded-2xl border border-slate-200 p-2">
-                <div class="flex gap-3">
-                  <div class="h-16 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-100">
-                    @if (item.kind === 'IMAGE') { <img [src]="item.url" [alt]="item.altText" class="h-full w-full object-cover" /> }
-                    @else { <div class="flex h-full items-center justify-center text-xs font-black text-violet-700">VIDEO</div> }
-                  </div>
-                  <div class="min-w-0 flex-1"><strong class="block truncate text-xs text-slate-900">{{ item.altText || item.kind }}</strong><small class="block truncate text-slate-500">{{ item.attribution || item.sourceName || 'İşletme medyası' }}</small></div>
-                </div>
-                <div class="mt-2 grid grid-cols-2 gap-2">
-                  @if (item.kind === 'IMAGE') { <button type="button" (click)="makeCover(item)" [disabled]="item.isCover" class="min-h-9 rounded-lg bg-blue-50 text-[11px] font-black text-blue-700 disabled:opacity-40">{{ item.isCover ? 'Kapak Görseli' : 'Kapak Yap' }}</button> }
-                  <button type="button" (click)="removeMedia(item)" class="min-h-9 rounded-lg bg-rose-50 text-[11px] font-black text-rose-700">Kaldır</button>
-                </div>
-              </article>
-            } @empty { <div class="rounded-xl border border-dashed p-5 text-center text-xs text-slate-500">Henüz bağlı medya yok.</div> }
+              <article class="rounded-2xl border border-slate-200 p-2"><div class="flex gap-3"><div class="h-16 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-100">@if (item.kind === 'IMAGE') {<img [src]="item.url" [alt]="item.altText" class="h-full w-full object-cover" />} @else {<div class="flex h-full items-center justify-center text-xs font-black text-violet-700">VIDEO</div>}</div><div class="min-w-0 flex-1"><strong class="block truncate text-xs text-slate-900">{{ item.altText || item.kind }}</strong><small class="block truncate text-slate-500">{{ item.attribution || item.sourceName || 'İşletme medyası' }}</small></div></div><div class="mt-2 grid grid-cols-2 gap-2">@if (item.kind === 'IMAGE') {<button type="button" (click)="makeCover(item)" [disabled]="item.isCover" class="min-h-9 rounded-lg bg-blue-50 text-[11px] font-black text-blue-700 disabled:opacity-40">{{ item.isCover ? 'Kapak Görseli' : 'Kapak Yap' }}</button>}<button type="button" (click)="removeMedia(item)" class="min-h-9 rounded-lg bg-rose-50 text-[11px] font-black text-rose-700">Kaldır</button></div></article>
+            } @empty {<div class="rounded-xl border border-dashed p-5 text-center text-xs text-slate-500">Henüz bağlı medya yok.</div>}
           </div>
         </section>
       </ng-template>
@@ -318,258 +280,33 @@ export class AdminCatalogEditorComponent implements OnInit {
   search = "";
 
   readonly branches = computed(() => this.management.branches().filter((branch) => branch.isActive));
-  readonly filteredVehicles = computed(() => {
-    const q = this.search.trim().toLocaleLowerCase("tr-TR");
-    const category = this.filter();
-    if (category === "TOUR") return [];
-    return this.vehicles().filter((item) => item.category === category).filter((item) => !q || `${item.brand} ${item.model} ${item.stockCode}`.toLocaleLowerCase("tr-TR").includes(q));
-  });
-  readonly filteredTours = computed(() => {
-    const q = this.search.trim().toLocaleLowerCase("tr-TR");
-    return this.tours().filter((item) => !q || `${item.title} ${item.category || ''}`.toLocaleLowerCase("tr-TR").includes(q));
-  });
+  readonly filteredVehicles = computed(() => {const q = this.search.trim().toLocaleLowerCase("tr-TR");const category = this.filter();if (category === "TOUR") return [];return this.vehicles().filter((item) => item.category === category).filter((item) => !q || `${item.brand} ${item.model} ${item.stockCode}`.toLocaleLowerCase("tr-TR").includes(q));});
+  readonly filteredTours = computed(() => {const q = this.search.trim().toLocaleLowerCase("tr-TR");return this.tours().filter((item) => !q || `${item.title} ${item.category || ''}`.toLocaleLowerCase("tr-TR").includes(q));});
 
-  ngOnInit(): void { void this.refresh(); }
-
-  async refresh(): Promise<void> {
-    this.loading.set(true); this.error.set("");
-    try {
-      await this.management.refreshPeople();
-      const [vehicles, tours] = await Promise.all([
-        this.editor.vehicles(),
-        this.editor.tours(),
-      ]);
-      this.vehicles.set(vehicles);
-      this.tours.set(tours);
-      if (!this.selectedVehicle() && !this.selectedTour()) {
-        const first = vehicles.find((item) => item.category === "RENTAL") || vehicles[0];
-        if (first) await this.selectVehicle(first);
-      }
-    } catch (error) { this.error.set(this.message(error)); }
-    finally { this.loading.set(false); }
-  }
-
-  async createVehicle(category: "RENTAL" | "SALE"): Promise<void> {
-    this.saving.set(true);
-    try {
-      const item = await this.editor.createVehicle(category);
-      this.vehicles.update((rows) => [item, ...rows]);
-      this.filter.set(category);
-      await this.selectVehicle(item);
-      this.toast.show(`${category === 'RENTAL' ? 'Kiralık' : 'Satılık'} gerçek araç kaydı oluşturuldu.`, "success");
-    } catch (error) { this.toast.show(this.message(error), "error"); }
-    finally { this.saving.set(false); }
-  }
-
-  async createTour(): Promise<void> {
-    this.saving.set(true);
-    try {
-      const item = await this.editor.createTour();
-      this.tours.update((rows) => [item, ...rows]);
-      this.filter.set("TOUR");
-      await this.selectTour(item);
-      this.toast.show("Gerçek tur kaydı oluşturuldu.", "success");
-    } catch (error) { this.toast.show(this.message(error), "error"); }
-    finally { this.saving.set(false); }
-  }
-
-  async selectVehicle(item: VehicleAdminRecord): Promise<void> {
-    this.selectedTour.set(null);
-    this.selectedVehicle.set(this.clone(item));
-    await this.loadMedia("VEHICLE", item.id);
-  }
-
-  async selectTour(item: TourAdminRecord): Promise<void> {
-    this.selectedVehicle.set(null);
-    this.selectedTour.set(this.clone(item));
-    await this.loadMedia("TOUR", item.id);
-  }
-
-  async saveVehicle(): Promise<void> {
-    const car = this.selectedVehicle(); if (!car) return;
-    if (car.publicationStatus === "SCHEDULED" && !this.validFutureSchedule(car.scheduledAt)) {
-      this.toast.show("Planlı yayın için gelecekte bir tarih ve saat seçin.", "error");
-      return;
-    }
-    car.recordOrigin = "REAL";
-    this.saving.set(true);
-    try {
-      await this.editor.saveVehicle(car);
-      await this.reloadCurrent();
-      this.selectedVehicle.set(null);
-      this.media.set([]);
-      this.toast.show("Araç bilgileri kaydedildi.", "success");
-    }
-    catch (error) { this.toast.show(this.message(error), "error"); }
-    finally { this.saving.set(false); }
-  }
-
-  async saveAsVehicleDraft(): Promise<void> {
-    const car = this.selectedVehicle(); if (!car) return;
-    car.publicationStatus = "DRAFT"; car.isActive = false; car.scheduledAt = undefined;
-    await this.saveVehicle();
-  }
-
-  async scheduleVehicle(): Promise<void> {
-    const car = this.selectedVehicle(); if (!car) return;
-    if (!this.validFutureSchedule(car.scheduledAt)) {
-      this.toast.show("Planlamak için gelecekte bir tarih ve saat seçin.", "error");
-      return;
-    }
-    car.publicationStatus = "SCHEDULED"; car.isActive = true; car.publishedAt = undefined;
-    await this.saveVehicle();
-  }
-
-  async publishVehicle(): Promise<void> {
-    const car = this.selectedVehicle(); if (!car) return;
-    car.publicationStatus = "PUBLISHED"; car.isActive = true; car.publishedAt = new Date().toISOString(); car.scheduledAt = undefined;
-    await this.saveVehicle();
-  }
-
-  async archiveVehicle(): Promise<void> {
-    const car = this.selectedVehicle(); if (!car) return;
-    car.publicationStatus = "ARCHIVED"; car.isActive = false; car.scheduledAt = undefined;
-    await this.saveVehicle();
-  }
-
-  async saveTour(): Promise<void> {
-    const tour = this.selectedTour(); if (!tour) return;
-    if (tour.publicationStatus === "SCHEDULED" && !this.validFutureSchedule(tour.scheduledAt)) {
-      this.toast.show("Planlı tur yayını için gelecekte bir tarih ve saat seçin.", "error");
-      return;
-    }
-    tour.recordOrigin = "REAL";
-    this.saving.set(true);
-    try {
-      await this.editor.saveTour(tour);
-      await this.reloadCurrent();
-      this.selectedTour.set(null);
-      this.media.set([]);
-      this.toast.show("Tur bilgileri kaydedildi.", "success");
-    }
-    catch (error) { this.toast.show(this.message(error), "error"); }
-    finally { this.saving.set(false); }
-  }
-
-  async saveAsTourDraft(): Promise<void> {
-    const tour = this.selectedTour(); if (!tour) return;
-    tour.publicationStatus = "DRAFT"; tour.isActive = false; tour.scheduledAt = undefined;
-    await this.saveTour();
-  }
-
-  async scheduleTour(): Promise<void> {
-    const tour = this.selectedTour(); if (!tour) return;
-    if (!this.validFutureSchedule(tour.scheduledAt)) {
-      this.toast.show("Planlamak için gelecekte bir tarih ve saat seçin.", "error");
-      return;
-    }
-    tour.publicationStatus = "SCHEDULED"; tour.isActive = true; tour.publishedAt = undefined;
-    await this.saveTour();
-  }
-
-  async publishTour(): Promise<void> {
-    const tour = this.selectedTour(); if (!tour) return;
-    tour.publicationStatus = "PUBLISHED"; tour.isActive = true; tour.publishedAt = new Date().toISOString(); tour.scheduledAt = undefined;
-    await this.saveTour();
-  }
-
-  async archiveTour(): Promise<void> {
-    const tour = this.selectedTour(); if (!tour) return;
-    tour.publicationStatus = "ARCHIVED"; tour.isActive = false; tour.scheduledAt = undefined;
-    await this.saveTour();
-  }
-
-  async uploadFiles(event: Event, entityType: "VEHICLE" | "TOUR", id: string): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const files = Array.from(input.files || []).slice(0, 20);
-    if (!files.length) return;
-    this.uploading.set(true);
-    try {
-      let hasCover = this.media().some((item) => item.kind === "IMAGE" && item.isCover);
-      let sortOrder = this.media().length + 1;
-      for (const file of files) {
-        const isImage = file.type.startsWith("image/");
-        await this.mediaService.upload(entityType, id, file, { altText: file.name, isCover: isImage && !hasCover, sortOrder });
-        if (isImage && !hasCover) hasCover = true;
-        sortOrder += 1;
-      }
-      await this.loadMedia(entityType, id); await this.reloadCurrent();
-      this.toast.show("Medya yüklendi ve katalog kaydına bağlandı.", "success");
-    } catch (error) { this.toast.show(this.message(error), "error"); }
-    finally { this.uploading.set(false); input.value = ""; }
-  }
-
-
-  async makeCover(item: CatalogMediaItem): Promise<void> {
-    try { await this.mediaService.update(item, { isCover: true }); await this.loadMediaForSelection(); await this.reloadCurrent(); this.toast.show("Kapak görseli değiştirildi.", "success"); }
-    catch (error) { this.toast.show(this.message(error), "error"); }
-  }
-
-  async removeMedia(item: CatalogMediaItem): Promise<void> {
-    try { await this.mediaService.remove(item); await this.loadMediaForSelection(); await this.reloadCurrent(); this.toast.show("Medya kaldırıldı.", "info"); }
-    catch (error) { this.toast.show(this.message(error), "error"); }
-  }
-
-  previewVehicle(car: VehicleAdminRecord): Vehicle {
-    return {
-      id: car.id,
-      category: car.category,
-      cloudId: car.id,
-      title: String(this.meta(car, "title") || ""),
-      brand: car.brand,
-      model: car.model,
-      series: String(this.meta(car, "series") || ""),
-      year: car.modelYear,
-      price: car.category === "RENTAL" ? Number(car.rentalPriceDaily ?? car.price ?? 0) : Number(car.price || 0),
-      km: car.category === "SALE" ? car.mileageKm : undefined,
-      fuel: car.fuelType,
-      transmission: car.transmission,
-      type: car.bodyType,
-      color: car.color,
-      location: car.location,
-      seats: car.seats,
-      image: car.coverImage || car.images[0],
-      images: car.images,
-      badge: String(this.meta(car, "badge") || ""),
-      description: car.description,
-      features: car.features,
-      isFeatured: car.isFeatured,
-      isAvailable: car.availabilityStatus === "AVAILABLE",
-    };
-  }
-
-  meta(record: { metadata: Record<string, unknown> }, key: string): any { return record.metadata?.[key] ?? ""; }
-  metaArray(record: { metadata: Record<string, unknown> }, key: string): string[] { const value = record.metadata?.[key]; return Array.isArray(value) ? value.map(String) : []; }
-  setMeta(record: { metadata: Record<string, unknown> }, key: string, value: unknown): void { record.metadata = { ...(record.metadata || {}), [key]: value }; }
-  setMetaNumber(record: { metadata: Record<string, unknown> }, key: string, value: unknown): void { const parsed = Number(value); this.setMeta(record, key, Number.isFinite(parsed) ? parsed : null); }
-  splitLines(value: unknown): string[] { return String(value || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(0, 100); }
-  statusLabel(status: string): string { return status === "PUBLISHED" ? "CANLI" : status === "DRAFT" ? "TASLAK" : status === "SCHEDULED" ? "PLANLI" : "ARŞİV"; }
-
-  private validFutureSchedule(value?: string): boolean {
-    if (!value) return false;
-    const timestamp = new Date(value).getTime();
-    return Number.isFinite(timestamp) && timestamp > Date.now() + 60_000;
-  }
-
-  private async loadMedia(type: "VEHICLE" | "TOUR", id: string): Promise<void> {
-    try { this.media.set(await this.mediaService.load(type, id)); }
-    catch { this.media.set([]); }
-  }
-
-  private async loadMediaForSelection(): Promise<void> {
-    const car = this.selectedVehicle(); if (car) return this.loadMedia("VEHICLE", car.id);
-    const tour = this.selectedTour(); if (tour) return this.loadMedia("TOUR", tour.id);
-  }
-
-  private async reloadCurrent(): Promise<void> {
-    const vehicleId = this.selectedVehicle()?.id;
-    const tourId = this.selectedTour()?.id;
-    const [vehicles, tours] = await Promise.all([this.editor.vehicles(), this.editor.tours()]);
-    this.vehicles.set(vehicles); this.tours.set(tours);
-    if (vehicleId) { const row = vehicles.find((item) => item.id === vehicleId); if (row) this.selectedVehicle.set(this.clone(row)); }
-    if (tourId) { const row = tours.find((item) => item.id === tourId); if (row) this.selectedTour.set(this.clone(row)); }
-  }
-
-  private clone<T>(value: T): T { return JSON.parse(JSON.stringify(value)) as T; }
-  private message(error: unknown): string { return error instanceof Error ? error.message : "İşlem tamamlanamadı."; }
+  ngOnInit(): void {void this.refresh();}
+  async refresh(): Promise<void> {this.loading.set(true);this.error.set("");try {await this.management.refreshPeople();const [vehicles,tours]=await Promise.all([this.editor.vehicles(),this.editor.tours()]);this.vehicles.set(vehicles);this.tours.set(tours);if(!this.selectedVehicle()&&!this.selectedTour()){const first=vehicles.find((item)=>item.category==="RENTAL")||vehicles[0];if(first)await this.selectVehicle(first);}} catch(error){this.error.set(this.message(error));} finally{this.loading.set(false);}}
+  async createVehicle(category:"RENTAL"|"SALE"):Promise<void>{this.saving.set(true);try{const item=await this.editor.createVehicle(category);this.vehicles.update((rows)=>[item,...rows]);this.filter.set(category);await this.selectVehicle(item);this.toast.show(`${category==='RENTAL'?'Kiralık':'Satılık'} gerçek araç kaydı oluşturuldu.`,"success");}catch(error){this.toast.show(this.message(error),"error");}finally{this.saving.set(false);}}
+  async createTour():Promise<void>{this.saving.set(true);try{const item=await this.editor.createTour();this.tours.update((rows)=>[item,...rows]);this.filter.set("TOUR");await this.selectTour(item);this.toast.show("Gerçek tur kaydı oluşturuldu.","success");}catch(error){this.toast.show(this.message(error),"error");}finally{this.saving.set(false);}}
+  async selectVehicle(item:VehicleAdminRecord):Promise<void>{this.selectedTour.set(null);this.selectedVehicle.set(this.clone(item));await this.loadMedia("VEHICLE",item.id);}
+  async selectTour(item:TourAdminRecord):Promise<void>{this.selectedVehicle.set(null);this.selectedTour.set(this.clone(item));await this.loadMedia("TOUR",item.id);}
+  async saveVehicle():Promise<void>{const car=this.selectedVehicle();if(!car)return;if(car.publicationStatus==="SCHEDULED"&&!this.validFutureSchedule(car.scheduledAt)){this.toast.show("Planlı yayın için gelecekte bir tarih ve saat seçin.","error");return;}if(car.category==="RENTAL"&&this.meta(car,"hourlyRentalEnabled")===true){const hourly=Number(this.meta(car,"hourlyPrice")||0),minimum=Number(this.meta(car,"minimumRentalHours")||1);if(hourly<=0){this.toast.show("Saatlik kiralama açıksa saatlik fiyat sıfırdan büyük olmalı.","error");return;}if(!Number.isInteger(minimum)||minimum<1||minimum>23){this.toast.show("Minimum saat 1 ile 23 arasında olmalı.","error");return;}}car.recordOrigin="REAL";this.saving.set(true);try{await this.editor.saveVehicle(car);await this.reloadCurrent();this.selectedVehicle.set(null);this.media.set([]);this.toast.show("Araç bilgileri kaydedildi.","success");}catch(error){this.toast.show(this.message(error),"error");}finally{this.saving.set(false);}}
+  async saveAsVehicleDraft():Promise<void>{const car=this.selectedVehicle();if(!car)return;car.publicationStatus="DRAFT";car.isActive=false;car.scheduledAt=undefined;await this.saveVehicle();}
+  async scheduleVehicle():Promise<void>{const car=this.selectedVehicle();if(!car)return;if(!this.validFutureSchedule(car.scheduledAt)){this.toast.show("Planlamak için gelecekte bir tarih ve saat seçin.","error");return;}car.publicationStatus="SCHEDULED";car.isActive=true;car.publishedAt=undefined;await this.saveVehicle();}
+  async publishVehicle():Promise<void>{const car=this.selectedVehicle();if(!car)return;car.publicationStatus="PUBLISHED";car.isActive=true;car.publishedAt=new Date().toISOString();car.scheduledAt=undefined;await this.saveVehicle();}
+  async archiveVehicle():Promise<void>{const car=this.selectedVehicle();if(!car)return;car.publicationStatus="ARCHIVED";car.isActive=false;car.scheduledAt=undefined;await this.saveVehicle();}
+  async saveTour():Promise<void>{const tour=this.selectedTour();if(!tour)return;if(tour.publicationStatus==="SCHEDULED"&&!this.validFutureSchedule(tour.scheduledAt)){this.toast.show("Planlı tur yayını için gelecekte bir tarih ve saat seçin.","error");return;}tour.recordOrigin="REAL";this.saving.set(true);try{await this.editor.saveTour(tour);await this.reloadCurrent();this.selectedTour.set(null);this.media.set([]);this.toast.show("Tur bilgileri kaydedildi.","success");}catch(error){this.toast.show(this.message(error),"error");}finally{this.saving.set(false);}}
+  async saveAsTourDraft():Promise<void>{const tour=this.selectedTour();if(!tour)return;tour.publicationStatus="DRAFT";tour.isActive=false;tour.scheduledAt=undefined;await this.saveTour();}
+  async scheduleTour():Promise<void>{const tour=this.selectedTour();if(!tour)return;if(!this.validFutureSchedule(tour.scheduledAt)){this.toast.show("Planlamak için gelecekte bir tarih ve saat seçin.","error");return;}tour.publicationStatus="SCHEDULED";tour.isActive=true;tour.publishedAt=undefined;await this.saveTour();}
+  async publishTour():Promise<void>{const tour=this.selectedTour();if(!tour)return;tour.publicationStatus="PUBLISHED";tour.isActive=true;tour.publishedAt=new Date().toISOString();tour.scheduledAt=undefined;await this.saveTour();}
+  async archiveTour():Promise<void>{const tour=this.selectedTour();if(!tour)return;tour.publicationStatus="ARCHIVED";tour.isActive=false;tour.scheduledAt=undefined;await this.saveTour();}
+  async uploadFiles(event:Event,entityType:"VEHICLE"|"TOUR",id:string):Promise<void>{const input=event.target as HTMLInputElement;const files=Array.from(input.files||[]).slice(0,20);if(!files.length)return;this.uploading.set(true);try{let hasCover=this.media().some((item)=>item.kind==="IMAGE"&&item.isCover);let sortOrder=this.media().length+1;for(const file of files){const isImage=file.type.startsWith("image/");await this.mediaService.upload(entityType,id,file,{altText:file.name,isCover:isImage&&!hasCover,sortOrder});if(isImage&&!hasCover)hasCover=true;sortOrder+=1;}await this.loadMedia(entityType,id);await this.reloadCurrent();this.toast.show("Medya yüklendi ve katalog kaydına bağlandı.","success");}catch(error){this.toast.show(this.message(error),"error");}finally{this.uploading.set(false);input.value="";}}
+  async makeCover(item:CatalogMediaItem):Promise<void>{try{await this.mediaService.update(item,{isCover:true});await this.loadMediaForSelection();await this.reloadCurrent();this.toast.show("Kapak görseli değiştirildi.","success");}catch(error){this.toast.show(this.message(error),"error");}}
+  async removeMedia(item:CatalogMediaItem):Promise<void>{try{await this.mediaService.remove(item);await this.loadMediaForSelection();await this.reloadCurrent();this.toast.show("Medya kaldırıldı.","info");}catch(error){this.toast.show(this.message(error),"error");}}
+  previewVehicle(car:VehicleAdminRecord):Vehicle{return{id:car.id,category:car.category,cloudId:car.id,title:String(this.meta(car,"title")||""),brand:car.brand,model:car.model,series:String(this.meta(car,"series")||""),year:car.modelYear,price:car.category==="RENTAL"?Number(car.rentalPriceDaily??car.price??0):Number(car.price||0),hourlyRentalEnabled:car.category==="RENTAL"&&this.meta(car,"hourlyRentalEnabled")===true,hourlyPrice:car.category==="RENTAL"?Number(this.meta(car,"hourlyPrice")||0):undefined,minimumRentalHours:car.category==="RENTAL"?Number(this.meta(car,"minimumRentalHours")||1):undefined,hourlyMileageLimit:car.category==="RENTAL"?Number(this.meta(car,"hourlyMileageLimit")||0)||undefined:undefined,km:car.category==="SALE"?car.mileageKm:undefined,fuel:car.fuelType,transmission:car.transmission,type:car.bodyType,color:car.color,location:car.location,seats:car.seats,image:car.coverImage||car.images[0],images:car.images,badge:String(this.meta(car,"badge")||""),description:car.description,features:car.features,isFeatured:car.isFeatured,isAvailable:car.availabilityStatus==="AVAILABLE"};}
+  meta(record:{metadata:Record<string,unknown>},key:string):any{return record.metadata?.[key]??"";}metaArray(record:{metadata:Record<string,unknown>},key:string):string[]{const value=record.metadata?.[key];return Array.isArray(value)?value.map(String):[];}setMeta(record:{metadata:Record<string,unknown>},key:string,value:unknown):void{record.metadata={...(record.metadata||{}),[key]:value};}setMetaNumber(record:{metadata:Record<string,unknown>},key:string,value:unknown):void{const parsed=Number(value);this.setMeta(record,key,Number.isFinite(parsed)?parsed:null);}splitLines(value:unknown):string[]{return String(value||"").split(/\r?\n/).map((line)=>line.trim()).filter(Boolean).slice(0,100);}statusLabel(status:string):string{return status==="PUBLISHED"?"CANLI":status==="DRAFT"?"TASLAK":status==="SCHEDULED"?"PLANLI":"ARŞİV";}
+  private validFutureSchedule(value?:string):boolean{if(!value)return false;const timestamp=new Date(value).getTime();return Number.isFinite(timestamp)&&timestamp>Date.now()+60_000;}
+  private async loadMedia(type:"VEHICLE"|"TOUR",id:string):Promise<void>{try{this.media.set(await this.mediaService.load(type,id));}catch{this.media.set([]);}}
+  private async loadMediaForSelection():Promise<void>{const car=this.selectedVehicle();if(car)return this.loadMedia("VEHICLE",car.id);const tour=this.selectedTour();if(tour)return this.loadMedia("TOUR",tour.id);}
+  private async reloadCurrent():Promise<void>{const vehicleId=this.selectedVehicle()?.id;const tourId=this.selectedTour()?.id;const[vehicles,tours]=await Promise.all([this.editor.vehicles(),this.editor.tours()]);this.vehicles.set(vehicles);this.tours.set(tours);if(vehicleId){const row=vehicles.find((item)=>item.id===vehicleId);if(row)this.selectedVehicle.set(this.clone(row));}if(tourId){const row=tours.find((item)=>item.id===tourId);if(row)this.selectedTour.set(this.clone(row));}}
+  private clone<T>(value:T):T{return JSON.parse(JSON.stringify(value)) as T;}private message(error:unknown):string{return error instanceof Error?error.message:"İşlem tamamlanamadı.";}
 }

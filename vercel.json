@@ -3,6 +3,7 @@
   "framework": "angular",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"main\" ]; then exit 1; else exit 0; fi",
   "headers": [
     { "source": "/(.*)", "headers": [
       { "key": "Strict-Transport-Security", "value": "max-age=31536000" },

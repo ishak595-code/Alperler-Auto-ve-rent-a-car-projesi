@@ -40,7 +40,7 @@ export const routes: Routes = [
   { path: 'admin/login', loadComponent: () => import('./pages/admin/admin-login.component').then(m => m.AdminLoginComponent) },
   { path: 'account/login', loadComponent: () => import('./pages/account-login.component').then(m => m.AccountLoginComponent) },
   { path: 'account/callback', loadComponent: () => import('./pages/account-callback.component').then(m => m.AccountCallbackComponent) },
-  { path: 'account', canActivate: [customerGuard], loadComponent: () => import('./pages/account-dashboard.component').then(m => m.AccountDashboardComponent) },
+  { path: 'account', canActivate: [customerGuard], loadComponent: () => import('./pages/account-shell.component').then(m => m.AccountShellComponent) },
   { path: 'account/wallet', canActivate: [customerGuard], loadComponent: () => import('./pages/account-wallet.component').then(m => m.AccountWalletComponent) },
   { path: 'branch-portal/login', loadComponent: () => import('./pages/branch-portal-login.component').then(m => m.BranchPortalLoginComponent) },
   { path: 'branch-portal', loadComponent: () => import('./pages/branch-portal.component').then(m => m.BranchPortalComponent) },

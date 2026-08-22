@@ -9,7 +9,7 @@ import {
   NotificationDeliveryReport,
   PaymentStatus,
 } from "../models/booking.model";
-import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
+import { SUPABASE_PROJECT_URL } from "../supabase.config";
 import { AuthService } from "./auth.service";
 import { CustomerAuthService } from "./customer-auth.service";
 import { currentAnalyticsSessionId } from "./analytics-link.util";
@@ -42,12 +42,15 @@ export class BookingService {
 
   async create(input: CreateBookingInput): Promise<BookingRecord> {
     const normalized = this.normalizeInput(input);
-    const response = await this.request<BookingApiResponse>("POST", { ...normalized, idempotencyKey: crypto.randomUUID(), analyticsSessionId: currentAnalyticsSessionId() });
+    const response = await this.request<BookingApiResponse>("POST", {
+      ...normalized,
+      idempotencyKey: crypto.randomUUID(),
+      analyticsSessionId: currentAnalyticsSessionId(),
+    });
     if (!response.ok || !response.booking) throw new Error(response.code || "BOOKING_CREATE_FAILED");
     const record = this.fromApi(response.booking);
     if (response.notification) record.notification = response.notification;
     this.upsertLocal(record);
-    await this.linkOwnCustomerBooking(record.id);
     void this.analyticsIdentity.link({ entityType: "BOOKING", reference: record.id, phone: normalized.customerPhone, email: normalized.customerEmail });
     return record;
   }
@@ -70,7 +73,12 @@ export class BookingService {
   }
 
   async updatePayment(input: { id: string; paymentStatus: PaymentStatus; externalPaymentReference?: string }): Promise<void> {
-    const response = await this.request<BookingApiResponse>("PATCH", { id: input.id, operation: "payment", paymentStatus: input.paymentStatus, externalPaymentReference: input.externalPaymentReference?.trim().slice(0, 200) || "" });
+    const response = await this.request<BookingApiResponse>("PATCH", {
+      id: input.id,
+      operation: "payment",
+      paymentStatus: input.paymentStatus,
+      externalPaymentReference: input.externalPaymentReference?.trim().slice(0, 200) || "",
+    });
     if (!response.ok || !response.booking) throw new Error(response.code || "BOOKING_PAYMENT_UPDATE_FAILED");
     this.upsertLocal(this.fromApi(response.booking));
   }
@@ -95,35 +103,62 @@ export class BookingService {
   }
 
   private async request<T>(method: "GET" | "POST" | "PATCH" | "DELETE", body?: unknown): Promise<T> {
+    const token = method === "POST"
+      ? await this.customerAuth.getAccessToken().catch(() => null)
+      : await this.authService.getAccessToken();
+    if (method !== "POST" && !token) throw new Error("ADMIN_SESSION_REQUIRED");
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
     try {
-      if (method === "POST") {
-        const customerToken = await this.customerAuth.getAccessToken().catch(() => null);
-        const headers = customerToken ? { Authorization: `Bearer ${customerToken}` } : undefined;
-        return await firstValueFrom(this.http.post<T>("/api/bookings", body, headers ? { headers } : {}));
-      }
-      const accessToken = await this.authService.getAccessToken();
-      if (!accessToken) throw new Error("ADMIN_SESSION_REQUIRED");
-      const headers = { Authorization: `Bearer ${accessToken}` };
-      if (method === "GET") return await firstValueFrom(this.http.get<T>("/api/bookings", { headers }));
-      return await firstValueFrom(this.http.request<T>(method, "/api/bookings", { body, headers }));
+      if (method === "POST") return await firstValueFrom(this.http.post<T>("/api/bookings", body, headers ? { headers } : {}));
+      if (method === "GET") return await firstValueFrom(this.http.get<T>("/api/bookings", { headers: headers! }));
+      return await firstValueFrom(this.http.request<T>(method, "/api/bookings", { body, headers: headers! }));
     } catch (error) {
-      if (error instanceof Error && error.message === "ADMIN_SESSION_REQUIRED") throw error;
-      if (error instanceof HttpErrorResponse && error.error && typeof error.error === "object") {
-        const payload = error.error as { code?: unknown; message?: unknown };
-        const code = String(payload.code || "BOOKING_BACKEND_UNAVAILABLE");
-        const message = String(payload.message || code);
-        throw new Error(`${code}:${message}`);
+      if (error instanceof HttpErrorResponse && this.shouldTryDirectGateway(error)) {
+        console.warn("Primary booking API unavailable, using direct booking gateway.", error.status);
+        return await this.directGateway<T>(method, body, token);
       }
-      throw error;
+      throw this.normalizeRequestError(error);
     }
   }
 
-  private async linkOwnCustomerBooking(reference: string): Promise<void> {
-    const token = await this.customerAuth.getAccessToken().catch(() => null); if (!token) return;
+  private shouldTryDirectGateway(error: HttpErrorResponse): boolean {
+    return error.status === 0 || error.status === 404 || error.status === 405 || error.status === 408 || error.status === 502 || error.status === 503 || error.status === 504;
+  }
+
+  private async directGateway<T>(method: "GET" | "POST" | "PATCH" | "DELETE", body: unknown, token: string | null): Promise<T> {
+    let response: Response;
     try {
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/link_own_customer_booking`, { method: "POST", headers: { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ p_booking_reference: reference }) });
-      if (!response.ok) console.warn("Authenticated booking could not be linked to customer account", response.status);
-    } catch (error) { console.warn("Authenticated booking account link unavailable", error); }
+      response = await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/booking-gateway`, {
+        method,
+        headers: {
+          "content-type": "application/json",
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
+        body: method === "GET" ? undefined : JSON.stringify(body ?? {}),
+        signal: AbortSignal.timeout(20_000),
+      });
+    } catch {
+      throw new Error("BOOKING_GATEWAY_UNAVAILABLE:Rezervasyon servisine ulaşılamıyor.");
+    }
+    const payload = await response.json().catch(() => ({})) as { code?: unknown; message?: unknown } & T;
+    if (!response.ok) {
+      const code = String(payload.code || `BOOKING_HTTP_${response.status}`);
+      const message = String(payload.message || code);
+      throw new Error(`${code}:${message}`);
+    }
+    return payload as T;
+  }
+
+  private normalizeRequestError(error: unknown): Error {
+    if (error instanceof Error && error.message === "ADMIN_SESSION_REQUIRED") return error;
+    if (error instanceof HttpErrorResponse && error.error && typeof error.error === "object") {
+      const payload = error.error as { code?: unknown; message?: unknown };
+      const code = String(payload.code || "BOOKING_BACKEND_UNAVAILABLE");
+      const message = String(payload.message || code);
+      return new Error(`${code}:${message}`);
+    }
+    return error instanceof Error ? error : new Error("BOOKING_BACKEND_UNAVAILABLE");
   }
 
   private fromApi(record: ApiBooking): BookingRecord { return { ...record, createdAt: this.asDate(record.createdAt), updatedAt: this.asDate(record.updatedAt) }; }
@@ -141,7 +176,7 @@ export class BookingService {
       : undefined;
     return {
       ...input,
-      itemId: input.itemId === undefined ? undefined : String(input.itemId).slice(0, 128),
+      itemId: input.itemId === undefined ? undefined : String(input.itemId).trim().slice(0, 128),
       itemName,
       image: input.image?.trim().slice(0, 2048),
       customerName,

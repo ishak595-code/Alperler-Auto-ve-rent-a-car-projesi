@@ -2,8 +2,9 @@ import { Injectable, inject, signal } from '@angular/core';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
 import { AuthService } from './auth.service';
 
+export type AdminCustomerStatus='ACTIVE'|'BLOCKED'|'DELETED';
 export interface AdminCustomerRow {
-  user_id:string; email?:string|null; full_name?:string|null; phone?:string|null; city?:string|null; avatar_url?:string|null; preferred_branch_id?:string|null; status:string;
+  user_id:string; email?:string|null; full_name?:string|null; phone?:string|null; city?:string|null; avatar_url?:string|null; preferred_branch_id?:string|null; status:AdminCustomerStatus;
   points_balance:number; lifetime_points:number; completed_rentals:number; lifetime_spend:number; tier:string; successful_referrals:number; referral_points_earned:number;
 }
 export interface AdminLoyaltySettings {
@@ -27,13 +28,13 @@ export class CustomerAdminService{
     const token=await this.requireToken();this.loading.set(true);
     try{
       const [profiles,loyalty,settings]=await Promise.all([
-        this.rows<any>('customer_profiles?select=user_id,email,full_name,phone,city,avatar_url,preferred_branch_id,status&status=neq.DELETED&order=created_at.desc&limit=1000',token),
+        this.rows<any>('customer_profiles?select=user_id,email,full_name,phone,city,avatar_url,preferred_branch_id,status&order=created_at.desc&limit=1000',token),
         this.rows<any>('customer_loyalty_accounts?select=user_id,points_balance,lifetime_points,completed_rentals,lifetime_spend,tier,successful_referrals,referral_points_earned&limit=1000',token),
         this.rows<AdminLoyaltySettings>('loyalty_program_settings?select=enabled,points_per_rental_day,minimum_points_per_rental,silver_threshold,gold_threshold,platinum_threshold,referral_inviter_points,referral_invitee_points,referral_rental_inviter_points,referral_rental_invitee_points,referral_sale_inviter_points,referral_sale_invitee_points,referral_tour_inviter_points,referral_tour_invitee_points,referral_milestone_3_points,referral_milestone_5_points,referral_milestone_10_points,benefits&limit=1',token),
       ]);
       const loyaltyByUser=new Map(loyalty.map((x:any)=>[x.user_id,x]));
       this.customers.set(profiles.map((p:any)=>{const l=loyaltyByUser.get(p.user_id)||{};return{
-        ...p,
+        ...p,status:(['ACTIVE','BLOCKED','DELETED'].includes(String(p.status))?p.status:'ACTIVE') as AdminCustomerStatus,
         points_balance:Number(l.points_balance||0),lifetime_points:Number(l.lifetime_points||0),completed_rentals:Number(l.completed_rentals||0),lifetime_spend:Number(l.lifetime_spend||0),tier:String(l.tier||'MEMBER'),
         successful_referrals:Number(l.successful_referrals||0),referral_points_earned:Number(l.referral_points_earned||0),
       };}));
@@ -44,6 +45,12 @@ export class CustomerAdminService{
   async linkBooking(reference:string,userId:string):Promise<Record<string,unknown>>{
     const token=await this.requireToken();
     return await this.rpc('admin_link_booking_customer',{p_booking_reference:reference.trim(),p_customer_user_id:userId},token) as Record<string,unknown>;
+  }
+
+  async setCustomerStatus(userId:string,status:AdminCustomerStatus):Promise<void>{
+    const token=await this.requireToken();
+    await this.rpc('admin_set_customer_status',{p_user_id:userId,p_status:status},token);
+    this.customers.update(rows=>rows.map(row=>row.user_id===userId?{...row,status}:row));
   }
 
   async saveSettings(settings:AdminLoyaltySettings):Promise<void>{

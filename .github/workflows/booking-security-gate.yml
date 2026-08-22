@@ -11,6 +11,7 @@ on:
       - "src/services/persistent-car.service.ts"
       - "src/services/car.service.ts"
       - "src/services/catalog.service.ts"
+      - "src/services/public-detail-data.service.ts"
       - "src/services/partner-request.service.ts"
       - "src/services/newsletter.service.ts"
       - "src/pages/track-car.component.ts"
@@ -80,11 +81,22 @@ jobs:
           grep -Fq 'operation === "resume"' api/partner.ts
           grep -Fq 'partner-upload-resume' api/partner.ts
           test -f src/services/catalog.service.ts
+          test -f src/services/public-detail-data.service.ts
           test -f supabase/functions/booking-gateway/index.ts
           test -f supabase/functions/booking-notify/index.ts
           test -f supabase/functions/partner-request-gateway/index.ts
           test -f supabase/functions/partner-upload-resume/index.ts
           test -f supabase/migrations/202608140002_alperler_rls_policies_v1.sql
+
+          # Vehicle and tour runtime identity must be canonical. Historical columns
+          # may remain for audit, but active routing and booking creation must never
+          # resolve metadata legacy IDs again.
+          ! grep -Fq 'metadata["legacyId"]' src/services/catalog.service.ts
+          ! grep -Fq 'metadata["legacyId"]' src/services/public-detail-data.service.ts
+          ! grep -Fq 'metadata->>legacyId' supabase/functions/booking-gateway/index.ts
+          grep -Fq 'legacy_item_id: null' supabase/functions/booking-gateway/index.ts
+          grep -Fq 'type RentalDuration = "hourly" | "daily" | "monthly" | "longterm"' supabase/functions/booking-gateway/index.ts
+          grep -Fq 'bookings_no_approved_rental_overlap' supabase/functions/booking-gateway/index.ts
 
           # Tracking must use authenticated operations data and must never regress to demo telemetry.
           grep -Fq 'BookingService' src/pages/track-car.component.ts

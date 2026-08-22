@@ -1,0 +1,92 @@
+name: Customer Operations V150 Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    paths:
+      - "src/components/accessible-native-date.component.ts"
+      - "src/components/booking-success-overlay.component.ts"
+      - "src/pages/account-dashboard-v150.component.ts"
+      - "src/pages/account-wallet.component.ts"
+      - "src/pages/contact-entry.component.ts"
+      - "src/services/accessibility-runtime.service.ts"
+      - "src/services/customer-booking-actions.service.ts"
+      - "src/services/profile-admin-bridge.service.ts"
+      - "src/services/booking-success*"
+      - "src/app.component.ts"
+      - "src/app.routes.ts"
+      - "index.tsx"
+      - "supabase/migrations/*v150*"
+      - ".github/workflows/customer-ops-v150-gate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  customer-ops:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify V150 customer and accessibility invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Android/TalkBack date selection must not regress to the unstable native date overlay.
+          ! grep -Fq 'type="date"' src/components/accessible-native-date.component.ts
+          ! grep -Fq 'calendar-picker-indicator' src/components/accessible-native-date.component.ts
+          grep -Fq "label + ' gün seç'" src/components/accessible-native-date.component.ts
+          grep -Fq "label + ' ay seç'" src/components/accessible-native-date.component.ts
+          grep -Fq "label + ' yıl seç'" src/components/accessible-native-date.component.ts
+          grep -Fq "Saati seç" src/services/accessibility-runtime.service.ts
+
+          # Checkout and contact are separate concepts. A stale checkout may never own /contact after refresh.
+          grep -Fq "path: 'booking-checkout'" src/app.routes.ts
+          grep -Fq 'checkoutGuard' src/app.routes.ts
+          grep -Fq 'navigate(["/booking-checkout"]' src/pages/contact-entry.component.ts
+
+          # Admin access is reached through the normal account identity and still requires server-side admin membership.
+          grep -Fq "path: 'admin/login', redirectTo: 'account/login'" src/app.routes.ts
+          grep -Fq 'admin_users?user_id=eq.' src/services/profile-admin-bridge.service.ts
+          grep -Fq 'alperler_admin_session_v1' src/services/profile-admin-bridge.service.ts
+          grep -Fq 'ProfileAdminBridgeService' src/pages/account-dashboard-v150.component.ts
+
+          # Customer booking state and cancellation stay account-bound and auditable.
+          test -f supabase/migrations/20260822090500_v150_customer_booking_self_cancel.sql
+          grep -Fq 'customer_user_id = v_user_id' supabase/migrations/20260822090500_v150_customer_booking_self_cancel.sql
+          grep -Fq "booking_cancelled_by_customer" supabase/migrations/20260822090500_v150_customer_booking_self_cancel.sql
+          grep -Fq 'customer_cancel_booking' src/services/customer-booking-actions.service.ts
+          grep -Fq "Talebiniz başarıyla gönderildi" src/components/booking-success-overlay.component.ts
+
+          # The customer wallet is a document vault, not a fake payment surface.
+          grep -Fq 'IDENTITY_FRONT' src/pages/account-wallet.component.ts
+          grep -Fq 'IDENTITY_BACK' src/pages/account-wallet.component.ts
+          grep -Fq 'DRIVING_LICENSE_FRONT' src/pages/account-wallet.component.ts
+          grep -Fq 'DRIVING_LICENSE_BACK' src/pages/account-wallet.component.ts
+          grep -Fq 'capture="environment"' src/pages/account-wallet.component.ts
+          ! grep -Fq 'Harcama Görünümüm' src/pages/account-wallet.component.ts
+          ! grep -Fq 'Ödeme Yöntemlerim' src/pages/account-wallet.component.ts
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Frontend type check
+        run: npm run lint
+
+      - name: API type check
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Production build
+        run: npm run build

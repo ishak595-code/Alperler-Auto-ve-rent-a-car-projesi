@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, ViewEncapsulation, inject, OnInit, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { ThemeService } from './services/theme.service';
@@ -11,19 +11,25 @@ import { CustomerProfileAutofillService } from './services/customer-profile-auto
 import { CustomerMobileDockComponent } from './components/customer-mobile-dock.component';
 import { RuntimeStatusGateComponent } from './components/runtime-status-gate.component';
 import { AnalyticsConsentComponent } from './components/analytics-consent.component';
+import { BookingSuccessOverlayComponent } from './components/booking-success-overlay.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CustomerMobileDockComponent, RuntimeStatusGateComponent, AnalyticsConsentComponent],
+  imports: [RouterOutlet, CustomerMobileDockComponent, RuntimeStatusGateComponent, AnalyticsConsentComponent, BookingSuccessOverlayComponent],
+  encapsulation: ViewEncapsulation.None,
   template: `
     <router-outlet></router-outlet>
+    <app-booking-success-overlay></app-booking-success-overlay>
     @if (showCustomerChrome()) {
       <app-customer-mobile-dock></app-customer-mobile-dock>
       <app-runtime-status-gate></app-runtime-status-gate>
       <app-analytics-consent></app-analytics-consent>
     }
-  `
+  `,
+  styles: [`
+    a[href="/admin/login"]{display:none!important}
+  `],
 })
 export class AppComponent implements OnInit {
   themeService = inject(ThemeService);

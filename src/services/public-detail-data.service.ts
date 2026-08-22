@@ -91,7 +91,7 @@ export class PublicDetailDataService {
       : [];
     return {
       ...metadata,
-      id: this.legacyId(metadata["legacyId"]) ?? row["id"],
+      id: row["id"],
       category: "TOUR",
       title: String(row["title"] || ""),
       description: String(row["description"] || row["short_description"] || ""),
@@ -146,16 +146,9 @@ export class PublicDetailDataService {
       .some((value) => value !== undefined && value !== null && String(value) === id);
   }
 
-  private legacyId(value: unknown): number | string | null {
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-    if (typeof value !== "string" || !value.trim()) return null;
-    const normalized = value.trim();
-    return /^\d+$/.test(normalized) ? Number(normalized) : normalized;
-  }
-
   private notFoundMessage(kind: DetailKind): string {
-    if (kind === "SALE") return "Bu satılık araç veritabanında bulunamadı.";
-    if (kind === "TOUR") return "Bu tur veritabanında bulunamadı.";
-    return "Bu kiralık araç veritabanında bulunamadı.";
+    if (kind === "SALE") return "Bu satılık araç bulunamadı veya yayından kaldırılmış olabilir.";
+    if (kind === "TOUR") return "Bu tur bulunamadı veya yayından kaldırılmış olabilir.";
+    return "Bu kiralık araç bulunamadı veya şu anda rezervasyona açık olmayabilir.";
   }
 }

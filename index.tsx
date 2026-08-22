@@ -1,11 +1,12 @@
 import { APP_BASE_HREF } from '@angular/common';
 import { ErrorHandler, provideZonelessChangeDetection } from '@angular/core';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { AppComponent } from './src/app.component';
 import { routes } from './src/app.routes';
 import { provideLegacyWebhookSafety } from './src/providers/legacy-webhook-safety.provider';
+import { bookingSuccessInterceptor } from './src/services/booking-success.interceptor';
 import { GlobalErrorHandler } from './src/services/global-error-handler';
 
 const LEGACY_CATALOG_STORAGE_KEY = /^db_(?:cars|rental_?cars?|sale_?cars?|sales?|vehicles?|tours?|inventory|config|faqs?|blog)(?:_|$)/i;
@@ -46,7 +47,7 @@ if (window.self !== window.top) {
 bootstrapApplication(AppComponent, {
   providers: [
     provideZonelessChangeDetection(),
-    provideHttpClient(),
+    provideHttpClient(withInterceptors([bookingSuccessInterceptor])),
     provideLegacyWebhookSafety(),
     { provide: ErrorHandler, useClass: GlobalErrorHandler },
     { provide: APP_BASE_HREF, useValue: '/' },

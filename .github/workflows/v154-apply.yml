@@ -1,0 +1,30 @@
+name: Apply V154 planner patch
+
+on:
+  push:
+    branches:
+      - v154-planner-accessibility-admin
+    paths:
+      - "project/apply-v154-planner.mjs"
+      - ".github/workflows/v154-apply.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v154-planner-accessibility-admin
+          fetch-depth: 0
+      - name: Apply planner patch
+        run: node project/apply-v154-planner.mjs
+      - name: Commit product changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/accessible-native-date.component.ts src/models/site-config.model.ts src/pages/home-v71.component.ts src/pages/admin/admin-homepage.component.ts .github/workflows/customer-ops-v150-gate.yml
+          git commit -m "feat: make planner accessible and admin-configurable"
+          git push origin HEAD:v154-planner-accessibility-admin

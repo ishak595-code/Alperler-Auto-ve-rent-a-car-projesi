@@ -8,7 +8,7 @@ type BookingEvent =
   | "booking_completed"
   | "booking_cancelled";
 
-type RentalDuration = "hourly" | "daily" | "monthly" | "longterm";
+type RentalDuration = "hourly" | "daily" | "weekly" | "monthly" | "longterm";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -398,7 +398,7 @@ function driverOption(vehicle: any): "WITH_DRIVER" | "WITHOUT_DRIVER" | "BOTH" {
 
 function rentalDuration(value: unknown): RentalDuration {
   const normalized = clean(value, 20);
-  return normalized === "hourly" || normalized === "monthly" || normalized === "longterm"
+  return normalized === "hourly" || normalized === "weekly" || normalized === "monthly" || normalized === "longterm"
     ? normalized
     : "daily";
 }

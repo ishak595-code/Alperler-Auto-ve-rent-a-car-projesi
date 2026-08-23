@@ -95,7 +95,7 @@ jobs:
           ! grep -Fq 'metadata["legacyId"]' src/services/public-detail-data.service.ts
           ! grep -Fq 'metadata->>legacyId' supabase/functions/booking-gateway/index.ts
           grep -Fq 'legacy_item_id: null' supabase/functions/booking-gateway/index.ts
-          grep -Fq 'type RentalDuration = "hourly" | "daily" | "monthly" | "longterm"' supabase/functions/booking-gateway/index.ts
+          grep -Fq 'type RentalDuration = "hourly" | "daily" | "weekly" | "monthly" | "longterm"' supabase/functions/booking-gateway/index.ts
           grep -Fq 'bookings_no_approved_rental_overlap' supabase/functions/booking-gateway/index.ts
 
           # Tracking must use authenticated operations data and must never regress to demo telemetry.

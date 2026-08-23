@@ -179,7 +179,7 @@ export class BookingService {
       ? Array.from(new Set(input.selectedExtraIds.map((id) => String(id || "").trim()).filter((id) => /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(id)))).slice(0, 30)
       : undefined;
     const rentalDuration = input.rentalDuration;
-    if (rentalDuration && !["hourly","daily","monthly","longterm"].includes(rentalDuration)) throw new Error("Kiralama türü geçerli değil.");
+    if (rentalDuration && !["hourly","daily","weekly","monthly","longterm"].includes(rentalDuration)) throw new Error("Kiralama türü geçerli değil.");
     return {
       ...input,
       itemId: input.itemId === undefined ? undefined : String(input.itemId).trim().slice(0, 128),

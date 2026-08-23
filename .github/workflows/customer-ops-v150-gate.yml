@@ -38,12 +38,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Android/TalkBack date selection must not regress to the unstable native date overlay.
-          ! grep -Fq 'type="date"' src/components/accessible-native-date.component.ts
+          # One visible, named button opens the native calendar. The date input is
+          # a non-focusable proxy so TalkBack cannot bounce between two controls.
+          grep -Fq 'type="date"' src/components/accessible-native-date.component.ts
+          grep -Fq 'class="date-button"' src/components/accessible-native-date.component.ts
+          grep -Fq '>Tarihi seç<' src/components/accessible-native-date.component.ts
+          grep -Fq 'aria-hidden="true"' src/components/accessible-native-date.component.ts
+          grep -Fq 'tabindex="-1"' src/components/accessible-native-date.component.ts
+          grep -Fq 'showPicker' src/components/accessible-native-date.component.ts
           ! grep -Fq 'calendar-picker-indicator' src/components/accessible-native-date.component.ts
-          grep -Fq "label + ' gün seç'" src/components/accessible-native-date.component.ts
-          grep -Fq "label + ' ay seç'" src/components/accessible-native-date.component.ts
-          grep -Fq "label + ' yıl seç'" src/components/accessible-native-date.component.ts
           grep -Fq "Saati seç" src/services/accessibility-runtime.service.ts
 
           # Checkout and contact are separate concepts. A stale checkout may never own /contact after refresh.

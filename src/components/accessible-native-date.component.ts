@@ -11,9 +11,9 @@ let nextDateControlId = 0;
     <div class="date-control">
       <span class="date-label" [id]="contextId">{{ label }}</span>
       <label class="date-surface" [class.disabled]="disabled" [for]="inputId">
-        <span class="button-copy" aria-hidden="true">
+        <span class="button-copy">
           <strong>Tarihi seç</strong>
-          <small>{{ value ? formattedValue() : 'Takvimden seçin' }}</small>
+          <small aria-hidden="true">{{ value ? formattedValue() : 'Takvimden seçin' }}</small>
         </span>
         <mat-icon aria-hidden="true">calendar_month</mat-icon>
 

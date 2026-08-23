@@ -21,11 +21,13 @@ jobs:
           ref: v152-date-picker-duration-fix
           fetch-depth: 0
       - name: Apply source patch
-        run: node project/apply-v152-date-duration.mjs
+        run: |
+          node project/apply-v152-date-duration.mjs
+          git restore --source=HEAD -- .github/workflows/customer-ops-v150-gate.yml .github/workflows/v152-apply.yml project/apply-v152-date-duration.mjs
       - name: Commit product changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add src/components/accessible-native-date.component.ts src/models/booking.model.ts src/pages/home-v71.component.ts src/pages/rental-results.component.ts src/pages/booking-checkout.component.ts src/pages/car-detail.component.ts src/services/booking.service.ts supabase/functions/booking-gateway/index.ts
           git commit -m "fix: restore stable calendar picker and add weekly rentals"
           git push origin HEAD:v152-date-picker-duration-fix

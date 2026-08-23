@@ -30,7 +30,7 @@ on:
       - ".github/workflows/customer-ops-v150-gate.yml"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   customer-ops:
@@ -38,25 +38,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
-          fetch-depth: 0
 
-      - name: Materialize V154 final accessibility audit
-        if: github.event_name == 'pull_request' && github.head_ref == 'v154-planner-accessibility-admin'
-        shell: bash
-        run: |
-          set -euo pipefail
-          node project/apply-v154-final.mjs
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/pages/home-v71.component.ts src/pages/admin/admin-homepage.component.ts scripts/check-accessible-buttons.mjs
-          if ! git diff --cached --quiet; then
-            git commit -m "test: enforce labels on all interactive form controls"
-            git push origin HEAD:${{ github.head_ref }}
-          fi
-
-      - name: Verify V150 customer and accessibility invariants
+      - name: Verify customer and accessibility invariants
         shell: bash
         run: |
           set -euo pipefail
@@ -73,17 +56,25 @@ jobs:
           grep -Fq '[attr.aria-label]="buttonAccessibleName()"' src/components/accessible-native-date.component.ts
           ! grep -Fq '[attr.aria-labelledby]="labelId"' src/components/accessible-native-date.component.ts
 
-          # Interactive controls use component-owned static ARIA. A page-wide
-          # MutationObserver must never rewrite names while TalkBack has focus.
+          # Interactive controls own stable labels. Runtime mutation must not rename
+          # controls while TalkBack has focus.
           ! grep -Fq 'AccessibilityRuntimeService' src/app.component.ts
           ! grep -Fq 'accessibilityRuntime.start' src/app.component.ts
           grep -Fq 'aria-label="Bu turu rezerve et"' src/pages/tour-detail.component.ts
           grep -Fq '[attr.inert]="reservationOpen()' src/pages/tour-detail.component.ts
           grep -Fq 'focusAfterRender' src/pages/tour-detail.component.ts
+
+          # Quick planner uses the requested order and permanent labels, and remains
+          # configurable from the authenticated admin homepage editor.
+          grep -Fq 'const defaults:PlannerFieldKey[]=["service","pickup","duration","date"]' src/pages/home-v71.component.ts
           grep -Fq 'aria-label="Kiralama süresini seç"' src/pages/home-v71.component.ts
           grep -Fq 'aria-label="Alış saatini seç"' src/pages/home-v71.component.ts
+          grep -Fq 'aria-label="İade saatini seç"' src/pages/home-v71.component.ts
           grep -Fq 'plannerFieldOrder' src/pages/admin/admin-homepage.component.ts
           grep -Fq 'plannerEnabled' src/pages/admin/admin-homepage.component.ts
+          grep -Fq 'plannerVariant' src/pages/admin/admin-homepage.component.ts
+          grep -Fq 'plannerServiceOptions' src/pages/admin/admin-homepage.component.ts
+          grep -Fq 'plannerDurationOptions' src/pages/admin/admin-homepage.component.ts
 
           # Checkout and contact are separate concepts. A stale checkout may never own /contact after refresh.
           grep -Fq "path: 'booking-checkout'" src/app.routes.ts

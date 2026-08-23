@@ -14,9 +14,9 @@ let nextDateControlId = 0;
         type="button"
         class="date-button"
         [disabled]="disabled"
-        [attr.aria-labelledby]="labelId"
         [attr.aria-describedby]="value ? valueId : null"
         [attr.aria-label]="buttonAccessibleName()"
+        [attr.title]="buttonAccessibleName()"
         (click)="openPicker()"
       >
         <span class="button-copy">
@@ -95,7 +95,7 @@ export class AccessibleNativeDateComponent {
 
   buttonAccessibleName(): string {
     const selected = this.value ? `, seçili tarih ${this.formattedValue()}` : "";
-    return `${this.normalizedLabel()} için tarihi seç${selected}`;
+    return `${this.normalizedLabel()}: Tarihi seç${selected}`;
   }
 
   private normalizedLabel(): string {

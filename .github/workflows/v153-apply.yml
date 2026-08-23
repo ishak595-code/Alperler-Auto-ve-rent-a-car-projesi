@@ -1,0 +1,30 @@
+name: Apply V153 TalkBack and admin patch
+
+on:
+  push:
+    branches:
+      - v153-talkback-admin-login-fix
+    paths:
+      - "project/apply-v153-talkback-admin.mjs"
+      - ".github/workflows/v153-apply.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v153-talkback-admin-login-fix
+          fetch-depth: 0
+      - name: Apply product patch
+        run: node project/apply-v153-talkback-admin.mjs
+      - name: Commit product changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app.routes.ts src/services/auth.service.ts src/pages/account-login.component.ts src/pages/tour-detail.component.ts
+          git commit -m "fix: stabilize TalkBack reservation flow and unify admin login"
+          git push origin HEAD:v153-talkback-admin-login-fix

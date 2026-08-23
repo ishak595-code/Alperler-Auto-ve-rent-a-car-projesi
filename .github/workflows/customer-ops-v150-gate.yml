@@ -11,9 +11,12 @@ on:
       - "src/components/accessible-native-date.component.ts"
       - "src/components/booking-success-overlay.component.ts"
       - "src/pages/account-dashboard-v150.component.ts"
+      - "src/pages/account-login.component.ts"
       - "src/pages/account-wallet.component.ts"
       - "src/pages/contact-entry.component.ts"
+      - "src/pages/tour-detail.component.ts"
       - "src/services/accessibility-runtime.service.ts"
+      - "src/services/auth.service.ts"
       - "src/services/customer-booking-actions.service.ts"
       - "src/services/profile-admin-bridge.service.ts"
       - "src/services/booking-success*"
@@ -47,15 +50,25 @@ jobs:
           grep -Fq 'tabindex="-1"' src/components/accessible-native-date.component.ts
           grep -Fq 'showPicker' src/components/accessible-native-date.component.ts
           ! grep -Fq 'calendar-picker-indicator' src/components/accessible-native-date.component.ts
-          grep -Fq "Saati seç" src/services/accessibility-runtime.service.ts
+
+          # Interactive controls use component-owned static ARIA. A page-wide
+          # MutationObserver must never rewrite names while TalkBack has focus.
+          ! grep -Fq 'AccessibilityRuntimeService' src/app.component.ts
+          ! grep -Fq 'accessibilityRuntime.start' src/app.component.ts
+          grep -Fq 'aria-label="Bu turu rezerve et"' src/pages/tour-detail.component.ts
+          grep -Fq '[attr.inert]="reservationOpen()' src/pages/tour-detail.component.ts
+          grep -Fq 'focusAfterRender' src/pages/tour-detail.component.ts
 
           # Checkout and contact are separate concepts. A stale checkout may never own /contact after refresh.
           grep -Fq "path: 'booking-checkout'" src/app.routes.ts
           grep -Fq 'checkoutGuard' src/app.routes.ts
           grep -Fq 'navigate(["/booking-checkout"]' src/pages/contact-entry.component.ts
 
-          # Admin access is reached through the normal account identity and still requires server-side admin membership.
-          grep -Fq "path: 'admin/login', redirectTo: 'account/login'" src/app.routes.ts
+          # Admin access uses the same confirmed Supabase identity as the customer
+          # profile and still validates membership in admin_users before entry.
+          grep -Fq "path: 'admin/login', loadComponent:" src/app.routes.ts
+          grep -Fq "returnUrl: state.url || '/admin'" src/app.routes.ts
+          grep -Fq 'alperler_customer_session_v1' src/services/auth.service.ts
           grep -Fq 'admin_users?user_id=eq.' src/services/profile-admin-bridge.service.ts
           grep -Fq 'alperler_admin_session_v1' src/services/profile-admin-bridge.service.ts
           grep -Fq 'ProfileAdminBridgeService' src/pages/account-dashboard-v150.component.ts

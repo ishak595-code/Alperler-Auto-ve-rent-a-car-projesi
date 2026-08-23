@@ -28,3 +28,4 @@ jobs:
           git add src/pages/admin/admin-blog.component.ts src/pages/admin/admin-customer-detail.component.ts src/pages/admin/admin-team.component.ts
           git commit -m "fix: label remaining admin form controls"
           git push origin HEAD:v154-planner-accessibility-admin
+# trigger

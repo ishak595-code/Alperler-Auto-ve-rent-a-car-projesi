@@ -51,5 +51,5 @@ export class AccountLoginComponent implements OnInit{
   async social(provider:CustomerSocialProvider):Promise<void>{this.message.set(null);if(!this.auth.providerEnabled(provider)){this.message.set(provider==='google'?'Google ile giriş bağlantısı görünür durumda ancak OAuth sağlayıcısı henüz Supabase Auth içinde etkin değil.':'Facebook ile giriş bağlantısı görünür durumda ancak OAuth sağlayıcısı henüz Supabase Auth içinde etkin değil.');return;}this.rememberReturnUrl();await this.auth.signInWithProvider(provider);}
   async reset():Promise<void>{if(await this.auth.resetPassword(this.email))this.message.set('Parola yenileme isteği e-posta servisine iletildi. Gelen kutusu ve spam klasörünü kontrol edin.');}
   cancelRecovery():void{history.replaceState(null,document.title,'/account/login');this.mode.set('login');this.password='';this.confirmPassword='';this.message.set(null);}
-  private rememberReturnUrl():void{this.auth.setPostAuthReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'));}
+  private rememberReturnUrl():void{const requested=this.route.snapshot.queryParamMap.get('returnUrl');const adminEntry=typeof window!=='undefined'&&window.location.pathname.startsWith('/admin/login')?'/admin':null;this.auth.setPostAuthReturnUrl(requested||adminEntry);}
 }

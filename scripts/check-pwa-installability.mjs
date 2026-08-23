@@ -24,6 +24,7 @@ assert(manifest.start_url === '/', 'PWA start_url must remain root.');
 assert(manifest.scope === '/', 'PWA scope must remain root.');
 assert(['standalone', 'fullscreen'].includes(manifest.display), 'PWA display must be standalone or fullscreen.');
 assert(manifest.theme_color && manifest.background_color, 'PWA theme/background colors are required.');
+assert(manifest.prefer_related_applications === false, 'PWA must prefer the web app installation flow.');
 
 const icons = Array.isArray(manifest.icons) ? manifest.icons : [];
 for (const size of ['192x192', '512x512']) {
@@ -41,11 +42,20 @@ assert(serviceWorker.includes("self.addEventListener('fetch'"), 'Service worker 
 assert(serviceWorker.includes('event.respondWith(fetch(request))'), 'Service worker must remain network-authoritative.');
 assert(!/caches\.(open|match)|cache\.put/.test(serviceWorker), 'PWA worker must not cache live application/catalog data.');
 
-assert(installService.includes("window.addEventListener('beforeinstallprompt'"), 'App must capture beforeinstallprompt for a reliable in-app install action.');
+const earlyCaptureAt = bootstrap.indexOf("window.addEventListener('beforeinstallprompt'");
+const angularBootstrapAt = bootstrap.indexOf('bootstrapApplication(AppComponent');
+assert(earlyCaptureAt >= 0 && angularBootstrapAt >= 0 && earlyCaptureAt < angularBootstrapAt, 'beforeinstallprompt must be captured before Angular bootstrap so the one browser install event cannot be missed.');
+assert(bootstrap.includes('window.__alperlerInstallPrompt = installEvent'), 'Bootstrap must buffer the browser install event for Angular.');
+assert(bootstrap.includes("window.dispatchEvent(new Event('alperler:pwa-install-ready'))"), 'Bootstrap must publish install readiness to the live UI.');
+
+assert(installService.includes('this.adoptBufferedPrompt()'), 'PWA service must adopt an install event captured before Angular starts.');
+assert(installService.includes("window.addEventListener('alperler:pwa-install-ready'"), 'PWA service must react to live install readiness.');
 assert(installService.includes("window.addEventListener('appinstalled'"), 'App must detect successful installation.');
 assert(installService.includes("'(display-mode: standalone)'"), 'App must detect standalone mode and avoid duplicate install UI.');
 assert(installPrompt.includes('Uygulamayı yükle'), 'Mobile install prompt must expose a clear install action.');
-assert(installPrompt.includes('@media(max-width:767px)') || installPrompt.includes('@media(max-width: 767px)'), 'Install promotion must remain mobile-only.');
+assert(installPrompt.includes('!install.installed()'), 'Install promotion must disappear in standalone/installed mode.');
+assert(installPrompt.includes('@media(max-width:1100px)') || installPrompt.includes('@media(max-width: 1100px)'), 'Install promotion must support touch phones and tablets without becoming desktop chrome.');
+assert(installPrompt.includes('(pointer:coarse)'), 'Install promotion must be touch-device constrained.');
 assert(appComponent.includes('<app-pwa-install-prompt>'), 'Customer shell must render the PWA install promotion component.');
 
 const publicAsset = angular.projects?.app?.architect?.build?.options?.assets?.some((entry) => entry?.input === 'public');
@@ -62,4 +72,4 @@ assert(hasHeader(manifestHeaders, 'Content-Type', 'application/manifest+json'), 
 assert(mobileDock.includes('.customer-command-dock{display:none}'), 'Mobile dock must default to hidden on desktop/tablet widths.');
 assert(mobileDock.includes('@media (max-width:767px)'), 'Mobile dock visibility must remain constrained to mobile layout.');
 
-console.log('PWA installability guard passed: manifest, worker, in-app install action, standalone mode and responsive mobile boundaries are valid.');
+console.log('PWA installability guard passed: manifest, early browser-event capture, live install action, standalone mode and responsive boundaries are valid.');

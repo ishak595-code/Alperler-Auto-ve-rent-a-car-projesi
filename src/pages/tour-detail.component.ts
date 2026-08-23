@@ -18,14 +18,14 @@ import { SeoService } from "../services/seo.service";
   template: `
     <main class="tour-page">
       @if (tour(); as item) {
-        <header class="topbar">
+        <header class="topbar" [attr.inert]="reservationOpen() ? '' : null" [attr.aria-hidden]="reservationOpen() ? 'true' : null">
           <div class="topbar-inner">
             <button type="button" class="icon-button" (click)="goBack()" aria-label="Turlardan geri dön"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
             <div class="topbar-copy"><span>Alperler Rent A Car · Turlar</span><h1>{{ item.title }}</h1></div>
           </div>
         </header>
 
-        <section class="gallery" [attr.aria-label]="item.title + ' tur görselleri'">
+        <section class="gallery" [attr.aria-label]="item.title + ' tur görselleri'" [attr.inert]="reservationOpen() ? '' : null" [attr.aria-hidden]="reservationOpen() ? 'true' : null">
           @if (activeImage(); as image) {
             <div class="gallery-frame">
               <img [src]="image" [alt]="item.title + ' tur görseli'" loading="eager" decoding="async" (error)="imageFailed(image)" />
@@ -43,7 +43,7 @@ import { SeoService } from "../services/seo.service";
           }
         </section>
 
-        <div class="detail-layout">
+        <div class="detail-layout" [attr.inert]="reservationOpen() ? '' : null" [attr.aria-hidden]="reservationOpen() ? 'true' : null">
           <div class="detail-main">
             <section class="panel summary-panel" aria-labelledby="tour-summary-title">
               <div class="summary-head">
@@ -95,25 +95,25 @@ import { SeoService } from "../services/seo.service";
           </aside>
         </div>
 
-        <nav class="action-bar" aria-label="Tur hızlı işlemleri">
+        <nav class="action-bar" aria-label="Tur hızlı işlemleri" [attr.inert]="reservationOpen() ? '' : null" [attr.aria-hidden]="reservationOpen() ? 'true' : null">
           <div class="action-inner">
-            <button type="button" class="whatsapp" (click)="whatsapp()"><mat-icon aria-hidden="true">chat</mat-icon><span>WhatsApp’tan Sor</span></button>
-            <button type="button" class="reserve" (click)="openReservation()"><mat-icon aria-hidden="true">event_available</mat-icon><span>Bu Turu Rezerve Et</span></button>
+            <button type="button" class="whatsapp" (click)="whatsapp()" aria-label="WhatsApp üzerinden tur hakkında soru sor"><mat-icon aria-hidden="true">chat</mat-icon><span>WhatsApp’tan Sor</span></button>
+            <button type="button" class="reserve" (click)="openReservation()" aria-label="Bu turu rezerve et"><mat-icon aria-hidden="true">event_available</mat-icon><span>Bu Turu Rezerve Et</span></button>
           </div>
         </nav>
 
         @if (reservationOpen()) {
-          <div class="reservation-overlay" role="dialog" aria-modal="true" aria-labelledby="tour-booking-title">
+          <div class="reservation-overlay" role="dialog" aria-modal="true" aria-labelledby="tour-booking-title" tabindex="-1">
             <header><button type="button" (click)="closeReservation()" aria-label="Tur rezervasyonunu kapat"><mat-icon aria-hidden="true">close</mat-icon></button><div><span>Adım {{ reservationStep() }} / 3</span><h2 id="tour-booking-title">Tur Rezervasyonu</h2></div></header>
             <div class="reservation-content">
               @if (reservationSuccess()) {
-                <section class="success" role="status"><mat-icon aria-hidden="true">check_circle</mat-icon><h3>Rezervasyon talebiniz kaydedildi</h3><p>Referans: {{ reservationReference() }}</p><button type="button" (click)="closeReservation()">Tura Dön</button></section>
+                <section class="success" role="status"><mat-icon aria-hidden="true">check_circle</mat-icon><h3>Rezervasyon talebiniz kaydedildi</h3><p>Referans: {{ reservationReference() }}</p><button type="button" (click)="closeReservation()" aria-label="Tur detayına dön">Tura Dön</button></section>
               } @else if (reservationStep() === 1) {
-                <section class="step-card"><p class="step-kicker">1. Tarih ve kişi sayısı</p><h3>Tur planınızı belirleyin</h3><app-accessible-native-date label="Tur Tarihi" [value]="tourDate" [min]="today" (valueChange)="tourDate = $event; reservationError.set('')" /><div class="people"><span>Kişi Sayısı</span><div><button type="button" (click)="decreasePerson()" aria-label="Kişi sayısını azalt"><mat-icon aria-hidden="true">remove</mat-icon></button><strong>{{ personCount() }}</strong><button type="button" (click)="increasePerson()" aria-label="Kişi sayısını artır"><mat-icon aria-hidden="true">add</mat-icon></button></div></div><div class="total"><span>Tahmini toplam</span><strong>{{ totalTourPrice() | turkishCurrency }}</strong></div>@if (reservationError()) {<p class="form-error" role="alert">{{ reservationError() }}</p>}<button type="button" class="next" (click)="goToContact()">Devam Et</button></section>
+                <section id="tour-step-1" class="step-card" tabindex="-1"><p class="step-kicker">1. Tarih ve kişi sayısı</p><h3>Tur planınızı belirleyin</h3><app-accessible-native-date label="Tur Tarihi" [value]="tourDate" [min]="today" (valueChange)="tourDate = $event; reservationError.set('')" /><div class="people"><span>Kişi Sayısı</span><div><button type="button" (click)="decreasePerson()" aria-label="Kişi sayısını azalt"><mat-icon aria-hidden="true">remove</mat-icon></button><strong>{{ personCount() }}</strong><button type="button" (click)="increasePerson()" aria-label="Kişi sayısını artır"><mat-icon aria-hidden="true">add</mat-icon></button></div></div><div class="total"><span>Tahmini toplam</span><strong>{{ totalTourPrice() | turkishCurrency }}</strong></div>@if (reservationError()) {<p class="form-error" role="alert">{{ reservationError() }}</p>}<button type="button" class="next" (click)="goToContact()" aria-label="İletişim bilgileri adımına devam et">Devam Et</button></section>
               } @else if (reservationStep() === 2) {
-                <section class="step-card"><p class="step-kicker">2. İletişim</p><h3>İletişim bilgilerinizi tamamlayın</h3><div class="form-grid"><label><span>Ad</span><input [(ngModel)]="firstName" autocomplete="given-name" /></label><label><span>Soyad</span><input [(ngModel)]="lastName" autocomplete="family-name" /></label><label><span>Telefon</span><input type="tel" [(ngModel)]="phone" autocomplete="tel" /></label><label><span>E-posta</span><input type="email" [(ngModel)]="email" autocomplete="email" /></label></div><label class="note"><span>Not</span><textarea rows="3" [(ngModel)]="notes"></textarea></label>@if (reservationError()) {<p class="form-error" role="alert">{{ reservationError() }}</p>}<div class="step-actions"><button type="button" class="secondary" (click)="reservationStep.set(1)">Geri</button><button type="button" class="next" (click)="goToReview()">Devam Et</button></div></section>
+                <section id="tour-step-2" class="step-card" tabindex="-1"><p class="step-kicker">2. İletişim</p><h3>İletişim bilgilerinizi tamamlayın</h3><div class="form-grid"><label><span>Ad</span><input [(ngModel)]="firstName" autocomplete="given-name" aria-label="Ad" /></label><label><span>Soyad</span><input [(ngModel)]="lastName" autocomplete="family-name" aria-label="Soyad" /></label><label><span>Telefon</span><input type="tel" [(ngModel)]="phone" autocomplete="tel" aria-label="Telefon" /></label><label><span>E-posta</span><input type="email" [(ngModel)]="email" autocomplete="email" aria-label="E-posta" /></label></div><label class="note"><span>Not</span><textarea rows="3" [(ngModel)]="notes" aria-label="Rezervasyon notu"></textarea></label>@if (reservationError()) {<p class="form-error" role="alert">{{ reservationError() }}</p>}<div class="step-actions"><button type="button" class="secondary" (click)="setReservationStep(1)" aria-label="Tarih ve kişi sayısı adımına geri dön">Geri</button><button type="button" class="next" (click)="goToReview()" aria-label="Rezervasyon onay adımına devam et">Devam Et</button></div></section>
               } @else {
-                <section class="step-card"><p class="step-kicker">3. Onay</p><h3>Talebinizi kontrol edin</h3><dl class="review"><div><dt>Tur</dt><dd>{{ item.title }}</dd></div><div><dt>Tarih</dt><dd>{{ formattedTourDate() }}</dd></div><div><dt>Kişi</dt><dd>{{ personCount() }}</dd></div><div><dt>Toplam</dt><dd>{{ totalTourPrice() | turkishCurrency }}</dd></div></dl>@if (reservationError()) {<p class="form-error" role="alert">{{ reservationError() }}</p>}<div class="step-actions"><button type="button" class="secondary" (click)="reservationStep.set(2)">Geri</button><button type="button" class="next" (click)="submitReservation()" [disabled]="submitting()">{{ submitting() ? 'Kaydediliyor...' : 'Rezervasyon Talebini Gönder' }}</button></div></section>
+                <section id="tour-step-3" class="step-card" tabindex="-1"><p class="step-kicker">3. Onay</p><h3>Talebinizi kontrol edin</h3><dl class="review"><div><dt>Tur</dt><dd>{{ item.title }}</dd></div><div><dt>Tarih</dt><dd>{{ formattedTourDate() }}</dd></div><div><dt>Kişi</dt><dd>{{ personCount() }}</dd></div><div><dt>Toplam</dt><dd>{{ totalTourPrice() | turkishCurrency }}</dd></div></dl>@if (reservationError()) {<p class="form-error" role="alert">{{ reservationError() }}</p>}<div class="step-actions"><button type="button" class="secondary" (click)="setReservationStep(2)" aria-label="İletişim bilgileri adımına geri dön">Geri</button><button type="button" class="next" (click)="submitReservation()" [disabled]="submitting()" aria-label="Rezervasyon talebini gönder">{{ submitting() ? 'Kaydediliyor...' : 'Rezervasyon Talebini Gönder' }}</button></div></section>
               }
             </div>
           </div>
@@ -121,7 +121,7 @@ import { SeoService } from "../services/seo.service";
       } @else if (loading()) {
         <section class="state-panel" role="status"><div class="spinner"></div><strong>Tur bilgileri yükleniyor</strong></section>
       } @else {
-        <section class="state-panel error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><strong>Tur yüklenemedi</strong><span>{{ loadError() }}</span><button type="button" (click)="reload()">Tekrar Dene</button></section>
+        <section class="state-panel error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><strong>Tur yüklenemedi</strong><span>{{ loadError() }}</span><button type="button" (click)="reload()" aria-label="Tur bilgilerini tekrar yükle">Tekrar Dene</button></section>
       }
     </main>
   `,
@@ -205,12 +205,14 @@ export class TourDetailComponent implements OnInit {
   previousImage(): void { const length = this.images().length; if (length > 1) this.currentSlide.update((i) => (i - 1 + length) % length); }
   nextImage(): void { const length = this.images().length; if (length > 1) this.currentSlide.update((i) => (i + 1) % length); }
   imageFailed(url: string): void { this.failedImages.update((items) => items.includes(url) ? items : [...items, url]); this.currentSlide.set(0); }
-  openReservation(): void { this.reservationOpen.set(true); this.reservationStep.set(1); this.reservationError.set(""); this.reservationSuccess.set(false); }
-  closeReservation(): void { if (!this.submitting()) this.reservationOpen.set(false); }
+  private focusAfterRender(selector: string): void { if (typeof window === "undefined") return; window.setTimeout(() => document.querySelector<HTMLElement>(selector)?.focus({ preventScroll: true }), 0); }
+  openReservation(): void { this.reservationOpen.set(true); this.reservationStep.set(1); this.reservationError.set(""); this.reservationSuccess.set(false); this.focusAfterRender(".reservation-overlay > header button"); }
+  closeReservation(): void { if (!this.submitting()) { this.reservationOpen.set(false); this.focusAfterRender(".action-inner .reserve"); } }
+  setReservationStep(step: 1 | 2 | 3): void { this.reservationStep.set(step); this.reservationError.set(""); this.focusAfterRender(`#tour-step-${step}`); }
   increasePerson(): void { const max = Math.max(1, Number(this.tour()?.capacity || 20)); if (this.personCount() < max) this.personCount.update((v) => v + 1); }
   decreasePerson(): void { if (this.personCount() > 1) this.personCount.update((v) => v - 1); }
-  goToContact(): void { if (!this.tourDate || this.tourDate < this.today) { this.reservationError.set("Geçerli bir tur tarihi seçin."); return; } this.reservationError.set(""); this.reservationStep.set(2); }
-  goToReview(): void { if (!this.firstName.trim() || !this.lastName.trim() || !/^[+0-9()\s-]{7,24}$/.test(this.phone.trim()) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email.trim())) { this.reservationError.set("Ad, soyad, telefon ve geçerli e-posta bilgilerini tamamlayın."); return; } this.reservationError.set(""); this.reservationStep.set(3); }
+  goToContact(): void { if (!this.tourDate || this.tourDate < this.today) { this.reservationError.set("Geçerli bir tur tarihi seçin."); return; } this.setReservationStep(2); }
+  goToReview(): void { if (!this.firstName.trim() || !this.lastName.trim() || !/^[+0-9()\s-]{7,24}$/.test(this.phone.trim()) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email.trim())) { this.reservationError.set("Ad, soyad, telefon ve geçerli e-posta bilgilerini tamamlayın."); return; } this.setReservationStep(3); }
 
   async submitReservation(): Promise<void> {
     const item = this.tour();

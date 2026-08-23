@@ -49,6 +49,7 @@ export interface PrimaryAdminRegistrationResult {
 @Injectable({ providedIn: "root" })
 export class AuthService {
   private readonly storageKey = "alperler_admin_session_v1";
+  private readonly customerStorageKey = "alperler_customer_session_v1";
   private readonly _isLoggedIn = signal(false);
   private readonly _userEmail = signal<string | null>(null);
   private readonly _authReady = signal(false);
@@ -281,7 +282,7 @@ export class AuthService {
     }
 
     try {
-      const redirectTo = `${window.location.origin}/admin/settings?tab=account`;
+      const redirectTo = `${window.location.origin}/account/login?recovery=1&returnUrl=${encodeURIComponent('/admin')}`;
       const response = await fetch(
         `${supabaseAuthUrl("recover")}?redirect_to=${encodeURIComponent(redirectTo)}`,
         {
@@ -351,7 +352,7 @@ export class AuthService {
 
   private restoreStoredSession(): void {
     try {
-      const raw = localStorage.getItem(this.storageKey);
+      const raw = localStorage.getItem(this.storageKey) || localStorage.getItem(this.customerStorageKey);
       if (!raw) return;
       const parsed = JSON.parse(raw) as StoredSession;
       if (!parsed?.accessToken || !parsed?.refreshToken || !parsed?.expiresAt) return;

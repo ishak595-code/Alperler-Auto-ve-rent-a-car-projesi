@@ -6,7 +6,6 @@ import { SeoService } from './services/seo.service';
 import { SystemHealthService } from './services/system-health.service';
 import { NewsletterSyncService } from './services/newsletter-sync.service';
 import { VisitorAnalyticsService } from './services/visitor-analytics.service';
-import { AccessibilityRuntimeService } from './services/accessibility-runtime.service';
 import { CustomerProfileAutofillService } from './services/customer-profile-autofill.service';
 import { CustomerMobileDockComponent } from './components/customer-mobile-dock.component';
 import { RuntimeStatusGateComponent } from './components/runtime-status-gate.component';
@@ -38,7 +37,6 @@ export class AppComponent implements OnInit {
   private readonly systemHealth = inject(SystemHealthService);
   private readonly newsletterSync = inject(NewsletterSyncService);
   private readonly visitorAnalytics = inject(VisitorAnalyticsService);
-  private readonly accessibilityRuntime = inject(AccessibilityRuntimeService);
   private readonly customerAutofill = inject(CustomerProfileAutofillService);
   readonly showCustomerChrome = signal(
     this.isCustomerRoute(typeof window !== 'undefined' ? window.location.pathname : this.router.url),
@@ -55,7 +53,6 @@ export class AppComponent implements OnInit {
     this.systemHealth.start();
     void this.newsletterSync;
     this.visitorAnalytics.init();
-    this.accessibilityRuntime.start();
     this.customerAutofill.start();
   }
 

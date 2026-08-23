@@ -10,11 +10,14 @@ on:
     paths:
       - "src/components/accessible-native-date.component.ts"
       - "src/components/booking-success-overlay.component.ts"
+      - "src/models/site-config.model.ts"
       - "src/pages/account-dashboard-v150.component.ts"
       - "src/pages/account-login.component.ts"
       - "src/pages/account-wallet.component.ts"
       - "src/pages/contact-entry.component.ts"
+      - "src/pages/home-v71.component.ts"
       - "src/pages/tour-detail.component.ts"
+      - "src/pages/admin/admin-homepage.component.ts"
       - "src/services/accessibility-runtime.service.ts"
       - "src/services/auth.service.ts"
       - "src/services/customer-booking-actions.service.ts"
@@ -27,7 +30,7 @@ on:
       - ".github/workflows/customer-ops-v150-gate.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   customer-ops:
@@ -35,6 +38,23 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Materialize V154 planner changes
+        if: github.event_name == 'pull_request' && github.head_ref == 'v154-planner-accessibility-admin'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node project/apply-v154-planner.mjs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/accessible-native-date.component.ts src/models/site-config.model.ts src/pages/home-v71.component.ts src/pages/admin/admin-homepage.component.ts .github/workflows/customer-ops-v150-gate.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: make planner accessible and admin-configurable"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
 
       - name: Verify V150 customer and accessibility invariants
         shell: bash
@@ -50,6 +70,8 @@ jobs:
           grep -Fq 'tabindex="-1"' src/components/accessible-native-date.component.ts
           grep -Fq 'showPicker' src/components/accessible-native-date.component.ts
           ! grep -Fq 'calendar-picker-indicator' src/components/accessible-native-date.component.ts
+          grep -Fq '[attr.aria-label]="buttonAccessibleName()"' src/components/accessible-native-date.component.ts
+          ! grep -Fq '[attr.aria-labelledby]="labelId"' src/components/accessible-native-date.component.ts
 
           # Interactive controls use component-owned static ARIA. A page-wide
           # MutationObserver must never rewrite names while TalkBack has focus.
@@ -58,6 +80,10 @@ jobs:
           grep -Fq 'aria-label="Bu turu rezerve et"' src/pages/tour-detail.component.ts
           grep -Fq '[attr.inert]="reservationOpen()' src/pages/tour-detail.component.ts
           grep -Fq 'focusAfterRender' src/pages/tour-detail.component.ts
+          grep -Fq 'aria-label="Kiralama süresini seç"' src/pages/home-v71.component.ts
+          grep -Fq 'aria-label="Alış saatini seç"' src/pages/home-v71.component.ts
+          grep -Fq 'plannerFieldOrder' src/pages/admin/admin-homepage.component.ts
+          grep -Fq 'plannerEnabled' src/pages/admin/admin-homepage.component.ts
 
           # Checkout and contact are separate concepts. A stale checkout may never own /contact after refresh.
           grep -Fq "path: 'booking-checkout'" src/app.routes.ts

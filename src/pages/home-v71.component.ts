@@ -37,7 +37,7 @@ interface PlannerDurationChoice { value: RentalDuration; label: string; enabled:
 
           @if (plannerEnabled()) {
           <aside class="planner" [class.planner-compact]="plannerVariant() === 'compact'" aria-labelledby="planner-title">
-            <div class="planner-head"><div><p class="planner-kicker">{{ homeContent().plannerKicker || 'HIZLI PLANLAMA' }}</p><h2 id="planner-title">{{ homeContent().bookingTitle || 'Planınızı oluşturun' }}</h2><p>{{ homeContent().bookingSubtitle || 'Hizmet türünü, kiralama süresini ve teslim noktasını seçin. Uygun seçenekleri doğrudan görüntüleyin.' }}</p></div><span class="planner-icon" aria-hidden="true"><mat-icon>event_available</mat-icon></span></div>
+            <div class="planner-head"><div><p class="planner-kicker">{{ homeContent().plannerKicker || 'HIZLI PLANLAMA' }}</p><h2 id="planner-title">{{ homeContent().bookingTitle || 'Planınızı oluşturun' }}</h2><p>{{ homeContent().bookingSubtitle || 'Hizmet türünü, teslim noktasını ve kiralama süresini seçin. Uygun seçenekleri doğrudan görüntüleyin.' }}</p></div><span class="planner-icon" aria-hidden="true"><mat-icon>event_available</mat-icon></span></div>
 
             <div class="field-grid">
               @for (field of plannerFieldOrder(); track field) {

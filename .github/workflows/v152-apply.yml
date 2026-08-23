@@ -1,9 +1,9 @@
 name: Apply V152 date and duration patch
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
+      - v152-date-picker-duration-fix
     paths:
       - "project/apply-v152-date-duration.mjs"
       - ".github/workflows/v152-apply.yml"
@@ -13,7 +13,6 @@ permissions:
 
 jobs:
   apply:
-    if: github.head_ref == 'v152-date-picker-duration-fix'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

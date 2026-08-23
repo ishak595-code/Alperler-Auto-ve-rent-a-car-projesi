@@ -138,6 +138,11 @@ export interface SiteConfig {
     heroImage?: string;
     plannerKicker?: string;
     plannerNote?: string;
+    plannerEnabled?: boolean;
+    plannerVariant?: 'classic' | 'compact';
+    plannerFieldOrder?: Array<'service' | 'pickup' | 'duration' | 'date'>;
+    plannerServiceOptions?: Array<{ value: 'individual' | 'driver' | 'wedding' | 'tour'; label: string; enabled?: boolean; sortOrder?: number }>;
+    plannerDurationOptions?: Array<{ value: 'hourly' | 'daily' | 'weekly' | 'monthly' | 'longterm'; label: string; enabled?: boolean; sortOrder?: number }>;
     searchPlaceholder?: string;
     searchButtonLabel?: string;
     trustPrice?: string;

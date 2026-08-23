@@ -41,10 +41,41 @@ function auditElement(source, file, tag) {
   }
 }
 
+function insideWrappingLabel(source, index) {
+  const before = source.slice(0, index);
+  const open = before.lastIndexOf("<label");
+  const close = before.lastIndexOf("</label>");
+  return open > close && source.indexOf("</label>", index) > index;
+}
+
+function hasExplicitLabelFor(source, attrs) {
+  const id = /\bid\s*=\s*["']([^"']+)["']/.exec(attrs)?.[1];
+  if (!id) return false;
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`<label\\b[^>]*\\bfor\\s*=\\s*["']${escaped}["']`, "i").test(source);
+}
+
+function auditFormControls(source, file) {
+  const re = /<(input|select|textarea)\b([^>]*)>/gi;
+  let match;
+  while ((match = re.exec(source))) {
+    const tag = match[1].toLowerCase();
+    const attrs = match[2];
+    if (/aria-hidden\s*=\s*["']true["']/.test(attrs)) continue;
+    if (/\btype\s*=\s*["']hidden["']/.test(attrs)) continue;
+    if (/aria-label(?:ledby)?\s*=|\[attr\.aria-label(?:ledby)?\]\s*=/.test(attrs)) continue;
+    if (insideWrappingLabel(source, match.index)) continue;
+    if (hasExplicitLabelFor(source, attrs)) continue;
+    const line = source.slice(0, match.index).split("\n").length;
+    issues.push(`${file}:${line}: ${tag} has no accessible label association`);
+  }
+}
+
 function audit(file) {
   const source = fs.readFileSync(file, "utf8");
   auditElement(source, file, "button");
   auditElement(source, file, "a");
+  auditFormControls(source, file);
 }
 
 walk("src");
@@ -53,5 +84,5 @@ if (issues.length) {
   console.error(issues.join("\n"));
   if (!reportOnly) process.exit(1);
 } else {
-  console.log("Accessible interaction guard passed: no unlabeled buttons or links found.");
+  console.log("Accessible interaction guard passed: no unlabeled buttons, links or form controls found.");
 }

@@ -51,17 +51,17 @@ import { AdminMediaService } from '../../services/admin-media.service';
                      <div class="space-y-6">
                          <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Başlık</label>
-                            <input [(ngModel)]="newPost.title" placeholder="Blog yazısının çarpıcı başlığı" class="w-full p-4 border border-slate-200 rounded-xl bg-slate-50 font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
+                            <input [(ngModel)]="newPost.title" aria-label="Blog yazısı başlığı" placeholder="Blog yazısının çarpıcı başlığı" class="w-full p-4 border border-slate-200 rounded-xl bg-slate-50 font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
                          </div>
                          
                          <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Kısa Özet (Meta Description)</label>
-                            <textarea [(ngModel)]="newPost.summary" rows="3" placeholder="Yazının kısa, merak uyandıran özeti. Arama motorlarında da bu görünür." class="w-full p-4 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none resize-none"></textarea>
+                            <textarea [(ngModel)]="newPost.summary" rows="3" aria-label="Blog yazısı kısa özeti" placeholder="Yazının kısa, merak uyandıran özeti. Arama motorlarında da bu görünür." class="w-full p-4 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none resize-none"></textarea>
                          </div>
                          
                          <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Yazı İçeriği (HTML Kullanabilirsiniz)</label>
-                            <textarea [(ngModel)]="newPost.content" rows="12" placeholder="<p>Blog içeriğiniz...</p>" class="w-full p-4 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 font-mono text-sm leading-relaxed focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"></textarea>
+                            <textarea [(ngModel)]="newPost.content" rows="12" aria-label="Blog yazısı içeriği" placeholder="<p>Blog içeriğiniz...</p>" class="w-full p-4 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 font-mono text-sm leading-relaxed focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"></textarea>
                          </div>
                      </div>
                      
@@ -95,11 +95,11 @@ import { AdminMediaService } from '../../services/admin-media.service';
                              <div class="space-y-4">
                                  <div>
                                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Yayın Tarihi</label>
-                                    <input [(ngModel)]="newPost.date" placeholder="Örn: 15 Mayıs 2024" class="w-full p-3 border border-slate-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
+                                    <input [(ngModel)]="newPost.date" aria-label="Blog yayın tarihi" placeholder="Örn: 15 Mayıs 2024" class="w-full p-3 border border-slate-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
                                  </div>
                                  <div>
                                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Okuma Süresi</label>
-                                    <input [(ngModel)]="newPost.readTime" placeholder="Örn: 4 dk" class="w-full p-3 border border-slate-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
+                                    <input [(ngModel)]="newPost.readTime" aria-label="Blog okuma süresi" placeholder="Örn: 4 dk" class="w-full p-3 border border-slate-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
                                  </div>
                              </div>
                          </div>

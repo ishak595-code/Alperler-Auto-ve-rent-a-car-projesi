@@ -10,11 +10,14 @@ on:
     paths:
       - "src/components/accessible-native-date.component.ts"
       - "src/components/booking-success-overlay.component.ts"
+      - "src/models/site-config.model.ts"
       - "src/pages/account-dashboard-v150.component.ts"
       - "src/pages/account-login.component.ts"
       - "src/pages/account-wallet.component.ts"
       - "src/pages/contact-entry.component.ts"
+      - "src/pages/home-v71.component.ts"
       - "src/pages/tour-detail.component.ts"
+      - "src/pages/admin/admin-homepage.component.ts"
       - "src/services/accessibility-runtime.service.ts"
       - "src/services/auth.service.ts"
       - "src/services/customer-booking-actions.service.ts"
@@ -36,7 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify V150 customer and accessibility invariants
+      - name: Verify customer and accessibility invariants
         shell: bash
         run: |
           set -euo pipefail
@@ -50,14 +53,28 @@ jobs:
           grep -Fq 'tabindex="-1"' src/components/accessible-native-date.component.ts
           grep -Fq 'showPicker' src/components/accessible-native-date.component.ts
           ! grep -Fq 'calendar-picker-indicator' src/components/accessible-native-date.component.ts
+          grep -Fq '[attr.aria-label]="buttonAccessibleName()"' src/components/accessible-native-date.component.ts
+          ! grep -Fq '[attr.aria-labelledby]="labelId"' src/components/accessible-native-date.component.ts
 
-          # Interactive controls use component-owned static ARIA. A page-wide
-          # MutationObserver must never rewrite names while TalkBack has focus.
+          # Interactive controls own stable labels. Runtime mutation must not rename
+          # controls while TalkBack has focus.
           ! grep -Fq 'AccessibilityRuntimeService' src/app.component.ts
           ! grep -Fq 'accessibilityRuntime.start' src/app.component.ts
           grep -Fq 'aria-label="Bu turu rezerve et"' src/pages/tour-detail.component.ts
           grep -Fq '[attr.inert]="reservationOpen()' src/pages/tour-detail.component.ts
           grep -Fq 'focusAfterRender' src/pages/tour-detail.component.ts
+
+          # Quick planner uses the requested order and permanent labels, and remains
+          # configurable from the authenticated admin homepage editor.
+          grep -Fq 'const defaults:PlannerFieldKey[]=["service","pickup","duration","date"]' src/pages/home-v71.component.ts
+          grep -Fq 'aria-label="Kiralama süresini seç"' src/pages/home-v71.component.ts
+          grep -Fq 'aria-label="Alış saatini seç"' src/pages/home-v71.component.ts
+          grep -Fq 'aria-label="İade saatini seç"' src/pages/home-v71.component.ts
+          grep -Fq 'plannerFieldOrder' src/pages/admin/admin-homepage.component.ts
+          grep -Fq 'plannerEnabled' src/pages/admin/admin-homepage.component.ts
+          grep -Fq 'plannerVariant' src/pages/admin/admin-homepage.component.ts
+          grep -Fq 'plannerServiceOptions' src/pages/admin/admin-homepage.component.ts
+          grep -Fq 'plannerDurationOptions' src/pages/admin/admin-homepage.component.ts
 
           # Checkout and contact are separate concepts. A stale checkout may never own /contact after refresh.
           grep -Fq "path: 'booking-checkout'" src/app.routes.ts
@@ -97,6 +114,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
+
+      - name: Full accessibility control audit
+        run: npm run a11y:buttons
 
       - name: Frontend type check
         run: npm run lint

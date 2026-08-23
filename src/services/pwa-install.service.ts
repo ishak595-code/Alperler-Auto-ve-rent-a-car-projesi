@@ -7,11 +7,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
-declare global {
-  interface Window {
-    __alperlerInstallPrompt?: BeforeInstallPromptEvent;
-  }
-}
+type InstallAwareWindow = Window & { __alperlerInstallPrompt?: BeforeInstallPromptEvent };
 
 @Injectable({ providedIn: 'root' })
 export class PwaInstallService {
@@ -39,7 +35,7 @@ export class PwaInstallService {
       const installEvent = event as BeforeInstallPromptEvent;
       installEvent.preventDefault();
       this.deferredPrompt = installEvent;
-      window.__alperlerInstallPrompt = installEvent;
+      this.installWindow().__alperlerInstallPrompt = installEvent;
       this._canInstall.set(!this.isStandalone());
     });
     window.addEventListener('appinstalled', () => this.markInstalled());
@@ -67,12 +63,12 @@ export class PwaInstallService {
       await prompt.prompt();
       const choice = await prompt.userChoice;
       this.deferredPrompt = null;
-      delete window.__alperlerInstallPrompt;
+      delete this.installWindow().__alperlerInstallPrompt;
       if (choice.outcome === 'accepted' || this.isStandalone()) this._installed.set(true);
       return choice.outcome;
     } catch {
       this.deferredPrompt = null;
-      delete window.__alperlerInstallPrompt;
+      delete this.installWindow().__alperlerInstallPrompt;
       this.refreshEnvironment();
       return 'unavailable';
     }
@@ -86,7 +82,7 @@ export class PwaInstallService {
   }
 
   private adoptBufferedPrompt(): void {
-    const buffered = window.__alperlerInstallPrompt;
+    const buffered = this.installWindow().__alperlerInstallPrompt;
     if (!buffered || this.isStandalone()) return;
     this.deferredPrompt = buffered;
     this._canInstall.set(true);
@@ -94,7 +90,7 @@ export class PwaInstallService {
 
   private markInstalled(): void {
     this.deferredPrompt = null;
-    delete window.__alperlerInstallPrompt;
+    delete this.installWindow().__alperlerInstallPrompt;
     this._canInstall.set(false);
     this._installed.set(true);
   }
@@ -108,6 +104,10 @@ export class PwaInstallService {
     this._mobileBrowser.set(!standalone && coarse && mobileOrTablet);
     if (standalone) this._canInstall.set(false);
     else this.adoptBufferedPrompt();
+  }
+
+  private installWindow(): InstallAwareWindow {
+    return window as InstallAwareWindow;
   }
 
   private isStandalone(): boolean {

@@ -42,17 +42,17 @@ jobs:
           ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
 
-      - name: Materialize V154 planner changes
+      - name: Materialize V154 final accessibility audit
         if: github.event_name == 'pull_request' && github.head_ref == 'v154-planner-accessibility-admin'
         shell: bash
         run: |
           set -euo pipefail
-          node project/run-v154-patch.mjs
+          node project/apply-v154-final.mjs
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/components/accessible-native-date.component.ts src/models/site-config.model.ts src/pages/home-v71.component.ts src/pages/admin/admin-homepage.component.ts
+          git add src/pages/home-v71.component.ts src/pages/admin/admin-homepage.component.ts scripts/check-accessible-buttons.mjs
           if ! git diff --cached --quiet; then
-            git commit -m "feat: make planner accessible and admin-configurable"
+            git commit -m "test: enforce labels on all interactive form controls"
             git push origin HEAD:${{ github.head_ref }}
           fi
 
@@ -123,6 +123,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
+
+      - name: Full accessibility control audit
+        run: npm run a11y:buttons
 
       - name: Frontend type check
         run: npm run lint

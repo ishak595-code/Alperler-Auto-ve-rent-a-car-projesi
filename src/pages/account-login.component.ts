@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, Injector, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../services/auth.service';
@@ -34,9 +34,9 @@ type AccountMode='login'|'register'|'recovery';
             @if(mode()==='recovery'){<label><span>Yeni parola tekrar</span><input name="confirmPassword" [(ngModel)]="confirmPassword" type="password" autocomplete="new-password" required placeholder="Yeni parolanızı tekrar girin" /></label>}
             <button class="primary" type="submit" [disabled]="working()">{{working()?'İşleniyor…':mode()==='recovery'?'Yeni Parolayı Kaydet':mode()==='login'?'Giriş Yap':'Kayıt Ol'}}</button>
           </form>
-          @if(auth.lastError() || adminAuth.lastErrorMessage()){<p class="error" role="alert">{{auth.lastError() || adminAuth.lastErrorMessage()}}</p>}@if(message()){<p class="success" role="status">{{message()}}</p>}
+          @if(auth.lastError() || adminError()){<p class="error" role="alert">{{auth.lastError() || adminError()}}</p>}@if(message()){<p class="success" role="status">{{message()}}</p>}
           <div class="secondary-actions">@if(mode()==='login'){<button type="button" class="text-action" (click)="reset()">Parolamı unuttum</button>}@if(mode()==='recovery'){<button type="button" class="text-action" (click)="cancelRecovery()">Giriş ekranına dön</button>}@else{<a routerLink="/">Hesap açmadan devam et</a>}</div>
-          @if(mode()!=='recovery'){<details class="account-info"><summary>Alperler hesabı ne sağlar?</summary><div class="info-body"><p>Profil bilgilerinizi yeniden girmeden kullanabilir, hesabınıza bağlanan kiralama, satış ve tur işlemlerini takip edebilir, sadakat ve davet avantajlarınızı görebilirsiniz.</p><ul><li>İşlem geçmişi ve profil bilgileri tek yerde</li><li>Alperler Cüzdan ve uygun belge yönetimi</li><li>Sadakat puanları ve kampanyalı arkadaş davetleri</li></ul><a routerLink="/legal">Gizlilik ve kullanım koşullarını inceleyin</a></div></details>}
+          @if(mode()!=='recovery'){<details class="account-info"><summary>Alperler hesabı ne sağlar?</summary><div class="info-body"><p>Profil bilgilerinizi yeniden girmeden kullanabilir, hesabınıza bağlanan kiralama, satış ve tur işlemlerinizi takip edebilir, sadakat ve davet avantajlarınızı görebilirsiniz.</p><ul><li>İşlem geçmişi ve profil bilgileri tek yerde</li><li>Alperler Cüzdan ve uygun belge yönetimi</li><li>Sadakat puanları ve kampanyalı arkadaş davetleri</li></ul><a routerLink="/legal">Gizlilik ve kullanım koşullarını inceleyin</a></div></details>}
         </section>
       </section>
     </section></main>
@@ -47,13 +47,14 @@ type AccountMode='login'|'register'|'recovery';
 })
 export class AccountLoginComponent implements OnInit{
   readonly auth=inject(CustomerAuthService);
-  readonly adminAuth=inject(AuthService);
+  private readonly injector=inject(Injector);
   private readonly adminBridge=inject(ProfileAdminBridgeService);
   private readonly router=inject(Router);
   private readonly route=inject(ActivatedRoute);
   readonly mode=signal<AccountMode>(this.auth.pendingReferral()?'register':'login');
   readonly working=signal(false);
   readonly message=signal<string|null>(null);
+  readonly adminError=signal<string|null>(null);
   email='';password='';confirmPassword='';fullName='';
 
   async ngOnInit():Promise<void>{
@@ -70,10 +71,10 @@ export class AccountLoginComponent implements OnInit{
     if(this.auth.isLoggedIn())await this.finishSignedInNavigation();
   }
 
-  setMode(mode:'login'|'register'):void{this.mode.set(mode);this.message.set(null);this.password='';this.confirmPassword='';}
+  setMode(mode:'login'|'register'):void{this.mode.set(mode);this.message.set(null);this.adminError.set(null);this.password='';this.confirmPassword='';}
 
   async submit():Promise<void>{
-    this.working.set(true);this.message.set(null);this.rememberReturnUrl();
+    this.working.set(true);this.message.set(null);this.adminError.set(null);this.rememberReturnUrl();
     try{
       if(this.mode()==='recovery'){
         if(this.password!==this.confirmPassword){this.message.set('Yeni parolalar birbiriyle eşleşmiyor.');return;}
@@ -95,7 +96,7 @@ export class AccountLoginComponent implements OnInit{
   }
 
   async social(provider:CustomerSocialProvider):Promise<void>{
-    this.message.set(null);
+    this.message.set(null);this.adminError.set(null);
     if(!this.auth.providerEnabled(provider)){
       this.message.set(provider==='google'?'Google ile giriş bağlantısı görünür durumda ancak OAuth sağlayıcısı henüz Supabase Auth içinde etkin değil.':'Facebook ile giriş bağlantısı görünür durumda ancak OAuth sağlayıcısı henüz Supabase Auth içinde etkin değil.');
       return;
@@ -105,17 +106,21 @@ export class AccountLoginComponent implements OnInit{
   }
 
   async reset():Promise<void>{
-    this.message.set(null);
-    const ok=this.adminReturnTarget()
-      ? await this.adminAuth.resetPassword(this.email)
-      : await this.auth.resetPassword(this.email);
-    if(ok)this.message.set('Parola yenileme bağlantısı e-posta adresinize gönderildi. En yeni e-postadaki bağlantıyı aynı cihaz ve tarayıcıda açın.');
+    this.message.set(null);this.adminError.set(null);
+    if(this.adminReturnTarget()){
+      const adminAuth=this.injector.get(AuthService);
+      const ok=await adminAuth.resetPassword(this.email);
+      if(!ok)this.adminError.set(adminAuth.lastErrorMessage()||'Yönetici parola yenileme isteği işlenemedi.');
+      if(ok)this.message.set('Parola yenileme bağlantısı e-posta adresinize gönderildi. En yeni e-postadaki bağlantıyı aynı cihaz ve tarayıcıda açın.');
+      return;
+    }
+    if(await this.auth.resetPassword(this.email))this.message.set('Parola yenileme bağlantısı e-posta adresinize gönderildi. En yeni e-postadaki bağlantıyı aynı cihaz ve tarayıcıda açın.');
   }
 
   cancelRecovery():void{
     const target=this.adminReturnTarget();
     history.replaceState(null,document.title,target?`/account/login?returnUrl=${encodeURIComponent(target)}`:'/account/login');
-    this.mode.set('login');this.password='';this.confirmPassword='';this.message.set(null);
+    this.mode.set('login');this.password='';this.confirmPassword='';this.message.set(null);this.adminError.set(null);
   }
 
   adminReturnTarget():string|null{

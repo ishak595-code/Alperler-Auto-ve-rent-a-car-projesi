@@ -85,8 +85,9 @@ jobs:
           grep -Fq 'navigate(["/booking-checkout"]' src/pages/contact-entry.component.ts
 
           # Admin access uses the same confirmed Supabase identity as the customer
-          # profile, verifies admin_users, preserves the requested admin route and
-          # performs a full reload after copying the verified session.
+          # profile, verifies admin_users and preserves the requested admin route.
+          # AccountLogin must NOT eagerly instantiate AuthService because both auth
+          # services would otherwise race to consume the one-time recovery hash.
           grep -Fq "path: 'admin/login', loadComponent:" src/app.routes.ts
           grep -Fq "returnUrl: state.url || '/admin'" src/app.routes.ts
           grep -Fq 'alperler_customer_session_v1' src/services/auth.service.ts
@@ -95,7 +96,9 @@ jobs:
           grep -Fq 'window.location.assign(this.safeAdminTarget(target))' src/services/profile-admin-bridge.service.ts
           grep -Fq 'adminReturnTarget()' src/pages/account-login.component.ts
           grep -Fq 'await this.adminBridge.openAdmin(adminTarget)' src/pages/account-login.component.ts
-          grep -Fq 'await this.adminAuth.resetPassword(this.email)' src/pages/account-login.component.ts
+          grep -Fq 'this.injector.get(AuthService)' src/pages/account-login.component.ts
+          ! grep -Fq 'readonly adminAuth=inject(AuthService)' src/pages/account-login.component.ts
+          grep -Fq 'await this.auth.changePassword(this.password)' src/pages/account-login.component.ts
           grep -Fq 'ProfileAdminBridgeService' src/pages/account-dashboard-v150.component.ts
 
           # PWA installation remains a real browser install flow, not a fake shortcut.

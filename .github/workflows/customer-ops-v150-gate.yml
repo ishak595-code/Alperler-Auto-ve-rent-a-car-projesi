@@ -28,6 +28,8 @@ on:
       - "src/app.component.ts"
       - "src/app.routes.ts"
       - "index.tsx"
+      - "public/manifest.json"
+      - "public/service-worker.js"
       - "supabase/migrations/*v150*"
       - ".github/workflows/customer-ops-v150-gate.yml"
 
@@ -46,18 +48,22 @@ jobs:
         run: |
           set -euo pipefail
 
-          # One real native date input owns the whole visible date surface. No
-          # hidden proxy, showPicker or programmatic focus is allowed to reintroduce
-          # Android/TalkBack focus bouncing.
+          # A single real native date input owns the whole visual surface. Its
+          # permanent accessible name is "Tarihi seç" and a real label provides
+          # the changing context (Alış tarihi, İade tarihi, Tur tarihi...).
           grep -Fq 'type="date"' src/components/accessible-native-date.component.ts
           grep -Fq 'class="native-date-control"' src/components/accessible-native-date.component.ts
           grep -Fq '<strong>Tarihi seç</strong>' src/components/accessible-native-date.component.ts
-          grep -Fq '[attr.aria-label]="inputAccessibleName()"' src/components/accessible-native-date.component.ts
+          grep -Fq 'aria-label="Tarihi seç"' src/components/accessible-native-date.component.ts
+          grep -Fq '[attr.aria-describedby]="contextId"' src/components/accessible-native-date.component.ts
+          grep -Fq '[for]="inputId"' src/components/accessible-native-date.component.ts
           grep -Fq 'position:absolute' src/components/accessible-native-date.component.ts
           grep -Fq 'inset:0' src/components/accessible-native-date.component.ts
+          grep -Fq -- '-webkit-text-fill-color:transparent' src/components/accessible-native-date.component.ts
           ! grep -Fq 'tabindex="-1"' src/components/accessible-native-date.component.ts
           ! grep -Fq 'showPicker' src/components/accessible-native-date.component.ts
           ! grep -Fq 'picker.nativeElement' src/components/accessible-native-date.component.ts
+          ! grep -Eq 'opacity\s*:\s*(0|\.0|0\.0)' src/components/accessible-native-date.component.ts
 
           # Interactive controls own stable labels. Runtime mutation must not rename
           # controls while TalkBack has focus.
@@ -101,11 +107,18 @@ jobs:
           grep -Fq 'await this.auth.changePassword(this.password)' src/pages/account-login.component.ts
           grep -Fq 'ProfileAdminBridgeService' src/pages/account-dashboard-v150.component.ts
 
-          # PWA installation remains a real browser install flow, not a fake shortcut.
-          grep -Fq "window.addEventListener('beforeinstallprompt'" src/services/pwa-install.service.ts
+          # PWA install event is captured before Angular can miss it. The live UI
+          # consumes the buffered browser event and uses the real native prompt.
+          grep -Fq "window.addEventListener('beforeinstallprompt'" index.tsx
+          grep -Fq 'window.__alperlerInstallPrompt = installEvent' index.tsx
+          grep -Fq "window.dispatchEvent(new Event('alperler:pwa-install-ready'))" index.tsx
+          grep -Fq 'this.adoptBufferedPrompt()' src/services/pwa-install.service.ts
+          grep -Fq "window.addEventListener('alperler:pwa-install-ready'" src/services/pwa-install.service.ts
           grep -Fq "window.addEventListener('appinstalled'" src/services/pwa-install.service.ts
           grep -Fq 'Uygulamayı yükle' src/components/pwa-install-prompt.component.ts
+          grep -Fq '!install.installed()' src/components/pwa-install-prompt.component.ts
           grep -Fq '<app-pwa-install-prompt>' src/app.component.ts
+          grep -Fq '"display": "standalone"' public/manifest.json
 
           # Customer booking state and cancellation stay account-bound and auditable.
           test -f supabase/migrations/20260822090500_v150_customer_booking_self_cancel.sql

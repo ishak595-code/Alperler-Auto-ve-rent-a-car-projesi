@@ -33,7 +33,7 @@ for (const size of ['192x192', '512x512']) {
 assert(/<link\s+rel=["']manifest["']\s+href=["']\/manifest\.json["']/.test(indexHtml), 'index.html must link /manifest.json.');
 assert(/name=["']mobile-web-app-capable["']\s+content=["']yes["']/.test(indexHtml), 'Android standalone meta is missing.');
 assert(/name=["']apple-mobile-web-app-capable["']\s+content=["']yes["']/.test(indexHtml), 'Apple standalone meta is missing.');
-assert(bootstrap.includes("navigator.serviceWorker.register('/service-worker.js'"), 'Application bootstrap must register /service-worker.js.');
+assert(/navigator\.serviceWorker\s*\n?\s*\.register\(["']\/service-worker\.js["']/.test(bootstrap), 'Application bootstrap must register /service-worker.js.');
 assert(serviceWorker.includes("self.addEventListener('fetch'"), 'Service worker must own a fetch handler for installability.');
 assert(serviceWorker.includes('event.respondWith(fetch(request))'), 'Service worker must remain network-authoritative.');
 assert(!/caches\.(open|match)|cache\.put/.test(serviceWorker), 'PWA worker must not cache live application/catalog data.');

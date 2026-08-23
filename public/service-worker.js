@@ -1,4 +1,4 @@
-const SERVICE_WORKER_VERSION = 'alperler-v155';
+const SERVICE_WORKER_VERSION = 'alperler-v157';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());
@@ -12,8 +12,8 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET' || request.mode !== 'navigate') return;
 
-  // Keep application data network-authoritative. This worker exists to make the
-  // site a real installable PWA without introducing stale API/catalog caches.
+  // Live Supabase/catalog data stays network-authoritative. The worker exists
+  // for a real standalone installation lifecycle without serving stale records.
   event.respondWith(fetch(request));
 });
 

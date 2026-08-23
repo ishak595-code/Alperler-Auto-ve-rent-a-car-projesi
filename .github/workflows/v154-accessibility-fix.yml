@@ -1,0 +1,30 @@
+name: Apply V154 remaining accessibility labels
+
+on:
+  push:
+    branches:
+      - v154-planner-accessibility-admin
+    paths:
+      - "project/fix-v154-unlabeled.mjs"
+      - ".github/workflows/v154-accessibility-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v154-planner-accessibility-admin
+          fetch-depth: 0
+      - name: Apply remaining labels
+        run: node project/fix-v154-unlabeled.mjs
+      - name: Commit product changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/admin/admin-blog.component.ts src/pages/admin/admin-customer-detail.component.ts src/pages/admin/admin-team.component.ts
+          git commit -m "fix: label remaining admin form controls"
+          git push origin HEAD:v154-planner-accessibility-admin

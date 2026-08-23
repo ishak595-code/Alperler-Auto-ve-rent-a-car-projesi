@@ -28,6 +28,18 @@ function purgeLegacyCatalogStorage(): void {
   }
 }
 
+function registerInstallableWebApp(): void {
+  if (!('serviceWorker' in navigator)) return;
+  if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') return;
+
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker
+      .register('/service-worker.js', { scope: '/', updateViaCache: 'none' })
+      .then((registration) => registration.update().catch(() => undefined))
+      .catch((error) => console.warn('Installable web app registration failed.', error));
+  }, { once: true });
+}
+
 // The published Supabase catalogue is authoritative. Old schema snapshots must
 // never win over current vehicle data during bootstrap or from another stale tab.
 purgeLegacyCatalogStorage();
@@ -39,6 +51,8 @@ window.addEventListener('storage', (event) => {
     // Storage can be unavailable in hardened/private browser modes.
   }
 });
+
+registerInstallableWebApp();
 
 if (window.self !== window.top) {
   window.location.hash = '';

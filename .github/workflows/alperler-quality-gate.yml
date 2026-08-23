@@ -12,6 +12,7 @@ on:
       - "src/**"
       - "api/**"
       - "supabase/**"
+      - "public/**"
       - "project/**"
       - "scripts/**"
       - "index.html"
@@ -35,6 +36,7 @@ on:
       - "src/**"
       - "api/**"
       - "supabase/**"
+      - "public/**"
       - "project/**"
       - "scripts/**"
       - "index.html"
@@ -92,6 +94,9 @@ jobs:
 
       - name: Premium customer design system guard
         run: npm run design:premium
+
+      - name: Installable standalone PWA guard
+        run: npm run pwa:installability
 
       - name: Frontend TypeScript quality check
         run: npm run lint

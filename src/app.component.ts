@@ -11,17 +11,19 @@ import { CustomerMobileDockComponent } from './components/customer-mobile-dock.c
 import { RuntimeStatusGateComponent } from './components/runtime-status-gate.component';
 import { AnalyticsConsentComponent } from './components/analytics-consent.component';
 import { BookingSuccessOverlayComponent } from './components/booking-success-overlay.component';
+import { PwaInstallPromptComponent } from './components/pwa-install-prompt.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CustomerMobileDockComponent, RuntimeStatusGateComponent, AnalyticsConsentComponent, BookingSuccessOverlayComponent],
+  imports: [RouterOutlet, CustomerMobileDockComponent, RuntimeStatusGateComponent, AnalyticsConsentComponent, BookingSuccessOverlayComponent, PwaInstallPromptComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <router-outlet></router-outlet>
     <app-booking-success-overlay></app-booking-success-overlay>
     @if (showCustomerChrome()) {
       <app-customer-mobile-dock></app-customer-mobile-dock>
+      <app-pwa-install-prompt></app-pwa-install-prompt>
       <app-runtime-status-gate></app-runtime-status-gate>
       <app-analytics-consent></app-analytics-consent>
     }

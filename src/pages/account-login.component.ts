@@ -2,7 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 import { CustomerAuthService, CustomerSocialProvider } from '../services/customer-auth.service';
+import { ProfileAdminBridgeService } from '../services/profile-admin-bridge.service';
 
 type AccountMode='login'|'register'|'recovery';
 @Component({
@@ -11,8 +13,8 @@ type AccountMode='login'|'register'|'recovery';
     <main class="page"><section class="shell">
       <header class="topbar"><a routerLink="/" class="brand" aria-label="Alperler Rent A Car ana sayfa"><span class="brand-mark" aria-hidden="true">A</span><span><strong>Alperler Rent A Car</strong><small>Kiralama • Satış • Tur</small></span></a><a routerLink="/" class="site-link">Siteye dön</a></header>
       <section class="auth-wrap" aria-labelledby="account-title">
-        <div class="heading"><p>ALPERLER HESABI</p><h1 id="account-title">{{ mode()==='recovery'?'Yeni parolanızı belirleyin':mode()==='login'?'Hesabınıza giriş yapın':'Hesabınızı oluşturun' }}</h1><span>{{ mode()==='recovery'?'Güvenli yenileme bağlantınız doğrulandı. Yeni parolanızı kaydedin.':mode()==='login'?'İşlemlerinize ve hesabınıza kaldığınız yerden devam edin.':'Kiralama, satış ve tur işlemlerinizi tek hesapta takip edin.' }}</span></div>
-        <section class="card" aria-label="Müşteri hesabı">
+        <div class="heading"><p>{{ adminReturnTarget() ? 'ALPERLER YÖNETİM HESABI' : 'ALPERLER HESABI' }}</p><h1 id="account-title">{{ mode()==='recovery'?'Yeni parolanızı belirleyin':mode()==='login'?'Hesabınıza giriş yapın':'Hesabınızı oluşturun' }}</h1><span>{{ mode()==='recovery'?'Güvenli yenileme bağlantınız doğrulandı. Yeni parolanızı kaydedin.':adminReturnTarget()?'Yetkili hesabınızla giriş yaptığınızda yönetim paneline güvenli biçimde yönlendirilirsiniz.':mode()==='login'?'İşlemlerinize ve hesabınıza kaldığınız yerden devam edin.':'Kiralama, satış ve tur işlemlerinizi tek hesapta takip edin.' }}</span></div>
+        <section class="card" [attr.aria-label]="adminReturnTarget() ? 'Yönetici hesabı girişi' : 'Müşteri hesabı'">
           @if(auth.pendingReferral();as referral){<div class="invite" role="status"><span aria-hidden="true">✦</span><div><strong>Bir arkadaşınızın davetiyle geldiniz.</strong><p>Davetiniz hesabınızla eşleştirilecek. Uygun gerçek işlem tamamlandığında avantaj otomatik değerlendirilir.</p></div></div>}
 
           @if(mode()!=='recovery'){
@@ -20,7 +22,7 @@ type AccountMode='login'|'register'|'recovery';
             <div class="social" aria-label="Sosyal hesap ile devam et">
               <button type="button" (click)="social('google')" [class.unavailable]="!auth.providerEnabled('google')" aria-label="Google ile devam et"><span class="provider-mark google" aria-hidden="true">G</span><span>Google ile devam et</span></button>
               <button type="button" (click)="social('facebook')" [class.unavailable]="!auth.providerEnabled('facebook')" aria-label="Facebook ile devam et"><span class="provider-mark facebook" aria-hidden="true">f</span><span>Facebook ile devam et</span></button>
-              @if(auth.providerEnabled('apple')){<button type="button" (click)="social('apple')"><span class="provider-mark apple" aria-hidden="true">●</span><span>Apple ile devam et</span></button>}
+              @if(auth.providerEnabled('apple')){<button type="button" (click)="social('apple')" aria-label="Apple ile devam et"><span class="provider-mark apple" aria-hidden="true">●</span><span>Apple ile devam et</span></button>}
             </div><div class="divider"><span>veya e-posta ile</span></div>
           }
 
@@ -32,7 +34,7 @@ type AccountMode='login'|'register'|'recovery';
             @if(mode()==='recovery'){<label><span>Yeni parola tekrar</span><input name="confirmPassword" [(ngModel)]="confirmPassword" type="password" autocomplete="new-password" required placeholder="Yeni parolanızı tekrar girin" /></label>}
             <button class="primary" type="submit" [disabled]="working()">{{working()?'İşleniyor…':mode()==='recovery'?'Yeni Parolayı Kaydet':mode()==='login'?'Giriş Yap':'Kayıt Ol'}}</button>
           </form>
-          @if(auth.lastError()){<p class="error" role="alert">{{auth.lastError()}}</p>}@if(message()){<p class="success" role="status">{{message()}}</p>}
+          @if(auth.lastError() || adminAuth.lastErrorMessage()){<p class="error" role="alert">{{auth.lastError() || adminAuth.lastErrorMessage()}}</p>}@if(message()){<p class="success" role="status">{{message()}}</p>}
           <div class="secondary-actions">@if(mode()==='login'){<button type="button" class="text-action" (click)="reset()">Parolamı unuttum</button>}@if(mode()==='recovery'){<button type="button" class="text-action" (click)="cancelRecovery()">Giriş ekranına dön</button>}@else{<a routerLink="/">Hesap açmadan devam et</a>}</div>
           @if(mode()!=='recovery'){<details class="account-info"><summary>Alperler hesabı ne sağlar?</summary><div class="info-body"><p>Profil bilgilerinizi yeniden girmeden kullanabilir, hesabınıza bağlanan kiralama, satış ve tur işlemlerini takip edebilir, sadakat ve davet avantajlarınızı görebilirsiniz.</p><ul><li>İşlem geçmişi ve profil bilgileri tek yerde</li><li>Alperler Cüzdan ve uygun belge yönetimi</li><li>Sadakat puanları ve kampanyalı arkadaş davetleri</li></ul><a routerLink="/legal">Gizlilik ve kullanım koşullarını inceleyin</a></div></details>}
         </section>
@@ -44,12 +46,100 @@ type AccountMode='login'|'register'|'recovery';
   `]
 })
 export class AccountLoginComponent implements OnInit{
-  readonly auth=inject(CustomerAuthService);private readonly router=inject(Router);private readonly route=inject(ActivatedRoute);readonly mode=signal<AccountMode>(this.auth.pendingReferral()?'register':'login');readonly working=signal(false);readonly message=signal<string|null>(null);email='';password='';confirmPassword='';fullName='';
-  async ngOnInit():Promise<void>{const requested=this.route.snapshot.queryParamMap.get('mode');const recovery=this.route.snapshot.queryParamMap.get('recovery')==='1';if(requested==='register')this.mode.set('register');this.rememberReturnUrl();await this.auth.waitUntilReady();if(recovery){if(this.auth.isLoggedIn()){this.mode.set('recovery');return;}this.message.set('Yenileme bağlantısının süresi dolmuş veya bağlantı doğrulanamamış. Yeni bir bağlantı isteyin.');this.mode.set('login');return;}if(this.auth.isLoggedIn())await this.router.navigateByUrl(this.auth.consumePostAuthReturnUrl('/account'),{replaceUrl:true});}
+  readonly auth=inject(CustomerAuthService);
+  readonly adminAuth=inject(AuthService);
+  private readonly adminBridge=inject(ProfileAdminBridgeService);
+  private readonly router=inject(Router);
+  private readonly route=inject(ActivatedRoute);
+  readonly mode=signal<AccountMode>(this.auth.pendingReferral()?'register':'login');
+  readonly working=signal(false);
+  readonly message=signal<string|null>(null);
+  email='';password='';confirmPassword='';fullName='';
+
+  async ngOnInit():Promise<void>{
+    const requested=this.route.snapshot.queryParamMap.get('mode');
+    const recovery=this.route.snapshot.queryParamMap.get('recovery')==='1';
+    if(requested==='register')this.mode.set('register');
+    this.rememberReturnUrl();
+    await this.auth.waitUntilReady();
+    if(recovery){
+      if(this.auth.isLoggedIn()){this.mode.set('recovery');return;}
+      this.message.set('Yenileme bağlantısının süresi dolmuş veya bağlantı doğrulanamamış. Yeni bir bağlantı isteyin.');
+      this.mode.set('login');return;
+    }
+    if(this.auth.isLoggedIn())await this.finishSignedInNavigation();
+  }
+
   setMode(mode:'login'|'register'):void{this.mode.set(mode);this.message.set(null);this.password='';this.confirmPassword='';}
-  async submit():Promise<void>{this.working.set(true);this.message.set(null);this.rememberReturnUrl();try{if(this.mode()==='recovery'){if(this.password!==this.confirmPassword){this.message.set('Yeni parolalar birbiriyle eşleşmiyor.');return;}if(await this.auth.changePassword(this.password)){this.message.set('Parolanız güncellendi. Hesabınız açılıyor.');history.replaceState(null,document.title,'/account/login');setTimeout(()=>void this.router.navigateByUrl('/account',{replaceUrl:true}),450);}return;}if(this.mode()==='login'){if(await this.auth.signIn(this.email,this.password))await this.router.navigateByUrl(this.auth.consumePostAuthReturnUrl('/account'),{replaceUrl:true});}else{const result=await this.auth.signUp(this.email,this.password,this.fullName);if(result.created&&!result.confirmationRequired)await this.router.navigateByUrl(this.auth.consumePostAuthReturnUrl('/account'),{replaceUrl:true});else if(result.created)this.message.set('Kaydınız tamamlandı. E-posta adresinize gelen doğrulama bağlantısına dokunduktan sonra giriş yapabilirsiniz.');}}finally{this.working.set(false);}}
-  async social(provider:CustomerSocialProvider):Promise<void>{this.message.set(null);if(!this.auth.providerEnabled(provider)){this.message.set(provider==='google'?'Google ile giriş bağlantısı görünür durumda ancak OAuth sağlayıcısı henüz Supabase Auth içinde etkin değil.':'Facebook ile giriş bağlantısı görünür durumda ancak OAuth sağlayıcısı henüz Supabase Auth içinde etkin değil.');return;}this.rememberReturnUrl();await this.auth.signInWithProvider(provider);}
-  async reset():Promise<void>{if(await this.auth.resetPassword(this.email))this.message.set('Parola yenileme isteği e-posta servisine iletildi. Gelen kutusu ve spam klasörünü kontrol edin.');}
-  cancelRecovery():void{history.replaceState(null,document.title,'/account/login');this.mode.set('login');this.password='';this.confirmPassword='';this.message.set(null);}
-  private rememberReturnUrl():void{const requested=this.route.snapshot.queryParamMap.get('returnUrl');const adminEntry=typeof window!=='undefined'&&window.location.pathname.startsWith('/admin/login')?'/admin':null;this.auth.setPostAuthReturnUrl(requested||adminEntry);}
+
+  async submit():Promise<void>{
+    this.working.set(true);this.message.set(null);this.rememberReturnUrl();
+    try{
+      if(this.mode()==='recovery'){
+        if(this.password!==this.confirmPassword){this.message.set('Yeni parolalar birbiriyle eşleşmiyor.');return;}
+        if(await this.auth.changePassword(this.password)){
+          this.message.set('Parolanız başarıyla güncellendi. Güvenli hesabınız açılıyor.');
+          history.replaceState(null,document.title,'/account/login');
+          await this.finishSignedInNavigation();
+        }
+        return;
+      }
+      if(this.mode()==='login'){
+        if(await this.auth.signIn(this.email,this.password))await this.finishSignedInNavigation();
+      }else{
+        const result=await this.auth.signUp(this.email,this.password,this.fullName);
+        if(result.created&&!result.confirmationRequired)await this.finishSignedInNavigation();
+        else if(result.created)this.message.set('Kaydınız tamamlandı. E-posta adresinize gelen doğrulama bağlantısına dokunduktan sonra giriş yapabilirsiniz.');
+      }
+    }finally{this.working.set(false);}
+  }
+
+  async social(provider:CustomerSocialProvider):Promise<void>{
+    this.message.set(null);
+    if(!this.auth.providerEnabled(provider)){
+      this.message.set(provider==='google'?'Google ile giriş bağlantısı görünür durumda ancak OAuth sağlayıcısı henüz Supabase Auth içinde etkin değil.':'Facebook ile giriş bağlantısı görünür durumda ancak OAuth sağlayıcısı henüz Supabase Auth içinde etkin değil.');
+      return;
+    }
+    this.rememberReturnUrl();
+    await this.auth.signInWithProvider(provider);
+  }
+
+  async reset():Promise<void>{
+    this.message.set(null);
+    const ok=this.adminReturnTarget()
+      ? await this.adminAuth.resetPassword(this.email)
+      : await this.auth.resetPassword(this.email);
+    if(ok)this.message.set('Parola yenileme bağlantısı e-posta adresinize gönderildi. En yeni e-postadaki bağlantıyı aynı cihaz ve tarayıcıda açın.');
+  }
+
+  cancelRecovery():void{
+    const target=this.adminReturnTarget();
+    history.replaceState(null,document.title,target?`/account/login?returnUrl=${encodeURIComponent(target)}`:'/account/login');
+    this.mode.set('login');this.password='';this.confirmPassword='';this.message.set(null);
+  }
+
+  adminReturnTarget():string|null{
+    const requested=String(this.route.snapshot.queryParamMap.get('returnUrl')||'').trim();
+    if(requested.startsWith('/admin')&&!requested.startsWith('//')&&!requested.startsWith('/admin/login'))return requested.slice(0,1200);
+    if(typeof window!=='undefined'&&window.location.pathname.startsWith('/admin/login'))return'/admin';
+    return null;
+  }
+
+  private async finishSignedInNavigation():Promise<void>{
+    const adminTarget=this.adminReturnTarget();
+    if(adminTarget){
+      try{await this.adminBridge.openAdmin(adminTarget);return;}
+      catch(error){
+        this.message.set(error instanceof Error?error.message:'Yönetim paneli oturumu açılamadı.');
+        return;
+      }
+    }
+    await this.router.navigateByUrl(this.auth.consumePostAuthReturnUrl('/account'),{replaceUrl:true});
+  }
+
+  private rememberReturnUrl():void{
+    const requested=this.route.snapshot.queryParamMap.get('returnUrl');
+    if(this.adminReturnTarget())return;
+    this.auth.setPostAuthReturnUrl(requested);
+  }
 }

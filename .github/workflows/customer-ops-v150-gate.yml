@@ -10,6 +10,7 @@ on:
     paths:
       - "src/components/accessible-native-date.component.ts"
       - "src/components/booking-success-overlay.component.ts"
+      - "src/components/pwa-install-prompt.component.ts"
       - "src/models/site-config.model.ts"
       - "src/pages/account-dashboard-v150.component.ts"
       - "src/pages/account-login.component.ts"
@@ -22,6 +23,7 @@ on:
       - "src/services/auth.service.ts"
       - "src/services/customer-booking-actions.service.ts"
       - "src/services/profile-admin-bridge.service.ts"
+      - "src/services/pwa-install.service.ts"
       - "src/services/booking-success*"
       - "src/app.component.ts"
       - "src/app.routes.ts"
@@ -44,17 +46,18 @@ jobs:
         run: |
           set -euo pipefail
 
-          # One visible, named button opens the native calendar. The date input is
-          # a non-focusable proxy so TalkBack cannot bounce between two controls.
+          # One real native date input owns the whole visible date surface. No
+          # hidden proxy, showPicker or programmatic focus is allowed to reintroduce
+          # Android/TalkBack focus bouncing.
           grep -Fq 'type="date"' src/components/accessible-native-date.component.ts
-          grep -Fq 'class="date-button"' src/components/accessible-native-date.component.ts
-          grep -Fq '>Tarihi seç<' src/components/accessible-native-date.component.ts
-          grep -Fq 'aria-hidden="true"' src/components/accessible-native-date.component.ts
-          grep -Fq 'tabindex="-1"' src/components/accessible-native-date.component.ts
-          grep -Fq 'showPicker' src/components/accessible-native-date.component.ts
-          ! grep -Fq 'calendar-picker-indicator' src/components/accessible-native-date.component.ts
-          grep -Fq '[attr.aria-label]="buttonAccessibleName()"' src/components/accessible-native-date.component.ts
-          ! grep -Fq '[attr.aria-labelledby]="labelId"' src/components/accessible-native-date.component.ts
+          grep -Fq 'class="native-date-control"' src/components/accessible-native-date.component.ts
+          grep -Fq '<strong>Tarihi seç</strong>' src/components/accessible-native-date.component.ts
+          grep -Fq '[attr.aria-label]="inputAccessibleName()"' src/components/accessible-native-date.component.ts
+          grep -Fq 'position:absolute' src/components/accessible-native-date.component.ts
+          grep -Fq 'inset:0' src/components/accessible-native-date.component.ts
+          ! grep -Fq 'tabindex="-1"' src/components/accessible-native-date.component.ts
+          ! grep -Fq 'showPicker' src/components/accessible-native-date.component.ts
+          ! grep -Fq 'picker.nativeElement' src/components/accessible-native-date.component.ts
 
           # Interactive controls own stable labels. Runtime mutation must not rename
           # controls while TalkBack has focus.
@@ -82,13 +85,24 @@ jobs:
           grep -Fq 'navigate(["/booking-checkout"]' src/pages/contact-entry.component.ts
 
           # Admin access uses the same confirmed Supabase identity as the customer
-          # profile and still validates membership in admin_users before entry.
+          # profile, verifies admin_users, preserves the requested admin route and
+          # performs a full reload after copying the verified session.
           grep -Fq "path: 'admin/login', loadComponent:" src/app.routes.ts
           grep -Fq "returnUrl: state.url || '/admin'" src/app.routes.ts
           grep -Fq 'alperler_customer_session_v1' src/services/auth.service.ts
           grep -Fq 'admin_users?user_id=eq.' src/services/profile-admin-bridge.service.ts
           grep -Fq 'alperler_admin_session_v1' src/services/profile-admin-bridge.service.ts
+          grep -Fq 'window.location.assign(this.safeAdminTarget(target))' src/services/profile-admin-bridge.service.ts
+          grep -Fq 'adminReturnTarget()' src/pages/account-login.component.ts
+          grep -Fq 'await this.adminBridge.openAdmin(adminTarget)' src/pages/account-login.component.ts
+          grep -Fq 'await this.adminAuth.resetPassword(this.email)' src/pages/account-login.component.ts
           grep -Fq 'ProfileAdminBridgeService' src/pages/account-dashboard-v150.component.ts
+
+          # PWA installation remains a real browser install flow, not a fake shortcut.
+          grep -Fq "window.addEventListener('beforeinstallprompt'" src/services/pwa-install.service.ts
+          grep -Fq "window.addEventListener('appinstalled'" src/services/pwa-install.service.ts
+          grep -Fq 'Uygulamayı yükle' src/components/pwa-install-prompt.component.ts
+          grep -Fq '<app-pwa-install-prompt>' src/app.component.ts
 
           # Customer booking state and cancellation stay account-bound and auditable.
           test -f supabase/migrations/20260822090500_v150_customer_booking_self_cancel.sql

@@ -65,7 +65,7 @@ export class ProfileAdminBridgeService {
     }
   }
 
-  async openAdmin(): Promise<void> {
+  async openAdmin(target = '/admin'): Promise<void> {
     const access = await this.refresh();
     if (!access) throw new Error('Bu hesapta yönetim yetkisi bulunmuyor.');
     if (typeof localStorage === 'undefined' || typeof window === 'undefined') throw new Error('Tarayıcı oturumu kullanılamıyor.');
@@ -79,10 +79,17 @@ export class ProfileAdminBridgeService {
         throw new Error('SESSION_INVALID');
       }
       localStorage.setItem(this.adminStorageKey, customerSession);
-      window.location.assign('/admin');
+      window.location.assign(this.safeAdminTarget(target));
     } catch (error) {
       if (error instanceof Error && error.message !== 'SESSION_INVALID') throw error;
       throw new Error('Yönetim oturumu güvenli biçimde hazırlanamadı. Lütfen yeniden giriş yapın.');
     }
+  }
+
+  private safeAdminTarget(target: string): string {
+    const value = String(target || '').trim();
+    return value.startsWith('/admin') && !value.startsWith('//') && !value.startsWith('/admin/login')
+      ? value.slice(0, 1200)
+      : '/admin';
   }
 }

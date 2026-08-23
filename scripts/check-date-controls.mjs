@@ -30,18 +30,32 @@ function audit(file) {
     const tag = match[0];
     const directlyNamed = /aria-label\s*=|\[attr\.aria-label\]\s*=/.test(tag);
     const wrappingLabel = hasAccessibleWrappingLabel(source, match.index);
-    const intentionallyHidden = /aria-hidden=["']true["']/.test(tag) && /tabindex=["']-1["']/.test(tag);
-    if (directlyNamed || wrappingLabel) continue;
-    if (intentionallyHidden) {
-      const hasNamedProxy = /<button\b[\s\S]*?\[attr\.aria-label\]\s*=/.test(source);
-      if (hasNamedProxy) continue;
-    }
+    const removedFromAccessibilityTree = /aria-hidden=["']true["']/.test(tag) || /tabindex=["']-1["']/.test(tag);
     const line = source.slice(0, match.index).split("\n").length;
-    failures.push(`${file}:${line}: native date control must have an aria-label, an accessible wrapping label, or an explicitly named date-button proxy`);
+
+    if (removedFromAccessibilityTree) {
+      failures.push(`${file}:${line}: native date control must remain the single focusable TalkBack control; aria-hidden/tabindex=-1 date proxies are forbidden`);
+      continue;
+    }
+    if (!directlyNamed && !wrappingLabel) {
+      failures.push(`${file}:${line}: native date control must have an aria-label or an accessible wrapping label`);
+    }
+  }
+
+  if (/\.showPicker\s*\(/.test(source)) {
+    failures.push(`${file}: programmatic showPicker() is forbidden; direct native date interaction prevents Android/TalkBack focus jitter`);
   }
 }
 
 walk("src");
+
+const dateComponent = fs.readFileSync("src/components/accessible-native-date.component.ts", "utf8");
+if (!dateComponent.includes('class="native-date-control"')) {
+  failures.push("shared date component must expose one real native date input across the whole visual date surface");
+}
+if (!dateComponent.includes("position:absolute") || !dateComponent.includes("inset:0")) {
+  failures.push("shared native date input must cover the visual date surface so touch opens the calendar directly");
+}
 
 const css = fs.readFileSync("src/runtime-stability.css", "utf8");
 if (
@@ -49,11 +63,11 @@ if (
   !css.includes('input[type="datetime-local"]::-webkit-calendar-picker-indicator') ||
   !css.includes('display: none')
 ) {
-  failures.push("global native picker TalkBack suppression is missing");
+  failures.push("global native picker duplicate-icon suppression is missing");
 }
 
 if (failures.length) {
   console.error(failures.join("\n"));
   process.exit(1);
 }
-console.log("Date-control accessibility guard passed.");
+console.log("Date-control accessibility guard passed: one native focus target, direct calendar interaction, no showPicker proxy.");

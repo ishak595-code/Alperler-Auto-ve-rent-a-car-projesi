@@ -15,6 +15,9 @@ const serviceWorker = read('public/service-worker.js');
 const vercel = JSON.parse(read('vercel.json'));
 const angular = JSON.parse(read('angular.json'));
 const mobileDock = read('src/components/customer-mobile-dock.component.ts');
+const installService = read('src/services/pwa-install.service.ts');
+const installPrompt = read('src/components/pwa-install-prompt.component.ts');
+const appComponent = read('src/app.component.ts');
 
 assert(manifest.name && manifest.short_name, 'PWA manifest must define name and short_name.');
 assert(manifest.start_url === '/', 'PWA start_url must remain root.');
@@ -38,6 +41,13 @@ assert(serviceWorker.includes("self.addEventListener('fetch'"), 'Service worker 
 assert(serviceWorker.includes('event.respondWith(fetch(request))'), 'Service worker must remain network-authoritative.');
 assert(!/caches\.(open|match)|cache\.put/.test(serviceWorker), 'PWA worker must not cache live application/catalog data.');
 
+assert(installService.includes("window.addEventListener('beforeinstallprompt'"), 'App must capture beforeinstallprompt for a reliable in-app install action.');
+assert(installService.includes("window.addEventListener('appinstalled'"), 'App must detect successful installation.');
+assert(installService.includes("'(display-mode: standalone)'"), 'App must detect standalone mode and avoid duplicate install UI.');
+assert(installPrompt.includes('Uygulamayı yükle'), 'Mobile install prompt must expose a clear install action.');
+assert(installPrompt.includes('@media(max-width:767px)') || installPrompt.includes('@media(max-width: 767px)'), 'Install promotion must remain mobile-only.');
+assert(appComponent.includes('<app-pwa-install-prompt>'), 'Customer shell must render the PWA install promotion component.');
+
 const publicAsset = angular.projects?.app?.architect?.build?.options?.assets?.some((entry) => entry?.input === 'public');
 assert(publicAsset, 'Angular build must copy public PWA assets.');
 
@@ -52,4 +62,4 @@ assert(hasHeader(manifestHeaders, 'Content-Type', 'application/manifest+json'), 
 assert(mobileDock.includes('.customer-command-dock{display:none}'), 'Mobile dock must default to hidden on desktop/tablet widths.');
 assert(mobileDock.includes('@media (max-width:767px)'), 'Mobile dock visibility must remain constrained to mobile layout.');
 
-console.log('PWA installability guard passed: install metadata, service worker, standalone mode and responsive mobile dock are valid.');
+console.log('PWA installability guard passed: manifest, worker, in-app install action, standalone mode and responsive mobile boundaries are valid.');

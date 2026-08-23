@@ -8,11 +8,15 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone"],
   "orientation": "any",
   "background_color": "#081426",
   "theme_color": "#081426",
   "prefer_related_applications": false,
   "categories": ["auto", "travel", "business"],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "/icons/icon-192.png",

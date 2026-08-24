@@ -40,14 +40,15 @@ const invariants = [
   ['role="dialog"', 'calendar must use dialog semantics'],
   ['aria-modal="true"', 'calendar dialog must be modal for assistive technology'],
   ['role="grid"', 'calendar day matrix must expose grid semantics'],
-  ['role="gridcell"', 'calendar day buttons must expose grid-cell semantics'],
+  ['class="calendar-day-cell" role="gridcell"', 'grid semantics must live on a cell wrapper so the day remains a real button'],
   ['[attr.aria-label]="day.ariaLabel"', 'every date button needs a full spoken date'],
   ['aria-label="Önceki ay"', 'previous-month control must be named'],
   ['aria-label="Sonraki ay"', 'next-month control must be named'],
   ['aria-label="Takvimi kapat"', 'close control must be named'],
   ['onDialogKeydown', 'calendar dialog must manage Escape and focus containment'],
   ['onDayKeydown', 'calendar grid must support keyboard date navigation'],
-  ['queueMicrotask(() => this.triggerButton?.nativeElement.focus())', 'closing the calendar must restore focus to the trigger'],
+  ['afterRender(() => this.triggerButton?.nativeElement.focus())', 'closing the calendar must restore focus after Angular has rendered'],
+  ['afterRender(() => this.focusActiveDay())', 'opening and moving the calendar must focus the active day after Angular has rendered'],
   ['<strong>Tarihi seç</strong>', 'the visible control itself must permanently say Tarihi seç'],
 ];
 for (const [needle, message] of invariants) {
@@ -60,6 +61,7 @@ const forbidden = [
   ['position:absolute!important;inset:0!important', 'legacy full-surface native input overlay must be removed'],
   ['Takvimden seçin', 'duplicate helper copy around the date trigger must stay removed'],
   ['aria-describedby', 'date trigger must not accumulate duplicate helper announcements'],
+  ['queueMicrotask(() => this.focusActiveDay())', 'opening the dialog may not focus before Angular renders the @if block'],
 ];
 for (const [needle, message] of forbidden) {
   if (dateComponent.includes(needle)) failures.push(message);
@@ -73,4 +75,4 @@ if (failures.length) {
   console.error(failures.join("\n"));
   process.exit(1);
 }
-console.log("Date-control guard passed: semantic Tarihi seç button, owned modal calendar dialog, named day controls, focus return, and no Chromium native date proxy.");
+console.log("Date-control guard passed: semantic Tarihi seç button, owned modal calendar dialog, named day buttons, post-render focus, focus return, and no Chromium native date proxy.");

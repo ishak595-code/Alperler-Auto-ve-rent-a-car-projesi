@@ -1,0 +1,67 @@
+name: Accessibility Runtime V161
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/components/accessible-native-date.component.ts"
+      - "src/pages/home-v71.component.ts"
+      - "src/pages/booking-checkout.component.ts"
+      - "src/pages/tour-detail.component.ts"
+      - "tests/a11y/**"
+      - "playwright.a11y.config.ts"
+      - ".github/workflows/a11y-runtime-v161.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "src/components/accessible-native-date.component.ts"
+      - "src/pages/home-v71.component.ts"
+      - "src/pages/booking-checkout.component.ts"
+      - "src/pages/tour-detail.component.ts"
+      - "tests/a11y/**"
+      - "playwright.a11y.config.ts"
+      - ".github/workflows/a11y-runtime-v161.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-a11y:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install pinned browser test tooling
+        run: npm install --no-save --no-package-lock --no-audit --no-fund @playwright/test@1.55.0 @axe-core/playwright@4.10.2
+
+      - name: Install Chromium runtime
+        run: npx playwright install --with-deps chromium
+
+      - name: Static date accessibility contract
+        run: npm run a11y:dates
+
+      - name: Chromium + Android touch accessibility regression
+        run: npx playwright test --config=playwright.a11y.config.ts
+
+      - name: Upload accessibility failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v161-accessibility-artifacts
+          path: |
+            test-results/**
+            playwright-report/**
+          if-no-files-found: ignore
+          retention-days: 7

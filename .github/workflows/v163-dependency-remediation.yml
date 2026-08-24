@@ -25,10 +25,10 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - name: Upgrade vulnerable production framework dependencies within current majors
+      - name: Rebuild a clean patched dependency graph
+        shell: bash
         run: |
           set -euo pipefail
-          npm ci --no-audit --no-fund
 
           ANGULAR_VERSION="$(npm view @angular/core@21 version --json | jq -r 'if type == "array" then .[-1] else . end')"
           MATERIAL_VERSION="$(npm view @angular/material@21 version --json | jq -r 'if type == "array" then .[-1] else . end')"
@@ -38,30 +38,34 @@ jobs:
           EXPRESS_VERSION="$(npm view express@5 version --json | jq -r 'if type == "array" then .[-1] else . end')"
           VITE_VERSION="$(npm view vite@6 version --json | jq -r 'if type == "array" then .[-1] else . end')"
 
-          echo "Angular ${ANGULAR_VERSION}; Material ${MATERIAL_VERSION}; Build ${BUILD_VERSION}; CLI ${CLI_VERSION}; Express ${EXPRESS_VERSION}; Nodemailer ${NODEMAILER_VERSION}; Vite ${VITE_VERSION}"
+          echo "Angular ${ANGULAR_VERSION}; Material/CDK ${MATERIAL_VERSION}; Build ${BUILD_VERSION}; CLI ${CLI_VERSION}; Express ${EXPRESS_VERSION}; Nodemailer ${NODEMAILER_VERSION}; Vite ${VITE_VERSION}"
 
-          npm install --save-exact \
-            "@angular/common@${ANGULAR_VERSION}" \
-            "@angular/compiler@${ANGULAR_VERSION}" \
-            "@angular/core@${ANGULAR_VERSION}" \
-            "@angular/forms@${ANGULAR_VERSION}" \
-            "@angular/material@${MATERIAL_VERSION}" \
-            "@angular/platform-browser@${ANGULAR_VERSION}" \
-            "@angular/router@${ANGULAR_VERSION}" \
-            "express@${EXPRESS_VERSION}" \
-            "nodemailer@${NODEMAILER_VERSION}" \
-            --no-audit --no-fund
+          npm pkg delete \
+            'dependencies.@angular/build' \
+            'dependencies.@angular/cli' \
+            'dependencies.@angular/compiler-cli' \
+            'dependencies.@types/pdfkit'
 
-          npm install --save-dev --save-exact \
-            "@angular/build@${BUILD_VERSION}" \
-            "@angular/cli@${CLI_VERSION}" \
-            "@angular/compiler-cli@${ANGULAR_VERSION}" \
-            "@types/pdfkit@0.17.6" \
-            "postcss@8.5.26" \
-            "vite@${VITE_VERSION}" \
-            --no-audit --no-fund
+          npm pkg set \
+            "dependencies.@angular/common=${ANGULAR_VERSION}" \
+            "dependencies.@angular/compiler=${ANGULAR_VERSION}" \
+            "dependencies.@angular/core=${ANGULAR_VERSION}" \
+            "dependencies.@angular/forms=${ANGULAR_VERSION}" \
+            "dependencies.@angular/cdk=${MATERIAL_VERSION}" \
+            "dependencies.@angular/material=${MATERIAL_VERSION}" \
+            "dependencies.@angular/platform-browser=${ANGULAR_VERSION}" \
+            "dependencies.@angular/router=${ANGULAR_VERSION}" \
+            "dependencies.express=${EXPRESS_VERSION}" \
+            "dependencies.nodemailer=${NODEMAILER_VERSION}" \
+            "devDependencies.@angular/build=${BUILD_VERSION}" \
+            "devDependencies.@angular/cli=${CLI_VERSION}" \
+            "devDependencies.@angular/compiler-cli=${ANGULAR_VERSION}" \
+            "devDependencies.@types/pdfkit=0.17.6" \
+            "devDependencies.postcss=8.5.26" \
+            "devDependencies.vite=${VITE_VERSION}"
 
-          npm audit fix --no-audit --no-fund || true
+          rm -rf node_modules package-lock.json
+          npm install --no-audit --no-fund
 
       - name: Require clean high-severity production audit
         run: npm audit --omit=dev --audit-level=high

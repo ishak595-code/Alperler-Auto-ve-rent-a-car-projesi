@@ -10,7 +10,6 @@ on:
     paths:
       - "src/components/accessible-native-date.component.ts"
       - "src/components/booking-success-overlay.component.ts"
-      - "src/components/pwa-install-prompt.component.ts"
       - "src/components/customer-mobile-dock.component.ts"
       - "src/models/site-config.model.ts"
       - "src/pages/account-dashboard-v150.component.ts"
@@ -24,7 +23,6 @@ on:
       - "src/services/auth.service.ts"
       - "src/services/customer-booking-actions.service.ts"
       - "src/services/profile-admin-bridge.service.ts"
-      - "src/services/pwa-install.service.ts"
       - "src/services/booking-success*"
       - "src/app.component.ts"
       - "src/app.routes.ts"
@@ -50,19 +48,19 @@ jobs:
         run: |
           set -euo pipefail
 
-          # One real native date input owns the visual card. The card says
-          # Tarihi seç once; TalkBack receives field context such as Alış tarihi
-          # or İade tarihi instead of hearing the same action twice.
+          # One real native date input owns the full visible card. Every date card
+          # visibly says "Tarihi seç" on the control itself, and TalkBack receives
+          # that same stable name. Context such as Alış tarihi stays above the card.
           grep -Fq 'type="date"' src/components/accessible-native-date.component.ts
           grep -Fq 'class="native-date-control"' src/components/accessible-native-date.component.ts
-          grep -Fq 'class="date-value"' src/components/accessible-native-date.component.ts
-          grep -Fq '[attr.aria-label]="accessibleName()"' src/components/accessible-native-date.component.ts
+          grep -Fq '<strong>Tarihi seç</strong>' src/components/accessible-native-date.component.ts
+          grep -Fq 'aria-label="Tarihi seç"' src/components/accessible-native-date.component.ts
           grep -Fq '[for]="inputId"' src/components/accessible-native-date.component.ts
+          grep -Fq '@if (value)' src/components/accessible-native-date.component.ts
           grep -Fq 'position:absolute' src/components/accessible-native-date.component.ts
           grep -Fq 'inset:0' src/components/accessible-native-date.component.ts
           grep -Fq -- '-webkit-text-fill-color:transparent' src/components/accessible-native-date.component.ts
           ! grep -Fq 'aria-describedby' src/components/accessible-native-date.component.ts
-          ! grep -Fq 'aria-label="Tarihi seç"' src/components/accessible-native-date.component.ts
           ! grep -Fq 'Takvimden seçin' src/components/accessible-native-date.component.ts
           ! grep -Fq 'tabindex="-1"' src/components/accessible-native-date.component.ts
           ! grep -Fq 'showPicker' src/components/accessible-native-date.component.ts
@@ -111,22 +109,15 @@ jobs:
           grep -Fq 'await this.auth.changePassword(this.password)' src/pages/account-login.component.ts
           grep -Fq 'ProfileAdminBridgeService' src/pages/account-dashboard-v150.component.ts
 
-          # PWA install event is captured before Angular can miss it. Android may
-          # use fullscreen; desktop/tablet fall back safely. The browser tab and
-          # the installed application are explicitly distinguished.
-          grep -Fq "window.addEventListener('beforeinstallprompt'" index.tsx
-          grep -Fq 'window.__alperlerInstallPrompt = installEvent' index.tsx
-          grep -Fq "window.dispatchEvent(new Event('alperler:pwa-install-ready'))" index.tsx
-          grep -Fq 'this.adoptBufferedPrompt()' src/services/pwa-install.service.ts
-          grep -Fq "window.addEventListener('alperler:pwa-install-ready'" src/services/pwa-install.service.ts
-          grep -Fq "window.addEventListener('appinstalled'" src/services/pwa-install.service.ts
-          grep -Fq "'(display-mode: standalone)'" src/services/pwa-install.service.ts
-          grep -Fq "'(display-mode: fullscreen)'" src/services/pwa-install.service.ts
-          grep -Fq 'readonly runningAsApp' src/services/pwa-install.service.ts
-          grep -Fq 'Uygulamayı yükle' src/components/pwa-install-prompt.component.ts
-          grep -Fq 'install.installed() && !install.runningAsApp()' src/components/pwa-install-prompt.component.ts
-          grep -Fq 'Bu Chrome sekmesi tarayıcı olarak kalır.' src/components/pwa-install-prompt.component.ts
-          grep -Fq '<app-pwa-install-prompt>' src/app.component.ts
+          # Chrome owns the native Install app / Add to Home screen flow. The site
+          # must remain installable but may not render or intercept a second installer.
+          grep -Fq "register('/service-worker.js'" index.tsx
+          ! grep -Eq "addEventListener[[:space:]]*\([[:space:]]*['\"]beforeinstallprompt['\"]" index.tsx
+          ! grep -Fq '__alperlerInstallPrompt' index.tsx
+          ! grep -Fq 'PwaInstallPromptComponent' src/app.component.ts
+          ! grep -Fq '<app-pwa-install-prompt>' src/app.component.ts
+          test ! -f src/components/pwa-install-prompt.component.ts
+          test ! -f src/services/pwa-install.service.ts
           grep -Fq '"display": "standalone"' public/manifest.json
           grep -Fq '"display_override": ["fullscreen", "standalone"]' public/manifest.json
           grep -Fq '@media (max-width:767px) and (pointer:coarse)' src/components/customer-mobile-dock.component.ts

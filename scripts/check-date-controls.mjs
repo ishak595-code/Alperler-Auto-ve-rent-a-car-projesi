@@ -39,17 +39,20 @@ const invariants = [
   ['aria-haspopup="dialog"', 'date trigger must expose its dialog relationship'],
   ['role="dialog"', 'calendar must use dialog semantics'],
   ['aria-modal="true"', 'calendar dialog must be modal for assistive technology'],
-  ['role="grid"', 'calendar day matrix must expose grid semantics'],
-  ['class="calendar-day-cell" role="gridcell"', 'grid semantics must live on a cell wrapper so the day remains a real button'],
+  ['class="calendar-grid" role="group"', 'calendar dates must remain a simple named group of native buttons rather than a fragile ARIA grid'],
   ['[attr.aria-label]="day.ariaLabel"', 'every date button needs a full spoken date'],
+  ['[attr.aria-pressed]="day.isSelected"', 'selected date state must be exposed on the actual day button'],
   ['aria-label="Önceki ay"', 'previous-month control must be named'],
   ['aria-label="Sonraki ay"', 'next-month control must be named'],
   ['aria-label="Takvimi kapat"', 'close control must be named'],
   ['onDialogKeydown', 'calendar dialog must manage Escape and focus containment'],
-  ['onDayKeydown', 'calendar grid must support keyboard date navigation'],
+  ['onDayKeydown', 'calendar buttons must support keyboard date navigation'],
+  ['moveActiveDate', 'calendar navigation must use one deterministic focus movement path'],
+  ['focusDate', 'calendar must focus the exact target date button'],
   ['afterRender(() => this.triggerButton?.nativeElement.focus())', 'closing the calendar must restore focus after Angular has rendered'],
-  ['afterRender(() => this.focusActiveDay())', 'opening and moving the calendar must focus the active day after Angular has rendered'],
+  ['afterRender(() => this.focusDate(initial))', 'opening the calendar must focus the initial date after Angular has rendered'],
   ['<strong>Tarihi seç</strong>', 'the visible control itself must permanently say Tarihi seç'],
+  ['color:var(--alper-muted,#b9c3d2)', 'calendar secondary text must use the accessible premium muted token'],
 ];
 for (const [needle, message] of invariants) {
   if (!dateComponent.includes(needle)) failures.push(message);
@@ -61,6 +64,8 @@ const forbidden = [
   ['position:absolute!important;inset:0!important', 'legacy full-surface native input overlay must be removed'],
   ['Takvimden seçin', 'duplicate helper copy around the date trigger must stay removed'],
   ['aria-describedby', 'date trigger must not accumulate duplicate helper announcements'],
+  ['role="grid"', 'calendar must not reintroduce an ARIA grid when native buttons provide the required semantics'],
+  ['role="gridcell"', 'calendar must not reintroduce gridcell required-parent complexity'],
   ['queueMicrotask(() => this.focusActiveDay())', 'opening the dialog may not focus before Angular renders the @if block'],
 ];
 for (const [needle, message] of forbidden) {
@@ -75,4 +80,4 @@ if (failures.length) {
   console.error(failures.join("\n"));
   process.exit(1);
 }
-console.log("Date-control guard passed: semantic Tarihi seç button, owned modal calendar dialog, named day buttons, post-render focus, focus return, and no Chromium native date proxy.");
+console.log("Date-control guard passed: semantic Tarihi seç trigger, named native date buttons, deterministic focus, modal focus return, accessible contrast tokens, and no Chromium native date proxy.");

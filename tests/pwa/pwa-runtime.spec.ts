@@ -18,7 +18,7 @@ async function waitForWorkerControl(page: Page): Promise<void> {
 }
 
 test.describe('Alperler production PWA runtime', () => {
-  test('registers V162 worker and versioned caches', async ({ page }) => {
+  test('registers V162 worker, offline shell and cleans obsolete releases', async ({ page }) => {
     await waitForWorkerControl(page);
 
     await expect.poll(() => page.evaluate(() => document.documentElement.dataset.pwaRelease || '')).toBe('v162');
@@ -27,16 +27,20 @@ test.describe('Alperler production PWA runtime', () => {
       const registration = await navigator.serviceWorker.ready;
       const keys = await caches.keys();
       const shellName = keys.find((name) => name === 'alperler-pwa-v162-shell') || '';
-      const staticName = keys.find((name) => name === 'alperler-pwa-v162-static') || '';
       const shell = shellName ? await caches.open(shellName) : null;
       const offline = shell ? await shell.match('/offline.html') : null;
+      const obsoleteCaches = keys.filter((name) =>
+        name.startsWith('alperler-pwa-') &&
+        name !== 'alperler-pwa-v162-shell' &&
+        name !== 'alperler-pwa-v162-static'
+      );
 
       return {
         scope: registration.scope,
         controller: navigator.serviceWorker.controller?.scriptURL || '',
         shellName,
-        staticName,
         offlineReady: Boolean(offline),
+        obsoleteCaches,
         displayMode: document.documentElement.dataset.pwaDisplayMode || '',
         online: document.documentElement.dataset.pwaOnline || '',
       };
@@ -45,8 +49,8 @@ test.describe('Alperler production PWA runtime', () => {
     expect(state.scope).toBe('http://127.0.0.1:4174/');
     expect(state.controller).toContain('/service-worker.js');
     expect(state.shellName).toBe('alperler-pwa-v162-shell');
-    expect(state.staticName).toBe('alperler-pwa-v162-static');
     expect(state.offlineReady).toBe(true);
+    expect(state.obsoleteCaches).toEqual([]);
     expect(state.displayMode).toBe('browser');
     expect(state.online).toBe('true');
   });

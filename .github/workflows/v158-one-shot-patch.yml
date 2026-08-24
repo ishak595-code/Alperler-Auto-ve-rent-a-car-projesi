@@ -1,0 +1,100 @@
+name: V158 One Shot Patch
+
+on:
+  push:
+    branches:
+      - v158-polished-date-pwa-responsive
+    paths:
+      - ".github/workflows/v158-one-shot-patch.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v158-polished-date-pwa-responsive
+          fetch-depth: 0
+
+      - name: Apply V158 dynamic UX hardening
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, count=1):
+              p = Path(path)
+              text = p.read_text()
+              found = text.count(old)
+              if found < count:
+                  raise SystemExit(f"{path}: expected at least {count} occurrence(s), found {found}: {old[:120]!r}")
+              text = text.replace(old, new, count)
+              p.write_text(text)
+
+          # Date/TalkBack regression gate: context is the accessible name; "Tarihi seç"
+          # stays a single visible prompt so Android does not speak the same action twice.
+          gate = '.github/workflows/customer-ops-v150-gate.yml'
+          replace(gate,
+              "          # A single real native date input owns the whole visual surface. Its\n          # permanent accessible name is \"Tarihi seç\" and a real label provides\n          # the changing context (Alış tarihi, İade tarihi, Tur tarihi...).\n",
+              "          # A single real native date input owns the whole visual surface. The\n          # visible card says Tarihi seç once; TalkBack receives the field context\n          # (Alış tarihi, İade tarihi, Tur tarihi) as the accessible name.\n")
+          replace(gate, "          grep -Fq '<strong>Tarihi seç</strong>' src/components/accessible-native-date.component.ts\n", "          grep -Fq 'class=\"date-value\"' src/components/accessible-native-date.component.ts\n")
+          replace(gate, "          grep -Fq 'aria-label=\"Tarihi seç\"' src/components/accessible-native-date.component.ts\n", "          grep -Fq '[attr.aria-label]=\"accessibleName()\"' src/components/accessible-native-date.component.ts\n")
+          replace(gate, "          grep -Fq '[attr.aria-describedby]=\"contextId\"' src/components/accessible-native-date.component.ts\n", "          ! grep -Fq 'aria-describedby' src/components/accessible-native-date.component.ts\n          ! grep -Fq 'Takvimden seçin' src/components/accessible-native-date.component.ts\n")
+          replace(gate, "          grep -Fq '!install.installed()' src/components/pwa-install-prompt.component.ts\n", "          grep -Fq 'install.installed() && !install.runningAsApp()' src/components/pwa-install-prompt.component.ts\n          grep -Fq 'Bu Chrome sekmesi tarayıcı olarak kalır.' src/components/pwa-install-prompt.component.ts\n")
+          replace(gate, "          grep -Fq '\"display\": \"standalone\"' public/manifest.json\n", "          grep -Fq '\"display\": \"standalone\"' public/manifest.json\n          grep -Fq '\"display_override\": [\"fullscreen\", \"standalone\"]' public/manifest.json\n          grep -Fq \"'(display-mode: fullscreen)'\" src/services/pwa-install.service.ts\n")
+
+          # Expose the remaining quick-planner labels in Admin so the live customer
+          # planner is not partly hard-coded.
+          model = 'src/models/site-config.model.ts'
+          replace(model, "    plannerPickupCountSuffix?: string;\n", "    plannerPickupCountSuffix?: string;\n    plannerDurationLabel?: string;\n")
+
+          home = 'src/pages/home-v71.component.ts'
+          replace(home,
+              '<label class="field"><span>Kiralama Süresi</span><select [(ngModel)]="rentalDuration" name="homeDuration" (ngModelChange)="onDurationChanged()" aria-label="Kiralama süresini seç">',
+              '<label class="field"><span>{{ homeContent().plannerDurationLabel || \'Kiralama süresi\' }}</span><select [(ngModel)]="rentalDuration" name="homeDuration" (ngModelChange)="onDurationChanged()" [attr.aria-label]="(homeContent().plannerDurationLabel || \'Kiralama süresi\') + \' seç\'">')
+
+          admin = 'src/pages/admin/admin-homepage.component.ts'
+          variant = '<label><span>Planlama sürümü / görünümü</span><select [(ngModel)]="plannerVariant" name="homePlannerVariant" aria-label="Hızlı Planlama görünüm sürümünü seç"><option value="classic">Standart</option><option value="compact">Kompakt</option></select></label>'
+          dynamic_fields = variant + '<fieldset class="planner-admin-box"><legend>Canlı alan metinleri</legend><p class="hint">Bu metinler kaydedildiği anda telefon, tablet ve bilgisayardaki Hızlı Planlama alanına uygulanır.</p><div class="new-grid"><label><span>Hizmet alanı</span><input [(ngModel)]="plannerServiceLabel" name="homePlannerServiceLabel" maxlength="100" aria-label="Hızlı Planlama hizmet alanı etiketi" /></label><label><span>Teslim noktası alanı</span><input [(ngModel)]="plannerPickupLabel" name="homePlannerPickupLabel" maxlength="100" aria-label="Hızlı Planlama teslim noktası etiketi" /></label><label><span>Kiralama süresi alanı</span><input [(ngModel)]="plannerDurationLabel" name="homePlannerDurationLabel" maxlength="80" aria-label="Hızlı Planlama kiralama süresi etiketi" /></label><label><span>Alış tarihi</span><input [(ngModel)]="plannerStartDateLabel" name="homePlannerStartDateLabel" maxlength="60" aria-label="Hızlı Planlama alış tarihi etiketi" /></label><label><span>İade tarihi</span><input [(ngModel)]="plannerEndDateLabel" name="homePlannerEndDateLabel" maxlength="60" aria-label="Hızlı Planlama iade tarihi etiketi" /></label><label><span>Tur tarihi</span><input [(ngModel)]="plannerTourDateLabel" name="homePlannerTourDateLabel" maxlength="60" aria-label="Hızlı Planlama tur tarihi etiketi" /></label></div></fieldset>'
+          replace(admin, variant, dynamic_fields)
+          replace(admin,
+              "  plannerVariant: PlannerVariant = 'classic';\n",
+              "  plannerVariant: PlannerVariant = 'classic';\n  plannerServiceLabel = 'Ne için araç veya hizmet arıyorsunuz?';\n  plannerPickupLabel = 'Nereden teslim almak istiyorsunuz?';\n  plannerDurationLabel = 'Kiralama süresi';\n  plannerStartDateLabel = 'Alış tarihi';\n  plannerEndDateLabel = 'İade tarihi';\n  plannerTourDateLabel = 'Tur tarihi';\n")
+          replace(admin,
+              "      homeContent['plannerVariant'] = this.plannerVariant;\n",
+              "      homeContent['plannerVariant'] = this.plannerVariant;\n      homeContent['plannerServiceLabel'] = this.plannerServiceLabel.trim();\n      homeContent['plannerPickupLabel'] = this.plannerPickupLabel.trim();\n      homeContent['plannerDurationLabel'] = this.plannerDurationLabel.trim();\n      homeContent['plannerStartDateLabel'] = this.plannerStartDateLabel.trim();\n      homeContent['plannerEndDateLabel'] = this.plannerEndDateLabel.trim();\n      homeContent['plannerTourDateLabel'] = this.plannerTourDateLabel.trim();\n")
+          replace(admin,
+              "    this.plannerVariant = home['plannerVariant'] === 'compact' ? 'compact' : 'classic';\n",
+              "    this.plannerVariant = home['plannerVariant'] === 'compact' ? 'compact' : 'classic';\n    this.plannerServiceLabel = String(home['plannerServiceLabel'] || 'Ne için araç veya hizmet arıyorsunuz?');\n    this.plannerPickupLabel = String(home['plannerPickupLabel'] || 'Nereden teslim almak istiyorsunuz?');\n    this.plannerDurationLabel = String(home['plannerDurationLabel'] || 'Kiralama süresi');\n    this.plannerStartDateLabel = String(home['plannerStartDateLabel'] || 'Alış tarihi');\n    this.plannerEndDateLabel = String(home['plannerEndDateLabel'] || 'İade tarihi');\n    this.plannerTourDateLabel = String(home['plannerTourDateLabel'] || 'Tur tarihi');\n")
+
+          # Professional success copy must be consistent even if the local checkout
+          # card is shown instead of the global success overlay.
+          checkout = 'src/pages/booking-checkout.component.ts'
+          replace(checkout, '<h2>Talebiniz Kaydedildi</h2>', '<h2>Talebiniz başarıyla gönderildi</h2>')
+          replace(checkout,
+              'Rezervasyon talebiniz kaydedildi. Uygunluk doğrulandıktan sonra sizinle iletişime geçilecektir.',
+              'Rezervasyon talebiniz başarıyla gönderildi. Talebiniz için teşekkür ederiz. Ekibimiz uygunluk kontrolünü tamamlayarak en kısa sürede sizinle iletişime geçecektir.')
+          replace(checkout,
+              'Talebiniz kaydedildi. Ekibimiz sizinle iletişime geçilecektir.',
+              'Talebiniz başarıyla gönderildi. Talebinizi oluşturduğunuz için teşekkür ederiz. Ekibimiz bilgilerinizi inceleyerek en kısa sürede sizinle iletişime geçecektir.')
+
+          tour = 'src/pages/tour-detail.component.ts'
+          replace(tour,
+              '<h3>Rezervasyon talebiniz kaydedildi</h3><p>Referans: {{ reservationReference() }}</p>',
+              '<h3>Rezervasyon talebiniz başarıyla gönderildi</h3><p>Talebiniz için teşekkür ederiz. Ekibimiz tur uygunluğunu kontrol ederek en kısa sürede sizinle iletişime geçecektir.</p><p>Referans: {{ reservationReference() }}</p>')
+          PY
+
+      - name: Commit patch result
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "alperler-v158-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add .github/workflows/customer-ops-v150-gate.yml src/models/site-config.model.ts src/pages/home-v71.component.ts src/pages/admin/admin-homepage.component.ts src/pages/booking-checkout.component.ts src/pages/tour-detail.component.ts
+          git diff --cached --check
+          git commit -m "V158: planlayıcıyı canlı ayarlara bağla ve mesajları profesyonelleştir"
+          git push origin HEAD:v158-polished-date-pwa-responsive

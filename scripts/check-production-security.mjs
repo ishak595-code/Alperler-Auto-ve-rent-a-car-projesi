@@ -17,8 +17,16 @@ const runtimeEnv=read('public/runtime-env.js');
 
 assert(pkg.devDependencies?.tailwindcss==='4.2.1','Tailwind must be pinned to 4.2.1.');
 assert(pkg.devDependencies?.['@tailwindcss/postcss']==='4.2.1','@tailwindcss/postcss must be pinned to 4.2.1.');
-assert(pkg.devDependencies?.postcss==='8.5.6','PostCSS must be pinned to 8.5.6.');
+assert(pkg.devDependencies?.postcss==='8.5.26','PostCSS must be pinned to the remediated 8.5.26 release.');
 assert(!JSON.stringify(pkg).includes('"latest"'),'Package manifest may not use floating latest versions.');
+for(const buildOnly of ['@angular/build','@angular/cli','@angular/compiler-cli','@types/pdfkit']){
+  assert(pkg.dependencies?.[buildOnly]===undefined,`${buildOnly} must not be part of the production runtime dependency tree.`);
+  assert(Boolean(pkg.devDependencies?.[buildOnly]),`${buildOnly} must remain available as build-only tooling.`);
+}
+for(const runtimePackage of ['@angular/core','@angular/common','@angular/compiler','@angular/forms','@angular/platform-browser','@angular/router','express','nodemailer']){
+  const version=pkg.dependencies?.[runtimePackage];
+  assert(typeof version==='string'&&!/^[~^*]/.test(version),`${runtimePackage} must be pinned to an exact production release.`);
+}
 assert(postcss.plugins?.['@tailwindcss/postcss']!==undefined,'Tailwind PostCSS plugin is not configured.');
 assert(tailwind.includes('@import "tailwindcss"'),'Local Tailwind entry stylesheet is missing.');
 assert(!index.includes('cdn.tailwindcss.com'),'Tailwind Play CDN is forbidden in production.');

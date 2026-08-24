@@ -29,8 +29,38 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --no-audit --no-fund
-          npm install --save-exact @angular/common@21 @angular/compiler@21 @angular/core@21 @angular/forms@21 @angular/material@21 @angular/platform-browser@21 @angular/router@21 express@5 nodemailer@latest --no-audit --no-fund
-          npm install --save-dev --save-exact @angular/build@21 @angular/cli@21 @angular/compiler-cli@21 @types/pdfkit@0.17.6 postcss@8.5.26 vite@6 --no-audit --no-fund
+
+          ANGULAR_VERSION="$(npm view @angular/core@21 version --json | jq -r 'if type == "array" then .[-1] else . end')"
+          MATERIAL_VERSION="$(npm view @angular/material@21 version --json | jq -r 'if type == "array" then .[-1] else . end')"
+          BUILD_VERSION="$(npm view @angular/build@21 version --json | jq -r 'if type == "array" then .[-1] else . end')"
+          CLI_VERSION="$(npm view @angular/cli@21 version --json | jq -r 'if type == "array" then .[-1] else . end')"
+          NODEMAILER_VERSION="$(npm view nodemailer version)"
+          EXPRESS_VERSION="$(npm view express@5 version --json | jq -r 'if type == "array" then .[-1] else . end')"
+          VITE_VERSION="$(npm view vite@6 version --json | jq -r 'if type == "array" then .[-1] else . end')"
+
+          echo "Angular ${ANGULAR_VERSION}; Material ${MATERIAL_VERSION}; Build ${BUILD_VERSION}; CLI ${CLI_VERSION}; Express ${EXPRESS_VERSION}; Nodemailer ${NODEMAILER_VERSION}; Vite ${VITE_VERSION}"
+
+          npm install --save-exact \
+            "@angular/common@${ANGULAR_VERSION}" \
+            "@angular/compiler@${ANGULAR_VERSION}" \
+            "@angular/core@${ANGULAR_VERSION}" \
+            "@angular/forms@${ANGULAR_VERSION}" \
+            "@angular/material@${MATERIAL_VERSION}" \
+            "@angular/platform-browser@${ANGULAR_VERSION}" \
+            "@angular/router@${ANGULAR_VERSION}" \
+            "express@${EXPRESS_VERSION}" \
+            "nodemailer@${NODEMAILER_VERSION}" \
+            --no-audit --no-fund
+
+          npm install --save-dev --save-exact \
+            "@angular/build@${BUILD_VERSION}" \
+            "@angular/cli@${CLI_VERSION}" \
+            "@angular/compiler-cli@${ANGULAR_VERSION}" \
+            "@types/pdfkit@0.17.6" \
+            "postcss@8.5.26" \
+            "vite@${VITE_VERSION}" \
+            --no-audit --no-fund
+
           npm audit fix --no-audit --no-fund || true
 
       - name: Require clean high-severity production audit

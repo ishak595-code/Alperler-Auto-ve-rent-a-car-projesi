@@ -43,8 +43,9 @@ assert(serviceWorker.includes('event.respondWith(fetch(request))'), 'Service wor
 assert(!/caches\.(open|match)|cache\.put/.test(serviceWorker), 'PWA worker must not cache live application/catalog data.');
 
 // Chrome must own the install entry shown in its three-dot menu. Custom app code
-// may not intercept beforeinstallprompt or render a second in-page installer.
-assert(!bootstrap.includes("beforeinstallprompt"), 'Bootstrap must not intercept Chrome beforeinstallprompt.');
+// may document the browser event by name, but it may not register a listener,
+// prevent the browser default, buffer the event, or render a second installer.
+assert(!/addEventListener\s*\(\s*['"]beforeinstallprompt['"]/.test(bootstrap), 'Bootstrap must not intercept Chrome beforeinstallprompt.');
 assert(!bootstrap.includes('__alperlerInstallPrompt'), 'Bootstrap must not buffer a custom install event.');
 assert(!appComponent.includes('PwaInstallPromptComponent'), 'Customer shell must not import a custom PWA installer.');
 assert(!appComponent.includes('<app-pwa-install-prompt>'), 'Customer shell must not render an in-page install card.');

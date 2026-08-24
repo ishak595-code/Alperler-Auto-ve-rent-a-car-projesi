@@ -1,0 +1,43 @@
+name: V163 Tailwind Bootstrap
+
+on:
+  push:
+    branches:
+      - v163-production-security-verification
+    paths:
+      - ".github/workflows/v163-tailwind-bootstrap.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v163-production-security-verification
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install locked Tailwind build dependencies
+        run: |
+          npm ci --no-audit --no-fund
+          npm install --save-dev --save-exact tailwindcss@4.2.1 @tailwindcss/postcss@4.2.1 postcss@8.5.6 --no-audit --no-fund
+
+      - name: Commit dependency lock update
+        run: |
+          if git diff --quiet -- package.json package-lock.json; then
+            echo "Dependency lock already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "V163: pin local Tailwind production build toolchain"
+          git push origin HEAD:v163-production-security-verification

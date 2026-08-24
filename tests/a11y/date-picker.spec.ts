@@ -27,17 +27,25 @@ test.describe("Alperler accessible calendar", () => {
     await expect(page.getByRole("button", { name: "Önceki ay" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sonraki ay" })).toBeVisible();
 
-    const enabledDays = dialog.locator("button.calendar-day:not([disabled])");
-    await expect(enabledDays.first()).toBeFocused();
-    const firstDate = await enabledDays.first().getAttribute("data-date");
-    await enabledDays.first().press("ArrowRight");
-    const focusedDate = await page.locator("button.calendar-day:focus").getAttribute("data-date");
+    const activeDay = dialog.locator('button.calendar-day[tabindex="0"]:not([disabled])');
+    await expect(activeDay).toHaveCount(1);
+    await expect(activeDay).toBeFocused();
+    const firstDate = await activeDay.getAttribute("data-date");
+    await activeDay.press("ArrowRight");
+    const focusedDay = page.locator("button.calendar-day:focus");
+    await expect(focusedDay).toBeVisible();
+    const focusedDate = await focusedDay.getAttribute("data-date");
     expect(focusedDate).not.toBe(firstDate);
 
     const unlabeledDays = await dialog.locator("button.calendar-day").evaluateAll((buttons) =>
       buttons.filter((button) => !(button.getAttribute("aria-label") || "").trim()).length,
     );
     expect(unlabeledDays).toBe(0);
+
+    const dayCellsWithoutButtons = await dialog.locator('[role="gridcell"]').evaluateAll((cells) =>
+      cells.filter((cell) => !cell.querySelector("button.calendar-day")).length,
+    );
+    expect(dayCellsWithoutButtons).toBe(0);
 
     const a11y = await new AxeBuilder({ page })
       .include(".calendar-dialog")

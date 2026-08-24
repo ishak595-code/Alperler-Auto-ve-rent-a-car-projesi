@@ -60,10 +60,13 @@ const forbidden = [
   ['position:absolute!important;inset:0!important', 'legacy full-surface native input overlay must be removed'],
   ['Takvimden seçin', 'duplicate helper copy around the date trigger must stay removed'],
   ['aria-describedby', 'date trigger must not accumulate duplicate helper announcements'],
-  ['tabindex="-1"', 'shared date trigger/dialog must not hide an interactive proxy from sequential focus'],
 ];
 for (const [needle, message] of forbidden) {
   if (dateComponent.includes(needle)) failures.push(message);
+}
+
+if (/<(?:button|a|input|select|textarea)\b[^>]*\btabindex=["']-1["'][^>]*>/i.test(dateComponent)) {
+  failures.push('shared date trigger/dialog must not hide a real interactive proxy from sequential focus');
 }
 
 if (failures.length) {

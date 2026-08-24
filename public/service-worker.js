@@ -1,4 +1,4 @@
-const SERVICE_WORKER_VERSION = 'alperler-v158';
+const SERVICE_WORKER_VERSION = 'alperler-v160';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());
@@ -12,8 +12,8 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET' || request.mode !== 'navigate') return;
 
-  // Live Supabase/catalog data stays network-authoritative. The worker exists
-  // for a real installed-app lifecycle without serving stale business records.
+  // Chrome owns installation. Live Supabase/catalog data stays network-authoritative;
+  // the worker only supplies the installed-app lifecycle and never serves stale data.
   event.respondWith(fetch(request));
 });
 

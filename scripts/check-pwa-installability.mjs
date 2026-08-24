@@ -18,11 +18,13 @@ const mobileDock = read('src/components/customer-mobile-dock.component.ts');
 const installService = read('src/services/pwa-install.service.ts');
 const installPrompt = read('src/components/pwa-install-prompt.component.ts');
 const appComponent = read('src/app.component.ts');
+const runtimeCss = read('src/runtime-stability.css');
 
 assert(manifest.name && manifest.short_name, 'PWA manifest must define name and short_name.');
 assert(manifest.start_url === '/', 'PWA start_url must remain root.');
 assert(manifest.scope === '/', 'PWA scope must remain root.');
-assert(['standalone', 'fullscreen'].includes(manifest.display), 'PWA display must be standalone or fullscreen.');
+assert(manifest.display === 'standalone', 'PWA fallback display must remain standalone.');
+assert(Array.isArray(manifest.display_override) && manifest.display_override[0] === 'fullscreen' && manifest.display_override.includes('standalone'), 'Android install must prefer fullscreen and retain standalone fallback.');
 assert(manifest.theme_color && manifest.background_color, 'PWA theme/background colors are required.');
 assert(manifest.prefer_related_applications === false, 'PWA must prefer the web app installation flow.');
 
@@ -51,12 +53,16 @@ assert(bootstrap.includes("window.dispatchEvent(new Event('alperler:pwa-install-
 assert(installService.includes('this.adoptBufferedPrompt()'), 'PWA service must adopt an install event captured before Angular starts.');
 assert(installService.includes("window.addEventListener('alperler:pwa-install-ready'"), 'PWA service must react to live install readiness.');
 assert(installService.includes("window.addEventListener('appinstalled'"), 'App must detect successful installation.');
-assert(installService.includes("'(display-mode: standalone)'"), 'App must detect standalone mode and avoid duplicate install UI.');
+assert(installService.includes("'(display-mode: standalone)'"), 'App must detect standalone mode.');
+assert(installService.includes("'(display-mode: fullscreen)'"), 'App must detect Android fullscreen mode.');
+assert(installService.includes('readonly runningAsApp'), 'PWA service must distinguish installed state from the current Chrome tab.');
 assert(installPrompt.includes('Uygulamayı yükle'), 'Mobile install prompt must expose a clear install action.');
-assert(installPrompt.includes('!install.installed()'), 'Install promotion must disappear in standalone/installed mode.');
+assert(installPrompt.includes('Bu Chrome sekmesi tarayıcı olarak kalır.'), 'After installation, the user must be told to launch the home-screen app instead of expecting the current Chrome tab to transform.');
+assert(installPrompt.includes('install.installed() && !install.runningAsApp()'), 'Install UI must distinguish completed install from true app-mode execution.');
 assert(installPrompt.includes('@media(max-width:1100px)') || installPrompt.includes('@media(max-width: 1100px)'), 'Install promotion must support touch phones and tablets without becoming desktop chrome.');
 assert(installPrompt.includes('(pointer:coarse)'), 'Install promotion must be touch-device constrained.');
 assert(appComponent.includes('<app-pwa-install-prompt>'), 'Customer shell must render the PWA install promotion component.');
+assert(runtimeCss.includes('@media (display-mode: fullscreen)'), 'Fullscreen PWA must protect Android safe areas.');
 
 const publicAsset = angular.projects?.app?.architect?.build?.options?.assets?.some((entry) => entry?.input === 'public');
 assert(publicAsset, 'Angular build must copy public PWA assets.');
@@ -69,7 +75,8 @@ assert(hasHeader(serviceWorkerHeaders, 'Service-Worker-Allowed', '/'), 'Vercel m
 assert(hasHeader(serviceWorkerHeaders, 'Cache-Control', 'no-cache'), 'Service worker must not be cached stale.');
 assert(hasHeader(manifestHeaders, 'Content-Type', 'application/manifest+json'), 'Manifest must be served with manifest MIME type.');
 
-assert(mobileDock.includes('.customer-command-dock{display:none}'), 'Mobile dock must default to hidden on desktop/tablet widths.');
-assert(mobileDock.includes('@media (max-width:767px)'), 'Mobile dock visibility must remain constrained to mobile layout.');
+assert(mobileDock.includes('.customer-command-dock{display:none}'), 'Mobile dock must default to hidden.');
+assert(mobileDock.includes('@media (max-width:767px) and (pointer:coarse)'), 'Mobile dock must remain limited to real touch phones, not desktop/tablet widths.');
+assert(mobileDock.includes('(display-mode:fullscreen)'), 'Mobile dock must respect fullscreen installed mode safe-area spacing.');
 
-console.log('PWA installability guard passed: manifest, early browser-event capture, live install action, standalone mode and responsive boundaries are valid.');
+console.log('PWA installability guard passed: early install capture, Android fullscreen preference, clear post-install handoff, live data safety and mobile-only dock are valid.');

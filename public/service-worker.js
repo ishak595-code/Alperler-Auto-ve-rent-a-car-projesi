@@ -1,4 +1,4 @@
-const SERVICE_WORKER_VERSION = 'alperler-v157';
+const SERVICE_WORKER_VERSION = 'alperler-v158';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());
@@ -13,7 +13,7 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET' || request.mode !== 'navigate') return;
 
   // Live Supabase/catalog data stays network-authoritative. The worker exists
-  // for a real standalone installation lifecycle without serving stale records.
+  // for a real installed-app lifecycle without serving stale business records.
   event.respondWith(fetch(request));
 });
 

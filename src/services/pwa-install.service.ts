@@ -14,11 +14,13 @@ export class PwaInstallService {
   private deferredPrompt: BeforeInstallPromptEvent | null = null;
   private readonly _canInstall = signal(false);
   private readonly _installed = signal(false);
+  private readonly _runningAsApp = signal(false);
   private readonly _mobileBrowser = signal(false);
   private readonly _workerReady = signal(false);
 
   readonly canInstall = this._canInstall.asReadonly();
   readonly installed = this._installed.asReadonly();
+  readonly runningAsApp = this._runningAsApp.asReadonly();
   readonly mobileBrowser = this._mobileBrowser.asReadonly();
   readonly workerReady = this._workerReady.asReadonly();
 
@@ -36,7 +38,8 @@ export class PwaInstallService {
       installEvent.preventDefault();
       this.deferredPrompt = installEvent;
       this.installWindow().__alperlerInstallPrompt = installEvent;
-      this._canInstall.set(!this.isStandalone());
+      this._installed.set(false);
+      this._canInstall.set(!this.isAppMode());
     });
     window.addEventListener('appinstalled', () => this.markInstalled());
 
@@ -44,12 +47,13 @@ export class PwaInstallService {
       void navigator.serviceWorker.ready.then(() => this._workerReady.set(true)).catch(() => undefined);
     }
 
-    const standaloneQuery = window.matchMedia('(display-mode: standalone)');
-    standaloneQuery.addEventListener?.('change', () => this.refreshEnvironment());
+    for (const query of ['(display-mode: standalone)', '(display-mode: fullscreen)']) {
+      window.matchMedia(query).addEventListener?.('change', () => this.refreshEnvironment());
+    }
   }
 
   async install(): Promise<InstallOutcome> {
-    if (this.isStandalone()) {
+    if (this.isAppMode()) {
       this.refreshEnvironment();
       return 'accepted';
     }
@@ -64,7 +68,7 @@ export class PwaInstallService {
       const choice = await prompt.userChoice;
       this.deferredPrompt = null;
       delete this.installWindow().__alperlerInstallPrompt;
-      if (choice.outcome === 'accepted' || this.isStandalone()) this._installed.set(true);
+      if (choice.outcome === 'accepted' || this.isAppMode()) this._installed.set(true);
       return choice.outcome;
     } catch {
       this.deferredPrompt = null;
@@ -75,16 +79,18 @@ export class PwaInstallService {
   }
 
   installStatusText(): string {
-    if (this.installed()) return 'Uygulama görünümünde açılıyor.';
-    if (this.canInstall()) return 'Kuruluma hazır. Tarayıcı çubukları olmadan uygulama olarak açabilirsiniz.';
-    if (this.workerReady()) return 'Chrome kurulum uygunluğunu hazırlıyor. Sayfada kısa süre gezinip Uygulamayı yükle düğmesini kullanın.';
+    if (this.runningAsApp()) return 'Uygulama tam ekran modunda çalışıyor.';
+    if (this.installed()) return 'Kurulum tamamlandı. Tam ekran sürümü ana ekrandaki Alperler simgesinden açın.';
+    if (this.canInstall()) return 'Kuruluma hazır. Uygulama, tarayıcı çubukları olmadan açılacaktır.';
+    if (this.workerReady()) return 'Chrome kurulum uygunluğunu hazırlıyor. Birkaç saniye sonra yükleme seçeneği aktif olur.';
     return 'Uygulama kurulumu hazırlanıyor.';
   }
 
   private adoptBufferedPrompt(): void {
     const buffered = this.installWindow().__alperlerInstallPrompt;
-    if (!buffered || this.isStandalone()) return;
+    if (!buffered || this.isAppMode()) return;
     this.deferredPrompt = buffered;
+    this._installed.set(false);
     this._canInstall.set(true);
   }
 
@@ -93,16 +99,19 @@ export class PwaInstallService {
     delete this.installWindow().__alperlerInstallPrompt;
     this._canInstall.set(false);
     this._installed.set(true);
+    this.refreshEnvironment(true);
   }
 
-  private refreshEnvironment(): void {
+  private refreshEnvironment(preserveInstalled = false): void {
     if (typeof window === 'undefined') return;
-    const standalone = this.isStandalone();
+    const appMode = this.isAppMode();
     const coarse = window.matchMedia('(pointer: coarse)').matches;
     const mobileOrTablet = window.matchMedia('(max-width: 1100px)').matches;
-    this._installed.set(standalone);
-    this._mobileBrowser.set(!standalone && coarse && mobileOrTablet);
-    if (standalone) this._canInstall.set(false);
+    this._runningAsApp.set(appMode);
+    if (appMode) this._installed.set(true);
+    else if (!preserveInstalled) this._installed.set(false);
+    this._mobileBrowser.set(!appMode && coarse && mobileOrTablet);
+    if (appMode) this._canInstall.set(false);
     else this.adoptBufferedPrompt();
   }
 
@@ -110,9 +119,11 @@ export class PwaInstallService {
     return window as InstallAwareWindow;
   }
 
-  private isStandalone(): boolean {
+  private isAppMode(): boolean {
     if (typeof window === 'undefined') return false;
     const navigatorWithStandalone = navigator as Navigator & { standalone?: boolean };
-    return window.matchMedia('(display-mode: standalone)').matches || navigatorWithStandalone.standalone === true;
+    return window.matchMedia('(display-mode: standalone)').matches
+      || window.matchMedia('(display-mode: fullscreen)').matches
+      || navigatorWithStandalone.standalone === true;
   }
 }

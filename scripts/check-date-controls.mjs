@@ -36,7 +36,7 @@ function audit(file) {
       continue;
     }
     if (!directlyNamed || !wrappingLabel) {
-      failures.push(`${file}:${line}: native date control needs both a permanent accessible name and a real wrapping label`);
+      failures.push(`${file}:${line}: native date control needs a contextual accessible name and a real wrapping label`);
     }
   }
 
@@ -50,9 +50,9 @@ walk("src");
 const dateComponent = fs.readFileSync("src/components/accessible-native-date.component.ts", "utf8");
 const invariants = [
   ['class="native-date-control"', 'shared component must expose one native date input'],
-  ['aria-label="Tarihi seç"', 'date input accessible name must permanently be Tarihi seç'],
-  ['[attr.aria-describedby]="contextId"', 'date context must be described without replacing the permanent accessible name'],
+  ['[attr.aria-label]="accessibleName()"', 'date input must use the field context as its accessible name'],
   ['[for]="inputId"', 'visible date surface must be a real label associated with the native input'],
+  ["{{ value ? formattedValue() : 'Tarihi seç' }}", 'visible date card must show exactly one concise Tarihi seç prompt before selection'],
   ['position:absolute', 'native date input must cover the complete date surface'],
   ['inset:0', 'native date input must cover the complete date surface'],
   ['-webkit-text-fill-color:transparent', 'native date text must be visually suppressed without hiding the control from accessibility'],
@@ -60,8 +60,14 @@ const invariants = [
 for (const [needle, message] of invariants) {
   if (!dateComponent.includes(needle)) failures.push(message);
 }
+if (/aria-label=["']Tarihi seç["']/.test(dateComponent)) {
+  failures.push('generic Tarihi seç aria-label duplicates Android/TalkBack native date action; use the field context instead');
+}
+if (dateComponent.includes('aria-describedby') || dateComponent.includes('Takvimden seçin')) {
+  failures.push('date control must not repeat helper/context text around the native TalkBack action');
+}
 if (/opacity\s*:\s*(?:0|\.0|0\.0)/.test(dateComponent)) {
-  failures.push('shared date input must not use opacity hiding; Samsung TalkBack needs a real visible control in the accessibility tree');
+  failures.push('shared date input must not use opacity hiding; Samsung TalkBack needs a real control in the accessibility tree');
 }
 if (/aria-hidden=["']true["'][^>]*type=["']date/.test(dateComponent) || /tabindex=["']-1["'][^>]*type=["']date/.test(dateComponent)) {
   failures.push('shared native date input may never be removed from the accessibility tree');
@@ -80,4 +86,4 @@ if (failures.length) {
   console.error(failures.join("\n"));
   process.exit(1);
 }
-console.log("Date-control guard passed: permanent Tarihi seç label, one real native focus target, no hidden proxy and no showPicker.");
+console.log("Date-control guard passed: one concise visual prompt, contextual TalkBack name, one native focus target, no hidden proxy and no showPicker.");

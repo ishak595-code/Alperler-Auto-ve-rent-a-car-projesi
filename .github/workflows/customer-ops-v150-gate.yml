@@ -25,6 +25,7 @@ on:
       - "src/services/customer-booking-actions.service.ts"
       - "src/services/profile-admin-bridge.service.ts"
       - "src/services/booking-success*"
+      - "src/services/pwa-runtime.service.ts"
       - "src/app.component.ts"
       - "src/app.routes.ts"
       - "src/runtime-stability.css"
@@ -32,6 +33,7 @@ on:
       - "index.tsx"
       - "public/manifest.json"
       - "public/service-worker.js"
+      - "public/offline.html"
       - "supabase/migrations/*v150*"
       - ".github/workflows/customer-ops-v150-gate.yml"
 
@@ -123,17 +125,23 @@ jobs:
           grep -Fq 'await this.auth.changePassword(this.password)' src/pages/account-login.component.ts
           grep -Fq 'ProfileAdminBridgeService' src/pages/account-dashboard-v150.component.ts
 
-          # Chrome owns the native Install app / Add to Home screen flow. The site
-          # must remain installable but may not render or intercept a second installer.
-          grep -Fq "register('/service-worker.js'" index.tsx
-          ! grep -Eq "addEventListener[[:space:]]*\([[:space:]]*['\"]beforeinstallprompt['\"]" index.tsx
-          ! grep -Fq '__alperlerInstallPrompt' index.tsx
+          # Chrome owns the native Install app / Add to Home screen flow. V162 keeps
+          # registration and release checks in one dedicated runtime coordinator.
+          grep -Fq "import { startPwaRuntime }" index.tsx
+          grep -Fq 'startPwaRuntime();' index.tsx
+          grep -Fq 'navigator.serviceWorker.register(SERVICE_WORKER_URL' src/services/pwa-runtime.service.ts
+          grep -Fq "updateViaCache: 'none'" src/services/pwa-runtime.service.ts
+          ! grep -Eq "addEventListener[[:space:]]*\([[:space:]]*['\"]beforeinstallprompt['\"]" index.tsx src/services/pwa-runtime.service.ts
+          ! grep -Fq '__alperlerInstallPrompt' index.tsx src/services/pwa-runtime.service.ts
           ! grep -Fq 'PwaInstallPromptComponent' src/app.component.ts
           ! grep -Fq '<app-pwa-install-prompt>' src/app.component.ts
           test ! -f src/components/pwa-install-prompt.component.ts
           test ! -f src/services/pwa-install.service.ts
           grep -Fq '"display": "standalone"' public/manifest.json
           grep -Fq '"display_override": ["fullscreen", "standalone"]' public/manifest.json
+          grep -Fq "const RELEASE = 'v162'" public/service-worker.js
+          grep -Fq "const OFFLINE_URL = '/offline.html'" public/service-worker.js
+          test -f public/offline.html
           grep -Fq '@media (max-width:767px) and (pointer:coarse)' src/components/customer-mobile-dock.component.ts
           grep -Fq '(display-mode:fullscreen)' src/components/customer-mobile-dock.component.ts
 

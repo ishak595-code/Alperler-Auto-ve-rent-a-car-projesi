@@ -72,12 +72,13 @@ for(const file of browserFiles){
 }
 
 const migration=read('supabase/migrations/20260825013000_v163_production_security_hardening.sql');
+const migrationNorm=migration.toLowerCase().replace(/\s+/g,' ').trim();
 for(const fragment of [
-  'revoke execute on function public.admin_set_customer_status(uuid, text) from anon',
-  'revoke execute on function public.customer_cancel_booking(text) from anon',
+  'revoke execute on function public.admin_set_customer_status(uuid, text) from public, anon',
+  'revoke execute on function public.customer_cancel_booking(text) from public, anon',
   'alter function public.sync_vehicle_hourly_fields() set search_path = pg_catalog, public',
   'revoke execute on function public.sync_vehicle_hourly_fields() from public, anon, authenticated',
-]) assert(migration.toLowerCase().includes(fragment),`Security migration is missing: ${fragment}`);
+]) assert(migrationNorm.includes(fragment),`Security migration is missing: ${fragment}`);
 
 const distIndex=path.join(root,'dist','index.html');
 if(fs.existsSync(distIndex)){

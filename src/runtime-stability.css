@@ -55,19 +55,6 @@ input, select, textarea, button {
   border-radius: min(var(--site-radius), 18px);
 }
 
-input[type="date"],
-input[type="datetime-local"] {
-  color-scheme: dark;
-}
-
-/* The visual date card already contains the calendar icon. Hide Chromium's
-   duplicate indicator without hiding the real native date control itself. */
-input[type="date"]::-webkit-calendar-picker-indicator,
-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-  display: none;
-  -webkit-appearance: none;
-}
-
 /* The quick planner already exposes its choices in the select and validates at
    submit time. Duplicate helper lines add noise on small screens and to screen
    readers, so they are intentionally omitted from the rendered experience. */
@@ -76,17 +63,32 @@ app-home-v71 .planner-note {
   display: none !important;
 }
 
-/* Android fullscreen PWA: protect content from notches/cutouts without adding
-   browser-tab spacing to normal mobile, tablet or desktop web views. */
-@media (display-mode: fullscreen) and (pointer: coarse) {
+/* Installed PWA surfaces use the dynamic viewport and never inherit browser-tab
+   overscroll behavior. Browser mode is deliberately untouched. */
+@media (display-mode: standalone), (display-mode: fullscreen) {
   html,
   body {
     min-height: 100dvh;
+    overscroll-behavior-y: none;
   }
+}
 
+/* Android/iOS installed modes: protect content from status bars, notches and
+   landscape cutouts. Coarse pointer keeps desktop standalone windows unchanged. */
+@media (display-mode: standalone) and (pointer: coarse),
+       (display-mode: fullscreen) and (pointer: coarse) {
   body {
     padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-left: env(safe-area-inset-left);
   }
+}
+
+/* Runtime JS mirrors the browser display mode for components that need a stable
+   DOM signal without duplicating matchMedia logic. */
+html[data-pwa-display-mode="standalone"],
+html[data-pwa-display-mode="fullscreen"] {
+  min-height: 100dvh;
 }
 
 /* User-selected reduced motion is stronger than author animation. */

@@ -8,6 +8,7 @@ import { routes } from './src/app.routes';
 import { provideLegacyWebhookSafety } from './src/providers/legacy-webhook-safety.provider';
 import { bookingSuccessInterceptor } from './src/services/booking-success.interceptor';
 import { GlobalErrorHandler } from './src/services/global-error-handler';
+import { startPwaRuntime } from './src/services/pwa-runtime.service';
 
 const LEGACY_CATALOG_STORAGE_KEY = /^db_(?:cars|rental_?cars?|sale_?cars?|sales?|vehicles?|tours?|inventory|config|faqs?|blog)(?:_|$)/i;
 
@@ -28,22 +29,10 @@ function purgeLegacyCatalogStorage(): void {
   }
 }
 
-function registerInstallableWebApp(): void {
-  if (!('serviceWorker' in navigator)) return;
-  if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') return;
-
-  void navigator.serviceWorker
-    .register('/service-worker.js', { scope: '/', updateViaCache: 'none' })
-    .then(async (registration) => {
-      await registration.update().catch(() => undefined);
-      await navigator.serviceWorker.ready.catch(() => undefined);
-    })
-    .catch((error) => console.warn('Installable web app registration failed.', error));
-}
-
 // Chrome owns the native Install app / Add to Home screen experience. The
 // application deliberately does not intercept beforeinstallprompt or render a
-// competing in-page installer.
+// competing in-page installer. V162 owns only worker lifecycle, offline fallback
+// and installed display-mode state.
 
 // The published Supabase catalogue is authoritative. Old schema snapshots must
 // never win over current vehicle data during bootstrap or from another stale tab.
@@ -57,7 +46,7 @@ window.addEventListener('storage', (event) => {
   }
 });
 
-registerInstallableWebApp();
+startPwaRuntime();
 
 if (window.self !== window.top) {
   window.location.hash = '';

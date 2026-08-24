@@ -1,0 +1,90 @@
+name: PWA Runtime V162
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "public/service-worker.js"
+      - "public/offline.html"
+      - "public/manifest.json"
+      - "src/services/pwa-runtime.service.ts"
+      - "src/runtime-stability.css"
+      - "src/components/customer-mobile-dock.component.ts"
+      - "index.tsx"
+      - "index.html"
+      - "angular.json"
+      - "vercel.json"
+      - "scripts/check-pwa-installability.mjs"
+      - "tests/pwa/**"
+      - "playwright.pwa.config.ts"
+      - ".github/workflows/pwa-runtime-v162.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "public/service-worker.js"
+      - "public/offline.html"
+      - "public/manifest.json"
+      - "src/services/pwa-runtime.service.ts"
+      - "src/runtime-stability.css"
+      - "src/components/customer-mobile-dock.component.ts"
+      - "index.tsx"
+      - "index.html"
+      - "angular.json"
+      - "vercel.json"
+      - "scripts/check-pwa-installability.mjs"
+      - "tests/pwa/**"
+      - "playwright.pwa.config.ts"
+      - ".github/workflows/pwa-runtime-v162.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-pwa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install pinned PWA browser tooling
+        run: npm install --no-save --no-package-lock --no-audit --no-fund @playwright/test@1.55.0
+
+      - name: Install Chromium runtime
+        run: npx playwright install --with-deps chromium
+
+      - name: Service worker syntax check
+        run: node --check public/service-worker.js
+
+      - name: Production PWA static contract
+        run: npm run pwa:installability
+
+      - name: Frontend type check
+        run: npm run lint
+
+      - name: Production build
+        run: npm run build
+
+      - name: Chromium Android-touch PWA regression
+        run: npx playwright test --config=playwright.pwa.config.ts
+
+      - name: Upload PWA failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v162-pwa-runtime-artifacts
+          path: |
+            test-results/**
+            playwright-report/**
+          if-no-files-found: ignore
+          retention-days: 7

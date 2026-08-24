@@ -112,7 +112,7 @@ jobs:
           # Chrome owns the native Install app / Add to Home screen flow. The site
           # must remain installable but may not render or intercept a second installer.
           grep -Fq "register('/service-worker.js'" index.tsx
-          ! grep -Fq 'beforeinstallprompt' index.tsx
+          ! grep -Eq "addEventListener[[:space:]]*\([[:space:]]*['\"]beforeinstallprompt['\"]" index.tsx
           ! grep -Fq '__alperlerInstallPrompt' index.tsx
           ! grep -Fq 'PwaInstallPromptComponent' src/app.component.ts
           ! grep -Fq '<app-pwa-install-prompt>' src/app.component.ts

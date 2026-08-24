@@ -15,8 +15,6 @@ const serviceWorker = read('public/service-worker.js');
 const vercel = JSON.parse(read('vercel.json'));
 const angular = JSON.parse(read('angular.json'));
 const mobileDock = read('src/components/customer-mobile-dock.component.ts');
-const installService = read('src/services/pwa-install.service.ts');
-const installPrompt = read('src/components/pwa-install-prompt.component.ts');
 const appComponent = read('src/app.component.ts');
 const runtimeCss = read('src/runtime-stability.css');
 
@@ -44,24 +42,14 @@ assert(serviceWorker.includes("self.addEventListener('fetch'"), 'Service worker 
 assert(serviceWorker.includes('event.respondWith(fetch(request))'), 'Service worker must remain network-authoritative.');
 assert(!/caches\.(open|match)|cache\.put/.test(serviceWorker), 'PWA worker must not cache live application/catalog data.');
 
-const earlyCaptureAt = bootstrap.indexOf("window.addEventListener('beforeinstallprompt'");
-const angularBootstrapAt = bootstrap.indexOf('bootstrapApplication(AppComponent');
-assert(earlyCaptureAt >= 0 && angularBootstrapAt >= 0 && earlyCaptureAt < angularBootstrapAt, 'beforeinstallprompt must be captured before Angular bootstrap so the one browser install event cannot be missed.');
-assert(bootstrap.includes('window.__alperlerInstallPrompt = installEvent'), 'Bootstrap must buffer the browser install event for Angular.');
-assert(bootstrap.includes("window.dispatchEvent(new Event('alperler:pwa-install-ready'))"), 'Bootstrap must publish install readiness to the live UI.');
-
-assert(installService.includes('this.adoptBufferedPrompt()'), 'PWA service must adopt an install event captured before Angular starts.');
-assert(installService.includes("window.addEventListener('alperler:pwa-install-ready'"), 'PWA service must react to live install readiness.');
-assert(installService.includes("window.addEventListener('appinstalled'"), 'App must detect successful installation.');
-assert(installService.includes("'(display-mode: standalone)'"), 'App must detect standalone mode.');
-assert(installService.includes("'(display-mode: fullscreen)'"), 'App must detect Android fullscreen mode.');
-assert(installService.includes('readonly runningAsApp'), 'PWA service must distinguish installed state from the current Chrome tab.');
-assert(installPrompt.includes('Uygulamayı yükle'), 'Mobile install prompt must expose a clear install action.');
-assert(installPrompt.includes('Bu Chrome sekmesi tarayıcı olarak kalır.'), 'After installation, the user must be told to launch the home-screen app instead of expecting the current Chrome tab to transform.');
-assert(installPrompt.includes('install.installed() && !install.runningAsApp()'), 'Install UI must distinguish completed install from true app-mode execution.');
-assert(installPrompt.includes('@media(max-width:1100px)') || installPrompt.includes('@media(max-width: 1100px)'), 'Install promotion must support touch phones and tablets without becoming desktop chrome.');
-assert(installPrompt.includes('(pointer:coarse)'), 'Install promotion must be touch-device constrained.');
-assert(appComponent.includes('<app-pwa-install-prompt>'), 'Customer shell must render the PWA install promotion component.');
+// Chrome must own the install entry shown in its three-dot menu. Custom app code
+// may not intercept beforeinstallprompt or render a second in-page installer.
+assert(!bootstrap.includes("beforeinstallprompt"), 'Bootstrap must not intercept Chrome beforeinstallprompt.');
+assert(!bootstrap.includes('__alperlerInstallPrompt'), 'Bootstrap must not buffer a custom install event.');
+assert(!appComponent.includes('PwaInstallPromptComponent'), 'Customer shell must not import a custom PWA installer.');
+assert(!appComponent.includes('<app-pwa-install-prompt>'), 'Customer shell must not render an in-page install card.');
+assert(!fs.existsSync('src/components/pwa-install-prompt.component.ts'), 'Legacy in-page PWA install component must remain deleted.');
+assert(!fs.existsSync('src/services/pwa-install.service.ts'), 'Legacy PWA install interception service must remain deleted.');
 assert(runtimeCss.includes('@media (display-mode: fullscreen)'), 'Fullscreen PWA must protect Android safe areas.');
 
 const publicAsset = angular.projects?.app?.architect?.build?.options?.assets?.some((entry) => entry?.input === 'public');
@@ -79,4 +67,4 @@ assert(mobileDock.includes('.customer-command-dock{display:none}'), 'Mobile dock
 assert(mobileDock.includes('@media (max-width:767px) and (pointer:coarse)'), 'Mobile dock must remain limited to real touch phones, not desktop/tablet widths.');
 assert(mobileDock.includes('(display-mode:fullscreen)'), 'Mobile dock must respect fullscreen installed mode safe-area spacing.');
 
-console.log('PWA installability guard passed: early install capture, Android fullscreen preference, clear post-install handoff, live data safety and mobile-only dock are valid.');
+console.log('PWA installability guard passed: Chrome owns native installation, the app ships a valid fullscreen/standalone manifest, live data stays network-authoritative, and no competing in-page installer exists.');

@@ -60,8 +60,8 @@ input[type="datetime-local"] {
   color-scheme: dark;
 }
 
-/* Native date inputs used behind the accessible date button must not expose a
-   second Chromium calendar affordance to TalkBack. */
+/* The visual date card already contains the calendar icon. Hide Chromium's
+   duplicate indicator without hiding the real native date control itself. */
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   display: none;
@@ -69,11 +69,24 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 /* The quick planner already exposes its choices in the select and validates at
-   submit time. These duplicate helper lines add noise on mobile and to screen
+   submit time. Duplicate helper lines add noise on small screens and to screen
    readers, so they are intentionally omitted from the rendered experience. */
 app-home-v71 .field small,
 app-home-v71 .planner-note {
   display: none !important;
+}
+
+/* Android fullscreen PWA: protect content from notches/cutouts without adding
+   browser-tab spacing to normal mobile, tablet or desktop web views. */
+@media (display-mode: fullscreen) and (pointer: coarse) {
+  html,
+  body {
+    min-height: 100dvh;
+  }
+
+  body {
+    padding-top: env(safe-area-inset-top);
+  }
 }
 
 /* User-selected reduced motion is stronger than author animation. */

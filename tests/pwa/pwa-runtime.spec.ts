@@ -53,7 +53,7 @@ test.describe('Alperler production PWA runtime', () => {
 
   test('caches hashed build assets but not dynamic business routes', async ({ page }) => {
     await waitForWorkerControl(page);
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
 
     await expect.poll(async () => {
       return page.evaluate(async () => {

@@ -1,0 +1,62 @@
+name: Production Security V163
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    paths:
+      - "index.html"
+      - "angular.json"
+      - "package.json"
+      - "package-lock.json"
+      - ".postcssrc.json"
+      - "public/runtime-env.js"
+      - "src/tailwind.css"
+      - "src/supabase.config.ts"
+      - "vercel.json"
+      - "scripts/check-production-security.mjs"
+      - "supabase/migrations/*v163*"
+      - ".github/workflows/production-security-v163.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Verify source security contract
+        run: npm run security:production
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Frontend type check
+        run: npm run lint
+
+      - name: API type check
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Runtime shim syntax check
+        run: node --check public/runtime-env.js
+
+      - name: Production build
+        run: npm run build
+
+      - name: Verify built security contract
+        run: npm run security:production

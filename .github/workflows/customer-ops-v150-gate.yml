@@ -17,6 +17,7 @@ on:
       - "src/pages/account-wallet.component.ts"
       - "src/pages/contact-entry.component.ts"
       - "src/pages/home-v71.component.ts"
+      - "src/pages/booking-checkout.component.ts"
       - "src/pages/tour-detail.component.ts"
       - "src/pages/admin/admin-homepage.component.ts"
       - "src/services/accessibility-runtime.service.ts"
@@ -27,6 +28,7 @@ on:
       - "src/app.component.ts"
       - "src/app.routes.ts"
       - "src/runtime-stability.css"
+      - "scripts/check-date-controls.mjs"
       - "index.tsx"
       - "public/manifest.json"
       - "public/service-worker.js"
@@ -48,24 +50,36 @@ jobs:
         run: |
           set -euo pipefail
 
-          # One real native date input owns the full visible card. Every date card
-          # visibly says "Tarihi seç" on the control itself, and TalkBack receives
-          # that same stable name. Context such as Alış tarihi stays above the card.
-          grep -Fq 'type="date"' src/components/accessible-native-date.component.ts
-          grep -Fq 'class="native-date-control"' src/components/accessible-native-date.component.ts
+          # V161 date contract: the visible surface is one semantic button with its
+          # accessible name on that exact button. Chromium's native type=date internals
+          # are intentionally absent because Samsung TalkBack may expose an anonymous
+          # nested picker control. The owned calendar is a modal dialog with named days.
+          grep -Fq 'class="date-surface"' src/components/accessible-native-date.component.ts
+          grep -Fq '[attr.aria-label]="triggerAccessibleName()"' src/components/accessible-native-date.component.ts
+          grep -Fq 'aria-haspopup="dialog"' src/components/accessible-native-date.component.ts
           grep -Fq '<strong>Tarihi seç</strong>' src/components/accessible-native-date.component.ts
-          grep -Fq 'aria-label="Tarihi seç"' src/components/accessible-native-date.component.ts
-          grep -Fq '[for]="inputId"' src/components/accessible-native-date.component.ts
-          grep -Fq '@if (value)' src/components/accessible-native-date.component.ts
-          grep -Fq 'position:absolute' src/components/accessible-native-date.component.ts
-          grep -Fq 'inset:0' src/components/accessible-native-date.component.ts
-          grep -Fq -- '-webkit-text-fill-color:transparent' src/components/accessible-native-date.component.ts
-          ! grep -Fq 'aria-describedby' src/components/accessible-native-date.component.ts
-          ! grep -Fq 'Takvimden seçin' src/components/accessible-native-date.component.ts
-          ! grep -Fq 'tabindex="-1"' src/components/accessible-native-date.component.ts
+          grep -Fq 'role="dialog"' src/components/accessible-native-date.component.ts
+          grep -Fq 'aria-modal="true"' src/components/accessible-native-date.component.ts
+          grep -Fq '[attr.aria-label]="day.ariaLabel"' src/components/accessible-native-date.component.ts
+          grep -Fq 'aria-label="Önceki ay"' src/components/accessible-native-date.component.ts
+          grep -Fq 'aria-label="Sonraki ay"' src/components/accessible-native-date.component.ts
+          grep -Fq 'aria-label="Takvimi kapat"' src/components/accessible-native-date.component.ts
+          grep -Fq 'onDialogKeydown' src/components/accessible-native-date.component.ts
+          grep -Fq 'onDayKeydown' src/components/accessible-native-date.component.ts
+          grep -Fq 'triggerButton?.nativeElement.focus()' src/components/accessible-native-date.component.ts
+          ! grep -Fq 'type="date"' src/components/accessible-native-date.component.ts
+          ! grep -Fq 'native-date-control' src/components/accessible-native-date.component.ts
           ! grep -Fq 'showPicker' src/components/accessible-native-date.component.ts
-          ! grep -Fq 'picker.nativeElement' src/components/accessible-native-date.component.ts
-          ! grep -Eq 'opacity\s*:\s*(0|\.0|0\.0)' src/components/accessible-native-date.component.ts
+          ! grep -Fq 'Takvimden seçin' src/components/accessible-native-date.component.ts
+          ! grep -Fq 'aria-describedby' src/components/accessible-native-date.component.ts
+
+          # All customer booking surfaces stay on the same shared calendar engine.
+          grep -Fq 'AccessibleNativeDateComponent' src/pages/home-v71.component.ts
+          grep -Fq 'app-accessible-native-date' src/pages/home-v71.component.ts
+          grep -Fq 'AccessibleNativeDateComponent' src/pages/booking-checkout.component.ts
+          grep -Fq 'app-accessible-native-date' src/pages/booking-checkout.component.ts
+          grep -Fq 'AccessibleNativeDateComponent' src/pages/tour-detail.component.ts
+          grep -Fq 'app-accessible-native-date' src/pages/tour-detail.component.ts
 
           # Interactive controls own stable labels. Runtime mutation must not rename
           # controls while TalkBack has focus.
@@ -149,7 +163,9 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Full accessibility control audit
-        run: npm run a11y:buttons
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
 
       - name: Frontend type check
         run: npm run lint

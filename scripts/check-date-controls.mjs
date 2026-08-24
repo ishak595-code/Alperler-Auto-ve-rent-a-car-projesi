@@ -11,77 +11,73 @@ function walk(dir) {
   }
 }
 
-function hasAccessibleWrappingLabel(source, index) {
-  const labelStart = source.lastIndexOf("<label", index);
-  if (labelStart < 0) return false;
-  const previousLabelEnd = source.lastIndexOf("</label>", index);
-  if (previousLabelEnd > labelStart) return false;
-  const labelEnd = source.indexOf("</label>", index);
-  return labelEnd >= index;
-}
-
 function audit(file) {
   const source = fs.readFileSync(file, "utf8");
-  const re = /<input\b[^>]*type=["'](?:date|datetime-local)["'][^>]*>/gi;
+  const interactiveTag = /<(button|a|input|select|textarea)\b[^>]*>/gi;
   let match;
-  while ((match = re.exec(source))) {
+  while ((match = interactiveTag.exec(source))) {
     const tag = match[0];
-    const directlyNamed = /aria-label\s*=|\[attr\.aria-label\]\s*=/.test(tag);
-    const wrappingLabel = hasAccessibleWrappingLabel(source, match.index);
-    const removedFromAccessibilityTree = /aria-hidden=["']true["']/.test(tag) || /tabindex=["']-1["']/.test(tag);
     const line = source.slice(0, match.index).split("\n").length;
-
-    if (removedFromAccessibilityTree) {
-      failures.push(`${file}:${line}: native date control may not be aria-hidden or tabindex=-1`);
-      continue;
-    }
-    if (!directlyNamed || !wrappingLabel) {
-      failures.push(`${file}:${line}: native date control needs a stable accessible name and a real wrapping label`);
+    if (/aria-hidden=["']true["']/.test(tag) && !/tabindex=["']-1["']/.test(tag)) {
+      failures.push(`${file}:${line}: interactive element must not be hidden from the accessibility tree`);
     }
   }
 
   if (/\.showPicker\s*\(/.test(source)) {
-    failures.push(`${file}: programmatic showPicker() is forbidden; the user must activate the real native date control directly`);
+    failures.push(`${file}: showPicker() is forbidden; Alperler uses one semantic trigger button and an owned accessible calendar dialog`);
   }
 }
 
 walk("src");
 
-const dateComponent = fs.readFileSync("src/components/accessible-native-date.component.ts", "utf8");
+const datePath = "src/components/accessible-native-date.component.ts";
+const dateComponent = fs.readFileSync(datePath, "utf8");
 const invariants = [
-  ['class="native-date-control"', 'shared component must expose one native date input'],
-  ['aria-label="Tarihi seç"', 'native date input must expose the same permanent Tarihi seç name that the user sees'],
-  ['[for]="inputId"', 'visible date surface must be a real label associated with the native input'],
-  ['<strong>Tarihi seç</strong>', 'each date card must visibly say Tarihi seç on the control itself'],
-  ['@if (value)', 'selected date may appear only as a secondary value, never as a duplicate empty-state helper'],
-  ['position:absolute', 'native date input must cover the complete date surface'],
-  ['inset:0', 'native date input must cover the complete date surface'],
-  ['-webkit-text-fill-color:transparent', 'native date text must be visually suppressed without hiding the control from accessibility'],
+  ['class="date-surface"', 'shared date component must expose the visible date trigger surface'],
+  ['type="button"', 'date trigger must be a real semantic button'],
+  ['[attr.aria-label]="triggerAccessibleName()"', 'date trigger must own a stable explicit accessible name'],
+  ['aria-haspopup="dialog"', 'date trigger must expose its dialog relationship'],
+  ['role="dialog"', 'calendar must use dialog semantics'],
+  ['aria-modal="true"', 'calendar dialog must be modal for assistive technology'],
+  ['class="calendar-grid" role="group"', 'calendar dates must remain a simple named group of native buttons rather than a fragile ARIA grid'],
+  ['[attr.aria-label]="day.ariaLabel"', 'every date button needs a full spoken date'],
+  ['[attr.aria-pressed]="day.isSelected"', 'selected date state must be exposed on the actual day button'],
+  ['aria-label="Önceki ay"', 'previous-month control must be named'],
+  ['aria-label="Sonraki ay"', 'next-month control must be named'],
+  ['aria-label="Takvimi kapat"', 'close control must be named'],
+  ['onDialogKeydown', 'calendar dialog must manage Escape and focus containment'],
+  ['onDayKeydown', 'calendar buttons must support keyboard date navigation'],
+  ['moveActiveDate', 'calendar navigation must use one deterministic focus movement path'],
+  ['focusDate', 'calendar must focus the exact target date button'],
+  ['afterRender(() => this.triggerButton?.nativeElement.focus())', 'closing the calendar must restore focus after Angular has rendered'],
+  ['afterRender(() => this.focusDate(initial))', 'opening the calendar must focus the initial date after Angular has rendered'],
+  ['<strong>Tarihi seç</strong>', 'the visible control itself must permanently say Tarihi seç'],
+  ['color:var(--alper-muted,#b9c3d2)', 'calendar secondary text must use the accessible premium muted token'],
 ];
 for (const [needle, message] of invariants) {
   if (!dateComponent.includes(needle)) failures.push(message);
 }
-if (dateComponent.includes('aria-describedby') || dateComponent.includes('Takvimden seçin')) {
-  failures.push('date control must not repeat helper/context text around the native TalkBack action');
-}
-if (/opacity\s*:\s*(?:0|\.0|0\.0)/.test(dateComponent)) {
-  failures.push('shared date input must not use opacity hiding; Samsung TalkBack needs a real control in the accessibility tree');
-}
-if (/aria-hidden=["']true["'][^>]*type=["']date/.test(dateComponent) || /tabindex=["']-1["'][^>]*type=["']date/.test(dateComponent)) {
-  failures.push('shared native date input may never be removed from the accessibility tree');
+
+const forbidden = [
+  ['type="date"', 'shared date component may not use Chromium native date internals because Samsung TalkBack can expose an anonymous nested picker button'],
+  ['native-date-control', 'legacy native overlay date control must be removed'],
+  ['position:absolute!important;inset:0!important', 'legacy full-surface native input overlay must be removed'],
+  ['Takvimden seçin', 'duplicate helper copy around the date trigger must stay removed'],
+  ['aria-describedby', 'date trigger must not accumulate duplicate helper announcements'],
+  ['role="grid"', 'calendar must not reintroduce an ARIA grid when native buttons provide the required semantics'],
+  ['role="gridcell"', 'calendar must not reintroduce gridcell required-parent complexity'],
+  ['queueMicrotask(() => this.focusActiveDay())', 'opening the dialog may not focus before Angular renders the @if block'],
+];
+for (const [needle, message] of forbidden) {
+  if (dateComponent.includes(needle)) failures.push(message);
 }
 
-const css = fs.readFileSync("src/runtime-stability.css", "utf8");
-if (
-  !css.includes('input[type="date"]::-webkit-calendar-picker-indicator') ||
-  !css.includes('input[type="datetime-local"]::-webkit-calendar-picker-indicator') ||
-  !css.includes('display: none')
-) {
-  failures.push("global native picker duplicate-icon suppression is missing");
+if (/<(?:button|a|input|select|textarea)\b[^>]*\btabindex=["']-1["'][^>]*>/i.test(dateComponent)) {
+  failures.push('shared date trigger/dialog must not hide a real interactive proxy from sequential focus');
 }
 
 if (failures.length) {
   console.error(failures.join("\n"));
   process.exit(1);
 }
-console.log("Date-control guard passed: Tarihi seç is visible on every date control, matches the TalkBack name, and no hidden proxy/showPicker path exists.");
+console.log("Date-control guard passed: semantic Tarihi seç trigger, named native date buttons, deterministic focus, modal focus return, accessible contrast tokens, and no Chromium native date proxy.");

@@ -52,7 +52,9 @@ assert(vercelText.includes('"/api/admin-booking-actions", "destination": "/api/b
 assert(!fs.existsSync('api/admin-booking-actions.ts'),'separate admin booking Vercel function must stay removed');
 assert(!fs.existsSync('supabase/functions/booking-browser-gateway/index.ts'),'unused direct browser booking Edge must stay removed');
 const adminUi=read('src/pages/admin/admin-reservations.component.ts');
-all(adminUi,['Onay bekleyen talepler aracı kilitlemez','Alternatif bul','Müşteriye Öner','WhatsApp','bookingService.offerAlternative'],'admin satisfaction workflow');
+all(adminUi,["res.status !== 'APPROVED'","updateStatus(res.id, 'APPROVED'","Onayla","uygun alternatifler hazır","markAlternativeOffered","WhatsApp ile Öner","bookingService.offerAlternative"],'admin request-review-approval workflow');
+assert(adminUi.includes("res.status === 'PENDING'"),'alternative workflow must stay limited to pending requests');
+assert(adminUi.includes('impact.conflictCount>0'),'approval UI must report preserved conflicting pending requests');
 
 const branchModel=read('src/models/branch.model.ts');
 const branchService=read('src/services/branch.service.ts');

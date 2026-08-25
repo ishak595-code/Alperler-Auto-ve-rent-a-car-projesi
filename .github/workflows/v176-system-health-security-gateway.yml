@@ -1,0 +1,90 @@
+name: V176 System Health Security Gateway
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260826015000_v176_system_health_security_gateway.sql"
+      - "supabase/functions/site-content-admin-gateway-v174/**"
+      - "src/services/admin-system-health.service.ts"
+      - "src/pages/admin/admin-system-health.component.ts"
+      - "api/partner.ts"
+      - ".github/workflows/v176-system-health-security-gateway.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v176-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Service-only database boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260826015000_v176_system_health_security_gateway.sql
+          for fn in service_system_health_snapshot_v176 service_save_runtime_controls_v176 service_set_system_event_resolved_v176 service_run_safe_repair_v176; do
+            grep -Fq "create or replace function public.${fn}" "$MIG"
+            grep -Fq "revoke all on function public.${fn}" "$MIG"
+            grep -Fq "grant execute on function public.${fn}" "$MIG"
+          done
+          grep -Fq "private.can_actor_manage_settings_v174" "$MIG"
+          grep -Fq "OWNER_ADMIN_PERMISSION_REQUIRED" "$MIG"
+          grep -Fq "SAFE_SYSTEM_REPAIR_COMPLETED_V176" "$MIG"
+
+      - name: Browser privileged path isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          PAGE=src/pages/admin/admin-system-health.component.ts
+          SERVICE=src/services/admin-system-health.service.ts
+          grep -Fq '/api/partner?op=site-content-admin' "$SERVICE"
+          for action in systemHealthSnapshot saveRuntimeControls setSystemEventResolved runSafeRepair; do grep -Fq "$action" "$SERVICE"; done
+          if grep -E 'SUPABASE_PROJECT_URL|SUPABASE_PUBLISHABLE_KEY|/rest/v1/|admin_repair_system_defaults' "$PAGE" "$SERVICE"; then
+            echo "Direct privileged browser path detected in System Health"
+            exit 1
+          fi
+
+      - name: Edge authorization contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          EDGE=supabase/functions/site-content-admin-gateway-v174/index.ts
+          grep -Fq 'action==="saveRuntimeControls"' "$EDGE"
+          grep -Fq 'action==="systemHealthSnapshot"' "$EDGE"
+          grep -Fq 'action==="setSystemEventResolved"' "$EDGE"
+          grep -Fq 'action==="runSafeRepair"' "$EDGE"
+          grep -Fq 'admin.canSettings' "$EDGE"
+          grep -Fq 'admin.role!=="owner"&&admin.role!=="admin"' "$EDGE"
+          grep -Fq 'service_run_safe_repair_v176' "$EDGE"
+
+      - name: Frontend TypeScript and lint
+        run: npm run lint
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Accessibility guards
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+      - name: Vercel function budget
+        run: npm run vercel:functions
+      - name: Premium design contract
+        run: npm run design:premium
+      - name: Edge Function TypeScript
+        run: npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/site-content-admin-gateway-v174/index.ts
+      - name: Production Angular build
+        run: npm run build

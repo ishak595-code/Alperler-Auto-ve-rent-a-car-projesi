@@ -28,6 +28,16 @@ includesAll(migration, [
 const pathFix = read('supabase/migrations/20260825054600_v163_customer_document_path_constraint_fix.sql');
 assert(pathFix.includes("/[0-9a-fA-F-]{36}\\.(jpg|png|webp|pdf)$"), 'document path regex must match a literal extension separator');
 
+const storageBinding = read('supabase/migrations/20260825061000_v163_document_storage_binding.sql');
+includesAll(storageBinding, [
+  'validate_customer_document_storage_binding',
+  "bucket_id = 'customer-documents'",
+  'CUSTOMER_DOCUMENT_STORAGE_OWNER_MISMATCH',
+  'CUSTOMER_DOCUMENT_STORAGE_MIME_MISMATCH',
+  'CUSTOMER_DOCUMENT_STORAGE_SIZE_MISMATCH',
+  'customer_documents_storage_binding',
+], 'document storage binding');
+
 const booking = read('src/services/booking.service.ts');
 includesAll(booking, [
   'reserveRentalHold',
@@ -37,11 +47,14 @@ includesAll(booking, [
   'hold.startAt',
   'hold.endAt',
 ], 'booking client');
+assert(!booking.includes('/functions/v1/booking-gateway'), 'browser booking client must not bypass the same-origin BFF');
+assert(!booking.includes('/functions/v1/rental-availability'), 'browser availability client must not bypass the same-origin BFF');
 
 const adminAccess = read('src/services/admin-access.service.ts');
 assert(adminAccess.includes('admin_users?user_id=eq.'), 'admin authorization must be UUID-bound');
 assert(!adminAccess.includes('admin_users?email=eq.'), 'admin authorization must not use mutable email lookup');
-assert(adminAccess.includes('? value : "support"'), 'unknown admin roles must fail closed');
+assert(adminAccess.includes('AdminRole | null'), 'unknown admin roles must have a nullable fail-closed type');
+assert(adminAccess.includes('? value : null'), 'unknown admin roles must fail closed to null');
 
 const wallet = read('src/services/customer-wallet.service.ts');
 includesAll(wallet, [
@@ -86,6 +99,7 @@ includesAll(availabilityEdge, [
   'branchTimezone',
   'rental_hold_minute',
 ], 'rental availability edge function');
+assert(!availabilityEdge.includes('access-control-allow-origin'), 'availability edge must not expose direct browser CORS');
 
 const branchModel = read('src/models/branch.model.ts');
 const branchService = read('src/services/branch.service.ts');
@@ -107,11 +121,11 @@ includesAll(carDetail, [
 
 const catalogueAdmin = read('src/pages/admin/admin-catalog-editor.component.ts');
 includesAll(catalogueAdmin, [
-  "cityFuelConsumption",
-  "highwayFuelConsumption",
-  "fuelTankCapacity",
-  "wheelSize",
-  "cylinderCount",
+  'cityFuelConsumption',
+  'highwayFuelConsumption',
+  'fuelTankCapacity',
+  'wheelSize',
+  'cylinderCount',
 ], 'admin technical data editor');
 
 const packageJson = JSON.parse(read('package.json'));

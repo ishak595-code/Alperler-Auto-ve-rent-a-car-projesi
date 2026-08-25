@@ -7,6 +7,7 @@ import { AdminAppearanceSettingsComponent } from './admin-appearance-settings.co
 import { AdminHomepageComponent } from './admin-homepage.component';
 import { AdminHomepageDeviceVisibilityComponent } from './admin-homepage-device-visibility.component';
 import { AdminHomepagePlannerCopyComponent } from './admin-homepage-planner-copy.component';
+import { AdminHomepageBlockCopyV1742Component } from './admin-homepage-block-copy-v1742.component';
 import { AdminNavigationComponent } from './admin-navigation.component';
 import { AdminFooterV174Component } from './admin-footer-v174.component';
 import { AdminLegalCenterComponent } from './admin-legal-center.component';
@@ -21,10 +22,10 @@ interface SettingsTab { id: SettingsSection; label: string; shortLabel: string; 
 
 @Component({
   selector: 'app-admin-site-settings-hub',standalone: true,
-  imports: [CommonModule,AdminSettingsComponent,AdminAppearanceSettingsComponent,AdminHomepageComponent,AdminHomepageDeviceVisibilityComponent,AdminHomepagePlannerCopyComponent,AdminRentalPricingComponent,AdminPaymentSettingsComponent,AdminNavigationComponent,AdminFooterV174Component,AdminLegalCenterComponent,AdminSeoSettingsComponent,AdminFaqManagementComponent,AdminWhatsappSettingsComponent],
+  imports: [CommonModule,AdminSettingsComponent,AdminAppearanceSettingsComponent,AdminHomepageComponent,AdminHomepageDeviceVisibilityComponent,AdminHomepagePlannerCopyComponent,AdminHomepageBlockCopyV1742Component,AdminRentalPricingComponent,AdminPaymentSettingsComponent,AdminNavigationComponent,AdminFooterV174Component,AdminLegalCenterComponent,AdminSeoSettingsComponent,AdminFaqManagementComponent,AdminWhatsappSettingsComponent],
   template: `
     <div class="workspace"><header class="workspace-head"><div class="head-row"><button type="button" class="back" (click)="goBack()" aria-label="Önceki sayfaya dön">←</button><div><p>Site Yönetimi</p><h1>Site Ayarları</h1><span>Sitenin görünümünü, kiralama hesaplarını, ödeme seçeneklerini, iletişim bilgilerini ve yayınlanan içeriklerini tek alanda yönetin.</span></div></div><nav class="tabs" aria-label="Site ayarları bölümleri">@for (tab of visibleTabs(); track tab.id) {<button type="button" [class.active]="activeSection() === tab.id" (click)="select(tab.id)" [attr.aria-current]="activeSection() === tab.id ? 'page' : null" [attr.aria-label]="tab.label + '. ' + tab.description"><strong>{{ tab.shortLabel }}</strong><small>{{ tab.description }}</small></button>}</nav></header>
-      <main class="content">@if (accessReady()) {@switch (activeSection()) {@case ('homepage') { <app-admin-homepage-device-visibility /><app-admin-homepage-planner-copy /><app-admin-homepage /> }@case ('rental') { <app-admin-rental-pricing /> }@case ('payments') { <app-admin-payment-settings /> }@case ('navigation') { <app-admin-navigation /> }@case ('footer') { <app-admin-footer-v174 /> }@case ('legal') { <app-admin-legal-center /> }@case ('seo') { <app-admin-seo-settings /> }@case ('faq') { <app-admin-faq-management /> }@case ('whatsapp') { <app-admin-whatsapp-settings /> }@default { <app-admin-settings /><app-admin-appearance-settings /> }}} @else {<div class="p-8 text-center text-sm font-bold text-slate-500">Yönetim alanı hazırlanıyor…</div>}</main>
+      <main class="content">@if (accessReady()) {@switch (activeSection()) {@case ('homepage') { <app-admin-homepage-device-visibility /><app-admin-homepage-planner-copy /><app-admin-homepage-block-copy-v1742 /><app-admin-homepage /> }@case ('rental') { <app-admin-rental-pricing /> }@case ('payments') { <app-admin-payment-settings /> }@case ('navigation') { <app-admin-navigation /> }@case ('footer') { <app-admin-footer-v174 /> }@case ('legal') { <app-admin-legal-center /> }@case ('seo') { <app-admin-seo-settings /> }@case ('faq') { <app-admin-faq-management /> }@case ('whatsapp') { <app-admin-whatsapp-settings /> }@default { <app-admin-settings /><app-admin-appearance-settings /> }}} @else {<div class="p-8 text-center text-sm font-bold text-slate-500">Yönetim alanı hazırlanıyor…</div>}</main>
     </div>
   `,
   styles: [`

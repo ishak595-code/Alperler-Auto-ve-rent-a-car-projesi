@@ -60,7 +60,7 @@ jobs:
           deno-version: v2.x
       - name: Edge function checks
         run: |
-          deno check supabase/functions/geo-directory/index.ts
-          deno check supabase/functions/branch-partner-v164/index.ts
+          deno check --node-modules-dir=auto supabase/functions/geo-directory/index.ts
+          deno check --node-modules-dir=auto supabase/functions/branch-partner-v164/index.ts
       - name: Production build
         run: npm run build

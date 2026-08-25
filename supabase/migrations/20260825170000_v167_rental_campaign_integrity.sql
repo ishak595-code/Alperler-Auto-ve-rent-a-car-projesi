@@ -4,6 +4,38 @@
 alter table public.campaigns
   add column if not exists required_extra_ids text[] not null default '{}'::text[];
 
+create or replace function private.v167_sync_campaign_required_extras()
+returns trigger
+language plpgsql
+security definer
+set search_path=public,private,pg_catalog
+as $$
+declare
+  v_values text[] := '{}'::text[];
+  v_invalid text;
+begin
+  if new.metadata ? 'requiredExtraIds' then
+    if jsonb_typeof(new.metadata->'requiredExtraIds') <> 'array' then
+      raise exception 'CAMPAIGN_REQUIRED_EXTRAS_INVALID';
+    end if;
+    select coalesce(array_agg(distinct value order by value),'{}'::text[])
+      into v_values
+    from jsonb_array_elements_text(new.metadata->'requiredExtraIds') as x(value);
+    select value into v_invalid from unnest(v_values) as x(value)
+      where value !~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$' limit 1;
+    if v_invalid is not null then raise exception 'CAMPAIGN_REQUIRED_EXTRA_INVALID:%',v_invalid; end if;
+    new.required_extra_ids:=v_values;
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.v167_sync_campaign_required_extras() from public,anon,authenticated,service_role;
+
+drop trigger if exists campaigns_required_extras_sync_v167 on public.campaigns;
+create trigger campaigns_required_extras_sync_v167
+before insert or update of metadata on public.campaigns
+for each row execute function private.v167_sync_campaign_required_extras();
+
 create or replace function private.v167_validate_campaign_required_extras()
 returns trigger
 language plpgsql

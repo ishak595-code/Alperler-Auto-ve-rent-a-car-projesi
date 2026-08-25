@@ -62,8 +62,9 @@ jobs:
         run: |
           set -euo pipefail
           EDGE=supabase/functions/customer-admin-gateway-v173/index.ts
-          API=api/customer-admin.ts
+          API=api/partner.ts
           test -f "$EDGE" && test -f "$API"
+          test ! -f api/customer-admin.ts
           grep -Fq "requireAdmin" "$EDGE"
           grep -Fq "is_active=eq.true" "$EDGE"
           grep -Fq 'permissions["settings.manage"]===true' "$EDGE"
@@ -73,18 +74,20 @@ jobs:
           grep -Fq "service_customer_document_path_v173" "$EDGE"
           grep -Fq "createSignedUrl" "$EDGE"
           grep -Fq "CUSTOMER_DOCUMENT_SIGNED_V173" "$EDGE"
+          grep -Fq 'operation === "customer-admin"' "$API"
+          grep -Fq 'edgeFunction: "customer-admin-gateway-v173"' "$API"
+          grep -Fq 'requireAuth: true' "$API"
+          grep -Fq 'forwardQuery: ["userId", "limit"]' "$API"
           grep -Fq "guardOrigin" "$API"
-          grep -Fq "customer-admin-gateway-v173" "$API"
-          grep -Fq "authorization" "$API"
-          grep -Fq "PAYLOAD_TOO_LARGE" "$API"
+          grep -Fq "maxBodyBytes: 64 * 1024" "$API"
 
       - name: Browser customer admin isolation contract
         shell: bash
         run: |
           set -euo pipefail
           FILES="src/services/customer-admin.service.ts src/services/customer-admin-detail.service.ts"
-          grep -Fq "/api/customer-admin" src/services/customer-admin.service.ts
-          grep -Fq "/api/customer-admin" src/services/customer-admin-detail.service.ts
+          grep -Fq "/api/partner?op=customer-admin" src/services/customer-admin.service.ts
+          grep -Fq "/api/partner?op=customer-admin" src/services/customer-admin-detail.service.ts
           if grep -E "SUPABASE_PROJECT_URL|SUPABASE_PUBLISHABLE_KEY|/rest/v1/|/storage/v1/object/sign|admin_set_customer_status|admin_link_booking_customer|admin_review_customer_document" $FILES; then
             echo "Admin customer browser services must not bypass the V173 gateway"
             exit 1

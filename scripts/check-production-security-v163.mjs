@@ -43,12 +43,13 @@ assert(!availability.includes('reserve_rental_hold'),'availability service must 
 assert(!availability.includes('access-control-allow-origin'),'availability edge must not expose direct browser CORS');
 
 const adminEdge=read('supabase/functions/booking-admin-actions/index.ts');
-all(adminEdge,['rpc/admin_approve_booking','list-alternatives','offer-alternative','BOOKING_ALTERNATIVE_OFFERED'],'admin booking edge');
+all(adminEdge,['rpc/admin_approve_booking','listOffers','offer_alternative','BOOKING_ALTERNATIVE_OFFERED'],'admin booking edge');
 const bookingApi=read('api/bookings.ts');
 all(bookingApi,['guardOrigin','x-request-id','x-upstream-request-id','rentalAvailability','adminBookingActions','booking-admin-actions'],'consolidated booking BFF');
 const vercelText=read('vercel.json');
 assert(vercelText.includes('"/api/admin-booking-actions", "destination": "/api/bookings?mode=admin-booking-actions"'),'admin booking route must reuse booking BFF');
 assert(!fs.existsSync('api/admin-booking-actions.ts'),'separate admin booking Vercel function must stay removed');
+assert(!fs.existsSync('supabase/functions/booking-browser-gateway/index.ts'),'unused direct browser booking Edge must stay removed');
 const adminUi=read('src/pages/admin/admin-reservations.component.ts');
 all(adminUi,['Onay bekleyen talepler aracı kilitlemez','Alternatif bul','Müşteriye Öner','WhatsApp','bookingService.offerAlternative'],'admin satisfaction workflow');
 
@@ -90,7 +91,12 @@ assert(!legacySpecs.includes('CAR_SPECS_DB'),'static technical-spec database mus
 all(legacySpecs,["fetch('/api/catalog?resource=vehicles'",'technicalSpecs'],'technical-spec live compatibility adapter');
 
 const pkg=JSON.parse(read('package.json'));
-assert(pkg.dependencies?.tailwindcss==='4.2.1','Tailwind must be pinned');
+assert(pkg.devDependencies?.tailwindcss==='4.2.1','Tailwind must be pinned as a build-only dependency');
+for(const name of ['@angular/common','@angular/compiler','@angular/core','@angular/forms','@angular/platform-browser','@angular/router']){
+  assert(/^21\.2\.(?:2[0-9]|[3-9][0-9])$/.test(String(pkg.dependencies?.[name]||'')),`${name} must stay on patched Angular 21.2.20+`);
+}
+assert(/^9\./.test(String(pkg.dependencies?.nodemailer||'')),'Nodemailer must stay on the hardened v9 line');
+for(const name of ['@angular/build','@angular/cli','@angular/compiler-cli']) assert(pkg.devDependencies?.[name],`${name} must remain build-only`);
 
 function scan(root,needle,out=[]){if(!fs.existsSync(root))return out;const stat=fs.statSync(root);if(stat.isFile()){if(read(root).includes(needle))out.push(root);return out;}for(const name of fs.readdirSync(root)){const target=path.join(root,name);const s=fs.statSync(target);if(s.isDirectory())scan(target,needle,out);else if(/\.(ts|js|mjs|cjs|json|html|css|sql|md|yml|yaml)$/.test(name)&&read(target).includes(needle))out.push(target);}return out;}
 const removed='alperrentacar'+'.online';

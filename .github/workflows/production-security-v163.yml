@@ -9,8 +9,11 @@ on:
       - "api/**"
       - "src/**"
       - "supabase/**"
+      - "package.json"
+      - "package-lock.json"
       - "scripts/check-production-security-v163.mjs"
       - "vercel.json"
+      - ".github/dependabot.yml"
       - ".github/workflows/production-security-v163.yml"
   push:
     branches:
@@ -19,8 +22,11 @@ on:
       - "api/**"
       - "src/**"
       - "supabase/**"
+      - "package.json"
+      - "package-lock.json"
       - "scripts/check-production-security-v163.mjs"
       - "vercel.json"
+      - ".github/dependabot.yml"
       - ".github/workflows/production-security-v163.yml"
 
 permissions:
@@ -48,6 +54,9 @@ jobs:
 
       - name: Install dependencies from lockfile
         run: npm ci --no-audit --no-fund
+
+      - name: Production dependency vulnerability gate
+        run: npm audit --omit=dev --audit-level=high
 
       - name: V163 production security invariant gate
         run: node scripts/check-production-security-v163.mjs

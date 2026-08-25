@@ -6,7 +6,7 @@ values (
     'phone', '0537 959 48 51',
     'email', 'alperlerauto@gmail.com',
     'address', 'Hakkari Yüksekova Merkez',
-    'website', 'https://alperrentacar.online',
+    'website', '',
     'whatsapp', '905379594851'
   ),
   true

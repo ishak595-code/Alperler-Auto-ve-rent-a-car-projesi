@@ -43,7 +43,7 @@ async function signDocument(admin:AdminContext,input:any){
   const documentId=uuid(input?.documentId);if(!documentId)return json({ok:false,code:"INVALID_DOCUMENT_ID"},400);
   const meta=await rpc<any>("service_customer_document_path_v173",{p_actor:admin.id,p_document_id:documentId});
   const path=clean(meta?.storage_path,1000);if(!path)return json({ok:false,code:"DOCUMENT_PATH_MISSING"},409);
-  const {data,error}=await supabase.storage.from(BUCKET).createSignedUrl(path,120,{download:false});
+  const {data,error}=await supabase.storage.from(BUCKET).createSignedUrl(path,120);
   if(error||!data?.signedUrl)throw new Error("DOCUMENT_SIGN_FAILED");
   await db("audit_logs",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({actor_user_id:admin.id,actor_email:admin.email,action:"CUSTOMER_DOCUMENT_SIGNED_V173",entity_type:"customer_document",entity_id:documentId,event_meta:{customer_user_id:meta?.user_id||null,expires_in_seconds:120,gateway:"customer-admin-v173"}})}).catch(()=>undefined);
   return json({ok:true,documentId,signedUrl:data.signedUrl,expiresIn:120});

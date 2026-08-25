@@ -2,6 +2,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const MAX_TOUR_PERSON_COUNT = 1_000_000_000;
+const MAX_BOOKING_MONEY = 999_999_999_999.99;
 
 const ALLOWED_ORIGINS = new Set([
   "https://alperlerrentaacar.com",
@@ -171,11 +173,12 @@ Deno.serve(async (request: Request) => {
     if (!customerName) throw new Error("INVALID_CUSTOMER_NAME");
     if (!/[0-9]/.test(customerPhone) || customerPhone.replace(/\D/g, "").length < 7) throw new Error("INVALID_PHONE");
     if (!validDay(date) || date < istanbulToday()) throw new Error("INVALID_TOUR_DATE");
-    const persons = integer(body?.personCount, 1, 1_000_000_000);
+    const persons = integer(body?.personCount, 1, MAX_TOUR_PERSON_COUNT);
     const enteredEmail = emailValue(body?.customerEmail);
     const authorization = request.headers.get("authorization") || "";
     const customer = await optionalCustomer(authorization);
     const customerEmail = customer?.email || enteredEmail;
+    if (!customerEmail) throw new Error("INVALID_EMAIL");
     const tour = await getTour(itemId);
     const idempotencyKey = clean(body?.idempotencyKey, 120) || crypto.randomUUID();
     const duplicate = await firstRow(`bookings?idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&select=*&limit=1`);
@@ -183,7 +186,7 @@ Deno.serve(async (request: Request) => {
 
     const ip = clean(request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("x-client-ip") || "unknown", 100);
     const networkHash = await sha256(`${ip}|${clean(request.headers.get("user-agent"), 300)}`);
-    const contactHash = await sha256(`${customerPhone}|${customerEmail || ""}`);
+    const contactHash = await sha256(`${customerPhone}|${customerEmail}`);
     if (!(await consumeRateLimit(networkHash, "tour_booking_network_minute_v170", 60, 12)) ||
         !(await consumeRateLimit(networkHash, "tour_booking_network_hour_v170", 3600, 120)) ||
         !(await consumeRateLimit(contactHash, "tour_booking_contact_hour_v170", 3600, 30))) {
@@ -191,6 +194,8 @@ Deno.serve(async (request: Request) => {
     }
 
     const unitPrice = Math.max(0, Number(tour.price_per_person || 0));
+    const maxBillablePeople = unitPrice > 0 ? Math.floor(MAX_BOOKING_MONEY / unitPrice) : MAX_TOUR_PERSON_COUNT;
+    if (persons > Math.max(1, Math.min(MAX_TOUR_PERSON_COUNT, maxBillablePeople))) throw new Error("INVALID_PERSON_COUNT");
     const normalSubtotal = money(unitPrice * persons);
     const startAt = new Date(`${date}T12:00:00+03:00`).toISOString();
     const requestedCampaign = clean(body?.campaignId, 80);
@@ -298,7 +303,8 @@ Deno.serve(async (request: Request) => {
     const unavailable = code === "BOOKINGS_DISABLED";
     const bad = code.startsWith("INVALID_") || code.includes("CAMPAIGN_NOT_ACTIVE") || code.includes("CAMPAIGN_TARGET_MISMATCH") || code.includes("CAMPAIGN_MINIMUM_");
     const status = conflict ? 409 : forbidden ? 403 : unavailable ? 503 : bad ? 400 : 500;
-    const message = code === "INVALID_PERSON_COUNT" ? "Kişi sayısı geçerli değil." :
+    const message = code === "INVALID_PERSON_COUNT" ? "Kişi sayısı geçerli değil veya seçilen tur fiyatı için teknik işlem sınırını aşıyor." :
+      code === "INVALID_EMAIL" ? "Geçerli bir e-posta adresi zorunludur." :
       code === "INVALID_TOUR_DATE" ? "Tur tarihi geçerli değil." :
       code === "INVALID_TOUR" ? "Tur bulunamadı veya rezervasyona açık değil." :
       code === "BOOKINGS_DISABLED" ? "Yeni rezervasyon işlemleri geçici olarak kapalı." :

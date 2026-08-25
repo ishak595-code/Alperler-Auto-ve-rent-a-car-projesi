@@ -101,6 +101,15 @@ includesAll(availabilityEdge, [
 ], 'rental availability edge function');
 assert(!availabilityEdge.includes('access-control-allow-origin'), 'availability edge must not expose direct browser CORS');
 
+const bookingGateway = read('supabase/functions/booking-gateway/index.ts');
+includesAll(bookingGateway, [
+  'async function branchTimezone',
+  'localCalendarDayNumber',
+  'rentalDays(start: string, end: string, timezone: string)',
+  'await branchTimezone(vehicle.branch_id)',
+  '["owner", "admin", "editor", "support"].includes(role)',
+], 'booking gateway timezone and admin hardening');
+
 const branchModel = read('src/models/branch.model.ts');
 const branchService = read('src/services/branch.service.ts');
 const branchApi = read('api/branches.ts');

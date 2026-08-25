@@ -11,17 +11,36 @@ import contactApi from "./api/contact";
 import paymentsApi from "./api/payments";
 import partnerApi from "./api/partner";
 import branchNetworkApi from "./api/branch-network";
+import financeReportApi from "./api/finance/report";
+import sendEmailApi from "./api/send-email";
+import robotsApi from "./api/robots";
+import sitemapApi from "./api/sitemap";
+import socialPreviewApi from "./api/social-preview";
 
-const __filename=fileURLToPath(import.meta.url);const __dirname=path.dirname(__filename);const app=express();const port=Number(process.env.PORT||3000);const distPath=path.join(__dirname,"dist");const indexPath=path.join(distPath,"index.html");
+const __filename=fileURLToPath(import.meta.url);
+const __dirname=path.dirname(__filename);
+const app=express();
+const port=Number(process.env.PORT||3000);
+const distPath=path.join(__dirname,"dist");
+const indexPath=path.join(distPath,"index.html");
+const CSP="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https: wss:; frame-src 'self' https:; manifest-src 'self'; worker-src 'self' blob:; upgrade-insecure-requests";
+
 app.disable("x-powered-by");
 app.set("trust proxy",true);
-
-app.use((_req,res,next)=>{res.setHeader("X-Content-Type-Options","nosniff");res.setHeader("X-Frame-Options","DENY");res.setHeader("Referrer-Policy","strict-origin-when-cross-origin");res.setHeader("Permissions-Policy","camera=(), microphone=(), geolocation=(self)");next();});
+app.use((_req,res,next)=>{
+  res.setHeader("Strict-Transport-Security","max-age=31536000");
+  res.setHeader("X-Content-Type-Options","nosniff");
+  res.setHeader("X-Frame-Options","DENY");
+  res.setHeader("Referrer-Policy","strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy","camera=(), microphone=(), geolocation=(self)");
+  res.setHeader("Content-Security-Policy",CSP);
+  next();
+});
 app.get("/health",(_req,res)=>{res.setHeader("Cache-Control","no-store");res.status(200).json({ok:true,runtime:"node",service:"alperler-web"});});
 
-// The same Web Request handlers used by serverless hosts are mounted here too.
-// This keeps core BFF behavior portable to a normal Node container/VPS/PaaS.
-const apiHandlers=new Map<string,{fetch(request:Request):Promise<Response>}>([
+type WebHandler={fetch(request:Request):Promise<Response>};
+type RouteTarget={handler:WebHandler;query?:Record<string,string>};
+const directApiHandlers=new Map<string,WebHandler>([
   ["/api/bookings",bookingsApi],
   ["/api/rental-availability",rentalAvailabilityApi],
   ["/api/admin-booking-actions",adminBookingActionsApi],
@@ -31,24 +50,74 @@ const apiHandlers=new Map<string,{fetch(request:Request):Promise<Response>}>([
   ["/api/payments",paymentsApi],
   ["/api/partner",partnerApi],
   ["/api/branch-network",branchNetworkApi],
+  ["/api/finance/report",financeReportApi],
+  ["/api/send-email",sendEmailApi],
+]);
+const aliasTargets=new Map<string,RouteTarget>([
+  ["/api/contact-admin",{handler:contactApi,query:{mode:"admin"}}],
+  ["/api/partner-requests",{handler:partnerApi,query:{op:"requests"}}],
+  ["/api/partner-media",{handler:partnerApi,query:{op:"media"}}],
+  ["/api/partner-upload-resume",{handler:partnerApi,query:{op:"resume"}}],
+  ["/api/payments/create-session",{handler:paymentsApi,query:{op:"create-session"}}],
+  ["/api/payments/paytr-callback",{handler:paymentsApi,query:{op:"paytr-callback"}}],
+  ["/api/integrations/status",{handler:bookingsApi,query:{mode:"integration-status"}}],
 ]);
 app.use("/api",express.raw({type:"*/*",limit:"2mb"}));
 
-function webRequest(req:ExpressRequest):Request{
+function requestOrigin(req:ExpressRequest):string{
   const forwardedProto=String(req.headers["x-forwarded-proto"]||"").split(",")[0].trim();
   const forwardedHost=String(req.headers["x-forwarded-host"]||"").split(",")[0].trim();
-  const protocol=forwardedProto||req.protocol||"http";const host=forwardedHost||req.get("host")||`localhost:${port}`;
-  const headers=new Headers();for(const [key,value] of Object.entries(req.headers)){if(value===undefined)continue;if(Array.isArray(value))for(const item of value)headers.append(key,item);else headers.set(key,String(value));}
-  const method=req.method.toUpperCase();const body=method==="GET"||method==="HEAD"?undefined:(Buffer.isBuffer(req.body)?req.body:Buffer.from(req.body||""));
-  return new Request(`${protocol}://${host}${req.originalUrl}`,{method,headers,body:body&&body.length?body:undefined,redirect:"manual"});
+  const protocol=forwardedProto||req.protocol||"http";
+  const host=forwardedHost||req.get("host")||`localhost:${port}`;
+  return `${protocol}://${host}`;
 }
-async function sendWebResponse(upstream:Response,res:ExpressResponse):Promise<void>{upstream.headers.forEach((value,key)=>res.setHeader(key,value));res.status(upstream.status);const bytes=Buffer.from(await upstream.arrayBuffer());res.send(bytes);}
+function webRequest(req:ExpressRequest,queryPatch?:Record<string,string>):Request{
+  const target=new URL(`${requestOrigin(req)}${req.originalUrl}`);
+  for(const [key,value] of Object.entries(queryPatch||{}))target.searchParams.set(key,value);
+  const headers=new Headers();
+  for(const [key,value] of Object.entries(req.headers)){
+    if(value===undefined)continue;
+    if(Array.isArray(value))for(const item of value)headers.append(key,item);else headers.set(key,String(value));
+  }
+  const method=req.method.toUpperCase();
+  const buffer=method==="GET"||method==="HEAD"?null:(Buffer.isBuffer(req.body)?req.body:Buffer.from(req.body||""));
+  const body=buffer&&buffer.length?new Uint8Array(buffer):undefined;
+  return new Request(target,{method,headers,body,redirect:"manual"});
+}
+async function sendWebResponse(upstream:Response,res:ExpressResponse):Promise<void>{
+  upstream.headers.forEach((value,key)=>res.setHeader(key,value));
+  res.status(upstream.status);
+  res.send(Buffer.from(await upstream.arrayBuffer()));
+}
 
 app.all(/^\/api\/.*/,async(req,res,next)=>{
-  const pathName=req.path.replace(/\/$/,"");const handler=apiHandlers.get(pathName);if(!handler){next();return;}
-  try{await sendWebResponse(await handler.fetch(webRequest(req)),res);}catch(error){console.error("Portable API adapter failed",pathName,error);res.setHeader("Cache-Control","no-store");res.status(503).json({ok:false,code:"API_ADAPTER_UNAVAILABLE"});}
+  const pathName=req.path.replace(/\/$/,"");
+  const target=aliasTargets.get(pathName)||(()=>{const handler=directApiHandlers.get(pathName);return handler?{handler}:undefined;})();
+  if(!target){next();return;}
+  try{await sendWebResponse(await target.handler.fetch(webRequest(req,target.query)),res);}catch(error){console.error("Portable API adapter failed",pathName,error);res.setHeader("Cache-Control","no-store");res.status(503).json({ok:false,code:"API_ADAPTER_UNAVAILABLE"});}
 });
 
-app.use(express.static(distPath,{index:false,setHeaders:(res,filePath)=>{if(filePath.endsWith(".js")||filePath.endsWith(".mjs"))res.setHeader("Content-Type","application/javascript; charset=utf-8");}}));
+async function serveWebHandler(req:ExpressRequest,res:ExpressResponse,handler:WebHandler,query?:Record<string,string>):Promise<void>{
+  try{await sendWebResponse(await handler.fetch(webRequest(req,query)),res);}catch(error){console.error("Portable dynamic route failed",req.path,error);res.status(503).send("Service unavailable");}
+}
+app.all("/robots.txt",(req,res)=>void serveWebHandler(req,res,robotsApi));
+app.all("/sitemap.xml",(req,res)=>void serveWebHandler(req,res,sitemapApi));
+
+const crawlerPattern=/(facebookexternalhit|Facebot|WhatsApp|Twitterbot|LinkedInBot|Slackbot|Discordbot|TelegramBot)/i;
+app.get(["/","/fleet/:id","/sales/:id","/tour/:id","/blog/:id","/branches/:id"],async(req,res,next)=>{
+  if(!crawlerPattern.test(String(req.headers["user-agent"]||""))){next();return;}
+  const pathName=req.path;
+  let kind="home";
+  if(pathName.startsWith("/fleet/"))kind="fleet";else if(pathName.startsWith("/sales/"))kind="sales";else if(pathName.startsWith("/tour/"))kind="tour";else if(pathName.startsWith("/blog/"))kind="blog";else if(pathName.startsWith("/branches/"))kind="branch";
+  await serveWebHandler(req,res,socialPreviewApi,{kind,...(req.params["id"]?{id:String(req.params["id"])}:{})});
+});
+
+app.use(express.static(distPath,{index:false,setHeaders:(res,filePath)=>{
+  if(filePath.endsWith(".js")||filePath.endsWith(".mjs"))res.setHeader("Content-Type","application/javascript; charset=utf-8");
+  if(filePath.endsWith("service-worker.js")){
+    res.setHeader("Cache-Control","no-cache, no-store, max-age=0, must-revalidate");
+    res.setHeader("Service-Worker-Allowed","/");
+  }
+}}));
 app.get(/.*/,(_req,res)=>{if(!fs.existsSync(indexPath)){res.status(404).send("Application not built.");return;}res.setHeader("Cache-Control","no-store, max-age=0, must-revalidate");res.sendFile(indexPath);});
 app.listen(port,"0.0.0.0",()=>console.log(`Alperler Auto web runtime is listening on port ${port}`));

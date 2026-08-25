@@ -23,15 +23,18 @@ interface BookingApiResponse {
   code?: string;
   message?: string;
 }
+interface AvailabilityHold {
+  id: string;
+  vehicleId: string;
+  startAt: string;
+  endAt: string;
+  expiresAt: string;
+  branchTimezone?: string;
+}
 interface AvailabilityApiResponse {
   ok: boolean;
   available?: boolean;
-  hold?: {
-    id: string;
-    vehicleId: string;
-    expiresAt: string;
-    branchTimezone?: string;
-  };
+  hold?: AvailabilityHold;
   code?: string;
   message?: string;
   requestId?: string;
@@ -57,7 +60,9 @@ export class BookingService {
     const normalized = this.normalizeInput(input);
     const idempotencyKey = crypto.randomUUID();
     if (normalized.type === "RENTAL") {
-      await this.reserveRentalHold(normalized, idempotencyKey);
+      const hold = await this.reserveRentalHold(normalized, idempotencyKey);
+      normalized.startDate = hold.startAt;
+      normalized.endDate = hold.endAt;
     }
     const envelope = {
       ...normalized,
@@ -107,12 +112,16 @@ export class BookingService {
     this.bookings.update((records) => records.filter((record) => record.id !== id));
   }
 
-  private async reserveRentalHold(input: CreateBookingInput, idempotencyKey: string): Promise<void> {
+  private async reserveRentalHold(input: CreateBookingInput, idempotencyKey: string): Promise<AvailabilityHold> {
     const itemId = input.itemId === undefined ? "" : String(input.itemId).trim();
     const startAt = input.startDate?.trim() || "";
     const endAt = input.endDate?.trim() || "";
     if (!itemId) throw new Error("INVALID_RENTAL_VEHICLE:Kiralık araç seçimi geçerli değil.");
     if (!startAt || !endAt) throw new Error("INVALID_RENTAL_DATES:Teslim alma ve iade tarihlerini kontrol edin.");
+
+    const startLocal = this.wallClockValue(startAt);
+    const endLocal = this.wallClockValue(endAt);
+    if (endLocal <= startLocal) throw new Error("INVALID_RENTAL_DATES:Teslim alma ve iade tarihlerini kontrol edin.");
 
     const token = await this.customerAuth.getAccessToken().catch(() => null);
     const headers: Record<string, string> = {
@@ -121,21 +130,20 @@ export class BookingService {
       "x-request-id": crypto.randomUUID(),
     };
     if (token) headers.Authorization = `Bearer ${token}`;
+    const body = { vehicleId: itemId, startLocal, endLocal, idempotencyKey };
 
     try {
       const response = await firstValueFrom(this.http.post<AvailabilityApiResponse>(
         "/api/rental-availability",
-        { vehicleId: itemId, startAt, endAt, idempotencyKey },
+        body,
         { headers },
       ));
-      if (!response.ok || !response.available || !response.hold?.id) {
-        throw new Error(`${response.code || "AVAILABILITY_CHECK_FAILED"}:${response.message || "Araç uygunluğu doğrulanamadı."}`);
-      }
-      const expiresAt = new Date(response.hold.expiresAt).getTime();
-      if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
-        throw new Error("AVAILABILITY_HOLD_EXPIRED:Araç uygunluk süresi doldu. Lütfen tekrar deneyin.");
-      }
+      return this.validateHold(response);
     } catch (error) {
+      if (error instanceof HttpErrorResponse && this.shouldTryAvailabilityDirect(error)) {
+        console.warn("Primary availability API failed, using direct rental availability gateway.", error.status);
+        return await this.directAvailability(body, token, headers["x-request-id"]);
+      }
       if (error instanceof HttpErrorResponse && error.error && typeof error.error === "object") {
         const payload = error.error as AvailabilityApiResponse;
         const code = String(payload.code || "AVAILABILITY_CHECK_FAILED");
@@ -145,6 +153,66 @@ export class BookingService {
       if (error instanceof Error) throw error;
       throw new Error("AVAILABILITY_CHECK_FAILED:Araç uygunluğu doğrulanamadı.");
     }
+  }
+
+  private shouldTryAvailabilityDirect(error: HttpErrorResponse): boolean {
+    return error.status === 0 || error.status === 404 || error.status === 405 || error.status === 408 || error.status === 502 || error.status === 503 || error.status === 504;
+  }
+
+  private async directAvailability(
+    body: { vehicleId: string; startLocal: string; endLocal: string; idempotencyKey: string },
+    token: string | null,
+    requestId: string,
+  ): Promise<AvailabilityHold> {
+    let response: Response;
+    try {
+      response = await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/rental-availability`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-idempotency-key": body.idempotencyKey,
+          "x-request-id": requestId,
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(12_000),
+      });
+    } catch {
+      throw new Error("AVAILABILITY_SERVICE_UNAVAILABLE:Araç uygunluğu servisine ulaşılamıyor.");
+    }
+    const payload = await response.json().catch(() => ({})) as AvailabilityApiResponse;
+    if (!response.ok) {
+      const code = String(payload.code || `AVAILABILITY_HTTP_${response.status}`);
+      const message = String(payload.message || "Araç uygunluğu doğrulanamadı.");
+      throw new Error(`${code}:${message}`);
+    }
+    return this.validateHold(payload);
+  }
+
+  private validateHold(response: AvailabilityApiResponse): AvailabilityHold {
+    if (!response.ok || !response.available || !response.hold?.id || !response.hold.startAt || !response.hold.endAt) {
+      throw new Error(`${response.code || "AVAILABILITY_CHECK_FAILED"}:${response.message || "Araç uygunluğu doğrulanamadı."}`);
+    }
+    const expiresAt = new Date(response.hold.expiresAt).getTime();
+    const startAt = new Date(response.hold.startAt).getTime();
+    const endAt = new Date(response.hold.endAt).getTime();
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      throw new Error("AVAILABILITY_HOLD_EXPIRED:Araç uygunluk süresi doldu. Lütfen tekrar deneyin.");
+    }
+    if (!Number.isFinite(startAt) || !Number.isFinite(endAt) || endAt <= startAt) {
+      throw new Error("INVALID_RENTAL_DATES:Kiralama tarihleri doğrulanamadı.");
+    }
+    return response.hold;
+  }
+
+  private wallClockValue(value: string): string {
+    const raw = value.trim();
+    const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+    if (dateOnly) return `${dateOnly[1]}-${dateOnly[2]}-${dateOnly[3]}T00:00:00`;
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) throw new Error("INVALID_RENTAL_DATES:Kiralama tarihi geçerli değil.");
+    const pad = (part: number) => String(part).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
   }
 
   private async refreshAdminRecords(showLoading = true): Promise<void> {

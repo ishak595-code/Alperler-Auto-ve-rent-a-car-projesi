@@ -1,5 +1,4 @@
 import { Injectable, inject, signal } from "@angular/core";
-import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { AuthService } from "./auth.service";
 
 export interface BranchNetworkWorkspace {
@@ -16,7 +15,7 @@ export interface BranchNetworkWorkspace {
 @Injectable({ providedIn: "root" })
 export class BranchNetworkAdminService {
   private readonly auth = inject(AuthService);
-  private readonly endpoint = `${SUPABASE_PROJECT_URL}/functions/v1/branch-network-admin`;
+  private readonly endpoint = "/api/partner?op=branch-network-admin";
   private readonly _workspace = signal<BranchNetworkWorkspace | null>(null);
   private readonly _loading = signal(false);
 
@@ -27,7 +26,7 @@ export class BranchNetworkAdminService {
     this._loading.set(true);
     try {
       const token = await this.requiredToken();
-      const response = await fetch(`${this.endpoint}?branchId=${encodeURIComponent(branchId)}`, {
+      const response = await fetch(`${this.endpoint}&branchId=${encodeURIComponent(branchId)}`, {
         headers: this.headers(token),
         cache: "no-store",
       });
@@ -82,6 +81,7 @@ export class BranchNetworkAdminService {
       method: "PATCH",
       headers: this.headers(token),
       body: JSON.stringify(body),
+      cache: "no-store",
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || !payload?.ok) throw new Error(payload?.code || "BRANCH_NETWORK_ACTION_FAILED");
@@ -89,7 +89,7 @@ export class BranchNetworkAdminService {
   }
 
   private headers(token: string): Record<string, string> {
-    return { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}`, "content-type": "application/json" };
+    return { authorization: `Bearer ${token}`, "content-type": "application/json", accept: "application/json", "x-request-id": crypto.randomUUID() };
   }
 
   private async requiredToken(): Promise<string> {

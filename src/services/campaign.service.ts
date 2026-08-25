@@ -15,6 +15,18 @@ export interface CampaignRecord {
   oldPrice?: number;
   newPrice?: number;
   discountPercent?: number;
+  discountMethod: "FIXED_AMOUNT" | "PERCENT" | "FIXED_PRICE";
+  discountValue: number;
+  discountScope: "UNIT" | "ORDER";
+  visibilityMode: "CAMPAIGN_ONLY" | "EVERYWHERE";
+  minimumOrderAmount: number;
+  minimumRentalDays?: number;
+  minimumRentalHours?: number;
+  maxRedemptions?: number;
+  perCustomerLimit: number;
+  allowReferralDiscount: boolean;
+  allowLoyaltyRedemption: boolean;
+  priority: number;
   targetType?: "VEHICLE" | "TOUR" | "GENERAL";
   targetId?: string;
   ctaLabel: string;
@@ -83,6 +95,8 @@ export class CampaignService {
   async save(input: Partial<CampaignRecord> & Pick<CampaignRecord, "title" | "campaignType" | "ctaLabel" | "publicationStatus">): Promise<CampaignRecord> {
     const token = await this.requiredToken();
     const existing = input.id ? this._campaigns().find((row) => row.id === input.id) : undefined;
+    const discountMethod = input.discountMethod ?? existing?.discountMethod ?? "FIXED_AMOUNT";
+    const discountValue = this.nonNegative(input.discountValue ?? existing?.discountValue ?? 0, discountMethod === "PERCENT" ? 100 : 50_000_000);
     const body = {
       title: input.title.trim(),
       slug: (input.slug || existing?.slug || this.slugify(input.title)).trim(),
@@ -93,7 +107,19 @@ export class CampaignService {
       cover_image: input.coverImage?.trim() || null,
       old_price: input.oldPrice ?? null,
       new_price: input.newPrice ?? null,
-      discount_percent: input.discountPercent ?? null,
+      discount_percent: discountMethod === "PERCENT" ? discountValue : (input.discountPercent ?? null),
+      discount_method: discountMethod,
+      discount_value: discountValue,
+      discount_scope: input.discountScope ?? existing?.discountScope ?? "UNIT",
+      visibility_mode: input.visibilityMode ?? existing?.visibilityMode ?? "CAMPAIGN_ONLY",
+      minimum_order_amount: this.nonNegative(input.minimumOrderAmount ?? existing?.minimumOrderAmount ?? 0, 50_000_000),
+      minimum_rental_days: this.optionalInteger(input.minimumRentalDays ?? existing?.minimumRentalDays, 1, 3650),
+      minimum_rental_hours: this.optionalInteger(input.minimumRentalHours ?? existing?.minimumRentalHours, 1, 23),
+      max_redemptions: this.optionalInteger(input.maxRedemptions ?? existing?.maxRedemptions, 1, 100_000_000),
+      per_customer_limit: this.optionalInteger(input.perCustomerLimit ?? existing?.perCustomerLimit ?? 1, 1, 1000) ?? 1,
+      allow_referral_discount: input.allowReferralDiscount ?? existing?.allowReferralDiscount ?? true,
+      allow_loyalty_redemption: input.allowLoyaltyRedemption ?? existing?.allowLoyaltyRedemption ?? true,
+      priority: this.optionalInteger(input.priority ?? existing?.priority ?? 100, 0, 1_000_000) ?? 100,
       target_type: input.targetType || null,
       target_id: input.targetId || null,
       cta_label: input.ctaLabel.trim() || "Fırsatı İncele",
@@ -189,7 +215,7 @@ export class CampaignService {
           is_active: true,
           starts_at: item.startsAt || null,
           ends_at: item.endsAt || null,
-          metadata: { managedBy: "admin_campaigns" },
+          metadata: { managedBy: "admin_campaigns", visibilityMode: item.visibilityMode, pricingVersion: "V166" },
         }))),
       });
       if (!placementResponse.ok) throw new Error(`CAMPAIGN_PLACEMENTS_SAVE_${placementResponse.status}`);
@@ -248,6 +274,18 @@ export class CampaignService {
       oldPrice: row.old_price == null ? undefined : Number(row.old_price),
       newPrice: row.new_price == null ? undefined : Number(row.new_price),
       discountPercent: row.discount_percent == null ? undefined : Number(row.discount_percent),
+      discountMethod: row.discount_method || (row.new_price != null ? "FIXED_PRICE" : row.discount_percent != null ? "PERCENT" : "FIXED_AMOUNT"),
+      discountValue: Number(row.discount_value ?? row.new_price ?? row.discount_percent ?? 0),
+      discountScope: row.discount_scope || "UNIT",
+      visibilityMode: row.visibility_mode || "CAMPAIGN_ONLY",
+      minimumOrderAmount: Number(row.minimum_order_amount || 0),
+      minimumRentalDays: row.minimum_rental_days == null ? undefined : Number(row.minimum_rental_days),
+      minimumRentalHours: row.minimum_rental_hours == null ? undefined : Number(row.minimum_rental_hours),
+      maxRedemptions: row.max_redemptions == null ? undefined : Number(row.max_redemptions),
+      perCustomerLimit: Number(row.per_customer_limit || 1),
+      allowReferralDiscount: row.allow_referral_discount !== false,
+      allowLoyaltyRedemption: row.allow_loyalty_redemption !== false,
+      priority: Number(row.priority ?? 100),
       targetType: row.target_type || undefined,
       targetId: row.target_id || undefined,
       ctaLabel: String(row.cta_label || "Fırsatı İncele"),
@@ -264,6 +302,19 @@ export class CampaignService {
 
   private slugify(value: string): string {
     return value.toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g,"i").replace(/ğ/g,"g").replace(/ü/g,"u").replace(/ş/g,"s").replace(/ö/g,"o").replace(/ç/g,"c").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,100) || `kampanya-${Date.now()}`;
+  }
+
+  private nonNegative(value: number, max: number): number {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > max) throw new Error("CAMPAIGN_VALUE_INVALID");
+    return Math.round(parsed * 100) / 100;
+  }
+
+  private optionalInteger(value: number | undefined, min: number, max: number): number | null {
+    if (value === undefined || value === null || value === ("" as unknown as number)) return null;
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < min || parsed > max) throw new Error("CAMPAIGN_LIMIT_INVALID");
+    return parsed;
   }
 
   private publicHeaders(): Record<string,string> {

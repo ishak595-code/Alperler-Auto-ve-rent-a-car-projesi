@@ -12,10 +12,24 @@ function requestId(request: Request): string {
   return /^[A-Za-z0-9._:-]{8,80}$/.test(supplied) ? supplied : crypto.randomUUID();
 }
 
+function corsHeaders(): Record<string, string> {
+  // This endpoint is a public, rate-limited availability read. It cannot mutate
+  // inventory or expose customer data, so it remains portable across future
+  // domains and hosting providers without a hard-coded origin.
+  return {
+    "access-control-allow-origin": "*",
+    "access-control-allow-headers": "authorization, content-type, x-client-ip, x-request-id",
+    "access-control-allow-methods": "POST,OPTIONS",
+    "access-control-max-age": "600",
+    "vary": "Origin",
+  };
+}
+
 function json(body: unknown, status: number, id: string): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
+      ...corsHeaders(),
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
       "x-request-id": id,
@@ -61,19 +75,6 @@ async function consumeRateLimit(keyHash: string, scope: string, seconds: number,
   return Boolean(await response.json());
 }
 
-async function optionalCustomerId(request: Request): Promise<string | null> {
-  const authorization = request.headers.get("authorization") || "";
-  if (!/^Bearer\s+\S+/i.test(authorization)) return null;
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: { apikey: SERVICE_KEY, authorization },
-    signal: AbortSignal.timeout(8_000),
-  }).catch(() => null);
-  if (!response?.ok) return null;
-  const user = await response.json().catch(() => ({}));
-  const id = clean(user?.id, 80);
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) ? id : null;
-}
-
 function wallClock(value: unknown): string {
   const raw = clean(value, 32);
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(raw);
@@ -88,25 +89,16 @@ function wallClock(value: unknown): string {
     throw new Error("INVALID_RENTAL_DATES");
   }
   const check = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
-  if (check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== day) {
-    throw new Error("INVALID_RENTAL_DATES");
-  }
+  if (check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== day) throw new Error("INVALID_RENTAL_DATES");
   return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${String(second).padStart(2, "0")}`;
 }
 
 Deno.serve(async (request) => {
   const id = requestId(request);
-
-  // Browser traffic must cross the Vercel BFF. This endpoint deliberately emits
-  // no CORS grant, so the public web app cannot bypass the same-origin boundary.
-  if (request.headers.get("origin")) {
-    return json({ ok: false, code: "DIRECT_BROWSER_ACCESS_DENIED", requestId: id }, 403, id);
-  }
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: { ...corsHeaders(), "x-request-id": id } });
   if (request.method !== "POST") return json({ ok: false, code: "METHOD_NOT_ALLOWED", requestId: id }, 405, id);
   if (!SUPABASE_URL || !SERVICE_KEY) return json({ ok: false, code: "SERVER_CONFIG_MISSING", requestId: id }, 503, id);
-  if (Number(request.headers.get("content-length") || 0) > 16_384) {
-    return json({ ok: false, code: "PAYLOAD_TOO_LARGE", requestId: id }, 413, id);
-  }
+  if (Number(request.headers.get("content-length") || 0) > 16_384) return json({ ok: false, code: "PAYLOAD_TOO_LARGE", requestId: id }, 413, id);
 
   let input: Record<string, unknown>;
   try {
@@ -117,93 +109,56 @@ Deno.serve(async (request) => {
 
   try {
     const vehicleIdentifier = clean(input["vehicleId"], 128);
-    const idempotencyKey = clean(input["idempotencyKey"] || request.headers.get("x-idempotency-key"), 120);
     if (!vehicleIdentifier) throw new Error("INVALID_RENTAL_VEHICLE");
-    if (idempotencyKey.length < 8) throw new Error("INVALID_IDEMPOTENCY_KEY");
     const startLocal = wallClock(input["startLocal"] ?? input["startAt"] ?? input["startDate"]);
     const endLocal = wallClock(input["endLocal"] ?? input["endAt"] ?? input["endDate"]);
     if (endLocal <= startLocal) throw new Error("INVALID_RENTAL_DATES");
 
-    const ip = clean(
-      request.headers.get("x-client-ip") || request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown",
-      100,
-    );
+    const ip = clean(request.headers.get("x-client-ip") || request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown", 100);
     const userAgent = clean(request.headers.get("user-agent"), 240);
     const clientHash = await sha256(`${ip}|${userAgent}`);
     if (
-      !(await consumeRateLimit(clientHash, "rental_hold_minute", 60, 12)) ||
-      !(await consumeRateLimit(clientHash, "rental_hold_hour", 3600, 80))
+      !(await consumeRateLimit(clientHash, "rental_availability_minute", 60, 30)) ||
+      !(await consumeRateLimit(clientHash, "rental_availability_hour", 3600, 240))
     ) {
-      return json({
-        ok: false,
-        code: "RATE_LIMITED",
-        message: "Çok fazla uygunluk isteği gönderildi. Lütfen kısa bir süre sonra tekrar deneyin.",
-        requestId: id,
-      }, 429, id);
+      return json({ ok: false, code: "RATE_LIMITED", message: "Çok fazla uygunluk isteği gönderildi. Lütfen kısa bir süre sonra tekrar deneyin.", requestId: id }, 429, id);
     }
 
-    const customerUserId = await optionalCustomerId(request);
-    const response = await rest("rpc/reserve_rental_hold", {
+    const response = await rest("rpc/evaluate_rental_request", {
       method: "POST",
       headers: { "x-request-id": id },
       body: JSON.stringify({
         p_vehicle_identifier: vehicleIdentifier,
         p_start_local: startLocal,
         p_end_local: endLocal,
-        p_idempotency_key: idempotencyKey,
-        p_customer_user_id: customerUserId,
-        p_client_hash: clientHash,
       }),
     });
 
     if (!response.ok) {
-      const payload = await response.json().catch(() => ({})) as { message?: string; code?: string; details?: string };
+      const payload = await response.json().catch(() => ({})) as { message?: string; details?: string };
       const raw = `${payload.message || ""} ${payload.details || ""}`;
-      const code = raw.includes("VEHICLE_TEMPORARILY_HELD")
-        ? "VEHICLE_TEMPORARILY_HELD"
-        : raw.includes("VEHICLE_UNAVAILABLE")
-        ? "VEHICLE_UNAVAILABLE"
-        : raw.includes("INVALID_RENTAL_VEHICLE")
-        ? "INVALID_RENTAL_VEHICLE"
-        : raw.includes("INVALID_BRANCH_TIMEZONE")
-        ? "INVALID_BRANCH_TIMEZONE"
-        : raw.includes("INVALID_RENTAL_DATES")
-        ? "INVALID_RENTAL_DATES"
-        : raw.includes("HOLD_IDEMPOTENCY_CONFLICT") || raw.includes("HOLD_ALREADY_CONVERTED")
-        ? "HOLD_IDEMPOTENCY_CONFLICT"
+      const code = raw.includes("INVALID_RENTAL_VEHICLE") ? "INVALID_RENTAL_VEHICLE"
+        : raw.includes("INVALID_BRANCH_TIMEZONE") ? "INVALID_BRANCH_TIMEZONE"
+        : raw.includes("INVALID_RENTAL_DATES") ? "INVALID_RENTAL_DATES"
         : "AVAILABILITY_CHECK_FAILED";
-      const status = code === "VEHICLE_UNAVAILABLE" || code === "VEHICLE_TEMPORARILY_HELD" || code === "HOLD_IDEMPOTENCY_CONFLICT" ? 409 : code.startsWith("INVALID_") ? 400 : 503;
-      const message = code === "VEHICLE_TEMPORARILY_HELD"
-        ? "Bu araç seçilen zaman aralığı için başka bir müşterinin rezervasyon adımında. Birkaç dakika sonra tekrar deneyin."
-        : code === "VEHICLE_UNAVAILABLE"
-        ? "Bu araç seçilen zaman aralığında müsait değil."
-        : code === "INVALID_RENTAL_DATES"
-        ? "Teslim alma ve iade tarihlerini kontrol edin."
-        : code === "INVALID_RENTAL_VEHICLE"
-        ? "Seçtiğiniz araç rezervasyona açık değil."
-        : code === "INVALID_BRANCH_TIMEZONE"
-        ? "Şube saat dilimi yapılandırması geçerli değil."
-        : "Araç uygunluğu şu anda doğrulanamadı.";
-      return json({ ok: false, code, message, requestId: id }, status, id);
+      const status = code.startsWith("INVALID_") ? 400 : 503;
+      return json({ ok: false, code, message: code === "INVALID_RENTAL_VEHICLE" ? "Seçtiğiniz araç rezervasyona açık değil." : code === "INVALID_RENTAL_DATES" ? "Teslim alma ve iade tarihlerini kontrol edin." : "Araç uygunluğu şu anda doğrulanamadı.", requestId: id }, status, id);
     }
 
-    const rows = await response.json().catch(() => []);
-    const row = Array.isArray(rows) ? rows[0] : null;
-    if (!row?.hold_id || !row?.expires_at || !row?.start_at || !row?.end_at) throw new Error("HOLD_RESPONSE_INVALID");
-
+    const result = await response.json().catch(() => null) as Record<string, unknown> | null;
+    if (!result?.["vehicleId"] || !result?.["startAt"] || !result?.["endAt"]) throw new Error("AVAILABILITY_RESPONSE_INVALID");
+    const available = result["available"] === true;
     return json({
       ok: true,
-      available: true,
-      hold: {
-        id: row.hold_id,
-        vehicleId: row.vehicle_id,
-        startAt: row.start_at,
-        endAt: row.end_at,
-        expiresAt: row.expires_at,
-        branchTimezone: row.branch_timezone || "Europe/Istanbul",
-      },
+      available,
+      vehicleId: result["vehicleId"],
+      startAt: result["startAt"],
+      endAt: result["endAt"],
+      branchTimezone: result["branchTimezone"] || "Europe/Istanbul",
+      alternatives: Array.isArray(result["alternatives"]) ? result["alternatives"] : [],
+      message: available ? "Araç bu zaman aralığında onaylı başka bir rezervasyonla çakışmıyor." : "Bu araç bu zaman aralığında onaylı başka bir rezervasyon nedeniyle dolu.",
       requestId: id,
-    }, 201, id);
+    }, 200, id);
   } catch (error) {
     console.error("rental-availability failed", id, error);
     const code = error instanceof Error ? error.message : "AVAILABILITY_CHECK_FAILED";

@@ -26,54 +26,36 @@ export class AdminAccessService {
   async refresh(force = false): Promise<AdminAccessProfile | null> {
     if (this._loaded() && !force) return this._profile();
     const token = await this.auth.getAccessToken();
-    if (!token) {
-      this._profile.set(null);
-      this._loaded.set(true);
-      return null;
-    }
+    if (!token) return this.finish(null);
 
-    const email = this.auth.getCurrentEmail().trim().toLowerCase();
-    if (!email) {
-      this._profile.set(null);
-      this._loaded.set(true);
-      return null;
-    }
+    const userId = this.subjectFromJwt(token);
+    if (!userId) return this.finish(null);
 
     const response = await fetch(
-      `${SUPABASE_PROJECT_URL}/rest/v1/admin_users?email=eq.${encodeURIComponent(email)}&is_active=eq.true&select=user_id,email,role,is_active,permissions,primary_branch_id&limit=1`,
+      `${SUPABASE_PROJECT_URL}/rest/v1/admin_users?user_id=eq.${encodeURIComponent(userId)}&is_active=eq.true&select=user_id,email,role,is_active,permissions,primary_branch_id&limit=1`,
       {
         headers: {
           apikey: SUPABASE_PUBLISHABLE_KEY,
           authorization: `Bearer ${token}`,
+          accept: "application/json",
         },
+        cache: "no-store",
       },
     ).catch(() => null);
 
-    if (!response?.ok) {
-      this._profile.set(null);
-      this._loaded.set(true);
-      return null;
-    }
-
+    if (!response?.ok) return this.finish(null);
     const rows = await response.json().catch(() => []);
     const row = Array.isArray(rows) ? rows[0] : null;
-    if (!row) {
-      this._profile.set(null);
-      this._loaded.set(true);
-      return null;
-    }
+    if (!row || String(row.user_id || "") !== userId) return this.finish(null);
 
-    const profile: AdminAccessProfile = {
-      userId: String(row.user_id || ""),
-      email: String(row.email || email),
+    return this.finish({
+      userId,
+      email: String(row.email || "").trim().toLowerCase(),
       role: this.normalizeRole(row.role),
       isActive: row.is_active !== false,
       permissions: row.permissions && typeof row.permissions === "object" ? row.permissions : {},
       primaryBranchId: row.primary_branch_id || undefined,
-    };
-    this._profile.set(profile);
-    this._loaded.set(true);
-    return profile;
+    });
   }
 
   async can(area: AdminArea): Promise<boolean> {
@@ -88,6 +70,25 @@ export class AdminAccessService {
   clear(): void {
     this._profile.set(null);
     this._loaded.set(false);
+  }
+
+  private finish(profile: AdminAccessProfile | null): AdminAccessProfile | null {
+    this._profile.set(profile);
+    this._loaded.set(true);
+    return profile;
+  }
+
+  private subjectFromJwt(token: string): string | null {
+    try {
+      const part = token.split(".")[1];
+      if (!part) return null;
+      const normalized = part.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(part.length / 4) * 4, "=");
+      const payload = JSON.parse(atob(normalized)) as { sub?: unknown };
+      const subject = typeof payload.sub === "string" ? payload.sub : "";
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(subject) ? subject : null;
+    } catch {
+      return null;
+    }
   }
 
   private canWithProfile(profile: AdminAccessProfile | null, area: AdminArea): boolean {

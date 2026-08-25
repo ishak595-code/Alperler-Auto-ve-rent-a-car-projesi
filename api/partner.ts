@@ -14,6 +14,7 @@ async function proxy(
     unavailableCode: string;
     unavailableMessage?: string;
     publicCache?: string;
+    forwardQuery?: string[];
   },
 ): Promise<Response> {
   const decision = originDecision(request);
@@ -54,8 +55,11 @@ async function proxy(
   };
   if (authorization) headers.authorization = authorization;
 
+  const upstreamUrl=new URL(`${SUPABASE_PROJECT_URL}/functions/v1/${options.edgeFunction}`);
+  if(options.forwardQuery?.length){const source=new URL(request.url);for(const key of options.forwardQuery){const value=source.searchParams.get(key);if(value)upstreamUrl.searchParams.set(key,value.slice(0,120));}}
+
   try {
-    const upstream = await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/${options.edgeFunction}`, {
+    const upstream = await fetch(upstreamUrl, {
       method,
       headers,
       body,
@@ -120,6 +124,18 @@ export default {
         maxBodyBytes: 32 * 1024,
         unavailableCode: "BRANCH_PARTNER_GATEWAY_UNAVAILABLE",
         unavailableMessage: "İş ortaklığı servisine şu anda ulaşılamıyor. Lütfen kısa süre sonra tekrar deneyin.",
+      });
+    }
+    if (operation === "customer-admin") {
+      return proxy(request, {
+        edgeFunction: "customer-admin-gateway-v173",
+        allowedMethods: ["GET", "POST", "PATCH"],
+        timeout: 20_000,
+        requireAuth: true,
+        maxBodyBytes: 64 * 1024,
+        unavailableCode: "CUSTOMER_ADMIN_GATEWAY_UNAVAILABLE",
+        unavailableMessage: "Müşteri yönetim servisine şu anda ulaşılamıyor.",
+        forwardQuery: ["userId", "limit"],
       });
     }
     if (operation === "requests") {

@@ -1,0 +1,55 @@
+name: Branch Partner Security V163.2 Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "api/partner.ts"
+      - "api/_lib/request-security.ts"
+      - "src/services/branch-partner.service.ts"
+      - "supabase/functions/branch-partner-gateway/index.ts"
+      - "supabase/migrations/*v1632*"
+      - "scripts/check-v1632-branch-partner-security.mjs"
+      - ".github/workflows/v1632-branch-partner-security.yml"
+  push:
+    branches: [main]
+    paths:
+      - "api/partner.ts"
+      - "api/_lib/request-security.ts"
+      - "src/services/branch-partner.service.ts"
+      - "supabase/functions/branch-partner-gateway/index.ts"
+      - "supabase/migrations/*v1632*"
+      - "scripts/check-v1632-branch-partner-security.mjs"
+      - ".github/workflows/v1632-branch-partner-security.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v1632-branch-partner-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  branch-partner-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: V163.2 security invariants
+        run: node scripts/check-v1632-branch-partner-security.mjs
+      - name: Frontend TypeScript
+        run: npm run lint
+      - name: API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Branch partner Edge type check
+        run: deno check --node-modules-dir=auto supabase/functions/branch-partner-gateway/index.ts
+      - name: Production build
+        run: npm run build

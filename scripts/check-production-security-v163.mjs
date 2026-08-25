@@ -41,7 +41,7 @@ includesAll(booking, [
 const adminAccess = read('src/services/admin-access.service.ts');
 assert(adminAccess.includes('admin_users?user_id=eq.'), 'admin authorization must be UUID-bound');
 assert(!adminAccess.includes('admin_users?email=eq.'), 'admin authorization must not use mutable email lookup');
-assert(adminAccess.includes('return "support"'), 'unknown admin roles must fail closed');
+assert(adminAccess.includes('? value : "support"'), 'unknown admin roles must fail closed');
 
 const wallet = read('src/services/customer-wallet.service.ts');
 includesAll(wallet, [

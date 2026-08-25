@@ -44,7 +44,7 @@
     "@tailwindcss/postcss": "4.2.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
-    "@types/node": "^22.14.0",
+    "@types/node": "^26.2.0",
     "@types/nodemailer": "^7.0.0",
     "@types/pdfkit": "^0.17.6",
     "archiver": "^8.0.0",

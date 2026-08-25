@@ -127,8 +127,14 @@ declare
   v_branch_id uuid;
   v_path text;
 begin
-  v_branch_id:=case when tg_op='DELETE' then old.branch_id else new.branch_id end;
-  if v_branch_id is null then return coalesce(new,old); end if;
+  if tg_op='DELETE' then
+    v_branch_id:=old.branch_id;
+  else
+    v_branch_id:=new.branch_id;
+  end if;
+  if v_branch_id is null then
+    if tg_op='DELETE' then return old; else return new; end if;
+  end if;
 
   select case
     when cm.storage_bucket='catalog-media' and cm.object_path is not null then '/catalog-media/'||cm.object_path
@@ -142,7 +148,8 @@ begin
   update public.branches b
   set hero_image=v_path,updated_at=now()
   where b.id=v_branch_id and b.hero_image is distinct from v_path;
-  return coalesce(new,old);
+
+  if tg_op='DELETE' then return old; else return new; end if;
 end;
 $$;
 
@@ -150,9 +157,7 @@ drop trigger if exists catalog_media_branch_hero_sync_v171 on public.catalog_med
 create trigger catalog_media_branch_hero_sync_v171
 after insert or update of is_cover,is_active,object_path,external_url,branch_id or delete
 on public.catalog_media
-for each row
-when (coalesce(new.branch_id,old.branch_id) is not null)
-execute function public.sync_branch_hero_from_media_v171();
+for each row execute function public.sync_branch_hero_from_media_v171();
 
 create or replace function public.enforce_branch_publication_integrity_v171()
 returns trigger

@@ -13,7 +13,7 @@ permissions:
 jobs:
   remediate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,24 +25,39 @@ jobs:
           cache: npm
       - name: Install current lockfile
         run: npm ci --no-audit --no-fund
-      - name: Apply non-breaking audit fixes
-        run: npm audit fix --omit=dev --no-fund
-      - name: Upgrade direct vulnerable mail transport if still required
+      - name: Upgrade vulnerable framework and mail roots
         shell: bash
         run: |
           set -euo pipefail
-          if npm audit --omit=dev --audit-level=high >/tmp/audit-before.txt 2>&1; then
-            cat /tmp/audit-before.txt
-            exit 0
-          fi
-          cat /tmp/audit-before.txt
-          if grep -q "nodemailer" /tmp/audit-before.txt; then
-            npm install --save nodemailer@latest @types/nodemailer@latest --no-audit --no-fund
-          fi
+          npm install --save \
+            @angular/animations@21.2.19 \
+            @angular/cdk@21.2.6 \
+            @angular/common@21.2.19 \
+            @angular/compiler@21.2.19 \
+            @angular/core@21.2.19 \
+            @angular/forms@21.2.19 \
+            @angular/material@21.2.6 \
+            @angular/platform-browser@21.2.19 \
+            @angular/platform-browser-dynamic@21.2.19 \
+            @angular/router@21.2.19 \
+            nodemailer@9.0.5 \
+            --no-audit --no-fund
+          npm install --save-dev \
+            @angular/build@21.2.19 \
+            @angular/cli@21.2.19 \
+            @angular/compiler-cli@21.2.19 \
+            @types/nodemailer@latest \
+            --no-audit --no-fund
+      - name: Apply remaining compatible audit fixes
+        run: npm audit fix --no-fund
       - name: Verify production vulnerability gate
         run: npm audit --omit=dev --audit-level=high
+      - name: Verify full dependency vulnerability gate
+        run: npm audit --audit-level=high
       - name: Verify TypeScript
         run: npm run lint
+      - name: Verify API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
       - name: Verify production build
         run: npm run build
       - name: Commit dependency manifests only
@@ -57,5 +72,5 @@ jobs:
             echo "No dependency changes required."
             exit 0
           fi
-          git commit -m "V163: remediate production dependency vulnerabilities"
+          git commit -m "V163: remediate framework and production dependency vulnerabilities"
           git push origin HEAD:v163-production-security-data-integrity

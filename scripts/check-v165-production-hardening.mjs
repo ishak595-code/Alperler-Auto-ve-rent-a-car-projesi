@@ -67,8 +67,10 @@ contains(paymentsApi, "timingSafeEqual", "Payment callback signature comparison 
 contains(paymentsApi, "INVALID_HASH", "Payment callback must reject invalid signatures");
 
 contains(branchAuth, "sessionStorage", "Branch portal tokens must use sessionStorage");
-absent(branchAuth, "localStorage", "Branch portal access/refresh tokens must not persist in localStorage");
-contains(branchAuth, "branch-access-v165", "Branch portal must claim access through V165 identity gateway");
+must(!/localStorage\.(?:setItem|getItem)\(/.test(branchAuth), "Branch portal access/refresh tokens must never be written to or restored from localStorage");
+contains(branchAuth, "branch-access-claim", "Branch portal must claim access through the V165 BFF operation");
+contains(partnerApi, 'edgeFunction: "branch-access-v165"', "V165 BFF operation must proxy to branch-access-v165");
+contains(partnerApi, 'operation === "branch-access-claim"', "V165 BFF branch-access operation is missing");
 contains(branchAuth, "pwnedpasswords.com/range/", "Branch password flow must keep k-anonymity breached-password screening");
 contains(branchAccess, "APP_ALLOWED_ORIGINS", "Branch access Edge Function must enforce configured origins");
 contains(branchAccess, "email_confirmed_at", "Branch access must require verified Auth email");

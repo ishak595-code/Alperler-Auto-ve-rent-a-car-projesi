@@ -16,6 +16,8 @@ export interface VehicleTechnicalSpecs {
   drivetrain: string;
 }
 
+export type TramerTruthStatus = 'UNKNOWN' | 'DECLARED_CLEAN' | 'DECLARED_RECORD' | 'VERIFIED_CLEAN' | 'VERIFIED_RECORD';
+
 export interface Vehicle {
   id: string | number;
   category: 'RENTAL' | 'SALE' | 'TOUR';
@@ -88,6 +90,14 @@ export interface Vehicle {
   expertReport?: string;
   color?: string;
   warranty?: string;
+
+  // Structured tramer truth. UNKNOWN is explicit uncertainty and never means clean.
+  tramerStatus?: TramerTruthStatus;
+  tramerAmount?: number;
+  tramerCurrency?: 'TRY' | string;
+  tramerSourceName?: string;
+  tramerSourceUrl?: string;
+  tramerVerifiedAt?: string;
 
   // Tour specific
   duration?: string;

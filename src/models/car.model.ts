@@ -17,6 +17,7 @@ export interface VehicleTechnicalSpecs {
 }
 
 export type TramerTruthStatus = 'UNKNOWN' | 'DECLARED_CLEAN' | 'DECLARED_RECORD' | 'VERIFIED_CLEAN' | 'VERIFIED_RECORD';
+export type ExpertisePartStatus = 'original' | 'local_painted' | 'painted' | 'changed';
 
 export interface Vehicle {
   id: string | number;
@@ -51,7 +52,6 @@ export interface Vehicle {
   description?: string;
   features?: string[];
 
-  // Database-driven technical catalogue data. Never inferred from brand/model at runtime.
   technicalSpecs?: VehicleTechnicalSpecs;
   technicalSpecsProvenance?: {
     source?: string;
@@ -59,7 +59,6 @@ export interface Vehicle {
     updatedAt?: string;
   };
 
-  // Rental specific
   seats?: number;
   isAvailable?: boolean;
   driverOption?: 'WITH_DRIVER' | 'WITHOUT_DRIVER' | 'BOTH';
@@ -75,7 +74,6 @@ export interface Vehicle {
   luggage?: number;
   group?: string;
 
-  // Sale specific
   km?: number;
   detailedFeatures?: {
       interior: string[];
@@ -91,7 +89,6 @@ export interface Vehicle {
   color?: string;
   warranty?: string;
 
-  // Structured tramer truth. UNKNOWN is explicit uncertainty and never means clean.
   tramerStatus?: TramerTruthStatus;
   tramerAmount?: number;
   tramerCurrency?: 'TRY' | string;
@@ -99,7 +96,6 @@ export interface Vehicle {
   tramerSourceUrl?: string;
   tramerVerifiedAt?: string;
 
-  // Tour specific
   duration?: string;
   highlights?: string[];
   mapIframeUrl?: string;
@@ -109,7 +105,6 @@ export interface Vehicle {
   includedItems?: string[];
   excludedItems?: string[];
 
-  // Badges & Status
   badge?: 'FIRSAT' | 'YENİ' | 'ACİL' | 'POPÜLER' | 'PREMIUM' | 'UYGUN FİYAT' | 'YENİ GİRİŞ' | '' | string;
   viewers?: number;
   isLastCar?: boolean;
@@ -129,7 +124,6 @@ export interface Vehicle {
   paintedParts?: string;
   availability?: string;
 
-  // Legacy direct technical fields retained for backwards compatibility with existing admin records.
   fuelConsumption?: string;
   acceleration?: string;
   maxSpeed?: string;
@@ -147,22 +141,21 @@ export interface Vehicle {
   wheelSize?: string;
   tramer?: string;
   damageExpertise?: {
-    hood?: 'original' | 'painted' | 'changed';
-    frontBumper?: 'original' | 'painted' | 'changed';
-    rearBumper?: 'original' | 'painted' | 'changed';
-    roof?: 'original' | 'painted' | 'changed';
-    trunk?: 'original' | 'painted' | 'changed';
-    frontLeftDoor?: 'original' | 'painted' | 'changed';
-    frontRightDoor?: 'original' | 'painted' | 'changed';
-    rearLeftDoor?: 'original' | 'painted' | 'changed';
-    rearRightDoor?: 'original' | 'painted' | 'changed';
-    frontLeftFender?: 'original' | 'painted' | 'changed';
-    frontRightFender?: 'original' | 'painted' | 'changed';
-    rearLeftFender?: 'original' | 'painted' | 'changed';
-    rearRightFender?: 'original' | 'painted' | 'changed';
+    hood?: ExpertisePartStatus;
+    frontBumper?: ExpertisePartStatus;
+    rearBumper?: ExpertisePartStatus;
+    roof?: ExpertisePartStatus;
+    trunk?: ExpertisePartStatus;
+    frontLeftDoor?: ExpertisePartStatus;
+    frontRightDoor?: ExpertisePartStatus;
+    rearLeftDoor?: ExpertisePartStatus;
+    rearRightDoor?: ExpertisePartStatus;
+    frontLeftFender?: ExpertisePartStatus;
+    frontRightFender?: ExpertisePartStatus;
+    rearLeftFender?: ExpertisePartStatus;
+    rearRightFender?: ExpertisePartStatus;
   };
 
-  // Showcase flags
   popularityScore?: number;
   displayPriority?: number;
 }

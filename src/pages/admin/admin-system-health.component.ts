@@ -2,39 +2,13 @@ import { CommonModule } from "@angular/common";
 import { Component, OnInit, computed, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
-import { AuthService } from "../../services/auth.service";
+import {
+  AdminSystemEventRow,
+  AdminSystemHealthService,
+  AdminSystemRepairResult,
+} from "../../services/admin-system-health.service";
 import { RuntimeControls, RuntimeControlsService } from "../../services/runtime-controls.service";
 import { ToastService } from "../../services/toast.service";
-import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../../supabase.config";
-
-interface SystemEventRow {
-  id: number;
-  severity: "INFO" | "WARN" | "ERROR" | "CRITICAL";
-  source: string;
-  code: string;
-  message: string;
-  route?: string | null;
-  occurrence_count: number;
-  first_seen: string;
-  last_seen: string;
-  resolved_at?: string | null;
-  auto_recovered: boolean;
-  recovery_action?: string | null;
-  release_sha?: string | null;
-  client_family?: string | null;
-  details?: Record<string, unknown> | null;
-}
-
-interface RepairResult {
-  ok?: boolean;
-  runId?: string;
-  runtimeRestored?: boolean;
-  navigationSettingsRestored?: boolean;
-  navigationItemsInserted?: number;
-  homepageSectionsInserted?: number;
-  businessDataDeleted?: boolean;
-  completedAt?: string;
-}
 
 @Component({
   selector: "app-admin-system-health",
@@ -48,9 +22,9 @@ interface RepairResult {
             <div>
               <p class="text-xs font-black uppercase tracking-[.2em] text-blue-400">Operasyon merkezi</p>
               <h1 class="mt-2 text-3xl font-black md:text-4xl">Sistem Sağlığı ve Bakım</h1>
-              <p class="mt-2 max-w-3xl text-sm leading-7 text-slate-300">Teknik sorunları, güvenli toparlanmaları ve sitenin çalışma durumunu tek yerden izleyin. Hata kayıtları müşteri form içeriklerini veya ödeme bilgilerini saklamaz.</p>
+              <p class="mt-2 max-w-3xl text-sm leading-7 text-slate-300">Çalışma modunu, güvenli toparlanmaları ve sistem olaylarını tek yerden yönetin. Yönetim işlemleri tarayıcıdan veritabanına doğrudan yazmaz; yetkili sunucu geçidi ve denetim kaydı üzerinden yürür.</p>
             </div>
-            <button type="button" (click)="refreshAll()" [disabled]="loading() || repairing()" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-5 font-black text-slate-950 disabled:opacity-50">
+            <button type="button" (click)="refreshAll()" [disabled]="loading() || repairing()" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-5 font-black text-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:opacity-50">
               <mat-icon aria-hidden="true">refresh</mat-icon>{{ loading() ? 'Kontrol ediliyor…' : 'Şimdi Kontrol Et' }}
             </button>
           </div>
@@ -62,6 +36,10 @@ interface RepairResult {
           <article class="metric"><span>Kritik</span><strong>{{ criticalCount() }}</strong><small>açık kritik hata</small></article>
           <article class="metric"><span>Otomatik toparlandı</span><strong>{{ autoRecoveredCount() }}</strong><small>güvenli onarım uygulandı</small></article>
         </section>
+
+        @if (error()) {
+          <div role="alert" class="rounded-2xl border border-rose-200 bg-rose-50 p-4 font-bold text-rose-800">{{ error() }}</div>
+        }
 
         <section class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
           <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
@@ -86,22 +64,23 @@ interface RepairResult {
             </div>
 
             <button type="button" (click)="saveRuntimeControls()" [disabled]="saving() || repairing()" class="mt-5 min-h-12 w-full rounded-2xl bg-slate-950 px-5 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50">{{ saving() ? 'Kaydediliyor…' : 'Çalışma Modunu Kaydet' }}</button>
+            <p class="mt-3 text-xs leading-5 text-slate-500">Bu ayarlar public olarak okunur, fakat yalnız yetkili Super Admin gateway’i üzerinden değiştirilebilir.</p>
           </div>
 
           <aside class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
             <p class="text-[10px] font-black uppercase tracking-[.18em] text-slate-400">Veri silmeyen sistem bakımı</p>
             <h2 class="mt-1 text-xl font-black text-slate-900">Güvenli Bakım</h2>
-            <p class="mt-3 text-sm leading-6 text-slate-600">Sitenin temel çalışma ayarlarını, ana navigasyonu ve gerekli ana sayfa kayıtlarını sağlıklı varsayılanlara getirir. Araç, müşteri, rezervasyon, kampanya, finans, fotoğraf ve geçmiş kayıtlarını silmez.</p>
+            <p class="mt-3 text-sm leading-6 text-slate-600">Temel çalışma ayarlarını, navigasyonu ve eksik ana sayfa kayıtlarını güvenli varsayılanlarla onarır. Araç, müşteri, rezervasyon, kampanya, finans, fotoğraf ve geçmiş kayıtlarını silmez.</p>
             <div class="mt-5 space-y-3 text-sm leading-6 text-slate-600">
               <div class="health-note"><mat-icon aria-hidden="true">settings_backup_restore</mat-icon><span><strong>Çalışma ayarları:</strong> bakım ve salt okunur durumlarını kapatır, müşteri işlem kanallarını yeniden açar.</span></div>
-              <div class="health-note"><mat-icon aria-hidden="true">account_tree</mat-icon><span><strong>Bağlantılar:</strong> eksik temel menü ve ana sayfa kayıtlarını yeniden oluşturur, mevcut içerikleri korur.</span></div>
-              <div class="health-note warning"><mat-icon aria-hidden="true">verified_user</mat-icon><span><strong>Koruma:</strong> işletme verileri üzerinde toplu silme, araç sıfırlama veya müşteri temizleme işlemi yapmaz.</span></div>
+              <div class="health-note"><mat-icon aria-hidden="true">account_tree</mat-icon><span><strong>Bağlantılar:</strong> yalnız eksik temel menü ve ana sayfa kayıtlarını yeniden oluşturur.</span></div>
+              <div class="health-note warning"><mat-icon aria-hidden="true">verified_user</mat-icon><span><strong>Koruma:</strong> yalnız owner/admin rolü çalıştırabilir ve işlem audit log'a yazılır.</span></div>
             </div>
             <button type="button" (click)="runSafeRepair()" [disabled]="repairing() || saving()" class="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blue-700 px-5 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50"><mat-icon aria-hidden="true">build_circle</mat-icon>{{ repairing() ? 'Bakım uygulanıyor…' : 'Güvenli Bakımı Çalıştır' }}</button>
             @if (lastRepair(); as repair) {
               <div class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs leading-6 text-emerald-900" role="status">
                 <strong class="block">Son bakım tamamlandı</strong>
-                <span>Temel çalışma ayarları onarıldı. Eklenen menü kaydı: {{ repair.navigationItemsInserted || 0 }}, eklenen ana sayfa bölümü: {{ repair.homepageSectionsInserted || 0 }}. İşletme verisi silinmedi.</span>
+                <span>Eklenen menü kaydı: {{ repair.navigationItemsInserted || 0 }}, eklenen ana sayfa bölümü: {{ repair.homepageSectionsInserted || 0 }}. İşletme verisi silinmedi.</span>
               </div>
             }
           </aside>
@@ -114,8 +93,6 @@ interface RepairResult {
             <label class="field"><span>Durum</span><select [(ngModel)]="stateFilter"><option value="OPEN">Açık</option><option value="RESOLVED">Çözülmüş</option><option value="ALL">Tümü</option></select></label>
           </div>
         </section>
-
-        @if (error()) { <div role="alert" class="rounded-2xl border border-rose-200 bg-rose-50 p-4 font-bold text-rose-800">{{ error() }}</div> }
 
         <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4"><div><h2 class="font-black text-slate-900">Sistem Olayları</h2><p class="text-xs text-slate-500">{{ filteredEvents().length }} sorun kaydı gösteriliyor</p></div></div>
@@ -133,14 +110,17 @@ interface RepairResult {
                   <button type="button" (click)="toggleResolved(event)" class="min-h-11 shrink-0 rounded-xl border border-slate-200 px-4 text-xs font-black text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">{{ event.resolved_at ? 'Yeniden Aç' : 'Çözüldü İşaretle' }}</button>
                 </div>
               </article>
-            } @empty { <div class="p-14 text-center text-sm font-bold text-slate-500">Bu filtrelerle eşleşen sistem olayı yok.</div> }
+            } @empty {
+              <div class="p-14 text-center text-sm font-bold text-slate-500">Bu filtrelerle eşleşen sistem olayı yok.</div>
+            }
           </div>
         </section>
       </div>
     </main>
   `,
   styles: [`
-    .metric{display:flex;min-height:140px;flex-direction:column;border:1px solid #e2e8f0;border-radius:24px;background:white;padding:20px;box-shadow:0 8px 24px rgba(15,23,42,.05)}.metric span{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#64748b}.metric strong{margin-top:10px;font-size:34px;line-height:1;font-weight:900;color:#0f172a}.metric small{margin-top:auto;padding-top:10px;color:#94a3b8;font-weight:700}
+    .metric{display:flex;min-height:140px;flex-direction:column;border:1px solid #e2e8f0;border-radius:24px;background:white;padding:20px;box-shadow:0 8px 24px rgba(15,23,42,.05)}
+    .metric span{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#64748b}.metric strong{margin-top:10px;font-size:34px;line-height:1;font-weight:900;color:#0f172a}.metric small{margin-top:auto;padding-top:10px;color:#94a3b8;font-weight:700}
     .field{display:flex;flex-direction:column;gap:7px}.field>span{font-size:.68rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#475569}.field input,.field select,.field textarea{min-height:44px;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc;padding:10px 12px;outline:none}.field input:focus,.field select:focus,.field textarea:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgb(59 130 246/.14)}
     .toggle-card{display:flex;min-height:72px;cursor:pointer;align-items:flex-start;gap:12px;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc;padding:13px}.toggle-card input{margin-top:3px;width:20px;height:20px;accent-color:#2563eb}.toggle-card span{display:flex;flex-direction:column}.toggle-card strong{font-size:13px;color:#0f172a}.toggle-card small{margin-top:3px;font-size:11px;line-height:1.45;color:#64748b}
     .health-note{display:flex;gap:10px;border-radius:14px;background:#f0fdf4;padding:12px;color:#166534}.health-note mat-icon{flex:none}.health-note.warning{background:#fff7ed;color:#9a3412}
@@ -148,15 +128,15 @@ interface RepairResult {
   `],
 })
 export class AdminSystemHealthComponent implements OnInit {
-  private readonly auth = inject(AuthService);
+  private readonly health = inject(AdminSystemHealthService);
   private readonly runtime = inject(RuntimeControlsService);
   private readonly toast = inject(ToastService);
 
-  readonly events = signal<SystemEventRow[]>([]);
+  readonly events = signal<AdminSystemEventRow[]>([]);
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly repairing = signal(false);
-  readonly lastRepair = signal<RepairResult | null>(null);
+  readonly lastRepair = signal<AdminSystemRepairResult | null>(null);
   readonly error = signal("");
   query = "";
   severityFilter = "";
@@ -172,12 +152,17 @@ export class AdminSystemHealthComponent implements OnInit {
 
   async refreshAll(): Promise<void> {
     this.loading.set(true); this.error.set("");
-    try { await Promise.all([this.loadEvents(), this.runtime.refresh(true)]); this.draft = { ...this.runtime.controls() }; }
-    catch (error) { this.error.set(error instanceof Error ? error.message : "Sistem sağlığı yüklenemedi."); }
-    finally { this.loading.set(false); }
+    try {
+      await Promise.all([this.loadEvents(), this.runtime.refresh(true)]);
+      this.draft = { ...this.runtime.controls() };
+    } catch (error) {
+      this.error.set(this.message(error, "Sistem sağlığı yüklenemedi."));
+    } finally {
+      this.loading.set(false);
+    }
   }
 
-  filteredEvents(): SystemEventRow[] {
+  filteredEvents(): AdminSystemEventRow[] {
     const needle = this.query.trim().toLocaleLowerCase("tr-TR");
     return this.events().filter((event) => {
       if (this.severityFilter && event.severity !== this.severityFilter) return false;
@@ -189,55 +174,58 @@ export class AdminSystemHealthComponent implements OnInit {
   }
 
   async saveRuntimeControls(): Promise<void> {
+    if (this.saving()) return;
     this.saving.set(true);
     try {
-      const token = await this.requiredToken();
-      const clean: RuntimeControls = { ...this.draft, maintenanceTitle: this.draft.maintenanceTitle.trim().slice(0,120) || "Kısa bir bakım çalışması yapıyoruz", maintenanceMessage: this.draft.maintenanceMessage.trim().slice(0,500) || "Lütfen biraz sonra tekrar deneyin.", statusMessage: this.draft.statusMessage.trim().slice(0,250), updatedByAdmin: true };
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/site_config?key=eq.runtime_controls`, { method:"PATCH", headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`,"content-type":"application/json",Prefer:"return=minimal"}, body:JSON.stringify({value:clean,is_public:true,updated_at:new Date().toISOString()}) });
-      if (!response.ok) throw new Error(`Çalışma modu kaydedilemedi (${response.status}).`);
-      await this.runtime.refresh(true); this.draft = { ...this.runtime.controls() }; this.toast.show("Sistem çalışma modu güncellendi.", "success");
-    } catch (error) { this.toast.show(error instanceof Error ? error.message : "Ayar kaydedilemedi.", "error"); }
-    finally { this.saving.set(false); }
+      const clean: RuntimeControls = {
+        ...this.draft,
+        maintenanceTitle: this.draft.maintenanceTitle.trim().slice(0, 120) || "Kısa bir bakım çalışması yapıyoruz",
+        maintenanceMessage: this.draft.maintenanceMessage.trim().slice(0, 500) || "Lütfen biraz sonra tekrar deneyin.",
+        statusMessage: this.draft.statusMessage.trim().slice(0, 250),
+        updatedByAdmin: true,
+      };
+      await this.health.saveRuntimeControls(clean);
+      await this.runtime.refresh(true);
+      this.draft = { ...this.runtime.controls() };
+      this.toast.show("Sistem çalışma modu güncellendi.", "success");
+    } catch (error) {
+      this.toast.show(this.message(error, "Ayar kaydedilemedi."), "error");
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   async runSafeRepair(): Promise<void> {
     if (this.repairing()) return;
     this.repairing.set(true); this.error.set("");
     try {
-      const token = await this.requiredToken();
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/admin_repair_system_defaults`, { method:"POST", headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`,"content-type":"application/json"}, body:"{}" });
-      const payload = await response.json().catch(() => ({})) as RepairResult & { message?: string; code?: string };
-      if (!response.ok || payload.ok !== true) throw new Error(payload.message || payload.code || `Güvenli bakım tamamlanamadı (${response.status}).`);
-      if (payload.businessDataDeleted !== false) throw new Error("Bakım güvenlik doğrulaması başarısız oldu.");
+      const payload = await this.health.runSafeRepair();
       this.lastRepair.set(payload);
       await Promise.all([this.runtime.refresh(true), this.loadEvents()]);
       this.draft = { ...this.runtime.controls() };
       this.toast.show("Güvenli bakım tamamlandı. İşletme verileri korunarak temel sistem ayarları onarıldı.", "success");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Güvenli bakım tamamlanamadı.";
+      const message = this.message(error, "Güvenli bakım tamamlanamadı.");
       this.error.set(message); this.toast.show(message, "error");
-    } finally { this.repairing.set(false); }
+    } finally {
+      this.repairing.set(false);
+    }
   }
 
-  async toggleResolved(event: SystemEventRow): Promise<void> {
+  async toggleResolved(event: AdminSystemEventRow): Promise<void> {
     try {
-      const token = await this.requiredToken();
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/system_events?id=eq.${event.id}`, { method:"PATCH", headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`,"content-type":"application/json",Prefer:"return=minimal"}, body:JSON.stringify({resolved_at:event.resolved_at?null:new Date().toISOString()}) });
-      if (!response.ok) throw new Error(`Hata durumu güncellenemedi (${response.status}).`);
-      await this.loadEvents(); this.toast.show(event.resolved_at ? "Hata yeniden açıldı." : "Hata çözüldü olarak işaretlendi.", "success");
-    } catch (error) { this.toast.show(error instanceof Error ? error.message : "Hata durumu güncellenemedi.", "error"); }
+      await this.health.setEventResolved(event.id, !event.resolved_at);
+      await this.loadEvents();
+      this.toast.show(event.resolved_at ? "Hata yeniden açıldı." : "Hata çözüldü olarak işaretlendi.", "success");
+    } catch (error) {
+      this.toast.show(this.message(error, "Hata durumu güncellenemedi."), "error");
+    }
   }
 
   runtimeLabel(): string { return this.draft.maintenanceMode ? "BAKIM MODU" : this.draft.readOnlyMode ? "GÖRÜNTÜLEME MODU" : "SİSTEM AKTİF"; }
-  severityLabel(value: SystemEventRow["severity"]): string { return ({ INFO:"BİLGİ", WARN:"UYARI", ERROR:"HATA", CRITICAL:"KRİTİK" } as const)[value]; }
+  severityLabel(value: AdminSystemEventRow["severity"]): string { return ({ INFO:"BİLGİ", WARN:"UYARI", ERROR:"HATA", CRITICAL:"KRİTİK" } as const)[value]; }
   formatDate(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("tr-TR", { dateStyle:"short", timeStyle:"short" }).format(date); }
 
-  private async loadEvents(): Promise<void> {
-    const token = await this.requiredToken();
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/system_events?select=id,severity,source,code,message,route,occurrence_count,first_seen,last_seen,resolved_at,auto_recovered,recovery_action,release_sha,client_family,details&order=last_seen.desc&limit=500`, { headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`} });
-    if (!response.ok) throw new Error(`Sistem olayları yüklenemedi (${response.status}).`);
-    this.events.set((await response.json()) as SystemEventRow[]);
-  }
-
-  private async requiredToken(): Promise<string> { const token=await this.auth.getAccessToken(); if(!token)throw new Error("Yönetici oturumu bulunamadı."); return token; }
+  private async loadEvents(): Promise<void> { this.events.set(await this.health.loadEvents(500)); }
+  private message(error: unknown, fallback: string): string { return error instanceof Error && error.message ? error.message : fallback; }
 }

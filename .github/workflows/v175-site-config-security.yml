@@ -7,6 +7,7 @@ on:
       - "src/services/catalog.service.ts"
       - "supabase/functions/site-content-admin-gateway-v174/index.ts"
       - "supabase/migrations/20260826020000_v175_site_config_security_gateway.sql"
+      - "api/catalog.ts"
       - "api/partner.ts"
       - ".github/workflows/v175-site-config-security.yml"
       - "package.json"
@@ -68,6 +69,19 @@ jobs:
           fi
           if grep -Fq 'using authenticated Supabase fallback' "$FILE"; then
             echo "Legacy config fallback marker remains"
+            exit 1
+          fi
+
+      - name: Legacy catalog config mutation path disabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          API=api/catalog.ts
+          grep -Fq 'type MutableResource = Exclude<Resource, "config">' "$API"
+          grep -Fq 'CONFIG_MUTATION_REQUIRES_SITE_CONTENT_GATEWAY' "$API"
+          grep -Fq 'if (resource === "config") return response({ ok: false, code: "CONFIG_MUTATION_REQUIRES_SITE_CONTENT_GATEWAY" }, 405)' "$API"
+          if grep -Fq 'site_config?on_conflict=key' "$API"; then
+            echo "Legacy catalog site_config mutation implementation remains"
             exit 1
           fi
 

@@ -32,17 +32,30 @@ function clean(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
+function httpsOrigin(value: unknown): string | null {
+  const configured = clean(value, 500);
+  if (!configured) return null;
+  try {
+    const parsed = new globalThis.URL(configured);
+    return parsed.protocol === "https:" ? parsed.origin : null;
+  } catch {
+    return null;
+  }
+}
+
 function adminInviteRedirect(): string {
-  const configured = clean(Deno.env.get("ADMIN_INVITE_REDIRECT_URL"), 500);
-  if (configured) {
+  const explicit = clean(Deno.env.get("ADMIN_INVITE_REDIRECT_URL"), 500);
+  if (explicit) {
     try {
-      const parsed = new globalThis.URL(configured);
+      const parsed = new globalThis.URL(explicit);
       if (parsed.protocol === "https:") return parsed.toString();
     } catch {
       console.warn("Ignoring invalid ADMIN_INVITE_REDIRECT_URL");
     }
   }
-  return "https://alperrentacar.online/admin/login?invite=1";
+  const appOrigin = httpsOrigin(Deno.env.get("APP_URL")) || httpsOrigin(Deno.env.get("PUBLIC_APP_URL"));
+  if (!appOrigin) throw new Error("ADMIN_INVITE_REDIRECT_NOT_CONFIGURED");
+  return `${appOrigin}/admin/login?invite=1`;
 }
 
 function email(value: unknown): string | null {
@@ -163,8 +176,15 @@ async function invite(actor: { id: string; email: string }, input: Record<string
   let user = await findAuthUser(targetEmail);
   let invited = false;
   if (!user) {
+    let redirectTo: string;
+    try {
+      redirectTo = adminInviteRedirect();
+    } catch (error) {
+      console.error("admin invite redirect missing", error);
+      return json({ ok: false, code: "ADMIN_INVITE_REDIRECT_NOT_CONFIGURED" }, 503);
+    }
     const { data, error } = await admin.auth.admin.inviteUserByEmail(targetEmail, {
-      redirectTo: adminInviteRedirect(),
+      redirectTo,
       data: { display_name: displayName, invited_by: actor.email },
     });
     if (error || !data.user?.id) {

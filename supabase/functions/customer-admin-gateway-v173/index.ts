@@ -1,10 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const URL=Deno.env.get("SUPABASE_URL")||"";
+const SUPABASE_URL=Deno.env.get("SUPABASE_URL")||"";
 const SERVICE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
 const BUCKET="customer-documents";
-const supabase=createClient(URL,SERVICE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+const supabase=createClient(SUPABASE_URL,SERVICE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 
 type AdminContext={id:string;email:string;role:string;permissions:Record<string,unknown>;canManageSettings:boolean};
 
@@ -12,13 +12,13 @@ function json(body:unknown,status=200){return Response.json(body,{status,headers
 function clean(value:unknown,max:number){return typeof value==="string"?value.trim().slice(0,max):"";}
 function uuid(value:unknown){const v=clean(value,80);return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)?v:"";}
 function serviceHeaders(extra:Record<string,string>={}){return{apikey:SERVICE_KEY,authorization:`Bearer ${SERVICE_KEY}`,"content-type":"application/json",...extra};}
-async function db(path:string,init:RequestInit={}){return fetch(`${URL}/rest/v1/${path}`,{...init,headers:{...serviceHeaders(),...(init.headers||{})},signal:init.signal||AbortSignal.timeout(12_000)});}
+async function db(path:string,init:RequestInit={}){return fetch(`${SUPABASE_URL}/rest/v1/${path}`,{...init,headers:{...serviceHeaders(),...(init.headers||{})},signal:init.signal||AbortSignal.timeout(12_000)});}
 async function rpc<T=any>(name:string,body:Record<string,unknown>):Promise<T>{const response=await db(`rpc/${name}`,{method:"POST",body:JSON.stringify(body)});const payload=await response.json().catch(()=>null);if(!response.ok)throw new Error(String(payload?.message||payload?.code||`${name.toUpperCase()}_${response.status}`));return payload as T;}
 
 async function requireAdmin(request:Request):Promise<AdminContext>{
   const authorization=request.headers.get("authorization")||"";
   if(!/^Bearer\s+\S+/i.test(authorization))throw new Error("UNAUTHORIZED");
-  const userResponse=await fetch(`${URL}/auth/v1/user`,{headers:{apikey:SERVICE_KEY,authorization},signal:AbortSignal.timeout(8_000)});
+  const userResponse=await fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:{apikey:SERVICE_KEY,authorization},signal:AbortSignal.timeout(8_000)});
   if(!userResponse.ok)throw new Error("UNAUTHORIZED");
   const user=await userResponse.json();const id=uuid(user?.id);if(!id)throw new Error("UNAUTHORIZED");
   const adminResponse=await db(`admin_users?user_id=eq.${encodeURIComponent(id)}&is_active=eq.true&select=user_id,role,permissions&limit=1`);
@@ -75,7 +75,7 @@ async function mutate(request:Request,admin:AdminContext){
 }
 
 Deno.serve(async request=>{
-  if(!URL||!SERVICE_KEY)return json({ok:false,code:"SERVER_CONFIG_MISSING"},503);
+  if(!SUPABASE_URL||!SERVICE_KEY)return json({ok:false,code:"SERVER_CONFIG_MISSING"},503);
   const method=request.method.toUpperCase();if(method==="OPTIONS")return new Response(null,{status:204});
   if(!["GET","POST","PATCH"].includes(method))return json({ok:false,code:"METHOD_NOT_ALLOWED"},405);
   try{

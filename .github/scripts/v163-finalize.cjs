@@ -50,8 +50,8 @@ const write = (path, value) => fs.writeFileSync(path, value);
 
       if (
         false &&`;
-  if (!source.includes(needle)) throw new Error('Booking generic approval guard anchor not found');
-  source = source.replace(needle, replacement);
+  if (source.includes(needle)) source = source.replace(needle, replacement);
+  if (!source.includes('APPROVAL_ACTION_REQUIRED')) throw new Error('Atomic approval guard missing');
   write(path, source);
 }
 
@@ -60,16 +60,16 @@ const write = (path, value) => fs.writeFileSync(path, value);
 {
   const path = 'supabase/migrations/20260825071000_v163_pending_approval_and_alternatives.sql';
   let source = read(path);
-  source = source.replace(
-    'create or replace function private.seed_pending_booking_alternatives()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = public, pg_catalog, private\nas $\ndeclare',
-    'create or replace function private.seed_pending_booking_alternatives()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = public, pg_catalog, private\nas $$\ndeclare',
-  );
-  source = source.replace(
-    "  return new;\nend;\n$;\n\nrevoke all on function private.seed_pending_booking_alternatives()",
-    "  return new;\nend;\n$$;\n\nrevoke all on function private.seed_pending_booking_alternatives()",
-  );
+  const functionStart = source.indexOf('create or replace function private.seed_pending_booking_alternatives()');
+  const revokeStart = source.indexOf('revoke all on function private.seed_pending_booking_alternatives()', functionStart);
+  if (functionStart < 0 || revokeStart < 0) throw new Error('Pending seed function block missing');
+  let block = source.slice(functionStart, revokeStart);
+  block = block.replace(/\nas \$\n/, '\nas $$\n');
+  block = block.replace(/\nend;\n\$;\n$/, '\nend;\n$$;\n\n');
+  source = source.slice(0, functionStart) + block + source.slice(revokeStart);
   if (!source.includes('booking_seed_alternatives_after_pending_insert')) throw new Error('Pending alternative seed trigger missing');
-  if (source.includes('private.seed_pending_booking_alternatives()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = public, pg_catalog, private\nas $\n')) throw new Error('Seed function SQL delimiter is still invalid');
+  const repaired = source.slice(functionStart, source.indexOf('revoke all on function private.seed_pending_booking_alternatives()', functionStart));
+  if (!repaired.includes('\nas $$\n') || !repaired.includes('\nend;\n$$;')) throw new Error('Seed function SQL delimiter repair failed');
   write(path, source);
 }
 
@@ -81,8 +81,10 @@ const write = (path, value) => fs.writeFileSync(path, value);
   let source = read(path);
   source = source.replace('const BUCKET = "customer-private";', 'const BUCKET = "customer-documents";');
   const authAnchor = '    const user = await authenticatedUser(request);';
-  if (!source.includes(authAnchor)) throw new Error('Document auth anchor missing');
-  source = source.replace(authAnchor, `${authAnchor}\n    const userAuthorization = request.headers.get("authorization") || "";`);
+  if (!source.includes('const userAuthorization = request.headers.get("authorization") || "";')) {
+    if (!source.includes(authAnchor)) throw new Error('Document auth anchor missing');
+    source = source.replace(authAnchor, `${authAnchor}\n    const userAuthorization = request.headers.get("authorization") || "";`);
+  }
   source = source.replace(
     '        authorization: `Bearer ${SERVICE_KEY}`,\n        "content-type": verified.mime,',
     '        authorization: userAuthorization,\n        "content-type": verified.mime,',
@@ -119,7 +121,10 @@ includesAll(approvalMigration, [
   'status = \'APPROVED\'',
   'rental_alternative_candidates',
 ], 'pending/manual approval architecture');
-assert(!approvalMigration.includes('as $\\ndeclare'), 'PL/pgSQL seed trigger delimiter must be valid');
+const seedStart = approvalMigration.indexOf('create or replace function private.seed_pending_booking_alternatives()');
+const seedEnd = approvalMigration.indexOf('revoke all on function private.seed_pending_booking_alternatives()', seedStart);
+const seedBlock = approvalMigration.slice(seedStart, seedEnd);
+assert(seedBlock.includes('as $$') && seedBlock.includes('end;\n$$;'), 'PL/pgSQL seed trigger delimiter must be valid');
 
 const booking = read('src/services/booking.service.ts');
 includesAll(booking, ['status==="APPROVED"','action:"approve"','offerAlternative','/api/admin-booking-actions','/api/bookings','wallClockValue'], 'booking client');

@@ -3,6 +3,7 @@ import { Component, DestroyRef, computed, inject, signal } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { Router } from "@angular/router";
 import { CampaignRecord, CampaignService } from "../services/campaign.service";
+import { CommercialOfferContextService } from "../services/commercial-offer-context.service";
 import { PublicDetailDataService } from "../services/public-detail-data.service";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 
@@ -42,6 +43,7 @@ interface CampaignProof {
 })
 export class CampaignsComponent {
   private readonly campaignService = inject(CampaignService);
+  private readonly commercialOffer = inject(CommercialOfferContextService);
   private readonly detailData = inject(PublicDetailDataService);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
@@ -55,7 +57,12 @@ export class CampaignsComponent {
     if (typeof window !== "undefined") { const timer = window.setInterval(() => void this.loadProof(), 60_000); this.destroyRef.onDestroy(() => window.clearInterval(timer)); }
   }
   goBack(): void { if (typeof window !== "undefined" && window.history.length > 1) this.location.back(); else void this.router.navigate(["/"]); }
-  async openCampaign(campaign: CampaignRecord): Promise<void> { const route = await this.detailData.resolveCampaignTarget(campaign.targetType, campaign.targetId, campaign.ctaUrl); const separator = route.includes("?") ? "&" : "?"; await this.router.navigateByUrl(`${route}${separator}campaign=${encodeURIComponent(campaign.id)}`); }
+  async openCampaign(campaign: CampaignRecord): Promise<void> {
+    this.commercialOffer.activateCampaign(campaign);
+    const route = await this.detailData.resolveCampaignTarget(campaign.targetType, campaign.targetId, campaign.ctaUrl);
+    const separator = route.includes("?") ? "&" : "?";
+    await this.router.navigateByUrl(`${route}${separator}campaign=${encodeURIComponent(campaign.id)}`);
+  }
   campaignImage(campaign: CampaignRecord): string { return this.detailData.mediaUrl(campaign.coverImage); }
   formatPrice(value: number): string { return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 }).format(value); }
   campaignSavings(item: CampaignRecord): number { return item.oldPrice != null && item.newPrice != null ? Math.max(0, item.oldPrice - item.newPrice) : 0; }

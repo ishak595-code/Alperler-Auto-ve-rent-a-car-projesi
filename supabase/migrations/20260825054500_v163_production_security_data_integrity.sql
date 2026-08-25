@@ -4,7 +4,6 @@
 -- adds correlation fields for production auditability.
 
 create extension if not exists btree_gist;
-
 create schema if not exists private;
 
 create or replace function private.is_valid_timezone(p_timezone text)
@@ -24,8 +23,7 @@ $$;
 
 revoke all on function private.is_valid_timezone(text) from public, anon, authenticated;
 
-alter table public.branches
-  add column if not exists timezone text;
+alter table public.branches add column if not exists timezone text;
 
 update public.branches
 set timezone = case
@@ -119,10 +117,13 @@ $$;
 
 revoke all on function private.expire_vehicle_holds(uuid) from public, anon, authenticated;
 
+-- The browser sends the wall-clock value the customer selected. This RPC resolves
+-- that wall-clock against the vehicle branch IANA timezone so a Swiss browser
+-- booking 09:00 in Yüksekova is stored as 09:00 Europe/Istanbul, not 09:00 Europe/Zurich.
 create or replace function public.reserve_rental_hold(
   p_vehicle_identifier text,
-  p_start_at timestamptz,
-  p_end_at timestamptz,
+  p_start_local timestamp without time zone,
+  p_end_local timestamp without time zone,
   p_idempotency_key text,
   p_customer_user_id uuid default null,
   p_client_hash text default null
@@ -130,6 +131,8 @@ create or replace function public.reserve_rental_hold(
 returns table (
   hold_id uuid,
   vehicle_id uuid,
+  start_at timestamptz,
+  end_at timestamptz,
   expires_at timestamptz,
   branch_timezone text
 )
@@ -141,12 +144,11 @@ declare
   v_vehicle public.vehicles%rowtype;
   v_hold public.booking_holds%rowtype;
   v_timezone text := 'Europe/Istanbul';
+  v_start_at timestamptz;
+  v_end_at timestamptz;
   v_idempotency text := btrim(coalesce(p_idempotency_key, ''));
 begin
-  if p_start_at is null or p_end_at is null or p_end_at <= p_start_at then
-    raise exception using errcode = '22023', message = 'INVALID_RENTAL_DATES';
-  end if;
-  if p_start_at < now() - interval '5 minutes' or p_end_at > now() + interval '3660 days' then
+  if p_start_local is null or p_end_local is null or p_end_local <= p_start_local then
     raise exception using errcode = '22023', message = 'INVALID_RENTAL_DATES';
   end if;
   if char_length(v_idempotency) < 8 or char_length(v_idempotency) > 120 then
@@ -167,6 +169,26 @@ begin
     raise exception using errcode = '22023', message = 'INVALID_RENTAL_VEHICLE';
   end if;
 
+  if v_vehicle.branch_id is not null then
+    select b.timezone into v_timezone
+    from public.branches b
+    where b.id = v_vehicle.branch_id;
+  end if;
+  v_timezone := coalesce(v_timezone, 'Europe/Istanbul');
+  if not private.is_valid_timezone(v_timezone) then
+    raise exception using errcode = '22023', message = 'INVALID_BRANCH_TIMEZONE';
+  end if;
+
+  v_start_at := p_start_local at time zone v_timezone;
+  v_end_at := p_end_local at time zone v_timezone;
+
+  if v_end_at <= v_start_at then
+    raise exception using errcode = '22023', message = 'INVALID_RENTAL_DATES';
+  end if;
+  if v_start_at < now() - interval '5 minutes' or v_end_at > now() + interval '3660 days' then
+    raise exception using errcode = '22023', message = 'INVALID_RENTAL_DATES';
+  end if;
+
   perform pg_advisory_xact_lock(hashtextextended(v_vehicle.id::text, 163));
   perform private.expire_vehicle_holds(v_vehicle.id);
 
@@ -176,7 +198,7 @@ begin
   limit 1;
 
   if v_hold.id is not null then
-    if v_hold.vehicle_id <> v_vehicle.id or v_hold.start_at <> p_start_at or v_hold.end_at <> p_end_at then
+    if v_hold.vehicle_id <> v_vehicle.id or v_hold.start_at <> v_start_at or v_hold.end_at <> v_end_at then
       raise exception using errcode = '23505', message = 'HOLD_IDEMPOTENCY_CONFLICT';
     end if;
     if v_hold.status = 'CONVERTED' then
@@ -198,8 +220,8 @@ begin
         and b.booking_type = 'RENTAL'
         and b.status = 'APPROVED'
         and b.deleted_at is null
-        and b.start_at < p_end_at
-        and b.end_at > p_start_at
+        and b.start_at < v_end_at
+        and b.end_at > v_start_at
     ) then
       raise exception using errcode = '23P01', message = 'VEHICLE_UNAVAILABLE';
     end if;
@@ -210,8 +232,8 @@ begin
       where h.vehicle_id = v_vehicle.id
         and h.status = 'ACTIVE'
         and h.expires_at > now()
-        and h.start_at < p_end_at
-        and h.end_at > p_start_at
+        and h.start_at < v_end_at
+        and h.end_at > v_start_at
     ) then
       raise exception using errcode = '23P01', message = 'VEHICLE_TEMPORARILY_HELD';
     end if;
@@ -222,7 +244,7 @@ begin
         start_at, end_at, expires_at, status, client_hash
       ) values (
         v_vehicle.id, v_vehicle.branch_id, p_customer_user_id, v_idempotency,
-        p_start_at, p_end_at, now() + interval '10 minutes', 'ACTIVE', left(p_client_hash, 128)
+        v_start_at, v_end_at, now() + interval '10 minutes', 'ACTIVE', left(p_client_hash, 128)
       )
       returning * into v_hold;
     exception
@@ -231,22 +253,15 @@ begin
     end;
   end if;
 
-  if v_vehicle.branch_id is not null then
-    select b.timezone into v_timezone
-    from public.branches b
-    where b.id = v_vehicle.branch_id;
-  end if;
-
-  return query select v_hold.id, v_vehicle.id, v_hold.expires_at, coalesce(v_timezone, 'Europe/Istanbul');
+  return query
+  select v_hold.id, v_vehicle.id, v_hold.start_at, v_hold.end_at, v_hold.expires_at, v_timezone;
 end;
 $$;
 
-revoke all on function public.reserve_rental_hold(text,timestamptz,timestamptz,text,uuid,text) from public, anon, authenticated;
-grant execute on function public.reserve_rental_hold(text,timestamptz,timestamptz,text,uuid,text) to service_role;
+revoke all on function public.reserve_rental_hold(text,timestamp without time zone,timestamp without time zone,text,uuid,text) from public, anon, authenticated;
+grant execute on function public.reserve_rental_hold(text,timestamp without time zone,timestamp without time zone,text,uuid,text) to service_role;
 
-create or replace function public.release_rental_hold(
-  p_idempotency_key text
-)
+create or replace function public.release_rental_hold(p_idempotency_key text)
 returns boolean
 language plpgsql
 security definer

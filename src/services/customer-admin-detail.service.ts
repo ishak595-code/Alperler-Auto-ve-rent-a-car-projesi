@@ -1,22 +1,22 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { AuthService } from './auth.service';
-import { CustomerDocumentType, CustomerExperiencePreferences } from './customer-wallet.service';
+import { CustomerDocument, CustomerDocumentType, CustomerExperiencePreferences } from './customer-wallet.service';
 import { SafePaymentMethod } from './customer-account.service';
 
 export interface AdminCustomerProfileDetail {user_id:string;email?:string|null;full_name?:string|null;phone?:string|null;birth_date?:string|null;address_line?:string|null;district?:string|null;city?:string|null;country?:string|null;postal_code?:string|null;avatar_url?:string|null;status:string;created_at:string;updated_at:string;}
 export interface AdminCustomerLoyaltyDetail {user_id:string;points_balance:number;lifetime_points:number;completed_rentals:number;lifetime_spend:number;tier:string;successful_referrals:number;referral_points_earned:number;}
 export interface AdminCustomerConsent {user_id:string;terms_version:string;accepted_at:string;revoked_at?:string|null;accepted_via:string;}
-export interface AdminCustomerDocument {id:string;user_id:string;document_type:CustomerDocumentType;original_name:string;mime_type:string;file_size:number;expiry_date?:string|null;verification_status:'PENDING'|'VERIFIED'|'REJECTED'|'EXPIRED';verified_at?:string|null;rejection_reason?:string|null;created_at:string;updated_at:string;}
+interface GatewayCustomerDocument {id:string;user_id:string;document_type:CustomerDocumentType;original_name:string;mime_type:string;file_size:number;expiry_date?:string|null;verification_status:'PENDING'|'VERIFIED'|'REJECTED'|'EXPIRED';verified_at?:string|null;rejection_reason?:string|null;created_at:string;updated_at:string;}
 export interface AdminCustomerReferral {id:string;inviter_user_id:string;invitee_user_id:string;referral_code:string;status:string;qualified_booking_id?:string|null;inviter_points_awarded:number;invitee_points_awarded:number;claimed_at:string;rewarded_at?:string|null;created_at:string;source_campaign_id?:string|null;landing_path?:string|null;instant_discount_booking_id?:string|null;instant_discount_amount?:number|null;instant_discount_used_at?:string|null;}
 export interface AdminCustomerReferralReward {id:string;referral_id:string;booking_id:string;reward_type:string;inviter_points:number;invitee_points:number;rewarded_at:string;}
 export interface AdminCustomerBooking {id:string;reference:string;booking_type:string;item_name:string;total_price?:number|null;amount_paid?:number|null;discount_amount?:number|null;currency:string;status:string;payment_status:string;created_at:string;}
-interface AdminCustomerDetailPayload{ok?:boolean;code?:string;profile?:AdminCustomerProfileDetail|null;loyalty?:AdminCustomerLoyaltyDetail|null;preferences?:CustomerExperiencePreferences|null;consents?:AdminCustomerConsent[];documents?:AdminCustomerDocument[];referrals?:AdminCustomerReferral[];referralRewards?:AdminCustomerReferralReward[];paymentMethods?:SafePaymentMethod[];bookings?:AdminCustomerBooking[];capabilities?:{manageSettings?:boolean};}
+interface AdminCustomerDetailPayload{ok?:boolean;code?:string;profile?:AdminCustomerProfileDetail|null;loyalty?:AdminCustomerLoyaltyDetail|null;preferences?:CustomerExperiencePreferences|null;consents?:AdminCustomerConsent[];documents?:GatewayCustomerDocument[];referrals?:AdminCustomerReferral[];referralRewards?:AdminCustomerReferralReward[];paymentMethods?:SafePaymentMethod[];bookings?:AdminCustomerBooking[];capabilities?:{manageSettings?:boolean};}
 interface MutationPayload{ok?:boolean;code?:string;message?:string;signedUrl?:string;[key:string]:unknown;}
 
 @Injectable({providedIn:'root'})
 export class CustomerAdminDetailService{
   private readonly auth=inject(AuthService);
-  readonly loading=signal(false);readonly profile=signal<AdminCustomerProfileDetail|null>(null);readonly loyalty=signal<AdminCustomerLoyaltyDetail|null>(null);readonly preferences=signal<CustomerExperiencePreferences|null>(null);readonly consents=signal<AdminCustomerConsent[]>([]);readonly documents=signal<AdminCustomerDocument[]>([]);readonly referrals=signal<AdminCustomerReferral[]>([]);readonly referralRewards=signal<AdminCustomerReferralReward[]>([]);readonly paymentMethods=signal<SafePaymentMethod[]>([]);readonly bookings=signal<AdminCustomerBooking[]>([]);
+  readonly loading=signal(false);readonly profile=signal<AdminCustomerProfileDetail|null>(null);readonly loyalty=signal<AdminCustomerLoyaltyDetail|null>(null);readonly preferences=signal<CustomerExperiencePreferences|null>(null);readonly consents=signal<AdminCustomerConsent[]>([]);readonly documents=signal<CustomerDocument[]>([]);readonly referrals=signal<AdminCustomerReferral[]>([]);readonly referralRewards=signal<AdminCustomerReferralReward[]>([]);readonly paymentMethods=signal<SafePaymentMethod[]>([]);readonly bookings=signal<AdminCustomerBooking[]>([]);
 
   async load(userId:string):Promise<void>{
     if(!this.validUuid(userId))throw new Error('INVALID_CUSTOMER_ID');const token=await this.requireToken();this.loading.set(true);
@@ -26,7 +26,8 @@ export class CustomerAdminDetailService{
       this.profile.set(payload.profile||null);
       this.loyalty.set(payload.loyalty?{...payload.loyalty,points_balance:Number(payload.loyalty.points_balance||0),lifetime_points:Number(payload.loyalty.lifetime_points||0),completed_rentals:Number(payload.loyalty.completed_rentals||0),lifetime_spend:Number(payload.loyalty.lifetime_spend||0),successful_referrals:Number(payload.loyalty.successful_referrals||0),referral_points_earned:Number(payload.loyalty.referral_points_earned||0)}:null);
       this.preferences.set(payload.preferences?this.normalizePrefs(payload.preferences):null);
-      this.consents.set(payload.consents||[]);this.documents.set(payload.documents||[]);
+      this.consents.set(payload.consents||[]);
+      this.documents.set((payload.documents||[]).map(doc=>({...doc,storage_path:''})));
       this.referrals.set((payload.referrals||[]).map(row=>({...row,inviter_points_awarded:Number(row.inviter_points_awarded||0),invitee_points_awarded:Number(row.invitee_points_awarded||0),instant_discount_amount:row.instant_discount_amount==null?null:Number(row.instant_discount_amount)})));
       this.referralRewards.set((payload.referralRewards||[]).map(row=>({...row,inviter_points:Number(row.inviter_points||0),invitee_points:Number(row.invitee_points||0)})));
       this.paymentMethods.set(payload.paymentMethods||[]);
@@ -34,7 +35,7 @@ export class CustomerAdminDetailService{
     }finally{this.loading.set(false);}
   }
 
-  async documentUrl(doc:AdminCustomerDocument):Promise<string>{
+  async documentUrl(doc:CustomerDocument):Promise<string>{
     const token=await this.requireToken();const payload=await this.request<MutationPayload>('PATCH',token,{action:'signDocument',documentId:doc.id});
     if(payload.ok!==true||typeof payload.signedUrl!=='string'||!payload.signedUrl)throw new Error(payload.code||'DOCUMENT_SIGN_FAILED');
     return payload.signedUrl;

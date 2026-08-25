@@ -21,6 +21,7 @@ export interface ReferralSummary { code:string;registered:number;rewarded:number
 export interface ReferralCampaignTarget { id:string;ctaUrl?:string; }
 export interface CustomerLifetimeSummary {
   userId:string;customerSince:string;tenureDays:number;tenureMonths:number;tenureFullYears:number;
+  firstRentalAt?:string|null;lastRentalAt?:string|null;rentalTenureMonths:number;rentalTenureFullYears:number;
   engagementBand:'NEW'|'REGULAR'|'LOYAL'|'LONG_TERM';tier:string;
   completedTotal:number;completedRentals:number;completedSales:number;completedTours:number;completedAppointments:number;
   firstCompletedAt?:string|null;lastCompletedAt?:string|null;

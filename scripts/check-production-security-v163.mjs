@@ -81,14 +81,12 @@ includesAll(bookingApi, [
   'x-request-id',
   'x-upstream-request-id',
   'clientIp(request)',
-], 'booking BFF');
-
-const availabilityApi = read('api/rental-availability.ts');
-includesAll(availabilityApi, [
-  'guardOrigin',
-  'x-request-id',
+  'mode === "rental-availability"',
   '/functions/v1/rental-availability',
-], 'rental availability BFF');
+], 'consolidated booking and availability BFF');
+
+const vercel = JSON.parse(read('vercel.json'));
+assert(vercel.rewrites?.some((rule) => rule.source === '/api/rental-availability' && rule.destination === '/api/bookings?mode=rental-availability'), 'public rental availability route must rewrite into the consolidated booking BFF');
 
 const availabilityEdge = read('supabase/functions/rental-availability/index.ts');
 includesAll(availabilityEdge, [
@@ -142,7 +140,6 @@ const packageLock = JSON.parse(read('package-lock.json'));
 assert(packageJson.dependencies?.tailwindcss === '4.2.1', 'Tailwind dependency must be pinned');
 assert(packageLock.packages?.['']?.dependencies?.tailwindcss === '4.2.1', 'lockfile root Tailwind spec must match package.json');
 
-const vercel = JSON.parse(read('vercel.json'));
 const globalHeaders = vercel.headers?.find((rule) => rule.source === '/(.*)')?.headers || [];
 const csp = globalHeaders.find((header) => header.key === 'Content-Security-Policy')?.value || '';
 includesAll(csp, [

@@ -90,9 +90,34 @@ includesAll(availabilityEdge, [
 const branchModel = read('src/models/branch.model.ts');
 const branchService = read('src/services/branch.service.ts');
 const branchApi = read('api/branches.ts');
+const branchAdmin = read('src/pages/admin/admin-branches.component.ts');
 assert(branchModel.includes('timezone?: string'), 'branch model must expose timezone');
 assert(branchService.includes('Europe/Istanbul'), 'branch service must provide a safe local timezone default');
 assert(branchApi.includes('timezone:'), 'branch API must persist timezone');
+includesAll(branchAdmin, ['Saat Dilimi', 'draft.timezone', 'Europe/Istanbul'], 'admin branch timezone editor');
+
+const carDetail = read('src/pages/car-detail.component.ts');
+assert(!carDetail.includes('getTechnicalSpecs'), 'public car detail must not use the compiled brand/model technical lookup');
+includesAll(carDetail, [
+  'car.technicalSpecs',
+  'car.enginePower',
+  'car.fuelConsumption',
+  'car.fuelTankCapacity',
+], 'database-driven public technical details');
+
+const catalogueAdmin = read('src/pages/admin/admin-catalog-editor.component.ts');
+includesAll(catalogueAdmin, [
+  "cityFuelConsumption",
+  "highwayFuelConsumption",
+  "fuelTankCapacity",
+  "wheelSize",
+  "cylinderCount",
+], 'admin technical data editor');
+
+const packageJson = JSON.parse(read('package.json'));
+const packageLock = JSON.parse(read('package-lock.json'));
+assert(packageJson.dependencies?.tailwindcss === '4.2.1', 'Tailwind dependency must be pinned');
+assert(packageLock.packages?.['']?.dependencies?.tailwindcss === '4.2.1', 'lockfile root Tailwind spec must match package.json');
 
 const vercel = JSON.parse(read('vercel.json'));
 const globalHeaders = vercel.headers?.find((rule) => rule.source === '/(.*)')?.headers || [];

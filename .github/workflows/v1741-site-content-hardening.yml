@@ -68,8 +68,13 @@ jobs:
             echo "Homepage admin browser mutation bypass detected"
             exit 1
           fi
-          if grep -E "method:[[:space:]]*['\"](PATCH|POST|DELETE)['\"].*footer_settings|/rest/v1/footer_settings" "$FOOT"; then
-            echo "Footer admin browser mutation bypass detected"
+          grep -Fq "async save(settings:FooterSettings" "$FOOT"
+          grep -Fq "this.gateway<FooterMutation>('PATCH',token,{action:'saveFooter'" "$FOOT"
+          grep -Fq "async savePrefooter(settings:PrefooterSettings)" "$FOOT"
+          grep -Fq "this.gateway<FooterMutation>('PATCH',token,{action:'savePrefooter'" "$FOOT"
+          # Direct Supabase REST remains intentionally allowed only for anonymous/public SELECT refreshes.
+          if grep -E "fetch\(.*SUPABASE_PROJECT_URL.*rest/v1.*method:[[:space:]]*['\"](PATCH|POST|DELETE)['\"]" "$FOOT"; then
+            echo "Footer direct Supabase write bypass detected"
             exit 1
           fi
 

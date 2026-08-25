@@ -8,7 +8,9 @@ export type OwnershipStatusV172="OWNER"|"AUTHORIZED_SELLER"|"COMPANY_VEHICLE"|"O
 export type OfferModelV172="PURCHASE"|"MONTHLY_GUARANTEE"|"REVENUE_SHARE"|"DECLINE";
 export type ValuationStatusV172="DRAFT"|"FINAL";
 
-export interface VehicleValuationSubmissionV172 extends PartnerSubmissionInput{
+export interface VehicleValuationSubmissionV172 extends Omit<PartnerSubmissionInput,"modelYear"|"km">{
+  modelYear?:number;
+  km?:number;
   fuelType?:ValuationFuelV172;
   transmission?:ValuationTransmissionV172;
   bodyType?:string;
@@ -41,7 +43,14 @@ export class VehicleValuationV172Service{
   readonly records=signal<ValuationSnapshotV172[]>([]);readonly loading=signal(false);readonly error=signal("");
   readonly uploadProgress=this.partner.uploadProgress;
 
-  async submit(input:VehicleValuationSubmissionV172){return this.partner.submit(input as PartnerSubmissionInput);}
+  async submit(input:VehicleValuationSubmissionV172){
+    const modelYear=input.modelYear,km=input.km;
+    const maxYear=new Date().getFullYear()+1;
+    if(typeof modelYear!=="number"||!Number.isInteger(modelYear)||modelYear<1950||modelYear>maxYear)throw new Error("INVALID_MODEL_YEAR");
+    if(typeof km!=="number"||!Number.isFinite(km)||km<0||km>5_000_000)throw new Error("INVALID_MILEAGE");
+    const submission:PartnerSubmissionInput={...input,modelYear,km};
+    return this.partner.submit(submission);
+  }
   resetSubmissionKey(){this.partner.resetSubmissionKey();}
 
   async refreshAdmin(){this.loading.set(true);this.error.set("");try{const payload=await this.adminCall("GET");if(!payload.ok||!Array.isArray(payload.requests))throw new Error(payload.code||"VALUATION_LIST_FAILED");this.records.set(payload.requests.map(row=>this.fromApi(row)));}catch(error){this.error.set(error instanceof Error?error.message:"Değerleme kayıtları okunamadı.");throw error;}finally{this.loading.set(false);}}

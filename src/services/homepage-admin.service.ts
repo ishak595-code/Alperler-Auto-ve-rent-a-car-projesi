@@ -12,6 +12,15 @@ export interface HomepageSectionSettings {
   theme?: HomepageTheme; layout?: 'rail' | 'grid' | 'wide'; width?: 'standard' | 'wide' | 'full';
   viewAllLabel?: string; viewAllUrl?: string; ctaLabel?: string; ctaUrl?: string; secondaryCtaLabel?: string; secondaryCtaUrl?: string;
   partnerCtaTitle?: string; partnerCtaLabel?: string; partnerRoute?: string; showPartnerCta?: boolean; trustItems?: string[];
+  promoFallbackBadge?: string; promoFallbackDescription?: string;
+  campaignLabel?: string; campaignDiscountSuffix?: string; campaignFallbackDescription?: string; campaignCtaLabel?: string;
+  campaignSavingSuffix?: string; campaignAdvantageSuffix?: string; campaignLimitedLabel?: string; campaignExpiredLabel?: string;
+  campaignDaysRemainingSuffix?: string; campaignOneDayRemainingLabel?: string; campaignHoursRemainingSuffix?: string;
+  campaignProofActiveSuffix?: string; campaignProofRecentSuffix?: string; campaignProofUniqueSuffix?: string; campaignViewsSuffix?: string; campaignNewLabel?: string;
+  tourFallbackDescription?: string; tourCardCtaLabel?: string;
+  branchFranchiseLabel?: string; branchLocationLabel?: string; branchFallbackDescriptionSuffix?: string;
+  branchPickupLabel?: string; branchReturnLabel?: string; branchCardCtaLabel?: string;
+  blogCardCtaLabel?: string;
   [key: string]: unknown;
 }
 export interface HomepageSectionRecord { sectionKey:string; title:string; sectionType:HomepageSectionType; isEnabled:boolean; sortOrder:number; maxItems:number; settings:HomepageSectionSettings; }

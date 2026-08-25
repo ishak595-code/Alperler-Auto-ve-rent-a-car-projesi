@@ -4,6 +4,7 @@ import {
 } from "./_lib/supabase-public";
 
 type Resource = "vehicles" | "tours" | "blog" | "faqs" | "config";
+type MutableResource = Exclude<Resource, "config">;
 
 const PUBLIC_PAGE_SIZE = 500;
 const PUBLIC_MAX_PAGES = 100;
@@ -377,7 +378,7 @@ async function requireAuthorization(request: Request): Promise<string | null> {
   return authorization?.startsWith("Bearer ") ? authorization : null;
 }
 
-async function upsert(resource: Resource, input: any, authorization: string): Promise<Response> {
+async function upsert(resource: MutableResource, input: any, authorization: string): Promise<Response> {
   let path = "";
   let row: Record<string, unknown>;
   let map: (value: any) => Record<string, unknown> = (value) => value;
@@ -398,11 +399,6 @@ async function upsert(resource: Resource, input: any, authorization: string): Pr
     path = "blog_posts?on_conflict=slug&select=*";
     conflict = "slug";
     map = blogFromRow;
-  } else if (resource === "config") {
-    if (!input || typeof input !== "object" || jsonSize(input) > 750_000) throw new Error("INVALID_SITE_CONFIG");
-    row = { key: "site_settings", value: input, is_public: true };
-    path = "site_config?on_conflict=key&select=*";
-    conflict = "key";
   } else if (resource === "faqs") {
     const question = clean(input?.question, 500);
     const answer = clean(input?.answer, 10_000);
@@ -436,11 +432,10 @@ async function upsert(resource: Resource, input: any, authorization: string): Pr
   }, authorization);
   if (!upstream.ok) return response({ ok: false, code: "CATALOG_SAVE_DENIED", resource }, upstream.status);
   const rows = await upstream.json();
-  if (resource === "config") return response({ ok: true, resource, value: rows[0]?.value || input });
   return response({ ok: true, resource, record: map(rows[0]) });
 }
 
-async function disable(resource: Resource, input: any, authorization: string): Promise<Response> {
+async function disable(resource: MutableResource, input: any, authorization: string): Promise<Response> {
   if (resource === "vehicles") {
     const stockCode = clean(input?.cloudStockCode, 120);
     const cloudId = clean(input?.cloudId, 80);
@@ -489,6 +484,7 @@ export default {
     }
 
     if (request.method === "GET") return getPublic(resource);
+    if (resource === "config") return response({ ok: false, code: "CONFIG_MUTATION_REQUIRES_SITE_CONTENT_GATEWAY" }, 405);
 
     const authorization = await requireAuthorization(request);
     if (!authorization) return response({ ok: false, code: "UNAUTHORIZED" }, 401);
@@ -501,8 +497,9 @@ export default {
     }
 
     try {
-      if (request.method === "PUT" || request.method === "POST") return await upsert(resource, body, authorization);
-      if (request.method === "DELETE") return await disable(resource, body, authorization);
+      const mutableResource = resource as MutableResource;
+      if (request.method === "PUT" || request.method === "POST") return await upsert(mutableResource, body, authorization);
+      if (request.method === "DELETE") return await disable(mutableResource, body, authorization);
       return response({ ok: false, code: "METHOD_NOT_ALLOWED" }, 405);
     } catch (error) {
       const code = error instanceof Error ? error.message : "CATALOG_OPERATION_FAILED";

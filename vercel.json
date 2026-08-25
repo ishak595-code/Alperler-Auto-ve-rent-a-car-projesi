@@ -73,6 +73,7 @@
     { "source": "/api/payments/paytr-callback", "destination": "/api/payments?op=paytr-callback" },
     { "source": "/api/integrations/status", "destination": "/api/bookings?mode=integration-status" },
     { "source": "/api/rental-availability", "destination": "/api/bookings?mode=rental-availability" },
+    { "source": "/api/admin-booking-actions", "destination": "/api/bookings?mode=admin-booking-actions" },
     { "source": "/robots.txt", "destination": "/api/robots" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     {

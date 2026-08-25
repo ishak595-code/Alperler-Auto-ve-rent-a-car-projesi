@@ -21,7 +21,7 @@ export interface SpendingCurrencySummary {
 @Injectable({providedIn:'root'})
 export class CustomerWalletService{
   private readonly auth=inject(CustomerAuthService);
-  private readonly documentBucket='customer-private';
+  private readonly documentBucket='customer-documents';
   readonly loading=signal(false);
   readonly terms=signal<CustomerVaultTerms|null>(null);
   readonly consent=signal<CustomerVaultConsent|null>(null);

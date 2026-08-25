@@ -24,7 +24,7 @@ import { TurkishCurrencyPipe } from '../pipes/turkish-currency.pipe';
 })
 export class SaleVehicleCardV168Component{
   @Input({required:true})car!:Car;@Input()branchLabel='';
-  get cover():string{return this.car.images?.[0]||this.car.image||'/vehicle-placeholder.svg';}
+  get cover():string{return this.car.image||this.car.images?.[0]||'/vehicle-placeholder.svg';}
   get title():string{return this.car.title?.trim()||[this.car.year,this.car.brand,this.car.series,this.car.model].filter(Boolean).join(' ')||'Satılık araç';}
   get isSold():boolean{return this.car.availability==='Satıldı'||this.car.isAvailable===false;}
   get statusLabel():string{return this.isSold?'SATILDI':this.car.availability||'SATIŞTA';}

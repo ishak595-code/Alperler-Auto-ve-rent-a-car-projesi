@@ -54,6 +54,7 @@ export class CustomerWalletService{
     const mimeExtension=new Map<string,string>([['image/jpeg','jpg'],['image/png','png'],['image/webp','webp'],['application/pdf','pdf']]);
     const extension=mimeExtension.get(file.type);if(!extension)throw new Error('DOCUMENT_TYPE_INVALID');
     if(file.size<=0||file.size>10*1024*1024)throw new Error('DOCUMENT_SIZE_INVALID');
+    const detectedMime=await this.detectFileSignature(file);if(detectedMime!==file.type)throw new Error('DOCUMENT_SIGNATURE_INVALID');
     const token=await this.requireToken();const userId=this.auth.user()?.id||'';if(!userId)throw new Error('CUSTOMER_SESSION_REQUIRED');
     const path=`${userId}/${crypto.randomUUID()}.${extension}`;
     const encoded=path.split('/').map(encodeURIComponent).join('/');
@@ -110,6 +111,17 @@ export class CustomerWalletService{
     const currency=this.preferences()?.preferred_currency||'TRY';return this.spending().find(row=>row.currency===currency)||null;
   }
 
+  private async detectFileSignature(file:File):Promise<string|null>{
+    const bytes=new Uint8Array(await file.slice(0,16).arrayBuffer());
+    const starts=(signature:number[])=>signature.every((value,index)=>bytes[index]===value);
+    if(starts([0xff,0xd8,0xff]))return'image/jpeg';
+    if(starts([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]))return'image/png';
+    if(starts([0x25,0x50,0x44,0x46,0x2d]))return'application/pdf';
+    const riff=starts([0x52,0x49,0x46,0x46]);
+    const webp=bytes[8]===0x57&&bytes[9]===0x45&&bytes[10]===0x42&&bytes[11]===0x50;
+    if(riff&&webp)return'image/webp';
+    return null;
+  }
   private async deleteStorageObject(path:string,token:string):Promise<void>{const encoded=path.split('/').map(encodeURIComponent).join('/');const response=await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/customer-documents/${encoded}`,{method:'DELETE',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`}});if(!response.ok&&response.status!==404)throw new Error('DOCUMENT_STORAGE_DELETE_FAILED');}
   private normalizePreferences(row:CustomerExperiencePreferences):CustomerExperiencePreferences{return{...row,monthly_spend_target:row.monthly_spend_target===null||row.monthly_spend_target===undefined?null:Number(row.monthly_spend_target),spend_alert_threshold_percent:Number(row.spend_alert_threshold_percent||80),document_expiry_reminder_days:Number(row.document_expiry_reminder_days||30)};}
   private moneyOrNull(value:unknown):number|null{if(value===null||value===''||value===undefined)return null;const n=Number(value);if(!Number.isFinite(n)||n<0||n>1000000000)throw new Error('SPEND_TARGET_INVALID');return Math.round(n*100)/100;}

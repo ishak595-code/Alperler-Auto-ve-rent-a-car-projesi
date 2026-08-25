@@ -64,12 +64,12 @@ const write = (path, value) => fs.writeFileSync(path, value);
   const revokeStart = source.indexOf('revoke all on function private.seed_pending_booking_alternatives()', functionStart);
   if (functionStart < 0 || revokeStart < 0) throw new Error('Pending seed function block missing');
   let block = source.slice(functionStart, revokeStart);
-  block = block.replace(/\nas \$\n/, '\nas $$\n');
-  block = block.replace(/\nend;\n\$;\n$/, '\nend;\n$$;\n\n');
+  block = block.replace('as $\n', 'as $$\n');
+  block = block.replace(/\n\$;\s*$/, '\n$$;\n\n');
   source = source.slice(0, functionStart) + block + source.slice(revokeStart);
   if (!source.includes('booking_seed_alternatives_after_pending_insert')) throw new Error('Pending alternative seed trigger missing');
   const repaired = source.slice(functionStart, source.indexOf('revoke all on function private.seed_pending_booking_alternatives()', functionStart));
-  if (!repaired.includes('\nas $$\n') || !repaired.includes('\nend;\n$$;')) throw new Error('Seed function SQL delimiter repair failed');
+  if (!repaired.includes('as $$\n') || !repaired.includes('\nend;\n$$;')) throw new Error('Seed function SQL delimiter repair failed');
   write(path, source);
 }
 

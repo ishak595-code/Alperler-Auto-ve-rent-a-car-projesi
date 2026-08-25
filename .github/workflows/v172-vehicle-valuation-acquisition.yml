@@ -1,0 +1,158 @@
+name: V172 Vehicle Valuation and Acquisition
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "api/**"
+      - "supabase/**"
+      - "vercel.json"
+      - ".github/workflows/v172-vehicle-valuation-acquisition.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v172-production-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: V172 database security contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260825223000_v172_vehicle_valuation_acquisition_studio.sql
+          BRIDGE=supabase/migrations/20260825223100_v1721_partner_identity_submission_bridge.sql
+          test -f "$MIG" && test -f "$BRIDGE"
+          grep -Fq "private.partner_request_vehicle_identity" "$MIG"
+          grep -Fq "revoke all on table private.partner_request_vehicle_identity from public,anon,authenticated" "$MIG"
+          grep -Fq "partner_request_valuations" "$MIG"
+          grep -Fq "partner_request_appointments" "$MIG"
+          grep -Fq "PARTNER_FINAL_VALUATION_REQUIRED" "$MIG"
+          grep -Fq "valuation_status='FINAL'" "$MIG"
+          grep -Fq "offer_model<>'DECLINE'" "$MIG"
+          grep -Fq "service_record_partner_valuation_v172" "$MIG"
+          grep -Fq "service_schedule_partner_appointment_v172" "$MIG"
+          grep -Fq "service_partner_request_admin_snapshot_v172" "$MIG"
+          grep -Fq "service_attach_partner_request_identity_v172" "$BRIDGE"
+          grep -Fq "to service_role" "$MIG"
+          grep -Fq "to service_role" "$BRIDGE"
+          if grep -Eq "add column if not exists (license_plate|vin|registration_reference)" "$MIG"; then
+            echo "Sensitive vehicle identity must never be added to public.partner_requests"
+            exit 1
+          fi
+
+      - name: V172 gateway hardening contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          EDGE=supabase/functions/partner-request-gateway-v172/index.ts
+          test -f "$EDGE"
+          grep -Fq "consume_rate_limit" "$EDGE"
+          grep -Fq "idempotencyKey" "$EDGE"
+          grep -Fq "createSignedUploadUrl" "$EDGE"
+          grep -Fq "UPLOADS_INCOMPLETE" "$EDGE"
+          grep -Fq "validateGeo" "$EDGE"
+          grep -Fq "validateBranch" "$EDGE"
+          grep -Fq "CONSENT_REQUIRED" "$EDGE"
+          grep -Fq "service_attach_partner_request_identity_v172" "$EDGE"
+          grep -Fq "service_record_partner_valuation_v172" "$EDGE"
+          grep -Fq "service_schedule_partner_appointment_v172" "$EDGE"
+          grep -Fq "PARTNER_FINAL_VALUATION_REQUIRED" "$EDGE"
+          grep -Fq "requireAdmin" "$EDGE"
+          grep -Fq "service-role" src/services/vehicle-valuation-v172.service.ts || true
+          grep -Fq 'const edgeFunction="partner-request-gateway-v172"' api/partner.ts
+
+      - name: Public valuation studio contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          PAGE=src/pages/list-your-car-v172.component.ts
+          SERVICE=src/services/vehicle-valuation-v172.service.ts
+          test -f "$PAGE" && test -f "$SERVICE"
+          grep -Fq "VehicleValuationV172Service" "$PAGE"
+          grep -Fq "GeoDirectoryService" "$PAGE"
+          grep -Fq "BranchPublicV171Service" "$PAGE"
+          grep -Fq "ownershipConfirmed" "$PAGE"
+          grep -Fq "expertReportAvailable" "$PAGE"
+          grep -Fq "damageDeclaration" "$PAGE"
+          grep -Fq "licensePlate" "$PAGE"
+          grep -Fq "vin" "$PAGE"
+          grep -Fq "privacyAccepted" "$PAGE"
+          grep -Fq "termsAccepted" "$PAGE"
+          grep -Fq "ListYourCarV172Component" src/pages/list-your-car.component.ts
+          grep -Fq "PartnerRequestService" "$SERVICE"
+          if grep -Eq "supabase\.storage|createSignedUploadUrl|uploadToSignedUrl" "$SERVICE"; then
+            echo "V172 service must reuse the hardened PartnerRequestService upload engine"
+            exit 1
+          fi
+
+      - name: Super Admin valuation studio contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          ADMIN=src/pages/admin/admin-vehicle-valuation-studio-v172.component.ts
+          HUB=src/pages/admin/admin-operations-hub.component.ts
+          test -f "$ADMIN"
+          grep -Fq "VehicleValuationV172Service" "$ADMIN"
+          grep -Fq "FINAL resmi değerleme" "$ADMIN"
+          grep -Fq "hasOfferableFinal" "$ADMIN"
+          grep -Fq "saveValuation" "$ADMIN"
+          grep -Fq "saveAppointment" "$ADMIN"
+          grep -Fq "saveIdentity" "$ADMIN"
+          grep -Fq "saveAssignment" "$ADMIN"
+          grep -Fq "PartnerMediaService" "$ADMIN"
+          grep -Fq "app-admin-vehicle-valuation-studio-v172" "$HUB"
+          grep -Fq "Araç Değerleme Stüdyosu" "$HUB"
+
+      - name: Reservation inventory invariant remains intact
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -R -Fq "APPROVED" supabase/migrations supabase/functions src/services src/pages
+          if grep -R -Eq "status[[:space:]]*=[[:space:]]*'PENDING'.*(block|inventory)|PENDING.*inventory" supabase/migrations supabase/functions; then
+            echo "PENDING reservation must not become an inventory blocking state"
+            exit 1
+          fi
+
+      - name: Frontend TypeScript
+        run: npm run lint
+
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Accessibility and function budget
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+          npm run vercel:functions
+
+      - name: Premium design contract
+        run: npm run design:premium
+
+      - name: Set up Deno 2
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: V172 Edge Function type check
+        run: deno check --node-modules-dir=auto supabase/functions/partner-request-gateway-v172/index.ts
+
+      - name: Production Angular build
+        run: npm run build

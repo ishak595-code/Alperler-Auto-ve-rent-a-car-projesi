@@ -58,6 +58,9 @@ jobs:
       - name: Production dependency vulnerability gate
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Complete dependency vulnerability gate
+        run: npm audit --audit-level=high
+
       - name: V163 production security invariant gate
         run: node scripts/check-production-security-v163.mjs
 
@@ -77,6 +80,12 @@ jobs:
 
       - name: Booking gateway Edge Function regression check
         run: deno check --node-modules-dir=auto supabase/functions/booking-gateway/index.ts
+
+      - name: Atomic admin booking Edge Function type check
+        run: deno check --node-modules-dir=auto supabase/functions/booking-admin-actions/index.ts
+
+      - name: Customer document upload Edge Function type check
+        run: deno check --node-modules-dir=auto supabase/functions/customer-document-upload/index.ts
 
       - name: Production build
         run: npm run build

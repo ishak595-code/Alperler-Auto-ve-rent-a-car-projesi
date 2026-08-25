@@ -1,0 +1,66 @@
+name: Branch Network V164 Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - 'src/pages/branch-partner*'
+      - 'src/services/branch-partner.service.ts'
+      - 'src/services/geo-directory.service.ts'
+      - 'api/partner.ts'
+      - 'supabase/functions/branch-partner-v164/**'
+      - 'supabase/functions/geo-directory/**'
+      - 'supabase/migrations/*v164*'
+      - 'docs/PRODUCTION_ARCHITECTURE_V164.md'
+      - '.github/workflows/branch-network-v164-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  branch-network:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify V164 architecture invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'geo_provinces' supabase/migrations/20260825132000_v164_branch_geography_access.sql
+          grep -Fq 'geo_districts' supabase/migrations/20260825132000_v164_branch_geography_access.sql
+          grep -Fq 'branch_access_invites' supabase/migrations/20260825132000_v164_branch_geography_access.sql
+          grep -Fq 'link_branch_owner_by_email' supabase/migrations/20260825132000_v164_branch_geography_access.sql
+          grep -Fq 'replace_turkey_geo_directory' supabase/migrations/20260825132100_v164_geo_sync_rpc.sql
+          grep -Fq 'provinces.length!==81' supabase/functions/geo-directory/index.ts
+          grep -Fq 'branch-partner-v164' api/partner.ts
+          grep -Fq 'geo-directory' api/partner.ts
+          grep -Fq 'provinceCode' src/services/branch-partner.service.ts
+          grep -Fq 'districtCode' src/services/branch-partner.service.ts
+          grep -Fq 'BRANCH_OWNER' supabase/functions/branch-partner-v164/index.ts
+          grep -Fq 'provision_branch_partner_request' supabase/functions/branch-partner-v164/index.ts
+          grep -Fq '/branch-portal/login' supabase/functions/branch-partner-v164/index.ts
+          grep -Fq '81 İLDE' src/pages/branch-partner-v164.component.ts
+          ! grep -RFn 'alperrentacar.online' src api public supabase vercel.json docs
+      - name: Frontend type check
+        run: npm run lint
+      - name: API type check
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Edge function checks
+        run: |
+          deno check supabase/functions/geo-directory/index.ts
+          deno check supabase/functions/branch-partner-v164/index.ts
+      - name: Production build
+        run: npm run build

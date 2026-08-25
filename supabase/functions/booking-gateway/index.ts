@@ -158,7 +158,9 @@ async function requireAdmin(request: Request): Promise<AdminIdentity> {
   const rows = await adminResponse.json();
   if (!Array.isArray(rows) || !rows[0]) throw new Error("FORBIDDEN");
 
-  return { id: userId, email, role: String(rows[0].role || "support") };
+  const role = String(rows[0].role || "");
+  if (!["owner", "admin", "editor", "support"].includes(role)) throw new Error("FORBIDDEN");
+  return { id: userId, email, role };
 }
 
 async function optionalCustomer(request: Request): Promise<CustomerIdentity | null> {
@@ -403,13 +405,44 @@ function rentalDuration(value: unknown): RentalDuration {
     : "daily";
 }
 
-function rentalDays(start: string, end: string): number {
+async function branchTimezone(branchId: string | null | undefined): Promise<string> {
+  if (!branchId || !uuid(String(branchId))) return "Europe/Istanbul";
+  const branch = await firstRow(
+    `branches?id=eq.${encodeURIComponent(String(branchId))}&select=timezone&limit=1`,
+  );
+  const timezone = clean(branch?.timezone, 80) || "Europe/Istanbul";
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(new Date());
+    return timezone;
+  } catch {
+    throw new Error("INVALID_BRANCH_TIMEZONE");
+  }
+}
+
+function localCalendarDayNumber(value: string, timezone: string): number {
+  const instant = new Date(value);
+  if (Number.isNaN(instant.getTime())) throw new Error("INVALID_RENTAL_DATES");
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(instant);
+  const get = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((part) => part.type === type)?.value || 0);
+  const year = get("year");
+  const month = get("month");
+  const day = get("day");
+  if (!year || !month || !day) throw new Error("INVALID_RENTAL_DATES");
+  return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
+}
+
+function rentalDays(start: string, end: string, timezone: string): number {
   const startMs = new Date(start).getTime();
   const endMs = new Date(end).getTime();
   if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
     throw new Error("INVALID_RENTAL_DATES");
   }
-  const days = Math.ceil((endMs - startMs) / 86_400_000);
+  const days = localCalendarDayNumber(end, timezone) - localCalendarDayNumber(start, timezone);
   if (days < 1 || days > 3650) throw new Error("INVALID_RENTAL_DATES");
   return days;
 }
@@ -567,7 +600,8 @@ async function authoritativeRental(
     };
   }
 
-  const days = rentalDays(start, end);
+  const timezone = await branchTimezone(vehicle.branch_id);
+  const days = rentalDays(start, end, timezone);
   const normalDaily = Math.max(0, Number(vehicle.rental_price_daily ?? vehicle.price ?? 0));
   let daily = normalDaily;
   if (campaign) {

@@ -1,0 +1,91 @@
+name: V171.2 Branch Monetization and Marketplace
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "api/**"
+      - "supabase/**"
+      - ".github/workflows/v1712-branch-monetization-marketplace.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v1712-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Subscription and review database contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260825204500_v1712_branch_subscriptions_review_marketplace.sql
+          test -f "$MIG"
+          grep -Fq "('START','Başlangıç'" "$MIG"
+          grep -Fq "('PRO','Profesyonel'" "$MIG"
+          grep -Fq "('GROWTH','Büyüme'" "$MIG"
+          grep -Fq "monthly_fee numeric(12,2)" "$MIG"
+          grep -Fq "price_override numeric(12,2)" "$MIG"
+          grep -Fq "is_complimentary boolean" "$MIG"
+          grep -Fq "can_operate_branch_subscription" "$MIG"
+          grep -Fq "new.publication_status:='PENDING_REVIEW'" "$MIG"
+          grep -Fq "admin_review_branch_listing_v1712" "$MIG"
+          grep -Fq "operator_display_name" "$MIG"
+          grep -Fq "Tüketicinin kanuni hakları saklıdır" "$MIG"
+
+      - name: Province district marketplace contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          API=api/branch-marketplace.ts
+          test -f "$API"
+          grep -Fq 'province_code' "$API"
+          grep -Fq 'district_code' "$API"
+          grep -Fq 'operatorName' "$API"
+          grep -Fq 'MARKETPLACE_AND_RESERVATION_INFRASTRUCTURE' "$API"
+          grep -Fq 'branch-marketplace' src/app.routes.ts
+          grep -Fq 'branch-plans' src/app.routes.ts
+          grep -Fq 'branch-subscriptions' src/app.routes.ts
+
+      - name: Super Admin dynamic pricing contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f src/pages/admin/admin-branch-subscriptions-v171.component.ts
+          grep -Fq 'monthly_fee' src/pages/admin/admin-branch-subscriptions-v171.component.ts
+          grep -Fq 'is_complimentary' src/pages/admin/admin-branch-subscriptions-v171.component.ts
+          grep -Fq 'price_override' src/pages/admin/admin-branch-subscriptions-v171.component.ts
+          test -f src/pages/branch-subscription-v171.component.ts
+          test -f src/pages/branch-plans-v171.component.ts
+
+      - name: Frontend TypeScript
+        run: npm run lint
+
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Accessibility and function budget
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+          npm run vercel:functions
+
+      - name: Production Angular build
+        run: npm run build

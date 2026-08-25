@@ -37,6 +37,7 @@ export class BranchService {
       phone: config.phone,
       whatsapp: config.whatsapp,
       email: config.email,
+      timezone: "Europe/Istanbul",
       workingHours: [{ label: "Çalışma saatleri", value: "Randevu ve operasyon durumuna göre" }],
       services: ["RENTAL", "SALES", "TOUR", "TRANSFER", "PICKUP", "RETURN"],
       isActive: true,
@@ -86,7 +87,8 @@ export class BranchService {
   }
 
   getById(id: string): Branch | undefined {
-    return this.branches().find((branch) => branch.id === id) || this.managedBranches().find((branch) => branch.id === id);
+    return this.branches().find((branch) => branch.id === id || branch.cloudId === id) ||
+      this.managedBranches().find((branch) => branch.id === id || branch.cloudId === id);
   }
 
   async save(branch: Branch): Promise<void> {
@@ -224,6 +226,7 @@ export class BranchService {
       phone: String(row["phone"] || ""),
       whatsapp: row["whatsapp"] || undefined,
       email: row["email"] || undefined,
+      timezone: String(row["timezone"] || "Europe/Istanbul"),
       latitude: row["latitude"] === null || row["latitude"] === undefined ? undefined : Number(row["latitude"]),
       longitude: row["longitude"] === null || row["longitude"] === undefined ? undefined : Number(row["longitude"]),
       mapUrl: row["map_url"] || undefined,
@@ -254,7 +257,9 @@ export class BranchService {
     const district = branch.district.trim().slice(0, 80);
     const addressLabel = branch.addressLabel.trim().slice(0, 240);
     const phone = branch.phone.trim().slice(0, 40);
+    const timezone = String(branch.timezone || "Europe/Istanbul").trim().slice(0, 80);
     if (!name || !city || !district || !addressLabel || !phone) throw new Error("Şube adı, şehir, ilçe, adres ve telefon zorunludur.");
+    if (!/^[A-Za-z_]+(?:\/[A-Za-z0-9_+.-]+)+$/.test(timezone)) throw new Error("Şube saat dilimi geçerli değil.");
 
     return {
       ...branch,
@@ -264,6 +269,7 @@ export class BranchService {
       district,
       addressLabel,
       phone,
+      timezone,
       whatsapp: branch.whatsapp?.trim().slice(0, 40) || undefined,
       email: branch.email?.trim().toLowerCase().slice(0, 160) || undefined,
       mapUrl: branch.mapUrl?.trim().slice(0, 2048) || undefined,
@@ -278,7 +284,7 @@ export class BranchService {
 
   private isUsable(value: Partial<Branch>): value is Branch {
     return Boolean(
-      value.id && value.name && value.city && value.district && value.addressLabel && value.phone &&
+      value.id && value.name && value.city && value.district && value.addressLabel && value.phone && value.timezone &&
       Array.isArray(value.services) && Array.isArray(value.workingHours) &&
       typeof value.isActive === "boolean" && typeof value.isPickupPoint === "boolean" &&
       typeof value.isReturnPoint === "boolean" && typeof value.priority === "number",

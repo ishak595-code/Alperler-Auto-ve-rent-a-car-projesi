@@ -36,6 +36,8 @@ export class BranchPortalAuthService {
     if (!response.ok || !payload?.access_token || !payload?.user?.id) {
       throw new Error(response.status === 400 ? "INVALID_CREDENTIALS" : "BRANCH_LOGIN_FAILED");
     }
+
+    await this.claimBranchAccess(String(payload.access_token));
     this.saveSession({
       accessToken: String(payload.access_token),
       refreshToken: String(payload.refresh_token || ""),
@@ -60,7 +62,18 @@ export class BranchPortalAuthService {
       },
     });
     const user = await userResponse.json().catch(() => ({}));
-    if (!userResponse.ok || !user?.id) return false;
+    if (!userResponse.ok || !user?.id || !user?.email_confirmed_at) {
+      window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+      return false;
+    }
+
+    try {
+      await this.claimBranchAccess(accessToken);
+    } catch (error) {
+      await this.remoteLogout(accessToken);
+      window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+      throw error;
+    }
 
     const expiresIn = Math.max(60, Number(params.get("expires_in") || 3600));
     this.saveSession({
@@ -75,7 +88,8 @@ export class BranchPortalAuthService {
   }
 
   async setPassword(password: string): Promise<void> {
-    if (password.length < 8) throw new Error("PASSWORD_TOO_SHORT");
+    const passwordError = await this.validatePassword(password);
+    if (passwordError) throw new Error(passwordError);
     const token = await this.getAccessToken();
     if (!token) throw new Error("BRANCH_SESSION_REQUIRED");
     const response = await fetch(`${SUPABASE_PROJECT_URL}/auth/v1/user`, {
@@ -98,22 +112,36 @@ export class BranchPortalAuthService {
       await this.signOut(false);
       return null;
     }
-    if (!this.refreshPromise) this.refreshPromise = this.refreshAccessToken().finally(() => { this.refreshPromise = null; });
+    if (!this.refreshPromise) {
+      this.refreshPromise = this.refreshAccessToken().finally(() => { this.refreshPromise = null; });
+    }
     return this.refreshPromise;
   }
 
   async signOut(callRemote = true): Promise<void> {
     const current = this._session();
-    if (callRemote && current?.accessToken) {
-      await fetch(`${SUPABASE_PROJECT_URL}/auth/v1/logout`, {
-        method: "POST",
-        headers: {
-          apikey: SUPABASE_PUBLISHABLE_KEY,
-          authorization: `Bearer ${current.accessToken}`,
-        },
-      }).catch(() => null);
-    }
+    if (callRemote && current?.accessToken) await this.remoteLogout(current.accessToken);
     this.saveSession(null);
+  }
+
+  private async claimBranchAccess(accessToken: string): Promise<void> {
+    const response = await fetch("/api/partner?op=branch-access-claim", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "content-type": "application/json",
+      },
+      body: "{}",
+    }).catch(() => null);
+    if (!response) throw new Error("BRANCH_ACCESS_UNAVAILABLE");
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.authorized !== true) {
+      const code = String(payload?.code || "BRANCH_ACCESS_NOT_GRANTED");
+      if (["EMAIL_VERIFICATION_REQUIRED", "BRANCH_IDENTITY_EMAIL_MISMATCH", "BRANCH_ACCESS_NOT_GRANTED"].includes(code)) {
+        throw new Error(code);
+      }
+      throw new Error("BRANCH_ACCESS_NOT_GRANTED");
+    }
   }
 
   private async refreshAccessToken(): Promise<string | null> {
@@ -132,10 +160,19 @@ export class BranchPortalAuthService {
       return null;
     }
     const payload = await response.json().catch(() => ({}));
-    if (!payload?.access_token || !payload?.user?.id) {
+    if (!payload?.access_token || !payload?.user?.id || !payload?.user?.email_confirmed_at) {
       this.saveSession(null);
       return null;
     }
+
+    try {
+      await this.claimBranchAccess(String(payload.access_token));
+    } catch {
+      await this.remoteLogout(String(payload.access_token));
+      this.saveSession(null);
+      return null;
+    }
+
     const next: BranchPortalSession = {
       accessToken: String(payload.access_token),
       refreshToken: String(payload.refresh_token || current.refreshToken),
@@ -147,23 +184,63 @@ export class BranchPortalAuthService {
     return next.accessToken;
   }
 
-  private readSession(): BranchPortalSession | null {
-    if (typeof localStorage === "undefined") return null;
+  private async remoteLogout(accessToken: string): Promise<void> {
+    await fetch(`${SUPABASE_PROJECT_URL}/auth/v1/logout?scope=local`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        authorization: `Bearer ${accessToken}`,
+      },
+    }).catch(() => null);
+  }
+
+  private async validatePassword(password: string): Promise<string | null> {
+    if (password.length < 12) return "PASSWORD_TOO_SHORT";
+    if (!/[a-zçğıöşü]/.test(password) || !/[A-ZÇĞİÖŞÜ]/.test(password) || !/[0-9]/.test(password)) return "PASSWORD_COMPLEXITY_REQUIRED";
+    if (await this.isPwnedPassword(password)) return "PASSWORD_COMPROMISED";
+    return null;
+  }
+
+  private async isPwnedPassword(password: string): Promise<boolean> {
     try {
-      const raw = localStorage.getItem(this.storageKey);
+      const bytes = new TextEncoder().encode(password);
+      const digest = await crypto.subtle.digest("SHA-1", bytes);
+      const hash = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
+      const prefix = hash.slice(0, 5);
+      const suffix = hash.slice(5);
+      const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+        headers: { "Add-Padding": "true" },
+      });
+      if (!response.ok) return false;
+      return (await response.text()).split(/\r?\n/).some((line) => line.split(":", 1)[0]?.trim() === suffix);
+    } catch {
+      // Availability of the external breach corpus must not lock every portal user out.
+      return false;
+    }
+  }
+
+  private readSession(): BranchPortalSession | null {
+    if (typeof sessionStorage === "undefined") return null;
+    try {
+      // V165 deliberately stops persisting privileged branch refresh tokens across browser sessions.
+      if (typeof localStorage !== "undefined") localStorage.removeItem(this.storageKey);
+      const raw = sessionStorage.getItem(this.storageKey);
       if (!raw) return null;
       const parsed = JSON.parse(raw) as BranchPortalSession;
-      if (!parsed?.accessToken || !parsed?.userId) return null;
+      if (!parsed?.accessToken || !parsed?.userId || !parsed?.email) return null;
+      if (!Number.isFinite(parsed.expiresAt) || parsed.expiresAt <= Date.now() - 86_400_000) return null;
       return parsed;
     } catch {
+      sessionStorage.removeItem(this.storageKey);
       return null;
     }
   }
 
   private saveSession(session: BranchPortalSession | null): void {
     this._session.set(session);
-    if (typeof localStorage === "undefined") return;
-    if (session) localStorage.setItem(this.storageKey, JSON.stringify(session));
-    else localStorage.removeItem(this.storageKey);
+    if (typeof localStorage !== "undefined") localStorage.removeItem(this.storageKey);
+    if (typeof sessionStorage === "undefined") return;
+    if (session) sessionStorage.setItem(this.storageKey, JSON.stringify(session));
+    else sessionStorage.removeItem(this.storageKey);
   }
 }

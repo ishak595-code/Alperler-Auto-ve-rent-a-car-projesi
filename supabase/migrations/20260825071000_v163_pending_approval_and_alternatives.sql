@@ -319,7 +319,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public, pg_catalog, private
-as $
+as $$
 declare
   v_approved_id uuid;
   v_candidate record;
@@ -389,7 +389,7 @@ begin
 
   return new;
 end;
-$;
+$$;
 
 revoke all on function private.seed_pending_booking_alternatives() from public, anon, authenticated;
 

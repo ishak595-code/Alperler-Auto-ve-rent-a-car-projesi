@@ -965,9 +965,12 @@ async function patchBooking(request: Request): Promise<Response> {
       if (!["PENDING", "APPROVED", "REJECTED", "COMPLETED", "CANCELLED"].includes(status)) {
         throw new Error("INVALID_STATUS");
       }
+      if (status === "APPROVED") {
+        return json({ ok:false, code:"APPROVAL_ACTION_REQUIRED", message:"Rezervasyon onayı atomik yönetim onay servisi üzerinden yapılmalıdır." },409);
+      }
 
       if (
-        status === "APPROVED" &&
+        false &&
         existing.booking_type === "RENTAL" &&
         existing.vehicle_id &&
         existing.start_at &&

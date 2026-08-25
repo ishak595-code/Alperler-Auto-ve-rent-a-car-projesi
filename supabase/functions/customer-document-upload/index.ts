@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const BUCKET = "customer-private";
+const BUCKET = "customer-documents";
 const MAX_BYTES = 10 * 1024 * 1024;
 const DOCUMENT_TYPES = new Set([
   "IDENTITY_FRONT",
@@ -102,6 +102,7 @@ Deno.serve(async (request) => {
 
   try {
     const user = await authenticatedUser(request);
+    const userAuthorization = request.headers.get("authorization") || "";
     if (!(await activeConsent(user.id))) return json({ ok: false, code: "VAULT_CONSENT_REQUIRED", message: "Belge kasası koşullarını kabul etmeniz gerekiyor.", requestId: id }, 403, id);
     const form = await request.formData();
     const fileValue = form.get("file");
@@ -123,7 +124,7 @@ Deno.serve(async (request) => {
       method: "POST",
       headers: {
         apikey: SERVICE_KEY,
-        authorization: `Bearer ${SERVICE_KEY}`,
+        authorization: userAuthorization,
         "content-type": verified.mime,
         "cache-control": "3600",
         "x-upsert": "false",

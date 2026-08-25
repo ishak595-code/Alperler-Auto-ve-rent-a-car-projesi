@@ -1,0 +1,41 @@
+name: V163 Finalize Patch
+
+on:
+  push:
+    branches:
+      - v163-production-security-data-integrity
+    paths:
+      - "scripts/v163-finalize-patch.mjs"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[v163-patched]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v163-production-security-data-integrity
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Apply deterministic product patch
+        run: node scripts/v163-finalize-patch.mjs
+      - name: Commit product changes only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/car-detail.component.ts src/pages/admin/admin-branches.component.ts src/pages/admin/admin-catalog-editor.component.ts src/services/customer-wallet.service.ts package.json package-lock.json
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "No product changes needed."
+            exit 0
+          fi
+          git commit -m "V163: finalize dynamic data and upload hardening [v163-patched]"
+          git push origin HEAD:v163-production-security-data-integrity

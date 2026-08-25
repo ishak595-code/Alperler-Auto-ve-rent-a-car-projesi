@@ -1,0 +1,189 @@
+name: V171 Branch Monetization Marketplace and Portal
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "api/**"
+      - "supabase/**"
+      - ".github/workflows/v1712-branch-monetization-marketplace.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v171-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Subscription plan and reapproval contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=supabase/migrations/20260825204500_v1712_branch_subscriptions_review_marketplace.sql
+          DRAFT=supabase/migrations/20260825211000_v1715_branch_draft_review_lifecycle.sql
+          test -f "$BASE" && test -f "$DRAFT"
+          grep -Fq "('START','Başlangıç'" "$BASE"
+          grep -Fq "('PRO','Profesyonel'" "$BASE"
+          grep -Fq "('GROWTH','Büyüme'" "$BASE"
+          grep -Fq "monthly_fee numeric(12,2)" "$BASE"
+          grep -Fq "price_override numeric(12,2)" "$BASE"
+          grep -Fq "is_complimentary boolean" "$BASE"
+          grep -Fq "can_operate_branch_subscription" "$BASE"
+          grep -Fq "admin_review_branch_listing_v1712" "$BASE"
+          grep -Fq "old.publication_status in ('PUBLISHED','SCHEDULED')" "$DRAFT"
+          grep -Fq "new.publication_status:='PENDING_REVIEW'" "$DRAFT"
+          grep -Fq "v_requested in ('DRAFT','REJECTED')" "$DRAFT"
+
+      - name: Verified operator and recurring billing contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          BILL=supabase/migrations/20260825210000_v1714_branch_billing_verified_operator.sql
+          ID=supabase/migrations/20260825212500_v1717_branch_identity_admin.sql
+          test -f "$BILL" && test -f "$ID"
+          grep -Fq 'operator_identity_verified_at' "$BILL"
+          grep -Fq 'BRANCH_BUSINESS_NAME_REQUIRED' "$BILL"
+          grep -Fq 'province_code,req.district_code' "$BILL"
+          grep -Fq 'generate_branch_subscription_invoices_v1714' "$BILL"
+          grep -Fq "v1714-branch-billing-daily" "$BILL"
+          grep -Fq 'finalize_branch_subscription_payment_v1714' "$BILL"
+          grep -Fq 'my_branch_subscription_entitlements_v1714' "$BILL"
+          grep -Fq 'admin_set_branch_operator_verification_v1717' "$ID"
+          grep -Fq 'private.can_manage_settings() or private.can_manage_team()' "$ID"
+
+      - name: Branch canonical media security contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MEDIA=supabase/migrations/20260825212000_v1716_branch_catalog_media_rls.sql
+          test -f "$MEDIA"
+          grep -Fq 'can_manage_catalog_media_owner_v1716' "$MEDIA"
+          grep -Fq "branch_id_from_catalog_storage_name" "$MEDIA"
+          grep -Fq "bucket_id='catalog-media'" "$MEDIA"
+          grep -Fq 'can_operate_branch_subscription' "$MEDIA"
+          test -f src/services/branch-listing-media-v171.service.ts
+          grep -Fq 'BranchPortalAuthService' src/services/branch-media-v171.service.ts
+          grep -Fq 'BranchPortalAuthService' src/services/branch-listing-media-v171.service.ts
+
+      - name: Province district marketplace and disclosure contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          SVC=src/services/branch-marketplace-v171.service.ts
+          test -f "$SVC"
+          test ! -f api/branch-marketplace.ts
+          grep -Fq 'province_code' "$SVC"
+          grep -Fq 'district_code' "$SVC"
+          grep -Fq 'operatorName' "$SVC"
+          grep -Fq 'MARKETPLACE_AND_RESERVATION_INFRASTRUCTURE' "$SVC"
+          grep -Fq '/api/catalog?resource=' "$SVC"
+          grep -Fq 'branch-marketplace' src/app.routes.ts
+          grep -Fq 'branch-plans' src/app.routes.ts
+          grep -Fq 'operatorName' api/branches.ts
+
+      - name: Portal, tours, vehicle media and paywall contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f src/pages/branch-portal-home-v171.component.ts
+          test -f src/pages/branch-portal-tours-v171.component.ts
+          test -f src/pages/branch-portal-vehicle-media-v171.component.ts
+          grep -Fq 'branchPortalOperatingGuard' src/app.routes.ts
+          grep -Fq "branch-portal/vehicles" src/app.routes.ts
+          grep -Fq "branch-portal/vehicle-media" src/app.routes.ts
+          grep -Fq "branch-portal/tours" src/app.routes.ts
+          grep -Fq 'Taslak Kaydet' src/pages/branch-portal-tours-v171.component.ts
+          grep -Fq 'Merkez İncelemesine Gönder' src/pages/branch-portal-tours-v171.component.ts
+          grep -Fq 'Fotoğraf / Video Seç' src/pages/branch-portal-vehicle-media-v171.component.ts
+
+      - name: Business identity and Super Admin control contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f src/pages/branch-partner-v171.component.ts
+          grep -Fq 'İşletme / Şube adı *' src/pages/branch-partner-v171.component.ts
+          grep -Fq 'currentBusiness:this.businessName.trim()' src/pages/branch-partner-v171.component.ts
+          test -f src/pages/admin/admin-branch-identities-v171.component.ts
+          test -f src/pages/admin/admin-branch-moderation-v171.component.ts
+          test -f src/pages/admin/admin-branch-subscriptions-v171.component.ts
+          grep -Fq 'branch-moderation' src/app.routes.ts
+          grep -Fq 'branch-identities' src/app.routes.ts
+          grep -Fq 'branch-subscriptions' src/app.routes.ts
+          grep -Fq 'is_complimentary' src/pages/admin/admin-branch-subscriptions-v171.component.ts
+          grep -Fq 'price_override' src/pages/admin/admin-branch-subscriptions-v171.component.ts
+
+      - name: PayTR branch subscription checkout contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'branch-subscription-session' api/payments.ts
+          grep -Fq 'BRINV' api/payments.ts
+          grep -Fq 'branch_memberships?branch_id=' api/payments.ts
+          grep -Fq 'finalize_branch_subscription_payment_v1714' api/payments.ts
+          grep -Fq 'sameHash(hashValue, expected)' api/payments.ts
+          grep -Fq 'checkoutInvoice' src/services/branch-subscription-v171.service.ts
+          grep -Fq 'BranchPortalAuthService' src/services/branch-subscription-v171.service.ts
+
+      - name: Auditable branch lifecycle and private vehicle registry contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          LIFE=supabase/migrations/20260825214000_v1718_branch_lifecycle_vehicle_registry.sql
+          test -f "$LIFE"
+          grep -Fq 'admin_set_branch_lifecycle_v1718' "$LIFE"
+          grep -Fq 'BRANCH_LIFECYCLE_REASON_REQUIRED' "$LIFE"
+          grep -Fq 'BRANCH_LIFECYCLE_' "$LIFE"
+          grep -Fq 'can_operate_branch_lifecycle_v1718' "$LIFE"
+          grep -Fq 'create table if not exists private.vehicle_registry' "$LIFE"
+          grep -Fq 'revoke all on table private.vehicle_registry from public,anon,authenticated' "$LIFE"
+          grep -Fq 'admin_search_vehicle_registry_v1718' "$LIFE"
+          grep -Fq 'admin_upsert_vehicle_registry_v1718' "$LIFE"
+          if grep -Fq 'alter table public.vehicles' "$LIFE" && grep -Eq 'license_plate|registration_reference|[[:space:]]vin[[:space:]]' "$LIFE"; then echo 'Private identifiers must not be added to public.vehicles'; exit 1; fi
+          test -f src/pages/admin/admin-vehicle-registry-v171.component.ts
+          test -f src/services/admin-branch-operations-v171.service.ts
+          grep -Fq 'Plaka / Ruhsat Sicili' src/pages/admin/admin-operations-hub.component.ts
+          grep -Fq 'admin_upsert_vehicle_registry_v1718' src/services/admin-branch-operations-v171.service.ts
+          test -f src/pages/branch-directory-v171.component.ts
+          test -f src/pages/branch-detail-v171.component.ts
+          grep -Fq 'BranchDirectoryV171Component as BranchesComponent' src/pages/branches.component.ts
+          grep -Fq 'BranchDetailV171Component as BranchDetailComponent' src/pages/branch-detail.component.ts
+
+      - name: Fail-closed public branches, shared date UX and finance visibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -Fq 'fallbackBranches' src/services/branch.service.ts
+          ! grep -Fq 'verified local fallback remains active' src/services/branch.service.ts
+          grep -Fq 'Verified public branch sources unavailable; failing closed.' src/services/branch.service.ts
+          grep -Fq 'AccessibleNativeDateComponent' src/pages/admin/admin-branches.component.ts
+          grep -Fq 'AccessibleNativeDateComponent' src/pages/admin/admin-vehicle-registry-v171.component.ts
+          grep -Fq 'label="Oluşturulma başlangıcı"' src/pages/admin/admin-branches.component.ts
+          grep -Fq 'label="Kayıt başlangıcı"' src/pages/admin/admin-vehicle-registry-v171.component.ts
+          grep -Fq 'routerLink="/admin/branch-subscriptions"' src/pages/admin/admin-finance.component.ts
+
+      - name: Frontend TypeScript
+        run: npm run lint
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Accessibility and function budget
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+          npm run vercel:functions
+      - name: Production Angular build
+        run: npm run build

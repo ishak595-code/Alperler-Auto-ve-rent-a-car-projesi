@@ -1,24 +1,19 @@
-export type BranchServiceType =
-  | "RENTAL"
-  | "SALES"
-  | "TOUR"
-  | "TRANSFER"
-  | "PICKUP"
-  | "RETURN";
-
+export type BranchServiceType = "RENTAL" | "SALES" | "TOUR" | "TRANSFER" | "PICKUP" | "RETURN";
 export type BranchNetworkType = "OWNED" | "FRANCHISE" | "PARTNER";
 export type BranchPublicStatus = "DRAFT" | "ACTIVE" | "SUSPENDED" | "CLOSED";
-
-export interface BusinessHours {
-  label: string;
-  value: string;
-}
-
+export interface BusinessHours { label: string; value: string; }
 export interface Branch {
   id: string;
   cloudId?: string;
   slug?: string;
   name: string;
+  operatorName?: string;
+  operatorLegalName?: string;
+  operatorRelationship?: "OWNED"|"INDEPENDENT_PARTNER"|"LICENSED_PARTNER"|string;
+  operatorVerified?: boolean;
+  platformDisclaimer?: string;
+  provinceCode?: string;
+  districtCode?: string;
   city: string;
   district: string;
   country?: string;
@@ -46,4 +41,12 @@ export interface Branch {
   listingRequiresApproval?: boolean;
   brandProfile?: Record<string, unknown>;
   serviceRules?: Record<string, unknown>;
+  lifecycleReason?: string;
+  statusChangedAt?: string;
+  statusChangedBy?: string;
+  suspendedAt?: string;
+  closedAt?: string;
+  reopenedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }

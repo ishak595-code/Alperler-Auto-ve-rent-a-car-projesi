@@ -2,6 +2,16 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const ALLOWED_ORIGINS = new Set(
+  (Deno.env.get("APP_ALLOWED_ORIGINS") || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((value) => {
+      try { return new URL(value).origin; } catch { return ""; }
+    })
+    .filter(Boolean),
+);
 
 type AuthUser = {
   id?: string;
@@ -18,8 +28,22 @@ function requestId(request: Request): string {
   return /^[A-Za-z0-9._:-]{8,80}$/.test(supplied) ? supplied : crypto.randomUUID();
 }
 
+function allowedOrigin(request: Request): string | null {
+  const raw = clean(request.headers.get("origin"), 240);
+  if (!raw) return null;
+  try {
+    const parsed = new URL(raw);
+    const origin = parsed.origin;
+    const local = (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") &&
+      (parsed.protocol === "http:" || parsed.protocol === "https:");
+    return local || ALLOWED_ORIGINS.has(origin) ? origin : "";
+  } catch {
+    return "";
+  }
+}
+
 function cors(request: Request): Record<string, string> {
-  const origin = clean(request.headers.get("origin"), 240);
+  const origin = allowedOrigin(request);
   return {
     ...(origin ? { "access-control-allow-origin": origin } : {}),
     "access-control-allow-methods": "POST,OPTIONS",
@@ -37,6 +61,8 @@ function json(request: Request, body: unknown, status = 200, id = requestId(requ
       "cache-control": "private, no-store",
       "content-type": "application/json; charset=utf-8",
       "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
       "x-request-id": id,
     },
   });
@@ -87,6 +113,10 @@ async function claim(user: { id: string; email: string }): Promise<Record<string
 
 Deno.serve(async (request) => {
   const id = requestId(request);
+  const origin = allowedOrigin(request);
+  if (request.headers.get("origin") && origin === "") {
+    return json(request, { ok: false, code: "ORIGIN_NOT_ALLOWED", requestId: id }, 403, id);
+  }
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: { ...cors(request), "x-request-id": id } });
   }

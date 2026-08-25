@@ -1,10 +1,10 @@
 import { Component } from "@angular/core";
-import { RentalResultsComponent } from "./rental-results.component";
+import { RentalShowcaseV167Component } from "./rental-showcase-v167.component";
 
 @Component({
   selector: "app-fleet",
   standalone: true,
-  imports: [RentalResultsComponent],
-  template: `<app-rental-results />`,
+  imports: [RentalShowcaseV167Component],
+  template: `<app-rental-showcase-v167 />`,
 })
 export class FleetComponent {}

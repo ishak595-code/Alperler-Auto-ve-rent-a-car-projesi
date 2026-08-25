@@ -6,12 +6,32 @@ export type PaymentStatus = "NOT_REQUIRED" | "PENDING" | "PAID" | "FAILED" | "RE
 export type BookingSource = "WEB" | "ADMIN" | "PHONE";
 export type BookingCurrency = "TRY" | "EUR" | "USD" | "CHF";
 export type RentalDuration = "hourly" | "daily" | "weekly" | "monthly" | "longterm";
+export type BookingAlternativeStatus = "OPEN" | "OFFERED" | "ACCEPTED" | "DISMISSED" | "EXPIRED";
 
 export type BookingNotificationEvent = "booking_created" | "booking_pending" | "booking_approved" | "booking_rejected" | "booking_completed" | "booking_cancelled";
 export type NotificationChannelState = "sent" | "skipped" | "not_configured" | "failed";
 
 export interface NotificationChannelReport { state: NotificationChannelState; providerMessageId?: string; reason?: string; }
 export interface NotificationDeliveryReport { ok: boolean; event: BookingNotificationEvent; bookingId: string; alreadyProcessed?: boolean; email: NotificationChannelReport; sms: NotificationChannelReport; adminEmail?: NotificationChannelReport; }
+
+export interface BookingAlternativeOffer {
+  id: string;
+  status: BookingAlternativeStatus;
+  rank: number;
+  score: number;
+  reason?: string;
+  vehicleId: string;
+  stockCode?: string;
+  brand: string;
+  model: string;
+  coverImage?: string;
+  branchId?: string;
+  dailyPrice?: number;
+  hourlyPrice?: number;
+  bodyType?: string;
+  seats?: number;
+  offeredAt?: string;
+}
 
 export interface CreateBookingInput {
   type: BookingType;
@@ -33,8 +53,6 @@ export interface CreateBookingInput {
   pickupBranchId?: string;
   pickupLocation?: string;
   dropoffLocation?: string;
-  // A few older in-app entry points still carry this value as string. BookingService
-  // normalizes and validates it before any request reaches the backend.
   rentalDuration?: RentalDuration | string;
   selectedExtraIds?: string[];
   campaignId?: string;
@@ -51,4 +69,5 @@ export interface BookingRecord extends CreateBookingInput {
   createdAt: Date;
   updatedAt: Date;
   notification?: NotificationDeliveryReport;
+  alternatives?: BookingAlternativeOffer[];
 }

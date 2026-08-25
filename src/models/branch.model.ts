@@ -21,10 +21,12 @@ export interface Branch {
   name: string;
   city: string;
   district: string;
+  country?: string;
   addressLabel: string;
   phone: string;
   whatsapp?: string;
   email?: string;
+  timezone?: string;
   latitude?: number;
   longitude?: number;
   mapUrl?: string;

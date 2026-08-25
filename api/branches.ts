@@ -10,10 +10,12 @@ interface BranchPayload {
   name?: string;
   city?: string;
   district?: string;
+  country?: string;
   addressLabel?: string;
   phone?: string;
   whatsapp?: string;
   email?: string;
+  timezone?: string;
   latitude?: number;
   longitude?: number;
   mapUrl?: string;
@@ -39,15 +41,22 @@ function clean(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
+function timezoneValue(value: unknown): string {
+  const timezone = clean(value, 80) || "Europe/Istanbul";
+  if (!/^[A-Za-z_]+(?:\/[A-Za-z0-9_+.-]+)+$/.test(timezone)) throw new Error("INVALID_BRANCH_TIMEZONE");
+  return timezone;
+}
+
 function normalize(input: BranchPayload) {
   const code = clean(input.id, 80).toLowerCase();
   if (!/^[a-z0-9_-]{2,80}$/.test(code)) throw new Error("INVALID_BRANCH_ID");
   const name = clean(input.name, 120);
   const city = clean(input.city, 80);
   const district = clean(input.district, 80);
+  const country = clean(input.country, 80) || "Türkiye";
   const address = clean(input.addressLabel, 240);
   const phone = clean(input.phone, 40);
-  if (!name || !city || !district || !address || !phone) throw new Error("REQUIRED_BRANCH_FIELDS_MISSING");
+  if (!name || !city || !district || !country || !address || !phone) throw new Error("REQUIRED_BRANCH_FIELDS_MISSING");
   const services = Array.from(
     new Set((input.services || []).filter((value) => ["RENTAL", "SALES", "TOUR", "TRANSFER", "PICKUP", "RETURN"].includes(String(value)))),
   ).slice(0, 10);
@@ -66,10 +75,11 @@ function normalize(input: BranchPayload) {
     city,
     district,
     address_line: address,
-    country: "Türkiye",
+    country,
     phone,
     whatsapp: clean(input.whatsapp, 40) || null,
     email: clean(input.email, 160).toLowerCase() || null,
+    timezone: timezoneValue(input.timezone),
     latitude: Number.isFinite(latitude) && latitude >= -90 && latitude <= 90 ? latitude : null,
     longitude: Number.isFinite(longitude) && longitude >= -180 && longitude <= 180 ? longitude : null,
     map_url: clean(input.mapUrl, 2048) || null,
@@ -101,10 +111,12 @@ function toApi(row: any) {
     name: row.name,
     city: row.city || "",
     district: row.district || "",
+    country: row.country || "Türkiye",
     addressLabel: row.address_line || "",
     phone: row.phone || "",
     whatsapp: row.whatsapp || undefined,
     email: row.email || undefined,
+    timezone: row.timezone || "Europe/Istanbul",
     latitude: row.latitude === null ? undefined : Number(row.latitude),
     longitude: row.longitude === null ? undefined : Number(row.longitude),
     mapUrl: row.map_url || undefined,

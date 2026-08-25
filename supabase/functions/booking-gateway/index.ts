@@ -12,19 +12,19 @@ type RentalDuration = "hourly" | "daily" | "weekly" | "monthly" | "longterm";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const CORS = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-headers": "authorization, content-type, x-client-ip, x-idempotency-key",
-  "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
-};
+function requestId(request: Request): string {
+  const supplied = clean(request.headers.get("x-request-id"), 80);
+  return /^[A-Za-z0-9._:-]{8,80}$/.test(supplied) ? supplied : crypto.randomUUID();
+}
 
-function json(body: unknown, status = 200): Response {
+function json(body: unknown, status = 200, id?: string): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
-      ...CORS,
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+      ...(id ? { "x-request-id": id } : {}),
     },
   });
 }
@@ -158,7 +158,9 @@ async function requireAdmin(request: Request): Promise<AdminIdentity> {
   const rows = await adminResponse.json();
   if (!Array.isArray(rows) || !rows[0]) throw new Error("FORBIDDEN");
 
-  return { id: userId, email, role: String(rows[0].role || "support") };
+  const role = String(rows[0].role || "");
+  if (!["owner", "admin", "editor", "support"].includes(role)) throw new Error("FORBIDDEN");
+  return { id: userId, email, role };
 }
 
 async function optionalCustomer(request: Request): Promise<CustomerIdentity | null> {
@@ -403,13 +405,44 @@ function rentalDuration(value: unknown): RentalDuration {
     : "daily";
 }
 
-function rentalDays(start: string, end: string): number {
+async function branchTimezone(branchId: string | null | undefined): Promise<string> {
+  if (!branchId || !uuid(String(branchId))) return "Europe/Istanbul";
+  const branch = await firstRow(
+    `branches?id=eq.${encodeURIComponent(String(branchId))}&select=timezone&limit=1`,
+  );
+  const timezone = clean(branch?.timezone, 80) || "Europe/Istanbul";
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(new Date());
+    return timezone;
+  } catch {
+    throw new Error("INVALID_BRANCH_TIMEZONE");
+  }
+}
+
+function localCalendarDayNumber(value: string, timezone: string): number {
+  const instant = new Date(value);
+  if (Number.isNaN(instant.getTime())) throw new Error("INVALID_RENTAL_DATES");
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(instant);
+  const get = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((part) => part.type === type)?.value || 0);
+  const year = get("year");
+  const month = get("month");
+  const day = get("day");
+  if (!year || !month || !day) throw new Error("INVALID_RENTAL_DATES");
+  return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
+}
+
+function rentalDays(start: string, end: string, timezone: string): number {
   const startMs = new Date(start).getTime();
   const endMs = new Date(end).getTime();
   if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
     throw new Error("INVALID_RENTAL_DATES");
   }
-  const days = Math.ceil((endMs - startMs) / 86_400_000);
+  const days = localCalendarDayNumber(end, timezone) - localCalendarDayNumber(start, timezone);
   if (days < 1 || days > 3650) throw new Error("INVALID_RENTAL_DATES");
   return days;
 }
@@ -499,6 +532,37 @@ function extraCost(extra: any, duration: RentalDuration, units: number): number 
   return money(Math.max(0, Number(extra?.pricePerDay || 0)) * units + flat);
 }
 
+function rentalWallClock(value: unknown): string {
+  const raw = clean(value, 64);
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(raw);
+  if (!match) throw new Error("INVALID_RENTAL_DATES");
+  const hh = match[4] || "00";
+  const mm = match[5] || "00";
+  const ss = match[6] || "00";
+  const probe = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(hh), Number(mm), Number(ss)));
+  if (probe.getUTCFullYear() !== Number(match[1]) || probe.getUTCMonth() !== Number(match[2]) - 1 || probe.getUTCDate() !== Number(match[3]) || Number(hh) > 23 || Number(mm) > 59 || Number(ss) > 59) throw new Error("INVALID_RENTAL_DATES");
+  return `${match[1]}-${match[2]}-${match[3]}T${hh}:${mm}:${ss}`;
+}
+
+async function evaluateRentalRequest(identifier: string, startValue: unknown, endValue: unknown): Promise<any> {
+  const response = await db("rpc/evaluate_rental_request", {
+    method: "POST",
+    body: JSON.stringify({
+      p_vehicle_identifier: identifier,
+      p_start_local: rentalWallClock(startValue),
+      p_end_local: rentalWallClock(endValue),
+    }),
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || !payload?.startAt || !payload?.endAt) {
+    const raw = String(payload?.message || payload?.details || "");
+    if (raw.includes("INVALID_BRANCH_TIMEZONE")) throw new Error("INVALID_BRANCH_TIMEZONE");
+    if (raw.includes("INVALID_RENTAL_VEHICLE")) throw new Error("INVALID_RENTAL_VEHICLE");
+    throw new Error("INVALID_RENTAL_DATES");
+  }
+  return payload;
+}
+
 async function authoritativeRental(
   body: any,
   vehicle: any,
@@ -509,8 +573,8 @@ async function authoritativeRental(
   const option = driverOption(vehicle);
   if (withDriver && option === "WITHOUT_DRIVER") throw new Error("DRIVER_OPTION_NOT_ALLOWED");
   if (!withDriver && option === "WITH_DRIVER") throw new Error("DRIVER_OPTION_NOT_ALLOWED");
-  if (await hasApprovedOverlap(vehicle.id, start, end)) throw new Error("VEHICLE_UNAVAILABLE");
-
+  // Customer submissions are requests, not inventory reservations. Existing APPROVED
+  // bookings are recorded as an availability conflict, but they never prevent a PENDING request.
   const duration = rentalDuration(body?.rentalDuration);
   const settings = await getSiteSettings();
   const extras = Array.isArray(settings.rentalExtras) ? settings.rentalExtras : [];
@@ -567,7 +631,8 @@ async function authoritativeRental(
     };
   }
 
-  const days = rentalDays(start, end);
+  const timezone = await branchTimezone(vehicle.branch_id);
+  const days = rentalDays(start, end, timezone);
   const normalDaily = Math.max(0, Number(vehicle.rental_price_daily ?? vehicle.price ?? 0));
   let daily = normalDaily;
   if (campaign) {
@@ -694,8 +759,8 @@ async function createBooking(request: Request): Promise<Response> {
 
     let vehicleId: string | null = null;
     let tourId: string | null = null;
-    let startAt = dateValue(body?.startDate);
-    let endAt = dateValue(body?.endDate);
+    let startAt = type === "RENTAL" ? null : dateValue(body?.startDate);
+    let endAt = type === "RENTAL" ? null : dateValue(body?.endDate);
     let basePrice = numberValue(body?.basePrice, 0, 50_000_000);
     let totalPrice = numberValue(body?.totalPrice, 0, 50_000_000);
     let days = integerValue(body?.days, 1, 3650);
@@ -712,11 +777,9 @@ async function createBooking(request: Request): Promise<Response> {
       if (!itemId) throw new Error("INVALID_RENTAL_VEHICLE");
       const vehicle = await getRentalVehicle(itemId);
       vehicleId = String(vehicle.id);
-      if (!startAt || !endAt) {
-        throw new Error(
-          rentalDurationValue === "hourly" ? "INVALID_HOURLY_RENTAL" : "INVALID_RENTAL_DATES",
-        );
-      }
+      const evaluation = await evaluateRentalRequest(itemId, body?.startDate, body?.endDate);
+      startAt = String(evaluation.startAt);
+      endAt = String(evaluation.endAt);
 
       const withDriver = Boolean(body?.withDriver);
       const calculation = await authoritativeRental(body, vehicle, startAt, endAt, withDriver);
@@ -743,6 +806,11 @@ async function createBooking(request: Request): Promise<Response> {
         },
         server_calculated: true,
         resolved_vehicle_id: vehicleId,
+        availability: {
+          status: evaluation.available === true ? "AVAILABLE_AT_REQUEST" : "CONFLICT_AT_REQUEST",
+          alternativeCount: Array.isArray(evaluation.alternatives) ? evaluation.alternatives.length : 0,
+          checkedAt: new Date().toISOString(),
+        },
       };
     } else if (type === "SALE_INQUIRY") {
       if (!itemId) throw new Error("INVALID_SALE_VEHICLE");
@@ -897,9 +965,12 @@ async function patchBooking(request: Request): Promise<Response> {
       if (!["PENDING", "APPROVED", "REJECTED", "COMPLETED", "CANCELLED"].includes(status)) {
         throw new Error("INVALID_STATUS");
       }
+      if (status === "APPROVED") {
+        return json({ ok:false, code:"APPROVAL_ACTION_REQUIRED", message:"Rezervasyon onayı atomik yönetim onay servisi üzerinden yapılmalıdır." },409);
+      }
 
       if (
-        status === "APPROVED" &&
+        false &&
         existing.booking_type === "RENTAL" &&
         existing.vehicle_id &&
         existing.start_at &&
@@ -993,15 +1064,22 @@ async function deleteBooking(request: Request): Promise<Response> {
 }
 
 Deno.serve(async (request) => {
+  const id = requestId(request);
+  // Browser traffic must pass through the same-origin Vercel BFF. Guest booking
+  // remains supported server-to-server, while direct cross-origin browser calls
+  // cannot bypass the BFF request boundary and correlation headers.
+  if (request.headers.get("origin")) {
+    return json({ ok: false, code: "DIRECT_BROWSER_ACCESS_DENIED", requestId: id }, 403, id);
+  }
   if (request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: CORS });
+    return json({ ok: false, code: "DIRECT_BROWSER_ACCESS_DENIED", requestId: id }, 403, id);
   }
   if (!SUPABASE_URL || !SERVICE_KEY) {
-    return json({ ok: false, code: "SERVER_CONFIG_MISSING" }, 503);
+    return json({ ok: false, code: "SERVER_CONFIG_MISSING", requestId: id }, 503, id);
   }
   if (request.method === "POST") return createBooking(request);
   if (request.method === "GET") return listBookings(request);
   if (request.method === "PATCH") return patchBooking(request);
   if (request.method === "DELETE") return deleteBooking(request);
-  return json({ ok: false, code: "METHOD_NOT_ALLOWED" }, 405);
+  return json({ ok: false, code: "METHOD_NOT_ALLOWED", requestId: id }, 405, id);
 });

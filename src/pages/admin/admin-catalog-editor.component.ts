@@ -116,7 +116,16 @@ import { ToastService } from "../../services/toast.service";
                         <label class="field"><span>Kapı</span><input [(ngModel)]="car.doors" name="doors" type="number" min="1" /></label>
                         <label class="field"><span>0-100</span><input [ngModel]="meta(car,'acceleration')" (ngModelChange)="setMeta(car,'acceleration',$event)" name="acceleration" /></label>
                         <label class="field"><span>Maksimum hız</span><input [ngModel]="meta(car,'maxSpeed')" (ngModelChange)="setMeta(car,'maxSpeed',$event)" name="maxSpeed" /></label>
-                        <label class="field"><span>Yakıt tüketimi</span><input [ngModel]="meta(car,'fuelConsumption')" (ngModelChange)="setMeta(car,'fuelConsumption',$event)" name="fuelConsumption" /></label>
+                        <label class="field"><span>Ortalama yakıt tüketimi</span><input [ngModel]="meta(car,'fuelConsumption')" (ngModelChange)="setMeta(car,'fuelConsumption',$event)" name="fuelConsumption" /></label>
+                        <label class="field"><span>Şehir içi tüketim</span><input [ngModel]="meta(car,'cityFuelConsumption')" (ngModelChange)="setMeta(car,'cityFuelConsumption',$event)" name="cityFuelConsumption" /></label>
+                        <label class="field"><span>Şehir dışı tüketim</span><input [ngModel]="meta(car,'highwayFuelConsumption')" (ngModelChange)="setMeta(car,'highwayFuelConsumption',$event)" name="highwayFuelConsumption" /></label>
+                        <label class="field"><span>Yakıt deposu</span><input [ngModel]="meta(car,'fuelTankCapacity')" (ngModelChange)="setMeta(car,'fuelTankCapacity',$event)" name="fuelTankCapacity" /></label>
+                        <label class="field"><span>Jant / lastik</span><input [ngModel]="meta(car,'wheelSize')" (ngModelChange)="setMeta(car,'wheelSize',$event)" name="wheelSize" /></label>
+                        <label class="field"><span>Ağırlık</span><input [ngModel]="meta(car,'weight')" (ngModelChange)="setMeta(car,'weight',$event)" name="weight" /></label>
+                        <label class="field"><span>Silindir sayısı</span><input [ngModel]="meta(car,'cylinderCount')" (ngModelChange)="setMetaNumber(car,'cylinderCount',$event)" name="cylinderCount" type="number" min="1" max="16" /></label>
+                        <label class="field"><span>Uzunluk</span><input [ngModel]="meta(car,'length')" (ngModelChange)="setMeta(car,'length',$event)" name="length" /></label>
+                        <label class="field"><span>Genişlik</span><input [ngModel]="meta(car,'width')" (ngModelChange)="setMeta(car,'width',$event)" name="width" /></label>
+                        <label class="field"><span>Yükseklik</span><input [ngModel]="meta(car,'height')" (ngModelChange)="setMeta(car,'height',$event)" name="height" /></label>
                         <label class="field"><span>Bagaj hacmi</span><input [ngModel]="meta(car,'trunkVolume')" (ngModelChange)="setMeta(car,'trunkVolume',$event)" name="trunkVolume" /></label>
                         @if (car.category === 'RENTAL') {
                           <label class="field"><span>Araç sınıfı</span><input [ngModel]="meta(car,'group')" (ngModelChange)="setMeta(car,'group',$event)" name="group" /></label>

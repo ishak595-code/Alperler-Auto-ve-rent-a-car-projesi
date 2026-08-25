@@ -1,3 +1,21 @@
+export interface VehicleTechnicalSpecs {
+  maxSpeed: string;
+  acceleration: string;
+  cityFuel: string;
+  highwayFuel: string;
+  combinedFuel: string;
+  tankCapacity: string;
+  trunkCapacity: string;
+  wheels: string;
+  dimensions: string;
+  cylinders: string;
+  engineVolume: string;
+  enginePower: string;
+  torque: string;
+  weight: string;
+  drivetrain: string;
+}
+
 export interface Vehicle {
   id: string | number;
   category: 'RENTAL' | 'SALE' | 'TOUR';
@@ -30,6 +48,14 @@ export interface Vehicle {
   location?: string;
   description?: string;
   features?: string[];
+
+  // Database-driven technical catalogue data. Never inferred from brand/model at runtime.
+  technicalSpecs?: VehicleTechnicalSpecs;
+  technicalSpecsProvenance?: {
+    source?: string;
+    verificationStatus?: 'VERIFIED' | 'NEEDS_ADMIN_REVIEW' | 'UNVERIFIED';
+    updatedAt?: string;
+  };
 
   // Rental specific
   seats?: number;
@@ -93,7 +119,7 @@ export interface Vehicle {
   paintedParts?: string;
   availability?: string;
 
-  // Technical Specs
+  // Legacy direct technical fields retained for backwards compatibility with existing admin records.
   fuelConsumption?: string;
   acceleration?: string;
   maxSpeed?: string;

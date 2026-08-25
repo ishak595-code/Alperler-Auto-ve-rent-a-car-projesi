@@ -1,0 +1,64 @@
+name: V163 Dependency Remediation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/v163-dependency-remediation.yml"
+      - "scripts/v163-dependency-remediation-trigger.txt"
+      - "package.json"
+  push:
+    branches:
+      - v163-production-security-data-integrity
+    paths:
+      - "scripts/v163-dependency-remediation-trigger.txt"
+
+permissions:
+  contents: write
+
+jobs:
+  remediate:
+    if: github.event_name == 'push' || github.head_ref == 'v163-production-security-data-integrity'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v163-production-security-data-integrity
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Rebuild lockfile from patched dependency roots
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf node_modules package-lock.json
+          npm install --no-audit --no-fund
+      - name: Apply compatible transitive security fixes
+        run: npm audit fix --no-fund
+      - name: Verify production vulnerability gate
+        run: npm audit --omit=dev --audit-level=high
+      - name: Verify complete dependency vulnerability gate
+        run: npm audit --audit-level=high
+      - name: Verify TypeScript
+        run: npm run lint
+      - name: Verify API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Verify production build
+        run: npm run build
+      - name: Commit dependency manifests only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "No dependency changes required."
+            exit 0
+          fi
+          git commit -m "V163: remediate production dependency vulnerabilities"
+          git push origin HEAD:v163-production-security-data-integrity

@@ -30,9 +30,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
-      - name: Regenerate dependency graph from patched roots
-        run: npm install --no-audit --no-fund
+      - name: Rebuild lockfile from patched dependency roots
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf node_modules package-lock.json
+          npm install --no-audit --no-fund
       - name: Apply compatible transitive security fixes
         run: npm audit fix --no-fund
       - name: Verify production vulnerability gate

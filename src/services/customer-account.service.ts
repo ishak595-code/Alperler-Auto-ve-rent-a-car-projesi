@@ -7,7 +7,16 @@ export interface LoyaltyAccount { user_id:string;points_balance:number;lifetime_
 export interface LoyaltyLedgerItem { id:string;booking_id?:string|null;referral_id?:string|null;direction:string;points:number;reason:string;source:string;created_at:string; }
 export interface CustomerBooking { id:string;reference:string;booking_type:string;item_name:string;image?:string|null;start_at?:string|null;end_at?:string|null;total_price?:number|null;currency:string;status:string;payment_status:string;loyalty_points_awarded:number;created_at:string; }
 export interface SafePaymentMethod { id:string;provider:string;brand?:string|null;last4?:string|null;expiry_month?:number|null;expiry_year?:number|null;label?:string|null;is_default:boolean;status:string; }
-export interface LoyaltySettings { enabled:boolean;points_per_rental_day:number;minimum_points_per_rental:number;silver_threshold:number;gold_threshold:number;platinum_threshold:number;referral_inviter_points:number;referral_invitee_points:number;referral_rental_inviter_points:number;referral_rental_invitee_points:number;referral_sale_inviter_points:number;referral_sale_invitee_points:number;referral_tour_inviter_points:number;referral_tour_invitee_points:number;referral_milestone_3_points:number;referral_milestone_5_points:number;referral_milestone_10_points:number;benefits:Record<string,string[]>; }
+export interface LoyaltySettings {
+  enabled:boolean;points_per_rental_day:number;minimum_points_per_rental:number;silver_threshold:number;gold_threshold:number;platinum_threshold:number;
+  referral_inviter_points:number;referral_invitee_points:number;referral_rental_inviter_points:number;referral_rental_invitee_points:number;referral_sale_inviter_points:number;referral_sale_invitee_points:number;referral_tour_inviter_points:number;referral_tour_invitee_points:number;
+  referral_milestone_3_points:number;referral_milestone_5_points:number;referral_milestone_10_points:number;benefits:Record<string,string[]>;
+  redemption_enabled:boolean;point_value_try:number;minimum_redeem_points:number;max_redeem_percent:number;
+  referral_checkout_discount_enabled:boolean;referral_checkout_discount_mode:'FIXED_AMOUNT'|'PERCENT';
+  referral_rental_invitee_discount:number;referral_sale_invitee_discount:number;referral_tour_invitee_discount:number;
+  allow_campaign_referral_stack:boolean;allow_campaign_loyalty_stack:boolean;allow_referral_loyalty_stack:boolean;
+  tour_points_per_100_try:number;sale_points_per_1000_try:number;
+}
 export interface ReferralSummary { code:string;registered:number;rewarded:number;pending:number;rentalRewards:number;saleRewards:number;tourRewards:number;pointsEarned:number;successfulReferrals:number; }
 export interface ReferralCampaignTarget { id:string;ctaUrl?:string; }
 
@@ -24,7 +33,7 @@ export class CustomerAccountService{
     this.getRows<LoyaltyLedgerItem>('customer_loyalty_ledger?select=id,booking_id,referral_id,direction,points,reason,source,created_at&order=created_at.desc&limit=100',token),
     this.getRows<CustomerBooking>('bookings?deleted_at=is.null&select=id,reference,booking_type,item_name,image,start_at,end_at,total_price,currency,status,payment_status,loyalty_points_awarded,created_at&order=created_at.desc&limit=100',token),
     this.getRows<SafePaymentMethod>('customer_payment_methods?status=eq.ACTIVE&select=id,provider,brand,last4,expiry_month,expiry_year,label,is_default,status&order=is_default.desc,created_at.desc',token),
-    this.getRows<LoyaltySettings>('loyalty_program_settings?select=enabled,points_per_rental_day,minimum_points_per_rental,silver_threshold,gold_threshold,platinum_threshold,referral_inviter_points,referral_invitee_points,referral_rental_inviter_points,referral_rental_invitee_points,referral_sale_inviter_points,referral_sale_invitee_points,referral_tour_inviter_points,referral_tour_invitee_points,referral_milestone_3_points,referral_milestone_5_points,referral_milestone_10_points,benefits&limit=1',token),
+    this.getRows<LoyaltySettings>('loyalty_program_settings?select=enabled,points_per_rental_day,minimum_points_per_rental,silver_threshold,gold_threshold,platinum_threshold,referral_inviter_points,referral_invitee_points,referral_rental_inviter_points,referral_rental_invitee_points,referral_sale_inviter_points,referral_sale_invitee_points,referral_tour_inviter_points,referral_tour_invitee_points,referral_milestone_3_points,referral_milestone_5_points,referral_milestone_10_points,benefits,redemption_enabled,point_value_try,minimum_redeem_points,max_redeem_percent,referral_checkout_discount_enabled,referral_checkout_discount_mode,referral_rental_invitee_discount,referral_sale_invitee_discount,referral_tour_invitee_discount,allow_campaign_referral_stack,allow_campaign_loyalty_stack,allow_referral_loyalty_stack,tour_points_per_100_try,sale_points_per_1000_try&limit=1',token),
     this.rpc<ReferralSummary|null>('customer_referral_summary',{},token),
   ]);this.profile.set(profile[0]||null);this.loyalty.set(loyalty[0]||null);this.ledger.set(ledger);this.bookings.set(bookings);this.paymentMethods.set(methods);this.loyaltySettings.set(settings[0]||null);this.referralSummary.set(referral||null);}finally{this.loading.set(false);}}
 

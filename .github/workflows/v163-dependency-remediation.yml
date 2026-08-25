@@ -30,24 +30,28 @@ jobs:
         run: |
           set -euo pipefail
           npm install --save \
-            @angular/animations@^21.2.19 \
-            @angular/common@^21.2.19 \
-            @angular/compiler@^21.2.19 \
-            @angular/core@^21.2.19 \
-            @angular/forms@^21.2.19 \
-            @angular/platform-browser@^21.2.19 \
-            @angular/platform-browser-dynamic@^21.2.19 \
-            @angular/router@^21.2.19 \
+            @angular/animations@^21.2.20 \
+            @angular/common@^21.2.20 \
+            @angular/compiler@^21.2.20 \
+            @angular/core@^21.2.20 \
+            @angular/forms@^21.2.20 \
+            @angular/platform-browser@^21.2.20 \
+            @angular/platform-browser-dynamic@^21.2.20 \
+            @angular/router@^21.2.20 \
             @angular/cdk@^21.2.0 \
             @angular/material@^21.2.0 \
             nodemailer@^9.0.5 \
             --no-audit --no-fund
           npm install --save-dev \
-            @angular/build@^21.2.19 \
-            @angular/cli@^21.2.19 \
-            @angular/compiler-cli@^21.2.19 \
+            @angular/build@^21.2.20 \
+            @angular/cli@^21.2.20 \
+            @angular/compiler-cli@^21.2.20 \
+            @types/pdfkit@^0.17.6 \
             @types/nodemailer@^7.0.0 \
+            tailwindcss@4.2.1 \
             --no-audit --no-fund
+          npm uninstall @types/pdfkit --save --no-audit --no-fund || true
+          npm install --save-dev @types/pdfkit@^0.17.6 --no-audit --no-fund
       - name: Apply compatible transitive fixes
         run: npm audit fix --no-fund
       - name: Verify production vulnerability gate

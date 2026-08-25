@@ -12,16 +12,18 @@ import { RuntimeStatusGateComponent } from './components/runtime-status-gate.com
 import { AnalyticsConsentComponent } from './components/analytics-consent.component';
 import { BookingSuccessOverlayComponent } from './components/booking-success-overlay.component';
 import { CheckoutLoyaltyPanelComponent } from './components/checkout-loyalty-panel.component';
+import { AdminCustomerLifetimePanelComponent } from './components/admin-customer-lifetime-panel.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CustomerMobileDockComponent, RuntimeStatusGateComponent, AnalyticsConsentComponent, BookingSuccessOverlayComponent, CheckoutLoyaltyPanelComponent],
+  imports: [RouterOutlet, CustomerMobileDockComponent, RuntimeStatusGateComponent, AnalyticsConsentComponent, BookingSuccessOverlayComponent, CheckoutLoyaltyPanelComponent, AdminCustomerLifetimePanelComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <router-outlet></router-outlet>
     <app-booking-success-overlay></app-booking-success-overlay>
     @if (showCheckoutLoyalty()) { <app-checkout-loyalty-panel></app-checkout-loyalty-panel> }
+    @if (showAdminCustomer360()) { <app-admin-customer-lifetime-panel></app-admin-customer-lifetime-panel> }
     @if (showCustomerChrome()) {
       <app-customer-mobile-dock></app-customer-mobile-dock>
       <app-runtime-status-gate></app-runtime-status-gate>
@@ -43,12 +45,14 @@ export class AppComponent implements OnInit {
   private readonly initialUrl = typeof window !== 'undefined' ? window.location.pathname : this.router.url;
   readonly showCustomerChrome = signal(this.isCustomerRoute(this.initialUrl));
   readonly showCheckoutLoyalty = signal(this.isCheckoutRoute(this.initialUrl));
+  readonly showAdminCustomer360 = signal(this.isAdminCustomerDetail(this.initialUrl));
 
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => {
       const url=(event as NavigationEnd).urlAfterRedirects;
       this.showCustomerChrome.set(this.isCustomerRoute(url));
       this.showCheckoutLoyalty.set(this.isCheckoutRoute(url));
+      this.showAdminCustomer360.set(this.isAdminCustomerDetail(url));
     });
   }
 
@@ -66,4 +70,5 @@ export class AppComponent implements OnInit {
     return !path.startsWith('/admin') && !path.startsWith('/branch-portal');
   }
   private isCheckoutRoute(url:string):boolean{return this.cleanPath(url)==='/booking-checkout';}
+  private isAdminCustomerDetail(url:string):boolean{return /^\/admin\/customers\/[0-9a-f-]{36}$/i.test(this.cleanPath(url));}
 }

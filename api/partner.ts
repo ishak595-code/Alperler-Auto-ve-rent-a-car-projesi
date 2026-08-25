@@ -13,6 +13,7 @@ async function proxy(
     maxBodyBytes?: number;
     unavailableCode: string;
     unavailableMessage?: string;
+    publicCache?: string;
   },
 ): Promise<Response> {
   const decision = originDecision(request);
@@ -36,17 +37,11 @@ async function proxy(
   if (method !== "GET") {
     const declared = Number(request.headers.get("content-length") || 0);
     if (options.maxBodyBytes && declared > options.maxBodyBytes) {
-      return Response.json(
-        { ok: false, code: "PAYLOAD_TOO_LARGE", requestId: decision.requestId },
-        { status: 413, headers: { ...corsHeaders(decision, ALLOWED_METHODS), "cache-control": "no-store" } },
-      );
+      return Response.json({ ok: false, code: "PAYLOAD_TOO_LARGE", requestId: decision.requestId }, { status: 413, headers: { ...corsHeaders(decision, ALLOWED_METHODS), "cache-control": "no-store" } });
     }
     body = await request.text();
     if (options.maxBodyBytes && new TextEncoder().encode(body).byteLength > options.maxBodyBytes) {
-      return Response.json(
-        { ok: false, code: "PAYLOAD_TOO_LARGE", requestId: decision.requestId },
-        { status: 413, headers: { ...corsHeaders(decision, ALLOWED_METHODS), "cache-control": "no-store" } },
-      );
+      return Response.json({ ok: false, code: "PAYLOAD_TOO_LARGE", requestId: decision.requestId }, { status: 413, headers: { ...corsHeaders(decision, ALLOWED_METHODS), "cache-control": "no-store" } });
     }
   }
 
@@ -54,6 +49,7 @@ async function proxy(
     "content-type": "application/json",
     "x-client-ip": clientIp(request),
     "x-request-id": decision.requestId,
+    "x-app-origin": new URL(request.url).origin,
     "user-agent": request.headers.get("user-agent") || "alperler-web",
   };
   if (authorization) headers.authorization = authorization;
@@ -70,23 +66,15 @@ async function proxy(
       headers: {
         ...corsHeaders(decision, ALLOWED_METHODS),
         "content-type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
-        "cache-control": options.requireAuth ? "private, no-store" : "no-store",
+        "cache-control": options.requireAuth ? "private, no-store" : (options.publicCache || "no-store"),
         "x-upstream-request-id": upstream.headers.get("x-request-id") || decision.requestId,
       },
     });
   } catch (error) {
     console.error(`${options.edgeFunction} unavailable`, decision.requestId, error);
     return Response.json(
-      {
-        ok: false,
-        code: options.unavailableCode,
-        ...(options.unavailableMessage ? { message: options.unavailableMessage } : {}),
-        requestId: decision.requestId,
-      },
-      {
-        status: 503,
-        headers: { ...corsHeaders(decision, ALLOWED_METHODS), "cache-control": "no-store" },
-      },
+      { ok: false, code: options.unavailableCode, ...(options.unavailableMessage ? { message: options.unavailableMessage } : {}), requestId: decision.requestId },
+      { status: 503, headers: { ...corsHeaders(decision, ALLOWED_METHODS), "cache-control": "no-store" } },
     );
   }
 }
@@ -95,29 +83,27 @@ export default {
   async fetch(request: Request): Promise<Response> {
     const guarded = guardOrigin(request, ALLOWED_METHODS);
     if (guarded) return guarded;
-
     const operation = new URL(request.url).searchParams.get("op") || "requests";
-    if (operation === "media") {
+
+    if (operation === "geo-directory") {
       return proxy(request, {
-        edgeFunction: "partner-media",
-        allowedMethods: ["POST"],
-        timeout: 12_000,
-        requireAuth: true,
-        unavailableCode: "PARTNER_MEDIA_UNAVAILABLE",
+        edgeFunction: "geo-directory",
+        allowedMethods: ["GET"],
+        timeout: 35_000,
+        unavailableCode: "GEO_DIRECTORY_UNAVAILABLE",
+        unavailableMessage: "Türkiye il ve ilçe dizinine şu anda ulaşılamıyor.",
+        publicCache: "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400",
       });
     }
+    if (operation === "media") {
+      return proxy(request, { edgeFunction: "partner-media", allowedMethods: ["POST"], timeout: 12_000, requireAuth: true, unavailableCode: "PARTNER_MEDIA_UNAVAILABLE" });
+    }
     if (operation === "resume") {
-      return proxy(request, {
-        edgeFunction: "partner-upload-resume",
-        allowedMethods: ["POST"],
-        timeout: 20_000,
-        unavailableCode: "PARTNER_RESUME_UNAVAILABLE",
-        unavailableMessage: "Dosya yükleme devam servisine şu anda ulaşılamıyor.",
-      });
+      return proxy(request, { edgeFunction: "partner-upload-resume", allowedMethods: ["POST"], timeout: 20_000, unavailableCode: "PARTNER_RESUME_UNAVAILABLE", unavailableMessage: "Dosya yükleme devam servisine şu anda ulaşılamıyor." });
     }
     if (operation === "branch-partner") {
       return proxy(request, {
-        edgeFunction: "branch-partner-gateway",
+        edgeFunction: "branch-partner-v164",
         allowedMethods: ["GET", "POST", "PATCH"],
         timeout: 25_000,
         maxBodyBytes: 32 * 1024,
@@ -126,18 +112,9 @@ export default {
       });
     }
     if (operation === "requests") {
-      return proxy(request, {
-        edgeFunction: "partner-request-gateway",
-        allowedMethods: ["GET", "POST", "PATCH"],
-        timeout: 25_000,
-        unavailableCode: "PARTNER_GATEWAY_UNAVAILABLE",
-        unavailableMessage: "Araç değerlendirme servisine şu anda ulaşılamıyor.",
-      });
+      return proxy(request, { edgeFunction: "partner-request-gateway", allowedMethods: ["GET", "POST", "PATCH"], timeout: 25_000, unavailableCode: "PARTNER_GATEWAY_UNAVAILABLE", unavailableMessage: "Araç değerlendirme servisine şu anda ulaşılamıyor." });
     }
     const decision = originDecision(request);
-    return Response.json(
-      { ok: false, code: "UNKNOWN_PARTNER_OPERATION", requestId: decision.requestId },
-      { status: 404, headers: { ...corsHeaders(decision, ALLOWED_METHODS), "cache-control": "no-store" } },
-    );
+    return Response.json({ ok: false, code: "UNKNOWN_PARTNER_OPERATION", requestId: decision.requestId }, { status: 404, headers: { ...corsHeaders(decision, ALLOWED_METHODS), "cache-control": "no-store" } });
   },
 };

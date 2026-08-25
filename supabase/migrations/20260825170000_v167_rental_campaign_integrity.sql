@@ -72,7 +72,7 @@ begin
   limit 1;
 
   if v_invalid is not null then
-    raise exception 'CAMPAIGN_REQUIRED_EXTRAS_MISSING:%',v_invalid;
+    raise exception 'CAMPAIGN_MINIMUM_REQUIRED_EXTRA_NOT_MET:%',v_invalid;
   end if;
   return new;
 end;

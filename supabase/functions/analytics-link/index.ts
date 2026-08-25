@@ -3,19 +3,40 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const ALLOWED_ORIGINS = new Set(
+  (Deno.env.get("APP_ALLOWED_ORIGINS") || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((value) => { try { return new globalThis.URL(value).origin; } catch { return ""; } })
+    .filter(Boolean),
+);
 const supabase = createClient(URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 
 function clean(value: unknown, max: number): string { return typeof value === "string" ? value.trim().slice(0, max) : ""; }
 function uuid(value: unknown): string { const v = clean(value, 64); return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v) ? v : ""; }
 function normalizePhone(value: unknown): string { return clean(value, 80).replace(/\D/g, "").replace(/^90(?=5\d{9}$)/, "").replace(/^0(?=5\d{9}$)/, ""); }
 function normalizeEmail(value: unknown): string { return clean(value, 180).toLowerCase(); }
-function originFor(request: Request): string { const origin = request.headers.get("origin") || ""; if (!origin) return "*"; try { const host = new globalThis.URL(origin).hostname.toLowerCase(); if (host === "alperrentacar.online" || host === "www.alperrentacar.online" || host === "localhost" || host === "127.0.0.1" || host.endsWith(".vercel.app")) return origin; } catch { /* reject */ } return "null"; }
-function headers(request: Request): HeadersInit { return { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": originFor(request), "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "content-type", vary: "Origin" }; }
+function originFor(request: Request): string {
+  const raw = request.headers.get("origin") || "";
+  if (!raw) return "null";
+  try {
+    const parsed = new globalThis.URL(raw);
+    const origin = parsed.origin;
+    const local = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+    const preview = parsed.protocol === "https:" && parsed.hostname.endsWith(".vercel.app");
+    if (ALLOWED_ORIGINS.has(origin) || local || preview) return origin;
+  } catch { /* reject */ }
+  return "null";
+}
+function headers(request: Request): HeadersInit { return { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": originFor(request), "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "content-type", vary: "Origin", "x-content-type-options":"nosniff" }; }
 function json(request: Request, body: unknown, status=200): Response { return Response.json(body,{status,headers:headers(request)}); }
 async function digest(value: string): Promise<string> { const raw = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)); return [...new Uint8Array(raw)].map(b=>b.toString(16).padStart(2,"0")).join(""); }
 async function rate(key: string): Promise<boolean> { const { data, error } = await supabase.rpc("consume_rate_limit", { p_key_hash:key, p_scope:"analytics_identity_link", p_window_seconds:3600, p_limit:30 }); if(error) throw error; return Boolean(data); }
 
 Deno.serve(async (request: Request) => {
+  const origin = originFor(request);
+  if (request.headers.get("origin") && origin === "null") return json(request,{ok:false,code:"ORIGIN_NOT_ALLOWED"},403);
   if(request.method === "OPTIONS") return new Response(null,{status:204,headers:headers(request)});
   if(request.method !== "POST") return json(request,{ok:false,code:"METHOD_NOT_ALLOWED"},405);
   if(!URL || !SERVICE_KEY) return json(request,{ok:false,code:"SERVER_CONFIG_MISSING"},503);

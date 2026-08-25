@@ -1,0 +1,98 @@
+name: V174.2 Dynamic Home Block Copy
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/components/dynamic-home-section.component.ts"
+      - "src/services/homepage-admin.service.ts"
+      - "src/pages/admin/admin-homepage-block-copy-v1742.component.ts"
+      - "src/pages/admin/admin-site-settings-hub.component.ts"
+      - "src/pages/admin/admin-footer.component.ts"
+      - "supabase/migrations/20260826012000_v1742_dynamic_home_block_copy.sql"
+      - ".github/workflows/v1742-dynamic-home-block-copy.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v1742-dynamic-copy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Dynamic block copy migration contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260826012000_v1742_dynamic_home_block_copy.sql
+          test -f "$MIG"
+          for key in campaignLabel campaignCtaLabel campaignProofActiveSuffix tourCardCtaLabel branchFranchiseLabel branchCardCtaLabel partnerCtaTitle partnerCtaLabel partnerRoute showPartnerCta blogCardCtaLabel; do
+            grep -Fq "'$key'" "$MIG"
+          done
+          grep -Fq "where section_key='campaigns'" "$MIG"
+          grep -Fq "where section_key='branches'" "$MIG"
+          grep -Fq "where section_key='tour_featured'" "$MIG"
+          grep -Fq "where section_key='blog_featured'" "$MIG"
+
+      - name: Customer renderer uses database settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE=src/components/dynamic-home-section.component.ts
+          for key in campaignLabel campaignDiscountSuffix campaignFallbackDescription campaignCtaLabel campaignSavingSuffix campaignAdvantageSuffix campaignLimitedLabel campaignExpiredLabel campaignProofActiveSuffix tourFallbackDescription tourCardCtaLabel branchFranchiseLabel branchLocationLabel branchFallbackDescriptionSuffix branchPickupLabel branchReturnLabel branchCardCtaLabel partnerCtaTitle partnerCtaLabel partnerRoute blogCardCtaLabel; do
+            grep -Fq "$key" "$FILE"
+          done
+          grep -Fq "boolSetting('showPartnerCta',true)" "$FILE"
+          grep -Fq "internalSettingRoute('partnerRoute','/branch-partner')" "$FILE"
+          if grep -Fq 'routerLink="/branch-partner"' "$FILE"; then
+            echo "Hardcoded branch partner route still exists in renderer"
+            exit 1
+          fi
+
+      - name: Super Admin block copy studio contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          ADMIN=src/pages/admin/admin-homepage-block-copy-v1742.component.ts
+          HUB=src/pages/admin/admin-site-settings-hub.component.ts
+          test -f "$ADMIN"
+          grep -Fq "HomepageAdminService" "$ADMIN"
+          grep -Fq "homepage.updateSection(section)" "$ADMIN"
+          grep -Fq "app-admin-homepage-block-copy-v1742" "$HUB"
+          grep -Fq "AdminHomepageBlockCopyV1742Component" "$HUB"
+
+      - name: Legacy footer editor removed
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -f src/pages/admin/admin-footer.component.ts
+          if grep -R -E "AdminFooterComponent|selector:[[:space:]]*['\"]app-admin-footer['\"]" src --exclude='admin-footer-v174.component.ts'; then
+            echo "Legacy footer admin reference remains"
+            exit 1
+          fi
+
+      - name: Frontend TypeScript
+        run: npm run lint
+      - name: Accessibility guards
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+      - name: Vercel function budget
+        run: npm run vercel:functions
+      - name: Premium design contract
+        run: npm run design:premium
+      - name: Production Angular build
+        run: npm run build

@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "api/branch-partner.ts"
+      - "api/partner.ts"
       - "api/_lib/request-security.ts"
       - "src/services/branch-partner.service.ts"
       - "supabase/functions/branch-partner-gateway/index.ts"
@@ -14,7 +14,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "api/branch-partner.ts"
+      - "api/partner.ts"
       - "api/_lib/request-security.ts"
       - "src/services/branch-partner.service.ts"
       - "supabase/functions/branch-partner-gateway/index.ts"

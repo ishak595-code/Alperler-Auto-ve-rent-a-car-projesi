@@ -1,0 +1,160 @@
+name: V167 Rental Showcase Integrity
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - v167-rental-showcase-dynamic-integrity
+    paths:
+      - "src/**"
+      - "supabase/**"
+      - ".github/workflows/v167-rental-showcase-integrity.yml"
+      - "package.json"
+      - "package-lock.json"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "supabase/**"
+      - ".github/workflows/v167-rental-showcase-integrity.yml"
+      - "package.json"
+      - "package-lock.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v167-rental-showcase-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rental-showcase-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: V167 rental campaign database contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG="supabase/migrations/20260825170000_v167_rental_campaign_integrity.sql"
+          test -f "$MIG"
+          grep -q "required_extra_ids" "$MIG"
+          grep -q "CAMPAIGN_MINIMUM_REQUIRED_EXTRA_NOT_MET" "$MIG"
+          grep -q "campaign_redemptions_required_extras_v167" "$MIG"
+          grep -q "slug='7-gun-kirala-6-gun-ode-renault-megane'" "$MIG"
+          grep -q "discount_method='FIXED_AMOUNT'" "$MIG"
+          grep -q "discount_value=2800" "$MIG"
+          grep -q "minimum_rental_days=7" "$MIG"
+          grep -q "slug='gelin-arabasi-ozel-gun-paketi'" "$MIG"
+          grep -q "discount_value=1500" "$MIG"
+          grep -q "requiredExtraIds.*driver\|jsonb_build_array('driver')" "$MIG"
+
+      - name: Dynamic rental showcase contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHOW="src/pages/rental-showcase-v167.component.ts"
+          CARD="src/components/rental-vehicle-card-v167.component.ts"
+          DETAIL="src/pages/rental-detail-v167.component.ts"
+          PRICE="src/services/rental-campaign-pricing.service.ts"
+          test -f "$SHOW" && test -f "$CARD" && test -f "$DETAIL" && test -f "$PRICE"
+          grep -q "fuels=computed" "$SHOW"
+          grep -q "transmissions=computed" "$SHOW"
+          grep -q "priceBounds=computed" "$SHOW"
+          grep -q "branchLabel(car" "$SHOW"
+          grep -q "cloudStockCode" "$CARD"
+          grep -q "availability" "$CARD"
+          grep -q "discountMethod === 'FIXED_PRICE'" "$PRICE"
+          grep -q "discountScope === 'ORDER'" "$PRICE"
+          grep -q "CommercialOfferContextService" "$DETAIL"
+          grep -q "required.includes('driver')" "$DETAIL"
+          if grep -q "config().address" "$CARD"; then
+            echo "Rental card must never mask vehicle location with global company address"
+            exit 1
+          fi
+          if grep -Eq "fuelOptions=.*Dizel|transmissionOptions=.*Otomatik" "$SHOW"; then
+            echo "Rental filters must come from live catalog, not hardcoded enumerations"
+            exit 1
+          fi
+          if grep -Eq "isCampaign|discountRate" "$CARD"; then
+            echo "Rental card must use authoritative campaigns table, not legacy vehicle campaign flags"
+            exit 1
+          fi
+          grep -q "RentalShowcaseV167Component" src/pages/fleet.component.ts
+          grep -q "RentalDetailV167Component" src/pages/catalog-detail-shells.component.ts
+
+      - name: Super Admin commercial rule contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          ADMIN="src/pages/admin/admin-campaigns-v167.component.ts"
+          grep -q "discountMethod" "$ADMIN"
+          grep -q "discountScope" "$ADMIN"
+          grep -q "visibilityMode" "$ADMIN"
+          grep -q "minimumRentalDays" "$ADMIN"
+          grep -q "minimumRentalHours" "$ADMIN"
+          grep -q "maxRedemptions" "$ADMIN"
+          grep -q "perCustomerLimit" "$ADMIN"
+          grep -q "allowReferralDiscount" "$ADMIN"
+          grep -q "allowLoyaltyRedemption" "$ADMIN"
+          grep -q "requiredExtraIds" "$ADMIN"
+          grep -q "AdminCampaignsV167Component" src/pages/admin/admin-content-hub.component.ts
+
+      - name: Preserve approved-only inventory blocking
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -R "status='APPROVED'\|status = 'APPROVED'" -n supabase/migrations | grep -q ""
+          if grep -n "PENDING.*bookedDates\|bookedDates.*PENDING" src/pages/rental-showcase-v167.component.ts src/pages/rental-detail-v167.component.ts; then
+            echo "V167 must not treat PENDING as inventory blocking"
+            exit 1
+          fi
+
+      - name: Frontend TypeScript check
+        run: npm run lint
+
+      - name: Vercel API TypeScript check
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Accessibility and installability guards
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+          npm run pwa:installability
+          npm run vercel:functions
+
+      - name: Set up Deno 2
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Booking gateway regression check
+        run: deno check --node-modules-dir=auto supabase/functions/booking-gateway-v166/index.ts
+
+      - name: Production Angular build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee v167-angular-build.log
+
+      - name: Upload diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v167-rental-showcase-diagnostics
+          path: v167-angular-build.log
+          if-no-files-found: ignore
+          retention-days: 3

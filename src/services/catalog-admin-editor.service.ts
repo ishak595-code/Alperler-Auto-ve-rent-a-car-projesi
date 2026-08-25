@@ -122,7 +122,8 @@ export class CatalogAdminEditorService {
       actual_vehicle_verified: false,
       metadata: {
         title: category === "RENTAL" ? "Yeni Kiralık Araç" : "Yeni Satılık Araç",
-        createdFrom: "ADMIN_V52",
+        createdFrom: "ADMIN_V1681",
+        ...(category === "SALE" ? { tramerStatus: "UNKNOWN", tramerCurrency: "TRY", damageExpertise: {}, isDamageFree: false } : {}),
       },
     };
     const rows = await this.rest<any[]>("POST", "vehicles?select=*", body, token);
@@ -171,6 +172,19 @@ export class CatalogAdminEditorService {
     if (record.dataQualityStatus !== "BUSINESS_VERIFIED") {
       if (!(record.specSourceName || "").trim()) errors.push("Teknik kaynak adı eksik.");
       if (!this.isHttps(record.specSourceUrl)) errors.push("Teknik kaynak URL adresi geçerli HTTPS olmalı.");
+    }
+    if (record.category === "SALE") {
+      const status=String(record.metadata?.["tramerStatus"]||"UNKNOWN").toUpperCase();
+      if (status === "UNKNOWN") errors.push("Canlı satılık ilanda tramer için en az beyan seçilmeli.");
+      if ((status === "DECLARED_RECORD" || status === "VERIFIED_RECORD") && Number(record.metadata?.["tramerAmount"]||0) <= 0) errors.push("Tramer kaydı varsa toplam tutar TL olarak girilmeli.");
+      if ((status === "DECLARED_RECORD" || status === "VERIFIED_RECORD") && !String(record.metadata?.["tramer"]||"").trim()) errors.push("Tramer kayıt açıklaması eksik.");
+      if (status.startsWith("VERIFIED_")) {
+        if (!String(record.metadata?.["tramerSourceName"]||"").trim()) errors.push("Tramer doğrulama kaynak adı eksik.");
+        if (!this.isHttps(String(record.metadata?.["tramerSourceUrl"]||""))) errors.push("Tramer doğrulama URL adresi geçerli HTTPS olmalı.");
+        if (!String(record.metadata?.["tramerVerifiedAt"]||"").trim()) errors.push("Tramer doğrulama zamanı eksik.");
+      }
+      const expertise=record.metadata?.["damageExpertise"];const values=expertise&&typeof expertise==="object"&&!Array.isArray(expertise)?Object.values(expertise as Record<string,unknown>).map(String):[];
+      if(record.metadata?.["isDamageFree"]===true&&values.some(v=>v==="local_painted"||v==="painted"||v==="changed"))errors.push("Hasarsız beyanı ile lokal boyalı, boyalı veya değişen parça çelişiyor.");
     }
     if (media.activeImages < 1) errors.push("En az bir aktif araç görseli gerekli.");
     if (media.activeCovers !== 1) errors.push("Tam olarak bir aktif kapak görseli seçilmeli.");

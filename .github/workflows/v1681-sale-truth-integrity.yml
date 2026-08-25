@@ -54,16 +54,25 @@ jobs:
           grep -Fq "tramerAmount" "$FILE"
           grep -Fq "VERIFIED_CLEAN" "$FILE"
           grep -Fq "tramerVerifiedAt" "$FILE"
-      - name: Public sale detail truth contract
+          grep -Fq "rearBumper" "$FILE"
+      - name: Public sale detail and card truth contract
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "Beyan ve doğrulama birbirinden ayrı gösterilir" src/pages/sale-detail-v1681.component.ts
-          grep -Fq "local_painted" src/pages/sale-detail-v1681.component.ts
-          grep -Fq "tramerAmountLabel" src/pages/sale-detail-v1681.component.ts
-          grep -Fq "safeSourceUrl" src/pages/sale-detail-v1681.component.ts
-          grep -Fq "local_painted" src/components/expertise-graphic.component.ts
-          grep -Fq "Bilgi yok" src/components/expertise-graphic.component.ts
+          DETAIL=src/pages/sale-detail-v1681.component.ts
+          GRAPHIC=src/components/expertise-graphic.component.ts
+          CARD=src/components/sale-vehicle-card-v168.component.ts
+          grep -Fq "Beyan ve doğrulama birbirinden ayrı gösterilir" "$DETAIL"
+          grep -Fq "local_painted" "$DETAIL"
+          grep -Fq "tramerAmountLabel" "$DETAIL"
+          grep -Fq "safeSourceUrl" "$DETAIL"
+          grep -Fq "local_painted" "$GRAPHIC"
+          grep -Fq "rearBumper" "$GRAPHIC"
+          grep -Fq "Arka tampon" "$GRAPHIC"
+          grep -Fq "Bilgi yok" "$GRAPHIC"
+          grep -Fq "tramerLabel" "$CARD"
+          grep -Fq "Tramer: bilinmiyor" "$CARD"
+          grep -Fq "tramerAmount" "$CARD"
       - name: Admin publication preflight mirrors DB
         shell: bash
         run: |

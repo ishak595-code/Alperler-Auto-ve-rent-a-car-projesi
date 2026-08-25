@@ -37,6 +37,10 @@ export class TourBookingV170Service {
   async create(input: TourBookingV170Input): Promise<TourBookingV170Result> {
     const itemId = String(input.itemId || "").trim();
     if (!itemId) throw new Error("INVALID_TOUR:Tur kimliği eksik.");
+    const customerEmail = String(input.customerEmail || "").trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+      throw new Error("INVALID_EMAIL:Web rezervasyonu için geçerli e-posta adresi zorunludur.");
+    }
     const token = await this.customerAuth.getAccessToken().catch(() => null);
     const idempotencyKey = crypto.randomUUID();
     const campaignId = this.commercialOffer.campaignIdForItem(itemId);
@@ -56,7 +60,7 @@ export class TourBookingV170Service {
         startDate: input.startDate,
         personCount: input.personCount,
         customerName: input.customerName,
-        customerEmail: input.customerEmail,
+        customerEmail,
         customerPhone: input.customerPhone,
         notes: input.notes,
         campaignId,
@@ -80,7 +84,7 @@ export class TourBookingV170Service {
       entityType: "BOOKING",
       reference: payload.booking.id,
       phone: input.customerPhone,
-      email: input.customerEmail,
+      email: customerEmail,
     });
     return payload.booking;
   }

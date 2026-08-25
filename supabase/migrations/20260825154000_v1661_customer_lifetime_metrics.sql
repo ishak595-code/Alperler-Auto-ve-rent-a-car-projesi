@@ -24,6 +24,9 @@ declare
   v_completed_appointments integer := 0;
   v_first_completed timestamptz;
   v_last_completed timestamptz;
+  v_first_rental timestamptz;
+  v_last_rental timestamptz;
+  v_rental_tenure_months integer := 0;
   v_points_balance integer := 0;
   v_lifetime_points integer := 0;
   v_points_earned integer := 0;
@@ -56,10 +59,16 @@ begin
     count(*) filter(where b.booking_type='SALE_INQUIRY')::integer,
     count(*) filter(where b.booking_type='TOUR')::integer,
     count(*) filter(where b.booking_type='APPOINTMENT')::integer,
-    min(b.updated_at),max(b.updated_at)
-  into v_completed_total,v_completed_rentals,v_completed_sales,v_completed_tours,v_completed_appointments,v_first_completed,v_last_completed
+    min(b.updated_at),max(b.updated_at),
+    min(b.updated_at) filter(where b.booking_type='RENTAL'),
+    max(b.updated_at) filter(where b.booking_type='RENTAL')
+  into v_completed_total,v_completed_rentals,v_completed_sales,v_completed_tours,v_completed_appointments,v_first_completed,v_last_completed,v_first_rental,v_last_rental
   from public.bookings b
   where b.customer_user_id=v_target and b.deleted_at is null and b.status='COMPLETED';
+
+  if v_first_rental is not null then
+    v_rental_tenure_months:=greatest(0,(extract(year from age(now(),v_first_rental))::integer*12)+extract(month from age(now(),v_first_rental))::integer);
+  end if;
 
   select coalesce(jsonb_object_agg(x.currency,x.payload),'{}'::jsonb) into v_spend
   from (
@@ -112,6 +121,10 @@ begin
     'tenureDays',v_tenure_days,
     'tenureMonths',v_tenure_months,
     'tenureFullYears',floor(v_tenure_months/12.0)::integer,
+    'firstRentalAt',v_first_rental,
+    'lastRentalAt',v_last_rental,
+    'rentalTenureMonths',v_rental_tenure_months,
+    'rentalTenureFullYears',floor(v_rental_tenure_months/12.0)::integer,
     'engagementBand',v_engagement,
     'tier',v_tier,
     'completedTotal',v_completed_total,
@@ -143,4 +156,4 @@ revoke all on function public.customer_lifetime_summary(uuid) from public,anon,a
 grant execute on function public.customer_lifetime_summary(uuid) to authenticated;
 
 comment on function public.customer_lifetime_summary(uuid) is
-'Dynamic customer tenure, completed-service, spend, campaign, referral and loyalty ledger summary. Self-readable; operations admins may request another customer.';
+'Dynamic customer tenure, rental tenure, completed-service, spend, campaign, referral and loyalty ledger summary. Self-readable; operations admins may request another customer.';

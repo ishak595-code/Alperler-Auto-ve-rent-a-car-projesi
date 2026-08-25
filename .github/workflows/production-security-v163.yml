@@ -12,6 +12,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - "scripts/check-production-security-v163.mjs"
+      - "scripts/check-production-integration-v1632.mjs"
       - "vercel.json"
       - ".github/dependabot.yml"
       - ".github/workflows/production-security-v163.yml"
@@ -25,6 +26,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - "scripts/check-production-security-v163.mjs"
+      - "scripts/check-production-integration-v1632.mjs"
       - "vercel.json"
       - ".github/dependabot.yml"
       - ".github/workflows/production-security-v163.yml"
@@ -63,6 +65,9 @@ jobs:
 
       - name: V163 production security invariant gate
         run: node scripts/check-production-security-v163.mjs
+
+      - name: V163.2 reservation integration contract gate
+        run: node scripts/check-production-integration-v1632.mjs
 
       - name: Frontend TypeScript check
         run: npm run lint

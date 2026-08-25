@@ -2,7 +2,7 @@ import { CommonModule, Location } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AdminCatalogEditorComponent } from './admin-catalog-editor.component';
-import { AdminCampaignsComponent } from './admin-campaigns.component';
+import { AdminCampaignsV167Component } from './admin-campaigns-v167.component';
 import { AdminCommercialBenefitsComponent } from './admin-commercial-benefits.component';
 import { AdminBlogComponent } from './admin-blog.component';
 
@@ -11,29 +11,14 @@ type ContentSection = 'catalog' | 'campaigns' | 'benefits' | 'blog';
 @Component({
   selector: 'app-admin-content-hub',
   standalone: true,
-  imports: [CommonModule, AdminCatalogEditorComponent, AdminCampaignsComponent, AdminCommercialBenefitsComponent, AdminBlogComponent],
+  imports: [CommonModule, AdminCatalogEditorComponent, AdminCampaignsV167Component, AdminCommercialBenefitsComponent, AdminBlogComponent],
   template: `
     <div class="workspace">
       <header class="workspace-head">
-        <div class="head-row">
-          <button type="button" class="back" (click)="goBack()" aria-label="Önceki sayfaya dön">←</button>
-          <div><p>İçerik Yönetimi</p><h1>İçerik & Katalog</h1><span>Araçlar, turlar, kampanyalar, fiyat kuralları ve blog içerikleri burada yönetilir.</span></div>
-        </div>
-        <nav class="tabs" aria-label="İçerik ve katalog bölümleri">
-          <button type="button" [class.active]="active() === 'catalog'" (click)="select('catalog')">Araçlar & Turlar</button>
-          <button type="button" [class.active]="active() === 'campaigns'" (click)="select('campaigns')">Kampanyalar</button>
-          <button type="button" [class.active]="active() === 'benefits'" (click)="select('benefits')">Fiyat & Sadakat</button>
-          <button type="button" [class.active]="active() === 'blog'" (click)="select('blog')">Blog</button>
-        </nav>
+        <div class="head-row"><button type="button" class="back" (click)="goBack()" aria-label="Önceki sayfaya dön">←</button><div><p>İçerik Yönetimi</p><h1>İçerik & Katalog</h1><span>Araçlar, turlar, kampanyalar, fiyat kuralları ve blog içerikleri burada yönetilir.</span></div></div>
+        <nav class="tabs" aria-label="İçerik ve katalog bölümleri"><button type="button" [class.active]="active() === 'catalog'" (click)="select('catalog')">Araçlar & Turlar</button><button type="button" [class.active]="active() === 'campaigns'" (click)="select('campaigns')">Kampanyalar</button><button type="button" [class.active]="active() === 'benefits'" (click)="select('benefits')">Fiyat & Sadakat</button><button type="button" [class.active]="active() === 'blog'" (click)="select('blog')">Blog</button></nav>
       </header>
-      <main class="content">
-        @switch (active()) {
-          @case ('campaigns') { <app-admin-campaigns /> }
-          @case ('benefits') { <app-admin-commercial-benefits /> }
-          @case ('blog') { <app-admin-blog /> }
-          @default { <app-admin-catalog-editor /> }
-        }
-      </main>
+      <main class="content">@switch (active()) {@case ('campaigns') { <app-admin-campaigns-v167 /> }@case ('benefits') { <app-admin-commercial-benefits /> }@case ('blog') { <app-admin-blog /> }@default { <app-admin-catalog-editor /> }}</main>
     </div>
   `,
   styles: [`
@@ -41,34 +26,9 @@ type ContentSection = 'catalog' | 'campaigns' | 'benefits' | 'blog';
   `],
 })
 export class AdminContentHubComponent implements OnInit {
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
-  private readonly location = inject(Location);
-  readonly active = signal<ContentSection>('catalog');
-
-  async ngOnInit(): Promise<void> {
-    const selected = this.resolveSection();
-    this.active.set(selected);
-    if (!this.router.url.startsWith('/admin/content')) {
-      await this.router.navigate(['/admin/content'], { queryParams: { section: selected }, replaceUrl: true });
-    }
-  }
-
-  select(section: ContentSection): void {
-    this.active.set(section);
-    void this.router.navigate([], { relativeTo: this.route, queryParams: { section }, queryParamsHandling: 'merge', replaceUrl: true });
-    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  goBack(): void {
-    if (typeof window !== 'undefined' && window.history.length > 1) this.location.back();
-    else void this.router.navigate(['/admin/dashboard']);
-  }
-
-  private resolveSection(): ContentSection {
-    const query = this.route.snapshot.queryParamMap.get('section');
-    if (query === 'campaigns' || query === 'benefits' || query === 'blog' || query === 'catalog') return query;
-    const data = this.route.snapshot.data['contentSection'];
-    return data === 'campaigns' || data === 'benefits' || data === 'blog' ? data : 'catalog';
-  }
+  private readonly route=inject(ActivatedRoute);private readonly router=inject(Router);private readonly location=inject(Location);readonly active=signal<ContentSection>('catalog');
+  async ngOnInit():Promise<void>{const selected=this.resolveSection();this.active.set(selected);if(!this.router.url.startsWith('/admin/content'))await this.router.navigate(['/admin/content'],{queryParams:{section:selected},replaceUrl:true});}
+  select(section:ContentSection):void{this.active.set(section);void this.router.navigate([],{relativeTo:this.route,queryParams:{section},queryParamsHandling:'merge',replaceUrl:true});if(typeof window!=='undefined')window.scrollTo({top:0,behavior:'smooth'});}
+  goBack():void{if(typeof window!=='undefined'&&window.history.length>1)this.location.back();else void this.router.navigate(['/admin/dashboard']);}
+  private resolveSection():ContentSection{const query=this.route.snapshot.queryParamMap.get('section');if(query==='campaigns'||query==='benefits'||query==='blog'||query==='catalog')return query;const data=this.route.snapshot.data['contentSection'];return data==='campaigns'||data==='benefits'||data==='blog'?data:'catalog';}
 }

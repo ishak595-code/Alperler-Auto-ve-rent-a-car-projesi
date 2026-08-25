@@ -12,19 +12,19 @@ type RentalDuration = "hourly" | "daily" | "weekly" | "monthly" | "longterm";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const CORS = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-headers": "authorization, content-type, x-client-ip, x-idempotency-key",
-  "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
-};
+function requestId(request: Request): string {
+  const supplied = clean(request.headers.get("x-request-id"), 80);
+  return /^[A-Za-z0-9._:-]{8,80}$/.test(supplied) ? supplied : crypto.randomUUID();
+}
 
-function json(body: unknown, status = 200): Response {
+function json(body: unknown, status = 200, id?: string): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
-      ...CORS,
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+      ...(id ? { "x-request-id": id } : {}),
     },
   });
 }
@@ -1027,15 +1027,22 @@ async function deleteBooking(request: Request): Promise<Response> {
 }
 
 Deno.serve(async (request) => {
+  const id = requestId(request);
+  // Browser traffic must pass through the same-origin Vercel BFF. Guest booking
+  // remains supported server-to-server, while direct cross-origin browser calls
+  // cannot bypass the BFF request boundary and correlation headers.
+  if (request.headers.get("origin")) {
+    return json({ ok: false, code: "DIRECT_BROWSER_ACCESS_DENIED", requestId: id }, 403, id);
+  }
   if (request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: CORS });
+    return json({ ok: false, code: "DIRECT_BROWSER_ACCESS_DENIED", requestId: id }, 403, id);
   }
   if (!SUPABASE_URL || !SERVICE_KEY) {
-    return json({ ok: false, code: "SERVER_CONFIG_MISSING" }, 503);
+    return json({ ok: false, code: "SERVER_CONFIG_MISSING", requestId: id }, 503, id);
   }
   if (request.method === "POST") return createBooking(request);
   if (request.method === "GET") return listBookings(request);
   if (request.method === "PATCH") return patchBooking(request);
   if (request.method === "DELETE") return deleteBooking(request);
-  return json({ ok: false, code: "METHOD_NOT_ALLOWED" }, 405);
+  return json({ ok: false, code: "METHOD_NOT_ALLOWED", requestId: id }, 405, id);
 });

@@ -1,0 +1,143 @@
+name: V166 Commercial Offer Engine
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - v166-commercial-offer-engine
+    paths:
+      - "src/**"
+      - "api/**"
+      - "supabase/**"
+      - "public/**"
+      - "scripts/**"
+      - "docs/**"
+      - "package.json"
+      - "package-lock.json"
+      - "angular.json"
+      - "vercel.json"
+      - ".github/workflows/v166-commercial-offer-engine.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "api/**"
+      - "supabase/**"
+      - "public/**"
+      - "scripts/**"
+      - "docs/**"
+      - "package.json"
+      - "package-lock.json"
+      - "angular.json"
+      - "vercel.json"
+      - ".github/workflows/v166-commercial-offer-engine.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v166-commercial-offer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  commercial-offer:
+    name: pricing-referral-loyalty-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Frontend TypeScript check
+        run: npm run lint
+
+      - name: Vercel API TypeScript check
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Commercial SQL contract guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG="supabase/migrations/20260825152500_v166_commercial_offer_engine.sql"
+          GUARD="supabase/migrations/20260825152600_v166_referral_redemption_guards.sql"
+          AUDIT="supabase/migrations/20260825152700_v166_commercial_audit.sql"
+          test -f "$MIG" && test -f "$GUARD" && test -f "$AUDIT"
+          grep -q "create table if not exists public.campaign_redemptions" "$MIG"
+          grep -q "alter table public.campaign_redemptions enable row level security" "$MIG"
+          grep -q "create table if not exists public.commercial_offer_quotes" "$MIG"
+          grep -q "alter table public.commercial_offer_quotes enable row level security" "$MIG"
+          grep -q "reserve_booking_commercial_offer" "$GUARD"
+          grep -q "CAMPAIGN_TARGET_MISMATCH" "$GUARD"
+          grep -q "customer_loyalty_booking_redeem_uidx" "$GUARD"
+          grep -q "instant_discount_booking_id" "$GUARD"
+          grep -q "campaign_commercial_rules_changed" "$AUDIT"
+          grep -q "loyalty_commercial_rules_changed" "$AUDIT"
+          if grep -E "grant execute on function public\.reserve_booking_commercial_offer.*to (anon|authenticated)" -i "$MIG" "$GUARD"; then
+            echo "Commercial reservation RPC must remain service-only"
+            exit 1
+          fi
+
+      - name: V166 BFF routing contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'method === "POST" ? "booking-gateway-v166" : "booking-gateway"' api/bookings.ts
+          grep -q 'DIRECT_BROWSER_ACCESS_DENIED' supabase/functions/booking-gateway-v166/index.ts
+          grep -q 'reserve_booking_commercial_offer' supabase/functions/booking-gateway-v166/index.ts
+          grep -q 'CAMPAIGN_TARGET_MISMATCH' supabase/functions/booking-gateway-v166/index.ts
+          grep -q 'loyaltyPointsToRedeem' src/models/booking.model.ts
+          grep -q 'CommercialOfferContextService' src/services/booking.service.ts
+          grep -q 'Fiyat & Sadakat' src/pages/admin/admin-content-hub.component.ts
+
+      - name: Preserve approved-only inventory blocking rule
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -R "status='APPROVED'\|status = 'APPROVED'" -n supabase/migrations/2026082508*.sql supabase/migrations/202608251*.sql | grep -q ""
+          if grep -R "status='PENDING'.*bookedDates\|status = 'PENDING'.*bookedDates" -n supabase/migrations/20260825152500_v166_commercial_offer_engine.sql supabase/migrations/20260825152600_v166_referral_redemption_guards.sql; then
+            echo "V166 must not make PENDING bookings block inventory"
+            exit 1
+          fi
+
+      - name: Existing accessibility and production invariants
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+          npm run vercel:functions
+          npm run pwa:installability
+
+      - name: Set up Deno 2
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: V166 booking Edge Function type check
+        run: deno check --node-modules-dir=auto supabase/functions/booking-gateway-v166/index.ts
+
+      - name: V165 booking regression type check
+        run: deno check --node-modules-dir=auto supabase/functions/booking-gateway/index.ts
+
+      - name: Production Angular build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee v166-angular-build.log
+
+      - name: Upload build diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v166-commercial-offer-diagnostics
+          path: v166-angular-build.log
+          if-no-files-found: ignore
+          retention-days: 3

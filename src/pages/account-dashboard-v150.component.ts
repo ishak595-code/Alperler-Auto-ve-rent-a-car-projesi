@@ -14,113 +14,24 @@ import { ProfileAdminBridgeService } from '../services/profile-admin-bridge.serv
     <main class="account-page">
       <section class="shell">
         <header class="account-header">
-          <div>
-            <p class="eyebrow">ALPERLER HESABIM</p>
-            <h1>{{ displayName() }}</h1>
-            <span>{{ account.profile()?.email || auth.user()?.email }}</span>
-          </div>
-          <div class="header-actions">
-            @if (adminBridge.access()) {
-              <button type="button" class="admin-entry" (click)="openAdmin()" [disabled]="adminOpening()">
-                {{ adminOpening() ? 'Yönetim açılıyor...' : 'Yönetim Paneli' }}
-              </button>
-            }
-            <a routerLink="/">Siteye Dön</a>
-            <button type="button" class="logout" (click)="logout()">Çıkış Yap</button>
-          </div>
+          <div><p class="eyebrow">ALPERLER HESABIM</p><h1>{{ displayName() }}</h1><span>{{ account.profile()?.email || auth.user()?.email }}</span></div>
+          <div class="header-actions">@if (adminBridge.access()) {<button type="button" class="admin-entry" (click)="openAdmin()" [disabled]="adminOpening()">{{ adminOpening() ? 'Yönetim açılıyor...' : 'Yönetim Paneli' }}</button>}<a routerLink="/">Siteye Dön</a><button type="button" class="logout" (click)="logout()">Çıkış Yap</button></div>
         </header>
-
         @if (pageMessage()) {<p class="notice success" role="status">{{ pageMessage() }}</p>}
         @if (pageError()) {<p class="notice error" role="alert">{{ pageError() }}</p>}
-
-        @if (account.loading()) {
-          <section class="loading" role="status">Hesap bilgileriniz hazırlanıyor...</section>
-        } @else {
-          <section class="action-grid" aria-label="Hızlı işlemler">
-            <a routerLink="/fleet"><small>ARAÇ</small><strong>Araç Kirala</strong><span>Saatlik veya günlük uygun araçları inceleyin.</span></a>
-            <a routerLink="/tours"><small>TUR</small><strong>Tur Planla</strong><span>Tur seçeneklerini ve müsait tarihleri görüntüleyin.</span></a>
-            <a routerLink="/sales"><small>SATIŞ</small><strong>Satılık Araçlar</strong><span>İlanları inceleyin ve satın alma talebi oluşturun.</span></a>
-            <a routerLink="/account/wallet" class="documents"><small>GÜVENLİ KASA</small><strong>Kimlik ve Ehliyet</strong><span>Kimlik ve ehliyetinizin ön ve arka yüzünü güvenle yönetin.</span></a>
-          </section>
-
+        @if (account.loading()) {<section class="loading" role="status">Hesap bilgileriniz hazırlanıyor...</section>} @else {
+          <section class="action-grid" aria-label="Hızlı işlemler"><a routerLink="/fleet"><small>ARAÇ</small><strong>Araç Kirala</strong><span>Saatlik veya günlük uygun araçları inceleyin.</span></a><a routerLink="/tours"><small>TUR</small><strong>Tur Planla</strong><span>Tur seçeneklerini ve müsait tarihleri görüntüleyin.</span></a><a routerLink="/sales"><small>SATIŞ</small><strong>Satılık Araçlar</strong><span>İlanları inceleyin ve satın alma talebi oluşturun.</span></a><a routerLink="/account/wallet" class="documents"><small>GÜVENLİ KASA</small><strong>Kimlik ve Ehliyet</strong><span>Kimlik ve ehliyetinizin ön ve arka yüzünü güvenle yönetin.</span></a></section>
           @if (account.lifetimeSummary(); as lifetime) {
             <section class="loyalty-overview" aria-labelledby="loyalty-overview-title">
-              <header>
-                <div><p class="eyebrow">ALPERLER SADAKAT</p><h2 id="loyalty-overview-title">Sadakat ve müşteri geçmişiniz</h2><span>{{ tenureLabel() }} · {{ engagementLabel(lifetime.engagementBand) }} · {{ lifetime.tier }} seviye</span></div>
-                <strong class="points-balance">{{ lifetime.pointsBalance | number }} <small>puan</small></strong>
-              </header>
-              <div class="loyalty-grid">
-                <article><small>Araç kiralama</small><strong>{{ lifetime.completedRentals }}</strong><span>tamamlanan kiralama</span></article>
-                <article><small>Tur</small><strong>{{ lifetime.completedTours }}</strong><span>tamamlanan tur</span></article>
-                <article><small>Satış</small><strong>{{ lifetime.completedSales }}</strong><span>tamamlanan satış işlemi</span></article>
-                <article><small>Kampanya</small><strong>{{ lifetime.campaignsCompleted }}</strong><span>tamamlanan kampanya kullanımı</span></article>
-                <article><small>Başarılı davet</small><strong>{{ lifetime.successfulReferrals }}</strong><span>arkadaş katkısı</span></article>
-                <article><small>Toplam tamamlanan</small><strong>{{ lifetime.completedTotal }}</strong><span>tüm hizmetler</span></article>
-              </div>
-              <div class="points-ledger" aria-label="Sadakat puanı özeti">
-                <article><span>Toplam kazanılan</span><strong>+{{ lifetime.pointsEarned | number }}</strong></article>
-                <article><span>Toplam kullanılan</span><strong>-{{ lifetime.pointsRedeemedGross | number }}</strong></article>
-                <article><span>İade edilen</span><strong>+{{ lifetime.pointsRedemptionRefunded | number }}</strong></article>
-                <article><span>Net kullanılan</span><strong>{{ lifetime.pointsRedeemedNet | number }}</strong></article>
-                <article><span>Süresi dolan</span><strong>{{ lifetime.pointsExpired | number }}</strong></article>
-                <article><span>Davet puanı</span><strong>+{{ lifetime.referralPointsEarned | number }}</strong></article>
-              </div>
-              @if (spendEntries().length) {
-                <div class="lifetime-spend" aria-label="Tamamlanan işlem harcama özeti">
-                  @for (entry of spendEntries(); track entry.currency) {
-                    <article><small>{{ entry.currency }} harcama</small><strong>{{ entry.spent | number:'1.0-2' }} {{ entry.currency }}</strong><span>{{ entry.transactions }} işlem · {{ entry.saved | number:'1.0-2' }} {{ entry.currency }} toplam avantaj</span></article>
-                  }
-                </div>
-              }
+              <header><div><p class="eyebrow">ALPERLER SADAKAT</p><h2 id="loyalty-overview-title">Sadakat ve müşteri geçmişiniz</h2><span>{{ tenureLabel() }} · {{ rentalTenureLabel() }} · {{ engagementLabel(lifetime.engagementBand) }} · {{ lifetime.tier }} seviye</span></div><strong class="points-balance">{{ lifetime.pointsBalance | number }} <small>puan</small></strong></header>
+              <div class="loyalty-grid"><article><small>Araç kiralama</small><strong>{{ lifetime.completedRentals }}</strong><span>{{ rentalTenureLabel() }}</span></article><article><small>Tur</small><strong>{{ lifetime.completedTours }}</strong><span>tamamlanan tur</span></article><article><small>Satış</small><strong>{{ lifetime.completedSales }}</strong><span>tamamlanan satış işlemi</span></article><article><small>Kampanya</small><strong>{{ lifetime.campaignsCompleted }}</strong><span>tamamlanan kampanya kullanımı</span></article><article><small>Başarılı davet</small><strong>{{ lifetime.successfulReferrals }}</strong><span>arkadaş katkısı</span></article><article><small>Toplam tamamlanan</small><strong>{{ lifetime.completedTotal }}</strong><span>tüm hizmetler</span></article></div>
+              <div class="points-ledger" aria-label="Sadakat puanı özeti"><article><span>Toplam kazanılan</span><strong>+{{ lifetime.pointsEarned | number }}</strong></article><article><span>Toplam kullanılan</span><strong>-{{ lifetime.pointsRedeemedGross | number }}</strong></article><article><span>İade edilen</span><strong>+{{ lifetime.pointsRedemptionRefunded | number }}</strong></article><article><span>Net kullanılan</span><strong>{{ lifetime.pointsRedeemedNet | number }}</strong></article><article><span>Süresi dolan</span><strong>{{ lifetime.pointsExpired | number }}</strong></article><article><span>Davet puanı</span><strong>+{{ lifetime.referralPointsEarned | number }}</strong></article></div>
+              @if (spendEntries().length) {<div class="lifetime-spend" aria-label="Tamamlanan işlem harcama özeti">@for (entry of spendEntries(); track entry.currency) {<article><small>{{ entry.currency }} harcama</small><strong>{{ entry.spent | number:'1.0-2' }} {{ entry.currency }}</strong><span>{{ entry.transactions }} işlem · {{ entry.saved | number:'1.0-2' }} {{ entry.currency }} toplam avantaj</span></article>}</div>}
               <p class="loyalty-note">Puan bakiyesi gerçek hareket defterinden hesaplanır. Puan kullandığınızda bakiye düşer; iptal veya reddedilen uygun işlemlerde iade hareketi ayrıca kaydedilir.</p>
             </section>
           }
-
-          <section class="status-overview" aria-labelledby="status-overview-title">
-            <header><div><p class="eyebrow">TALEPLERİM</p><h2 id="status-overview-title">Rezervasyon ve talepleriniz</h2><span>Gönderdiğiniz işlemlerin güncel durumunu buradan takip edebilirsiniz.</span></div><button type="button" (click)="reload()" [disabled]="account.loading()">Yenile</button></header>
-            <div class="summary-grid">
-              <article><small>İnceleniyor</small><strong>{{ countStatus('PENDING') }}</strong></article>
-              <article><small>Onaylandı</small><strong>{{ countStatus('APPROVED') }}</strong></article>
-              <article><small>Tamamlandı</small><strong>{{ countStatus('COMPLETED') }}</strong></article>
-              <article><small>Toplam İşlem</small><strong>{{ account.bookings().length }}</strong></article>
-            </div>
-          </section>
-
-          <section id="history" class="history" aria-labelledby="history-title">
-            <header><div><p class="eyebrow">İŞLEM GEÇMİŞİ</p><h2 id="history-title">Tüm talepleriniz</h2></div></header>
-            <div class="booking-list">
-              @for (booking of account.bookings(); track booking.id) {
-                <article class="booking-card">
-                  <div class="booking-top">
-                    <div class="booking-identity">
-                      @if (booking.image) {<img [src]="booking.image" alt="" />}
-                      <div><small>{{ typeLabel(booking.booking_type) }}</small><strong>{{ booking.item_name }}</strong><span>{{ booking.reference }}</span></div>
-                    </div>
-                    <span class="status" [class]="'status ' + statusClass(booking.status)">{{ statusLabel(booking.status) }}</span>
-                  </div>
-                  <p class="status-copy">{{ statusDescription(booking) }}</p>
-                  <dl class="booking-meta">
-                    <div><dt>Oluşturulma</dt><dd>{{ booking.created_at | date:'dd.MM.yyyy HH:mm' }}</dd></div>
-                    @if (booking.start_at) {<div><dt>Başlangıç</dt><dd>{{ booking.start_at | date:'dd.MM.yyyy HH:mm' }}</dd></div>}
-                    @if (booking.end_at) {<div><dt>Bitiş</dt><dd>{{ booking.end_at | date:'dd.MM.yyyy HH:mm' }}</dd></div>}
-                    @if (booking.total_price !== null && booking.total_price !== undefined) {<div><dt>Tutar</dt><dd>{{ booking.total_price | number:'1.0-2' }} {{ booking.currency }}</dd></div>}
-                  </dl>
-                  @if (cancelActions.canCancel(booking.status, booking.start_at)) {
-                    @if (cancelConfirm() === booking.reference) {
-                      <div class="cancel-confirm" role="group" [attr.aria-label]="booking.reference + ' iptal onayı'">
-                        <p>Bu talebi iptal etmek istediğinizden emin misiniz?</p>
-                        <div><button type="button" (click)="cancelConfirm.set(null)" [disabled]="cancelActions.workingReference() === booking.reference">Vazgeç</button><button type="button" class="danger" (click)="confirmCancel(booking)" [disabled]="cancelActions.workingReference() === booking.reference">{{ cancelActions.workingReference() === booking.reference ? 'İptal ediliyor...' : 'Talebi İptal Et' }}</button></div>
-                      </div>
-                    } @else {
-                      <button type="button" class="cancel-button" (click)="cancelConfirm.set(booking.reference)">Talebi İptal Et</button>
-                    }
-                  }
-                </article>
-              } @empty {
-                <div class="empty"><strong>Henüz bir talebiniz yok.</strong><span>Araç kiralama, tur veya satış talebi oluşturduğunuzda burada görünecek.</span><a routerLink="/">Hizmetleri İncele</a></div>
-              }
-            </div>
-          </section>
+          <section class="status-overview" aria-labelledby="status-overview-title"><header><div><p class="eyebrow">TALEPLERİM</p><h2 id="status-overview-title">Rezervasyon ve talepleriniz</h2><span>Gönderdiğiniz işlemlerin güncel durumunu buradan takip edebilirsiniz.</span></div><button type="button" (click)="reload()" [disabled]="account.loading()">Yenile</button></header><div class="summary-grid"><article><small>İnceleniyor</small><strong>{{ countStatus('PENDING') }}</strong></article><article><small>Onaylandı</small><strong>{{ countStatus('APPROVED') }}</strong></article><article><small>Tamamlandı</small><strong>{{ countStatus('COMPLETED') }}</strong></article><article><small>Toplam İşlem</small><strong>{{ account.bookings().length }}</strong></article></div></section>
+          <section id="history" class="history" aria-labelledby="history-title"><header><div><p class="eyebrow">İŞLEM GEÇMİŞİ</p><h2 id="history-title">Tüm talepleriniz</h2></div></header><div class="booking-list">@for (booking of account.bookings(); track booking.id) {<article class="booking-card"><div class="booking-top"><div class="booking-identity">@if (booking.image) {<img [src]="booking.image" alt="" />}<div><small>{{ typeLabel(booking.booking_type) }}</small><strong>{{ booking.item_name }}</strong><span>{{ booking.reference }}</span></div></div><span class="status" [class]="'status ' + statusClass(booking.status)">{{ statusLabel(booking.status) }}</span></div><p class="status-copy">{{ statusDescription(booking) }}</p><dl class="booking-meta"><div><dt>Oluşturulma</dt><dd>{{ booking.created_at | date:'dd.MM.yyyy HH:mm' }}</dd></div>@if (booking.start_at) {<div><dt>Başlangıç</dt><dd>{{ booking.start_at | date:'dd.MM.yyyy HH:mm' }}</dd></div>}@if (booking.end_at) {<div><dt>Bitiş</dt><dd>{{ booking.end_at | date:'dd.MM.yyyy HH:mm' }}</dd></div>}@if (booking.total_price !== null && booking.total_price !== undefined) {<div><dt>Tutar</dt><dd>{{ booking.total_price | number:'1.0-2' }} {{ booking.currency }}</dd></div>}</dl>@if (cancelActions.canCancel(booking.status, booking.start_at)) {@if (cancelConfirm() === booking.reference) {<div class="cancel-confirm" role="group" [attr.aria-label]="booking.reference + ' iptal onayı'"><p>Bu talebi iptal etmek istediğinizden emin misiniz?</p><div><button type="button" (click)="cancelConfirm.set(null)" [disabled]="cancelActions.workingReference() === booking.reference">Vazgeç</button><button type="button" class="danger" (click)="confirmCancel(booking)" [disabled]="cancelActions.workingReference() === booking.reference">{{ cancelActions.workingReference() === booking.reference ? 'İptal ediliyor...' : 'Talebi İptal Et' }}</button></div></div>} @else {<button type="button" class="cancel-button" (click)="cancelConfirm.set(booking.reference)">Talebi İptal Et</button>}}</article>} @empty {<div class="empty"><strong>Henüz bir talebiniz yok.</strong><span>Araç kiralama, tur veya satış talebi oluşturduğunuzda burada görünecek.</span><a routerLink="/">Hizmetleri İncele</a></div>}</div></section>
         }
       </section>
     </main>
@@ -130,21 +41,12 @@ import { ProfileAdminBridgeService } from '../services/profile-admin-bridge.serv
   `],
 })
 export class AccountDashboardV150Component implements OnInit {
-  readonly account = inject(CustomerAccountService);
-  readonly auth = inject(CustomerAuthService);
-  readonly cancelActions = inject(CustomerBookingActionsService);
-  readonly adminBridge = inject(ProfileAdminBridgeService);
-  private readonly router = inject(Router);
-  readonly cancelConfirm = signal<string | null>(null);
-  readonly pageMessage = signal('');
-  readonly pageError = signal('');
-  readonly adminOpening = signal(false);
-  readonly displayName = computed(() => accountName(this.account.profile()?.full_name, this.auth.user()?.email));
-
+  readonly account = inject(CustomerAccountService);readonly auth = inject(CustomerAuthService);readonly cancelActions = inject(CustomerBookingActionsService);readonly adminBridge = inject(ProfileAdminBridgeService);private readonly router = inject(Router);readonly cancelConfirm = signal<string | null>(null);readonly pageMessage = signal('');readonly pageError = signal('');readonly adminOpening = signal(false);readonly displayName = computed(() => accountName(this.account.profile()?.full_name, this.auth.user()?.email));
   async ngOnInit(): Promise<void> { await Promise.allSettled([this.reload(), this.adminBridge.refresh()]); }
   async reload(): Promise<void> { this.pageError.set('');try{await this.account.refresh();}catch{this.pageError.set('Hesap bilgileriniz şu anda yenilenemedi. Lütfen bağlantınızı kontrol edip tekrar deneyin.');} }
   countStatus(status: string): number { return this.account.bookings().filter((row) => row.status === status).length; }
   tenureLabel():string{const value=this.account.lifetimeSummary();if(!value)return'';if(value.tenureFullYears>0)return`${value.tenureFullYears} yıl ${value.tenureMonths%12} aydır müşteri`;return`${value.tenureMonths} aydır müşteri`;}
+  rentalTenureLabel():string{const value=this.account.lifetimeSummary();if(!value?.firstRentalAt)return'Henüz tamamlanan kiralama yok';if(value.rentalTenureFullYears>0)return`${value.rentalTenureFullYears} yıl ${value.rentalTenureMonths%12} aylık kiralama geçmişi`;if(value.rentalTenureMonths>0)return`${value.rentalTenureMonths} aylık kiralama geçmişi`;return'1 aydan kısa kiralama geçmişi';}
   engagementLabel(value:string):string{if(value==='LONG_TERM')return'Uzun dönem müşteri';if(value==='LOYAL')return'Sadık müşteri';if(value==='REGULAR')return'Düzenli müşteri';return'Yeni müşteri';}
   spendEntries():Array<{currency:string;spent:number;saved:number;transactions:number}>{const spend=this.account.lifetimeSummary()?.spendByCurrency||{};return Object.entries(spend).map(([currency,row])=>({currency,spent:Number(row.spent||0),saved:Number(row.saved||0),transactions:Number(row.transactions||0)})).sort((a,b)=>b.spent-a.spent);}
   typeLabel(value: string): string { if(value==='RENTAL')return'Araç Kiralama';if(value==='TOUR')return'Tur Rezervasyonu';if(value==='SALE_INQUIRY')return'Satın Alma Talebi';if(value==='APPOINTMENT')return'Randevu Talebi';return'Talep'; }

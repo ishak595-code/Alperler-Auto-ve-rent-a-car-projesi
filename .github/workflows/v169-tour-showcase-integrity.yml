@@ -90,11 +90,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f api/tour-availability.ts
+          test -f api/bookings.ts
           test -f src/services/tour-availability.service.ts
           test -f supabase/functions/tour-availability-v169/index.ts
-          grep -Fq "guardOrigin" api/tour-availability.ts
-          grep -Fq "/api/tour-availability" src/services/tour-availability.service.ts
+          test ! -f api/tour-availability.ts
+          grep -Fq 'mode === "tour-availability"' api/bookings.ts
+          grep -Fq "/api/bookings?mode=tour-availability" src/services/tour-availability.service.ts
           grep -Fq "consume_rate_limit" supabase/functions/tour-availability-v169/index.ts
           grep -Fq "tour_availability_v169" supabase/functions/tour-availability-v169/index.ts
 
@@ -128,10 +129,11 @@ jobs:
       - name: Vercel API TypeScript
         run: npx tsc --noEmit -p tsconfig.api.json
 
-      - name: Accessibility guards
+      - name: Accessibility and Vercel function budget guards
         run: |
           npm run a11y:buttons
           npm run a11y:dates
+          npm run vercel:functions
 
       - name: Set up Deno 2
         uses: denoland/setup-deno@v2

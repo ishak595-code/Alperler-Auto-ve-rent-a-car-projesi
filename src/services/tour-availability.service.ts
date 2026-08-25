@@ -27,7 +27,7 @@ export class TourAvailabilityService {
 
   async check(tourId: string | number, date: string): Promise<TourAvailabilityV169> {
     try {
-      const response = await firstValueFrom(this.http.post<TourAvailabilityResponse>("/api/tour-availability", {
+      const response = await firstValueFrom(this.http.post<TourAvailabilityResponse>("/api/bookings?mode=tour-availability", {
         tourId: String(tourId),
         date,
       }));

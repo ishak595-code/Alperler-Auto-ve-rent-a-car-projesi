@@ -163,6 +163,19 @@ jobs:
           grep -Fq 'BranchDirectoryV171Component as BranchesComponent' src/pages/branches.component.ts
           grep -Fq 'BranchDetailV171Component as BranchDetailComponent' src/pages/branch-detail.component.ts
 
+      - name: Fail-closed public branches, shared date UX and finance visibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -Fq 'fallbackBranches' src/services/branch.service.ts
+          ! grep -Fq 'verified local fallback remains active' src/services/branch.service.ts
+          grep -Fq 'Verified public branch sources unavailable; failing closed.' src/services/branch.service.ts
+          grep -Fq 'AccessibleNativeDateComponent' src/pages/admin/admin-branches.component.ts
+          grep -Fq 'AccessibleNativeDateComponent' src/pages/admin/admin-vehicle-registry-v171.component.ts
+          grep -Fq 'label="Oluşturulma başlangıcı"' src/pages/admin/admin-branches.component.ts
+          grep -Fq 'label="Kayıt başlangıcı"' src/pages/admin/admin-vehicle-registry-v171.component.ts
+          grep -Fq 'routerLink="/admin/branch-subscriptions"' src/pages/admin/admin-finance.component.ts
+
       - name: Frontend TypeScript
         run: npm run lint
       - name: Vercel API TypeScript

@@ -1,0 +1,160 @@
+name: V168 Sale Showcase Truth Integrity
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - v168-sale-showcase-truth-integrity
+    paths:
+      - "src/**"
+      - "supabase/**"
+      - ".github/workflows/v168-sale-showcase-integrity.yml"
+      - "package.json"
+      - "package-lock.json"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "supabase/**"
+      - ".github/workflows/v168-sale-showcase-integrity.yml"
+      - "package.json"
+      - "package-lock.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v168-sale-showcase-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sale-showcase-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: V168 sale publication database contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG="supabase/migrations/20260825181000_v168_sale_publication_truth_gate.sql"
+          test -f "$MIG"
+          grep -q "SALE_MILEAGE_REQUIRED" "$MIG"
+          grep -q "SALE_FUEL_REQUIRED" "$MIG"
+          grep -q "SALE_TRANSMISSION_REQUIRED" "$MIG"
+          grep -q "SALE_BODY_TYPE_REQUIRED" "$MIG"
+          grep -q "SALE_COLOR_REQUIRED" "$MIG"
+          grep -q "SALE_ENGINE_REQUIRED" "$MIG"
+          grep -q "SALE_LOCATION_REQUIRED" "$MIG"
+          grep -q "SALE_DAMAGE_STATUS_REQUIRED" "$MIG"
+          grep -q "SALE_TRAMER_DECLARATION_REQUIRED" "$MIG"
+          grep -q "new.category='SALE'" "$MIG"
+
+      - name: Dynamic sale showcase contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHOW="src/pages/sales-showcase-v168.component.ts"
+          CARD="src/components/sale-vehicle-card-v168.component.ts"
+          DETAIL="src/pages/sale-detail-v168.component.ts"
+          test -f "$SHOW" && test -f "$CARD" && test -f "$DETAIL"
+          grep -q "priceBounds=computed" "$SHOW"
+          grep -q "kmBounds=computed" "$SHOW"
+          grep -q "branchLabel(car" "$SHOW"
+          grep -q "tramer-unverified" "$SHOW"
+          grep -q "cloudStockCode" "$CARD"
+          grep -q "branchLabel" "$CARD"
+          grep -q "hasPartExpertise" "$DETAIL"
+          grep -q "tramerUnverified" "$DETAIL"
+          grep -q "VehicleTechnicalSpecs" "$DETAIL"
+          if grep -Eq "priceOptions|kmOptions|0-500000|150000\+" "$SHOW"; then
+            echo "Sale price/km filters must derive from live numeric bounds"
+            exit 1
+          fi
+          if grep -q "config().address\|getConfig()().address" "$CARD" "$DETAIL"; then
+            echo "Sale UI must not mask vehicle location with global company address"
+            exit 1
+          fi
+          if grep -q "getTechnicalSpecs" "$DETAIL"; then
+            echo "Sale detail must use the already loaded canonical vehicle record"
+            exit 1
+          fi
+          if grep -Eq "isCampaign|discountRate" "$CARD"; then
+            echo "Sale card must not use legacy campaign shadow flags"
+            exit 1
+          fi
+          grep -q "SalesShowcaseV168Component" src/pages/sales-results.component.ts
+          grep -q "SaleDetailV168Component" src/pages/catalog-detail-shells.component.ts
+
+      - name: Super Admin sale integrity contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          ADMIN="src/pages/admin/admin-sale-integrity-v168.component.ts"
+          test -f "$ADMIN"
+          grep -q "damageExpertise" "$ADMIN"
+          grep -q "isDamageFree" "$ADMIN"
+          grep -q "hasPaintOrChange" "$ADMIN"
+          grep -q "damageStatus" "$ADMIN"
+          grep -q "tramer" "$ADMIN"
+          grep -q "frontLeftDoor" "$ADMIN"
+          grep -q "rearRightFender" "$ADMIN"
+          grep -q "AdminSaleIntegrityV168Component" src/pages/admin/admin-content-hub.component.ts
+          grep -q "sale-integrity" src/pages/admin/admin-content-hub.component.ts
+
+      - name: Preserve V167 rental commercial integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f supabase/migrations/20260825170000_v167_rental_campaign_integrity.sql
+          grep -q "RentalShowcaseV167Component" src/pages/fleet.component.ts
+          grep -q "RentalDetailV167Component" src/pages/catalog-detail-shells.component.ts
+          grep -q "campaign_redemptions_required_extras_v167" supabase/migrations/20260825170000_v167_rental_campaign_integrity.sql
+
+      - name: Frontend TypeScript check
+        run: npm run lint
+
+      - name: Vercel API TypeScript check
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Accessibility and installability guards
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+          npm run pwa:installability
+          npm run vercel:functions
+
+      - name: Set up Deno 2
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Booking gateway regression check
+        run: deno check --node-modules-dir=auto supabase/functions/booking-gateway-v166/index.ts
+
+      - name: Production Angular build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee v168-angular-build.log
+
+      - name: Upload diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v168-sale-showcase-diagnostics
+          path: v168-angular-build.log
+          if-no-files-found: ignore
+          retention-days: 3

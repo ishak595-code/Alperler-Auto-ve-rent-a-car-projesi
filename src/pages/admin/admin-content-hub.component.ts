@@ -3,30 +3,33 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AdminCatalogEditorComponent } from './admin-catalog-editor.component';
 import { AdminCampaignsComponent } from './admin-campaigns.component';
+import { AdminCommercialBenefitsComponent } from './admin-commercial-benefits.component';
 import { AdminBlogComponent } from './admin-blog.component';
 
-type ContentSection = 'catalog' | 'campaigns' | 'blog';
+type ContentSection = 'catalog' | 'campaigns' | 'benefits' | 'blog';
 
 @Component({
   selector: 'app-admin-content-hub',
   standalone: true,
-  imports: [CommonModule, AdminCatalogEditorComponent, AdminCampaignsComponent, AdminBlogComponent],
+  imports: [CommonModule, AdminCatalogEditorComponent, AdminCampaignsComponent, AdminCommercialBenefitsComponent, AdminBlogComponent],
   template: `
     <div class="workspace">
       <header class="workspace-head">
         <div class="head-row">
           <button type="button" class="back" (click)="goBack()" aria-label="Önceki sayfaya dön">←</button>
-          <div><p>İçerik Yönetimi</p><h1>İçerik & Katalog</h1><span>Araçlar, turlar, kampanyalar ve blog içerikleri burada yönetilir.</span></div>
+          <div><p>İçerik Yönetimi</p><h1>İçerik & Katalog</h1><span>Araçlar, turlar, kampanyalar, fiyat kuralları ve blog içerikleri burada yönetilir.</span></div>
         </div>
         <nav class="tabs" aria-label="İçerik ve katalog bölümleri">
           <button type="button" [class.active]="active() === 'catalog'" (click)="select('catalog')">Araçlar & Turlar</button>
           <button type="button" [class.active]="active() === 'campaigns'" (click)="select('campaigns')">Kampanyalar</button>
+          <button type="button" [class.active]="active() === 'benefits'" (click)="select('benefits')">Fiyat & Sadakat</button>
           <button type="button" [class.active]="active() === 'blog'" (click)="select('blog')">Blog</button>
         </nav>
       </header>
       <main class="content">
         @switch (active()) {
           @case ('campaigns') { <app-admin-campaigns /> }
+          @case ('benefits') { <app-admin-commercial-benefits /> }
           @case ('blog') { <app-admin-blog /> }
           @default { <app-admin-catalog-editor /> }
         }
@@ -64,8 +67,8 @@ export class AdminContentHubComponent implements OnInit {
 
   private resolveSection(): ContentSection {
     const query = this.route.snapshot.queryParamMap.get('section');
-    if (query === 'campaigns' || query === 'blog' || query === 'catalog') return query;
+    if (query === 'campaigns' || query === 'benefits' || query === 'blog' || query === 'catalog') return query;
     const data = this.route.snapshot.data['contentSection'];
-    return data === 'campaigns' || data === 'blog' ? data : 'catalog';
+    return data === 'campaigns' || data === 'benefits' || data === 'blog' ? data : 'catalog';
   }
 }

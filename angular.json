@@ -25,6 +25,7 @@
               }
             ],
             "styles": [
+              "src/tailwind.css",
               "src/mobile-target-fixes.css",
               "src/runtime-stability.css",
               "src/premium-design-system.css",

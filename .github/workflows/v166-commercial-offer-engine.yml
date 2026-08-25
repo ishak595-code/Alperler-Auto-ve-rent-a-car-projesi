@@ -103,7 +103,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -R "status='APPROVED'\|status = 'APPROVED'" -n supabase/migrations/2026082508*.sql supabase/migrations/202608251*.sql | grep -q ""
+          grep -R "status='APPROVED'\|status = 'APPROVED'" -n supabase/migrations | grep -q ""
           if grep -R "status='PENDING'.*bookedDates\|status = 'PENDING'.*bookedDates" -n supabase/migrations/20260825152500_v166_commercial_offer_engine.sql supabase/migrations/20260825152600_v166_referral_redemption_guards.sql; then
             echo "V166 must not make PENDING bookings block inventory"
             exit 1

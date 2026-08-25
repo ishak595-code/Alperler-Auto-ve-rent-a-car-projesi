@@ -101,12 +101,15 @@ assert(!availabilityEdge.includes('access-control-allow-origin'), 'availability 
 
 const bookingGateway = read('supabase/functions/booking-gateway/index.ts');
 includesAll(bookingGateway, [
+  'DIRECT_BROWSER_ACCESS_DENIED',
+  'request.headers.get("origin")',
   'async function branchTimezone',
   'localCalendarDayNumber',
   'rentalDays(start: string, end: string, timezone: string)',
   'await branchTimezone(vehicle.branch_id)',
   '["owner", "admin", "editor", "support"].includes(role)',
-], 'booking gateway timezone and admin hardening');
+], 'booking gateway BFF, timezone and admin hardening');
+assert(!bookingGateway.includes('access-control-allow-origin'), 'booking gateway must not expose direct browser CORS');
 
 const branchModel = read('src/models/branch.model.ts');
 const branchService = read('src/services/branch.service.ts');

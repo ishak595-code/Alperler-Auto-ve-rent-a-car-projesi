@@ -17,6 +17,7 @@
     "vercel:functions": "node scripts/check-vercel-function-budget.mjs",
     "design:premium": "node scripts/check-premium-design-system.mjs",
     "pwa:installability": "node scripts/check-pwa-installability.mjs",
+    "security:v165": "node scripts/check-v165-production-hardening.mjs",
     "preview": "ng serve --configuration=production"
   },
   "dependencies": {

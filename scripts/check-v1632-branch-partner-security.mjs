@@ -5,13 +5,13 @@ const assert=(condition,message)=>{if(!condition)throw new Error(`V163.2 invaria
 const all=(content,needles,label)=>{for(const needle of needles)assert(content.includes(needle),`${label} missing ${needle}`);};
 
 const client=read('src/services/branch-partner.service.ts');
-all(client,['private readonly endpoint = "/api/branch-partner"','x-request-id','authorization: `Bearer ${token}`'],'branch partner client');
+all(client,['private readonly endpoint = "/api/partner?op=branch-partner"','x-request-id','authorization: `Bearer ${token}`'],'branch partner client');
 assert(!client.includes('/functions/v1/branch-partner-gateway'),'browser must not call branch partner Edge directly');
 assert(!client.includes('SUPABASE_PUBLISHABLE_KEY'),'same-origin BFF must own the Supabase boundary');
 
-const api=read('api/branch-partner.ts');
-all(api,['guardOrigin','originDecision','clientIp','x-request-id','x-upstream-request-id','/functions/v1/branch-partner-gateway','PAYLOAD_TOO_LARGE'],'branch partner BFF');
-assert(!api.includes('access-control-allow-origin: *'),'BFF must never expose wildcard CORS');
+const api=read('api/partner.ts');
+all(api,['guardOrigin','originDecision','clientIp','x-request-id','x-upstream-request-id','branch-partner-gateway','PAYLOAD_TOO_LARGE','operation === "branch-partner"'],'consolidated partner BFF');
+assert(!fs.existsSync('api/branch-partner.ts'),'Vercel function budget requires branch partner to reuse api/partner.ts');
 
 const boundary=read('supabase/migrations/20260825102000_v1632_branch_partner_boundary.sql');
 all(boundary,['revoke all on table public.branch_partner_requests from anon, authenticated','grant all on table public.branch_partner_requests to service_role','enable row level security'],'branch partner database boundary');
@@ -24,4 +24,4 @@ all(edge,['branch_partner_network_minute','branch_partner_network_hour','branch_
 const requestBoundary=read('api/_lib/request-security.ts');
 all(requestBoundary,['guardOrigin','originDecision','configuredOrigins','requestId'],'shared request boundary');
 
-console.log('V163.2 branch-partner same-origin, service-role and explicit-deny privacy invariants are satisfied.');
+console.log('V163.2 branch-partner same-origin, service-role, Vercel-budget and explicit-deny privacy invariants are satisfied.');

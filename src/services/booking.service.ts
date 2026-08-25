@@ -23,6 +23,19 @@ interface BookingApiResponse {
   code?: string;
   message?: string;
 }
+interface AvailabilityApiResponse {
+  ok: boolean;
+  available?: boolean;
+  hold?: {
+    id: string;
+    vehicleId: string;
+    expiresAt: string;
+    branchTimezone?: string;
+  };
+  code?: string;
+  message?: string;
+  requestId?: string;
+}
 interface ApiBooking extends Omit<BookingRecord, "createdAt" | "updatedAt"> { createdAt: string; updatedAt: string; }
 
 @Injectable({ providedIn: "root" })
@@ -42,9 +55,13 @@ export class BookingService {
 
   async create(input: CreateBookingInput): Promise<BookingRecord> {
     const normalized = this.normalizeInput(input);
+    const idempotencyKey = crypto.randomUUID();
+    if (normalized.type === "RENTAL") {
+      await this.reserveRentalHold(normalized, idempotencyKey);
+    }
     const envelope = {
       ...normalized,
-      idempotencyKey: crypto.randomUUID(),
+      idempotencyKey,
       analyticsSessionId: currentAnalyticsSessionId(),
     };
     const response = await this.request<BookingApiResponse>("POST", envelope);
@@ -90,6 +107,46 @@ export class BookingService {
     this.bookings.update((records) => records.filter((record) => record.id !== id));
   }
 
+  private async reserveRentalHold(input: CreateBookingInput, idempotencyKey: string): Promise<void> {
+    const itemId = input.itemId === undefined ? "" : String(input.itemId).trim();
+    const startAt = input.startDate?.trim() || "";
+    const endAt = input.endDate?.trim() || "";
+    if (!itemId) throw new Error("INVALID_RENTAL_VEHICLE:Kiralık araç seçimi geçerli değil.");
+    if (!startAt || !endAt) throw new Error("INVALID_RENTAL_DATES:Teslim alma ve iade tarihlerini kontrol edin.");
+
+    const token = await this.customerAuth.getAccessToken().catch(() => null);
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+      "x-idempotency-key": idempotencyKey,
+      "x-request-id": crypto.randomUUID(),
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    try {
+      const response = await firstValueFrom(this.http.post<AvailabilityApiResponse>(
+        "/api/rental-availability",
+        { vehicleId: itemId, startAt, endAt, idempotencyKey },
+        { headers },
+      ));
+      if (!response.ok || !response.available || !response.hold?.id) {
+        throw new Error(`${response.code || "AVAILABILITY_CHECK_FAILED"}:${response.message || "Araç uygunluğu doğrulanamadı."}`);
+      }
+      const expiresAt = new Date(response.hold.expiresAt).getTime();
+      if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+        throw new Error("AVAILABILITY_HOLD_EXPIRED:Araç uygunluk süresi doldu. Lütfen tekrar deneyin.");
+      }
+    } catch (error) {
+      if (error instanceof HttpErrorResponse && error.error && typeof error.error === "object") {
+        const payload = error.error as AvailabilityApiResponse;
+        const code = String(payload.code || "AVAILABILITY_CHECK_FAILED");
+        const message = String(payload.message || "Araç uygunluğu doğrulanamadı.");
+        throw new Error(`${code}:${message}`);
+      }
+      if (error instanceof Error) throw error;
+      throw new Error("AVAILABILITY_CHECK_FAILED:Araç uygunluğu doğrulanamadı.");
+    }
+  }
+
   private async refreshAdminRecords(showLoading = true): Promise<void> {
     if (showLoading) this.adminLoaded.set(false);
     try {
@@ -125,8 +182,6 @@ export class BookingService {
 
   private shouldTryDirectGateway(error: HttpErrorResponse, method: "GET" | "POST" | "PATCH" | "DELETE"): boolean {
     if (error.status === 0 || error.status === 404 || error.status === 405 || error.status === 408 || error.status === 502 || error.status === 503 || error.status === 504) return true;
-    // Public submissions must survive a transient Vercel function failure. The same
-    // idempotency key is reused by the direct gateway, so a retry cannot duplicate a booking.
     return method === "POST" && error.status >= 500;
   }
 

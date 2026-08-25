@@ -68,7 +68,7 @@ Deno.serve(async(request)=>{
       return json(request,{ok:true,approval,bookingReference:reference,status:saved?.status||"APPROVED",notification,requestId:id},200,id);
     }
     if(action==="offer_alternative"){
-      const offerId=clean(body["offerId"],80);if(!/^[0-9a-f-]{36}$/i.test(offerId))throw new Error("ALTERNATIVE_NOT_FOUND");const offer=await rpcAsUser(admin,"admin_offer_booking_alternative",{p_offer_id:offerId,p_request_id:id});return json(request,{ok:true,offer,requestId:id},200,id);
+      const offerId=clean(body["offerId"],80);if(!/^[0-9a-f-]{36}$/i.test(offerId))throw new Error("ALTERNATIVE_NOT_FOUND");const offer=await rpcAsUser(admin,"admin_offer_booking_alternative",{p_offer_id:offerId,p_request_id:id});return json(request,{ok:true,event:"BOOKING_ALTERNATIVE_OFFERED",offer,requestId:id},200,id);
     }
     return json(request,{ok:false,code:"INVALID_ACTION",requestId:id},400,id);
   }catch(error){const code=error instanceof Error?error.message:"ADMIN_BOOKING_ACTION_FAILED";const status=code==="UNAUTHORIZED"?401:code==="FORBIDDEN"?403:code==="BOOKING_NOT_FOUND"||code==="ALTERNATIVE_NOT_FOUND"?404:code==="VEHICLE_UNAVAILABLE"||code==="ALTERNATIVE_NO_LONGER_AVAILABLE"?409:code.startsWith("INVALID_")?400:500;const message=code==="VEHICLE_UNAVAILABLE"?"Bu araç için aynı zaman aralığında başka bir onaylı rezervasyon bulunuyor.":code==="ALTERNATIVE_NO_LONGER_AVAILABLE"?"Bu alternatif araç artık seçilen zamanda müsait değil.":code==="FORBIDDEN"?"Bu işlem için operasyon yetkiniz bulunmuyor.":"Yönetim işlemi tamamlanamadı.";return json(request,{ok:false,code,message,requestId:id},status,id);}

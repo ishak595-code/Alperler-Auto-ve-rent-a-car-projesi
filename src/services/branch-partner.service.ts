@@ -1,5 +1,4 @@
 import { Injectable, inject, signal } from "@angular/core";
-import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { AuthService } from "./auth.service";
 
 export type BranchPartnerStatus =
@@ -83,7 +82,7 @@ interface GatewayResponse {
 @Injectable({ providedIn: "root" })
 export class BranchPartnerService {
   private readonly auth = inject(AuthService);
-  private readonly endpoint = `${SUPABASE_PROJECT_URL}/functions/v1/branch-partner-gateway`;
+  private readonly endpoint = "/api/branch-partner";
   private readonly submissionStorageKey = "alperler_branch_partner_submission_key";
   private submissionKey = this.loadSubmissionKey();
   private readonly _records = signal<BranchPartnerAdminRecord[]>([]);
@@ -172,8 +171,8 @@ export class BranchPartnerService {
 
   private headers(token?: string): Record<string, string> {
     return {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
       "content-type": "application/json",
+      "x-request-id": crypto.randomUUID(),
       ...(token ? { authorization: `Bearer ${token}` } : {}),
     };
   }

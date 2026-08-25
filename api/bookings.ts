@@ -121,6 +121,37 @@ async function rentalAvailability(request: Request): Promise<Response> {
   return proxiedResponse(request, upstream, "POST,OPTIONS", decision.requestId);
 }
 
+async function tourAvailability(request: Request): Promise<Response> {
+  const decision = originDecision(request);
+  if (request.method !== "POST") {
+    return Response.json(
+      { ok: false, code: "METHOD_NOT_ALLOWED", requestId: decision.requestId },
+      { status: 405, headers: { ...corsHeaders(decision, "POST,OPTIONS"), "cache-control": "no-store" } },
+    );
+  }
+  if (Number(request.headers.get("content-length") || 0) > 8_192) {
+    return Response.json(
+      { ok: false, code: "PAYLOAD_TOO_LARGE", requestId: decision.requestId },
+      { status: 413, headers: { ...corsHeaders(decision, "POST,OPTIONS"), "cache-control": "no-store" } },
+    );
+  }
+  try {
+    const upstream = await fetch(`${projectUrl()}/functions/v1/tour-availability-v169`, {
+      method: "POST",
+      headers: proxyHeaders(request, decision.requestId),
+      body: await request.text(),
+      signal: AbortSignal.timeout(12_000),
+    });
+    return proxiedResponse(request, upstream, "POST,OPTIONS", decision.requestId);
+  } catch (error) {
+    console.error("Tour availability gateway unavailable", decision.requestId, error);
+    return Response.json(
+      { ok: false, code: "TOUR_AVAILABILITY_UNAVAILABLE", message: "Tur kontenjanı şu anda doğrulanamadı.", requestId: decision.requestId },
+      { status: 503, headers: { ...corsHeaders(decision, "POST,OPTIONS"), "cache-control": "no-store" } },
+    );
+  }
+}
+
 async function adminBookingActions(request: Request): Promise<Response> {
   const decision = originDecision(request);
   const method = request.method.toUpperCase();
@@ -215,6 +246,7 @@ export default {
       return integrationStatus(request);
     }
     if (mode === "rental-availability") return rentalAvailability(request);
+    if (mode === "tour-availability") return tourAvailability(request);
     if (mode === "admin-booking-actions") return adminBookingActions(request);
     return bookingGateway(request);
   },

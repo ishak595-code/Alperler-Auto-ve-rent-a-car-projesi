@@ -21,6 +21,7 @@ export interface SpendingCurrencySummary {
 @Injectable({providedIn:'root'})
 export class CustomerWalletService{
   private readonly auth=inject(CustomerAuthService);
+  private readonly documentBucket='customer-private';
   readonly loading=signal(false);
   readonly terms=signal<CustomerVaultTerms|null>(null);
   readonly consent=signal<CustomerVaultConsent|null>(null);
@@ -45,32 +46,27 @@ export class CustomerWalletService{
   }
 
   hasActiveConsent():boolean{return Boolean(this.terms()&&this.consent()&&this.terms()?.version===this.consent()?.terms_version&&!this.consent()?.revoked_at);}
-
   async acceptTerms():Promise<void>{const token=await this.requireToken();await this.rpc('accept_customer_vault_terms',{},token);await this.refresh();}
   async revokeTerms():Promise<void>{const token=await this.requireToken();await this.rpc('revoke_customer_vault_terms',{},token);await this.refresh();}
 
   async uploadDocument(file:File,type:CustomerDocumentType,expiryDate?:string|null):Promise<void>{
     if(!this.hasActiveConsent())throw new Error('VAULT_CONSENT_REQUIRED');
-    const mimeExtension=new Map<string,string>([['image/jpeg','jpg'],['image/png','png'],['image/webp','webp'],['application/pdf','pdf']]);
-    const extension=mimeExtension.get(file.type);if(!extension)throw new Error('DOCUMENT_TYPE_INVALID');
     if(file.size<=0||file.size>10*1024*1024)throw new Error('DOCUMENT_SIZE_INVALID');
+    const allowed=new Set(['image/jpeg','image/png','image/webp','application/pdf']);if(!allowed.has(file.type))throw new Error('DOCUMENT_TYPE_INVALID');
     const detectedMime=await this.detectFileSignature(file);if(detectedMime!==file.type)throw new Error('DOCUMENT_SIGNATURE_INVALID');
-    const token=await this.requireToken();const userId=this.auth.user()?.id||'';if(!userId)throw new Error('CUSTOMER_SESSION_REQUIRED');
-    const path=`${userId}/${crypto.randomUUID()}.${extension}`;
-    const encoded=path.split('/').map(encodeURIComponent).join('/');
-    const upload=await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/customer-documents/${encoded}`,{
-      method:'POST',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`,'content-type':file.type,'x-upsert':'false'},body:file,
+    const token=await this.requireToken();
+    const form=new FormData();form.set('file',file,this.cleanFileName(file.name));form.set('documentType',type);if(expiryDate)form.set('expiryDate',expiryDate);
+    const response=await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/customer-document-upload`,{
+      method:'POST',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`,'x-request-id':crypto.randomUUID()},body:form,
     });
-    if(!upload.ok)throw new Error(`DOCUMENT_UPLOAD_${upload.status}`);
-    const metadata={user_id:userId,document_type:type,storage_path:path,original_name:this.cleanFileName(file.name),mime_type:file.type,file_size:file.size,expiry_date:expiryDate||null};
-    const insert=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/customer_documents`,{method:'POST',headers:this.headers(token,{Prefer:'return=minimal'}),body:JSON.stringify(metadata)});
-    if(!insert.ok){await this.deleteStorageObject(path,token).catch(()=>undefined);throw new Error(`DOCUMENT_METADATA_${insert.status}`);}
+    const payload=await response.json().catch(()=>({})) as {ok?:boolean;code?:string;message?:string};
+    if(!response.ok||payload.ok!==true)throw new Error(`${payload.code||`DOCUMENT_UPLOAD_${response.status}`}:${payload.message||'Belge yüklenemedi.'}`);
     await this.refresh();
   }
 
   async openDocument(doc:CustomerDocument):Promise<void>{
     const token=await this.requireToken();const encoded=doc.storage_path.split('/').map(encodeURIComponent).join('/');
-    const response=await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/sign/customer-documents/${encoded}`,{method:'POST',headers:this.headers(token),body:JSON.stringify({expiresIn:120})});
+    const response=await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/sign/${this.documentBucket}/${encoded}`,{method:'POST',headers:this.headers(token),body:JSON.stringify({expiresIn:120})});
     if(!response.ok)throw new Error('DOCUMENT_SIGN_FAILED');
     const data=await response.json() as {signedURL?:string;signedUrl?:string};const signed=data.signedURL||data.signedUrl||'';if(!signed)throw new Error('DOCUMENT_SIGN_FAILED');
     const url=signed.startsWith('http')?signed:`${SUPABASE_PROJECT_URL}/storage/v1${signed.startsWith('/')?'':'/'}${signed}`;
@@ -106,27 +102,18 @@ export class CustomerWalletService{
 
   async setDefaultPaymentMethod(id:string):Promise<void>{const token=await this.requireToken();await this.rpc('set_default_customer_payment_method',{p_method_id:id},token);}
   async removePaymentMethod(id:string):Promise<void>{const token=await this.requireToken();await this.rpc('remove_customer_payment_method',{p_method_id:id},token);}
-
-  currentCurrencySummary():SpendingCurrencySummary|null{
-    const currency=this.preferences()?.preferred_currency||'TRY';return this.spending().find(row=>row.currency===currency)||null;
-  }
+  currentCurrencySummary():SpendingCurrencySummary|null{const currency=this.preferences()?.preferred_currency||'TRY';return this.spending().find(row=>row.currency===currency)||null;}
 
   private async detectFileSignature(file:File):Promise<string|null>{
-    const bytes=new Uint8Array(await file.slice(0,16).arrayBuffer());
-    const starts=(signature:number[])=>signature.every((value,index)=>bytes[index]===value);
-    if(starts([0xff,0xd8,0xff]))return'image/jpeg';
-    if(starts([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]))return'image/png';
-    if(starts([0x25,0x50,0x44,0x46,0x2d]))return'application/pdf';
-    const riff=starts([0x52,0x49,0x46,0x46]);
-    const webp=bytes[8]===0x57&&bytes[9]===0x45&&bytes[10]===0x42&&bytes[11]===0x50;
-    if(riff&&webp)return'image/webp';
-    return null;
+    const bytes=new Uint8Array(await file.slice(0,16).arrayBuffer());const starts=(signature:number[])=>signature.every((value,index)=>bytes[index]===value);
+    if(starts([0xff,0xd8,0xff]))return'image/jpeg';if(starts([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]))return'image/png';if(starts([0x25,0x50,0x44,0x46,0x2d]))return'application/pdf';
+    const riff=starts([0x52,0x49,0x46,0x46]),webp=bytes[8]===0x57&&bytes[9]===0x45&&bytes[10]===0x42&&bytes[11]===0x50;if(riff&&webp)return'image/webp';return null;
   }
-  private async deleteStorageObject(path:string,token:string):Promise<void>{const encoded=path.split('/').map(encodeURIComponent).join('/');const response=await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/customer-documents/${encoded}`,{method:'DELETE',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`}});if(!response.ok&&response.status!==404)throw new Error('DOCUMENT_STORAGE_DELETE_FAILED');}
+  private async deleteStorageObject(path:string,token:string):Promise<void>{const encoded=path.split('/').map(encodeURIComponent).join('/');const response=await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/${this.documentBucket}/${encoded}`,{method:'DELETE',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`}});if(!response.ok&&response.status!==404)throw new Error('DOCUMENT_STORAGE_DELETE_FAILED');}
   private normalizePreferences(row:CustomerExperiencePreferences):CustomerExperiencePreferences{return{...row,monthly_spend_target:row.monthly_spend_target===null||row.monthly_spend_target===undefined?null:Number(row.monthly_spend_target),spend_alert_threshold_percent:Number(row.spend_alert_threshold_percent||80),document_expiry_reminder_days:Number(row.document_expiry_reminder_days||30)};}
   private moneyOrNull(value:unknown):number|null{if(value===null||value===''||value===undefined)return null;const n=Number(value);if(!Number.isFinite(n)||n<0||n>1000000000)throw new Error('SPEND_TARGET_INVALID');return Math.round(n*100)/100;}
   private integer(value:unknown,min:number,max:number):number{const n=Number(value);if(!Number.isInteger(n)||n<min||n>max)throw new Error('PREFERENCE_INVALID');return n;}
-  private cleanFileName(value:string):string{return value.replace(/[\u0000-\u001f]/g,'').trim().slice(0,180)||'belge';}
+  private cleanFileName(value:string):string{return value.replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,180)||'belge';}
   private async requireToken():Promise<string>{const token=await this.auth.getAccessToken();if(!token)throw new Error('CUSTOMER_SESSION_REQUIRED');return token;}
   private headers(token:string,extra:Record<string,string>={}):Record<string,string>{return{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`,'content-type':'application/json',...extra};}
   private async rows<T>(path:string,token:string):Promise<T[]>{const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`,{headers:this.headers(token)});if(!response.ok)throw new Error(`CUSTOMER_WALLET_READ_${response.status}`);return await response.json() as T[];}

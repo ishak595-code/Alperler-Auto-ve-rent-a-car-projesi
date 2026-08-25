@@ -33,6 +33,13 @@ interface CatalogListResponse<T> {
   code?: string;
 }
 
+interface SiteConfigMutationResponse {
+  ok?: boolean;
+  value?: SiteConfig;
+  code?: string;
+  message?: string;
+}
+
 type PublicResource = "vehicles" | "tours" | "blog" | "faqs" | "config";
 
 const DIRECT_PAGE_SIZE = 500;
@@ -101,32 +108,22 @@ export class CatalogService {
   }
 
   async saveConfig(config: SiteConfig): Promise<SiteConfig> {
-    try {
-      const payload = await this.adminRequest<CatalogListResponse<never>>("PUT", "config", config);
-      if (!payload.ok) throw new Error(payload.code || "CONFIG_SAVE_FAILED");
-      return (payload.value || config) as SiteConfig;
-    } catch (apiError) {
-      console.warn("Catalog config API unavailable; using authenticated Supabase fallback.", apiError);
-      const token = await this.authService.getAccessToken();
-      if (!token) throw apiError;
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/site_config?on_conflict=key&select=value`, {
-        method: "POST",
-        headers: {
-          apikey: SUPABASE_PUBLISHABLE_KEY,
-          authorization: `Bearer ${token}`,
-          "content-type": "application/json",
-          Prefer: "resolution=merge-duplicates,return=representation",
-        },
-        body: JSON.stringify({ key: "site_settings", value: config, is_public: true }),
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({})) as { message?: string; code?: string };
-        throw new Error(payload.message || payload.code || `CONFIG_DIRECT_SAVE_${response.status}`);
-      }
-      const rows = await response.json() as Array<{ value?: SiteConfig }>;
-      return rows[0]?.value || config;
-    }
+    const token = await this.authService.getAccessToken();
+    if (!token) throw new Error("ADMIN_SESSION_REQUIRED");
+    const response = await fetch("/api/partner?op=site-content-admin", {
+      method: "PATCH",
+      cache: "no-store",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+        accept: "application/json",
+        "x-request-id": crypto.randomUUID(),
+      },
+      body: JSON.stringify({ action: "saveSiteConfig", config }),
+    });
+    const payload = await response.json().catch(() => ({})) as SiteConfigMutationResponse;
+    if (!response.ok || payload.ok !== true) throw new Error(payload.code || payload.message || `SITE_CONFIG_GATEWAY_${response.status}`);
+    return payload.value && typeof payload.value === "object" ? payload.value : config;
   }
 
   private async loadList<T>(resource: Exclude<PublicResource, "config">, fresh = false): Promise<T[]> {

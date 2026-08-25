@@ -1,0 +1,132 @@
+name: V173 Customer CRM Loyalty Security
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "api/**"
+      - "supabase/**"
+      - "vercel.json"
+      - ".github/workflows/v173-customer-crm-loyalty-security.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v173-production-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: V173 database service boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260825235000_v173_customer_crm_loyalty_security_gateway.sql
+          SIGN=supabase/migrations/20260825235030_v173_customer_document_signing_bridge.sql
+          test -f "$MIG" && test -f "$SIGN"
+          for fn in service_customer_admin_list_v173 service_customer_admin_detail_v173 service_set_customer_status_v173 service_link_booking_customer_v173 service_review_customer_document_v173 service_save_loyalty_settings_v173; do
+            grep -Fq "$fn" "$MIG"
+          done
+          grep -Fq "service_customer_document_path_v173" "$SIGN"
+          grep -Fq "private.can_actor_manage_operations" "$MIG"
+          grep -Fq "private.can_actor_manage_operations" "$SIGN"
+          grep -Fq "from public,anon,authenticated" "$MIG"
+          grep -Fq "to service_role" "$MIG"
+          grep -Fq "from public,anon,authenticated" "$SIGN"
+          grep -Fq "to service_role" "$SIGN"
+          grep -Fq "CUSTOMER_STATUS_UPDATED_V173" "$MIG"
+          grep -Fq "CUSTOMER_BOOKING_LINKED_V173" "$MIG"
+          grep -Fq "CUSTOMER_DOCUMENT_REVIEWED_V173" "$MIG"
+          grep -Fq "LOYALTY_SETTINGS_UPDATED_V173" "$MIG"
+          if grep -Fq "storage_path',d.storage_path" "$MIG"; then
+            echo "Customer detail snapshot must not expose private document storage paths"
+            exit 1
+          fi
+
+      - name: V173 gateway authentication and authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          EDGE=supabase/functions/customer-admin-gateway-v173/index.ts
+          API=api/customer-admin.ts
+          test -f "$EDGE" && test -f "$API"
+          grep -Fq "requireAdmin" "$EDGE"
+          grep -Fq "is_active=eq.true" "$EDGE"
+          grep -Fq 'permissions["settings.manage"]===true' "$EDGE"
+          grep -Fq "SETTINGS_PERMISSION_REQUIRED" "$EDGE"
+          grep -Fq "service_customer_admin_list_v173" "$EDGE"
+          grep -Fq "service_customer_admin_detail_v173" "$EDGE"
+          grep -Fq "service_customer_document_path_v173" "$EDGE"
+          grep -Fq "createSignedUrl" "$EDGE"
+          grep -Fq "CUSTOMER_DOCUMENT_SIGNED_V173" "$EDGE"
+          grep -Fq "guardOrigin" "$API"
+          grep -Fq "customer-admin-gateway-v173" "$API"
+          grep -Fq "authorization" "$API"
+          grep -Fq "PAYLOAD_TOO_LARGE" "$API"
+
+      - name: Browser customer admin isolation contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILES="src/services/customer-admin.service.ts src/services/customer-admin-detail.service.ts"
+          grep -Fq "/api/customer-admin" src/services/customer-admin.service.ts
+          grep -Fq "/api/customer-admin" src/services/customer-admin-detail.service.ts
+          if grep -E "SUPABASE_PROJECT_URL|SUPABASE_PUBLISHABLE_KEY|/rest/v1/|/storage/v1/object/sign|admin_set_customer_status|admin_link_booking_customer|admin_review_customer_document" $FILES; then
+            echo "Admin customer browser services must not bypass the V173 gateway"
+            exit 1
+          fi
+          grep -Fq "storage_path:''" src/services/customer-admin-detail.service.ts
+          grep -Fq "redemption_enabled" src/services/customer-admin.service.ts
+          grep -Fq "allow_campaign_referral_stack" src/services/customer-admin.service.ts
+          grep -Fq "sale_points_per_1000_try" src/services/customer-admin.service.ts
+
+      - name: V173 admin UI dynamic engine contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          PAGE=src/pages/admin/admin-customers.component.ts
+          grep -Fq "Dinamik Sadakat ve Ticari Teşvik Motoru" "$PAGE"
+          grep -Fq "redemption_enabled" "$PAGE"
+          grep -Fq "point_value_try" "$PAGE"
+          grep -Fq "max_redeem_percent" "$PAGE"
+          grep -Fq "referral_checkout_discount_mode" "$PAGE"
+          grep -Fq "allow_campaign_referral_stack" "$PAGE"
+          grep -Fq "allow_campaign_loyalty_stack" "$PAGE"
+          grep -Fq "allow_referral_loyalty_stack" "$PAGE"
+          grep -Fq "tour_points_per_100_try" "$PAGE"
+          grep -Fq "sale_points_per_1000_try" "$PAGE"
+          grep -Fq "canManageSettings" "$PAGE"
+
+      - name: Frontend TypeScript
+        run: npm run lint
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Accessibility and function budget
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+          npm run vercel:functions
+      - name: Premium design contract
+        run: npm run design:premium
+      - name: Set up Deno 2
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: V173 Edge Function type check
+        run: deno check --node-modules-dir=auto supabase/functions/customer-admin-gateway-v173/index.ts
+      - name: Production Angular build
+        run: npm run build

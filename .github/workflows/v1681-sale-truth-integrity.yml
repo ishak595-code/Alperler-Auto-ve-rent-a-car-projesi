@@ -77,8 +77,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "SaleResultsV168Component" src/pages/catalog-list-shells.component.ts
-          grep -Fq "RentalResultsV167Component" src/pages/catalog-list-shells.component.ts
+          grep -Fq "SalesShowcaseV168Component" src/pages/sales-results.component.ts
+          grep -Fq "RentalShowcaseV167Component" src/pages/fleet.component.ts
           grep -Fq "RentalDetailV167Component" src/pages/catalog-detail-shells.component.ts
           grep -Fq "SaleDetailV1681Component" src/pages/catalog-detail-shells.component.ts
       - name: Frontend TypeScript

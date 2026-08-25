@@ -1,0 +1,79 @@
+name: V175.1 Site Config Hardening
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260826012000_v1751_site_config_write_revocation.sql"
+      - "src/services/catalog.service.ts"
+      - "api/catalog.ts"
+      - "api/partner.ts"
+      - ".github/workflows/v1751-site-config-hardening.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v1751-hardening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Authenticated site config write revocation contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260826012000_v1751_site_config_write_revocation.sql
+          test -f "$MIG"
+          grep -Fq "revoke insert, update, delete on table public.site_config from authenticated" "$MIG"
+          for policy in site_config_admin_insert site_config_admin_update site_config_admin_delete; do
+            grep -Fq "drop policy if exists ${policy} on public.site_config" "$MIG"
+          done
+          grep -Fq "grant select on table public.site_config to anon" "$MIG"
+          grep -Fq "grant select on table public.site_config to authenticated" "$MIG"
+          grep -Fq "grant all on table public.site_config to service_role" "$MIG"
+
+      - name: V175 gateway-only mutation regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          FRONT=src/services/catalog.service.ts
+          API=api/catalog.ts
+          grep -Fq 'action: "saveSiteConfig"' "$FRONT"
+          grep -Fq '/api/partner?op=site-content-admin' "$FRONT"
+          if grep -Fq '/rest/v1/site_config?on_conflict=key' "$FRONT"; then
+            echo "Direct browser site_config mutation returned"
+            exit 1
+          fi
+          grep -Fq 'CONFIG_MUTATION_REQUIRES_SITE_CONTENT_GATEWAY' "$API"
+          if grep -Fq 'site_config?on_conflict=key' "$API"; then
+            echo "Legacy catalog site_config mutation returned"
+            exit 1
+          fi
+
+      - name: Frontend TypeScript
+        run: npm run lint
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Accessibility
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+      - name: Vercel function budget
+        run: npm run vercel:functions
+      - name: Premium design contract
+        run: npm run design:premium
+      - name: Production Angular build
+        run: npm run build

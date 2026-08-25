@@ -25,7 +25,7 @@ export interface Branch {
   phone: string;
   whatsapp?: string;
   email?: string;
-  timezone: string;
+  timezone?: string;
   latitude?: number;
   longitude?: number;
   mapUrl?: string;

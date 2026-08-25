@@ -6,6 +6,7 @@ on:
       - v163-production-security-data-integrity
     paths:
       - "scripts/v163-finalize-patch.mjs"
+      - "scripts/v163-finalize-trigger.txt"
 
 permissions:
   contents: write

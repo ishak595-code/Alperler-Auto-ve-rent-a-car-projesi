@@ -16,6 +16,33 @@ function projectUrl(): string {
   return (process.env.SUPABASE_PROJECT_URL || DEFAULT_SUPABASE_URL).replace(/\/$/, "");
 }
 
+function proxyHeaders(request: Request, requestId: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    "x-client-ip": clientIp(request),
+    "x-request-id": requestId,
+    "user-agent": request.headers.get("user-agent") || "alperler-web",
+  };
+  const authorization = request.headers.get("authorization");
+  if (authorization) headers.authorization = authorization;
+  const idempotencyKey = request.headers.get("x-idempotency-key");
+  if (idempotencyKey) headers["x-idempotency-key"] = idempotencyKey.slice(0, 120);
+  return headers;
+}
+
+function proxiedResponse(request: Request, upstream: Response, methods: string, requestId: string): Promise<Response> {
+  const decision = originDecision(request);
+  return upstream.text().then((body) => new Response(body, {
+    status: upstream.status,
+    headers: {
+      ...corsHeaders(decision, methods),
+      "content-type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      "x-upstream-request-id": upstream.headers.get("x-request-id") || requestId,
+    },
+  }));
+}
+
 async function getSupabaseHealth(): Promise<SupabaseHealth> {
   try {
     const response = await fetch(`${projectUrl()}/functions/v1/integration-status`, {
@@ -56,6 +83,44 @@ async function integrationStatus(request: Request): Promise<Response> {
   );
 }
 
+async function rentalAvailability(request: Request): Promise<Response> {
+  const decision = originDecision(request);
+  if (request.method !== "POST") {
+    return Response.json(
+      { ok: false, code: "METHOD_NOT_ALLOWED", requestId: decision.requestId },
+      { status: 405, headers: { ...corsHeaders(decision, "POST,OPTIONS"), "cache-control": "no-store" } },
+    );
+  }
+  if (Number(request.headers.get("content-length") || 0) > 16_384) {
+    return Response.json(
+      { ok: false, code: "PAYLOAD_TOO_LARGE", requestId: decision.requestId },
+      { status: 413, headers: { ...corsHeaders(decision, "POST,OPTIONS"), "cache-control": "no-store" } },
+    );
+  }
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(`${projectUrl()}/functions/v1/rental-availability`, {
+      method: "POST",
+      headers: proxyHeaders(request, decision.requestId),
+      body: await request.text(),
+      signal: AbortSignal.timeout(12_000),
+    });
+  } catch (error) {
+    console.error("Rental availability gateway unavailable", decision.requestId, error);
+    return Response.json(
+      {
+        ok: false,
+        code: "AVAILABILITY_SERVICE_UNAVAILABLE",
+        message: "Araç uygunluğu şu anda doğrulanamadı. Lütfen tekrar deneyin.",
+        requestId: decision.requestId,
+      },
+      { status: 503, headers: { ...corsHeaders(decision, "POST,OPTIONS"), "cache-control": "no-store" } },
+    );
+  }
+  return proxiedResponse(request, upstream, "POST,OPTIONS", decision.requestId);
+}
+
 async function bookingGateway(request: Request): Promise<Response> {
   const method = request.method.toUpperCase();
   const decision = originDecision(request);
@@ -72,24 +137,12 @@ async function bookingGateway(request: Request): Promise<Response> {
     );
   }
 
-  const headers: Record<string, string> = {
-    "content-type": "application/json",
-    "x-client-ip": clientIp(request),
-    "x-request-id": decision.requestId,
-    "user-agent": request.headers.get("user-agent") || "alperler-web",
-  };
-  const authorization = request.headers.get("authorization");
-  if (authorization) headers.authorization = authorization;
-  const idempotencyKey = request.headers.get("x-idempotency-key");
-  if (idempotencyKey) headers["x-idempotency-key"] = idempotencyKey.slice(0, 120);
-
-  const body = method === "GET" ? undefined : await request.text();
   let upstream: Response;
   try {
     upstream = await fetch(`${projectUrl()}/functions/v1/booking-gateway`, {
       method,
-      headers,
-      body,
+      headers: proxyHeaders(request, decision.requestId),
+      body: method === "GET" ? undefined : await request.text(),
       signal: AbortSignal.timeout(20_000),
     });
   } catch (error) {
@@ -104,16 +157,7 @@ async function bookingGateway(request: Request): Promise<Response> {
       { status: 503, headers: { ...corsHeaders(decision, "GET,POST,PATCH,DELETE,OPTIONS"), "cache-control": "no-store" } },
     );
   }
-
-  return new Response(await upstream.text(), {
-    status: upstream.status,
-    headers: {
-      ...corsHeaders(decision, "GET,POST,PATCH,DELETE,OPTIONS"),
-      "content-type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
-      "cache-control": "no-store",
-      "x-upstream-request-id": upstream.headers.get("x-request-id") || decision.requestId,
-    },
-  });
+  return proxiedResponse(request, upstream, "GET,POST,PATCH,DELETE,OPTIONS", decision.requestId);
 }
 
 export default {
@@ -129,6 +173,7 @@ export default {
       }
       return integrationStatus(request);
     }
+    if (mode === "rental-availability") return rentalAvailability(request);
     return bookingGateway(request);
   },
 };

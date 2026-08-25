@@ -139,6 +139,30 @@ jobs:
           grep -Fq 'checkoutInvoice' src/services/branch-subscription-v171.service.ts
           grep -Fq 'BranchPortalAuthService' src/services/branch-subscription-v171.service.ts
 
+      - name: Auditable branch lifecycle and private vehicle registry contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          LIFE=supabase/migrations/20260825214000_v1718_branch_lifecycle_vehicle_registry.sql
+          test -f "$LIFE"
+          grep -Fq 'admin_set_branch_lifecycle_v1718' "$LIFE"
+          grep -Fq 'BRANCH_LIFECYCLE_REASON_REQUIRED' "$LIFE"
+          grep -Fq 'BRANCH_LIFECYCLE_' "$LIFE"
+          grep -Fq 'can_operate_branch_lifecycle_v1718' "$LIFE"
+          grep -Fq 'create table if not exists private.vehicle_registry' "$LIFE"
+          grep -Fq 'revoke all on table private.vehicle_registry from public,anon,authenticated' "$LIFE"
+          grep -Fq 'admin_search_vehicle_registry_v1718' "$LIFE"
+          grep -Fq 'admin_upsert_vehicle_registry_v1718' "$LIFE"
+          if grep -Fq 'alter table public.vehicles' "$LIFE" && grep -Eq 'license_plate|registration_reference|[[:space:]]vin[[:space:]]' "$LIFE"; then echo 'Private identifiers must not be added to public.vehicles'; exit 1; fi
+          test -f src/pages/admin/admin-vehicle-registry-v171.component.ts
+          test -f src/services/admin-branch-operations-v171.service.ts
+          grep -Fq 'Plaka / Ruhsat Sicili' src/pages/admin/admin-operations-hub.component.ts
+          grep -Fq 'admin_upsert_vehicle_registry_v1718' src/services/admin-branch-operations-v171.service.ts
+          test -f src/pages/branch-directory-v171.component.ts
+          test -f src/pages/branch-detail-v171.component.ts
+          grep -Fq 'BranchDirectoryV171Component as BranchesComponent' src/pages/branches.component.ts
+          grep -Fq 'BranchDetailV171Component as BranchDetailComponent' src/pages/branch-detail.component.ts
+
       - name: Frontend TypeScript
         run: npm run lint
       - name: Vercel API TypeScript

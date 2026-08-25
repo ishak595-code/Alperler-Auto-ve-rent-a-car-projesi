@@ -13,6 +13,7 @@ const angular = JSON.parse(read("angular.json"));
 const vercel = JSON.parse(read("vercel.json"));
 const postcss = JSON.parse(read(".postcssrc.json"));
 const index = read("index.html");
+const tailwindSource = read("src/tailwind.css");
 const branchAuth = read("src/services/branch-portal-auth.service.ts");
 const branchAccess = read("supabase/functions/branch-access-v165/index.ts");
 const branchPartner = read("supabase/functions/branch-partner-v164/index.ts");
@@ -33,7 +34,9 @@ must(postcss.plugins?.["@tailwindcss/postcss"] && typeof postcss.plugins["@tailw
 const styles = angular.projects?.app?.architect?.build?.options?.styles || [];
 must(styles[0] === "src/tailwind.css", "Tailwind must compile first in Angular global styles");
 must(styles.includes("src/base-shell.css"), "base-shell.css must be compiled by Angular");
-contains(read("src/tailwind.css"), "@import \"tailwindcss\" source(\"../\");", "Tailwind must explicitly scan the project root");
+contains(tailwindSource, "@import \"tailwindcss\" source(none);", "Tailwind runtime source auto-detection must be disabled in favor of explicit sources");
+contains(tailwindSource, "@source \"../\";", "Tailwind must explicitly scan the project root");
+contains(tailwindSource, '@source inline("bg-slate-50 text-slate-800 antialiased");', "Critical application-shell Tailwind utilities must be safelisted");
 must(fs.existsSync("public/runtime-env.js"), "runtime-env.js is missing");
 
 absent(index, "cdn.tailwindcss.com", "Tailwind Play CDN must never be used in production");

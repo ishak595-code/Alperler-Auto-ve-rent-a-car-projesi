@@ -1,0 +1,40 @@
+name: V171.9 Advisor Hardening
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260825215500_v1719_advisor_hardening.sql"
+      - ".github/workflows/v1719-advisor-hardening.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v1719-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Advisor hardening contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          M=supabase/migrations/20260825215500_v1719_advisor_hardening.sql
+          test -f "$M"
+          grep -Fq 'revoke all on function public.bootstrap_branch_subscription_v1712() from public, anon, authenticated' "$M"
+          grep -Fq 'revoke all on function public.branch_has_operational_subscription_v1718(uuid) from public, anon, authenticated' "$M"
+          grep -Fq 'vehicle_registry_updated_by_v1719_idx' "$M"
+          grep -Fq 'branch_subscription_payments_invoice_id_v1719_idx' "$M"
+          grep -Fq 'branches_operator_identity_verified_by_v1719_idx' "$M"
+          grep -Fq 'branches_status_changed_by_v1719_idx' "$M"
+          grep -Fq 'tours_reviewed_by_v1719_idx' "$M"
+          grep -Fq 'vehicles_reviewed_by_v1719_idx' "$M"
+          grep -Fq 'drop index if exists public.vehicles_created_at_v1718_idx' "$M"
+          grep -Fq 'branch_subscription_plans_finance_insert' "$M"
+          grep -Fq 'branch_subscriptions_finance_insert' "$M"
+          grep -Fq 'branch_subscription_invoices_finance_insert' "$M"
+          grep -Fq 'branch_subscription_payments_finance_insert' "$M"
+          ! grep -Fq 'create policy branch_subscription_plans_finance_write' "$M"

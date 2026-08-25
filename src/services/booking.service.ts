@@ -9,7 +9,6 @@ import {
   NotificationDeliveryReport,
   PaymentStatus,
 } from "../models/booking.model";
-import { SUPABASE_PROJECT_URL } from "../supabase.config";
 import { AuthService } from "./auth.service";
 import { CustomerAuthService } from "./customer-auth.service";
 import { currentAnalyticsSessionId } from "./analytics-link.util";
@@ -130,20 +129,15 @@ export class BookingService {
       "x-request-id": crypto.randomUUID(),
     };
     if (token) headers.Authorization = `Bearer ${token}`;
-    const body = { vehicleId: itemId, startLocal, endLocal, idempotencyKey };
 
     try {
       const response = await firstValueFrom(this.http.post<AvailabilityApiResponse>(
         "/api/rental-availability",
-        body,
+        { vehicleId: itemId, startLocal, endLocal, idempotencyKey },
         { headers },
       ));
       return this.validateHold(response);
     } catch (error) {
-      if (error instanceof HttpErrorResponse && this.shouldTryAvailabilityDirect(error)) {
-        console.warn("Primary availability API failed, using direct rental availability gateway.", error.status);
-        return await this.directAvailability(body, token, headers["x-request-id"]);
-      }
       if (error instanceof HttpErrorResponse && error.error && typeof error.error === "object") {
         const payload = error.error as AvailabilityApiResponse;
         const code = String(payload.code || "AVAILABILITY_CHECK_FAILED");
@@ -153,40 +147,6 @@ export class BookingService {
       if (error instanceof Error) throw error;
       throw new Error("AVAILABILITY_CHECK_FAILED:Araç uygunluğu doğrulanamadı.");
     }
-  }
-
-  private shouldTryAvailabilityDirect(error: HttpErrorResponse): boolean {
-    return error.status === 0 || error.status === 404 || error.status === 405 || error.status === 408 || error.status === 502 || error.status === 503 || error.status === 504;
-  }
-
-  private async directAvailability(
-    body: { vehicleId: string; startLocal: string; endLocal: string; idempotencyKey: string },
-    token: string | null,
-    requestId: string,
-  ): Promise<AvailabilityHold> {
-    let response: Response;
-    try {
-      response = await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/rental-availability`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-idempotency-key": body.idempotencyKey,
-          "x-request-id": requestId,
-          ...(token ? { authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(12_000),
-      });
-    } catch {
-      throw new Error("AVAILABILITY_SERVICE_UNAVAILABLE:Araç uygunluğu servisine ulaşılamıyor.");
-    }
-    const payload = await response.json().catch(() => ({})) as AvailabilityApiResponse;
-    if (!response.ok) {
-      const code = String(payload.code || `AVAILABILITY_HTTP_${response.status}`);
-      const message = String(payload.message || "Araç uygunluğu doğrulanamadı.");
-      throw new Error(`${code}:${message}`);
-    }
-    return this.validateHold(payload);
   }
 
   private validateHold(response: AvailabilityApiResponse): AvailabilityHold {
@@ -240,41 +200,8 @@ export class BookingService {
       if (method === "GET") return await firstValueFrom(this.http.get<T>("/api/bookings", { headers: headers! }));
       return await firstValueFrom(this.http.request<T>(method, "/api/bookings", { body, headers: headers! }));
     } catch (error) {
-      if (error instanceof HttpErrorResponse && this.shouldTryDirectGateway(error, method)) {
-        console.warn("Primary booking API failed, using direct booking gateway.", error.status);
-        return await this.directGateway<T>(method, body, token);
-      }
       throw this.normalizeRequestError(error);
     }
-  }
-
-  private shouldTryDirectGateway(error: HttpErrorResponse, method: "GET" | "POST" | "PATCH" | "DELETE"): boolean {
-    if (error.status === 0 || error.status === 404 || error.status === 405 || error.status === 408 || error.status === 502 || error.status === 503 || error.status === 504) return true;
-    return method === "POST" && error.status >= 500;
-  }
-
-  private async directGateway<T>(method: "GET" | "POST" | "PATCH" | "DELETE", body: unknown, token: string | null): Promise<T> {
-    let response: Response;
-    try {
-      response = await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/booking-gateway`, {
-        method,
-        headers: {
-          "content-type": "application/json",
-          ...(token ? { authorization: `Bearer ${token}` } : {}),
-        },
-        body: method === "GET" ? undefined : JSON.stringify(body ?? {}),
-        signal: AbortSignal.timeout(20_000),
-      });
-    } catch {
-      throw new Error("BOOKING_GATEWAY_UNAVAILABLE:Rezervasyon servisine ulaşılamıyor.");
-    }
-    const payload = await response.json().catch(() => ({})) as { code?: unknown; message?: unknown } & T;
-    if (!response.ok) {
-      const code = String(payload.code || `BOOKING_HTTP_${response.status}`);
-      const message = String(payload.message || code);
-      throw new Error(`${code}:${message}`);
-    }
-    return payload as T;
   }
 
   private normalizeRequestError(error: unknown): Error {

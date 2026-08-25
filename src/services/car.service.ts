@@ -7,6 +7,7 @@ import {
   CatalogFaqItem,
   CatalogService,
 } from "./catalog.service";
+import { CampaignService } from "./campaign.service";
 import { DEFAULT_SITE_CONFIG } from "./default-site-config";
 import { PublicCatalogMediaService } from "./public-catalog-media.service";
 import { PublicContentRealtimeService } from "./public-content-realtime.service";
@@ -81,6 +82,7 @@ export class CarService {
   private readonly catalogService = inject(CatalogService);
   private readonly catalogMediaService = inject(PublicCatalogMediaService);
   private readonly bookingService = inject(BookingService);
+  private readonly campaignService = inject(CampaignService);
   private readonly realtime = inject(PublicContentRealtimeService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -109,7 +111,7 @@ export class CarService {
     this.loadFromStorage();
     this.incrementVisitCount();
     this.installLocalPersistence();
-    void this.refreshCloudCatalog();
+    void Promise.allSettled([this.refreshCloudCatalog(), this.campaignService.loadPublic()]);
 
     const unwatch = this.realtime.watch(
       ["vehicles", "tours", "catalog_media", "media_assets", "blog_posts", "faqs", "site_config"],
@@ -194,7 +196,7 @@ export class CarService {
   }
 
   async ensureVehicleCloudInventory(): Promise<void> {
-    await this.refreshCloudCatalog(true);
+    await Promise.allSettled([this.refreshCloudCatalog(true), this.campaignService.loadPublic()]);
   }
 
   resetStats(): void {
@@ -213,12 +215,12 @@ export class CarService {
   }
 
   getAllVehicles() {
-    return this._inventory.asReadonly();
+    return computed(() => this._inventory().filter((vehicle) => this.isVisibleInStandardCatalog(vehicle)));
   }
 
   getCars() {
     return computed(() =>
-      this._inventory().filter((vehicle) => vehicle.category === "RENTAL"),
+      this._inventory().filter((vehicle) => vehicle.category === "RENTAL" && this.isVisibleInStandardCatalog(vehicle)),
     );
   }
 
@@ -234,7 +236,7 @@ export class CarService {
 
   getSaleCars() {
     return computed(() =>
-      this._inventory().filter((vehicle) => vehicle.category === "SALE"),
+      this._inventory().filter((vehicle) => vehicle.category === "SALE" && this.isVisibleInStandardCatalog(vehicle)),
     );
   }
 
@@ -245,7 +247,7 @@ export class CarService {
   }
 
   getTours() {
-    return this._tours.asReadonly();
+    return computed(() => this._tours().filter((tour) => this.isVisibleInStandardCatalog(tour)));
   }
 
   getTour(id: number | string) {
@@ -650,6 +652,20 @@ export class CarService {
 
   triggerWebhook(eventName: string, _payload: unknown): void {
     console.info(`External browser webhook disabled for ${eventName}.`);
+  }
+
+  private isVisibleInStandardCatalog(vehicle: Vehicle): boolean {
+    const id = String(vehicle.cloudId ?? vehicle.id ?? "").trim().toLowerCase();
+    if (!id) return true;
+    const now = Date.now();
+    return !this.campaignService.publicCampaigns().some((campaign) => {
+      if (campaign.visibilityMode !== "CAMPAIGN_ONLY" || !campaign.isActive || campaign.publicationStatus !== "PUBLISHED") return false;
+      if (campaign.targetType !== (vehicle.category === "TOUR" ? "TOUR" : "VEHICLE")) return false;
+      if (String(campaign.targetId || "").trim().toLowerCase() !== id) return false;
+      const start = campaign.startsAt ? new Date(campaign.startsAt).getTime() : Number.NEGATIVE_INFINITY;
+      const end = campaign.endsAt ? new Date(campaign.endsAt).getTime() : Number.POSITIVE_INFINITY;
+      return (!campaign.startsAt || start <= now) && (!campaign.endsAt || end > now);
+    });
   }
 
   private replaceVehicleCatalog(vehicles: Vehicle[]): void {

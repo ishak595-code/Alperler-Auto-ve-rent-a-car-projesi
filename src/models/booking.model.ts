@@ -57,6 +57,7 @@ export interface CreateBookingInput {
   rentalDuration?: RentalDuration | string;
   selectedExtraIds?: string[];
   campaignId?: string;
+  loyaltyPointsToRedeem?: number;
   notes?: string;
   paymentMethod?: PaymentMethod | "NONE";
   paymentStatus?: PaymentStatus;
@@ -67,6 +68,12 @@ export interface CreateBookingInput {
 export interface BookingRecord extends CreateBookingInput {
   id: string;
   status: BookingStatus;
+  normalPriceAmount?: number;
+  campaignDiscountAmount?: number;
+  referralDiscountAmount?: number;
+  loyaltyDiscountAmount?: number;
+  loyaltyPointsRedeemed?: number;
+  pricingSnapshot?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
   notification?: NotificationDeliveryReport;

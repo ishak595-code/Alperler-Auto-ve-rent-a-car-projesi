@@ -179,7 +179,8 @@ async function bookingGateway(request: Request): Promise<Response> {
 
   let upstream: Response;
   try {
-    upstream = await fetch(`${projectUrl()}/functions/v1/booking-gateway`, {
+    const functionSlug = method === "POST" ? "booking-gateway-v166" : "booking-gateway";
+    upstream = await fetch(`${projectUrl()}/functions/v1/${functionSlug}`, {
       method,
       headers: proxyHeaders(request, decision.requestId),
       body: method === "GET" ? undefined : await request.text(),

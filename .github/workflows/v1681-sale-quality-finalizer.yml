@@ -1,0 +1,37 @@
+name: V168.1 Sale Quality Finalizer
+on:
+  push:
+    branches: [v1681-structured-tramer-truth]
+    paths: [.github/workflows/v1681-sale-quality-finalizer.yml]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v1681-structured-tramer-truth
+      - shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/pages/admin/admin-sale-integrity-v1681.component.ts'); s=p.read_text()
+          old="if((ts==='DECLARED_RECORD'||ts==='VERIFIED_RECORD')&&!String(this.meta(c,'tramer')||'').trim())e.push('Tramer kayıt açıklaması eksik');"
+          new="if((ts==='DECLARED_RECORD'||ts==='VERIFIED_RECORD')&&!String(this.meta(c,'tramer')||'').trim())e.push('Tramer kayıt açıklaması eksik');if((ts==='DECLARED_RECORD'||ts==='VERIFIED_RECORD')&&Number(this.meta(c,'tramerAmount')||0)<=0)e.push('Tramer kaydı varsa toplam tutar TL olarak girilmeli');"
+          if old not in s: raise SystemExit('readiness marker missing')
+          s=s.replace(old,new,1)
+          old2="this.setMeta(v,'tramerStatus',s);if(s==='UNKNOWN'&&!String(this.meta(v,'tramer')||'').trim())this.setMeta(v,'tramer','Belirtilmedi / doğrulanmadı');if(s==='DECLARED_CLEAN')this.setMeta(v,'tramer','Beyan: tramer kaydı yok');if(s==='VERIFIED_CLEAN')this.setMeta(v,'tramer','Doğrulandı: tramer kaydı yok');"
+          new2="this.setMeta(v,'tramerStatus',s);this.setMeta(v,'tramerCurrency','TRY');if(s==='UNKNOWN'){this.setMeta(v,'tramer','Belirtilmedi / doğrulanmadı');this.setOptionalNumber(v,'tramerAmount','');}if(s==='DECLARED_CLEAN'){this.setMeta(v,'tramer','Beyan: tramer kaydı yok');this.setMeta(v,'tramerAmount',0);}if(s==='VERIFIED_CLEAN'){this.setMeta(v,'tramer','Doğrulandı: tramer kaydı yok');this.setMeta(v,'tramerAmount',0);}"
+          if old2 not in s: raise SystemExit('status marker missing')
+          s=s.replace(old2,new2,1)
+          p.write_text(s)
+          PY
+      - shell: bash
+        run: |
+          rm .github/workflows/v1681-sale-quality-finalizer.yml
+          git config user.name "alperler-ci"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "V168.1: align sale truth editor with amount contract"
+          git push origin HEAD:v1681-structured-tramer-truth

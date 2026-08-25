@@ -7,8 +7,8 @@ function replaceOnce(source, from, to, label){
   return source.replace(from,to);
 }
 
-// Car detail: remove the brand/model hard-coded technical database. All technical
-// data now comes from the live vehicle record metadata managed by the admin panel.
+// Public car detail must render technical facts from the live vehicle record,
+// never from a brand/model lookup table compiled into the frontend.
 {
   const path='src/pages/car-detail.component.ts';
   let s=read(path);
@@ -22,8 +22,7 @@ function replaceOnce(source, from, to, label){
   write(path,s);
 }
 
-// Admin branch editor: expose IANA timezone instead of silently assuming the
-// browser timezone. Existing branches remain Europe/Istanbul by default.
+// Branch administrators explicitly own the IANA timezone configuration.
 {
   const path='src/pages/admin/admin-branches.component.ts';
   let s=read(path);
@@ -42,8 +41,8 @@ function replaceOnce(source, from, to, label){
   write(path,s);
 }
 
-// Admin catalogue: make the technical fields that the public vehicle detail uses
-// directly editable and therefore fully database-driven.
+// Every technical value rendered publicly must also be editable in the admin
+// catalogue and therefore persisted to the database-backed vehicle metadata.
 {
   const path='src/pages/admin/admin-catalog-editor.component.ts';
   let s=read(path);
@@ -56,28 +55,7 @@ function replaceOnce(source, from, to, label){
   write(path,s);
 }
 
-// Document vault: browser-side magic-byte validation complements bucket MIME,
-// size, path, RLS and database integrity checks.
-{
-  const path='src/services/customer-wallet.service.ts';
-  let s=read(path);
-  s=replaceOnce(
-    s,
-    'const extension=mimeExtension.get(file.type);if(!extension)throw new Error(\'DOCUMENT_TYPE_INVALID\');\n    if(file.size<=0||file.size>10*1024*1024)throw new Error(\'DOCUMENT_SIZE_INVALID\');\n    const token=await this.requireToken();',
-    'const extension=mimeExtension.get(file.type);if(!extension)throw new Error(\'DOCUMENT_TYPE_INVALID\');\n    if(file.size<=0||file.size>10*1024*1024)throw new Error(\'DOCUMENT_SIZE_INVALID\');\n    await this.assertFileSignature(file,file.type);\n    const token=await this.requireToken();',
-    'document signature validation call',
-  );
-  s=replaceOnce(
-    s,
-    '  private async deleteStorageObject(path:string,token:string):Promise<void>{',
-    `  private async assertFileSignature(file:File,mime:string):Promise<void>{const bytes=new Uint8Array(await file.slice(0,16).arrayBuffer());const starts=(...values:number[])=>values.every((value,index)=>bytes[index]===value);let valid=false;if(mime==='image/jpeg')valid=starts(0xff,0xd8,0xff);else if(mime==='image/png')valid=starts(0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a);else if(mime==='image/webp')valid=starts(0x52,0x49,0x46,0x46)&&bytes[8]===0x57&&bytes[9]===0x45&&bytes[10]===0x42&&bytes[11]===0x50;else if(mime==='application/pdf')valid=starts(0x25,0x50,0x44,0x46,0x2d);if(!valid)throw new Error('DOCUMENT_SIGNATURE_INVALID');}\n  private async deleteStorageObject(path:string,token:string):Promise<void>{`,
-    'document signature method',
-  );
-  write(path,s);
-}
-
-// Reproducible dependency declaration. package-lock already resolves 4.2.1; keep
-// its root spec in sync with package.json so npm ci remains deterministic.
+// Keep install/build inputs reproducible. The lockfile already resolves 4.2.1.
 for (const path of ['package.json','package-lock.json']) {
   let s=read(path);
   if(!s.includes('"tailwindcss": "latest"')) throw new Error(`V163 patch target missing: ${path} floating tailwind`);

@@ -1,0 +1,45 @@
+name: V163.2 Apply Integration Patch
+
+on:
+  push:
+    branches:
+      - v1632-production-integration-audit
+    paths:
+      - "scripts/v1632-apply-integration-patch.mjs"
+      - ".github/workflows/v1632-apply-integration-patch.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v1632-apply-integration-patch
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[v1632-applied]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v1632-production-integration-audit
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Apply exact integration patch
+        run: node scripts/v1632-apply-integration-patch.mjs
+      - name: Commit patched production files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/models/booking.model.ts src/pages/booking-checkout.component.ts src/services/booking.service.ts supabase/functions/booking-gateway/index.ts supabase/functions/rental-availability/index.ts
+          if git diff --cached --quiet; then
+            echo "No patch changes found"
+            exit 1
+          fi
+          git commit -m "V163.2: connect checkout branches and non-blocking pending requests [v1632-applied]"
+          git push origin HEAD:v1632-production-integration-audit

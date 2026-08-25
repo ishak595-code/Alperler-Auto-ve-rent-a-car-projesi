@@ -104,12 +104,24 @@ async function optionalCustomerId(request: Request): Promise<string | null> {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) ? id : null;
 }
 
-function parseDate(value: unknown): string {
-  const raw = clean(value, 64);
-  if (!raw) throw new Error("INVALID_RENTAL_DATES");
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) throw new Error("INVALID_RENTAL_DATES");
-  return date.toISOString();
+function wallClock(value: unknown): string {
+  const raw = clean(value, 32);
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(raw);
+  if (!match) throw new Error("INVALID_RENTAL_DATES");
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6] || 0);
+  if (year < 2020 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) {
+    throw new Error("INVALID_RENTAL_DATES");
+  }
+  const check = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+  if (check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== day) {
+    throw new Error("INVALID_RENTAL_DATES");
+  }
+  return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${String(second).padStart(2, "0")}`;
 }
 
 Deno.serve(async (request) => {
@@ -139,9 +151,9 @@ Deno.serve(async (request) => {
     const idempotencyKey = clean(input["idempotencyKey"] || request.headers.get("x-idempotency-key"), 120);
     if (!vehicleIdentifier) throw new Error("INVALID_RENTAL_VEHICLE");
     if (idempotencyKey.length < 8) throw new Error("INVALID_IDEMPOTENCY_KEY");
-    const startAt = parseDate(input["startAt"] ?? input["startDate"]);
-    const endAt = parseDate(input["endAt"] ?? input["endDate"]);
-    if (new Date(endAt).getTime() <= new Date(startAt).getTime()) throw new Error("INVALID_RENTAL_DATES");
+    const startLocal = wallClock(input["startLocal"] ?? input["startAt"] ?? input["startDate"]);
+    const endLocal = wallClock(input["endLocal"] ?? input["endAt"] ?? input["endDate"]);
+    if (endLocal <= startLocal) throw new Error("INVALID_RENTAL_DATES");
 
     const ip = clean(
       request.headers.get("x-client-ip") || request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown",
@@ -166,8 +178,8 @@ Deno.serve(async (request) => {
       headers: { "x-request-id": id },
       body: JSON.stringify({
         p_vehicle_identifier: vehicleIdentifier,
-        p_start_at: startAt,
-        p_end_at: endAt,
+        p_start_local: startLocal,
+        p_end_local: endLocal,
         p_idempotency_key: idempotencyKey,
         p_customer_user_id: customerUserId,
         p_client_hash: clientHash,
@@ -183,6 +195,8 @@ Deno.serve(async (request) => {
         ? "VEHICLE_UNAVAILABLE"
         : raw.includes("INVALID_RENTAL_VEHICLE")
         ? "INVALID_RENTAL_VEHICLE"
+        : raw.includes("INVALID_BRANCH_TIMEZONE")
+        ? "INVALID_BRANCH_TIMEZONE"
         : raw.includes("INVALID_RENTAL_DATES")
         ? "INVALID_RENTAL_DATES"
         : raw.includes("HOLD_IDEMPOTENCY_CONFLICT") || raw.includes("HOLD_ALREADY_CONVERTED")
@@ -197,13 +211,15 @@ Deno.serve(async (request) => {
         ? "Teslim alma ve iade tarihlerini kontrol edin."
         : code === "INVALID_RENTAL_VEHICLE"
         ? "Seçtiğiniz araç rezervasyona açık değil."
+        : code === "INVALID_BRANCH_TIMEZONE"
+        ? "Şube saat dilimi yapılandırması geçerli değil."
         : "Araç uygunluğu şu anda doğrulanamadı.";
-      return json(request, { ok: false, code, message }, status, id);
+      return json(request, { ok: false, code, message, requestId: id }, status, id);
     }
 
     const rows = await response.json().catch(() => []);
     const row = Array.isArray(rows) ? rows[0] : null;
-    if (!row?.hold_id || !row?.expires_at) throw new Error("HOLD_RESPONSE_INVALID");
+    if (!row?.hold_id || !row?.expires_at || !row?.start_at || !row?.end_at) throw new Error("HOLD_RESPONSE_INVALID");
 
     return json(request, {
       ok: true,
@@ -211,6 +227,8 @@ Deno.serve(async (request) => {
       hold: {
         id: row.hold_id,
         vehicleId: row.vehicle_id,
+        startAt: row.start_at,
+        endAt: row.end_at,
         expiresAt: row.expires_at,
         branchTimezone: row.branch_timezone || "Europe/Istanbul",
       },
@@ -220,6 +238,6 @@ Deno.serve(async (request) => {
     console.error("rental-availability failed", id, error);
     const code = error instanceof Error ? error.message : "AVAILABILITY_CHECK_FAILED";
     const status = code.startsWith("INVALID_") ? 400 : 503;
-    return json(request, { ok: false, code, message: status === 400 ? "Kiralama bilgilerini kontrol edin." : "Araç uygunluğu şu anda doğrulanamadı." }, status, id);
+    return json(request, { ok: false, code, message: status === 400 ? "Kiralama bilgilerini kontrol edin." : "Araç uygunluğu şu anda doğrulanamadı.", requestId: id }, status, id);
   }
 });

@@ -64,7 +64,7 @@ Bir XSS olayı yine aktif browser oturumunu hedefleyebileceği için bu tek baş
 
 ### Browser -> Supabase Edge
 
-Doğrudan browser tarafından çağrılan güvenlik-kritik Edge Function kendi origin allow-list'ini de uygular. V165 branch access bu modeli kullanır. BFF arkasındaki public form endpoint'leri ayrıca rate-limit, input validation ve honeypot kullanır.
+Doğrudan browser tarafından çağrılabilen güvenlik-kritik Edge Function kendi origin allow-list'ini de uygular. V165 `branch-access-v165` ve şube başvuru gateway'i bu ikinci sınırı uygular. Böylece Vercel BFF atlanmaya çalışılsa bile rastgele bir web origin'i Supabase Edge katmanından CORS yetkisi alamaz. Public başvuru akışı ayrıca kalıcı veritabanı rate-limit, input validation ve honeypot koruması kullanır.
 
 ### Payment callback
 
@@ -78,7 +78,7 @@ Production Tailwind Play CDN kaldırılmıştır. Tailwind Angular build sıras�
 - `postcss`: exact version
 - `tailwindcss`: exact version
 - `.postcssrc.json`: build plugin tanımı
-- `src/tailwind.css`: Tailwind giriş dosyası
+- `src/tailwind.css`: Tailwind giriş dosyası ve `source("../")` ile proje köküne sabitlenmiş source detection
 
 `index.html` executable runtime bootstrap içermez. `window.process` `/runtime-env.js` üzerinden same-origin yüklenir.
 

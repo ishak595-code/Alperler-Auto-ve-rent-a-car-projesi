@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/v163-dependency-remediation.yml"
       - "scripts/v163-dependency-remediation-trigger.txt"
+      - "package.json"
   push:
     branches:
       - v163-production-security-data-integrity
@@ -30,47 +31,14 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-      - name: Install current lockfile
-        run: npm ci --no-audit --no-fund
-      - name: Upgrade vulnerable production roots
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm install --save \
-            @angular/common@^21.2.20 \
-            @angular/compiler@^21.2.20 \
-            @angular/core@^21.2.20 \
-            @angular/forms@^21.2.20 \
-            @angular/platform-browser@^21.2.20 \
-            @angular/router@^21.2.20 \
-            @angular/material@^21.2.0 \
-            express@^5.2.1 \
-            nodemailer@^9.0.5 \
-            rxjs@^7.8.2 \
-            swiper@^12.1.3 \
-            --no-audit --no-fund
-      - name: Upgrade build roots and move build-only packages out of production
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm install --save-dev \
-            @angular/build@^21.2.20 \
-            @angular/cli@^21.2.20 \
-            @angular/compiler-cli@^21.2.20 \
-            @types/node@^22.14.0 \
-            @types/nodemailer@^7.0.0 \
-            @types/pdfkit@^0.17.6 \
-            tailwindcss@4.2.1 \
-            tsx@^4.21.0 \
-            typescript@~5.9.3 \
-            vite@latest \
-            --no-audit --no-fund
-          npm uninstall @angular/build @angular/cli @angular/compiler-cli @types/pdfkit tsx tailwindcss --save --no-audit --no-fund || true
-          npm install --save-dev @angular/build@^21.2.20 @angular/cli@^21.2.20 @angular/compiler-cli@^21.2.20 @types/pdfkit@^0.17.6 tsx@^4.21.0 tailwindcss@4.2.1 --no-audit --no-fund
+      - name: Regenerate dependency graph from patched roots
+        run: npm install --no-audit --no-fund
       - name: Apply compatible transitive security fixes
         run: npm audit fix --no-fund
       - name: Verify production vulnerability gate
         run: npm audit --omit=dev --audit-level=high
+      - name: Verify complete dependency vulnerability gate
+        run: npm audit --audit-level=high
       - name: Verify TypeScript
         run: npm run lint
       - name: Verify API TypeScript

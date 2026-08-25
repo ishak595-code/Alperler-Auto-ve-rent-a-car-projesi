@@ -1,0 +1,91 @@
+name: V170.1 Tour Large Group Alignment
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "supabase/**"
+      - ".github/workflows/v1701-tour-large-group-alignment.yml"
+      - ".github/workflows/v170-tour-studio-flexible-demand.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v1701-alignment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Tour person-count database contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260825195500_v1701_tour_person_count_alignment.sql
+          test -f "$MIG"
+          grep -Fq "booking_type = 'TOUR'" "$MIG"
+          grep -Fq "person_count between 1 and 1000000000" "$MIG"
+          grep -Fq "booking_type <> 'TOUR'" "$MIG"
+          grep -Fq "person_count between 1 and 100" "$MIG"
+
+      - name: Edge email and money integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          EDGE=supabase/functions/tour-booking-v170/index.ts
+          grep -Fq "MAX_TOUR_PERSON_COUNT = 1_000_000_000" "$EDGE"
+          grep -Fq "MAX_BOOKING_MONEY = 999_999_999_999.99" "$EDGE"
+          grep -Fq 'if (!customerEmail) throw new Error("INVALID_EMAIL")' "$EDGE"
+          grep -Fq "maxBillablePeople" "$EDGE"
+          grep -Fq "capacity_policy: \"FLEXIBLE_DEMAND\"" "$EDGE"
+          if grep -Fq "TOUR_CAPACITY_EXCEEDED" "$EDGE"; then
+            echo "Hard tour capacity must not return"
+            exit 1
+          fi
+
+      - name: Preserve V170 dated demand architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "TourDetailV170Component" src/pages/catalog-detail-shells.component.ts
+          grep -Fq "startDate:this.tourDate" src/pages/tour-detail-v170.component.ts
+          grep -Fq "TourStudio" src/pages/admin/admin-tour-studio-v170.component.ts || grep -Fq "Tur Stüdyosu" src/pages/admin/admin-tour-studio-v170.component.ts
+          grep -Fq "tour_demand_v170" supabase/migrations/20260825193000_v170_tour_flexible_demand_security.sql
+
+      - name: Frontend TypeScript
+        run: npm run lint
+
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Accessibility and Vercel function budget
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+          npm run vercel:functions
+
+      - name: Set up Deno 2
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: V170.1 tour booking Edge Function
+        run: deno check --node-modules-dir=auto supabase/functions/tour-booking-v170/index.ts
+
+      - name: Production Angular build
+        run: npm run build

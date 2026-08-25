@@ -3,7 +3,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CarService } from '../../services/car.service';
-import { FooterLink, FooterLinkAction, FooterLinkGroup, FooterSettings, FooterSettingsService, PrefooterSettings } from '../../services/footer-settings.service';
+import { FooterLink, FooterSettings, FooterSettingsService, PrefooterSettings } from '../../services/footer-settings.service';
 import { ToastService } from '../../services/toast.service';
 
 @Component({

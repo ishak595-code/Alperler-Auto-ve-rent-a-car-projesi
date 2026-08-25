@@ -6,7 +6,9 @@ on:
     paths:
       - "src/services/catalog.service.ts"
       - "supabase/functions/site-content-admin-gateway-v174/index.ts"
-      - "supabase/migrations/20260826020000_v175_site_config_security_gateway.sql"
+      - "supabase/migrations/20260825230928_v175_site_config_security_gateway.sql"
+      - "supabase/migrations/20260825230939_noop_check_duplicate_v175.sql"
+      - "supabase/migrations/20260825230954_v175_gateway_deployment_marker.sql"
       - "api/catalog.ts"
       - "api/partner.ts"
       - ".github/workflows/v175-site-config-security.yml"
@@ -32,12 +34,22 @@ jobs:
       - name: Install exact dependency graph
         run: npm ci --no-audit --no-fund
 
+      - name: Production migration history alignment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f supabase/migrations/20260825230928_v175_site_config_security_gateway.sql
+          test -f supabase/migrations/20260825230939_noop_check_duplicate_v175.sql
+          test -f supabase/migrations/20260825230954_v175_gateway_deployment_marker.sql
+          grep -Fq 'select 1;' supabase/migrations/20260825230939_noop_check_duplicate_v175.sql
+          grep -Fq 'select 1;' supabase/migrations/20260825230954_v175_gateway_deployment_marker.sql
+          test ! -f supabase/migrations/20260826020000_v175_site_config_security_gateway.sql
+
       - name: Service-only site config RPC contract
         shell: bash
         run: |
           set -euo pipefail
-          MIG=supabase/migrations/20260826020000_v175_site_config_security_gateway.sql
-          test -f "$MIG"
+          MIG=supabase/migrations/20260825230928_v175_site_config_security_gateway.sql
           grep -Fq "service_save_site_config_v175" "$MIG"
           grep -Fq "private.can_actor_manage_settings_v174" "$MIG"
           grep -Fq "SITE_CONFIG_UPDATED_V175" "$MIG"

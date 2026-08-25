@@ -46,13 +46,15 @@ export class AdminAccessService {
     if (!response?.ok) return this.finish(null);
     const rows = await response.json().catch(() => []);
     const row = Array.isArray(rows) ? rows[0] : null;
-    if (!row || String(row.user_id || "") !== userId) return this.finish(null);
+    if (!row || String(row.user_id || "") !== userId || row.is_active !== true) return this.finish(null);
+    const role = this.normalizeRole(row.role);
+    if (!role) return this.finish(null);
 
     return this.finish({
       userId,
       email: String(row.email || "").trim().toLowerCase(),
-      role: this.normalizeRole(row.role),
-      isActive: row.is_active === true,
+      role,
+      isActive: true,
       permissions: row.permissions && typeof row.permissions === "object" ? row.permissions : {},
       primaryBranchId: this.isUuid(String(row.primary_branch_id || "")) ? String(row.primary_branch_id) : undefined,
     });
@@ -107,8 +109,8 @@ export class AdminAccessService {
     return permissions?.[key] === true;
   }
 
-  private normalizeRole(value: unknown): AdminRole {
-    return value === "owner" || value === "admin" || value === "editor" || value === "support" ? value : "support";
+  private normalizeRole(value: unknown): AdminRole | null {
+    return value === "owner" || value === "admin" || value === "editor" || value === "support" ? value : null;
   }
 
   private isUuid(value: string): boolean {

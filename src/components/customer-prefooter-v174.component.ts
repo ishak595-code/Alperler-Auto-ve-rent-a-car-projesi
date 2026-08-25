@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter } from 'rxjs/operators';
@@ -23,7 +23,7 @@ import { FooterSettingsService } from '../services/footer-settings.service';
   `]
 })
 export class CustomerPrefooterV174Component{
-  private readonly footer=inject(FooterSettingsService);private readonly router=inject(Router);private readonly path=computed(()=>this.router.url.split('?')[0]);readonly settings=this.footer.prefooter;
+  private readonly footer=inject(FooterSettingsService);private readonly router=inject(Router);private readonly path=signal(this.router.url.split('?')[0]);readonly settings=this.footer.prefooter;
   readonly visible=computed(()=>{const cfg=this.settings();if(!cfg.isEnabled)return false;const home=this.path()==='/';return home?cfg.showOnHome:cfg.showOnInner;});
-  constructor(){this.router.events.pipe(filter(event=>event instanceof NavigationEnd)).subscribe(()=>{void this.router.url;});}
+  constructor(){this.router.events.pipe(filter(event=>event instanceof NavigationEnd)).subscribe(()=>this.path.set(this.router.url.split('?')[0]));}
 }

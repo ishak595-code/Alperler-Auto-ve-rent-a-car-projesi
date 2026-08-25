@@ -1,0 +1,148 @@
+name: V174 Dynamic Lower Funnel Footer
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "api/**"
+      - "supabase/**"
+      - "vercel.json"
+      - ".github/workflows/v174-dynamic-lower-funnel-footer.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v174-production-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: V174 database dynamic content contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          CORE=supabase/migrations/20260826003000_v174_dynamic_lower_funnel_footer_core.sql
+          PREF=supabase/migrations/20260826003100_v174_sitewide_prefooter.sql
+          test -f "$CORE" && test -f "$PREF"
+          grep -Fq "create table if not exists public.footer_links" "$CORE"
+          grep -Fq "alter table public.footer_links enable row level security" "$CORE"
+          grep -Fq "footer_links_public_read_v174" "$CORE"
+          grep -Fq "services.valuation" "$CORE"
+          grep -Fq "legal.commercial" "$CORE"
+          grep -Fq "service_save_footer_bundle_v174" "$CORE"
+          grep -Fq "service_upsert_homepage_section_v174" "$CORE"
+          grep -Fq "service_upsert_homepage_placement_v174" "$CORE"
+          grep -Fq "FOOTER_BUNDLE_UPDATED_V174" "$CORE"
+          grep -Fq "HOMEPAGE_SECTION_UPSERTED_V174" "$CORE"
+          grep -Fq "create table if not exists public.prefooter_settings" "$PREF"
+          grep -Fq "prefooter_settings_public_read_v174" "$PREF"
+          grep -Fq "service_save_prefooter_v174" "$PREF"
+          grep -Fq "PREFOOTER_UPDATED_V174" "$PREF"
+          for fn in service_site_content_snapshot_v174 service_save_footer_bundle_v174 service_upsert_homepage_section_v174 service_delete_homepage_section_v174 service_reorder_homepage_sections_v174 service_upsert_homepage_placement_v174 service_delete_homepage_placement_v174 service_reorder_homepage_placements_v174; do
+            grep -Fq "$fn" "$CORE"
+          done
+          grep -Fq "from public,anon,authenticated" "$CORE"
+          grep -Fq "to service_role" "$CORE"
+          grep -Fq "from public,anon,authenticated" "$PREF"
+          grep -Fq "to service_role" "$PREF"
+
+      - name: V174 gateway and consolidated proxy contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          EDGE=supabase/functions/site-content-admin-gateway-v174/index.ts
+          API=api/partner.ts
+          test -f "$EDGE" && test -f "$API"
+          test ! -f api/site-content-admin.ts
+          grep -Fq "requireAdmin" "$EDGE"
+          grep -Fq "is_active=eq.true" "$EDGE"
+          grep -Fq 'permissions["settings.manage"]===true' "$EDGE"
+          grep -Fq 'permissions["content.manage"]===true' "$EDGE"
+          grep -Fq 'action==="saveFooter"' "$EDGE"
+          grep -Fq 'action==="savePrefooter"' "$EDGE"
+          grep -Fq 'action==="upsertSection"' "$EDGE"
+          grep -Fq 'action==="upsertPlacement"' "$EDGE"
+          grep -Fq 'operation === "site-content-admin"' "$API"
+          grep -Fq 'edgeFunction: "site-content-admin-gateway-v174"' "$API"
+          grep -Fq 'requireAuth: true' "$API"
+          grep -Fq "maxBodyBytes: 256 * 1024" "$API"
+
+      - name: Admin browser isolation contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOME=src/services/homepage-admin.service.ts
+          FOOT=src/services/footer-settings.service.ts
+          grep -Fq "/api/partner?op=site-content-admin" "$HOME"
+          grep -Fq "/api/partner?op=site-content-admin" "$FOOT"
+          if grep -E "SUPABASE_PROJECT_URL|SUPABASE_PUBLISHABLE_KEY|/rest/v1/" "$HOME"; then
+            echo "Homepage admin writes must not bypass V174 gateway"
+            exit 1
+          fi
+          if grep -E "authorization:.*Bearer.*token.*rest/v1|method:.*PATCH.*SUPABASE_PROJECT_URL" "$FOOT"; then
+            echo "Footer admin writes must not bypass V174 gateway"
+            exit 1
+          fi
+          grep -Fq "savePrefooter" "$FOOT"
+          grep -Fq "footer_links" "$FOOT"
+          grep -Fq "prefooter_settings" "$FOOT"
+
+      - name: Dynamic customer footer contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          FOOTER=src/components/customer-footer-v70.component.ts
+          PREF=src/components/customer-prefooter-v174.component.ts
+          MAIN=src/components/main-layout.component.ts
+          ADMIN=src/pages/admin/admin-footer-v174.component.ts
+          HUB=src/pages/admin/admin-site-settings-hub.component.ts
+          grep -Fq "footer.linksFor" "$FOOTER"
+          grep -Fq "groupLinks('SERVICES')" "$FOOTER"
+          grep -Fq "groupLinks('CORPORATE')" "$FOOTER"
+          grep -Fq "groupLinks('LEGAL',false)" "$FOOTER"
+          grep -Fq "groupLinks('BOTTOM')" "$FOOTER"
+          if grep -Fq 'routerLink="/fleet"' "$FOOTER" || grep -Fq 'routerLink="/sales"' "$FOOTER" || grep -Fq 'routerLink="/list-your-car"' "$FOOTER"; then
+            echo "Footer navigation must come from footer_links registry"
+            exit 1
+          fi
+          grep -Fq "FooterSettingsService" "$PREF"
+          grep -Fq "showOnHome" "$PREF"
+          grep -Fq "showOnInner" "$PREF"
+          grep -Fq "app-customer-prefooter-v174" "$MAIN"
+          grep -Fq "Dinamik Footer Bağlantıları" "$ADMIN"
+          grep -Fq "Footer Öncesi Dönüşüm Alanı" "$ADMIN"
+          grep -Fq "app-admin-footer-v174" "$HUB"
+
+      - name: Frontend TypeScript
+        run: npm run lint
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Accessibility and function budget
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+          npm run vercel:functions
+      - name: Premium design contract
+        run: npm run design:premium
+      - name: Set up Deno 2
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: V174 Edge Function type check
+        run: deno check --node-modules-dir=auto supabase/functions/site-content-admin-gateway-v174/index.ts
+      - name: Production Angular build
+        run: npm run build

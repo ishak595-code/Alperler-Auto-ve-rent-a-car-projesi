@@ -43,7 +43,8 @@ assert(!availability.includes('reserve_rental_hold'),'availability service must 
 assert(!availability.includes('access-control-allow-origin'),'availability edge must not expose direct browser CORS');
 
 const adminEdge=read('supabase/functions/booking-admin-actions/index.ts');
-all(adminEdge,['rpc/admin_approve_booking','listOffers','offer_alternative','BOOKING_ALTERNATIVE_OFFERED'],'admin booking edge');
+all(adminEdge,['admin_approve_booking','listOffers','offer_alternative','BOOKING_ALTERNATIVE_OFFERED','user_id=eq.'],'admin booking edge');
+assert(!adminEdge.includes('admin_users?email=eq.'),'admin booking Edge must bind admin authorization to immutable user UUID');
 const bookingApi=read('api/bookings.ts');
 all(bookingApi,['guardOrigin','x-request-id','x-upstream-request-id','rentalAvailability','adminBookingActions','booking-admin-actions'],'consolidated booking BFF');
 const vercelText=read('vercel.json');

@@ -1,0 +1,83 @@
+name: V174.1 Site Content Hardening
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260826005000_v1741_site_content_write_revocation.sql"
+      - "src/services/homepage-admin.service.ts"
+      - "src/services/footer-settings.service.ts"
+      - "api/**"
+      - ".github/workflows/v1741-site-content-hardening.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v1741-hardening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Authenticated write revocation contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260826005000_v1741_site_content_write_revocation.sql
+          test -f "$MIG"
+          for table in footer_settings homepage_sections homepage_placements; do
+            grep -Fq "revoke insert, update, delete on table public.${table} from authenticated" "$MIG"
+            grep -Fq "grant select on table public.${table} to authenticated" "$MIG"
+            grep -Fq "grant all on table public.${table} to service_role" "$MIG"
+          done
+          for policy in footer_settings_admin_insert footer_settings_admin_update footer_settings_admin_delete homepage_sections_admin_insert homepage_sections_admin_update homepage_sections_admin_delete homepage_placements_admin_insert homepage_placements_admin_update homepage_placements_admin_delete; do
+            grep -Fq "drop policy if exists ${policy}" "$MIG"
+          done
+
+      - name: V174 advisor index contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260826005000_v1741_site_content_write_revocation.sql
+          grep -Fq "footer_links_updated_by_v1741_idx" "$MIG"
+          grep -Fq "on public.footer_links(updated_by)" "$MIG"
+          grep -Fq "prefooter_settings_updated_by_v1741_idx" "$MIG"
+          grep -Fq "on public.prefooter_settings(updated_by)" "$MIG"
+
+      - name: Browser mutation isolation stays enforced
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOME=src/services/homepage-admin.service.ts
+          FOOT=src/services/footer-settings.service.ts
+          grep -Fq "/api/partner?op=site-content-admin" "$HOME"
+          grep -Fq "/api/partner?op=site-content-admin" "$FOOT"
+          if grep -E "SUPABASE_PROJECT_URL|SUPABASE_PUBLISHABLE_KEY|/rest/v1/.*(homepage_sections|homepage_placements)" "$HOME"; then
+            echo "Homepage admin browser mutation bypass detected"
+            exit 1
+          fi
+          if grep -E "method:[[:space:]]*['\"](PATCH|POST|DELETE)['\"].*footer_settings|/rest/v1/footer_settings" "$FOOT"; then
+            echo "Footer admin browser mutation bypass detected"
+            exit 1
+          fi
+
+      - name: Frontend TypeScript
+        run: npm run lint
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Vercel function budget
+        run: npm run vercel:functions
+      - name: Production Angular build
+        run: npm run build

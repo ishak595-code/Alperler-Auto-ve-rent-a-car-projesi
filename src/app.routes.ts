@@ -2,6 +2,8 @@ import { Routes, CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthService } from './services/auth.service';
 import { CustomerAuthService } from './services/customer-auth.service';
+import { BranchPortalAuthService } from './services/branch-portal-auth.service';
+import { BranchSubscriptionV171Service } from './services/branch-subscription-v171.service';
 import { AdminAccessService, AdminArea } from './services/admin-access.service';
 import { CarService } from './services/car.service';
 import { HomeV71Component } from './pages/home-v71.component';
@@ -39,6 +41,18 @@ const customerGuard: CanActivateFn = async (_route, state) => {
   if (auth.isLoggedIn()) return true;
   return router.createUrlTree(['/account/login'], { queryParams: { returnUrl: state.url } });
 };
+const branchPortalSessionGuard: CanActivateFn = async (_route, state) => {
+  const auth=inject(BranchPortalAuthService);const router=inject(Router);
+  const token=await auth.getAccessToken();
+  return token?true:router.createUrlTree(['/branch-portal/login'],{queryParams:{returnUrl:state.url||'/branch-portal'}});
+};
+const branchPortalOperatingGuard: CanActivateFn = async (_route,state) => {
+  const auth=inject(BranchPortalAuthService);const subscription=inject(BranchSubscriptionV171Service);const router=inject(Router);
+  const token=await auth.getAccessToken();
+  if(!token)return router.createUrlTree(['/branch-portal/login'],{queryParams:{returnUrl:state.url||'/branch-portal'}});
+  try{return await subscription.canOpenPortal()?true:router.parseUrl('/branch-portal/subscription');}
+  catch{return router.parseUrl('/branch-portal/subscription');}
+};
 const checkoutGuard: CanActivateFn = () => {
   const carService = inject(CarService); const router = inject(Router);
   return carService.getBookingRequest() ? true : router.parseUrl('/');
@@ -51,8 +65,9 @@ export const routes: Routes = [
   { path: 'account', canActivate: [customerGuard], loadComponent: () => import('./pages/account-shell.component').then(m => m.AccountShellComponent) },
   { path: 'account/wallet', canActivate: [customerGuard], loadComponent: () => import('./pages/account-wallet.component').then(m => m.AccountWalletComponent) },
   { path: 'branch-portal/login', loadComponent: () => import('./pages/branch-portal-login.component').then(m => m.BranchPortalLoginComponent) },
-  { path: 'branch-portal/subscription', loadComponent: () => import('./pages/branch-subscription-v171.component').then(m => m.BranchSubscriptionV171Component) },
-  { path: 'branch-portal', loadComponent: () => import('./pages/branch-portal.component').then(m => m.BranchPortalComponent) },
+  { path: 'branch-portal/subscription', canActivate:[branchPortalSessionGuard], loadComponent: () => import('./pages/branch-subscription-v171.component').then(m => m.BranchSubscriptionV171Component) },
+  { path: 'branch-portal/tours', canActivate:[branchPortalOperatingGuard], loadComponent: () => import('./pages/branch-portal-tours-v171.component').then(m => m.BranchPortalToursV171Component) },
+  { path: 'branch-portal', canActivate:[branchPortalOperatingGuard], loadComponent: () => import('./pages/branch-portal.component').then(m => m.BranchPortalComponent) },
   { path: 'search', loadComponent: () => import('./pages/search.component').then(m => m.SearchComponent) },
   { path: 'branch-marketplace', loadComponent: () => import('./pages/branch-marketplace-v171.component').then(m => m.BranchMarketplaceV171Component) },
   { path: 'campaigns', loadComponent: () => import('./pages/campaigns.component').then(m => m.CampaignsComponent) },
@@ -64,7 +79,7 @@ export const routes: Routes = [
   { path: 'tour/:id', component: TourDetailShellComponent },
   { path: 'branches/:slug', loadComponent: () => import('./pages/branch-detail.component').then(m => m.BranchDetailComponent) },
   { path: 'branches', loadComponent: () => import('./pages/branches.component').then(m => m.BranchesComponent) },
-  { path: 'branch-partner', loadComponent: () => import('./pages/branch-partner.component').then(m => m.BranchPartnerComponent) },
+  { path: 'branch-partner', loadComponent: () => import('./pages/branch-partner-v171.component').then(m => m.BranchPartnerV171Component) },
   { path: 'branch-plans', loadComponent: () => import('./pages/branch-plans-v171.component').then(m => m.BranchPlansV171Component) },
   { path: 'blog', component: BlogListComponent },
   { path: 'blog/:id', component: BlogDetailComponent },
@@ -115,6 +130,7 @@ export const routes: Routes = [
       { path: 'subscribers', component: AdminOperationsHubComponent, data: { operationsSection: 'newsletter' }, canActivate: [adminAreaGuard('operations')] },
       { path: 'branches', component: AdminOperationsHubComponent, data: { operationsSection: 'branches' }, canActivate: [adminAreaGuard('settings')] },
       { path: 'branch-network/:id', canActivate: [adminAreaGuard('settings')], loadComponent: () => import('./pages/admin/admin-branch-network.component').then(m => m.AdminBranchNetworkComponent) },
+      { path: 'branch-identities', canActivate:[adminAreaGuard('settings')], loadComponent:()=>import('./pages/admin/admin-branch-identities-v171.component').then(m=>m.AdminBranchIdentitiesV171Component) },
       { path: 'telematics', canActivate: [adminAreaGuard('telematics')], loadComponent: () => import('./pages/admin/admin-telematics.component').then(m => m.AdminTelematicsComponent) },
 
       { path: 'finance', canActivate: [adminAreaGuard('finance')], loadComponent: () => import('./pages/admin/admin-finance.component').then(m => m.AdminFinanceComponent) },

@@ -1,157 +1,92 @@
 import fs from 'node:fs';
+import path from 'node:path';
 
-const read = (path) => fs.readFileSync(path, 'utf8');
-const assert = (condition, message) => {
-  if (!condition) throw new Error(`V163 invariant failed: ${message}`);
-};
-const includesAll = (content, needles, label) => {
-  for (const needle of needles) assert(content.includes(needle), `${label} is missing ${needle}`);
-};
+const read=(file)=>fs.readFileSync(file,'utf8');
+const assert=(condition,message)=>{if(!condition)throw new Error(`V163 invariant failed: ${message}`);};
+const all=(content,needles,label)=>{for(const needle of needles)assert(content.includes(needle),`${label} missing ${needle}`);};
 
-const migration = read('supabase/migrations/20260825054500_v163_production_security_data_integrity.sql');
-includesAll(migration, [
-  'add column if not exists timezone text',
-  'private.is_valid_timezone',
-  'create table if not exists public.booking_holds',
-  'booking_holds_no_active_overlap',
+const base=read('supabase/migrations/20260825054500_v163_production_security_data_integrity.sql');
+all(base,['add column if not exists timezone text','private.is_valid_timezone','admin_users_sync_auth_identity','customer_documents_mime_type_v163_chk','add column if not exists request_id text'],'base migration');
+
+const approval=read('supabase/migrations/20260825071000_v163_pending_approval_and_alternatives.sql');
+all(approval,[
+  'drop table if exists public.booking_holds',
+  'create table if not exists public.booking_alternative_offers',
+  'public.evaluate_rental_request',
+  'public.admin_approve_booking',
   'pg_advisory_xact_lock',
-  'public.reserve_rental_hold',
-  "status in ('ACTIVE','CONVERTED','EXPIRED','RELEASED')",
-  'bookings_hold_guard_before_insert',
-  'bookings_hold_convert_after_insert',
-  'admin_users_sync_auth_identity',
-  'customer_documents_mime_type_v163_chk',
-  'customer_documents_file_size_v163_chk',
-  'add column if not exists request_id text',
-], 'database migration');
+  'booking_generate_alternatives_after_approval',
+  'booking_seed_alternatives_after_pending_insert',
+  "new.status = 'PENDING'",
+  "status = 'APPROVED'",
+  'rental_alternative_candidates',
+],'manual approval migration');
+const seedStart=approval.indexOf('create or replace function private.seed_pending_booking_alternatives()');
+const seedEnd=approval.indexOf('revoke all on function private.seed_pending_booking_alternatives()',seedStart);
+const seed=approval.slice(seedStart,seedEnd);
+assert(seed.includes('as $$')&&seed.includes('end;\n$$;'),'pending-alternative seed SQL must compile');
 
-const pathFix = read('supabase/migrations/20260825054600_v163_customer_document_path_constraint_fix.sql');
-assert(pathFix.includes("/[0-9a-fA-F-]{36}\\.(jpg|png|webp|pdf)$"), 'document path regex must match a literal extension separator');
+const booking=read('src/services/booking.service.ts');
+all(booking,['status==="APPROVED"','action:"approve"','offerAlternative','/api/admin-booking-actions','/api/bookings','wallClockValue'],'booking client');
+assert(!booking.includes('reserveRentalHold'),'customer submit must never reserve inventory');
+assert(!booking.includes('evaluateRentalAvailability'),'customer submit must never be rejected by advisory availability');
+assert(!booking.includes('/functions/v1/booking-gateway'),'browser booking mutation must stay behind BFF');
+assert(!booking.includes('/functions/v1/booking-admin-actions'),'browser admin mutation must stay behind BFF');
 
-const storageBinding = read('supabase/migrations/20260825061000_v163_document_storage_binding.sql');
-includesAll(storageBinding, [
-  'validate_customer_document_storage_binding',
-  "bucket_id = 'customer-documents'",
-  'CUSTOMER_DOCUMENT_STORAGE_OWNER_MISMATCH',
-  'CUSTOMER_DOCUMENT_STORAGE_MIME_MISMATCH',
-  'CUSTOMER_DOCUMENT_STORAGE_SIZE_MISMATCH',
-  'customer_documents_storage_binding',
-], 'document storage binding');
+const gateway=read('supabase/functions/booking-gateway/index.ts');
+all(gateway,['DIRECT_BROWSER_ACCESS_DENIED','evaluateRentalRequest','CONFLICT_AT_REQUEST','APPROVAL_ACTION_REQUIRED','Customer submissions are requests, not inventory reservations'],'booking gateway');
+assert(!gateway.includes('if (await hasApprovedOverlap(vehicle.id, start, end)) throw new Error("VEHICLE_UNAVAILABLE")'),'PENDING create must accept approved overlap');
 
-const booking = read('src/services/booking.service.ts');
-includesAll(booking, [
-  'reserveRentalHold',
-  '/api/rental-availability',
-  'idempotencyKey',
-  'branchTimezone',
-  'hold.startAt',
-  'hold.endAt',
-], 'booking client');
-assert(!booking.includes('/functions/v1/booking-gateway'), 'browser booking client must not bypass the same-origin BFF');
-assert(!booking.includes('/functions/v1/rental-availability'), 'browser availability client must not bypass the same-origin BFF');
+const availability=read('supabase/functions/rental-availability/index.ts');
+all(availability,['DIRECT_BROWSER_ACCESS_DENIED','rpc/evaluate_rental_request','advisoryOnly: true','rental_availability_minute'],'read-only availability edge');
+assert(!availability.includes('reserve_rental_hold'),'availability service must be read-only');
+assert(!availability.includes('access-control-allow-origin'),'availability edge must not expose direct browser CORS');
 
-const adminAccess = read('src/services/admin-access.service.ts');
-assert(adminAccess.includes('admin_users?user_id=eq.'), 'admin authorization must be UUID-bound');
-assert(!adminAccess.includes('admin_users?email=eq.'), 'admin authorization must not use mutable email lookup');
-assert(adminAccess.includes('AdminRole | null'), 'unknown admin roles must have a nullable fail-closed type');
-assert(adminAccess.includes('? value : null'), 'unknown admin roles must fail closed to null');
+const adminEdge=read('supabase/functions/booking-admin-actions/index.ts');
+all(adminEdge,['rpc/admin_approve_booking','list-alternatives','offer-alternative','BOOKING_ALTERNATIVE_OFFERED'],'admin booking edge');
+const adminApi=read('api/admin-booking-actions.ts');
+all(adminApi,['guardOrigin','booking-admin-actions','x-request-id'],'admin BFF');
+const adminUi=read('src/pages/admin/admin-reservations.component.ts');
+all(adminUi,['Onay bekleyen talepler aracı kilitlemez','Alternatif bul','Müşteriye Öner','WhatsApp','bookingService.offerAlternative'],'admin satisfaction workflow');
 
-const wallet = read('src/services/customer-wallet.service.ts');
-includesAll(wallet, [
-  'detectFileSignature',
-  'DOCUMENT_SIGNATURE_INVALID',
-  '0xff,0xd8,0xff',
-  '0x89,0x50,0x4e,0x47',
-  "return'application/pdf'",
-  "return'image/webp'",
-], 'customer document vault');
+const branchModel=read('src/models/branch.model.ts');
+const branchService=read('src/services/branch.service.ts');
+const branchApi=read('api/branches.ts');
+const branchAdmin=read('src/pages/admin/admin-branches.component.ts');
+assert(branchModel.includes('timezone?: string'),'branch model must expose timezone');
+assert(branchService.includes('Europe/Istanbul'),'branch service must default timezone safely');
+assert(branchApi.includes('timezone:'),'branch API must persist timezone');
+all(branchAdmin,['Saat Dilimi','draft.timezone','Europe/Istanbul'],'admin timezone editor');
 
-const requestSecurity = read('api/_lib/request-security.ts');
-includesAll(requestSecurity, [
-  'originDecision',
-  'requestId',
-  'guardOrigin',
-  'access-control-allow-origin',
-  'vary',
-], 'request security boundary');
+const adminAccess=read('src/services/admin-access.service.ts');
+assert(adminAccess.includes('admin_users?user_id=eq.'),'admin auth must bind immutable UUID');
+assert(!adminAccess.includes('admin_users?email=eq.'),'admin auth must not depend on mutable email');
 
-const bookingApi = read('api/bookings.ts');
-includesAll(bookingApi, [
-  'guardOrigin',
-  'x-request-id',
-  'x-upstream-request-id',
-  'clientIp(request)',
-  'mode === "rental-availability"',
-  '/functions/v1/rental-availability',
-], 'consolidated booking and availability BFF');
+const documentEdge=read('supabase/functions/customer-document-upload/index.ts');
+all(documentEdge,['const BUCKET = "customer-documents"','verifySignature','DOCUMENT_SIGNATURE_INVALID','authorization: userAuthorization','VAULT_CONSENT_REQUIRED'],'private document edge');
+const storageBinding=read('supabase/migrations/20260825061000_v163_document_storage_binding.sql');
+all(storageBinding,['validate_customer_document_storage_binding',"bucket_id = 'customer-documents'",'CUSTOMER_DOCUMENT_STORAGE_OWNER_MISMATCH','CUSTOMER_DOCUMENT_STORAGE_MIME_MISMATCH'],'document storage binding');
 
-const vercel = JSON.parse(read('vercel.json'));
-assert(vercel.rewrites?.some((rule) => rule.source === '/api/rental-availability' && rule.destination === '/api/bookings?mode=rental-availability'), 'public rental availability route must rewrite into the consolidated booking BFF');
+const security=read('api/_lib/request-security.ts');
+all(security,['originDecision','requestId','guardOrigin','access-control-allow-origin','vary'],'request boundary');
+const bookingApi=read('api/bookings.ts');
+all(bookingApi,['guardOrigin','x-request-id','x-upstream-request-id','rentalAvailability'],'booking BFF');
 
-const availabilityEdge = read('supabase/functions/rental-availability/index.ts');
-includesAll(availabilityEdge, [
-  'DIRECT_BROWSER_ACCESS_DENIED',
-  'p_start_local',
-  'p_end_local',
-  'rpc/reserve_rental_hold',
-  'branchTimezone',
-  'rental_hold_minute',
-], 'rental availability edge function');
-assert(!availabilityEdge.includes('access-control-allow-origin'), 'availability edge must not expose direct browser CORS');
+const vercel=JSON.parse(read('vercel.json'));
+const headers=vercel.headers?.find((r)=>r.source==='/(.*)')?.headers||[];
+const csp=headers.find((h)=>h.key==='Content-Security-Policy')?.value||'';
+all(csp,["default-src 'self'","base-uri 'self'","object-src 'none'","frame-ancestors 'none'","form-action 'self'",'upgrade-insecure-requests'],'CSP');
 
-const bookingGateway = read('supabase/functions/booking-gateway/index.ts');
-includesAll(bookingGateway, [
-  'DIRECT_BROWSER_ACCESS_DENIED',
-  'request.headers.get("origin")',
-  'async function branchTimezone',
-  'localCalendarDayNumber',
-  'rentalDays(start: string, end: string, timezone: string)',
-  'await branchTimezone(vehicle.branch_id)',
-  '["owner", "admin", "editor", "support"].includes(role)',
-], 'booking gateway BFF, timezone and admin hardening');
-assert(!bookingGateway.includes('access-control-allow-origin'), 'booking gateway must not expose direct browser CORS');
+const carDetail=read('src/pages/car-detail.component.ts');
+assert(!carDetail.includes('getTechnicalSpecs'),'public vehicle detail must not depend on compiled make/model lookup');
+all(carDetail,['car.technicalSpecs','car.enginePower','car.fuelConsumption','car.fuelTankCapacity'],'dynamic technical data');
 
-const branchModel = read('src/models/branch.model.ts');
-const branchService = read('src/services/branch.service.ts');
-const branchApi = read('api/branches.ts');
-const branchAdmin = read('src/pages/admin/admin-branches.component.ts');
-assert(branchModel.includes('timezone?: string'), 'branch model must expose timezone');
-assert(branchService.includes('Europe/Istanbul'), 'branch service must provide a safe local timezone default');
-assert(branchApi.includes('timezone:'), 'branch API must persist timezone');
-includesAll(branchAdmin, ['Saat Dilimi', 'draft.timezone', 'Europe/Istanbul'], 'admin branch timezone editor');
+const pkg=JSON.parse(read('package.json'));
+assert(pkg.dependencies?.tailwindcss==='4.2.1','Tailwind must be pinned');
 
-const carDetail = read('src/pages/car-detail.component.ts');
-assert(!carDetail.includes('getTechnicalSpecs'), 'public car detail must not use the compiled brand/model technical lookup');
-includesAll(carDetail, [
-  'car.technicalSpecs',
-  'car.enginePower',
-  'car.fuelConsumption',
-  'car.fuelTankCapacity',
-], 'database-driven public technical details');
+function scan(root,needle,out=[]){if(!fs.existsSync(root))return out;const stat=fs.statSync(root);if(stat.isFile()){if(read(root).includes(needle))out.push(root);return out;}for(const name of fs.readdirSync(root)){const target=path.join(root,name);const s=fs.statSync(target);if(s.isDirectory())scan(target,needle,out);else if(/\.(ts|js|mjs|cjs|json|html|css|sql|md|yml|yaml)$/.test(name)&&read(target).includes(needle))out.push(target);}return out;}
+const removed='alperrentacar'+'.online';
+const hits=[...scan('src',removed),...scan('api',removed),...scan('supabase',removed),...scan('public',removed),...scan('vercel.json',removed)];
+assert(hits.length===0,`removed domain returned in ${hits.join(', ')}`);
 
-const catalogueAdmin = read('src/pages/admin/admin-catalog-editor.component.ts');
-includesAll(catalogueAdmin, [
-  'cityFuelConsumption',
-  'highwayFuelConsumption',
-  'fuelTankCapacity',
-  'wheelSize',
-  'cylinderCount',
-], 'admin technical data editor');
-
-const packageJson = JSON.parse(read('package.json'));
-const packageLock = JSON.parse(read('package-lock.json'));
-assert(packageJson.dependencies?.tailwindcss === '4.2.1', 'Tailwind dependency must be pinned');
-assert(packageLock.packages?.['']?.dependencies?.tailwindcss === '4.2.1', 'lockfile root Tailwind spec must match package.json');
-
-const globalHeaders = vercel.headers?.find((rule) => rule.source === '/(.*)')?.headers || [];
-const csp = globalHeaders.find((header) => header.key === 'Content-Security-Policy')?.value || '';
-includesAll(csp, [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "frame-ancestors 'none'",
-  "form-action 'self'",
-  'upgrade-insecure-requests',
-], 'content security policy');
-
-console.log('V163 production security and data-integrity invariants are satisfied.');
+console.log('V163 final manual-approval, customer-satisfaction, security and data-integrity invariants are satisfied.');

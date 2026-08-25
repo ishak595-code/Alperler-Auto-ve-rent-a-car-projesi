@@ -1,0 +1,92 @@
+name: V175 Site Config Security Gateway
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/services/catalog.service.ts"
+      - "supabase/functions/site-content-admin-gateway-v174/index.ts"
+      - "supabase/migrations/20260826020000_v175_site_config_security_gateway.sql"
+      - "api/partner.ts"
+      - ".github/workflows/v175-site-config-security.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v175-site-config-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Service-only site config RPC contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260826020000_v175_site_config_security_gateway.sql
+          test -f "$MIG"
+          grep -Fq "service_save_site_config_v175" "$MIG"
+          grep -Fq "private.can_actor_manage_settings_v174" "$MIG"
+          grep -Fq "SITE_CONFIG_UPDATED_V175" "$MIG"
+          grep -Fq "pg_column_size(p_value) > 220000" "$MIG"
+          grep -Fq "revoke all on function public.service_save_site_config_v175(uuid,jsonb) from public, anon, authenticated" "$MIG"
+          grep -Fq "grant execute on function public.service_save_site_config_v175(uuid,jsonb) to service_role" "$MIG"
+
+      - name: Edge gateway site settings authorization contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          EDGE=supabase/functions/site-content-admin-gateway-v174/index.ts
+          grep -Fq 'action==="saveSiteConfig"' "$EDGE"
+          grep -Fq "if(!admin.canSettings)" "$EDGE"
+          grep -Fq 'rpc("service_save_site_config_v175"' "$EDGE"
+          grep -Fq 'SITE_CONFIG_OBJECT_REQUIRED' "$EDGE"
+          grep -Fq 'code.includes("TOO_LARGE")' "$EDGE"
+
+      - name: Browser site config mutation isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE=src/services/catalog.service.ts
+          grep -Fq 'action: "saveSiteConfig"' "$FILE"
+          grep -Fq '/api/partner?op=site-content-admin' "$FILE"
+          if grep -Fq '/rest/v1/site_config?on_conflict=key' "$FILE"; then
+            echo "Direct authenticated site_config write fallback still exists"
+            exit 1
+          fi
+          if grep -Fq 'using authenticated Supabase fallback' "$FILE"; then
+            echo "Legacy config fallback marker remains"
+            exit 1
+          fi
+
+      - name: Frontend TypeScript
+        run: npm run lint
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Accessibility and function budget
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+          npm run vercel:functions
+      - name: Premium design contract
+        run: npm run design:premium
+      - name: Set up Deno 2
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: V175 gateway type check
+        run: deno check --node-modules-dir=auto supabase/functions/site-content-admin-gateway-v174/index.ts
+      - name: Production Angular build
+        run: npm run build

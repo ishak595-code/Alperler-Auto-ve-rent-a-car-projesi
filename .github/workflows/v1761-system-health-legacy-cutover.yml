@@ -1,0 +1,67 @@
+name: V176.1 System Health Legacy Cutover
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260826022000_v1761_system_health_legacy_cutover.sql"
+      - "src/services/admin-system-health.service.ts"
+      - "src/pages/admin/admin-system-health.component.ts"
+      - ".github/workflows/v1761-system-health-legacy-cutover.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v1761-cutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Legacy database path removal contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260826022000_v1761_system_health_legacy_cutover.sql
+          grep -Fq "revoke select, update on table public.system_events from authenticated" "$MIG"
+          grep -Fq "drop policy if exists system_events_admin_read on public.system_events" "$MIG"
+          grep -Fq "drop policy if exists system_events_admin_resolve on public.system_events" "$MIG"
+          grep -Fq "drop function if exists public.admin_repair_system_defaults()" "$MIG"
+          grep -Fq "grant all on table public.system_events to service_role" "$MIG"
+
+      - name: Browser remains gateway-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          PAGE=src/pages/admin/admin-system-health.component.ts
+          SERVICE=src/services/admin-system-health.service.ts
+          grep -Fq '/api/partner?op=site-content-admin' "$SERVICE"
+          if grep -E 'SUPABASE_PROJECT_URL|SUPABASE_PUBLISHABLE_KEY|/rest/v1/|admin_repair_system_defaults' "$PAGE" "$SERVICE"; then
+            echo "Legacy System Health browser path returned"
+            exit 1
+          fi
+
+      - name: Frontend TypeScript and lint
+        run: npm run lint
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Accessibility guards
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+      - name: Vercel function budget
+        run: npm run vercel:functions
+      - name: Production Angular build
+        run: npm run build

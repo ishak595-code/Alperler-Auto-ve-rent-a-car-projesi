@@ -3,161 +3,40 @@ import { AuthService } from './auth.service';
 import { PublicContentRealtimeService } from './public-content-realtime.service';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
 
-export interface FooterSettings {
-  isEnabled: boolean;
-  brandSummary: string;
-  servicesTitle: string;
-  corporateTitle: string;
-  legalTitle: string;
-  newsletterEnabled: boolean;
-  newsletterTitle: string;
-  newsletterDescription: string;
-  newsletterButtonText: string;
-  showPhone: boolean;
-  showWhatsapp: boolean;
-  showSocial: boolean;
-  showFeedback: boolean;
-  showLegalLinks: boolean;
-}
+export interface FooterSettings { isEnabled:boolean;brandSummary:string;servicesTitle:string;corporateTitle:string;legalTitle:string;newsletterEnabled:boolean;newsletterTitle:string;newsletterDescription:string;newsletterButtonText:string;showPhone:boolean;showWhatsapp:boolean;showSocial:boolean;showFeedback:boolean;showLegalLinks:boolean; }
+export interface PrefooterSettings { isEnabled:boolean;badge:string;title:string;description:string;primaryLabel:string;primaryRoute:string;secondaryLabel:string;secondaryRoute:string;trustItems:string[];showOnHome:boolean;showOnInner:boolean; }
+export type FooterLinkGroup='SERVICES'|'CORPORATE'|'LEGAL'|'BOTTOM';
+export type FooterLinkAction='ROUTE'|'LEGAL'|'FEEDBACK'|'EXTERNAL'|'ADMIN';
+export interface FooterLink { linkKey:string;groupKey:FooterLinkGroup;label:string;actionType:FooterLinkAction;route?:string;queryParams:Record<string,string>;externalUrl?:string;sortOrder:number;isEnabled:boolean;opensNewTab:boolean;isSecondary:boolean; }
+interface SiteSnapshot {ok?:boolean;code?:string;footerSettings?:Record<string,unknown>;footerLinks?:Record<string,unknown>[];prefooterSettings?:Record<string,unknown>;capabilities?:{settings?:boolean};}
+interface FooterMutation {ok?:boolean;code?:string;footerSettings?:Record<string,unknown>;footerLinks?:Record<string,unknown>[];prefooterSettings?:Record<string,unknown>;}
 
-const DEFAULT_FOOTER_SETTINGS: FooterSettings = {
-  isEnabled: true,
-  brandSummary: 'Araç kiralama, ikinci el satış, transfer ve bölgesel tur hizmetlerini tek yerde planlayın.',
-  servicesTitle: 'Hizmetler',
-  corporateTitle: 'Alperler Auto',
-  legalTitle: 'Yasal',
-  newsletterEnabled: true,
-  newsletterTitle: 'Yeni araç ve fırsatları kaçırmayın',
-  newsletterDescription: 'Sadece yeni ilan, tur ve kampanya olduğunda haber alın. Abonelik ücretsizdir.',
-  newsletterButtonText: 'Ücretsiz Abone Ol',
-  showPhone: true,
-  showWhatsapp: true,
-  showSocial: true,
-  showFeedback: true,
-  showLegalLinks: true,
-};
+const DEFAULT_FOOTER_SETTINGS:FooterSettings={isEnabled:true,brandSummary:'Araç kiralama, ikinci el satış, transfer ve bölgesel tur hizmetlerini tek yerde planlayın.',servicesTitle:'Hizmetler',corporateTitle:'Alperler Auto',legalTitle:'Yasal',newsletterEnabled:true,newsletterTitle:'Yeni araç ve fırsatları kaçırmayın',newsletterDescription:'Sadece yeni ilan, tur ve kampanya olduğunda haber alın. Abonelik ücretsizdir.',newsletterButtonText:'Ücretsiz Abone Ol',showPhone:true,showWhatsapp:true,showSocial:true,showFeedback:true,showLegalLinks:true};
+const DEFAULT_PREFOOTER:PrefooterSettings={isEnabled:true,badge:'Size Uygun Sonraki Adım',title:'Planınızı Birlikte Netleştirelim',description:'Araç kiralama, ikinci el araç, tur, transfer, randevu veya aracınızı değerlendirme konusunda hangi adımın size uygun olduğunu birlikte netleştirin.',primaryLabel:'Bize Ulaşın',primaryRoute:'/contact',secondaryLabel:'Randevu Oluştur',secondaryRoute:'/appointment',trustItems:['Kiralama, satış, tur ve transfer tek ekipte','WhatsApp ve telefon desteği','İçerikler canlı katalog ve şube verisinden gelir'],showOnHome:true,showOnInner:true};
 
-@Injectable({ providedIn: 'root' })
-export class FooterSettingsService {
-  private readonly auth = inject(AuthService);
-  private readonly realtime = inject(PublicContentRealtimeService);
-  private readonly destroyRef = inject(DestroyRef);
-  private readonly _settings = signal<FooterSettings>({ ...DEFAULT_FOOTER_SETTINGS });
-  private readonly _loading = signal(false);
-  private refreshTimer?: number;
+@Injectable({providedIn:'root'})
+export class FooterSettingsService{
+  private readonly auth=inject(AuthService);private readonly realtime=inject(PublicContentRealtimeService);private readonly destroyRef=inject(DestroyRef);private readonly endpoint='/api/partner?op=site-content-admin';
+  private readonly _settings=signal<FooterSettings>({...DEFAULT_FOOTER_SETTINGS});private readonly _prefooter=signal<PrefooterSettings>({...DEFAULT_PREFOOTER});private readonly _links=signal<FooterLink[]>([]);private readonly _loading=signal(false);private refreshTimer?:number;
+  readonly settings=this._settings.asReadonly();readonly prefooter=this._prefooter.asReadonly();readonly links=this._links.asReadonly();readonly loading=this._loading.asReadonly();
 
-  readonly settings = this._settings.asReadonly();
-  readonly loading = this._loading.asReadonly();
+  constructor(){void this.refreshPublic();const unwatch=this.realtime.watch(['footer_settings','footer_links','prefooter_settings'],()=>this.queueRefresh());this.destroyRef.onDestroy(()=>{unwatch();if(this.refreshTimer!==undefined&&typeof window!=='undefined')window.clearTimeout(this.refreshTimer);});}
+  linksFor(group:FooterLinkGroup,secondary?:boolean):FooterLink[]{return this._links().filter(link=>link.groupKey===group&&link.isEnabled&&(secondary===undefined||link.isSecondary===secondary)).sort((a,b)=>a.sortOrder-b.sortOrder||a.label.localeCompare(b.label,'tr'));}
 
-  constructor() {
-    void this.refreshPublic();
-    const unwatch = this.realtime.watch(['footer_settings'], () => this.queueRefresh());
-    this.destroyRef.onDestroy(() => {
-      unwatch();
-      if (this.refreshTimer !== undefined && typeof window !== 'undefined') window.clearTimeout(this.refreshTimer);
-    });
-  }
+  async refreshPublic():Promise<void>{this._loading.set(true);try{const [settingsResponse,linksResponse,prefooterResponse]=await Promise.all([fetch(`${SUPABASE_PROJECT_URL}/rest/v1/footer_settings?config_key=eq.main&select=*`,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,accept:'application/json'},cache:'no-store'}),fetch(`${SUPABASE_PROJECT_URL}/rest/v1/footer_links?config_key=eq.main&is_enabled=eq.true&select=*&order=group_key.asc,sort_order.asc`,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,accept:'application/json'},cache:'no-store'}),fetch(`${SUPABASE_PROJECT_URL}/rest/v1/prefooter_settings?config_key=eq.main&select=*`,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,accept:'application/json'},cache:'no-store'})]);if(settingsResponse.ok){const rows=await settingsResponse.json() as Record<string,unknown>[];if(rows[0])this._settings.set(this.fromRow(rows[0]));}if(linksResponse.ok){const rows=await linksResponse.json() as Record<string,unknown>[];this._links.set(rows.map(row=>this.linkFromRow(row)));}if(prefooterResponse.ok){const rows=await prefooterResponse.json() as Record<string,unknown>[];if(rows[0])this._prefooter.set(this.prefooterFromRow(rows[0]));}}finally{this._loading.set(false);}}
 
-  async refreshPublic(): Promise<void> {
-    this._loading.set(true);
-    try {
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/footer_settings?config_key=eq.main&select=*`, {
-        headers: { apikey: SUPABASE_PUBLISHABLE_KEY, accept: 'application/json' },
-        cache: 'no-store',
-      });
-      if (!response.ok) return;
-      const rows = await response.json() as Record<string, unknown>[];
-      if (rows[0]) this._settings.set(this.fromRow(rows[0]));
-    } finally {
-      this._loading.set(false);
-    }
-  }
+  async refreshAdmin():Promise<void>{const token=await this.requiredToken();const payload=await this.gateway<SiteSnapshot>('GET',token);if(payload.ok!==true)throw new Error(payload.code||'FOOTER_ADMIN_LOAD_FAILED');this._settings.set(payload.footerSettings?this.fromRow(payload.footerSettings):{...DEFAULT_FOOTER_SETTINGS});this._links.set((payload.footerLinks||[]).map(row=>this.linkFromRow(row)));this._prefooter.set(payload.prefooterSettings?this.prefooterFromRow(payload.prefooterSettings):{...DEFAULT_PREFOOTER});}
+  async save(settings:FooterSettings,links:FooterLink[]=this._links()):Promise<void>{const token=await this.requiredToken();const normalizedLinks=links.map((link,index)=>this.normalizeLink(link,index));const payload=await this.gateway<FooterMutation>('PATCH',token,{action:'saveFooter',settings:this.settingsPayload(settings),links:normalizedLinks});if(payload.ok!==true)throw new Error(payload.code||'FOOTER_SAVE_FAILED');this._settings.set(payload.footerSettings?this.fromRow(payload.footerSettings):settings);this._links.set((payload.footerLinks||[]).map(row=>this.linkFromRow(row)));}
+  async savePrefooter(settings:PrefooterSettings):Promise<void>{this.validatePrefooter(settings);const token=await this.requiredToken();const payload=await this.gateway<FooterMutation>('PATCH',token,{action:'savePrefooter',settings:{isEnabled:Boolean(settings.isEnabled),badge:this.clean(settings.badge,100),title:this.clean(settings.title,180),description:this.clean(settings.description,700),primaryLabel:this.clean(settings.primaryLabel,100),primaryRoute:settings.primaryRoute.trim(),secondaryLabel:this.clean(settings.secondaryLabel,100),secondaryRoute:settings.secondaryRoute.trim(),trustItems:settings.trustItems.map(item=>this.clean(item,160)).filter(Boolean).slice(0,6),showOnHome:Boolean(settings.showOnHome),showOnInner:Boolean(settings.showOnInner)}});if(payload.ok!==true)throw new Error(payload.code||'PREFOOTER_SAVE_FAILED');this._prefooter.set(payload.prefooterSettings?this.prefooterFromRow(payload.prefooterSettings):settings);}
 
-  async refreshAdmin(): Promise<void> {
-    const token = await this.requiredToken();
-    const rows = await this.rest<Record<string, unknown>[]>('GET', 'footer_settings?config_key=eq.main&select=*', undefined, token);
-    this._settings.set(rows[0] ? this.fromRow(rows[0]) : { ...DEFAULT_FOOTER_SETTINGS });
-  }
-
-  async save(settings: FooterSettings): Promise<void> {
-    const token = await this.requiredToken();
-    const payload = {
-      is_enabled: Boolean(settings.isEnabled),
-      brand_summary: this.clean(settings.brandSummary, 700),
-      services_title: this.clean(settings.servicesTitle, 80) || 'Hizmetler',
-      corporate_title: this.clean(settings.corporateTitle, 80) || 'Alperler Auto',
-      legal_title: this.clean(settings.legalTitle, 80) || 'Yasal',
-      newsletter_enabled: Boolean(settings.newsletterEnabled),
-      newsletter_title: this.clean(settings.newsletterTitle, 180) || 'Yeni araç ve fırsatları kaçırmayın',
-      newsletter_description: this.clean(settings.newsletterDescription, 500),
-      newsletter_button_text: this.clean(settings.newsletterButtonText, 80) || 'Ücretsiz Abone Ol',
-      show_phone: Boolean(settings.showPhone),
-      show_whatsapp: Boolean(settings.showWhatsapp),
-      show_social: Boolean(settings.showSocial),
-      show_feedback: Boolean(settings.showFeedback),
-      show_legal_links: Boolean(settings.showLegalLinks),
-      updated_at: new Date().toISOString(),
-    };
-    await this.rest('PATCH', 'footer_settings?config_key=eq.main', payload, token);
-    await this.refreshAdmin();
-  }
-
-  private fromRow(row: Record<string, unknown>): FooterSettings {
-    return {
-      isEnabled: row['is_enabled'] !== false,
-      brandSummary: String(row['brand_summary'] || DEFAULT_FOOTER_SETTINGS.brandSummary),
-      servicesTitle: String(row['services_title'] || DEFAULT_FOOTER_SETTINGS.servicesTitle),
-      corporateTitle: String(row['corporate_title'] || DEFAULT_FOOTER_SETTINGS.corporateTitle),
-      legalTitle: String(row['legal_title'] || DEFAULT_FOOTER_SETTINGS.legalTitle),
-      newsletterEnabled: row['newsletter_enabled'] !== false,
-      newsletterTitle: String(row['newsletter_title'] || DEFAULT_FOOTER_SETTINGS.newsletterTitle),
-      newsletterDescription: String(row['newsletter_description'] || DEFAULT_FOOTER_SETTINGS.newsletterDescription),
-      newsletterButtonText: String(row['newsletter_button_text'] || DEFAULT_FOOTER_SETTINGS.newsletterButtonText),
-      showPhone: row['show_phone'] !== false,
-      showWhatsapp: row['show_whatsapp'] !== false,
-      showSocial: row['show_social'] !== false,
-      showFeedback: row['show_feedback'] !== false,
-      showLegalLinks: row['show_legal_links'] !== false,
-    };
-  }
-
-  private queueRefresh(): void {
-    if (typeof window === 'undefined') { void this.refreshPublic(); return; }
-    if (this.refreshTimer !== undefined) window.clearTimeout(this.refreshTimer);
-    this.refreshTimer = window.setTimeout(() => {
-      this.refreshTimer = undefined;
-      void this.refreshPublic();
-    }, 120);
-  }
-
-  private clean(value: string, max: number): string {
-    return String(value || '').replace(/\s+/g, ' ').trim().slice(0, max);
-  }
-
-  private async requiredToken(): Promise<string> {
-    const token = await this.auth.getAccessToken();
-    if (!token) throw new Error('ADMIN_SESSION_REQUIRED');
-    return token;
-  }
-
-  private async rest<T = unknown>(method: 'GET' | 'PATCH', path: string, body: unknown, token: string): Promise<T> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
-      method,
-      headers: {
-        apikey: SUPABASE_PUBLISHABLE_KEY,
-        authorization: `Bearer ${token}`,
-        accept: 'application/json',
-        ...(method === 'GET' ? {} : { 'content-type': 'application/json' }),
-      },
-      body: method === 'GET' ? undefined : JSON.stringify(body),
-      cache: 'no-store',
-    });
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({})) as { message?: string; code?: string };
-      throw new Error(payload.message || payload.code || `FOOTER_SETTINGS_${response.status}`);
-    }
-    if (response.status === 204) return undefined as T;
-    const text = await response.text();
-    return (text ? JSON.parse(text) : undefined) as T;
-  }
+  private validatePrefooter(settings:PrefooterSettings){if(!settings.title.trim()||!settings.primaryLabel.trim()||!settings.primaryRoute.startsWith('/')||!settings.secondaryRoute.startsWith('/'))throw new Error('PREFOOTER_SETTINGS_INVALID');}
+  private settingsPayload(settings:FooterSettings){return{isEnabled:Boolean(settings.isEnabled),brandSummary:this.clean(settings.brandSummary,700),servicesTitle:this.clean(settings.servicesTitle,80)||'Hizmetler',corporateTitle:this.clean(settings.corporateTitle,80)||'Alperler Auto',legalTitle:this.clean(settings.legalTitle,80)||'Yasal',newsletterEnabled:Boolean(settings.newsletterEnabled),newsletterTitle:this.clean(settings.newsletterTitle,180)||'Yeni araç ve fırsatları kaçırmayın',newsletterDescription:this.clean(settings.newsletterDescription,500),newsletterButtonText:this.clean(settings.newsletterButtonText,80)||'Ücretsiz Abone Ol',showPhone:Boolean(settings.showPhone),showWhatsapp:Boolean(settings.showWhatsapp),showSocial:Boolean(settings.showSocial),showFeedback:Boolean(settings.showFeedback),showLegalLinks:Boolean(settings.showLegalLinks)};}
+  private normalizeLink(link:FooterLink,index:number):FooterLink{const action=(['ROUTE','LEGAL','FEEDBACK','EXTERNAL','ADMIN'].includes(link.actionType)?link.actionType:'ROUTE') as FooterLinkAction;return{linkKey:String(link.linkKey||`custom.${crypto.randomUUID()}`).toLowerCase().replace(/[^a-z0-9._-]/g,'').slice(0,80),groupKey:(['SERVICES','CORPORATE','LEGAL','BOTTOM'].includes(link.groupKey)?link.groupKey:'SERVICES') as FooterLinkGroup,label:this.clean(link.label,100),actionType:action,route:action==='EXTERNAL'||action==='FEEDBACK'?undefined:this.clean(link.route||'',300),queryParams:link.queryParams&&typeof link.queryParams==='object'?link.queryParams:{},externalUrl:action==='EXTERNAL'?this.clean(link.externalUrl||'',1000):undefined,sortOrder:Number.isFinite(Number(link.sortOrder))?Math.max(0,Math.min(Number(link.sortOrder),10000)):index*10,isEnabled:link.isEnabled!==false,opensNewTab:Boolean(link.opensNewTab),isSecondary:Boolean(link.isSecondary)};}
+  private fromRow(row:Record<string,unknown>):FooterSettings{return{isEnabled:row['is_enabled']!==false,brandSummary:String(row['brand_summary']||DEFAULT_FOOTER_SETTINGS.brandSummary),servicesTitle:String(row['services_title']||DEFAULT_FOOTER_SETTINGS.servicesTitle),corporateTitle:String(row['corporate_title']||DEFAULT_FOOTER_SETTINGS.corporateTitle),legalTitle:String(row['legal_title']||DEFAULT_FOOTER_SETTINGS.legalTitle),newsletterEnabled:row['newsletter_enabled']!==false,newsletterTitle:String(row['newsletter_title']||DEFAULT_FOOTER_SETTINGS.newsletterTitle),newsletterDescription:String(row['newsletter_description']||DEFAULT_FOOTER_SETTINGS.newsletterDescription),newsletterButtonText:String(row['newsletter_button_text']||DEFAULT_FOOTER_SETTINGS.newsletterButtonText),showPhone:row['show_phone']!==false,showWhatsapp:row['show_whatsapp']!==false,showSocial:row['show_social']!==false,showFeedback:row['show_feedback']!==false,showLegalLinks:row['show_legal_links']!==false};}
+  private prefooterFromRow(row:Record<string,unknown>):PrefooterSettings{const raw=row['trust_items']??row['trustItems'];return{isEnabled:(row['is_enabled']??row['isEnabled'])!==false,badge:String(row['badge']||DEFAULT_PREFOOTER.badge),title:String(row['title']||DEFAULT_PREFOOTER.title),description:String(row['description']||DEFAULT_PREFOOTER.description),primaryLabel:String(row['primary_label']||row['primaryLabel']||DEFAULT_PREFOOTER.primaryLabel),primaryRoute:String(row['primary_route']||row['primaryRoute']||DEFAULT_PREFOOTER.primaryRoute),secondaryLabel:String(row['secondary_label']||row['secondaryLabel']||DEFAULT_PREFOOTER.secondaryLabel),secondaryRoute:String(row['secondary_route']||row['secondaryRoute']||DEFAULT_PREFOOTER.secondaryRoute),trustItems:Array.isArray(raw)?raw.map(String).filter(Boolean).slice(0,6):[...DEFAULT_PREFOOTER.trustItems],showOnHome:(row['show_on_home']??row['showOnHome'])!==false,showOnInner:(row['show_on_inner']??row['showOnInner'])!==false};}
+  private linkFromRow(row:Record<string,unknown>):FooterLink{return{linkKey:String(row['link_key']||row['linkKey']||''),groupKey:String(row['group_key']||row['groupKey']||'SERVICES') as FooterLinkGroup,label:String(row['label']||''),actionType:String(row['action_type']||row['actionType']||'ROUTE') as FooterLinkAction,route:row['route']?String(row['route']):undefined,queryParams:row['query_params']&&typeof row['query_params']==='object'?row['query_params'] as Record<string,string>:row['queryParams']&&typeof row['queryParams']==='object'?row['queryParams'] as Record<string,string>:{},externalUrl:row['external_url']?String(row['external_url']):undefined,sortOrder:Number(row['sort_order']??row['sortOrder']??0),isEnabled:(row['is_enabled']??row['isEnabled'])!==false,opensNewTab:Boolean(row['opens_new_tab']??row['opensNewTab']),isSecondary:Boolean(row['is_secondary']??row['isSecondary'])};}
+  private queueRefresh(){if(typeof window==='undefined'){void this.refreshPublic();return;}if(this.refreshTimer!==undefined)window.clearTimeout(this.refreshTimer);this.refreshTimer=window.setTimeout(()=>{this.refreshTimer=undefined;void this.refreshPublic();},120);}
+  private clean(value:string,max:number){return String(value||'').replace(/\s+/g,' ').trim().slice(0,max);}
+  private async requiredToken(){const token=await this.auth.getAccessToken();if(!token)throw new Error('ADMIN_SESSION_REQUIRED');return token;}
+  private async gateway<T>(method:'GET'|'PATCH',token:string,body?:unknown):Promise<T>{const response=await fetch(this.endpoint,{method,headers:{authorization:`Bearer ${token}`,'content-type':'application/json',accept:'application/json','x-request-id':crypto.randomUUID()},body:method==='GET'?undefined:JSON.stringify(body),cache:'no-store'});const payload=await response.json().catch(()=>({})) as T&{code?:string;message?:string};if(!response.ok)throw new Error(String(payload.code||payload.message||`FOOTER_GATEWAY_${response.status}`));return payload;}
 }

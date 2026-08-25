@@ -10,6 +10,7 @@ interface BranchPayload {
   name?: string;
   city?: string;
   district?: string;
+  country?: string;
   addressLabel?: string;
   phone?: string;
   whatsapp?: string;
@@ -52,9 +53,10 @@ function normalize(input: BranchPayload) {
   const name = clean(input.name, 120);
   const city = clean(input.city, 80);
   const district = clean(input.district, 80);
+  const country = clean(input.country, 80) || "Türkiye";
   const address = clean(input.addressLabel, 240);
   const phone = clean(input.phone, 40);
-  if (!name || !city || !district || !address || !phone) throw new Error("REQUIRED_BRANCH_FIELDS_MISSING");
+  if (!name || !city || !district || !country || !address || !phone) throw new Error("REQUIRED_BRANCH_FIELDS_MISSING");
   const services = Array.from(
     new Set((input.services || []).filter((value) => ["RENTAL", "SALES", "TOUR", "TRANSFER", "PICKUP", "RETURN"].includes(String(value)))),
   ).slice(0, 10);
@@ -73,7 +75,7 @@ function normalize(input: BranchPayload) {
     city,
     district,
     address_line: address,
-    country: "Türkiye",
+    country,
     phone,
     whatsapp: clean(input.whatsapp, 40) || null,
     email: clean(input.email, 160).toLowerCase() || null,
@@ -109,6 +111,7 @@ function toApi(row: any) {
     name: row.name,
     city: row.city || "",
     district: row.district || "",
+    country: row.country || "Türkiye",
     addressLabel: row.address_line || "",
     phone: row.phone || "",
     whatsapp: row.whatsapp || undefined,

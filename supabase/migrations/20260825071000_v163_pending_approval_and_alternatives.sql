@@ -314,6 +314,92 @@ $$;
 revoke all on function public.evaluate_rental_request(text,timestamp without time zone,timestamp without time zone) from public, anon, authenticated;
 grant execute on function public.evaluate_rental_request(text,timestamp without time zone,timestamp without time zone) to service_role;
 
+create or replace function private.seed_pending_booking_alternatives()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_catalog, private
+as $
+declare
+  v_approved_id uuid;
+  v_candidate record;
+  v_rank integer := 0;
+begin
+  if new.booking_type <> 'RENTAL' or new.status <> 'PENDING' or new.vehicle_id is null or new.start_at is null or new.end_at is null then
+    return new;
+  end if;
+
+  select b.id into v_approved_id
+  from public.bookings b
+  where b.id <> new.id
+    and b.vehicle_id = new.vehicle_id
+    and b.booking_type = 'RENTAL'
+    and b.status = 'APPROVED'
+    and b.deleted_at is null
+    and b.start_at < new.end_at
+    and b.end_at > new.start_at
+  order by b.updated_at desc, b.created_at desc
+  limit 1;
+
+  if v_approved_id is null then
+    return new;
+  end if;
+
+  for v_candidate in
+    select * from private.rental_alternative_candidates(
+      new.vehicle_id,
+      new.start_at,
+      new.end_at,
+      new.rental_duration = 'hourly',
+      coalesce(new.with_driver,false),
+      5
+    )
+  loop
+    v_rank := v_rank + 1;
+    insert into public.booking_alternative_offers(
+      booking_id, approved_booking_id, original_vehicle_id, alternative_vehicle_id,
+      status, rank, score, reason, expires_at, updated_at
+    ) values (
+      new.id, v_approved_id, new.vehicle_id, v_candidate.vehicle_id,
+      'OPEN', v_rank, v_candidate.score, v_candidate.reason,
+      greatest(new.start_at, now() + interval '1 day'), now()
+    )
+    on conflict (booking_id, alternative_vehicle_id)
+    do update set
+      approved_booking_id = excluded.approved_booking_id,
+      status = case when public.booking_alternative_offers.status = 'ACCEPTED' then 'ACCEPTED' else 'OPEN' end,
+      rank = excluded.rank,
+      score = excluded.score,
+      reason = excluded.reason,
+      expires_at = excluded.expires_at,
+      updated_at = now();
+  end loop;
+
+  update public.bookings b
+  set metadata = coalesce(b.metadata,'{}'::jsonb) || jsonb_build_object(
+    'availability',
+    coalesce(b.metadata->'availability','{}'::jsonb) || jsonb_build_object(
+      'status','ORIGINAL_VEHICLE_BOOKED',
+      'approvedBookingId',v_approved_id,
+      'alternativeCount',v_rank,
+      'updatedAt',now()
+    )
+  ), updated_at = now()
+  where b.id = new.id;
+
+  return new;
+end;
+$;
+
+revoke all on function private.seed_pending_booking_alternatives() from public, anon, authenticated;
+
+drop trigger if exists booking_seed_alternatives_after_pending_insert on public.bookings;
+create trigger booking_seed_alternatives_after_pending_insert
+after insert on public.bookings
+for each row
+when (new.booking_type = 'RENTAL' and new.status = 'PENDING')
+execute function private.seed_pending_booking_alternatives();
+
 create or replace function private.generate_booking_alternatives()
 returns trigger
 language plpgsql

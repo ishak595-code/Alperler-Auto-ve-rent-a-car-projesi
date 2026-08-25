@@ -1,0 +1,129 @@
+name: V165 Production Hardening
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - v165-production-hardening
+    paths:
+      - "src/**"
+      - "api/**"
+      - "supabase/**"
+      - "public/**"
+      - "scripts/**"
+      - "docs/**"
+      - "index.html"
+      - "angular.json"
+      - "vercel.json"
+      - "package.json"
+      - "package-lock.json"
+      - ".postcssrc.json"
+      - ".github/workflows/v165-production-hardening.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "api/**"
+      - "supabase/**"
+      - "public/**"
+      - "scripts/**"
+      - "docs/**"
+      - "index.html"
+      - "angular.json"
+      - "vercel.json"
+      - "package.json"
+      - "package-lock.json"
+      - ".postcssrc.json"
+      - ".github/workflows/v165-production-hardening.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v165-hardening-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hardening:
+    name: security-build-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Production hardening invariant guard
+        run: npm run security:v165
+
+      - name: Production dependency vulnerability gate
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Frontend TypeScript check
+        run: npm run lint
+
+      - name: Vercel API TypeScript check
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Existing accessibility and media invariants
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+          npm run media:vehicles
+          npm run vercel:functions
+          npm run design:premium
+          npm run pwa:installability
+
+      - name: Set up Deno 2
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: V165 branch access Edge Function type check
+        run: deno check --node-modules-dir=auto supabase/functions/branch-access-v165/index.ts
+
+      - name: Branch partner Edge Function regression type check
+        run: deno check --node-modules-dir=auto supabase/functions/branch-partner-v164/index.ts
+
+      - name: Booking admin Edge Function regression type check
+        run: deno check --node-modules-dir=auto supabase/functions/booking-admin-actions/index.ts
+
+      - name: Production Angular build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee v165-angular-build.log
+
+      - name: Verify build contains compiled Tailwind and runtime bootstrap
+        shell: bash
+        run: |
+          test -f dist/index.html
+          test -f dist/runtime-env.js
+          if grep -R "cdn.tailwindcss.com\|@tailwindcss/browser" -n dist; then
+            echo "Runtime Tailwind CDN leaked into production output"
+            exit 1
+          fi
+          if ! grep -R "\.bg-slate-50" -n dist/*.css >/dev/null 2>&1; then
+            echo "Expected Tailwind utility output is missing"
+            exit 1
+          fi
+          echo "Production output contains compiled Tailwind CSS and no runtime Tailwind CDN."
+
+      - name: Upload build diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v165-hardening-diagnostics
+          path: |
+            v165-angular-build.log
+          if-no-files-found: ignore
+          retention-days: 3

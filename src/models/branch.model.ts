@@ -41,4 +41,12 @@ export interface Branch {
   listingRequiresApproval?: boolean;
   brandProfile?: Record<string, unknown>;
   serviceRules?: Record<string, unknown>;
+  lifecycleReason?: string;
+  statusChangedAt?: string;
+  statusChangedBy?: string;
+  suspendedAt?: string;
+  closedAt?: string;
+  reopenedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }

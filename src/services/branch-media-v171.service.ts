@@ -1,0 +1,75 @@
+import { Injectable, inject, signal } from "@angular/core";
+import { AuthService } from "./auth.service";
+import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
+
+export type BranchMediaKind = "IMAGE" | "VIDEO";
+export interface BranchMediaV171 {
+  id:string;
+  branchId:string;
+  kind:BranchMediaKind;
+  url:string;
+  posterUrl?:string;
+  altText:string;
+  sortOrder:number;
+  isCover:boolean;
+  isActive:boolean;
+  storageBucket?:string;
+  objectPath?:string;
+}
+interface DbRow {
+  id:string;branch_id:string;kind:BranchMediaKind;storage_bucket?:string|null;object_path?:string|null;external_url?:string|null;
+  poster_url?:string|null;alt_text?:string|null;sort_order?:number|null;is_cover?:boolean|null;is_active?:boolean|null;
+}
+
+@Injectable({providedIn:"root"})
+export class BranchMediaV171Service {
+  private readonly auth=inject(AuthService);
+  private readonly bucket="catalog-media";
+  private readonly tusThreshold=6*1024*1024;
+  private readonly tusChunkSize=6*1024*1024;
+  readonly maxUploadBytes=50*1024*1024;
+  private readonly _progress=signal(0);readonly progress=this._progress.asReadonly();
+
+  async load(branchId:string,admin=false):Promise<BranchMediaV171[]>{
+    const token=admin?await this.auth.getAccessToken().catch(()=>null):null;
+    if(admin&&!token)throw new Error("ADMIN_SESSION_REQUIRED");
+    const active=token?"":"&is_active=eq.true";
+    const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?branch_id=eq.${encodeURIComponent(branchId)}${active}&select=*&order=sort_order.asc,created_at.asc`,{headers:token?this.authHeaders(token):this.publicHeaders(),cache:"no-store"});
+    if(!response.ok)throw new Error(`BRANCH_MEDIA_LOAD_${response.status}`);
+    const rows=await response.json() as DbRow[];return rows.map(row=>this.fromRow(row));
+  }
+
+  async upload(branchId:string,file:File,options:{altText?:string;isCover?:boolean;sortOrder?:number;posterUrl?:string}={}):Promise<BranchMediaV171>{
+    this.validateFile(file);const token=await this.requiredToken();const kind:BranchMediaKind=file.type.startsWith("video/")?"VIDEO":"IMAGE";
+    if(options.isCover&&kind!=="IMAGE")throw new Error("Kapak yalnız fotoğraf olabilir.");
+    const objectPath=`branch/${branchId}/${crypto.randomUUID()}.${this.extension(file)}`;this._progress.set(0);
+    try{
+      if(file.size>=this.tusThreshold)await this.uploadTus(file,objectPath,token);else{await this.uploadStandard(file,objectPath,token);this._progress.set(100);}
+      const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?select=*`,{method:"POST",headers:{...this.authHeaders(token),Prefer:"return=representation"},body:JSON.stringify({branch_id:branchId,kind,storage_bucket:this.bucket,object_path:objectPath,external_url:null,poster_url:options.posterUrl||null,source_url:null,source_name:"Alperler Auto Şube Stüdyosu",license:"BUSINESS_OWNED",attribution:"Alperler Auto",alt_text:(options.altText||file.name).trim().slice(0,300),sort_order:options.sortOrder??0,is_cover:false,is_active:true,metadata:{originalName:file.name,mimeType:file.type,fileSize:file.size,verificationScope:"ACTUAL_BRANCH_ASSET",sourceVerified:true,provenanceComplete:true,reviewStatus:"VERIFIED",verifiedAt:new Date().toISOString().slice(0,10)}})});
+      if(!response.ok){await this.deleteObject(objectPath,token).catch(()=>undefined);throw new Error(`BRANCH_MEDIA_CREATE_${response.status}`);}
+      const created=this.fromRow((await response.json() as DbRow[])[0]);if(options.isCover){await this.setCover(created.id);return{...created,isCover:true};}return created;
+    }finally{if(this._progress()<100)this._progress.set(0);}
+  }
+
+  async update(item:BranchMediaV171,patch:{altText?:string;sortOrder?:number;isActive?:boolean;posterUrl?:string;isCover?:boolean}):Promise<void>{
+    const token=await this.requiredToken();
+    if(patch.isCover===true){if(item.kind!=="IMAGE"||patch.isActive===false)throw new Error("Kapak aktif bir fotoğraf olmalı.");await this.setCover(item.id);}
+    const body:Record<string,unknown>={};if(patch.altText!==undefined)body["alt_text"]=patch.altText.trim().slice(0,300);if(patch.sortOrder!==undefined)body["sort_order"]=Math.max(0,Math.round(patch.sortOrder));if(patch.isActive!==undefined)body["is_active"]=patch.isActive;if(patch.posterUrl!==undefined)body["poster_url"]=patch.posterUrl?.trim()||null;
+    if(Object.keys(body).length){const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?id=eq.${encodeURIComponent(item.id)}`,{method:"PATCH",headers:this.authHeaders(token),body:JSON.stringify(body)});if(!response.ok)throw new Error(`BRANCH_MEDIA_UPDATE_${response.status}`);}
+  }
+
+  async setCover(mediaId:string):Promise<void>{const token=await this.requiredToken();const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/set_catalog_media_cover`,{method:"POST",headers:this.authHeaders(token),body:JSON.stringify({p_media_id:mediaId})});if(!response.ok)throw new Error("BRANCH_COVER_SET_FAILED");}
+
+  async remove(item:BranchMediaV171):Promise<void>{const token=await this.requiredToken();const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/remove_catalog_media_safe`,{method:"POST",headers:this.authHeaders(token),body:JSON.stringify({p_media_id:item.id})});if(!response.ok){const p=await response.json().catch(()=>({}));throw new Error(String(p?.message||"BRANCH_MEDIA_REMOVE_FAILED"));}if(item.storageBucket===this.bucket&&item.objectPath)await this.deleteObject(item.objectPath,token).catch(()=>undefined);}
+
+  private fromRow(row:DbRow):BranchMediaV171{return{id:String(row.id),branchId:String(row.branch_id),kind:row.kind,url:this.url(row),posterUrl:row.poster_url||undefined,altText:String(row.alt_text||"Şube medyası"),sortOrder:Number(row.sort_order||0),isCover:row.is_cover===true,isActive:row.is_active!==false,storageBucket:row.storage_bucket||undefined,objectPath:row.object_path||undefined};}
+  private url(row:DbRow):string{if(row.storage_bucket===this.bucket&&row.object_path)return`/catalog-media/${row.object_path}`;return String(row.external_url||"");}
+  private validateFile(file:File):void{const allowed=new Set(["image/jpeg","image/png","image/webp","image/avif","video/mp4","video/webm"]);if(!allowed.has(file.type))throw new Error("Yalnız JPEG, PNG, WebP, AVIF, MP4 veya WebM yüklenebilir.");if(file.size<1||file.size>this.maxUploadBytes)throw new Error("Dosya 50 MB sınırını aşıyor.");}
+  private extension(file:File):string{return({"image/jpeg":"jpg","image/png":"png","image/webp":"webp","image/avif":"avif","video/mp4":"mp4","video/webm":"webm"} as Record<string,string>)[file.type]||"bin";}
+  private async requiredToken():Promise<string>{const token=await this.auth.getAccessToken();if(!token)throw new Error("ADMIN_SESSION_REQUIRED");return token;}
+  private publicHeaders():Record<string,string>{return{apikey:SUPABASE_PUBLISHABLE_KEY,accept:"application/json"};}
+  private authHeaders(token:string):Record<string,string>{return{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`,"content-type":"application/json",accept:"application/json"};}
+  private async uploadStandard(file:File,path:string,token:string):Promise<void>{const response=await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/${this.bucket}/${path.split("/").map(encodeURIComponent).join("/")}`,{method:"POST",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`,"content-type":file.type,"cache-control":"3600","x-upsert":"false"},body:file});if(!response.ok)throw new Error(`BRANCH_MEDIA_UPLOAD_${response.status}`);}
+  private async uploadTus(file:File,path:string,token:string):Promise<void>{const metadata=[["bucketName",this.bucket],["objectName",path],["contentType",file.type],["cacheControl","3600"]].map(([k,v])=>`${k} ${btoa(unescape(encodeURIComponent(v)))}`).join(",");const create=await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/upload/resumable`,{method:"POST",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`,"Tus-Resumable":"1.0.0","Upload-Length":String(file.size),"Upload-Metadata":metadata,"x-upsert":"false"}});if(!create.ok)throw new Error(`BRANCH_TUS_CREATE_${create.status}`);const loc=create.headers.get("location");if(!loc)throw new Error("BRANCH_TUS_LOCATION_MISSING");const url=new URL(loc,SUPABASE_PROJECT_URL).toString();let offset=Number(create.headers.get("upload-offset")||0);while(offset<file.size){const end=Math.min(offset+this.tusChunkSize,file.size);const chunk=file.slice(offset,end,file.type);const response=await fetch(url,{method:"PATCH",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`,"Tus-Resumable":"1.0.0","Upload-Offset":String(offset),"content-type":"application/offset+octet-stream"},body:chunk});if(!response.ok)throw new Error(`BRANCH_TUS_UPLOAD_${response.status}`);offset=Number(response.headers.get("upload-offset")||end);this._progress.set(Math.min(100,Math.round(offset/file.size*100)));}}
+  private async deleteObject(path:string,token:string):Promise<void>{await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/${this.bucket}/${path.split("/").map(encodeURIComponent).join("/")}`,{method:"DELETE",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`}});}
+}

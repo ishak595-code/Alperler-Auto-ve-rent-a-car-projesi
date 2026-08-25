@@ -33,7 +33,7 @@ must(postcss.plugins?.["@tailwindcss/postcss"] && typeof postcss.plugins["@tailw
 const styles = angular.projects?.app?.architect?.build?.options?.styles || [];
 must(styles[0] === "src/tailwind.css", "Tailwind must compile first in Angular global styles");
 must(styles.includes("src/base-shell.css"), "base-shell.css must be compiled by Angular");
-contains(read("src/tailwind.css"), "@import \"tailwindcss\";", "Tailwind source stylesheet is invalid");
+contains(read("src/tailwind.css"), "@import \"tailwindcss\" source(\"../\");", "Tailwind must explicitly scan the project root");
 must(fs.existsSync("public/runtime-env.js"), "runtime-env.js is missing");
 
 absent(index, "cdn.tailwindcss.com", "Tailwind Play CDN must never be used in production");

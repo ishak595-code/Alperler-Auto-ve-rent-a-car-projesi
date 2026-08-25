@@ -70,6 +70,7 @@ import { ToastService } from "../../services/toast.service";
             <label class="block"><span class="field-label">Telefon</span><input [(ngModel)]="draft.phone" type="tel" class="field" /></label>
             <label class="block"><span class="field-label">WhatsApp</span><input [(ngModel)]="draft.whatsapp" type="tel" class="field" /></label>
             <label class="block"><span class="field-label">E-posta</span><input [(ngModel)]="draft.email" type="email" class="field" /></label>
+            <label class="block"><span class="field-label">Saat Dilimi</span><input [(ngModel)]="draft.timezone" class="field" placeholder="Europe/Istanbul" aria-describedby="branch-timezone-help" /><small id="branch-timezone-help" class="mt-1 block text-xs text-slate-500">IANA saat dilimi kullanın. Türkiye için Europe/Istanbul.</small></label>
             <label class="block"><span class="field-label">Hizmet Bölgesi</span><input [(ngModel)]="draft.territoryLabel" class="field" placeholder="Yüksekova merkez ve çevresi" /></label>
             <label class="block"><span class="field-label">Halka Açık Açıklama</span><textarea [(ngModel)]="draft.publicDescription" rows="4" class="field"></textarea></label>
             <label class="block"><span class="field-label">Harita URL'si</span><input [(ngModel)]="draft.mapUrl" type="url" class="field" placeholder="Gerçek harita bağlantısı" /></label>
@@ -178,7 +179,7 @@ export class AdminBranchesComponent implements OnInit {
   statusClass(branch: Branch): string { const status = branch.publicStatus || (branch.isActive ? "ACTIVE" : "SUSPENDED"); if (status === "ACTIVE") return "bg-emerald-100 text-emerald-800"; if (status === "DRAFT") return "bg-amber-100 text-amber-800"; return "bg-rose-100 text-rose-800"; }
 
   private emptyBranch(): Branch {
-    return { id: "", name: "", city: "Hakkari", district: "Yüksekova", addressLabel: "", phone: "", whatsapp: "", email: "", mapUrl: "", workingHours: [{ label: "Çalışma saatleri", value: "" }], services: ["RENTAL", "PICKUP", "RETURN"], isActive: true, isPickupPoint: true, isReturnPoint: true, priority: 10, networkType: "OWNED", publicStatus: "ACTIVE", customerGuaranteeEnabled: true, centralPricingRequired: true, listingRequiresApproval: true };
+    return { id: "", name: "", city: "Hakkari", district: "Yüksekova", addressLabel: "", phone: "", whatsapp: "", email: "", timezone: "Europe/Istanbul", mapUrl: "", workingHours: [{ label: "Çalışma saatleri", value: "" }], services: ["RENTAL", "PICKUP", "RETURN"], isActive: true, isPickupPoint: true, isReturnPoint: true, priority: 10, networkType: "OWNED", publicStatus: "ACTIVE", customerGuaranteeEnabled: true, centralPricingRequired: true, listingRequiresApproval: true };
   }
   private clone(branch: Branch): Branch { return { ...branch, services: [...branch.services], workingHours: branch.workingHours.map((row) => ({ ...row })) }; }
 }

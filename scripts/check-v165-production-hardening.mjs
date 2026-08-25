@@ -14,6 +14,7 @@ const vercel = JSON.parse(read("vercel.json"));
 const postcss = JSON.parse(read(".postcssrc.json"));
 const index = read("index.html");
 const tailwindSource = read("src/tailwind.css");
+const staticHeaders = read("public/_headers");
 const branchAuth = read("src/services/branch-portal-auth.service.ts");
 const branchAccess = read("supabase/functions/branch-access-v165/index.ts");
 const branchPartner = read("supabase/functions/branch-partner-v164/index.ts");
@@ -54,11 +55,18 @@ contains(csp, "script-src-attr 'none'", "CSP must block inline event handlers");
 contains(csp, "object-src 'none'", "CSP must block plugin/object content");
 contains(csp, "frame-ancestors 'none'", "CSP must block framing");
 
+absent(staticHeaders, "cdn.tailwindcss.com", "public/_headers must not trust Tailwind CDN");
+absent(staticHeaders, "script-src 'self' 'unsafe-inline'", "public/_headers must not allow arbitrary inline executable scripts");
+contains(staticHeaders, `Content-Security-Policy: ${csp}`, "public/_headers CSP must stay byte-for-byte aligned with vercel.json");
+contains(staticHeaders, "X-Permitted-Cross-Domain-Policies: none", "public/_headers must keep cross-domain policy disabled");
+contains(staticHeaders, "/runtime-env.js", "public/_headers must define runtime-env cache protection");
+
 const jsonLdMatch = index.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
 must(Boolean(jsonLdMatch), "JSON-LD structured data block is missing");
 if (jsonLdMatch) {
   const hash = crypto.createHash("sha256").update(jsonLdMatch[1], "utf8").digest("base64");
   contains(csp, `'sha256-${hash}'`, "CSP JSON-LD hash does not match index.html; update CSP atomically with structured data");
+  contains(staticHeaders, `'sha256-${hash}'`, "public/_headers JSON-LD CSP hash does not match index.html");
 }
 
 contains(requestSecurity, "configuredOrigins()", "Central request origin allow-list helper is missing");

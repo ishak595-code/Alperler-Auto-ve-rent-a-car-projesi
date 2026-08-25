@@ -66,8 +66,10 @@ export const routes: Routes = [
   { path: 'account/wallet', canActivate: [customerGuard], loadComponent: () => import('./pages/account-wallet.component').then(m => m.AccountWalletComponent) },
   { path: 'branch-portal/login', loadComponent: () => import('./pages/branch-portal-login.component').then(m => m.BranchPortalLoginComponent) },
   { path: 'branch-portal/subscription', canActivate:[branchPortalSessionGuard], loadComponent: () => import('./pages/branch-subscription-v171.component').then(m => m.BranchSubscriptionV171Component) },
+  { path: 'branch-portal/vehicles', canActivate:[branchPortalOperatingGuard], loadComponent: () => import('./pages/branch-portal.component').then(m => m.BranchPortalComponent) },
+  { path: 'branch-portal/vehicle-media', canActivate:[branchPortalOperatingGuard], loadComponent: () => import('./pages/branch-portal-vehicle-media-v171.component').then(m => m.BranchPortalVehicleMediaV171Component) },
   { path: 'branch-portal/tours', canActivate:[branchPortalOperatingGuard], loadComponent: () => import('./pages/branch-portal-tours-v171.component').then(m => m.BranchPortalToursV171Component) },
-  { path: 'branch-portal', canActivate:[branchPortalOperatingGuard], loadComponent: () => import('./pages/branch-portal.component').then(m => m.BranchPortalComponent) },
+  { path: 'branch-portal', canActivate:[branchPortalOperatingGuard], loadComponent: () => import('./pages/branch-portal-home-v171.component').then(m => m.BranchPortalHomeV171Component) },
   { path: 'search', loadComponent: () => import('./pages/search.component').then(m => m.SearchComponent) },
   { path: 'branch-marketplace', loadComponent: () => import('./pages/branch-marketplace-v171.component').then(m => m.BranchMarketplaceV171Component) },
   { path: 'campaigns', loadComponent: () => import('./pages/campaigns.component').then(m => m.CampaignsComponent) },
@@ -96,11 +98,9 @@ export const routes: Routes = [
 
   { path: 'admin', component: AdminLayoutComponent, canActivate: [adminGuard], children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-
       { path: 'dashboard', component: AdminOverviewHubComponent, data: { overviewSection: 'summary' } },
       { path: 'analytics', component: AdminOverviewHubComponent, data: { overviewSection: 'analytics' }, canActivate: [adminAreaGuard('analytics')] },
       { path: 'system-health', component: AdminOverviewHubComponent, data: { overviewSection: 'health' }, canActivate: [adminAreaGuard('settings')] },
-
       { path: 'settings', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'general' }, canActivate: [adminAreaGuard('settings')] },
       { path: 'company', canActivate: [adminAreaGuard('settings')], loadComponent: () => import('./pages/admin/admin-company-profile.component').then(m => m.AdminCompanyProfileComponent) },
       { path: 'homepage', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'homepage' }, canActivate: [adminAreaGuard('content')] },
@@ -110,7 +110,6 @@ export const routes: Routes = [
       { path: 'seo', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'seo' }, canActivate: [adminAreaGuard('settings')] },
       { path: 'faq-management', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'faq' }, canActivate: [adminAreaGuard('content')] },
       { path: 'whatsapp', component: AdminSiteSettingsHubComponent, data: { settingsSection: 'whatsapp' }, canActivate: [adminAreaGuard('settings')] },
-
       { path: 'content', component: AdminContentHubComponent, data: { contentSection: 'catalog' }, canActivate: [adminAreaGuard('content')] },
       { path: 'catalog-editor', component: AdminContentHubComponent, data: { contentSection: 'catalog' }, canActivate: [adminAreaGuard('content')] },
       { path: 'campaigns', component: AdminContentHubComponent, data: { contentSection: 'campaigns' }, canActivate: [adminAreaGuard('content')] },
@@ -119,7 +118,7 @@ export const routes: Routes = [
       { path: 'cars', component: AdminContentHubComponent, data: { contentSection: 'catalog' }, canActivate: [adminAreaGuard('content')] },
       { path: 'sales', component: AdminContentHubComponent, data: { contentSection: 'catalog' }, canActivate: [adminAreaGuard('content')] },
       { path: 'tours', component: AdminContentHubComponent, data: { contentSection: 'catalog' }, canActivate: [adminAreaGuard('content')] },
-
+      { path: 'branch-moderation', canActivate:[adminAreaGuard('content')], loadComponent:()=>import('./pages/admin/admin-branch-moderation-v171.component').then(m=>m.AdminBranchModerationV171Component) },
       { path: 'operations', component: AdminOperationsHubComponent, data: { operationsSection: 'reservations' } },
       { path: 'reservations', component: AdminOperationsHubComponent, data: { operationsSection: 'reservations' }, canActivate: [adminAreaGuard('operations')] },
       { path: 'customers', canActivate: [adminAreaGuard('operations')], loadComponent: () => import('./pages/admin/admin-customers.component').then(m => m.AdminCustomersComponent) },
@@ -132,16 +131,13 @@ export const routes: Routes = [
       { path: 'branch-network/:id', canActivate: [adminAreaGuard('settings')], loadComponent: () => import('./pages/admin/admin-branch-network.component').then(m => m.AdminBranchNetworkComponent) },
       { path: 'branch-identities', canActivate:[adminAreaGuard('settings')], loadComponent:()=>import('./pages/admin/admin-branch-identities-v171.component').then(m=>m.AdminBranchIdentitiesV171Component) },
       { path: 'telematics', canActivate: [adminAreaGuard('telematics')], loadComponent: () => import('./pages/admin/admin-telematics.component').then(m => m.AdminTelematicsComponent) },
-
       { path: 'finance', canActivate: [adminAreaGuard('finance')], loadComponent: () => import('./pages/admin/admin-finance.component').then(m => m.AdminFinanceComponent) },
       { path: 'branch-subscriptions', canActivate: [adminAreaGuard('finance')], loadComponent: () => import('./pages/admin/admin-branch-subscriptions-v171.component').then(m => m.AdminBranchSubscriptionsV171Component) },
       { path: 'marketing', canActivate: [adminAreaGuard('marketing')], loadComponent: () => import('./pages/admin/admin-marketing.component').then(m => m.AdminMarketingComponent) },
-
       { path: 'team-center', component: AdminTeamHubComponent, data: { teamSection: 'people' } },
       { path: 'team', component: AdminTeamHubComponent, data: { teamSection: 'people' }, canActivate: [adminAreaGuard('team')] },
       { path: 'assignments', component: AdminTeamHubComponent, data: { teamSection: 'assignments' }, canActivate: [adminAreaGuard('team')] },
       { path: 'audit', component: AdminTeamHubComponent, data: { teamSection: 'audit' }, canActivate: [adminAreaGuard('team')] }
     ] },
-
   { path: '**', component: MainLayoutComponent, children: [{ path: '', loadComponent: () => import('./pages/not-found.component').then(m => m.NotFoundComponent) }] }
 ];

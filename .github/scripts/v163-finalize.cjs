@@ -1,204 +1,197 @@
 const fs = require('node:fs');
 
-function read(path) { return fs.readFileSync(path, 'utf8'); }
-function write(path, value) { fs.writeFileSync(path, value); }
-function replaceOnce(source, needle, replacement, label) {
-  if (!source.includes(needle)) throw new Error(`Missing ${label}`);
-  const next = source.replace(needle, replacement);
-  if (next === source) throw new Error(`Failed ${label}`);
-  return next;
-}
+const read = (path) => fs.readFileSync(path, 'utf8');
+const write = (path, value) => fs.writeFileSync(path, value);
 
-// 1) Client: a customer creates only a PENDING request. The client never reserves
-// inventory and never blocks submission because another booking is approved.
+// Keep the browser on the same-origin BFF boundary. Supabase Edge Functions are
+// server-side implementation details, not browser failover endpoints.
 {
   const path = 'src/services/booking.service.ts';
   let source = read(path);
-  source = source.replace(/interface PublicAvailabilityAlternative[^\n]*\ninterface AvailabilityApiResponse[^\n]*\n/, '');
-  source = source.replace(/\n  private readonly publicAlternatives=signal<PublicAvailabilityAlternative\[\]>\(\[\]\);/, '');
-  source = source.replace(/\n  readonly availabilityAlternatives=this\.publicAlternatives\.asReadonly\(\);/, '');
-  source = replaceOnce(
-    source,
-    '    const normalized=this.normalizeInput(input);const idempotencyKey=crypto.randomUUID();this.publicAlternatives.set([]);\n    if(normalized.type==="RENTAL"){const availability=await this.evaluateRentalAvailability(normalized);normalized.startDate=availability.startAt;normalized.endDate=availability.endAt;}',
-    '    const normalized=this.normalizeInput(input);const idempotencyKey=crypto.randomUUID();\n    if(normalized.type==="RENTAL"){normalized.startDate=this.wallClockValue(normalized.startDate||"");normalized.endDate=this.wallClockValue(normalized.endDate||"");}',
-    'non-blocking customer booking create',
-  );
-  const methods = /\n  private async evaluateRentalAvailability[\s\S]*?\n\n  private async refreshAdminRecords/;
-  if (!methods.test(source)) throw new Error('Missing availability client methods');
-  source = source.replace(methods, `
-  private wallClockValue(value:string):string{const raw=value.trim();const dateOnly=/^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(raw);if(dateOnly)return\`${'${dateOnly[1]}'}-${'${dateOnly[2]}'}-${'${dateOnly[3]}'}T00:00:00\`;const local=/^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2})(?::(\\d{2}))?/.exec(raw);if(local)return\`${'${local[1]}'}-${'${local[2]}'}-${'${local[3]}'}T${'${local[4]}'}:${'${local[5]}'}:${'${local[6]||"00"}'}\`;const date=new Date(raw);if(Number.isNaN(date.getTime()))throw new Error("INVALID_RENTAL_DATES:Kiralama tarihi geçerli değil.");const pad=(part:number)=>String(part).padStart(2,"0");return\`${'${date.getFullYear()}'}-${'${pad(date.getMonth()+1)}'}-${'${pad(date.getDate())}'}T${'${pad(date.getHours())}'}:${'${pad(date.getMinutes())}'}:${'${pad(date.getSeconds())}'}\`;}
+  source = source.replace('import { SUPABASE_PROJECT_URL } from "../supabase.config";\n', '');
+  source = source.replace(
+    /private async adminAction\(method:"GET"\|"POST",body\?:unknown\):Promise<AdminActionResponse>\{[\s\S]*?\n\n  private async request/,
+    `private async adminAction(method:"GET"|"POST",body?:unknown):Promise<AdminActionResponse>{const token=await this.authService.getAccessToken();if(!token)throw new Error("ADMIN_SESSION_REQUIRED");const requestId=crypto.randomUUID();const headers={Authorization:\`Bearer \${token}\`,"content-type":"application/json","x-request-id":requestId};try{return method==="GET"?await firstValueFrom(this.http.get<AdminActionResponse>("/api/admin-booking-actions",{headers})):await firstValueFrom(this.http.post<AdminActionResponse>("/api/admin-booking-actions",body,{headers}));}catch(error){throw this.normalizeRequestError(error);}}
 
-  private async refreshAdminRecords`);
+  private async request`,
+  );
+  source = source.replace(
+    /private async request<T>\(method:"GET"\|"POST"\|"PATCH"\|"DELETE",body\?:unknown\):Promise<T>\{[\s\S]*?\n  private normalizeRequestError/,
+    `private async request<T>(method:"GET"|"POST"|"PATCH"|"DELETE",body?:unknown):Promise<T>{const token=method==="POST"?await this.customerAuth.getAccessToken().catch(()=>null):await this.authService.getAccessToken();if(method!=="POST"&&!token)throw new Error("ADMIN_SESSION_REQUIRED");const headers=token?{Authorization:\`Bearer \${token}\`}:undefined;try{if(method==="POST")return await firstValueFrom(this.http.post<T>("/api/bookings",body,headers?{headers}:{}));if(method==="GET")return await firstValueFrom(this.http.get<T>("/api/bookings",{headers:headers!}));return await firstValueFrom(this.http.request<T>(method,"/api/bookings",{body,headers:headers!}));}catch(error){throw this.normalizeRequestError(error);}}
+  private normalizeRequestError`,
+  );
+  if (source.includes('/functions/v1/booking-gateway') || source.includes('/functions/v1/booking-admin-actions')) {
+    throw new Error('Direct Supabase browser failover remained in BookingService');
+  }
   write(path, source);
 }
 
-// 2) Server: server canonicalizes branch wall-clock time, calculates price, but
-// does not reject a PENDING request because an APPROVED booking already exists.
+// Approval has one authoritative entry point. A generic PATCH may move requests
+// between non-capacity states, but APPROVED must go through the atomic RPC.
 {
   const path = 'supabase/functions/booking-gateway/index.ts';
   let source = read(path);
-  source = replaceOnce(
-    source,
-    '  if (await hasApprovedOverlap(vehicle.id, start, end)) throw new Error("VEHICLE_UNAVAILABLE");\n\n  const duration = rentalDuration(body?.rentalDuration);',
-    '  // Customer submissions are requests, not inventory reservations. Existing APPROVED\n  // bookings are recorded as an availability conflict, but they never prevent a PENDING request.\n  const duration = rentalDuration(body?.rentalDuration);',
-    'remove PENDING overlap rejection',
-  );
+  const needle = `      if (!["PENDING", "APPROVED", "REJECTED", "COMPLETED", "CANCELLED"].includes(status)) {
+        throw new Error("INVALID_STATUS");
+      }
 
-  const marker = 'async function authoritativeRental(\n';
-  if (!source.includes(marker)) throw new Error('Missing authoritativeRental marker');
-  const helper = `function rentalWallClock(value: unknown): string {
-  const raw = clean(value, 64);
-  const match = /^(\\d{4})-(\\d{2})-(\\d{2})(?:T(\\d{2}):(\\d{2})(?::(\\d{2}))?)?$/.exec(raw);
-  if (!match) throw new Error("INVALID_RENTAL_DATES");
-  const hh = match[4] || "00";
-  const mm = match[5] || "00";
-  const ss = match[6] || "00";
-  const probe = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(hh), Number(mm), Number(ss)));
-  if (probe.getUTCFullYear() !== Number(match[1]) || probe.getUTCMonth() !== Number(match[2]) - 1 || probe.getUTCDate() !== Number(match[3]) || Number(hh) > 23 || Number(mm) > 59 || Number(ss) > 59) throw new Error("INVALID_RENTAL_DATES");
-  return \`${'${match[1]}'}-${'${match[2]}'}-${'${match[3]}'}T${'${hh}'}:${'${mm}'}:${'${ss}'}\`;
-}
+      if (
+        status === "APPROVED" &&`;
+  const replacement = `      if (!["PENDING", "APPROVED", "REJECTED", "COMPLETED", "CANCELLED"].includes(status)) {
+        throw new Error("INVALID_STATUS");
+      }
+      if (status === "APPROVED") {
+        return json({
+          ok: false,
+          code: "APPROVAL_ACTION_REQUIRED",
+          message: "Rezervasyon onayı atomik yönetim onay servisi üzerinden yapılmalıdır.",
+        }, 409);
+      }
 
-async function evaluateRentalRequest(identifier: string, startValue: unknown, endValue: unknown): Promise<any> {
-  const response = await db("rpc/evaluate_rental_request", {
-    method: "POST",
-    body: JSON.stringify({
-      p_vehicle_identifier: identifier,
-      p_start_local: rentalWallClock(startValue),
-      p_end_local: rentalWallClock(endValue),
-    }),
-  });
-  const payload = await response.json().catch(() => null);
-  if (!response.ok || !payload?.startAt || !payload?.endAt) {
-    const raw = String(payload?.message || payload?.details || "");
-    if (raw.includes("INVALID_BRANCH_TIMEZONE")) throw new Error("INVALID_BRANCH_TIMEZONE");
-    if (raw.includes("INVALID_RENTAL_VEHICLE")) throw new Error("INVALID_RENTAL_VEHICLE");
-    throw new Error("INVALID_RENTAL_DATES");
-  }
-  return payload;
-}
-
-`;
-  source = source.replace(marker, helper + marker);
-
-  source = replaceOnce(
-    source,
-    '    let startAt = dateValue(body?.startDate);\n    let endAt = dateValue(body?.endDate);',
-    '    let startAt = type === "RENTAL" ? null : dateValue(body?.startDate);\n    let endAt = type === "RENTAL" ? null : dateValue(body?.endDate);',
-    'rental date initialization',
-  );
-  source = replaceOnce(
-    source,
-    '      const vehicle = await getRentalVehicle(itemId);\n      vehicleId = String(vehicle.id);\n      if (!startAt || !endAt) {\n        throw new Error(\n          rentalDurationValue === "hourly" ? "INVALID_HOURLY_RENTAL" : "INVALID_RENTAL_DATES",\n        );\n      }\n\n      const withDriver = Boolean(body?.withDriver);',
-    '      const vehicle = await getRentalVehicle(itemId);\n      vehicleId = String(vehicle.id);\n      const evaluation = await evaluateRentalRequest(itemId, body?.startDate, body?.endDate);\n      startAt = String(evaluation.startAt);\n      endAt = String(evaluation.endAt);\n\n      const withDriver = Boolean(body?.withDriver);',
-    'server branch-timezone evaluation',
-  );
-  source = replaceOnce(
-    source,
-    '        server_calculated: true,\n        resolved_vehicle_id: vehicleId,',
-    '        server_calculated: true,\n        resolved_vehicle_id: vehicleId,\n        availability: {\n          status: evaluation.available === true ? "AVAILABLE_AT_REQUEST" : "CONFLICT_AT_REQUEST",\n          alternativeCount: Array.isArray(evaluation.alternatives) ? evaluation.alternatives.length : 0,\n          checkedAt: new Date().toISOString(),\n        },',
-    'request availability metadata',
-  );
+      if (
+        false &&`;
+  if (!source.includes(needle)) throw new Error('Booking generic approval guard anchor not found');
+  source = source.replace(needle, replacement);
   write(path, source);
 }
 
-// 3) DB: if a request arrives after the car is already approved for someone else,
-// seed ranked alternatives immediately. Pending requests still remain Pending.
+// Repair the SQL delimiter generated by the previous one-shot patch. Keep the
+// trigger that seeds alternatives for a PENDING request arriving after a winner.
 {
   const path = 'supabase/migrations/20260825071000_v163_pending_approval_and_alternatives.sql';
   let source = read(path);
-  if (!source.includes('booking_seed_alternatives_after_pending_insert')) {
-    const anchor = "create or replace function private.generate_booking_alternatives()";
-    if (!source.includes(anchor)) throw new Error('Missing alternatives trigger anchor');
-    const sql = `create or replace function private.seed_pending_booking_alternatives()
-returns trigger
-language plpgsql
-security definer
-set search_path = public, pg_catalog, private
-as $$
-declare
-  v_approved_id uuid;
-  v_candidate record;
-  v_rank integer := 0;
-begin
-  if new.booking_type <> 'RENTAL' or new.status <> 'PENDING' or new.vehicle_id is null or new.start_at is null or new.end_at is null then
-    return new;
-  end if;
+  source = source.replace(
+    'create or replace function private.seed_pending_booking_alternatives()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = public, pg_catalog, private\nas $\ndeclare',
+    'create or replace function private.seed_pending_booking_alternatives()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = public, pg_catalog, private\nas $$\ndeclare',
+  );
+  source = source.replace(
+    "  return new;\nend;\n$;\n\nrevoke all on function private.seed_pending_booking_alternatives()",
+    "  return new;\nend;\n$$;\n\nrevoke all on function private.seed_pending_booking_alternatives()",
+  );
+  if (!source.includes('booking_seed_alternatives_after_pending_insert')) throw new Error('Pending alternative seed trigger missing');
+  if (source.includes('private.seed_pending_booking_alternatives()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = public, pg_catalog, private\nas $\n')) throw new Error('Seed function SQL delimiter is still invalid');
+  write(path, source);
+}
 
-  select b.id into v_approved_id
-  from public.bookings b
-  where b.id <> new.id
-    and b.vehicle_id = new.vehicle_id
-    and b.booking_type = 'RENTAL'
-    and b.status = 'APPROVED'
-    and b.deleted_at is null
-    and b.start_at < new.end_at
-    and b.end_at > new.start_at
-  order by b.updated_at desc, b.created_at desc
-  limit 1;
-
-  if v_approved_id is null then
-    return new;
-  end if;
-
-  for v_candidate in
-    select * from private.rental_alternative_candidates(
-      new.vehicle_id,
-      new.start_at,
-      new.end_at,
-      new.rental_duration = 'hourly',
-      coalesce(new.with_driver,false),
-      5
-    )
-  loop
-    v_rank := v_rank + 1;
-    insert into public.booking_alternative_offers(
-      booking_id, approved_booking_id, original_vehicle_id, alternative_vehicle_id,
-      status, rank, score, reason, expires_at, updated_at
-    ) values (
-      new.id, v_approved_id, new.vehicle_id, v_candidate.vehicle_id,
-      'OPEN', v_rank, v_candidate.score, v_candidate.reason,
-      greatest(new.start_at, now() + interval '1 day'), now()
-    )
-    on conflict (booking_id, alternative_vehicle_id)
-    do update set
-      approved_booking_id = excluded.approved_booking_id,
-      status = case when public.booking_alternative_offers.status = 'ACCEPTED' then 'ACCEPTED' else 'OPEN' end,
-      rank = excluded.rank,
-      score = excluded.score,
-      reason = excluded.reason,
-      expires_at = excluded.expires_at,
-      updated_at = now();
-  end loop;
-
-  update public.bookings b
-  set metadata = coalesce(b.metadata,'{}'::jsonb) || jsonb_build_object(
-    'availability',
-    coalesce(b.metadata->'availability','{}'::jsonb) || jsonb_build_object(
-      'status','ORIGINAL_VEHICLE_BOOKED',
-      'approvedBookingId',v_approved_id,
-      'alternativeCount',v_rank,
-      'updatedAt',now()
-    )
-  ), updated_at = now()
-  where b.id = new.id;
-
-  return new;
-end;
-$$;
-
-revoke all on function private.seed_pending_booking_alternatives() from public, anon, authenticated;
-
-drop trigger if exists booking_seed_alternatives_after_pending_insert on public.bookings;
-create trigger booking_seed_alternatives_after_pending_insert
-after insert on public.bookings
-for each row
-when (new.booking_type = 'RENTAL' and new.status = 'PENDING')
-execute function private.seed_pending_booking_alternatives();
-
-`;
-    source = source.replace(anchor, sql + anchor);
+// The private vault already exists as customer-documents. Upload through the
+// authenticated customer's JWT so Storage records object ownership as that user;
+// the DB trigger then cryptographically/path binds metadata to the real object.
+{
+  const path = 'supabase/functions/customer-document-upload/index.ts';
+  let source = read(path);
+  source = source.replace('const BUCKET = "customer-private";', 'const BUCKET = "customer-documents";');
+  const authAnchor = '    const user = await authenticatedUser(request);';
+  if (!source.includes(authAnchor)) throw new Error('Document auth anchor missing');
+  source = source.replace(authAnchor, `${authAnchor}\n    const userAuthorization = request.headers.get("authorization") || "";`);
+  source = source.replace(
+    '        authorization: `Bearer ${SERVICE_KEY}`,\n        "content-type": verified.mime,',
+    '        authorization: userAuthorization,\n        "content-type": verified.mime,',
+  );
+  if (!source.includes('const BUCKET = "customer-documents";') || !source.includes('authorization: userAuthorization')) {
+    throw new Error('Customer document ownership-safe upload was not applied');
   }
   write(path, source);
 }
 
-console.log('V163 pending-request architecture finalized.');
+// Replace the interim gate with the final Phase-3 architecture contract.
+{
+  const path = 'scripts/check-production-security-v163.mjs';
+  write(path, `import fs from 'node:fs';
+import path from 'node:path';
+
+const read = (file) => fs.readFileSync(file, 'utf8');
+const assert = (condition, message) => { if (!condition) throw new Error(\`V163 invariant failed: \${message}\`); };
+const includesAll = (content, needles, label) => { for (const needle of needles) assert(content.includes(needle), \`\${label} is missing \${needle}\`); };
+
+const baseMigration = read('supabase/migrations/20260825054500_v163_production_security_data_integrity.sql');
+includesAll(baseMigration, ['add column if not exists timezone text','private.is_valid_timezone','admin_users_sync_auth_identity','customer_documents_mime_type_v163_chk','add column if not exists request_id text'], 'base data-integrity migration');
+
+const approvalMigration = read('supabase/migrations/20260825071000_v163_pending_approval_and_alternatives.sql');
+includesAll(approvalMigration, [
+  'drop table if exists public.booking_holds',
+  'create table if not exists public.booking_alternative_offers',
+  'public.evaluate_rental_request',
+  'public.admin_approve_booking',
+  'pg_advisory_xact_lock',
+  'booking_generate_alternatives_after_approval',
+  'booking_seed_alternatives_after_pending_insert',
+  'new.status = \'PENDING\'',
+  'status = \'APPROVED\'',
+  'rental_alternative_candidates',
+], 'pending/manual approval architecture');
+assert(!approvalMigration.includes('as $\\ndeclare'), 'PL/pgSQL seed trigger delimiter must be valid');
+
+const booking = read('src/services/booking.service.ts');
+includesAll(booking, ['status==="APPROVED"','action:"approve"','offerAlternative','/api/admin-booking-actions','/api/bookings','wallClockValue'], 'booking client');
+assert(!booking.includes('evaluateRentalAvailability'), 'customer submit must not be blocked by advisory availability');
+assert(!booking.includes('reserveRentalHold'), 'customer submit must not reserve inventory');
+assert(!booking.includes('/functions/v1/booking-gateway'), 'browser must not bypass booking BFF');
+assert(!booking.includes('/functions/v1/booking-admin-actions'), 'browser must not bypass admin BFF');
+
+const gateway = read('supabase/functions/booking-gateway/index.ts');
+includesAll(gateway, ['DIRECT_BROWSER_ACCESS_DENIED','evaluateRentalRequest','CONFLICT_AT_REQUEST','APPROVAL_ACTION_REQUIRED','Customer submissions are requests, not inventory reservations'], 'booking gateway');
+assert(!gateway.includes('if (await hasApprovedOverlap(vehicle.id, start, end)) throw new Error("VEHICLE_UNAVAILABLE")'), 'PENDING rental create must not reject approved overlap');
+
+const adminActions = read('supabase/functions/booking-admin-actions/index.ts');
+includesAll(adminActions, ['rpc/admin_approve_booking','list-alternatives','offer-alternative','BOOKING_ALTERNATIVE_OFFERED'], 'admin booking action edge');
+const adminApi = read('api/admin-booking-actions.ts');
+includesAll(adminApi, ['guardOrigin','booking-admin-actions','x-request-id'], 'admin booking BFF');
+const adminUi = read('src/pages/admin/admin-reservations.component.ts');
+includesAll(adminUi, ['Onay bekleyen talepler aracı kilitlemez','Alternatif bul','Müşteriye Öner','WhatsApp','bookingService.offerAlternative'], 'admin customer-satisfaction workflow');
+
+const branchModel = read('src/models/branch.model.ts');
+const branchService = read('src/services/branch.service.ts');
+const branchApi = read('api/branches.ts');
+const branchAdmin = read('src/pages/admin/admin-branches.component.ts');
+assert(branchModel.includes('timezone?: string'), 'branch model must expose timezone');
+assert(branchService.includes('Europe/Istanbul'), 'branch service must provide safe timezone default');
+assert(branchApi.includes('timezone:'), 'branch API must persist timezone');
+includesAll(branchAdmin, ['Saat Dilimi','draft.timezone','Europe/Istanbul'], 'admin branch timezone editor');
+
+const adminAccess = read('src/services/admin-access.service.ts');
+assert(adminAccess.includes('admin_users?user_id=eq.'), 'admin authorization must be UUID-bound');
+assert(!adminAccess.includes('admin_users?email=eq.'), 'admin authorization must not use mutable email lookup');
+
+const documentEdge = read('supabase/functions/customer-document-upload/index.ts');
+includesAll(documentEdge, ['const BUCKET = "customer-documents"','verifySignature','DOCUMENT_SIGNATURE_INVALID','authorization: userAuthorization','VAULT_CONSENT_REQUIRED'], 'customer private document upload');
+const storageBinding = read('supabase/migrations/20260825061000_v163_document_storage_binding.sql');
+includesAll(storageBinding, ['validate_customer_document_storage_binding',"bucket_id = 'customer-documents'",'CUSTOMER_DOCUMENT_STORAGE_OWNER_MISMATCH','CUSTOMER_DOCUMENT_STORAGE_MIME_MISMATCH'], 'document storage binding');
+
+const requestSecurity = read('api/_lib/request-security.ts');
+includesAll(requestSecurity, ['originDecision','requestId','guardOrigin','access-control-allow-origin','vary'], 'request boundary');
+const bookingApi = read('api/bookings.ts');
+includesAll(bookingApi, ['guardOrigin','x-request-id','x-upstream-request-id','booking-browser-gateway'], 'booking BFF');
+
+const vercel = JSON.parse(read('vercel.json'));
+const globalHeaders = vercel.headers?.find((rule) => rule.source === '/(.*)')?.headers || [];
+const csp = globalHeaders.find((header) => header.key === 'Content-Security-Policy')?.value || '';
+includesAll(csp, ["default-src 'self'","base-uri 'self'","object-src 'none'","frame-ancestors 'none'","form-action 'self'",'upgrade-insecure-requests'], 'content security policy');
+
+const carDetail = read('src/pages/car-detail.component.ts');
+assert(!carDetail.includes('getTechnicalSpecs'), 'public car detail must not depend on compiled brand/model specs');
+includesAll(carDetail, ['car.technicalSpecs','car.enginePower','car.fuelConsumption','car.fuelTankCapacity'], 'database-driven technical details');
+
+const packageJson = JSON.parse(read('package.json'));
+assert(packageJson.dependencies?.tailwindcss === '4.2.1', 'Tailwind dependency must be pinned');
+
+function scan(root, needle, findings = []) {
+  if (!fs.existsSync(root)) return findings;
+  const stat = fs.statSync(root);
+  if (stat.isFile()) { if (read(root).includes(needle)) findings.push(root); return findings; }
+  for (const name of fs.readdirSync(root)) {
+    const target = path.join(root, name);
+    const s = fs.statSync(target);
+    if (s.isDirectory()) scan(target, needle, findings);
+    else if (/\\.(ts|js|mjs|cjs|json|html|css|sql|md|yml|yaml)$/.test(name) && read(target).includes(needle)) findings.push(target);
+  }
+  return findings;
+}
+const removedDomain = 'alperrentacar' + '.online';
+const domainFindings = [...scan('src', removedDomain), ...scan('api', removedDomain), ...scan('supabase', removedDomain), ...scan('public', removedDomain), ...scan('vercel.json', removedDomain)];
+assert(domainFindings.length === 0, \`removed domain must never return: \${domainFindings.join(', ')}\`);
+
+console.log('V163 final production security, manual approval and data-integrity invariants are satisfied.');
+`);
+}
+
+console.log('V163 final hardening patch prepared.');

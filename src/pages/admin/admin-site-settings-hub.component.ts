@@ -8,7 +8,7 @@ import { AdminHomepageComponent } from './admin-homepage.component';
 import { AdminHomepageDeviceVisibilityComponent } from './admin-homepage-device-visibility.component';
 import { AdminHomepagePlannerCopyComponent } from './admin-homepage-planner-copy.component';
 import { AdminNavigationComponent } from './admin-navigation.component';
-import { AdminFooterComponent } from './admin-footer.component';
+import { AdminFooterV174Component } from './admin-footer-v174.component';
 import { AdminLegalCenterComponent } from './admin-legal-center.component';
 import { AdminSeoSettingsComponent } from './admin-seo-settings.component';
 import { AdminFaqManagementComponent } from './admin-faq-management.component';
@@ -20,47 +20,11 @@ type SettingsSection = 'general' | 'homepage' | 'rental' | 'payments' | 'navigat
 interface SettingsTab { id: SettingsSection; label: string; shortLabel: string; description: string; area: AdminArea; }
 
 @Component({
-  selector: 'app-admin-site-settings-hub',
-  standalone: true,
-  imports: [CommonModule, AdminSettingsComponent, AdminAppearanceSettingsComponent, AdminHomepageComponent, AdminHomepageDeviceVisibilityComponent, AdminHomepagePlannerCopyComponent, AdminRentalPricingComponent, AdminPaymentSettingsComponent, AdminNavigationComponent, AdminFooterComponent, AdminLegalCenterComponent, AdminSeoSettingsComponent, AdminFaqManagementComponent, AdminWhatsappSettingsComponent],
+  selector: 'app-admin-site-settings-hub',standalone: true,
+  imports: [CommonModule,AdminSettingsComponent,AdminAppearanceSettingsComponent,AdminHomepageComponent,AdminHomepageDeviceVisibilityComponent,AdminHomepagePlannerCopyComponent,AdminRentalPricingComponent,AdminPaymentSettingsComponent,AdminNavigationComponent,AdminFooterV174Component,AdminLegalCenterComponent,AdminSeoSettingsComponent,AdminFaqManagementComponent,AdminWhatsappSettingsComponent],
   template: `
-    <div class="workspace">
-      <header class="workspace-head">
-        <div class="head-row">
-          <button type="button" class="back" (click)="goBack()" aria-label="Önceki sayfaya dön">←</button>
-          <div>
-            <p>Site Yönetimi</p>
-            <h1>Site Ayarları</h1>
-            <span>Sitenin görünümünü, kiralama hesaplarını, ödeme seçeneklerini, iletişim bilgilerini ve yayınlanan içeriklerini tek alanda yönetin.</span>
-          </div>
-        </div>
-        <nav class="tabs" aria-label="Site ayarları bölümleri">
-          @for (tab of visibleTabs(); track tab.id) {
-            <button type="button" [class.active]="activeSection() === tab.id" (click)="select(tab.id)" [attr.aria-current]="activeSection() === tab.id ? 'page' : null" [attr.aria-label]="tab.label + '. ' + tab.description">
-              <strong>{{ tab.shortLabel }}</strong><small>{{ tab.description }}</small>
-            </button>
-          }
-        </nav>
-      </header>
-
-      <main class="content">
-        @if (accessReady()) {
-        @switch (activeSection()) {
-          @case ('homepage') { <app-admin-homepage-device-visibility /><app-admin-homepage-planner-copy /><app-admin-homepage /> }
-          @case ('rental') { <app-admin-rental-pricing /> }
-          @case ('payments') { <app-admin-payment-settings /> }
-          @case ('navigation') { <app-admin-navigation /> }
-          @case ('footer') { <app-admin-footer /> }
-          @case ('legal') { <app-admin-legal-center /> }
-          @case ('seo') { <app-admin-seo-settings /> }
-          @case ('faq') { <app-admin-faq-management /> }
-          @case ('whatsapp') { <app-admin-whatsapp-settings /> }
-          @default { <app-admin-settings /><app-admin-appearance-settings /> }
-        }
-        } @else {
-          <div class="p-8 text-center text-sm font-bold text-slate-500">Yönetim alanı hazırlanıyor…</div>
-        }
-      </main>
+    <div class="workspace"><header class="workspace-head"><div class="head-row"><button type="button" class="back" (click)="goBack()" aria-label="Önceki sayfaya dön">←</button><div><p>Site Yönetimi</p><h1>Site Ayarları</h1><span>Sitenin görünümünü, kiralama hesaplarını, ödeme seçeneklerini, iletişim bilgilerini ve yayınlanan içeriklerini tek alanda yönetin.</span></div></div><nav class="tabs" aria-label="Site ayarları bölümleri">@for (tab of visibleTabs(); track tab.id) {<button type="button" [class.active]="activeSection() === tab.id" (click)="select(tab.id)" [attr.aria-current]="activeSection() === tab.id ? 'page' : null" [attr.aria-label]="tab.label + '. ' + tab.description"><strong>{{ tab.shortLabel }}</strong><small>{{ tab.description }}</small></button>}</nav></header>
+      <main class="content">@if (accessReady()) {@switch (activeSection()) {@case ('homepage') { <app-admin-homepage-device-visibility /><app-admin-homepage-planner-copy /><app-admin-homepage /> }@case ('rental') { <app-admin-rental-pricing /> }@case ('payments') { <app-admin-payment-settings /> }@case ('navigation') { <app-admin-navigation /> }@case ('footer') { <app-admin-footer-v174 /> }@case ('legal') { <app-admin-legal-center /> }@case ('seo') { <app-admin-seo-settings /> }@case ('faq') { <app-admin-faq-management /> }@case ('whatsapp') { <app-admin-whatsapp-settings /> }@default { <app-admin-settings /><app-admin-appearance-settings /> }}} @else {<div class="p-8 text-center text-sm font-bold text-slate-500">Yönetim alanı hazırlanıyor…</div>}</main>
     </div>
   `,
   styles: [`
@@ -68,55 +32,11 @@ interface SettingsTab { id: SettingsSection; label: string; shortLabel: string; 
   `],
 })
 export class AdminSiteSettingsHubComponent implements OnInit {
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
-  private readonly location = inject(Location);
-  private readonly access = inject(AdminAccessService);
-  readonly activeSection = signal<SettingsSection>('general');
-  readonly accessReady = signal(false);
-
-  readonly tabs: SettingsTab[] = [
-    { id:'general', label:'Profil ve Genel Ayarlar', shortLabel:'Profil & Genel', description:'Profil, marka, logo, görünüm ve iletişim.', area:'settings' },
-    { id:'homepage', label:'Ana Sayfa Vitrini', shortLabel:'Ana Sayfa', description:'Bölümler, metinler, cihazlar, sıra ve öne çıkanlar.', area:'content' },
-    { id:'rental', label:'Kiralama, Ek Hizmet ve Mesafe', shortLabel:'Kiralama', description:'İsteğe bağlı hizmetler, yakıt ve rota ücretleri.', area:'settings' },
-    { id:'payments', label:'Ödeme ve Depozito', shortLabel:'Ödeme', description:'Kart, EFT, teslimde ödeme ve depozito.', area:'settings' },
-    { id:'navigation', label:'Menü ve Alt Bar', shortLabel:'Menü & Alt Bar', description:'Mobil menü ve hızlı erişim.', area:'settings' },
-    { id:'footer', label:'Footer ve Sosyal Medya', shortLabel:'Footer & Sosyal', description:'Alt bilgi, sosyal hesap ve bülten.', area:'settings' },
-    { id:'legal', label:'Yasal Metinler', shortLabel:'Yasal', description:'Kiralama, satış ve politikalar.', area:'settings' },
-    { id:'seo', label:'SEO ve Ölçüm', shortLabel:'SEO & Ölçüm', description:'Arama görünürlüğü ve ölçüm.', area:'settings' },
-    { id:'faq', label:'Sık Sorulan Sorular', shortLabel:'SSS', description:'Müşterilerin gördüğü soru ve cevaplar.', area:'content' },
-    { id:'whatsapp', label:'WhatsApp', shortLabel:'WhatsApp', description:'Numara ve başlangıç mesajı.', area:'settings' },
-  ];
-
-  readonly visibleTabs = computed(() => this.tabs.filter((tab) => !this.accessReady() || this.access.canCached(tab.area)));
-
-  async ngOnInit(): Promise<void> {
-    await this.access.refresh();
-    this.accessReady.set(true);
-    const requested = this.sectionFromRoute();
-    const selected = this.visibleTabs().some((tab) => tab.id === requested) ? requested : (this.visibleTabs()[0]?.id || 'general');
-    this.activeSection.set(selected);
-    if (!this.router.url.startsWith('/admin/settings')) {
-      await this.router.navigate(['/admin/settings'], { queryParams: { section: selected }, replaceUrl: true });
-    }
-  }
-
-  select(section: SettingsSection): void {
-    if (!this.visibleTabs().some((tab) => tab.id === section)) return;
-    this.activeSection.set(section);
-    void this.router.navigate([], { relativeTo: this.route, queryParams: { section }, queryParamsHandling: 'merge', replaceUrl: true });
-    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  goBack(): void {
-    if (typeof window !== 'undefined' && window.history.length > 1) this.location.back();
-    else void this.router.navigate(['/admin/dashboard']);
-  }
-
-  private sectionFromRoute(): SettingsSection {
-    const query = this.route.snapshot.queryParamMap.get('section') as SettingsSection | null;
-    if (query && this.tabs.some((tab) => tab.id === query)) return query;
-    const data = this.route.snapshot.data['settingsSection'] as SettingsSection | undefined;
-    return data && this.tabs.some((tab) => tab.id === data) ? data : 'general';
-  }
+  private readonly route=inject(ActivatedRoute);private readonly router=inject(Router);private readonly location=inject(Location);private readonly access=inject(AdminAccessService);readonly activeSection=signal<SettingsSection>('general');readonly accessReady=signal(false);
+  readonly tabs:SettingsTab[]=[{id:'general',label:'Profil ve Genel Ayarlar',shortLabel:'Profil & Genel',description:'Profil, marka, logo, görünüm ve iletişim.',area:'settings'},{id:'homepage',label:'Ana Sayfa Vitrini',shortLabel:'Ana Sayfa',description:'Bölümler, metinler, cihazlar, sıra ve öne çıkanlar.',area:'content'},{id:'rental',label:'Kiralama, Ek Hizmet ve Mesafe',shortLabel:'Kiralama',description:'İsteğe bağlı hizmetler, yakıt ve rota ücretleri.',area:'settings'},{id:'payments',label:'Ödeme ve Depozito',shortLabel:'Ödeme',description:'Kart, EFT, teslimde ödeme ve depozito.',area:'settings'},{id:'navigation',label:'Menü ve Alt Bar',shortLabel:'Menü & Alt Bar',description:'Mobil menü ve hızlı erişim.',area:'settings'},{id:'footer',label:'Alt Dönüşüm, Footer ve Sosyal',shortLabel:'Alt Alan & Footer',description:'Pre-footer, linkler, sosyal hesap ve bülten.',area:'settings'},{id:'legal',label:'Yasal Metinler',shortLabel:'Yasal',description:'Kiralama, satış ve politikalar.',area:'settings'},{id:'seo',label:'SEO ve Ölçüm',shortLabel:'SEO & Ölçüm',description:'Arama görünürlüğü ve ölçüm.',area:'settings'},{id:'faq',label:'Sık Sorulan Sorular',shortLabel:'SSS',description:'Müşterilerin gördüğü soru ve cevaplar.',area:'content'},{id:'whatsapp',label:'WhatsApp',shortLabel:'WhatsApp',description:'Numara ve başlangıç mesajı.',area:'settings'}];
+  readonly visibleTabs=computed(()=>this.tabs.filter(tab=>!this.accessReady()||this.access.canCached(tab.area)));
+  async ngOnInit(){await this.access.refresh();this.accessReady.set(true);const requested=this.sectionFromRoute();const selected=this.visibleTabs().some(tab=>tab.id===requested)?requested:(this.visibleTabs()[0]?.id||'general');this.activeSection.set(selected);if(!this.router.url.startsWith('/admin/settings'))await this.router.navigate(['/admin/settings'],{queryParams:{section:selected},replaceUrl:true});}
+  select(section:SettingsSection){if(!this.visibleTabs().some(tab=>tab.id===section))return;this.activeSection.set(section);void this.router.navigate([],{relativeTo:this.route,queryParams:{section},queryParamsHandling:'merge',replaceUrl:true});if(typeof window!=='undefined')window.scrollTo({top:0,behavior:'smooth'});}
+  goBack(){if(typeof window!=='undefined'&&window.history.length>1)this.location.back();else void this.router.navigate(['/admin/dashboard']);}
+  private sectionFromRoute():SettingsSection{const query=this.route.snapshot.queryParamMap.get('section') as SettingsSection|null;if(query&&this.tabs.some(tab=>tab.id===query))return query;const data=this.route.snapshot.data['settingsSection'] as SettingsSection|undefined;return data&&this.tabs.some(tab=>tab.id===data)?data:'general';}
 }

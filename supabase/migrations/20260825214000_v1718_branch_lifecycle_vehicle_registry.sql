@@ -41,6 +41,34 @@ $$;
 revoke all on function public.can_operate_branch_lifecycle_v1718(uuid) from public,anon;
 grant execute on function public.can_operate_branch_lifecycle_v1718(uuid) to authenticated,service_role;
 
+-- Strict entitlement check for activation. Unlike can_operate_branch_subscription(),
+-- this intentionally has no admin bypass.
+create or replace function public.branch_has_operational_subscription_v1718(p_branch_id uuid)
+returns boolean language sql stable security definer set search_path=public,pg_catalog as $$
+  select exists(
+    select 1
+    from public.branch_subscriptions s
+    join public.branch_subscription_plans p on p.id=s.plan_id
+    where s.branch_id=p_branch_id
+      and p.is_active=true
+      and (
+        s.is_complimentary=true
+        or coalesce(s.price_override,p.monthly_fee)=0
+        or s.status in ('ACTIVE','TRIALING','EXEMPT')
+        or (s.status='PAST_DUE' and s.grace_ends_at is not null and s.grace_ends_at>now())
+      )
+      and (
+        s.status='EXEMPT'
+        or s.current_period_end is null
+        or s.current_period_end>now()
+        or (s.grace_ends_at is not null and s.grace_ends_at>now())
+        or coalesce(s.price_override,p.monthly_fee)=0
+      )
+  );
+$$;
+revoke all on function public.branch_has_operational_subscription_v1718(uuid) from public,anon;
+grant execute on function public.branch_has_operational_subscription_v1718(uuid) to authenticated,service_role;
+
 create or replace function public.admin_set_branch_lifecycle_v1718(p_branch_id uuid,p_status text,p_reason text default null)
 returns public.branches language plpgsql security definer set search_path=public,private,pg_catalog as $$
 declare v_before public.branches%rowtype;v_after public.branches%rowtype;v_status text:=upper(coalesce(btrim(p_status),''));v_reason text:=nullif(left(btrim(coalesce(p_reason,'')),500),'');
@@ -50,6 +78,9 @@ begin
   if v_status in ('SUSPENDED','CLOSED') and v_reason is null then raise exception using errcode='23514',message='BRANCH_LIFECYCLE_REASON_REQUIRED'; end if;
   select * into v_before from public.branches where id=p_branch_id for update;
   if not found then raise exception using errcode='P0002',message='BRANCH_NOT_FOUND'; end if;
+  if v_status='ACTIVE' and not public.branch_has_operational_subscription_v1718(p_branch_id) then
+    raise exception using errcode='23514',message='BRANCH_ACTIVATION_SUBSCRIPTION_REQUIRED';
+  end if;
   update public.branches b set
     public_status=v_status,is_active=(v_status='ACTIVE'),lifecycle_reason=case when v_status='ACTIVE' then null else v_reason end,
     status_changed_at=now(),status_changed_by=auth.uid(),
@@ -142,5 +173,6 @@ revoke all on function public.admin_search_vehicle_registry_v1718(text,uuid,time
 grant execute on function public.admin_search_vehicle_registry_v1718(text,uuid,timestamptz,timestamptz,integer) to authenticated,service_role;
 
 comment on table private.vehicle_registry is 'Private V171.8 vehicle identity registry. Not exposed through public PostgREST schema.';
-comment on function public.admin_set_branch_lifecycle_v1718(uuid,text,text) is 'Auditable Super Admin branch open/suspend/close/reopen control.';
+comment on function public.admin_set_branch_lifecycle_v1718(uuid,text,text) is 'Auditable Super Admin branch open/suspend/close/reopen control. ACTIVE requires a real operational subscription entitlement.';
+comment on function public.branch_has_operational_subscription_v1718(uuid) is 'Strict branch activation entitlement check without admin bypass.';
 comment on function public.admin_search_vehicle_registry_v1718(text,uuid,timestamptz,timestamptz,integer) is 'Admin-only vehicle registry lookup by plate, VIN/chassis, registration reference, stock code and date.';

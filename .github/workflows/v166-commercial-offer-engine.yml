@@ -71,7 +71,8 @@ jobs:
           MIG="supabase/migrations/20260825152500_v166_commercial_offer_engine.sql"
           GUARD="supabase/migrations/20260825152600_v166_referral_redemption_guards.sql"
           AUDIT="supabase/migrations/20260825152700_v166_commercial_audit.sql"
-          test -f "$MIG" && test -f "$GUARD" && test -f "$AUDIT"
+          LIFE="supabase/migrations/20260825154000_v1661_customer_lifetime_metrics.sql"
+          test -f "$MIG" && test -f "$GUARD" && test -f "$AUDIT" && test -f "$LIFE"
           grep -q "create table if not exists public.campaign_redemptions" "$MIG"
           grep -q "alter table public.campaign_redemptions enable row level security" "$MIG"
           grep -q "create table if not exists public.commercial_offer_quotes" "$MIG"
@@ -82,12 +83,20 @@ jobs:
           grep -q "instant_discount_booking_id" "$GUARD"
           grep -q "campaign_commercial_rules_changed" "$AUDIT"
           grep -q "loyalty_commercial_rules_changed" "$AUDIT"
+          grep -q "customer_lifetime_summary" "$LIFE"
+          grep -q "rentalTenureFullYears" "$LIFE"
+          grep -q "pointsRedeemedNet" "$LIFE"
+          grep -q "spendByCurrency" "$LIFE"
           if grep -E "grant execute on function public\.reserve_booking_commercial_offer.*to (anon|authenticated)" -i "$MIG" "$GUARD"; then
             echo "Commercial reservation RPC must remain service-only"
             exit 1
           fi
+          if grep -E "grant execute on function public\.customer_lifetime_summary.*to anon" -i "$LIFE"; then
+            echo "Customer lifetime summary must never be anonymous"
+            exit 1
+          fi
 
-      - name: V166 BFF routing contract
+      - name: V166 application contract
         shell: bash
         run: |
           set -euo pipefail
@@ -98,6 +107,12 @@ jobs:
           grep -q 'loyaltyPointsToRedeem' src/models/booking.model.ts
           grep -q 'CommercialOfferContextService' src/services/booking.service.ts
           grep -q 'Fiyat & Sadakat' src/pages/admin/admin-content-hub.component.ts
+          grep -q 'CheckoutLoyaltyPanelComponent' src/app.component.ts
+          grep -q 'AdminCustomerLifetimePanelComponent' src/app.component.ts
+          grep -q 'customer_lifetime_summary' src/services/customer-account.service.ts
+          grep -q 'customer_lifetime_summary' src/services/customer-lifetime-admin.service.ts
+          grep -q 'CAMPAIGN_ONLY' src/services/car.service.ts
+          grep -q 'isVisibleInStandardCatalog' src/services/car.service.ts
 
       - name: Preserve approved-only inventory blocking rule
         shell: bash

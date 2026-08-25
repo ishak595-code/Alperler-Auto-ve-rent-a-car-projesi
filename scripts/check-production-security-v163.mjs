@@ -44,8 +44,11 @@ assert(!availability.includes('access-control-allow-origin'),'availability edge 
 
 const adminEdge=read('supabase/functions/booking-admin-actions/index.ts');
 all(adminEdge,['rpc/admin_approve_booking','list-alternatives','offer-alternative','BOOKING_ALTERNATIVE_OFFERED'],'admin booking edge');
-const adminApi=read('api/admin-booking-actions.ts');
-all(adminApi,['guardOrigin','booking-admin-actions','x-request-id'],'admin BFF');
+const bookingApi=read('api/bookings.ts');
+all(bookingApi,['guardOrigin','x-request-id','x-upstream-request-id','rentalAvailability','adminBookingActions','booking-admin-actions'],'consolidated booking BFF');
+const vercelText=read('vercel.json');
+assert(vercelText.includes('"/api/admin-booking-actions", "destination": "/api/bookings?mode=admin-booking-actions"'),'admin booking route must reuse booking BFF');
+assert(!fs.existsSync('api/admin-booking-actions.ts'),'separate admin booking Vercel function must stay removed');
 const adminUi=read('src/pages/admin/admin-reservations.component.ts');
 all(adminUi,['Onay bekleyen talepler aracı kilitlemez','Alternatif bul','Müşteriye Öner','WhatsApp','bookingService.offerAlternative'],'admin satisfaction workflow');
 
@@ -64,15 +67,17 @@ assert(!adminAccess.includes('admin_users?email=eq.'),'admin auth must not depen
 
 const documentEdge=read('supabase/functions/customer-document-upload/index.ts');
 all(documentEdge,['const BUCKET = "customer-documents"','verifySignature','DOCUMENT_SIGNATURE_INVALID','authorization: userAuthorization','VAULT_CONSENT_REQUIRED'],'private document edge');
+const customerWallet=read('src/services/customer-wallet.service.ts');
+all(customerWallet,["documentBucket='customer-documents'",'detectFileSignature','customer-document-upload'],'customer document client');
+assert(!customerWallet.includes("documentBucket='customer-private'"),'customer document client must use canonical private bucket');
 const storageBinding=read('supabase/migrations/20260825061000_v163_document_storage_binding.sql');
 all(storageBinding,['validate_customer_document_storage_binding',"bucket_id = 'customer-documents'",'CUSTOMER_DOCUMENT_STORAGE_OWNER_MISMATCH','CUSTOMER_DOCUMENT_STORAGE_MIME_MISMATCH'],'document storage binding');
 
 const security=read('api/_lib/request-security.ts');
 all(security,['originDecision','requestId','guardOrigin','access-control-allow-origin','vary'],'request boundary');
-const bookingApi=read('api/bookings.ts');
 all(bookingApi,['guardOrigin','x-request-id','x-upstream-request-id','rentalAvailability'],'booking BFF');
 
-const vercel=JSON.parse(read('vercel.json'));
+const vercel=JSON.parse(vercelText);
 const headers=vercel.headers?.find((r)=>r.source==='/(.*)')?.headers||[];
 const csp=headers.find((h)=>h.key==='Content-Security-Policy')?.value||'';
 all(csp,["default-src 'self'","base-uri 'self'","object-src 'none'","frame-ancestors 'none'","form-action 'self'",'upgrade-insecure-requests'],'CSP');
@@ -80,6 +85,9 @@ all(csp,["default-src 'self'","base-uri 'self'","object-src 'none'","frame-ances
 const carDetail=read('src/pages/car-detail.component.ts');
 assert(!carDetail.includes('getTechnicalSpecs'),'public vehicle detail must not depend on compiled make/model lookup');
 all(carDetail,['car.technicalSpecs','car.enginePower','car.fuelConsumption','car.fuelTankCapacity'],'dynamic technical data');
+const legacySpecs=read('src/data/technical-specs.data.ts');
+assert(!legacySpecs.includes('CAR_SPECS_DB'),'static technical-spec database must stay removed');
+all(legacySpecs,["fetch('/api/catalog?resource=vehicles'",'technicalSpecs'],'technical-spec live compatibility adapter');
 
 const pkg=JSON.parse(read('package.json'));
 assert(pkg.dependencies?.tailwindcss==='4.2.1','Tailwind must be pinned');

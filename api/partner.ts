@@ -123,7 +123,7 @@ export default {
       });
     }
     if (operation === "requests") {
-      return proxy(request, { edgeFunction: "partner-request-gateway", allowedMethods: ["GET", "POST", "PATCH"], timeout: 25_000, unavailableCode: "PARTNER_GATEWAY_UNAVAILABLE", unavailableMessage: "Araç değerlendirme servisine şu anda ulaşılamıyor." });
+      return proxy(request, { edgeFunction: "partner-request-gateway-v172", allowedMethods: ["GET", "POST", "PATCH"], timeout: 25_000, maxBodyBytes: 64 * 1024, unavailableCode: "PARTNER_GATEWAY_UNAVAILABLE", unavailableMessage: "Araç değerlendirme servisine şu anda ulaşılamıyor." });
     }
     const decision = originDecision(request);
     return Response.json({ ok: false, code: "UNKNOWN_PARTNER_OPERATION", requestId: decision.requestId }, { status: 404, headers: { ...corsHeaders(decision, ALLOWED_METHODS), "cache-control": "no-store" } });

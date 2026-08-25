@@ -2,6 +2,15 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const CONFIGURED_ORIGINS = new Set(
+  String(Deno.env.get("ALPERLER_WEB_ORIGINS") || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .flatMap((value) => {
+      try { return [new URL(value).origin]; } catch { return []; }
+    }),
+);
 
 function clean(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -10,17 +19,35 @@ function requestId(request: Request): string {
   const supplied = clean(request.headers.get("x-request-id"), 80);
   return /^[A-Za-z0-9._:-]{8,80}$/.test(supplied) ? supplied : crypto.randomUUID();
 }
-function json(body: unknown, status: number, id: string): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store",
-      "x-request-id": id,
-      "x-content-type-options": "nosniff",
-      "referrer-policy": "no-referrer",
-    },
-  });
+function allowedBrowserOrigin(request: Request): string | null {
+  const raw = clean(request.headers.get("origin"), 240);
+  if (!raw) return null;
+  try {
+    const parsed = new URL(raw);
+    if (CONFIGURED_ORIGINS.has(parsed.origin)) return parsed.origin;
+    if (parsed.protocol === "https:" && parsed.hostname.endsWith(".vercel.app")) return parsed.origin;
+    if ((parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") && ["http:", "https:"].includes(parsed.protocol)) return parsed.origin;
+  } catch {
+    return "";
+  }
+  return "";
+}
+function responseHeaders(origin: string | null): Record<string, string> {
+  return {
+    ...(origin ? { "access-control-allow-origin": origin } : {}),
+    "access-control-allow-methods": "POST,OPTIONS",
+    "access-control-allow-headers": "authorization, content-type, x-client-ip, x-idempotency-key, x-request-id",
+    "access-control-max-age": "600",
+    "vary": "Origin",
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store",
+    "x-content-type-options": "nosniff",
+    "referrer-policy": "no-referrer",
+  };
+}
+function json(request: Request, body: unknown, status: number, id: string): Response {
+  const origin = allowedBrowserOrigin(request);
+  return new Response(JSON.stringify(body), { status, headers: { ...responseHeaders(origin || null), "x-request-id": id } });
 }
 function serviceHeaders(extra: Record<string, string> = {}): Record<string, string> {
   return { apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}`, "content-type": "application/json", ...extra };
@@ -70,16 +97,16 @@ function wallClock(value: unknown): string {
 
 Deno.serve(async (request) => {
   const id = requestId(request);
-  // Public browsers use the same-origin Vercel API. The Edge URL is only a
-  // backend hop, deliberately exposing no browser CORS surface.
-  if (request.headers.get("origin")) return json({ ok: false, code: "DIRECT_BROWSER_ACCESS_DENIED", requestId: id }, 403, id);
-  if (request.method !== "POST") return json({ ok: false, code: "METHOD_NOT_ALLOWED", requestId: id }, 405, id);
-  if (!SUPABASE_URL || !SERVICE_KEY) return json({ ok: false, code: "SERVER_CONFIG_MISSING", requestId: id }, 503, id);
-  if (Number(request.headers.get("content-length") || 0) > 16_384) return json({ ok: false, code: "PAYLOAD_TOO_LARGE", requestId: id }, 413, id);
+  const browserOrigin = allowedBrowserOrigin(request);
+  if (request.headers.get("origin") && browserOrigin === "") return json(request, { ok: false, code: "ORIGIN_NOT_ALLOWED", requestId: id }, 403, id);
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: { ...responseHeaders(browserOrigin), "x-request-id": id } });
+  if (request.method !== "POST") return json(request, { ok: false, code: "METHOD_NOT_ALLOWED", requestId: id }, 405, id);
+  if (!SUPABASE_URL || !SERVICE_KEY) return json(request, { ok: false, code: "SERVER_CONFIG_MISSING", requestId: id }, 503, id);
+  if (Number(request.headers.get("content-length") || 0) > 16_384) return json(request, { ok: false, code: "PAYLOAD_TOO_LARGE", requestId: id }, 413, id);
 
   let input: Record<string, unknown>;
   try { input = await request.json() as Record<string, unknown>; }
-  catch { return json({ ok: false, code: "INVALID_JSON", requestId: id }, 400, id); }
+  catch { return json(request, { ok: false, code: "INVALID_JSON", requestId: id }, 400, id); }
 
   try {
     const vehicleIdentifier = clean(input["vehicleId"], 128);
@@ -94,7 +121,7 @@ Deno.serve(async (request) => {
     const userAgent = clean(request.headers.get("user-agent"), 240);
     const clientHash = await sha256(`${ip}|${userAgent}`);
     if (!(await consumeRateLimit(clientHash, "rental_hold_minute", 60, 12)) || !(await consumeRateLimit(clientHash, "rental_hold_hour", 3600, 80))) {
-      return json({ ok: false, code: "RATE_LIMITED", message: "Çok fazla uygunluk isteği gönderildi. Lütfen kısa bir süre sonra tekrar deneyin.", requestId: id }, 429, id);
+      return json(request, { ok: false, code: "RATE_LIMITED", message: "Çok fazla uygunluk isteği gönderildi. Lütfen kısa bir süre sonra tekrar deneyin.", requestId: id }, 429, id);
     }
 
     const customerUserId = await optionalCustomerId(request);
@@ -128,13 +155,13 @@ Deno.serve(async (request) => {
         : code === "INVALID_RENTAL_VEHICLE" ? "Seçtiğiniz araç rezervasyona açık değil."
         : code === "INVALID_BRANCH_TIMEZONE" ? "Şube saat dilimi yapılandırması geçerli değil."
         : "Araç uygunluğu şu anda doğrulanamadı.";
-      return json({ ok: false, code, message, requestId: id }, status, id);
+      return json(request, { ok: false, code, message, requestId: id }, status, id);
     }
 
     const rows = await response.json().catch(() => []);
     const row = Array.isArray(rows) ? rows[0] : null;
     if (!row?.hold_id || !row?.start_at || !row?.end_at || !row?.expires_at) throw new Error("HOLD_RESPONSE_INVALID");
-    return json({
+    return json(request, {
       ok: true,
       available: true,
       hold: {
@@ -150,6 +177,6 @@ Deno.serve(async (request) => {
   } catch (error) {
     console.error("rental-availability failed", id, error);
     const code = error instanceof Error ? error.message : "AVAILABILITY_CHECK_FAILED";
-    return json({ ok: false, code, message: code.startsWith("INVALID_") ? "Kiralama bilgilerini kontrol edin." : "Araç uygunluğu şu anda doğrulanamadı.", requestId: id }, code.startsWith("INVALID_") ? 400 : 503, id);
+    return json(request, { ok: false, code, message: code.startsWith("INVALID_") ? "Kiralama bilgilerini kontrol edin." : "Araç uygunluğu şu anda doğrulanamadı.", requestId: id }, code.startsWith("INVALID_") ? 400 : 503, id);
   }
 });

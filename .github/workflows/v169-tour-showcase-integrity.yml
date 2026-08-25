@@ -1,0 +1,148 @@
+name: V169 Tour Showcase and Capacity Integrity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "api/**"
+      - "supabase/**"
+      - ".github/workflows/v169-tour-showcase-integrity.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tour-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: V169 database capacity contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260825191000_v169_tour_capacity_publication_integrity.sql
+          test -f "$MIG"
+          grep -Fq "tour_availability_v169" "$MIG"
+          grep -Fq "tour_approved_people_v169" "$MIG"
+          grep -Fq "bookings_tour_approved_day_v169_idx" "$MIG"
+          grep -Fq "TOUR_CAPACITY_EXCEEDED" "$MIG"
+          grep -Fq "pendingBlocksCapacity" "$MIG"
+          grep -Fq "status='APPROVED'" "$MIG"
+          grep -Fq "status='PENDING'" "$MIG"
+          grep -Fq "DURATION_REQUIRED" "$MIG"
+          grep -Fq "CAPACITY_REQUIRED" "$MIG"
+          grep -Fq "MEETING_POINT_REQUIRED" "$MIG"
+          grep -Fq "ITINERARY_REQUIRED" "$MIG"
+          grep -Fq "INCLUDED_ITEMS_REQUIRED" "$MIG"
+          grep -Fq "EXCLUDED_ITEMS_REQUIRED" "$MIG"
+
+      - name: Dynamic tour showcase contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE=src/pages/tour-showcase-v169.component.ts
+          test -f "$FILE"
+          grep -Fq "priceBounds" "$FILE"
+          grep -Fq "durationOptions" "$FILE"
+          grep -Fq "tour.capacity" "$FILE"
+          grep -Fq "tour.meetingPoint" "$FILE"
+          if grep -Eq "0-5000|5000-15000|15000\+|priceRanges[[:space:]]*=" "$FILE"; then
+            echo "Tour filters must derive from live catalog bounds"
+            exit 1
+          fi
+          grep -Fq "TourShowcaseV169Component" src/pages/tours.component.ts
+
+      - name: Tour detail live seat contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE=src/pages/tour-detail-v169.component.ts
+          test -f "$FILE"
+          grep -Fq "TourAvailabilityService" "$FILE"
+          grep -Fq "remainingSeats" "$FILE"
+          grep -Fq "approvedPeople" "$FILE"
+          grep -Fq "pendingPeople" "$FILE"
+          grep -Fq "bookingService.create" "$FILE"
+          grep -Fq "startDate: this.tourDate" "$FILE"
+          grep -Fq "TourDetailV169Component" src/pages/catalog-detail-shells.component.ts
+          if grep -Fq "<dd class=\"available\">Rezervasyona açık</dd>" "$FILE"; then
+            echo "Tour detail must not hardcode reservation availability"
+            exit 1
+          fi
+
+      - name: Tour availability API boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f api/tour-availability.ts
+          test -f src/services/tour-availability.service.ts
+          test -f supabase/functions/tour-availability-v169/index.ts
+          grep -Fq "guardOrigin" api/tour-availability.ts
+          grep -Fq "/api/tour-availability" src/services/tour-availability.service.ts
+          grep -Fq "consume_rate_limit" supabase/functions/tour-availability-v169/index.ts
+          grep -Fq "tour_availability_v169" supabase/functions/tour-availability-v169/index.ts
+
+      - name: Super Admin tour program contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE=src/pages/admin/admin-tour-integrity-v169.component.ts
+          test -f "$FILE"
+          grep -Fq "Tur Programı" "$FILE"
+          grep -Fq "tour.itinerary" "$FILE"
+          grep -Fq "tour.includedItems" "$FILE"
+          grep -Fq "tour.excludedItems" "$FILE"
+          grep -Fq "tour.capacity" "$FILE"
+          grep -Fq "tour.meetingPoint" "$FILE"
+          grep -Fq "Tur Kalitesi" src/pages/admin/admin-content-hub.component.ts
+          grep -Fq "AdminTourIntegrityV169Component" src/pages/admin/admin-content-hub.component.ts
+
+      - name: Preserve rental and sale integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "RentalDetailV167Component" src/pages/catalog-detail-shells.component.ts
+          grep -Fq "SaleDetailV1681Component" src/pages/catalog-detail-shells.component.ts
+          test -f supabase/migrations/20260825183500_v1681_structured_tramer_truth.sql
+          test -f supabase/migrations/20260825170000_v167_rental_campaign_integrity.sql
+
+      - name: Frontend TypeScript
+        run: npm run lint
+
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Accessibility guards
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+
+      - name: Set up Deno 2
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: V169 public availability Edge Function
+        run: deno check --node-modules-dir=auto supabase/functions/tour-availability-v169/index.ts
+
+      - name: Preserve booking gateway contract
+        run: deno check --node-modules-dir=auto supabase/functions/booking-gateway-v166/index.ts
+
+      - name: Production Angular build
+        run: npm run build

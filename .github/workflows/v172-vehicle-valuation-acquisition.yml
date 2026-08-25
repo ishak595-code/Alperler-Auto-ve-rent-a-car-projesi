@@ -76,8 +76,7 @@ jobs:
           grep -Fq "service_schedule_partner_appointment_v172" "$EDGE"
           grep -Fq "PARTNER_FINAL_VALUATION_REQUIRED" "$EDGE"
           grep -Fq "requireAdmin" "$EDGE"
-          grep -Fq "service-role" src/services/vehicle-valuation-v172.service.ts || true
-          grep -Fq 'const edgeFunction="partner-request-gateway-v172"' api/partner.ts
+          grep -Fq 'edgeFunction: "partner-request-gateway-v172"' api/partner.ts
 
       - name: Public valuation studio contract
         shell: bash

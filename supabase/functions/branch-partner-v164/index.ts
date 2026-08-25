@@ -2,6 +2,14 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const ALLOWED_ORIGINS = new Set(
+  (Deno.env.get("APP_ALLOWED_ORIGINS") || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((value) => { try { return new URL(value).origin; } catch { return ""; } })
+    .filter(Boolean),
+);
 
 const ALLOWED_SERVICES = new Set(["RENTAL", "SALES", "TOUR_TRANSFER"]);
 const ALLOWED_OFFICE = new Set(["OWN", "RENT", "PLAN", "NONE"]);
@@ -25,8 +33,20 @@ function requestId(request: Request): string {
   const supplied = clean(request.headers.get("x-request-id"), 80);
   return /^[A-Za-z0-9._:-]{8,80}$/.test(supplied) ? supplied : crypto.randomUUID();
 }
+function allowedOrigin(request: Request): string | null {
+  const raw = clean(request.headers.get("origin"), 240);
+  if (!raw) return null;
+  try {
+    const parsed = new URL(raw);
+    const local = (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") &&
+      (parsed.protocol === "http:" || parsed.protocol === "https:");
+    return local || ALLOWED_ORIGINS.has(parsed.origin) ? parsed.origin : "";
+  } catch {
+    return "";
+  }
+}
 function cors(request: Request): Record<string, string> {
-  const origin = clean(request.headers.get("origin"), 240);
+  const origin = allowedOrigin(request);
   return {
     ...(origin ? { "access-control-allow-origin": origin } : {}),
     "access-control-allow-methods": "GET,POST,PATCH,OPTIONS",
@@ -351,6 +371,8 @@ async function updateApplication(request: Request, input: Record<string, unknown
 
 Deno.serve(async (request) => {
   const id = requestId(request);
+  const origin = allowedOrigin(request);
+  if (request.headers.get("origin") && origin === "") return json(request, { ok: false, code: "ORIGIN_NOT_ALLOWED", requestId: id }, 403, id);
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: { ...cors(request), "x-request-id": id } });
   if (!SUPABASE_URL || !SERVICE_KEY) return json(request, { ok: false, code: "SERVER_CONFIG_MISSING" }, 503, id);
   if (Number(request.headers.get("content-length") || 0) > 32_768) return json(request, { ok: false, code: "PAYLOAD_TOO_LARGE" }, 413, id);

@@ -81,6 +81,8 @@ contains(branchPartner, "trustedClientAddress(request)", "Branch partner rate li
 absent(branchPartner, 'clean(request.headers.get("x-client-ip")', "Branch partner rate limiting must not trust spoofable x-client-ip");
 contains(branchPartner, "email_confirmed_at", "Branch partner admin authorization must require verified email");
 contains(branchPartner, "allowedRedirectOrigin", "Branch invite redirects must be allow-listed");
+contains(branchPartner, "APP_ALLOWED_ORIGINS", "Branch partner direct Edge boundary must use configured origin allow-list");
+contains(branchPartner, "ORIGIN_NOT_ALLOWED", "Branch partner direct Edge boundary must reject untrusted origins");
 
 contains(securityMigration, "alter default privileges", "V165 must define safe application-owned default privileges");
 contains(securityMigration, "email_confirmed_at", "Customer booking ownership must rely on verified Auth identity");

@@ -12,6 +12,7 @@ interface CreateSessionBody {
   description?: unknown;
   metadata?: unknown;
 }
+interface BranchSessionBody { invoiceId?: unknown; returnUrl?: unknown; cancelUrl?: unknown; }
 interface BookingRow {
   id: string; reference: string; item_name: string; customer_name: string; customer_email: string | null;
   customer_phone: string; total_price: number | null; currency: string; payment_method: string; payment_status: string;
@@ -21,6 +22,10 @@ interface PaymentSettingsRow {
   provider: string; card_enabled: boolean; deposit_mode: string; deposit_value: number; currency: string; test_mode: boolean;
 }
 interface TransactionRow { id: string; booking_id: string; amount: number; currency: string; status: string; provider_reference: string | null }
+interface BranchContact { id:string; name:string; operator_display_name:string|null; email:string|null; phone:string|null; address_line:string|null; }
+interface BranchInvoiceRow { id:string; invoice_number:string; branch_id:string; subscription_id:string; status:string; amount:number; currency:string; period_start:string; period_end:string; due_at:string; branch:BranchContact|null; }
+interface BranchPaymentRow { id:string; invoice_id:string; branch_id:string; amount:number; currency:string; status:string; provider_reference:string|null; }
+interface AuthUser { id:string; email?:string|null; email_confirmed_at?:string|null; }
 
 function json(body: unknown, status = 200): Response {
   return Response.json(body, { status, headers: { "cache-control": "no-store", "content-type": "application/json; charset=utf-8" } });
@@ -60,6 +65,16 @@ async function db<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (response.status === 204) return undefined as T;
   return await response.json() as T;
 }
+async function authenticatedUser(request:Request):Promise<AuthUser>{
+  const authorization=request.headers.get("authorization")||"";
+  if(!/^Bearer\s+\S+/i.test(authorization))throw new Error("UNAUTHORIZED");
+  const cfg=serviceConfig();
+  if(!cfg.configured)throw new Error("PAYMENT_DATABASE_NOT_CONFIGURED");
+  const response=await fetch(`${cfg.url}/auth/v1/user`,{headers:{apikey:cfg.key,authorization},signal:AbortSignal.timeout(8000)});
+  const user=await response.json().catch(()=>({})) as AuthUser;
+  if(!response.ok||!user.id||!user.email_confirmed_at)throw new Error("UNAUTHORIZED");
+  return user;
+}
 function clientIp(request: Request): string {
   return (request.headers.get("x-vercel-forwarded-for") || request.headers.get("x-forwarded-for") || "127.0.0.1").split(",")[0].trim().slice(0, 64);
 }
@@ -71,6 +86,7 @@ function sameHash(a: string, b: string): boolean {
   return aa.length === bb.length && timingSafeEqual(aa, bb);
 }
 function merchantOid(bookingId: string): string { return bookingId.replace(/[^A-Za-z0-9]/g, "").slice(0, 64); }
+function branchMerchantOid(invoiceId:string):string{return `BRINV${invoiceId.replace(/[^A-Za-z0-9]/g,"")}`.slice(0,64);}
 function calculateCharge(total: number, settings: PaymentSettingsRow): number {
   if (!Number.isFinite(total) || total <= 0) throw new Error("INVALID_BOOKING_TOTAL");
   const mode = String(settings.deposit_mode || "NONE");
@@ -162,6 +178,44 @@ async function createSession(request: Request): Promise<Response> {
   }
 }
 
+async function createBranchSubscriptionSession(request:Request):Promise<Response>{
+  if(request.method!=="POST")return json({ok:false,code:"METHOD_NOT_ALLOWED"},405);
+  if(!isAllowedRequestOrigin(request))return json({ok:false,code:"ORIGIN_NOT_ALLOWED"},403);
+  const config=getPaymentConfig();
+  if(!config.cardEnabled||!config.configured||config.provider!=="paytr"||!config.merchantId||!config.merchantKey||!config.merchantSalt)return json({ok:false,code:"BRANCH_PAYTR_NOT_CONFIGURED",message:"Şube abonelik kart ödemesi henüz aktif değil."},503);
+  let body:BranchSessionBody;try{body=await request.json() as BranchSessionBody;}catch{return json({ok:false,code:"INVALID_JSON"},400);}
+  const invoiceId=text(body.invoiceId,80);const returnUrl=safeReturnUrl(body.returnUrl,config.allowedOrigins);const cancelUrl=safeReturnUrl(body.cancelUrl,config.allowedOrigins);
+  if(!invoiceId||!returnUrl||!cancelUrl)return json({ok:false,code:"INVALID_BRANCH_PAYMENT_REQUEST"},400);
+  try{
+    const user=await authenticatedUser(request);
+    const invoices=await db<BranchInvoiceRow[]>(`branch_subscription_invoices?id=eq.${encodeURIComponent(invoiceId)}&select=id,invoice_number,branch_id,subscription_id,status,amount,currency,period_start,period_end,due_at,branch:branches(id,name,operator_display_name,email,phone,address_line)&limit=1`);
+    const invoice=invoices[0];if(!invoice)return json({ok:false,code:"BRANCH_INVOICE_NOT_FOUND"},404);
+    const memberships=await db<Array<{id:string}>>(`branch_memberships?branch_id=eq.${encodeURIComponent(invoice.branch_id)}&user_id=eq.${encodeURIComponent(user.id)}&is_active=eq.true&select=id&limit=1`);
+    if(!memberships[0])return json({ok:false,code:"BRANCH_INVOICE_ACCESS_DENIED"},403);
+    if(invoice.status==="PAID")return json({ok:false,code:"BRANCH_INVOICE_ALREADY_PAID"},409);
+    if(!["OPEN","OVERDUE"].includes(invoice.status))return json({ok:false,code:"BRANCH_INVOICE_NOT_PAYABLE"},409);
+    const amount=Math.round(Number(invoice.amount)*100)/100;if(!Number.isFinite(amount)||amount<=0)return json({ok:false,code:"BRANCH_INVOICE_ZERO_AMOUNT"},409);
+    if(String(invoice.currency||"TRY").toUpperCase()!=="TRY")return json({ok:false,code:"PAYTR_TRY_REQUIRED"},409);
+    const branch=invoice.branch;const email=branch?.email||user.email||"";const phone=branch?.phone||"";const name=branch?.operator_display_name||branch?.name||"";
+    if(!email.includes("@")||phone.replace(/\D/g,"").length<7||!name)return json({ok:false,code:"BRANCH_CONTACT_REQUIRED"},409);
+    const oid=branchMerchantOid(invoice.id);const paymentAmount=Math.round(amount*100);const basket=base64(JSON.stringify([[`Şube aboneliği ${invoice.invoice_number}`,amount.toFixed(2),1]]));const noInstallment="0",maxInstallment="0",currency="TRY";const settings=await paymentSettings();const testMode=(settings.test_mode||config.testMode)?"1":"0";const ip=clientIp(request);const hashString=`${config.merchantId}${ip}${oid}${email}${paymentAmount}${basket}${noInstallment}${maxInstallment}${currency}${testMode}`;const paytrToken=hmacBase64(`${hashString}${config.merchantSalt}`,config.merchantKey);
+    const form=new URLSearchParams({merchant_id:config.merchantId,user_ip:ip,merchant_oid:oid,email,payment_amount:String(paymentAmount),paytr_token:paytrToken,user_basket:basket,debug_on:testMode,no_installment:noInstallment,max_installment:maxInstallment,user_name:name,user_address:branch?.address_line||"Türkiye",user_phone:phone,merchant_ok_url:returnUrl,merchant_fail_url:cancelUrl,timeout_limit:"30",currency,test_mode:testMode,lang:"tr"});
+    const upstream=await fetch("https://www.paytr.com/odeme/api/get-token",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:form,signal:AbortSignal.timeout(12000)});const result=await upstream.json().catch(()=>({})) as Record<string,unknown>;if(!upstream.ok||result.status!=="success"||typeof result.token!=="string")throw new Error(`PAYTR_TOKEN_${String(result.reason||upstream.status)}`);
+    const existing=await db<BranchPaymentRow[]>(`branch_subscription_payments?provider=eq.paytr&provider_reference=eq.${encodeURIComponent(oid)}&select=id,invoice_id,branch_id,amount,currency,status,provider_reference&limit=1`);
+    if(!existing[0])await db("branch_subscription_payments",{method:"POST",headers:{"content-type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({invoice_id:invoice.id,branch_id:invoice.branch_id,provider:"paytr",provider_reference:oid,status:"PENDING",amount,currency,metadata:{userId:user.id,invoiceNumber:invoice.invoice_number,tokenIssuedAt:new Date().toISOString()}})});
+    return json({ok:true,status:"ready",provider:"paytr",checkoutUrl:`https://www.paytr.com/odeme/guvenli/${encodeURIComponent(result.token)}`,externalReference:oid});
+  }catch(error){console.error("Branch subscription session failed",error);const code=error instanceof Error?error.message:"BRANCH_PAYMENT_GATEWAY_UNAVAILABLE";return json({ok:false,code,message:"Şube abonelik ödeme oturumu başlatılamadı."},code==="UNAUTHORIZED"?401:502);}
+}
+
+async function settleBranchPaytrCallback(merchantOidValue:string,status:string,totalAmount:string,failedReasonCode:string,failedReasonMsg:string):Promise<Response>{
+  try{
+    const rows=await db<BranchPaymentRow[]>(`branch_subscription_payments?provider=eq.paytr&provider_reference=eq.${encodeURIComponent(merchantOidValue)}&select=id,invoice_id,branch_id,amount,currency,status,provider_reference&limit=1`);const pay=rows[0];if(!pay)return plain("TRANSACTION_NOT_FOUND",404);if(["SUCCEEDED","FAILED","CANCELED","REFUNDED"].includes(pay.status))return plain("OK",200);const expectedMinor=Math.round(Number(pay.amount)*100);const receivedMinor=Number(totalAmount);const amountValid=Number.isFinite(receivedMinor)&&receivedMinor===expectedMinor;const success=status==="success"&&amountValid;
+    if(success){await db("rpc/finalize_branch_subscription_payment_v1714",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({p_provider:"paytr",p_provider_reference:merchantOidValue,p_received_amount:Number(pay.amount)})});}
+    else{await db(`branch_subscription_payments?id=eq.${encodeURIComponent(pay.id)}`,{method:"PATCH",headers:{"content-type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({status:"FAILED",metadata:{paytrStatus:status,totalAmount:receivedMinor,amountValid,failedReasonCode:failedReasonCode||null,failedReasonMsg:failedReasonMsg.slice(0,300)||null}})});}
+    return plain("OK",200);
+  }catch(error){console.error("Branch PayTR callback persistence failed",error);return plain("CALLBACK_PERSISTENCE_FAILED",500);}
+}
+
 async function paytrCallback(request: Request): Promise<Response> {
   if (request.method !== "POST") return plain("METHOD_NOT_ALLOWED", 405);
   const config = getPaymentConfig();
@@ -177,6 +231,7 @@ async function paytrCallback(request: Request): Promise<Response> {
   if (!merchantOidValue || !status || !totalAmount || !hashValue) return plain("INVALID_CALLBACK", 400);
   const expected = hmacBase64(`${merchantOidValue}${config.merchantSalt}${status}${totalAmount}`, config.merchantKey);
   if (!sameHash(hashValue, expected)) return plain("INVALID_HASH", 400);
+  if(merchantOidValue.startsWith("BRINV"))return settleBranchPaytrCallback(merchantOidValue,status,totalAmount,failedReasonCode,failedReasonMsg);
   try {
     const rows = await db<TransactionRow[]>(`payment_transactions?provider=eq.paytr&provider_reference=eq.${encodeURIComponent(merchantOidValue)}&select=id,booking_id,amount,currency,status,provider_reference&limit=1`);
     const tx = rows[0];
@@ -200,6 +255,7 @@ export default {
   async fetch(request: Request): Promise<Response> {
     const operation = new URL(request.url).searchParams.get("op") || "create-session";
     if (operation === "create-session") return createSession(request);
+    if (operation === "branch-subscription-session") return createBranchSubscriptionSession(request);
     if (operation === "paytr-callback") return paytrCallback(request);
     return json({ ok: false, code: "UNKNOWN_PAYMENT_OPERATION" }, 404);
   },

@@ -1,0 +1,73 @@
+name: Production Security V163 Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "api/**"
+      - "src/**"
+      - "supabase/**"
+      - "scripts/check-production-security-v163.mjs"
+      - "vercel.json"
+      - ".github/workflows/production-security-v163.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "api/**"
+      - "src/**"
+      - "supabase/**"
+      - "scripts/check-production-security-v163.mjs"
+      - "vercel.json"
+      - ".github/workflows/production-security-v163.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-security-v163-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-integrity:
+    name: security-integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies from lockfile
+        run: npm ci --no-audit --no-fund
+
+      - name: V163 production security invariant gate
+        run: node scripts/check-production-security-v163.mjs
+
+      - name: Frontend TypeScript check
+        run: npm run lint
+
+      - name: API TypeScript check
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Set up Deno 2
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Rental availability Edge Function type check
+        run: deno check --node-modules-dir=auto supabase/functions/rental-availability/index.ts
+
+      - name: Booking gateway Edge Function regression check
+        run: deno check --node-modules-dir=auto supabase/functions/booking-gateway/index.ts
+
+      - name: Production build
+        run: npm run build

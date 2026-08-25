@@ -61,21 +61,21 @@ Deno.serve(async (request: Request) => {
 
   try {
     const networkKey = await sha256(`${clean(request.headers.get("x-client-ip"), 100) || "unknown"}|${clean(request.headers.get("user-agent"), 240)}`);
-    const allowedResponse = await rpc("consume_rate_limit", { p_key_hash: networkKey, p_scope: "tour_availability_v169", p_window_seconds: 60, p_limit: 30 });
+    const allowedResponse = await rpc("consume_rate_limit", { p_key_hash: networkKey, p_scope: "tour_demand_v170", p_window_seconds: 60, p_limit: 30 });
     if (!allowedResponse.ok) throw new Error("RATE_LIMIT_BACKEND_FAILED");
-    if (!(await allowedResponse.json())) return json({ ok: false, code: "RATE_LIMITED", message: "Çok fazla uygunluk sorgusu gönderildi.", requestId }, 429, requestId);
+    if (!(await allowedResponse.json())) return json({ ok: false, code: "RATE_LIMITED", message: "Çok fazla tur uygunluk sorgusu gönderildi.", requestId }, 429, requestId);
 
-    const response = await rpc("tour_availability_v169", { p_tour_identifier: identifier, p_tour_date: date });
+    const response = await rpc("tour_demand_v170", { p_tour_identifier: identifier, p_tour_date: date });
     const body = await response.json().catch(() => null);
     if (!response.ok) {
       const detail = JSON.stringify(body || {}).slice(0, 500);
       const notFound = detail.includes("TOUR_NOT_FOUND");
-      console.error("tour-availability-v169", requestId, response.status, detail);
-      return json({ ok: false, code: notFound ? "TOUR_NOT_FOUND" : "TOUR_AVAILABILITY_FAILED", requestId }, notFound ? 404 : 400, requestId);
+      console.error("tour-demand-v170", requestId, response.status, detail);
+      return json({ ok: false, code: notFound ? "TOUR_NOT_FOUND" : "TOUR_DEMAND_FAILED", requestId }, notFound ? 404 : 400, requestId);
     }
     return json({ ok: true, ...(body && typeof body === "object" ? body : {}), requestId }, 200, requestId);
   } catch (error) {
-    console.error("tour-availability-v169 unavailable", requestId, error);
-    return json({ ok: false, code: "TOUR_AVAILABILITY_UNAVAILABLE", message: "Tur kontenjanı şu anda doğrulanamadı.", requestId }, 503, requestId);
+    console.error("tour-demand-v170 unavailable", requestId, error);
+    return json({ ok: false, code: "TOUR_DEMAND_UNAVAILABLE", message: "Tur talep bilgisi şu anda doğrulanamadı.", requestId }, 503, requestId);
   }
 });

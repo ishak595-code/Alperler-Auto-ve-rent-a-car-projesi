@@ -121,6 +121,46 @@ async function rentalAvailability(request: Request): Promise<Response> {
   return proxiedResponse(request, upstream, "POST,OPTIONS", decision.requestId);
 }
 
+async function adminBookingActions(request: Request): Promise<Response> {
+  const decision = originDecision(request);
+  const method = request.method.toUpperCase();
+  if (!["GET", "POST"].includes(method)) {
+    return Response.json(
+      { ok: false, code: "METHOD_NOT_ALLOWED", requestId: decision.requestId },
+      { status: 405, headers: { ...corsHeaders(decision, "GET,POST,OPTIONS"), "cache-control": "no-store" } },
+    );
+  }
+  const authorization = request.headers.get("authorization") || "";
+  if (!/^Bearer\s+\S+/i.test(authorization)) {
+    return Response.json(
+      { ok: false, code: "UNAUTHORIZED", requestId: decision.requestId },
+      { status: 401, headers: { ...corsHeaders(decision, "GET,POST,OPTIONS"), "cache-control": "no-store" } },
+    );
+  }
+  if (Number(request.headers.get("content-length") || 0) > 16_384) {
+    return Response.json(
+      { ok: false, code: "PAYLOAD_TOO_LARGE", requestId: decision.requestId },
+      { status: 413, headers: { ...corsHeaders(decision, "GET,POST,OPTIONS"), "cache-control": "no-store" } },
+    );
+  }
+
+  try {
+    const upstream = await fetch(`${projectUrl()}/functions/v1/booking-admin-actions`, {
+      method,
+      headers: { authorization, "content-type": "application/json", "x-request-id": decision.requestId },
+      body: method === "GET" ? undefined : await request.text(),
+      signal: AbortSignal.timeout(15_000),
+    });
+    return proxiedResponse(request, upstream, "GET,POST,OPTIONS", decision.requestId);
+  } catch (error) {
+    console.error("Admin booking actions unavailable", decision.requestId, error);
+    return Response.json(
+      { ok: false, code: "ADMIN_BOOKING_ACTIONS_UNAVAILABLE", message: "Yönetim işlemi servisine ulaşılamıyor.", requestId: decision.requestId },
+      { status: 503, headers: { ...corsHeaders(decision, "GET,POST,OPTIONS"), "cache-control": "no-store" } },
+    );
+  }
+}
+
 async function bookingGateway(request: Request): Promise<Response> {
   const method = request.method.toUpperCase();
   const decision = originDecision(request);
@@ -174,6 +214,7 @@ export default {
       return integrationStatus(request);
     }
     if (mode === "rental-availability") return rentalAvailability(request);
+    if (mode === "admin-booking-actions") return adminBookingActions(request);
     return bookingGateway(request);
   },
 };

@@ -1,0 +1,1 @@
+Dynamic homepage block copy, Super Admin management, legacy footer admin cleanup.

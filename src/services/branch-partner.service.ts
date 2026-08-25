@@ -82,7 +82,7 @@ interface GatewayResponse {
 @Injectable({ providedIn: "root" })
 export class BranchPartnerService {
   private readonly auth = inject(AuthService);
-  private readonly endpoint = "/api/branch-partner";
+  private readonly endpoint = "/api/partner?op=branch-partner";
   private readonly submissionStorageKey = "alperler_branch_partner_submission_key";
   private submissionKey = this.loadSubmissionKey();
   private readonly _records = signal<BranchPartnerAdminRecord[]>([]);

@@ -24,3 +24,11 @@ grant select on table public.homepage_placements to authenticated;
 grant all on table public.footer_settings to service_role;
 grant all on table public.homepage_sections to service_role;
 grant all on table public.homepage_placements to service_role;
+
+-- Cover the actor foreign keys introduced by V174 so updates/deletes on auth.users
+-- do not require avoidable sequential scans of the dynamic content tables.
+create index if not exists footer_links_updated_by_v1741_idx
+  on public.footer_links(updated_by);
+
+create index if not exists prefooter_settings_updated_by_v1741_idx
+  on public.prefooter_settings(updated_by);

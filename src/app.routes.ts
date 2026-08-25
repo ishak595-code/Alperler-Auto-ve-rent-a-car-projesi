@@ -51,8 +51,10 @@ export const routes: Routes = [
   { path: 'account', canActivate: [customerGuard], loadComponent: () => import('./pages/account-shell.component').then(m => m.AccountShellComponent) },
   { path: 'account/wallet', canActivate: [customerGuard], loadComponent: () => import('./pages/account-wallet.component').then(m => m.AccountWalletComponent) },
   { path: 'branch-portal/login', loadComponent: () => import('./pages/branch-portal-login.component').then(m => m.BranchPortalLoginComponent) },
+  { path: 'branch-portal/subscription', loadComponent: () => import('./pages/branch-subscription-v171.component').then(m => m.BranchSubscriptionV171Component) },
   { path: 'branch-portal', loadComponent: () => import('./pages/branch-portal.component').then(m => m.BranchPortalComponent) },
   { path: 'search', loadComponent: () => import('./pages/search.component').then(m => m.SearchComponent) },
+  { path: 'branch-marketplace', loadComponent: () => import('./pages/branch-marketplace-v171.component').then(m => m.BranchMarketplaceV171Component) },
   { path: 'campaigns', loadComponent: () => import('./pages/campaigns.component').then(m => m.CampaignsComponent) },
   { path: 'fleet', component: FleetComponent },
   { path: 'fleet/:id', component: RentalDetailShellComponent },
@@ -63,6 +65,7 @@ export const routes: Routes = [
   { path: 'branches/:slug', loadComponent: () => import('./pages/branch-detail.component').then(m => m.BranchDetailComponent) },
   { path: 'branches', loadComponent: () => import('./pages/branches.component').then(m => m.BranchesComponent) },
   { path: 'branch-partner', loadComponent: () => import('./pages/branch-partner.component').then(m => m.BranchPartnerComponent) },
+  { path: 'branch-plans', loadComponent: () => import('./pages/branch-plans-v171.component').then(m => m.BranchPlansV171Component) },
   { path: 'blog', component: BlogListComponent },
   { path: 'blog/:id', component: BlogDetailComponent },
   { path: 'about', component: AboutComponent },
@@ -115,6 +118,7 @@ export const routes: Routes = [
       { path: 'telematics', canActivate: [adminAreaGuard('telematics')], loadComponent: () => import('./pages/admin/admin-telematics.component').then(m => m.AdminTelematicsComponent) },
 
       { path: 'finance', canActivate: [adminAreaGuard('finance')], loadComponent: () => import('./pages/admin/admin-finance.component').then(m => m.AdminFinanceComponent) },
+      { path: 'branch-subscriptions', canActivate: [adminAreaGuard('finance')], loadComponent: () => import('./pages/admin/admin-branch-subscriptions-v171.component').then(m => m.AdminBranchSubscriptionsV171Component) },
       { path: 'marketing', canActivate: [adminAreaGuard('marketing')], loadComponent: () => import('./pages/admin/admin-marketing.component').then(m => m.AdminMarketingComponent) },
 
       { path: 'team-center', component: AdminTeamHubComponent, data: { teamSection: 'people' } },

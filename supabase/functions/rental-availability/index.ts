@@ -83,15 +83,16 @@ Deno.serve(async (request) => {
       return json({ ok: false, code: "RATE_LIMITED", message: "Çok fazla uygunluk isteği gönderildi. Lütfen kısa bir süre sonra tekrar deneyin.", requestId: id }, 429, id);
     }
 
-    const response = await rest("rpc/evaluate_rental_request", {
+    const pickupBranchId = clean(input["pickupBranchId"], 80);
+    const response = await rest("rpc/evaluate_rental_request_v2", {
       method: "POST",
       headers: { "x-request-id": id },
-      body: JSON.stringify({ p_vehicle_identifier: vehicleIdentifier, p_start_local: startLocal, p_end_local: endLocal }),
+      body: JSON.stringify({ p_vehicle_identifier: vehicleIdentifier, p_start_local: startLocal, p_end_local: endLocal, p_pickup_branch_id: pickupBranchId || null }),
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => ({})) as { message?: string; details?: string };
       const raw = `${payload.message || ""} ${payload.details || ""}`;
-      const code = raw.includes("INVALID_RENTAL_VEHICLE") ? "INVALID_RENTAL_VEHICLE" : raw.includes("INVALID_BRANCH_TIMEZONE") ? "INVALID_BRANCH_TIMEZONE" : raw.includes("INVALID_RENTAL_DATES") ? "INVALID_RENTAL_DATES" : "AVAILABILITY_CHECK_FAILED";
+      const code = raw.includes("INVALID_RENTAL_VEHICLE") ? "INVALID_RENTAL_VEHICLE" : raw.includes("INVALID_PICKUP_BRANCH") ? "INVALID_PICKUP_BRANCH" : raw.includes("INVALID_BRANCH_TIMEZONE") ? "INVALID_BRANCH_TIMEZONE" : raw.includes("INVALID_RENTAL_DATES") ? "INVALID_RENTAL_DATES" : "AVAILABILITY_CHECK_FAILED";
       return json({ ok: false, code, message: code === "INVALID_RENTAL_VEHICLE" ? "Seçtiğiniz araç rezervasyona açık değil." : code === "INVALID_RENTAL_DATES" ? "Teslim alma ve iade tarihlerini kontrol edin." : "Araç uygunluğu şu anda doğrulanamadı.", requestId: id }, code.startsWith("INVALID_") ? 400 : 503, id);
     }
 

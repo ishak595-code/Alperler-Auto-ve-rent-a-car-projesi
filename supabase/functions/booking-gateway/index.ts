@@ -224,6 +224,7 @@ function toApi(row: any) {
     rentalHours: row.rental_hours ?? undefined,
     withDriver: Boolean(row.with_driver),
     pickupBranchId: row.pickup_branch_id || undefined,
+    dropoffBranchId: row.dropoff_branch_id || undefined,
     pickupLocation: row.pickup_location || undefined,
     dropoffLocation: row.dropoff_location || undefined,
     rentalDuration: row.rental_duration || undefined,
@@ -544,19 +545,29 @@ function rentalWallClock(value: unknown): string {
   return `${match[1]}-${match[2]}-${match[3]}T${hh}:${mm}:${ss}`;
 }
 
-async function evaluateRentalRequest(identifier: string, startValue: unknown, endValue: unknown): Promise<any> {
-  const response = await db("rpc/evaluate_rental_request", {
+async function operationalBranch(branchId: string, kind: "pickup" | "dropoff"): Promise<any> {
+  if (!uuid(branchId)) throw new Error(kind === "pickup" ? "INVALID_PICKUP_BRANCH" : "INVALID_DROPOFF_BRANCH");
+  const flag = kind === "pickup" ? "is_pickup_point" : "is_return_point";
+  const row = await firstRow(`branches?id=eq.${encodeURIComponent(branchId)}&is_active=eq.true&public_status=eq.ACTIVE&${flag}=eq.true&select=id,timezone&limit=1`);
+  if (!row?.id) throw new Error(kind === "pickup" ? "INVALID_PICKUP_BRANCH" : "INVALID_DROPOFF_BRANCH");
+  return row;
+}
+
+async function evaluateRentalRequest(identifier: string, startValue: unknown, endValue: unknown, pickupBranchId?: string | null): Promise<any> {
+  const response = await db("rpc/evaluate_rental_request_v2", {
     method: "POST",
     body: JSON.stringify({
       p_vehicle_identifier: identifier,
       p_start_local: rentalWallClock(startValue),
       p_end_local: rentalWallClock(endValue),
+      p_pickup_branch_id: pickupBranchId || null,
     }),
   });
   const payload = await response.json().catch(() => null);
   if (!response.ok || !payload?.startAt || !payload?.endAt) {
     const raw = String(payload?.message || payload?.details || "");
     if (raw.includes("INVALID_BRANCH_TIMEZONE")) throw new Error("INVALID_BRANCH_TIMEZONE");
+    if (raw.includes("INVALID_PICKUP_BRANCH")) throw new Error("INVALID_PICKUP_BRANCH");
     if (raw.includes("INVALID_RENTAL_VEHICLE")) throw new Error("INVALID_RENTAL_VEHICLE");
     throw new Error("INVALID_RENTAL_DATES");
   }
@@ -569,6 +580,7 @@ async function authoritativeRental(
   start: string,
   end: string,
   withDriver: boolean,
+  timezone: string,
 ) {
   const option = driverOption(vehicle);
   if (withDriver && option === "WITHOUT_DRIVER") throw new Error("DRIVER_OPTION_NOT_ALLOWED");
@@ -631,7 +643,6 @@ async function authoritativeRental(
     };
   }
 
-  const timezone = await branchTimezone(vehicle.branch_id);
   const days = rentalDays(start, end, timezone);
   const normalDaily = Math.max(0, Number(vehicle.rental_price_daily ?? vehicle.price ?? 0));
   let daily = normalDaily;
@@ -769,20 +780,25 @@ async function createBooking(request: Request): Promise<Response> {
     let campaignId: string | null = null;
     let discountAmount = 0;
     let metadata: any = {};
-    let pickupBranchId = uuid(clean(body?.pickupBranchId, 80))
-      ? clean(body?.pickupBranchId, 80)
-      : null;
+    const pickupBranchInput = clean(body?.pickupBranchId, 80);
+    const dropoffBranchInput = clean(body?.dropoffBranchId, 80);
+    let pickupBranchId: string | null = null;
+    let dropoffBranchId: string | null = null;
 
     if (type === "RENTAL") {
       if (!itemId) throw new Error("INVALID_RENTAL_VEHICLE");
       const vehicle = await getRentalVehicle(itemId);
       vehicleId = String(vehicle.id);
-      const evaluation = await evaluateRentalRequest(itemId, body?.startDate, body?.endDate);
+      if (pickupBranchInput) await operationalBranch(pickupBranchInput, "pickup");
+      if (dropoffBranchInput) await operationalBranch(dropoffBranchInput, "dropoff");
+      const evaluation = await evaluateRentalRequest(itemId, body?.startDate, body?.endDate, pickupBranchInput || null);
       startAt = String(evaluation.startAt);
       endAt = String(evaluation.endAt);
+      pickupBranchId = uuid(String(evaluation.pickupBranchId || "")) ? String(evaluation.pickupBranchId) : null;
+      dropoffBranchId = dropoffBranchInput || pickupBranchId;
 
       const withDriver = Boolean(body?.withDriver);
-      const calculation = await authoritativeRental(body, vehicle, startAt, endAt, withDriver);
+      const calculation = await authoritativeRental(body, vehicle, startAt, endAt, withDriver, String(evaluation.branchTimezone || "Europe/Istanbul"));
       days = calculation.days;
       rentalHoursValue = calculation.hours;
       rentalDurationValue = calculation.duration;
@@ -790,9 +806,10 @@ async function createBooking(request: Request): Promise<Response> {
       totalPrice = calculation.total;
       campaignId = calculation.campaign?.id || null;
       discountAmount = calculation.discountAmount;
-      pickupBranchId = pickupBranchId ||
-        (uuid(String(vehicle.branch_id || "")) ? String(vehicle.branch_id) : null);
       metadata = {
+        pickup_branch_id: pickupBranchId,
+        dropoff_branch_id: dropoffBranchId,
+        branch_timezone: String(evaluation.branchTimezone || "Europe/Istanbul"),
         selected_extra_ids: calculation.requested,
         price_breakdown: {
           rental_duration: calculation.duration,
@@ -838,6 +855,7 @@ async function createBooking(request: Request): Promise<Response> {
       start_at: startAt,
       end_at: endAt,
       pickup_branch_id: pickupBranchId,
+      dropoff_branch_id: dropoffBranchId,
       pickup_location: clean(body?.pickupLocation, 240) || null,
       dropoff_location: clean(body?.dropoffLocation, 240) || null,
       person_count: integerValue(body?.personCount, 1, 100),
@@ -911,6 +929,10 @@ async function createBooking(request: Request): Promise<Response> {
       ? "Seçtiğiniz satılık araç bulunamadı veya artık satış talebine açık değil."
       : code === "INVALID_TOUR"
       ? "Seçtiğiniz tur bulunamadı veya şu anda rezervasyona açık değil."
+      : code === "INVALID_PICKUP_BRANCH"
+      ? "Seçtiğiniz teslim alma şubesi şu anda kiralama teslimine açık değil."
+      : code === "INVALID_DROPOFF_BRANCH"
+      ? "Seçtiğiniz iade şubesi şu anda araç iadesine açık değil."
       : code === "INVALID_RENTAL_DATES"
       ? "Teslim alma ve iade tarihlerini kontrol edin."
       : code === "INVALID_HOURLY_RENTAL"

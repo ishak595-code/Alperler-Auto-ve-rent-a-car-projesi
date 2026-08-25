@@ -95,6 +95,17 @@ export default {
         publicCache: "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400",
       });
     }
+    if (operation === "branch-access-claim") {
+      return proxy(request, {
+        edgeFunction: "branch-access-v165",
+        allowedMethods: ["POST"],
+        timeout: 15_000,
+        requireAuth: true,
+        maxBodyBytes: 1024,
+        unavailableCode: "BRANCH_ACCESS_UNAVAILABLE",
+        unavailableMessage: "Şube erişim doğrulama servisine şu anda ulaşılamıyor.",
+      });
+    }
     if (operation === "media") {
       return proxy(request, { edgeFunction: "partner-media", allowedMethods: ["POST"], timeout: 12_000, requireAuth: true, unavailableCode: "PARTNER_MEDIA_UNAVAILABLE" });
     }

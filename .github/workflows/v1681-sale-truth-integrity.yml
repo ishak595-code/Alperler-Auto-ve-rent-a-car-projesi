@@ -1,0 +1,102 @@
+name: V168.1 Sale Truth Integrity
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sale-truth-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+      - name: Structured tramer database contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE=supabase/migrations/20260825183500_v1681_structured_tramer_truth.sql
+          test -f "$FILE"
+          grep -Fq "DECLARED_CLEAN" "$FILE"
+          grep -Fq "VERIFIED_RECORD" "$FILE"
+          grep -Fq "SALE_TRAMER_AMOUNT_REQUIRED" "$FILE"
+          grep -Fq "SALE_TRAMER_VERIFICATION_PROVENANCE_REQUIRED" "$FILE"
+          grep -Fq "local_painted" "$FILE"
+          grep -Fq "SALE_DAMAGE_FREE_EXPERTISE_CONFLICT" "$FILE"
+          grep -Fq "expertiseSummary" "$FILE"
+          grep -Fq "13-v_known" "$FILE"
+      - name: Canonical sale upload form contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE=src/pages/admin/admin-catalog-editor.component.ts
+          grep -Fq "Toplam tramer tutarı TL" "$FILE"
+          grep -Fq "Lokal Boyalı" "$FILE"
+          grep -Fq "saleParts" "$FILE"
+          grep -Fq "tramerSourceUrl" "$FILE"
+          grep -Fq "saleTruthError" "$FILE"
+          grep -Fq "damageExpertise" "$FILE"
+          grep -Fq "isDamageFree" "$FILE"
+      - name: Sale truth review center contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE=src/pages/admin/admin-sale-integrity-v1681.component.ts
+          grep -Fq "Lokal Boyalı" "$FILE"
+          grep -Fq "Tramer tutarı TL" "$FILE"
+          grep -Fq "tramerAmount" "$FILE"
+          grep -Fq "VERIFIED_CLEAN" "$FILE"
+          grep -Fq "tramerVerifiedAt" "$FILE"
+          grep -Fq "rearBumper" "$FILE"
+      - name: Public sale detail and card truth contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          DETAIL=src/pages/sale-detail-v1681.component.ts
+          GRAPHIC=src/components/expertise-graphic.component.ts
+          CARD=src/components/sale-vehicle-card-v168.component.ts
+          grep -Fq "Beyan ve doğrulama birbirinden ayrı gösterilir" "$DETAIL"
+          grep -Fq "local_painted" "$DETAIL"
+          grep -Fq "tramerAmountLabel" "$DETAIL"
+          grep -Fq "safeSourceUrl" "$DETAIL"
+          grep -Fq "local_painted" "$GRAPHIC"
+          grep -Fq "rearBumper" "$GRAPHIC"
+          grep -Fq "Arka tampon" "$GRAPHIC"
+          grep -Fq "Bilgi yok" "$GRAPHIC"
+          grep -Fq "tramerLabel" "$CARD"
+          grep -Fq "Tramer: bilinmiyor" "$CARD"
+          grep -Fq "tramerAmount" "$CARD"
+      - name: Admin publication preflight mirrors DB
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE=src/services/catalog-admin-editor.service.ts
+          grep -Fq "tramerStatus" "$FILE"
+          grep -Fq "tramerAmount" "$FILE"
+          grep -Fq "local_painted" "$FILE"
+          grep -Fq "tramerSourceUrl" "$FILE"
+      - name: Preserve previous sale and rental integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "SalesShowcaseV168Component" src/pages/sales-results.component.ts
+          grep -Fq "RentalShowcaseV167Component" src/pages/fleet.component.ts
+          grep -Fq "RentalDetailV167Component" src/pages/catalog-detail-shells.component.ts
+          grep -Fq "SaleDetailV1681Component" src/pages/catalog-detail-shells.component.ts
+      - name: Frontend TypeScript
+        run: npm run lint
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Accessibility guards
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+      - name: Production Angular build
+        run: npm run build

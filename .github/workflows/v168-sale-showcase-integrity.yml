@@ -68,7 +68,7 @@ jobs:
           set -euo pipefail
           SHOW="src/pages/sales-showcase-v168.component.ts"
           CARD="src/components/sale-vehicle-card-v168.component.ts"
-          DETAIL="src/pages/sale-detail-v168.component.ts"
+          DETAIL="src/pages/sale-detail-v1681.component.ts"
           test -f "$SHOW" && test -f "$CARD" && test -f "$DETAIL"
           grep -q "priceBounds=computed" "$SHOW"
           grep -q "kmBounds=computed" "$SHOW"
@@ -77,7 +77,7 @@ jobs:
           grep -q "cloudStockCode" "$CARD"
           grep -q "branchLabel" "$CARD"
           grep -q "hasPartExpertise" "$DETAIL"
-          grep -q "tramerUnverified" "$DETAIL"
+          grep -q "tramerStatus" "$DETAIL"
           grep -q "VehicleTechnicalSpecs" "$DETAIL"
           if grep -Eq "priceOptions|kmOptions|0-500000|150000\+" "$SHOW"; then
             echo "Sale price/km filters must derive from live numeric bounds"
@@ -96,22 +96,23 @@ jobs:
             exit 1
           fi
           grep -q "SalesShowcaseV168Component" src/pages/sales-results.component.ts
-          grep -q "SaleDetailV168Component" src/pages/catalog-detail-shells.component.ts
+          grep -q "SaleDetailV1681Component" src/pages/catalog-detail-shells.component.ts
 
       - name: Super Admin sale integrity contract
         shell: bash
         run: |
           set -euo pipefail
-          ADMIN="src/pages/admin/admin-sale-integrity-v168.component.ts"
+          ADMIN="src/pages/admin/admin-sale-integrity-v1681.component.ts"
           test -f "$ADMIN"
           grep -q "damageExpertise" "$ADMIN"
           grep -q "isDamageFree" "$ADMIN"
           grep -q "hasPaintOrChange" "$ADMIN"
           grep -q "damageStatus" "$ADMIN"
-          grep -q "tramer" "$ADMIN"
+          grep -q "tramerStatus" "$ADMIN"
+          grep -q "local_painted" "$ADMIN"
           grep -q "frontLeftDoor" "$ADMIN"
           grep -q "rearRightFender" "$ADMIN"
-          grep -q "AdminSaleIntegrityV168Component" src/pages/admin/admin-content-hub.component.ts
+          grep -q "AdminSaleIntegrityV1681Component" src/pages/admin/admin-content-hub.component.ts
           grep -q "sale-integrity" src/pages/admin/admin-content-hub.component.ts
 
       - name: Preserve V167 rental commercial integrity

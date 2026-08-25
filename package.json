@@ -40,12 +40,14 @@
     "@angular/build": "21.2.21",
     "@angular/cli": "21.2.21",
     "@angular/compiler-cli": "21.2.21",
+    "@tailwindcss/postcss": "4.2.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^22.14.0",
     "@types/nodemailer": "^7.0.0",
     "@types/pdfkit": "^0.17.6",
     "archiver": "^8.0.0",
+    "postcss": "8.5.26",
     "tailwindcss": "4.2.1",
     "typescript": "~5.9.3"
   }

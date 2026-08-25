@@ -3,6 +3,7 @@ import { Component, OnInit, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { ActivatedRoute, Router } from "@angular/router";
+import { AccessibleNativeDateComponent } from "../../components/accessible-native-date.component";
 import { Branch, BranchPublicStatus, BranchServiceType } from "../../models/branch.model";
 import { BranchService } from "../../services/branch.service";
 import { AdminBranchOperationsV171Service, BranchLifecycleStatusV171 } from "../../services/admin-branch-operations-v171.service";
@@ -11,7 +12,7 @@ import { ToastService } from "../../services/toast.service";
 @Component({
   selector: "app-admin-branches",
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, AccessibleNativeDateComponent],
   template: `
     <main class="min-h-screen bg-slate-100 pb-20 text-slate-900">
       <header class="sticky top-0 z-30 border-b border-slate-200 bg-white shadow-sm">
@@ -32,12 +33,8 @@ import { ToastService } from "../../services/toast.service";
           <label class="grid gap-1 text-xs font-black text-slate-600">Durum
             <select [(ngModel)]="statusFilter" class="field"><option value="ALL">Tümü</option><option value="ACTIVE">Canlı</option><option value="DRAFT">Kurulum</option><option value="SUSPENDED">Askıda</option><option value="CLOSED">Kapalı</option></select>
           </label>
-          <label class="grid gap-1 text-xs font-black text-slate-600">Oluşturulma başlangıcı
-            <input [(ngModel)]="dateFrom" type="date" class="field" aria-label="Şube oluşturulma başlangıç tarihi" />
-          </label>
-          <label class="grid gap-1 text-xs font-black text-slate-600">Oluşturulma bitişi
-            <input [(ngModel)]="dateTo" type="date" class="field" aria-label="Şube oluşturulma bitiş tarihi" />
-          </label>
+          <app-accessible-native-date class="admin-date" label="Oluşturulma başlangıcı" [value]="dateFrom" (valueChange)="dateFrom=$event" />
+          <app-accessible-native-date class="admin-date" label="Oluşturulma bitişi" [value]="dateTo" [min]="dateFrom" (valueChange)="dateTo=$event" />
         </div>
       </section>
 
@@ -89,7 +86,7 @@ import { ToastService } from "../../services/toast.service";
             <label class="block"><span class="field-label">Telefon</span><input [(ngModel)]="draft.phone" type="tel" class="field" /></label>
             <label class="block"><span class="field-label">WhatsApp</span><input [(ngModel)]="draft.whatsapp" type="tel" class="field" /></label>
             <label class="block"><span class="field-label">E-posta</span><input [(ngModel)]="draft.email" type="email" class="field" /></label>
-            <label class="block"><span class="field-label">Saat Dilimi</span><input [(ngModel)]="draft.timezone" class="field" placeholder="Europe/Istanbul" aria-describedby="branch-timezone-help" /><small id="branch-timezone-help" class="mt-1 block text-xs text-slate-500">IANA saat dilimi kullanın. Rezervasyon saatleri buna göre UTC'ye çevrilir.</small></label>
+            <label class="block"><span class="field-label">Saat Dilimi</span><input [(ngModel)]="draft.timezone" class="field" placeholder="Europe/Istanbul" aria-describedby="branch-timezone-help" /><small id="branch-timezone-help" class="mt-1 block text-xs text-slate-500">IANA saat dilimi kullanın. Örnek: Europe/Istanbul veya Europe/Zurich. Rezervasyon saatleri buna göre UTC'ye çevrilir.</small></label>
             <label class="block"><span class="field-label">Hizmet Bölgesi</span><input [(ngModel)]="draft.territoryLabel" class="field" placeholder="Yüksekova merkez ve çevresi" /></label>
             <label class="block"><span class="field-label">Halka Açık Açıklama</span><textarea [(ngModel)]="draft.publicDescription" rows="4" class="field"></textarea></label>
             <label class="block"><span class="field-label">Harita URL'si</span><input [(ngModel)]="draft.mapUrl" type="url" class="field" placeholder="Gerçek harita bağlantısı" /></label>
@@ -119,7 +116,7 @@ import { ToastService } from "../../services/toast.service";
       }
     </main>
   `,
-  styles: [`.field-label{display:block;margin-bottom:.4rem;font-size:.7rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#64748b}.field{min-height:48px;width:100%;border:1px solid #cbd5e1;border-radius:.75rem;padding:.7rem .85rem;outline:none;background:white}.field:focus{box-shadow:0 0 0 2px #3b82f6;border-color:#3b82f6}.check-row{display:flex;min-height:48px;align-items:center;gap:.5rem;border-radius:.75rem;background:#f8fafc;padding:0 .75rem;font-size:.8rem;font-weight:800}.check-row input{width:20px;height:20px}`],
+  styles: [`.field-label{display:block;margin-bottom:.4rem;font-size:.7rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#64748b}.field{min-height:48px;width:100%;border:1px solid #cbd5e1;border-radius:.75rem;padding:.7rem .85rem;outline:none;background:white}.field:focus{box-shadow:0 0 0 2px #3b82f6;border-color:#3b82f6}.admin-date{--date-bg:#fff;--date-color:#0f172a;--date-label:#475569;--date-border:#cbd5e1;--date-hint:#64748b;--date-icon:#2563eb;--date-focus:#2563eb}.check-row{display:flex;min-height:48px;align-items:center;gap:.5rem;border-radius:.75rem;background:#f8fafc;padding:0 .75rem;font-size:.8rem;font-weight:800}.check-row input{width:20px;height:20px}`],
 })
 export class AdminBranchesComponent implements OnInit {
   readonly branchService=inject(BranchService);readonly toastService=inject(ToastService);readonly router=inject(Router);private readonly route=inject(ActivatedRoute);private readonly operations=inject(AdminBranchOperationsV171Service);readonly saving=signal(false);readonly isNew=signal(true);readonly errorMessage=signal("");readonly lifecycleTarget=signal<Branch|null>(null);readonly lifecycleStatus=signal<BranchLifecycleStatusV171>("SUSPENDED");readonly serviceOptions:BranchServiceType[]=["RENTAL","SALES","TOUR","TRANSFER","PICKUP","RETURN"];

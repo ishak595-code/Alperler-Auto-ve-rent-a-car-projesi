@@ -4,6 +4,8 @@
 
 A real mobile browser capture showed the customer shell in a partially styled state: the accessibility skip link was visible, the navbar geometry collapsed, and the closed mobile navigation occupied the page surface and intercepted interaction. The bottom customer dock remained comparatively intact because it already owned most of its critical CSS inside the component.
 
+The release acceptance criteria are based on that real-device failure mode: a closed menu must never intercept taps, the skip link must stay offscreen until keyboard focus, the customer shell must remain readable at phone/tablet/desktop widths, and an installed home-screen launch must use the standalone PWA shell with current caches.
+
 ## Root causes addressed
 
 1. Critical customer-shell geometry depended too heavily on generated Tailwind utilities.

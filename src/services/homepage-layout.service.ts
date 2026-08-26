@@ -53,19 +53,8 @@ export class HomepageLayoutService {
     this.destroyRef.onDestroy(unwatch);
 
     if (typeof window !== 'undefined') {
-      const clockTimer = window.setInterval(() => this._clock.set(Date.now()), 60_000);
-      const fallbackTimer = window.setInterval(() => {
-        if (this._loaded() && document.visibilityState === 'visible') this.queueRealtimeRefresh(0);
-      }, 60_000);
-      const onVisibility = () => {
-        if (document.visibilityState === 'visible' && this._loaded()) this.queueRealtimeRefresh(0);
-      };
-      document.addEventListener('visibilitychange', onVisibility);
       this.destroyRef.onDestroy(() => {
-        window.clearInterval(clockTimer);
-        window.clearInterval(fallbackTimer);
         if (this.refreshTimer !== undefined) window.clearTimeout(this.refreshTimer);
-        document.removeEventListener('visibilitychange', onVisibility);
       });
     }
   }
@@ -116,6 +105,11 @@ export class HomepageLayoutService {
     }
   }
 
+  async refreshPublicState(): Promise<void> {
+    this._clock.set(Date.now());
+    await this.load();
+  }
+
   placementsFor(sectionKey: string): PublicHomepagePlacement[] {
     const now = this._clock();
     return this._placements()
@@ -125,13 +119,13 @@ export class HomepageLayoutService {
 
   private queueRealtimeRefresh(delay = 140): void {
     if (typeof window === 'undefined') {
-      void this.load();
+      void this.refreshPublicState();
       return;
     }
     if (this.refreshTimer !== undefined) window.clearTimeout(this.refreshTimer);
     this.refreshTimer = window.setTimeout(() => {
       this.refreshTimer = undefined;
-      void this.load();
+      void this.refreshPublicState();
     }, delay);
   }
 

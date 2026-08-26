@@ -7,6 +7,7 @@ import { AppComponent } from './src/app.component';
 import { routes } from './src/app.routes';
 import { provideLegacyWebhookSafety } from './src/providers/legacy-webhook-safety.provider';
 import { bookingSuccessInterceptor } from './src/services/booking-success.interceptor';
+import { installCampaignSocialProofFetchBroker } from './src/services/campaign-social-proof-fetch-broker';
 import { GlobalErrorHandler } from './src/services/global-error-handler';
 import { startPwaRuntime } from './src/services/pwa-runtime.service';
 
@@ -46,6 +47,9 @@ window.addEventListener('storage', (event) => {
   }
 });
 
+// Multiple dynamic homepage sections can coexist, but the anonymous campaign
+// social-proof read must remain a single bounded network flow on mobile.
+installCampaignSocialProofFetchBroker();
 startPwaRuntime();
 
 if (window.self !== window.top) {

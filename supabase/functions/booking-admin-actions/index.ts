@@ -105,7 +105,7 @@ Deno.serve(async(request)=>{
 
     if(action==="approve"){
       const reference=clean(body["bookingReference"],80);if(!reference)throw new Error("BOOKING_NOT_FOUND");const booking=await bookingByReference(reference);if(!booking?.id)throw new Error("BOOKING_NOT_FOUND");
-      const approval=await serviceRpc(admin?"service_approve_booking_v180":"service_approve_booking_v180",{p_actor:admin.id,p_booking_id:booking.id,p_request_id:id});
+      const approval=await serviceRpc("service_approve_booking_v180",{p_actor:admin.id,p_booking_id:booking.id,p_request_id:id});
       const saved=await bookingByReference(reference);const notification=await notify(booking.id,"booking_approved");
       return json(request,{ok:true,approval,bookingReference:reference,status:saved?.status||"APPROVED",notification,requestId:id},200,id);
     }

@@ -1,8 +1,5 @@
 import { Injectable, inject, signal } from "@angular/core";
-import {
-  SUPABASE_PROJECT_URL,
-  SUPABASE_PUBLISHABLE_KEY,
-} from "../supabase.config";
+import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { AuthService } from "./auth.service";
 
 export type CatalogMediaKind = "IMAGE" | "VIDEO";
@@ -28,7 +25,6 @@ export interface CatalogMediaItem {
   objectPath?: string;
   metadata?: Record<string, unknown>;
 }
-
 
 interface CatalogMediaRow {
   id: string;
@@ -57,10 +53,19 @@ type MediaPatch = Partial<Pick<
   "attribution" | "sourceUrl" | "sourceName" | "license" | "metadata"
 >>;
 
+interface MediaControlResponse {
+  ok?: boolean;
+  code?: string;
+  records?: CatalogMediaRow[];
+  record?: CatalogMediaRow;
+  result?: { removed?: boolean; storageBucket?: string | null; objectPath?: string | null };
+}
+
 @Injectable({ providedIn: "root" })
 export class CatalogMediaService {
   private readonly auth = inject(AuthService);
   private readonly bucket = "catalog-media";
+  private readonly endpoint = "/api/partner?op=media-control-admin";
   private readonly tusThreshold = 6 * 1024 * 1024;
   private readonly tusChunkSize = 6 * 1024 * 1024;
   readonly maxUploadBytes = 50 * 1024 * 1024;
@@ -68,23 +73,13 @@ export class CatalogMediaService {
   readonly uploadProgress = this._uploadProgress.asReadonly();
 
   async load(entityType: CatalogEntityType, entityId: string): Promise<CatalogMediaItem[]> {
-    const column = this.ownerColumn(entityType);
-    const adminToken = await this.auth.getAccessToken().catch(() => null);
-    const activeFilter = adminToken ? "" : "&is_active=eq.true";
-    const url = `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?${column}=eq.${encodeURIComponent(entityId)}${activeFilter}&select=*&order=sort_order.asc,created_at.asc`;
-    const response = await fetch(url, { headers: adminToken ? this.authHeaders(adminToken) : this.publicHeaders() });
-    if (!response.ok) throw new Error(`CATALOG_MEDIA_LOAD_${response.status}`);
-    return ((await response.json()) as CatalogMediaRow[]).map((row) => this.fromRow(row));
+    const payload = await this.gateway("GET", undefined, { entityType, entityId });
+    return (payload.records || []).map((row) => this.fromRow(row));
   }
 
   async loadAllAdmin(): Promise<CatalogMediaItem[]> {
-    const token = await this.requiredToken();
-    const response = await fetch(
-      `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?select=*&order=created_at.desc`,
-      { headers: this.authHeaders(token) },
-    );
-    if (!response.ok) throw new Error(`CATALOG_MEDIA_ADMIN_LOAD_${response.status}`);
-    return ((await response.json()) as CatalogMediaRow[]).map((row) => this.fromRow(row));
+    const payload = await this.gateway("GET");
+    return (payload.records || []).map((row) => this.fromRow(row));
   }
 
   async upload(
@@ -96,57 +91,56 @@ export class CatalogMediaService {
     this.validateFile(file);
     const token = await this.requiredToken();
     const kind: CatalogMediaKind = file.type.startsWith("video/") ? "VIDEO" : "IMAGE";
-    if (options.isCover && kind !== "IMAGE") throw new Error("CATALOG_COVER_REQUIRES_IMAGE");
+    if (options.isCover && kind !== "IMAGE") throw new Error("Kapak yalnız fotoğraf olabilir.");
     const extension = this.extension(file);
     const objectPath = `${entityType.toLowerCase()}/${entityId}/${crypto.randomUUID()}.${extension}`;
     this._uploadProgress.set(0);
     try {
-      if (file.size >= this.tusThreshold) {
-        await this.uploadTus(file, objectPath, token);
-      } else {
+      if (file.size >= this.tusThreshold) await this.uploadTus(file, objectPath, token);
+      else {
         await this.uploadStandard(file, objectPath, token);
         this._uploadProgress.set(100);
       }
 
-      const row = {
-        ...this.ownerPayload(entityType, entityId),
-        kind,
-        storage_bucket: this.bucket,
-        object_path: objectPath,
-        external_url: null,
-        poster_url: options.posterUrl || null,
-        source_url: null,
-        source_name: "Alperler Auto yönetim paneli",
-        license: "BUSINESS_OWNED",
-        attribution: "Alperler Auto",
-        alt_text: (options.altText || file.name).trim().slice(0, 300),
-        sort_order: options.sortOrder ?? 0,
-        is_cover: false,
-        is_active: true,
-        metadata: {
-          originalName: file.name,
-          mimeType: file.type,
-          fileSize: file.size,
-          verificationScope: "ACTUAL_ASSET",
-          sourceVerified: true,
-          provenanceComplete: true,
-          reviewStatus: "VERIFIED",
-          verifiedAt: new Date().toISOString().slice(0, 10),
-        },
-      };
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?select=*`, {
-        method: "POST",
-        headers: { ...this.authHeaders(token), Prefer: "return=representation" },
-        body: JSON.stringify(row),
-      });
-      if (!response.ok) {
+      let created: CatalogMediaItem;
+      try {
+        const response = await this.gateway("POST", {
+          action: "CREATE_CATALOG_MEDIA",
+          entityType,
+          entityId,
+          payload: {
+            kind,
+            storage_bucket: this.bucket,
+            object_path: objectPath,
+            poster_url: options.posterUrl || null,
+            source_name: "Alperler Auto yönetim paneli",
+            license: "BUSINESS_OWNED",
+            attribution: "Alperler Auto",
+            alt_text: (options.altText || file.name).trim().slice(0, 300),
+            sort_order: options.sortOrder ?? 0,
+            metadata: {
+              originalName: file.name.slice(0, 180),
+              mimeType: file.type,
+              fileSize: file.size,
+              verificationScope: "ACTUAL_ASSET",
+              sourceVerified: true,
+              provenanceComplete: true,
+              reviewStatus: "VERIFIED",
+              verifiedAt: new Date().toISOString().slice(0, 10),
+            },
+          },
+        });
+        if (!response.record) throw new Error("CATALOG_MEDIA_CREATE_FAILED");
+        created = this.fromRow(response.record);
+      } catch (error) {
         await this.deleteStorageObject(objectPath, token).catch(() => undefined);
-        throw new Error(`CATALOG_MEDIA_ROW_CREATE_${response.status}`);
+        throw error;
       }
-      const created = this.fromRow(((await response.json()) as CatalogMediaRow[])[0]);
+
       if (options.isCover) {
-        await this.setCoverRpc(created.id, token);
-        return { ...created, isCover: true };
+        const response = await this.gateway("PATCH", { action: "SET_CATALOG_COVER", mediaId: created.id });
+        if (!response.record) throw new Error("CATALOG_COVER_SET_FAILED");
+        created = this.fromRow(response.record);
       }
       return created;
     } finally {
@@ -154,10 +148,10 @@ export class CatalogMediaService {
     }
   }
 
-
   async update(item: CatalogMediaItem, patch: MediaPatch): Promise<CatalogMediaItem> {
-    const token = await this.requiredToken();
-    await this.assertSafeUpdate(item, patch, token);
+    if (patch.isCover === true && (patch.isActive === false || item.kind !== "IMAGE")) {
+      throw new Error("Kapak yalnız aktif bir görsel olabilir.");
+    }
     const body: Record<string, unknown> = {};
     if (patch.altText !== undefined) body["alt_text"] = patch.altText.trim().slice(0, 300);
     if (patch.sortOrder !== undefined) body["sort_order"] = patch.sortOrder;
@@ -172,104 +166,63 @@ export class CatalogMediaService {
 
     let updated = item;
     if (Object.keys(body).length) {
-      const response = await fetch(
-        `${SUPABASE_PROJECT_URL}/rest/v1/catalog_media?id=eq.${encodeURIComponent(item.id)}&select=*`,
-        {
-          method: "PATCH",
-          headers: { ...this.authHeaders(token), Prefer: "return=representation" },
-          body: JSON.stringify(body),
-        },
-      );
-      if (!response.ok) throw new Error(`CATALOG_MEDIA_UPDATE_${response.status}`);
-      updated = this.fromRow(((await response.json()) as CatalogMediaRow[])[0]);
+      const response = await this.gateway("PATCH", { action: "UPDATE_CATALOG_MEDIA", mediaId: item.id, payload: body });
+      if (!response.record) throw new Error("CATALOG_MEDIA_UPDATE_FAILED");
+      updated = this.fromRow(response.record);
     }
     if (patch.isCover === true) {
-      await this.setCoverRpc(item.id, token);
-      updated = { ...updated, isCover: true, isActive: true };
+      const response = await this.gateway("PATCH", { action: "SET_CATALOG_COVER", mediaId: item.id });
+      if (!response.record) throw new Error("CATALOG_COVER_SET_FAILED");
+      updated = this.fromRow(response.record);
     }
     return updated;
   }
 
   async remove(item: CatalogMediaItem): Promise<void> {
     const token = await this.requiredToken();
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/remove_catalog_media_safe`, {
-      method: "POST",
-      headers: this.authHeaders(token),
-      body: JSON.stringify({ p_media_id: item.id }),
-    });
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const raw = String(payload?.message || `CATALOG_MEDIA_SAFE_DELETE_${response.status}`);
-      if (raw.includes("CATALOG_LIVE_LAST_IMAGE_BLOCKED")) {
-        throw new Error("Canlı ilanın son aktif görseli silinemez. Önce yeni bir görsel ekleyin.");
-      }
-      throw new Error(raw);
-    }
-    if (item.storageBucket === this.bucket && item.objectPath) {
-      await this.deleteStorageObject(item.objectPath, token).catch((error) => {
-        console.warn("Catalog media database row removed but storage cleanup failed", error);
+    const response = await this.gateway("POST", { action: "REMOVE_CATALOG_MEDIA", mediaId: item.id });
+    const storageBucket = response.result?.storageBucket || item.storageBucket;
+    const objectPath = response.result?.objectPath || item.objectPath;
+    if (storageBucket === this.bucket && objectPath) {
+      await this.deleteStorageObject(objectPath, token).catch((error) => {
+        console.warn("Catalog media metadata removed but Storage cleanup failed", error);
       });
     }
   }
 
-  private async assertSafeUpdate(item: CatalogMediaItem, patch: MediaPatch, token: string): Promise<void> {
-    if (patch.isCover === true && (patch.isActive === false || item.kind !== "IMAGE")) {
-      throw new Error("Kapak yalnız aktif bir görsel olabilir.");
-    }
-    const removesCover = item.isCover && (patch.isCover === false || patch.isActive === false);
-    const deactivatesImage = item.kind === "IMAGE" && item.isActive && patch.isActive === false;
-    if (!removesCover && !deactivatesImage) return;
-    if (!(await this.isLiveOwner(item, token))) return;
-    if (removesCover) {
-      throw new Error("Canlı ilanın kapağı doğrudan kapatılamaz. Önce başka bir görseli kapak yapın veya mevcut kapağı silerek otomatik yedek kapak atamasını kullanın.");
-    }
-    const remaining = await this.otherActiveImageCount(item, token);
-    if (remaining < 1) throw new Error("Canlı ilanın son aktif görseli kapatılamaz. Önce yeni bir görsel ekleyin.");
-  }
-
-  private async setCoverRpc(mediaId: string, token: string): Promise<void> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/set_catalog_media_cover`, {
-      method: "POST",
-      headers: this.authHeaders(token),
-      body: JSON.stringify({ p_media_id: mediaId }),
+  private async gateway(
+    method: "GET" | "POST" | "PATCH",
+    body?: Record<string, unknown>,
+    query?: Record<string, string>,
+  ): Promise<MediaControlResponse> {
+    const token = await this.requiredToken();
+    const search = new URLSearchParams({ op: "media-control-admin", ...(query || {}) });
+    const response = await fetch(`/api/partner?${search.toString()}`, {
+      method,
+      cache: "no-store",
+      headers: {
+        authorization: `Bearer ${token}`,
+        accept: "application/json",
+        ...(method === "GET" ? {} : { "content-type": "application/json" }),
+        "x-request-id": crypto.randomUUID(),
+      },
+      body: method === "GET" ? undefined : JSON.stringify(body || {}),
     });
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      throw new Error(String(payload?.message || `CATALOG_COVER_SET_${response.status}`));
-    }
+    const payload = await response.json().catch(() => ({})) as MediaControlResponse;
+    if (!response.ok || payload.ok !== true) throw new Error(this.mediaError(payload.code || `MEDIA_CONTROL_${response.status}`));
+    return payload;
   }
 
-  private async isLiveOwner(item: CatalogMediaItem, token: string): Promise<boolean> {
-    if (item.vehicleId) {
-      const rows = await this.getRows(`vehicles?id=eq.${encodeURIComponent(item.vehicleId)}&select=publication_status,is_active&limit=1`, token);
-      return rows[0]?.publication_status && ["PUBLISHED", "SCHEDULED"].includes(String(rows[0].publication_status)) && rows[0]?.is_active === true;
-    }
-    if (item.tourId) {
-      const rows = await this.getRows(`tours?id=eq.${encodeURIComponent(item.tourId)}&select=publication_status,is_active&limit=1`, token);
-      return rows[0]?.publication_status && ["PUBLISHED", "SCHEDULED"].includes(String(rows[0].publication_status)) && rows[0]?.is_active === true;
-    }
-    if (item.blogPostId) {
-      const rows = await this.getRows(`blog_posts?id=eq.${encodeURIComponent(item.blogPostId)}&select=status&limit=1`, token);
-      return String(rows[0]?.status || "") === "PUBLISHED";
-    }
-    return false;
-  }
-
-  private async otherActiveImageCount(item: CatalogMediaItem, token: string): Promise<number> {
-    const entity = this.entityFromItem(item);
-    const column = this.ownerColumn(entity.type);
-    const rows = await this.getRows(
-      `catalog_media?${column}=eq.${encodeURIComponent(entity.id)}&id=neq.${encodeURIComponent(item.id)}&kind=eq.IMAGE&is_active=eq.true&select=id`,
-      token,
-    );
-    return rows.length;
-  }
-
-  private async getRows(path: string, token: string): Promise<any[]> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, { headers: this.authHeaders(token) });
-    if (!response.ok) throw new Error(`CATALOG_MEDIA_INTEGRITY_READ_${response.status}`);
-    const rows = await response.json();
-    return Array.isArray(rows) ? rows : [];
+  private mediaError(code: string): string {
+    const map: Record<string, string> = {
+      CATALOG_LIVE_LAST_IMAGE_BLOCKED: "Canlı ilanın son aktif görseli silinemez veya kapatılamaz. Önce yeni bir görsel ekleyin.",
+      CATALOG_LIVE_COVER_CHANGE_REQUIRES_REPLACEMENT: "Canlı ilanın kapağı doğrudan kapatılamaz. Önce başka bir görseli kapak yapın.",
+      CATALOG_COVER_REQUIRES_ACTIVE_IMAGE: "Kapak yalnız aktif bir görsel olabilir.",
+      STORAGE_OBJECT_OWNERSHIP_REQUIRED: "Yüklenen dosyanın güvenli sahiplik doğrulaması yapılamadı.",
+      MEDIA_SOURCE_MUST_BE_HTTPS: "Medya kaynak bağlantısı HTTPS olmalıdır.",
+      CONTENT_PERMISSION_REQUIRED: "Bu medya işlemi için içerik yönetim yetkisi gerekli.",
+    };
+    return map[code] || code;
   }
 
   private requireHttpsUrl(value: string, code: string): string {
@@ -278,11 +231,8 @@ export class CatalogMediaService {
       const parsed = new URL(trimmed);
       if (parsed.protocol !== "https:") throw new Error(code);
       return parsed.toString();
-    } catch {
-      throw new Error(code);
-    }
+    } catch { throw new Error(code); }
   }
-
 
   private async uploadStandard(file: File, objectPath: string, token: string): Promise<void> {
     const response = await fetch(
@@ -304,10 +254,7 @@ export class CatalogMediaService {
 
   private async uploadTus(file: File, objectPath: string, token: string): Promise<void> {
     const metadata = [
-      ["bucketName", this.bucket],
-      ["objectName", objectPath],
-      ["contentType", file.type],
-      ["cacheControl", "3600"],
+      ["bucketName", this.bucket], ["objectName", objectPath], ["contentType", file.type], ["cacheControl", "3600"],
     ].map(([key, value]) => `${key} ${btoa(unescape(encodeURIComponent(value)))}`).join(",");
     const create = await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/upload/resumable`, {
       method: "POST",
@@ -346,10 +293,7 @@ export class CatalogMediaService {
           });
           if (response.ok) break;
           if (![409, 412, 429, 500, 502, 503, 504].includes(response.status)) throw new Error(`CATALOG_TUS_PATCH_${response.status}`);
-        } catch (error) {
-          lastError = error;
-          response = null;
-        }
+        } catch (error) { lastError = error; response = null; }
       }
       if (!response?.ok) throw lastError instanceof Error ? lastError : new Error("CATALOG_TUS_UPLOAD_FAILED");
       const nextOffset = Number(response.headers.get("upload-offset"));
@@ -370,32 +314,12 @@ export class CatalogMediaService {
 
   private validateFile(file: File): void {
     const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/avif", "video/mp4", "video/webm"]);
-    if (!allowed.has(file.type)) throw new Error("CATALOG_MEDIA_TYPE_NOT_ALLOWED");
-    if (file.size < 1 || file.size > this.maxUploadBytes) throw new Error("CATALOG_MEDIA_SIZE_NOT_ALLOWED");
+    if (!allowed.has(file.type)) throw new Error("Yalnız JPEG, PNG, WebP, AVIF, MP4 veya WebM yüklenebilir.");
+    if (file.size < 1 || file.size > this.maxUploadBytes) throw new Error("Dosya 50 MB sınırını aşıyor.");
   }
-
   private extension(file: File): string {
-    const byType: Record<string, string> = {
-      "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif", "video/mp4": "mp4", "video/webm": "webm",
-    };
-    return byType[file.type] || "bin";
+    return ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif", "video/mp4": "mp4", "video/webm": "webm" } as Record<string, string>)[file.type] || "bin";
   }
-
-  private ownerColumn(type: CatalogEntityType): string {
-    return type === "VEHICLE" ? "vehicle_id" : type === "TOUR" ? "tour_id" : "blog_post_id";
-  }
-
-  private ownerPayload(type: CatalogEntityType, id: string): Record<string, string> {
-    return { [this.ownerColumn(type)]: id };
-  }
-
-  private entityFromItem(item: CatalogMediaItem): { type: CatalogEntityType; id: string } {
-    if (item.vehicleId) return { type: "VEHICLE", id: item.vehicleId };
-    if (item.tourId) return { type: "TOUR", id: item.tourId };
-    if (item.blogPostId) return { type: "BLOG", id: item.blogPostId };
-    throw new Error("CATALOG_MEDIA_OWNER_MISSING");
-  }
-
   private fromRow(row: CatalogMediaRow): CatalogMediaItem {
     const url = row.external_url || (row.storage_bucket && row.object_path
       ? `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${encodeURIComponent(row.storage_bucket)}/${row.object_path.split("/").map(encodeURIComponent).join("/")}` : "");
@@ -413,22 +337,16 @@ export class CatalogMediaService {
       attribution: row.attribution || undefined,
       altText: row.alt_text || "",
       sortOrder: Number(row.sort_order || 0),
-      isCover: Boolean(row.is_cover),
+      isCover: row.is_cover === true,
       isActive: row.is_active !== false,
       storageBucket: row.storage_bucket || undefined,
       objectPath: row.object_path || undefined,
       metadata: row.metadata || {},
     };
   }
-
-  private publicHeaders(): Record<string, string> {
-    return { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}` };
-  }
-
   private authHeaders(token: string): Record<string, string> {
     return { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}`, "content-type": "application/json" };
   }
-
   private async requiredToken(): Promise<string> {
     const token = await this.auth.getAccessToken();
     if (!token) throw new Error("ADMIN_SESSION_REQUIRED");

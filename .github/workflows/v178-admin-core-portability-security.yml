@@ -1,0 +1,124 @@
+name: V178 Admin Core Portability Security
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260826040000_v178_admin_core_security_gateway.sql"
+      - "supabase/functions/admin-core-gateway-v178/**"
+      - "src/services/admin-management.service.ts"
+      - "src/services/admin-operations.service.ts"
+      - "src/services/homepage-admin.service.ts"
+      - "api/partner.ts"
+      - ".github/workflows/v178-admin-core-portability-security.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v178-admin-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Service-only database contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260826040000_v178_admin_core_security_gateway.sql
+          for fn in \
+            service_admin_operations_snapshot_v178 \
+            service_admin_management_snapshot_v178 \
+            service_admin_staff_branches_v178 \
+            service_save_staff_v178 \
+            service_set_staff_active_v178 \
+            service_assign_staff_branch_v178 \
+            service_unassign_staff_branch_v178 \
+            service_assign_staff_vehicle_v178 \
+            service_assign_staff_tour_v178 \
+            service_save_branch_basic_v178; do
+            grep -Fq "create or replace function public.${fn}" "$MIG"
+            grep -Fq "grant execute on function public.${fn}" "$MIG"
+          done
+          grep -Fq "revoke all on function private.can_actor_manage_team_v178(uuid) from public, anon, authenticated" "$MIG"
+          grep -Fq "grant execute on function private.can_actor_manage_team_v178(uuid) to service_role" "$MIG"
+          count=$(grep -Fc "from public, anon, authenticated;" "$MIG")
+          test "$count" -ge 11
+
+      - name: Super Admin browser cannot bypass gateways
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in src/services/admin-management.service.ts src/services/admin-operations.service.ts; do
+            if grep -E 'SUPABASE_PROJECT_URL|SUPABASE_PUBLISHABLE_KEY|supabaseFunctionUrl|/rest/v1/|/functions/v1/' "$file"; then
+              echo "Direct Supabase admin path detected in $file"
+              exit 1
+            fi
+          done
+          grep -Fq '/api/partner?op=admin-core' src/services/admin-management.service.ts
+          grep -Fq '/api/partner?op=admin-team' src/services/admin-management.service.ts
+          grep -Fq '/api/partner?op=admin-core&view=operations' src/services/admin-operations.service.ts
+          grep -Fq "inject(HomepageAdminService)" src/services/admin-management.service.ts
+
+      - name: Same-origin API proxy contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'operation === "admin-core"' api/partner.ts
+          grep -Fq 'edgeFunction: "admin-core-gateway-v178"' api/partner.ts
+          grep -Fq 'operation === "admin-team"' api/partner.ts
+          grep -Fq 'edgeFunction: "admin-team"' api/partner.ts
+          grep -Fq 'forwardQuery: ["view", "staffId"]' api/partner.ts
+
+      - name: Edge authorization and payload guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          EDGE=supabase/functions/admin-core-gateway-v178/index.ts
+          grep -Fq 'requireActor(request)' "$EDGE"
+          grep -Fq 'MAX_BODY_BYTES = 64 * 1024' "$EDGE"
+          grep -Fq 'service_admin_operations_snapshot_v178' "$EDGE"
+          grep -Fq 'service_admin_management_snapshot_v178' "$EDGE"
+          grep -Fq 'service_save_staff_v178' "$EDGE"
+          grep -Fq 'service_save_branch_basic_v178' "$EDGE"
+          if grep -E 'SUPABASE_SERVICE_ROLE_KEY.*(console|json|return)|serviceHeaders\(\).*request' "$EDGE"; then
+            echo "Potential service credential exposure pattern detected"
+            exit 1
+          fi
+
+      - name: Frontend lint
+        run: npm run lint
+
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Accessibility guards
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+
+      - name: Vercel function budget
+        run: npm run vercel:functions
+
+      - name: Premium design contract
+        run: npm run design:premium
+
+      - name: Edge Function TypeScript
+        run: npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/admin-core-gateway-v178/index.ts
+
+      - name: Production Angular build
+        run: npm run build

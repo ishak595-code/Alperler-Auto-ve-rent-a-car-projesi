@@ -14,6 +14,7 @@ const tourDetail = read("src/pages/tour-detail.component.ts");
 const checkout = read("src/pages/booking-checkout.component.ts");
 const dynamicHome = read("src/components/dynamic-home-section.component.ts");
 const campaigns = read("src/pages/campaigns.component.ts");
+const campaignService = read("src/services/campaign.service.ts");
 const adminEditor = read("src/services/catalog-admin-editor.service.ts");
 const catalogApi = read("api/catalog.ts");
 const bootstrap = read("index.tsx");
@@ -57,8 +58,14 @@ if (!dynamicHome.includes('(click)="openCampaign(campaign)"') || !dynamicHome.in
 if (!campaigns.includes("resolveCampaignTarget") || !campaigns.includes("navigateByUrl")) failures.push("campaign listing does not use internal target routing");
 for (const source of [dynamicHome, campaigns]) {
   if (!source.includes("countdown") && !source.includes("Countdown")) failures.push("campaign UI lacks real deadline countdown");
-  if (!source.includes("campaign_social_proof")) failures.push("campaign UI is not connected to aggregate real analytics social proof");
+  if (source.includes("campaign_social_proof")) failures.push("campaign UI reintroduced direct social-proof RPC ownership");
 }
+if (!campaignService.includes('@Injectable({ providedIn: "root" })')) failures.push("campaign social proof owner is not an application-root singleton");
+if (!campaignService.includes("campaign_social_proof")) failures.push("campaign aggregate analytics social proof RPC has no canonical service owner");
+if (!campaignService.includes("readonly proofByCampaign = this._proofByCampaign.asReadonly();")) failures.push("campaign social proof is not exposed as shared readonly state");
+if (!campaignService.includes("socialProofInFlight") || !campaignService.includes("socialProofLastLoadedAt")) failures.push("campaign social proof request dedupe/freshness guard is missing");
+if (!dynamicHome.includes("this.campaignsService.proofByCampaign")) failures.push("homepage campaign UI is not connected to shared aggregate social proof");
+if (!campaigns.includes("this.campaignService.proofByCampaign")) failures.push("campaign listing is not connected to shared aggregate social proof");
 if (!dynamicHome.includes("KAMPANYA") || !dynamicHome.includes("campaignProofLabel")) failures.push("homepage campaign card lacks explicit campaign identity or proof label");
 if (!campaigns.includes("proofLabel")) failures.push("campaign listing lacks real interest proof label");
 if (!fs.existsSync(campaignProofMigration)) failures.push("campaign social proof migration missing");
@@ -85,4 +92,4 @@ if (publicMedia.includes("/vehicle-media/") || vercel.includes("/vehicle-media/"
 if (!fs.existsSync(campaignMigration)) failures.push("campaign cover synchronization migration missing");
 
 if (failures.length) { console.error(failures.join("\n")); process.exit(1); }
-console.log("Unified catalogue guard passed: sale keeps its dedicated listing UX; rental remains compact; campaign proof comes from real aggregate analytics; app routing and Storage remain canonical.");
+console.log("Unified catalogue guard passed: sale keeps its dedicated listing UX; rental remains compact; campaign proof has one root service owner with shared deduped state; app routing and Storage remain canonical.");

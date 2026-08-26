@@ -70,7 +70,7 @@ jobs:
               'readonly clock = this._clock.asReadonly();',
               'socialProofInFlight',
               'socialProofLastLoadedAt',
-              'document.visibilityState === "visible"',
+              'async refreshPublicState(',
               'controller.abort()',
           )
           missing = [token for token in required_campaign_tokens if token not in campaign]

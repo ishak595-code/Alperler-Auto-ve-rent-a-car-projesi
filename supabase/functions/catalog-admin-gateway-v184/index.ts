@@ -141,7 +141,8 @@ async function requireAdmin(request: Request): Promise<AdminIdentity> {
   if (!row) throw new Error("FORBIDDEN");
   const permissions = row.permissions && typeof row.permissions === "object" ? row.permissions as Record<string, unknown> : {};
   const role = clean(row.role, 30).toLowerCase();
-  if (!(role === "owner" || role === "admin" || role === "editor" || permissions["content.manage"] === true)) throw new Error("FORBIDDEN");
+  const canManageContent = role === "owner" || role === "admin" || permissions["content.manage"] === true || permissions["settings.manage"] === true;
+  if (!canManageContent) throw new Error("FORBIDDEN");
   return { id, email, role, permissions };
 }
 

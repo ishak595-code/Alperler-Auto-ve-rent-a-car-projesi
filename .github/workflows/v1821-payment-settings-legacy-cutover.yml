@@ -1,0 +1,64 @@
+name: V182.1 Payment Settings Legacy Cutover
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260826071000_v1821_payment_settings_legacy_cutover.sql"
+      - "supabase/migrations/20260826070000_v182_admin_surface_portability_security.sql"
+      - "supabase/functions/admin-core-gateway-v178/**"
+      - "src/services/payment-settings.service.ts"
+      - ".github/workflows/v1821-payment-settings-legacy-cutover.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v1821-payment-cutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Legacy browser write removal contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          CUT=supabase/migrations/20260826071000_v1821_payment_settings_legacy_cutover.sql
+          grep -Fq 'drop policy if exists payment_settings_admin_write on public.payment_settings' "$CUT"
+          grep -Fq 'revoke insert, update, delete on table public.payment_settings from anon, authenticated' "$CUT"
+          grep -Fq 'grant select on table public.payment_settings to anon, authenticated' "$CUT"
+
+      - name: Secure admin path and public read must coexist
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "adminEndpoint = '/api/partner?op=admin-core'" src/services/payment-settings.service.ts
+          grep -Fq "action: 'SAVE_PAYMENT_SETTINGS'" src/services/payment-settings.service.ts
+          grep -Fq 'service_payment_settings_snapshot_v182' supabase/functions/admin-core-gateway-v178/index.ts
+          grep -Fq 'service_save_payment_settings_v182' supabase/functions/admin-core-gateway-v178/index.ts
+          grep -Fq 'payment_settings?config_key=eq.main' src/services/payment-settings.service.ts
+
+      - name: Set up Node.js 22 from immutable action
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+
+      - name: Frontend and API checks
+        run: |
+          npm run lint
+          npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Production build
+        run: npm run build

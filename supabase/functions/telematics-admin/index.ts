@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const URL = Deno.env.get("SUPABASE_URL") || "";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const COMMAND_URL = (Deno.env.get("TELEMATICS_COMMAND_URL") || "").trim();
 const COMMAND_SECRET = (Deno.env.get("TELEMATICS_COMMAND_SECRET") || "").trim();
@@ -91,7 +91,7 @@ function serviceHeaders(extra: Record<string, string> = {}): Record<string, stri
 }
 
 async function db(path: string, init: RequestInit = {}): Promise<Response> {
-  return fetch(`${URL}/rest/v1/${path}`, {
+  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...init,
     headers: { ...serviceHeaders(), ...(init.headers || {}) },
     signal: init.signal || AbortSignal.timeout(10_000),
@@ -99,7 +99,7 @@ async function db(path: string, init: RequestInit = {}): Promise<Response> {
 }
 
 async function rpc<T = unknown>(name: string, body: JsonObject): Promise<T> {
-  const response = await fetch(`${URL}/rest/v1/rpc/${name}`, {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
     method: "POST",
     headers: serviceHeaders(),
     body: JSON.stringify(body),
@@ -129,7 +129,7 @@ async function requireAdmin(request: Request, manage = false): Promise<Admin> {
   const authorization = request.headers.get("authorization") || "";
   if (!/^Bearer\s+\S+/i.test(authorization)) throw new Error("UNAUTHORIZED");
 
-  const userResponse = await fetch(`${URL}/auth/v1/user`, {
+  const userResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: { apikey: SERVICE, authorization },
     signal: AbortSignal.timeout(8_000),
   });
@@ -379,7 +379,7 @@ Deno.serve(async (request: Request) => {
   const origin = resolveOrigin(request);
   if (origin.supplied && !origin.allowed) return json(request, { ok: false, code: "ORIGIN_NOT_ALLOWED" }, 403, id);
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin.allowed) });
-  if (!URL || !SERVICE) return json(request, { ok: false, code: "SERVER_CONFIG_MISSING" }, 503, id);
+  if (!SUPABASE_URL || !SERVICE) return json(request, { ok: false, code: "SERVER_CONFIG_MISSING" }, 503, id);
   if (!["GET", "POST"].includes(request.method)) return json(request, { ok: false, code: "METHOD_NOT_ALLOWED" }, 405, id);
 
   try {

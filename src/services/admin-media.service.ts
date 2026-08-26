@@ -51,38 +51,42 @@ export class AdminMediaService {
     }
 
     const publicUrl = `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${this.bucket}/${encodedPath}`;
-    const asset = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/media_assets`, {
-      method: 'POST',
-      headers: {
-        apikey: SUPABASE_PUBLISHABLE_KEY,
-        authorization: `Bearer ${token}`,
-        'content-type': 'application/json',
-        Prefer: 'return=minimal',
-      },
-      body: JSON.stringify({
-        bucket: this.bucket,
-        object_path: objectPath,
-        media_type: 'IMAGE',
-        entity_type: String(entityType || 'CONTENT').slice(0, 80),
-        entity_id: String(entityId || 'draft').slice(0, 180),
-        alt_text: file.name.slice(0, 180),
-        is_public: true,
-        metadata: {
-          purpose: safePurpose,
-          originalName: file.name.slice(0, 180),
-          size: file.size,
-          mimeType: file.type,
+    try {
+      const asset = await fetch('/api/partner?op=media-control-admin', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+          accept: 'application/json',
+          'x-request-id': crypto.randomUUID(),
         },
-      }),
-    });
-
-    if (!asset.ok) {
+        body: JSON.stringify({
+          action: 'REGISTER_MEDIA_ASSET',
+          payload: {
+            bucket: this.bucket,
+            object_path: objectPath,
+            media_type: 'IMAGE',
+            entity_type: String(entityType || 'CONTENT').slice(0, 80),
+            entity_id: String(entityId || 'draft').slice(0, 180),
+            alt_text: file.name.slice(0, 180),
+            metadata: {
+              purpose: safePurpose,
+              originalName: file.name.slice(0, 180),
+              size: file.size,
+              mimeType: file.type,
+            },
+          },
+        }),
+      });
+      const payload = await asset.json().catch(() => ({})) as { ok?: boolean; code?: string };
+      if (!asset.ok || payload.ok !== true) throw new Error(payload.code || `MEDIA_ASSET_${asset.status}`);
+    } catch (error) {
       await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/${this.bucket}/${encodedPath}`, {
         method: 'DELETE',
         headers: { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}` },
       }).catch(() => undefined);
-      const payload = await asset.json().catch(() => ({})) as { message?: string; code?: string };
-      throw new Error(payload.message || payload.code || `MEDIA_ASSET_${asset.status}`);
+      throw error;
     }
 
     return { bucket: this.bucket, objectPath, publicUrl };

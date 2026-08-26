@@ -1,0 +1,32 @@
+name: V189 Security Definer Surface Hardening
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  v189-security-definer-surface:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci
+      - name: V189 SECURITY DEFINER semantic guard
+        run: node scripts/check-v189-security-definer-surface.mjs
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+      - name: Frontend type check
+        run: npm run typecheck
+      - name: API TypeScript
+        run: npm run typecheck:api
+      - name: Production build
+        run: npm run build

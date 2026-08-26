@@ -162,7 +162,7 @@ export class CatalogMediaService {
     if (patch.license !== undefined) body["license"] = patch.license?.trim() || null;
     if (patch.sourceUrl !== undefined) body["source_url"] = patch.sourceUrl ? this.requireHttpsUrl(patch.sourceUrl, "MEDIA_SOURCE_MUST_BE_HTTPS") : null;
     if (patch.metadata !== undefined) body["metadata"] = patch.metadata || {};
-    if (patch.isCover === false) body["is_cover"] = false;
+    if (patch.isCover === false || (item.isCover && patch.isActive === false && patch.isCover === undefined)) body["is_cover"] = false;
 
     let updated = item;
     if (Object.keys(body).length) {
@@ -196,8 +196,9 @@ export class CatalogMediaService {
     query?: Record<string, string>,
   ): Promise<MediaControlResponse> {
     const token = await this.requiredToken();
-    const search = new URLSearchParams({ op: "media-control-admin", ...(query || {}) });
-    const response = await fetch(`/api/partner?${search.toString()}`, {
+    const search = new URLSearchParams(query || {});
+    const url = search.size ? `${this.endpoint}&${search.toString()}` : this.endpoint;
+    const response = await fetch(url, {
       method,
       cache: "no-store",
       headers: {
@@ -317,9 +318,11 @@ export class CatalogMediaService {
     if (!allowed.has(file.type)) throw new Error("Yalnız JPEG, PNG, WebP, AVIF, MP4 veya WebM yüklenebilir.");
     if (file.size < 1 || file.size > this.maxUploadBytes) throw new Error("Dosya 50 MB sınırını aşıyor.");
   }
+
   private extension(file: File): string {
     return ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif", "video/mp4": "mp4", "video/webm": "webm" } as Record<string, string>)[file.type] || "bin";
   }
+
   private fromRow(row: CatalogMediaRow): CatalogMediaItem {
     const url = row.external_url || (row.storage_bucket && row.object_path
       ? `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${encodeURIComponent(row.storage_bucket)}/${row.object_path.split("/").map(encodeURIComponent).join("/")}` : "");
@@ -344,9 +347,11 @@ export class CatalogMediaService {
       metadata: row.metadata || {},
     };
   }
+
   private authHeaders(token: string): Record<string, string> {
     return { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}`, "content-type": "application/json" };
   }
+
   private async requiredToken(): Promise<string> {
     const token = await this.auth.getAccessToken();
     if (!token) throw new Error("ADMIN_SESSION_REQUIRED");

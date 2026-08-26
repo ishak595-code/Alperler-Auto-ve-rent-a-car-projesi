@@ -29,7 +29,8 @@ assert(layout.includes('@media(min-width:1280px){.customer-main{padding-top:96px
 
 assert(!app.includes('AnalyticsConsentComponent'), 'first-load analytics consent UI must not be globally mounted');
 assert(!app.includes('<app-analytics-consent>'), 'first-load analytics consent element must be absent');
-assert(app.includes("'requestIdleCallback' in window"), 'noncritical startup should yield to first paint when supported');
+assert(app.includes("typeof idleWindow.requestIdleCallback === 'function'"), 'noncritical startup should feature-detect requestIdleCallback without unsafe narrowing');
+assert(app.includes('globalThis.setTimeout(start, 500)'), 'noncritical startup must retain a bounded timer fallback');
 for (const modulePath of [
   './services/system-health.service',
   './services/newsletter-sync.service',

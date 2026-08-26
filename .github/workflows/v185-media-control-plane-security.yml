@@ -10,6 +10,7 @@ on:
       - "api/partner.ts"
       - "supabase/functions/media-control-admin-v185/**"
       - "supabase/migrations/20260826090000_v185_media_control_plane_security.sql"
+      - "supabase/migrations/20260826090100_v185_catalog_media_cover_state_invariant.sql"
       - ".github/workflows/v185-media-control-plane-security.yml"
       - "package.json"
       - "package-lock.json"
@@ -42,6 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           SQL=supabase/migrations/20260826090000_v185_media_control_plane_security.sql
+          COVER=supabase/migrations/20260826090100_v185_catalog_media_cover_state_invariant.sql
           for RPC in \
             service_catalog_media_list_v185 \
             service_catalog_media_create_v185 \
@@ -61,6 +63,8 @@ jobs:
           ! grep -Eq 'grant execute .* to (anon|authenticated)' "$SQL"
           ! grep -Eiq 'drop trigger|disable trigger|alter table public\.catalog_media.*disable' "$SQL"
           ! grep -Eiq 'drop policy.*branch|revoke .* on (table )?public\.catalog_media' "$SQL"
+          grep -Fq 'catalog_media_cover_active_image_check' "$COVER"
+          grep -Fq "is_cover is not true or (is_active is true and kind='IMAGE')" "$COVER"
 
       - name: Central metadata must use same-origin control plane
         shell: bash

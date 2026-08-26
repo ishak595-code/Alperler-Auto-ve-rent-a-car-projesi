@@ -1,5 +1,4 @@
 import { Injectable, inject } from "@angular/core";
-import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { AuthService } from "./auth.service";
 
 export interface StaffBranchAssignmentRecord {
@@ -32,71 +31,74 @@ export interface AssignmentSnapshot {
   tours: TourStaffAssignmentRecord[];
 }
 
+interface AssignmentGatewaySnapshot {
+  branches?: Record<string, unknown>[];
+  vehicles?: Record<string, unknown>[];
+  tours?: Record<string, unknown>[];
+  code?: string;
+}
+
 @Injectable({ providedIn: "root" })
 export class AssignmentCenterService {
   private readonly auth = inject(AuthService);
+  private readonly endpoint = "/api/partner?op=admin-core";
 
   async load(): Promise<AssignmentSnapshot> {
     const token = await this.requiredToken();
-    const [branches, vehicles, tours] = await Promise.all([
-      this.rest<any[]>("GET", "staff_branch_assignments?select=staff_id,branch_id,is_primary,created_at&order=created_at.desc", undefined, token),
-      this.rest<any[]>("GET", "vehicle_staff_assignments?select=vehicle_id,staff_id,responsibility,created_at&order=created_at.desc", undefined, token),
-      this.rest<any[]>("GET", "tour_staff_assignments?select=tour_id,staff_id,responsibility,created_at&order=created_at.desc", undefined, token),
-    ]);
+    const response = await fetch(`${this.endpoint}&view=assignments`, { headers: this.headers(token), cache: "no-store" });
+    const payload = await response.json().catch(() => ({})) as AssignmentGatewaySnapshot;
+    if (!response.ok) throw new Error(String(payload.code || `ASSIGNMENT_${response.status}`));
+    const branches = Array.isArray(payload.branches) ? payload.branches : [];
+    const vehicles = Array.isArray(payload.vehicles) ? payload.vehicles : [];
+    const tours = Array.isArray(payload.tours) ? payload.tours : [];
 
     return {
       branches: branches.map((row) => ({
         kind: "BRANCH" as const,
-        staffId: String(row.staff_id),
-        branchId: String(row.branch_id),
-        isPrimary: Boolean(row.is_primary),
-        createdAt: row.created_at || undefined,
+        staffId: String(row["staff_id"] || ""),
+        branchId: String(row["branch_id"] || ""),
+        isPrimary: Boolean(row["is_primary"]),
+        createdAt: row["created_at"] ? String(row["created_at"]) : undefined,
       })),
       vehicles: vehicles.map((row) => ({
         kind: "VEHICLE" as const,
-        staffId: String(row.staff_id),
-        vehicleId: String(row.vehicle_id),
-        responsibility: String(row.responsibility || "RESPONSIBLE"),
-        createdAt: row.created_at || undefined,
+        staffId: String(row["staff_id"] || ""),
+        vehicleId: String(row["vehicle_id"] || ""),
+        responsibility: String(row["responsibility"] || "RESPONSIBLE"),
+        createdAt: row["created_at"] ? String(row["created_at"]) : undefined,
       })),
       tours: tours.map((row) => ({
         kind: "TOUR" as const,
-        staffId: String(row.staff_id),
-        tourId: String(row.tour_id),
-        responsibility: String(row.responsibility || "COORDINATOR"),
-        createdAt: row.created_at || undefined,
+        staffId: String(row["staff_id"] || ""),
+        tourId: String(row["tour_id"] || ""),
+        responsibility: String(row["responsibility"] || "COORDINATOR"),
+        createdAt: row["created_at"] ? String(row["created_at"]) : undefined,
       })),
     };
   }
 
   async removeBranch(staffId: string, branchId: string): Promise<void> {
-    const token = await this.requiredToken();
-    await this.rest(
-      "DELETE",
-      `staff_branch_assignments?staff_id=eq.${encodeURIComponent(staffId)}&branch_id=eq.${encodeURIComponent(branchId)}`,
-      undefined,
-      token,
-    );
+    await this.action({ action: "UNASSIGN_STAFF_BRANCH", staffId, branchId });
   }
 
   async removeVehicle(vehicleId: string, staffId: string, responsibility: string): Promise<void> {
-    const token = await this.requiredToken();
-    await this.rest(
-      "DELETE",
-      `vehicle_staff_assignments?vehicle_id=eq.${encodeURIComponent(vehicleId)}&staff_id=eq.${encodeURIComponent(staffId)}&responsibility=eq.${encodeURIComponent(responsibility)}`,
-      undefined,
-      token,
-    );
+    await this.action({ action: "UNASSIGN_STAFF_VEHICLE", vehicleId, staffId, responsibility });
   }
 
   async removeTour(tourId: string, staffId: string, responsibility: string): Promise<void> {
+    await this.action({ action: "UNASSIGN_STAFF_TOUR", tourId, staffId, responsibility });
+  }
+
+  private async action(body: Record<string, unknown>): Promise<void> {
     const token = await this.requiredToken();
-    await this.rest(
-      "DELETE",
-      `tour_staff_assignments?tour_id=eq.${encodeURIComponent(tourId)}&staff_id=eq.${encodeURIComponent(staffId)}&responsibility=eq.${encodeURIComponent(responsibility)}`,
-      undefined,
-      token,
-    );
+    const response = await fetch(this.endpoint, {
+      method: "PATCH",
+      headers: this.headers(token),
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+    const payload = await response.json().catch(() => ({})) as { code?: string };
+    if (!response.ok) throw new Error(String(payload.code || `ASSIGNMENT_${response.status}`));
   }
 
   private async requiredToken(): Promise<string> {
@@ -105,21 +107,12 @@ export class AssignmentCenterService {
     return token;
   }
 
-  private async rest<T>(method: "GET" | "DELETE", path: string, body: unknown, token: string): Promise<T> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
-      method,
-      headers: {
-        apikey: SUPABASE_PUBLISHABLE_KEY,
-        authorization: `Bearer ${token}`,
-        ...(body ? { "content-type": "application/json" } : {}),
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    if (!response.ok) {
-      const payload = await response.text().catch(() => "");
-      throw new Error(payload.slice(0, 280) || `ASSIGNMENT_${response.status}`);
-    }
-    if (method === "DELETE") return undefined as T;
-    return (await response.json()) as T;
+  private headers(token: string): Record<string, string> {
+    return {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+      accept: "application/json",
+      "x-request-id": crypto.randomUUID(),
+    };
   }
 }

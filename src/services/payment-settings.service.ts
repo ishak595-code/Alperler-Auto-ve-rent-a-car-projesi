@@ -30,6 +30,7 @@ const DEFAULTS: PaymentSettings = {
 @Injectable({ providedIn: 'root' })
 export class PaymentSettingsService {
   private readonly auth = inject(AuthService);
+  private readonly adminEndpoint = '/api/partner?op=admin-core';
   private readonly _settings = signal<PaymentSettings>({ ...DEFAULTS });
   private readonly _loading = signal(false);
   readonly settings = this._settings.asReadonly();
@@ -49,8 +50,10 @@ export class PaymentSettingsService {
 
   async refreshAdmin(): Promise<void> {
     const token = await this.requiredToken();
-    const rows = await this.rest<any[]>('GET', 'payment_settings?config_key=eq.main&select=*', undefined, token);
-    this._settings.set(rows[0] ? this.fromRow(rows[0]) : { ...DEFAULTS });
+    const response = await fetch(`${this.adminEndpoint}&view=payment-settings`, { headers: this.adminHeaders(token), cache: 'no-store' });
+    const row = await response.json().catch(() => ({})) as Record<string, unknown> & { code?: string };
+    if (!response.ok) throw new Error(String(row.code || `PAYMENT_SETTINGS_${response.status}`));
+    this._settings.set(row['config_key'] ? this.fromRow(row) : { ...DEFAULTS });
   }
 
   async save(settings: PaymentSettings): Promise<void> {
@@ -58,23 +61,29 @@ export class PaymentSettingsService {
     const value = Number(settings.depositValue || 0);
     if (!Number.isFinite(value) || value < 0) throw new Error('Depozito değeri geçerli değil.');
     if (settings.depositMode === 'PERCENT' && value > 100) throw new Error('Yüzde depozito 100 değerini geçemez.');
-    const payload = {
-      provider: settings.provider,
-      card_enabled: Boolean(settings.cardEnabled),
-      eft_enabled: Boolean(settings.eftEnabled),
-      office_enabled: Boolean(settings.officeEnabled),
-      deposit_mode: settings.depositMode,
-      deposit_value: value,
-      currency: settings.currency,
-      bank_name: this.clean(settings.bankName, 160) || null,
-      iban: this.clean(settings.iban, 80).replace(/\s+/g, '').toUpperCase() || null,
-      account_holder: this.clean(settings.accountHolder, 180) || null,
-      customer_note: this.clean(settings.customerNote, 1000) || null,
-      test_mode: Boolean(settings.testMode),
-      updated_at: new Date().toISOString(),
-    };
-    await this.rest('PATCH', 'payment_settings?config_key=eq.main', payload, token);
-    await this.refreshAdmin();
+    const response = await fetch(this.adminEndpoint, {
+      method: 'PATCH',
+      headers: this.adminHeaders(token),
+      body: JSON.stringify({
+        action: 'SAVE_PAYMENT_SETTINGS',
+        provider: settings.provider,
+        cardEnabled: Boolean(settings.cardEnabled),
+        eftEnabled: Boolean(settings.eftEnabled),
+        officeEnabled: Boolean(settings.officeEnabled),
+        depositMode: settings.depositMode,
+        depositValue: value,
+        currency: settings.currency,
+        bankName: this.clean(settings.bankName, 160) || null,
+        iban: this.clean(settings.iban, 80).replace(/\s+/g, '').toUpperCase() || null,
+        accountHolder: this.clean(settings.accountHolder, 180) || null,
+        customerNote: this.clean(settings.customerNote, 1000) || null,
+        testMode: Boolean(settings.testMode),
+      }),
+      cache: 'no-store',
+    });
+    const row = await response.json().catch(() => ({})) as Record<string, unknown> & { code?: string };
+    if (!response.ok) throw new Error(String(row.code || `PAYMENT_SETTINGS_${response.status}`));
+    this._settings.set(row['config_key'] ? this.fromRow(row) : { ...settings });
   }
 
   private fromRow(row: any): PaymentSettings {
@@ -92,9 +101,5 @@ export class PaymentSettingsService {
   }
   private clean(value: string, max: number): string { return String(value || '').replace(/\s+/g, ' ').trim().slice(0, max); }
   private async requiredToken(): Promise<string> { const token = await this.auth.getAccessToken(); if (!token) throw new Error('ADMIN_SESSION_REQUIRED'); return token; }
-  private async rest<T=unknown>(method:'GET'|'PATCH', path:string, body:unknown, token:string):Promise<T> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, { method, headers: { apikey: SUPABASE_PUBLISHABLE_KEY, authorization:`Bearer ${token}`, accept:'application/json', ...(method==='GET'?{}:{'content-type':'application/json'}) }, body: method==='GET'?undefined:JSON.stringify(body), cache:'no-store' });
-    if (!response.ok) { const payload = await response.json().catch(()=>({})) as {message?:string;code?:string}; throw new Error(payload.message || payload.code || `PAYMENT_SETTINGS_${response.status}`); }
-    if (response.status === 204) return undefined as T; const text = await response.text(); return (text ? JSON.parse(text) : undefined) as T;
-  }
+  private adminHeaders(token:string):Record<string,string> { return { authorization:`Bearer ${token}`, accept:'application/json', 'content-type':'application/json', 'x-request-id':crypto.randomUUID() }; }
 }

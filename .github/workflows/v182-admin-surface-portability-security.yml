@@ -1,0 +1,118 @@
+name: V182 Admin Surface Portability Security
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260826070000_v182_admin_surface_portability_security.sql"
+      - "supabase/functions/admin-core-gateway-v178/**"
+      - "api/partner.ts"
+      - "src/services/finance.service.ts"
+      - "src/services/marketing.service.ts"
+      - "src/services/assignment-center.service.ts"
+      - "src/services/payment-settings.service.ts"
+      - ".github/workflows/v182-admin-surface-portability-security.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v182-admin-surface-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 22 from immutable action
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Service-only assignment and payment contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260826070000_v182_admin_surface_portability_security.sql
+          for FN in \
+            service_assignment_snapshot_v182 \
+            service_unassign_staff_vehicle_v182 \
+            service_unassign_staff_tour_v182 \
+            service_payment_settings_snapshot_v182 \
+            service_save_payment_settings_v182; do
+            grep -Fq "public.${FN}" "$MIG"
+          done
+          grep -Fq 'private.can_actor_manage_team_v178(p_actor)' "$MIG"
+          grep -Fq 'private.can_actor_manage_settings_v174(p_actor)' "$MIG"
+          grep -Fq 'from public, anon, authenticated' "$MIG"
+          grep -Fq 'to service_role' "$MIG"
+          grep -Fq 'payment_settings_updated_v182' "$MIG"
+
+      - name: Privileged frontend paths must be same-origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq '/api/partner?op=finance-admin' src/services/finance.service.ts
+          ! grep -Fq 'SUPABASE_PROJECT_URL' src/services/finance.service.ts
+          grep -Fq '/api/partner?op=marketing-admin' src/services/marketing.service.ts
+          ! grep -Fq 'SUPABASE_PROJECT_URL' src/services/marketing.service.ts
+          grep -Fq '/api/partner?op=admin-core' src/services/assignment-center.service.ts
+          ! grep -Fq 'SUPABASE_PROJECT_URL' src/services/assignment-center.service.ts
+          ! grep -Fq 'SUPABASE_PUBLISHABLE_KEY' src/services/assignment-center.service.ts
+          ! grep -Fq '/rest/v1/' src/services/assignment-center.service.ts
+          grep -Fq "adminEndpoint = '/api/partner?op=admin-core'" src/services/payment-settings.service.ts
+          grep -Fq "action: 'SAVE_PAYMENT_SETTINGS'" src/services/payment-settings.service.ts
+          test "$(grep -Fc 'payment_settings?config_key=eq.main' src/services/payment-settings.service.ts)" -eq 1
+
+      - name: Admin core security and rate-limit contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          EDGE=supabase/functions/admin-core-gateway-v178/index.ts
+          grep -Fq 'service_assignment_snapshot_v182' "$EDGE"
+          grep -Fq 'service_unassign_staff_vehicle_v182' "$EDGE"
+          grep -Fq 'service_unassign_staff_tour_v182' "$EDGE"
+          grep -Fq 'service_payment_settings_snapshot_v182' "$EDGE"
+          grep -Fq 'service_save_payment_settings_v182' "$EDGE"
+          grep -Fq 'consume_rate_limit' "$EDGE"
+          grep -Fq 'admin-core-read-v182' "$EDGE"
+          grep -Fq 'admin-core-write-v182' "$EDGE"
+          grep -Fq 'RATE_LIMITED' "$EDGE"
+          grep -Fq 'private, no-store, max-age=0' "$EDGE"
+
+      - name: BFF proxy contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'operation === "finance-admin"' api/partner.ts
+          grep -Fq 'edgeFunction: "finance-admin"' api/partner.ts
+          grep -Fq 'forwardQuery: ["from", "to"]' api/partner.ts
+          grep -Fq 'operation === "marketing-admin"' api/partner.ts
+          grep -Fq 'edgeFunction: "marketing-admin"' api/partner.ts
+
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+
+      - name: Frontend TypeScript
+        run: npm run lint
+
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Admin core Edge Function TypeScript
+        run: npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/admin-core-gateway-v178/index.ts
+
+      - name: Vercel function budget
+        run: npm run vercel:functions
+
+      - name: Production build
+        run: npm run build

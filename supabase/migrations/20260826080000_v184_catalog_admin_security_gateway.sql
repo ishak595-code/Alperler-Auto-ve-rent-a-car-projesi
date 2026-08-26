@@ -8,7 +8,7 @@ create or replace function public.service_catalog_admin_snapshot_v184(p_actor uu
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, private, pg_catalog
+set search_path = pg_catalog, public, private, auth
 as $$
 declare
   v_vehicles jsonb;
@@ -35,7 +35,7 @@ create or replace function public.service_catalog_media_summary_v184(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, private, pg_catalog
+set search_path = pg_catalog, public, private, auth
 as $$
 declare
   v_kind text:=upper(btrim(coalesce(p_kind,'')));
@@ -68,7 +68,7 @@ create or replace function public.service_create_catalog_vehicle_v184(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, private, auth, pg_catalog
+set search_path = pg_catalog, public, private, auth
 as $$
 declare
   v_category text:=upper(btrim(coalesce(p_category,'')));
@@ -120,7 +120,7 @@ create or replace function public.service_create_catalog_tour_v184(p_actor uuid)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, private, auth, pg_catalog
+set search_path = pg_catalog, public, private, auth
 as $$
 declare
   v_suffix text:=lower(substr(replace(gen_random_uuid()::text,'-',''),1,8));
@@ -160,11 +160,12 @@ create or replace function public.service_save_catalog_vehicle_v184(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, private, auth, pg_catalog
+set search_path = pg_catalog, public, private, auth
 as $$
 declare
   v_before jsonb;
   v_after jsonb;
+  v_row public.vehicles%rowtype;
   v_actor_email text;
   v_category text:=upper(btrim(coalesce(p_payload->>'category','')));
   v_status text:=upper(btrim(coalesce(p_payload->>'publication_status','')));
@@ -183,10 +184,11 @@ begin
   if v_origin not in ('REAL','DEMO') then raise exception using errcode='22023',message='INVALID_RECORD_ORIGIN'; end if;
   if v_quality not in ('UNVERIFIED','RESEARCHED','BUSINESS_VERIFIED') then raise exception using errcode='22023',message='INVALID_DATA_QUALITY_STATUS'; end if;
 
-  select to_jsonb(v) into v_before from public.vehicles v where v.id=p_id for update;
-  if v_before is null then raise exception using errcode='P0002',message='VEHICLE_NOT_FOUND'; end if;
+  select v.* into v_row from public.vehicles v where v.id=p_id for update;
+  if not found then raise exception using errcode='P0002',message='VEHICLE_NOT_FOUND'; end if;
+  v_before:=to_jsonb(v_row);
 
-  v_active:=case when v_status in ('PUBLISHED','SCHEDULED') then true else false end;
+  v_active:=v_status in ('PUBLISHED','SCHEDULED');
 
   update public.vehicles set
     stock_code=left(btrim(coalesce(p_payload->>'stock_code','')),80),
@@ -223,7 +225,8 @@ begin
     metadata=case when jsonb_typeof(coalesce(p_payload->'metadata','{}'::jsonb))='object' then coalesce(p_payload->'metadata','{}'::jsonb) else '{}'::jsonb end,
     updated_at=now()
   where id=p_id
-  returning to_jsonb(vehicles.*) into v_after;
+  returning * into v_row;
+  v_after:=to_jsonb(v_row);
 
   select lower(coalesce(au.email,u.email)) into v_actor_email
   from public.admin_users au left join auth.users u on u.id=au.user_id
@@ -235,6 +238,9 @@ begin
     jsonb_build_object('gateway','catalog-admin-v184'));
 
   return v_after;
+exception
+  when invalid_text_representation or numeric_value_out_of_range or datetime_field_overflow then
+    raise exception using errcode='22023', message='INVALID_CATALOG_FIELD_VALUE';
 end;
 $$;
 
@@ -246,11 +252,12 @@ create or replace function public.service_save_catalog_tour_v184(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, private, auth, pg_catalog
+set search_path = pg_catalog, public, private, auth
 as $$
 declare
   v_before jsonb;
   v_after jsonb;
+  v_row public.tours%rowtype;
   v_actor_email text;
   v_status text:=upper(btrim(coalesce(p_payload->>'publication_status','')));
   v_origin text:=upper(btrim(coalesce(p_payload->>'record_origin','REAL')));
@@ -267,10 +274,11 @@ begin
   if v_origin not in ('REAL','DEMO') then raise exception using errcode='22023',message='INVALID_RECORD_ORIGIN'; end if;
   if v_quality not in ('UNVERIFIED','RESEARCHED','BUSINESS_VERIFIED') then raise exception using errcode='22023',message='INVALID_DATA_QUALITY_STATUS'; end if;
 
-  select to_jsonb(t) into v_before from public.tours t where t.id=p_id for update;
-  if v_before is null then raise exception using errcode='P0002',message='TOUR_NOT_FOUND'; end if;
+  select t.* into v_row from public.tours t where t.id=p_id for update;
+  if not found then raise exception using errcode='P0002',message='TOUR_NOT_FOUND'; end if;
+  v_before:=to_jsonb(v_row);
 
-  v_active:=case when v_status in ('PUBLISHED','SCHEDULED') then true else false end;
+  v_active:=v_status in ('PUBLISHED','SCHEDULED');
 
   update public.tours set
     title=left(btrim(coalesce(p_payload->>'title','')),240),
@@ -304,7 +312,8 @@ begin
     metadata=case when jsonb_typeof(coalesce(p_payload->'metadata','{}'::jsonb))='object' then coalesce(p_payload->'metadata','{}'::jsonb) else '{}'::jsonb end,
     updated_at=now()
   where id=p_id
-  returning to_jsonb(tours.*) into v_after;
+  returning * into v_row;
+  v_after:=to_jsonb(v_row);
 
   select lower(coalesce(au.email,u.email)) into v_actor_email
   from public.admin_users au left join auth.users u on u.id=au.user_id
@@ -316,6 +325,9 @@ begin
     jsonb_build_object('gateway','catalog-admin-v184'));
 
   return v_after;
+exception
+  when invalid_text_representation or numeric_value_out_of_range or datetime_field_overflow then
+    raise exception using errcode='22023', message='INVALID_CATALOG_FIELD_VALUE';
 end;
 $$;
 

@@ -83,17 +83,22 @@ for(const file of browserFiles){
   for(const marker of browserForbidden)assert(!content.includes(marker),`${file} exposes forbidden browser secret marker ${marker}`);
 }
 
-const repositorySecretMarkers=[
-  'sb_'+'secret_',
-  '-----BEGIN '+'PRIVATE KEY-----',
-  'sk_'+'live_',
-  'rk_'+'live_',
+// Repository-wide checks look for credential-shaped VALUES, not documentation or
+// security tests that intentionally mention a provider's harmless key prefix.
+const repositorySecretPatterns=[
+  {name:'Supabase secret key',pattern:new RegExp('sb_'+'secret_[A-Za-z0-9._-]{12,}','g')},
+  {name:'Stripe-style live secret',pattern:new RegExp('sk_'+'live_[A-Za-z0-9]{12,}','g')},
+  {name:'Stripe-style restricted live secret',pattern:new RegExp('rk_'+'live_[A-Za-z0-9]{12,}','g')},
+  {name:'private key material',pattern:new RegExp('-----BEGIN '+'(?:RSA |EC |OPENSSH )?PRIVATE KEY-----\\s+[A-Za-z0-9+/=\\r\\n]{100,}','g')},
 ];
 for(const file of tracked){
   if(file==='scripts/check-cyber-hardening-v179.mjs'||!fs.existsSync(file)||fs.statSync(file).isDirectory())continue;
   if(!/\.(?:ts|tsx|js|mjs|cjs|json|html|css|sql|md|txt|yml|yaml)$/.test(file))continue;
   const content=read(file);
-  for(const marker of repositorySecretMarkers)assert(!content.includes(marker),`${file} contains a high-risk secret-looking literal ${marker}`);
+  for(const check of repositorySecretPatterns){
+    check.pattern.lastIndex=0;
+    assert(!check.pattern.test(content),`${file} contains credential-shaped ${check.name}`);
+  }
 }
 
 const apiFunctions=fs.readdirSync('api',{withFileTypes:true}).filter((entry)=>entry.isFile()&&/\.ts$/.test(entry.name));

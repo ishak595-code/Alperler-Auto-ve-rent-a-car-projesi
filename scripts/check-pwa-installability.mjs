@@ -49,7 +49,7 @@ assert(pwaRuntime.includes("root.dataset.pwaOnline"), 'PWA runtime must expose o
 assert(pwaRuntime.includes("visibilitychange"), 'PWA runtime must re-check releases when the app becomes visible.');
 assert(pwaRuntime.includes("GET_VERSION"), 'PWA runtime must identify the active worker release.');
 
-assert(serviceWorker.includes("const RELEASE = 'v162'"), 'Service worker release must be versioned for V162.');
+assert(/const RELEASE = ['"]v\d+(?:[-._][A-Za-z0-9-]+)*['"]/.test(serviceWorker), 'Service worker release must use an explicit versioned cache key.');
 assert(serviceWorker.includes("const CACHE_PREFIX = 'alperler-pwa-'"), 'Service worker must isolate Alperler-owned caches.');
 assert(serviceWorker.includes("const OFFLINE_URL = '/offline.html'"), 'Service worker must define a dedicated offline shell.');
 assert(serviceWorker.includes('await caches.open(SHELL_CACHE)'), 'Offline shell must be precached.');
@@ -108,4 +108,4 @@ assert(mobileDock.includes('.customer-command-dock{display:none}'), 'Mobile dock
 assert(mobileDock.includes('@media (max-width:767px) and (pointer:coarse)'), 'Mobile dock must remain limited to real touch phones, not desktop/tablet widths.');
 assert(mobileDock.includes('(display-mode:fullscreen)'), 'Mobile dock must respect fullscreen installed mode safe-area spacing.');
 
-console.log('PWA V162 guard passed: versioned static caches, network-authoritative business data, release cleanup, navigation preload, self-contained offline fallback, installed display-mode state and safe-area behavior are enforced.');
+console.log('PWA installability guard passed: versioned static caches, network-authoritative business data, release cleanup, navigation preload, self-contained offline fallback, installed display-mode state and safe-area behavior are enforced.');

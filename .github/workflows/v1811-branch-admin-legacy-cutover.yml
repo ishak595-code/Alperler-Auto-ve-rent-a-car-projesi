@@ -1,0 +1,70 @@
+name: V181.1 Branch Admin Legacy Cutover
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260826062000_v1811_branch_admin_legacy_cutover.sql"
+      - "supabase/migrations/20260826061000_v181_branch_admin_security_gateway.sql"
+      - "supabase/functions/branch-admin-security-v181/**"
+      - "src/pages/admin/admin-branch-moderation-v171.component.ts"
+      - "src/pages/admin/admin-branch-identities-v171.component.ts"
+      - ".github/workflows/v1811-branch-admin-legacy-cutover.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v1811-legacy-cutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Legacy RPC removal contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          CUT=supabase/migrations/20260826062000_v1811_branch_admin_legacy_cutover.sql
+          grep -Fq 'drop function if exists public.admin_review_branch_listing_v1712(text,uuid,text,text)' "$CUT"
+          grep -Fq 'drop function if exists public.admin_set_branch_operator_verification_v1717(uuid,text,text,boolean,text)' "$CUT"
+          grep -Fq 'from public, anon, authenticated, service_role' "$CUT"
+
+      - name: New service boundary must remain canonical
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260826061000_v181_branch_admin_security_gateway.sql
+          EDGE=supabase/functions/branch-admin-security-v181/index.ts
+          grep -Fq 'service_review_branch_listing_v181' "$MIG"
+          grep -Fq 'service_set_branch_operator_verification_v181' "$MIG"
+          grep -Fq 'service_review_branch_listing_v181' "$EDGE"
+          grep -Fq 'service_set_branch_operator_verification_v181' "$EDGE"
+          grep -Fq '/api/partner?op=branch-security-admin' src/pages/admin/admin-branch-moderation-v171.component.ts
+          grep -Fq '/api/partner?op=branch-security-admin' src/pages/admin/admin-branch-identities-v171.component.ts
+          ! grep -Fq 'admin_review_branch_listing_v1712' src/pages/admin/admin-branch-moderation-v171.component.ts
+          ! grep -Fq 'admin_set_branch_operator_verification_v1717' src/pages/admin/admin-branch-identities-v171.component.ts
+
+      - name: Set up Node.js 22 from immutable action
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+
+      - name: Frontend and API checks
+        run: |
+          npm run lint
+          npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Production build
+        run: npm run build

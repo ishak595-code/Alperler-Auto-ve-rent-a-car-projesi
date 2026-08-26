@@ -55,7 +55,20 @@ if (!newsletterService.includes('op=newsletter-admin-read') || !newsletterServic
 
 const envExample = read('.env.example');
 for (const required of ['PUBLIC_APP_URL=','PUBLIC_SITE_URL=','SUPABASE_PROJECT_URL=','SUPABASE_PUBLISHABLE_KEY=','SUPABASE_SERVICE_ROLE_KEY=']) if (!envExample.includes(required)) fail(`.env.example missing ${required}`);
-if (!envExample.includes('https://alperlerrentaacar.com')) fail('.env.example does not document current production origin');
+const productionOrigin = 'https://alperlerrentaacar.com';
+const envValues = new Map(
+  envExample
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('#') && line.includes('='))
+    .map((line) => {
+      const separator = line.indexOf('=');
+      return [line.slice(0, separator).trim(), line.slice(separator + 1).trim()];
+    }),
+);
+for (const key of ['PUBLIC_APP_URL', 'PUBLIC_SITE_URL']) {
+  if (envValues.get(key) !== productionOrigin) fail(`.env.example ${key} must exactly match the production origin`);
+}
 if (envExample.includes(DEAD_DOMAIN)) fail('.env.example contains dead domain');
 
 const walkFiles = (dir) => {

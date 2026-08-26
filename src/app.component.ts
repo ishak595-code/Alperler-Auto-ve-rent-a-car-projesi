@@ -69,11 +69,14 @@ export class AppComponent implements OnInit {
       return;
     }
 
-    if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(start, { timeout: 2000 });
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+    };
+    if (typeof idleWindow.requestIdleCallback === 'function') {
+      idleWindow.requestIdleCallback(start, { timeout: 2000 });
       return;
     }
-    window.setTimeout(start, 500);
+    globalThis.setTimeout(start, 500);
   }
 
   private async startBackgroundServices(): Promise<void> {

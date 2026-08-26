@@ -13,6 +13,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - "src/**"
+      - "index.tsx"
       - "api/**"
   workflow_dispatch:
 
@@ -40,6 +41,55 @@ jobs:
 
       - name: Production portability source parity
         run: node scripts/check-portability-v186.mjs
+
+      - name: Homepage social-proof singleton invariant
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          rpc_path = '/rest/v1/rpc/campaign_social_proof'
+          owners = []
+          for path in Path('src').rglob('*.ts'):
+              text = path.read_text()
+              count = text.count(rpc_path)
+              if count:
+                  owners.append((path.as_posix(), count))
+
+          expected = [('src/services/campaign.service.ts', 1)]
+          if owners != expected:
+              raise SystemExit(f'social-proof RPC ownership drifted: {owners!r}')
+
+          campaign = Path('src/services/campaign.service.ts').read_text()
+          dynamic = Path('src/components/dynamic-home-section.component.ts').read_text()
+          bootstrap = Path('index.tsx').read_text()
+
+          required_campaign_tokens = (
+              '@Injectable({ providedIn: "root" })',
+              'readonly proofByCampaign = this._proofByCampaign.asReadonly();',
+              'readonly clock = this._clock.asReadonly();',
+              'socialProofInFlight',
+              'socialProofLastLoadedAt',
+              'document.visibilityState === "visible"',
+              'controller.abort()',
+          )
+          missing = [token for token in required_campaign_tokens if token not in campaign]
+          if missing:
+              raise SystemExit(f'CampaignService singleton hardening missing: {missing!r}')
+
+          forbidden_dynamic = ('setInterval', 'DestroyRef', 'SUPABASE_PROJECT_URL', rpc_path)
+          leaked = [token for token in forbidden_dynamic if token in dynamic]
+          if leaked:
+              raise SystemExit(f'dynamic homepage regained per-instance network/timer ownership: {leaked!r}')
+
+          forbidden_bootstrap = ('installCampaignSocialProofFetchBroker', 'campaign-social-proof-fetch-broker', 'window.fetch =')
+          leaked = [token for token in forbidden_bootstrap if token in bootstrap]
+          if leaked:
+              raise SystemExit(f'global fetch interception returned: {leaked!r}')
+
+          if Path('src/services/campaign-social-proof-fetch-broker.ts').exists():
+              raise SystemExit('obsolete global fetch broker file must stay deleted')
+          PY
 
       - name: V186 Edge TypeScript
         run: |

@@ -10,8 +10,9 @@ function json(body: unknown, status = 200): Response {
   return Response.json(body, {
     status,
     headers: {
-      "cache-control": "private, no-store",
+      "cache-control": "private, no-store, max-age=0",
       "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
     },
   });
 }
@@ -63,6 +64,21 @@ async function requireActor(request: Request): Promise<string> {
   return actor;
 }
 
+async function sha256(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function enforceRateLimit(actor: string, scope: string, limit: number): Promise<void> {
+  const allowed = await rpc<boolean>("consume_rate_limit", {
+    p_key_hash: await sha256(`${scope}:${actor}`),
+    p_scope: scope,
+    p_window_seconds: 60,
+    p_limit: limit,
+  });
+  if (allowed !== true) throw new Error("RATE_LIMITED");
+}
+
 function optionalUuid(value: unknown, code: string): string | null {
   const raw = clean(value, 80);
   if (!raw) return null;
@@ -80,14 +96,20 @@ function integer(value: unknown, fallback = 0, min = 0, max = 1_000_000): number
   return Number.isFinite(number) ? Math.max(min, Math.min(Math.trunc(number), max)) : fallback;
 }
 
+function numberValue(value: unknown, fallback = 0): number {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
 function metadata(value: unknown): JsonObject {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {};
 }
 
 function statusFor(code: string): number {
   if (code === "UNAUTHORIZED") return 401;
+  if (code === "RATE_LIMITED") return 429;
   if (code.includes("REQUIRED") || code.includes("INVALID")) {
-    if (code.includes("ADMIN_") || code.endsWith("_ADMIN_REQUIRED")) return 403;
+    if (code.includes("ADMIN_") || code.includes("PERMISSION_REQUIRED") || code.endsWith("_ADMIN_REQUIRED")) return 403;
     return 400;
   }
   if (code.includes("NOT_FOUND")) return 404;
@@ -98,12 +120,13 @@ function statusFor(code: string): number {
 Deno.serve(async (request: Request) => {
   if (!SUPABASE_URL || !SERVICE_KEY) return json({ ok: false, code: "SERVER_CONFIG_MISSING" }, 503);
   if (request.method === "OPTIONS") return new Response(null, { status: 204 });
-  if (!['GET', 'PATCH'].includes(request.method)) return json({ ok: false, code: "METHOD_NOT_ALLOWED" }, 405);
+  if (!["GET", "PATCH"].includes(request.method)) return json({ ok: false, code: "METHOD_NOT_ALLOWED" }, 405);
 
   try {
     const actor = await requireActor(request);
 
     if (request.method === "GET") {
+      await enforceRateLimit(actor, "admin-core-read-v182", 120);
       const url = new URL(request.url);
       const view = clean(url.searchParams.get("view"), 40).toLowerCase() || "operations";
       if (view === "operations") {
@@ -117,9 +140,16 @@ Deno.serve(async (request: Request) => {
         if (!staffId) return json({ ok: false, code: "INVALID_STAFF_ID" }, 400);
         return json(await rpc("service_admin_staff_branches_v178", { p_actor: actor, p_staff_id: staffId }));
       }
+      if (view === "assignments") {
+        return json(await rpc("service_assignment_snapshot_v182", { p_actor: actor }));
+      }
+      if (view === "payment-settings") {
+        return json(await rpc("service_payment_settings_snapshot_v182", { p_actor: actor }));
+      }
       return json({ ok: false, code: "UNKNOWN_VIEW" }, 400);
     }
 
+    await enforceRateLimit(actor, "admin-core-write-v182", 40);
     const declaredLength = Number(request.headers.get("content-length") || 0);
     if (declaredLength > MAX_BODY_BYTES) return json({ ok: false, code: "PAYLOAD_TOO_LARGE" }, 413);
     const rawBody = await request.text();
@@ -177,6 +207,19 @@ Deno.serve(async (request: Request) => {
       }));
     }
 
+    if (action === "UNASSIGN_STAFF_VEHICLE") {
+      const staffId = uuid(input.staffId);
+      const vehicleId = uuid(input.vehicleId);
+      const responsibility = clean(input.responsibility, 32).toUpperCase();
+      if (!staffId || !vehicleId || !responsibility) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400);
+      return json(await rpc("service_unassign_staff_vehicle_v182", {
+        p_actor: actor,
+        p_vehicle_id: vehicleId,
+        p_staff_id: staffId,
+        p_responsibility: responsibility,
+      }));
+    }
+
     if (action === "ASSIGN_STAFF_TOUR") {
       const staffId = uuid(input.staffId);
       const tourId = uuid(input.tourId);
@@ -186,6 +229,45 @@ Deno.serve(async (request: Request) => {
         p_tour_id: tourId,
         p_staff_id: staffId,
         p_responsibility: clean(input.responsibility, 32).toUpperCase(),
+      }));
+    }
+
+    if (action === "UNASSIGN_STAFF_TOUR") {
+      const staffId = uuid(input.staffId);
+      const tourId = uuid(input.tourId);
+      const responsibility = clean(input.responsibility, 32).toUpperCase();
+      if (!staffId || !tourId || !responsibility) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400);
+      return json(await rpc("service_unassign_staff_tour_v182", {
+        p_actor: actor,
+        p_tour_id: tourId,
+        p_staff_id: staffId,
+        p_responsibility: responsibility,
+      }));
+    }
+
+    if (action === "SAVE_PAYMENT_SETTINGS") {
+      const provider = clean(input.provider, 40).toUpperCase();
+      const depositMode = clean(input.depositMode, 20).toUpperCase();
+      const currency = clean(input.currency, 8).toUpperCase();
+      const depositValue = numberValue(input.depositValue, 0);
+      if (!["PAYTR", "GENERIC_HOSTED", "NONE"].includes(provider)) return json({ ok: false, code: "INVALID_PAYMENT_PROVIDER" }, 400);
+      if (!["NONE", "FIXED", "PERCENT"].includes(depositMode)) return json({ ok: false, code: "INVALID_DEPOSIT_MODE" }, 400);
+      if (depositValue < 0 || (depositMode === "PERCENT" && depositValue > 100)) return json({ ok: false, code: "INVALID_DEPOSIT_VALUE" }, 400);
+      if (!["TRY", "EUR", "USD", "CHF"].includes(currency)) return json({ ok: false, code: "INVALID_PAYMENT_CURRENCY" }, 400);
+      return json(await rpc("service_save_payment_settings_v182", {
+        p_actor: actor,
+        p_provider: provider,
+        p_card_enabled: bool(input.cardEnabled, false),
+        p_eft_enabled: bool(input.eftEnabled, true),
+        p_office_enabled: bool(input.officeEnabled, true),
+        p_deposit_mode: depositMode,
+        p_deposit_value: depositValue,
+        p_currency: currency,
+        p_bank_name: clean(input.bankName, 160) || null,
+        p_iban: clean(input.iban, 80).replace(/\s+/g, "").toUpperCase() || null,
+        p_account_holder: clean(input.accountHolder, 180) || null,
+        p_customer_note: clean(input.customerNote, 1000) || null,
+        p_test_mode: bool(input.testMode, true),
       }));
     }
 

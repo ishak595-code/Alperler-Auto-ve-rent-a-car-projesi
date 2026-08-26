@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { AuthService } from './auth.service';
 import { UiService } from './ui.service';
-import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY, supabaseFunctionUrl } from '../supabase.config';
 
 export interface NewsletterSubscriber {
   id: string;
@@ -50,11 +49,11 @@ export class NewsletterService {
   async subscribe(email: string): Promise<NewsletterSubscribeResult> {
     const normalized = email.trim().toLowerCase();
     if (!this.validEmail(normalized)) throw new Error('INVALID_EMAIL');
-    const response = await fetch(supabaseFunctionUrl('newsletter-gateway'), {
+    const response = await fetch('/api/partner?op=newsletter-public', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ email: normalized, locale: this.ui.currentLang().toLowerCase() }),
-      signal: AbortSignal.timeout(12_000),
+      signal: AbortSignal.timeout(15_000),
     });
     const payload = (await response.json().catch(() => ({}))) as {
       ok?: boolean;
@@ -73,46 +72,34 @@ export class NewsletterService {
   }
 
   async listSubscribers(): Promise<NewsletterSubscriber[]> {
-    const token = await this.requireToken();
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/subscribers?select=id,email,locale,status,source,consent_at,created_at,updated_at&order=created_at.desc`, {
-      headers: this.adminHeaders(token),
-      signal: AbortSignal.timeout(12_000),
-    });
-    if (!response.ok) throw new Error(`SUBSCRIBER_LIST_${response.status}`);
-    const rows = await response.json();
-    return (Array.isArray(rows) ? rows : []).map((row: any) => ({
-      id: String(row.id),
-      email: String(row.email || ''),
-      locale: String(row.locale || 'tr'),
-      status: row.status,
-      source: String(row.source || 'WEB'),
-      consentAt: row.consent_at || null,
-      createdAt: String(row.created_at || ''),
-      updatedAt: String(row.updated_at || ''),
+    const rows = await this.adminRead('SUBSCRIBERS', 2000);
+    return rows.map((row) => ({
+      id: String(row['id'] || ''),
+      email: String(row['email'] || ''),
+      locale: String(row['locale'] || 'tr'),
+      status: String(row['status'] || 'ACTIVE') as NewsletterSubscriber['status'],
+      source: String(row['source'] || 'WEB'),
+      consentAt: row['consent_at'] ? String(row['consent_at']) : null,
+      createdAt: String(row['created_at'] || ''),
+      updatedAt: String(row['updated_at'] || ''),
     }));
   }
 
   async listCampaigns(): Promise<NewsletterCampaign[]> {
-    const token = await this.requireToken();
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/newsletter_campaigns?select=id,title,subject,status,audience_type,total_recipients,sent_count,failed_count,skipped_count,created_at,completed_at,metadata&order=created_at.desc&limit=100`, {
-      headers: this.adminHeaders(token),
-      signal: AbortSignal.timeout(12_000),
-    });
-    if (!response.ok) throw new Error(`NEWSLETTER_CAMPAIGN_LIST_${response.status}`);
-    const rows = await response.json();
-    return (Array.isArray(rows) ? rows : []).map((row: any) => ({
-      id: String(row.id),
-      title: String(row.title || ''),
-      subject: String(row.subject || ''),
-      status: String(row.status || 'DRAFT'),
-      audienceType: String(row.audience_type || 'ALL'),
-      totalRecipients: Number(row.total_recipients || 0),
-      sentCount: Number(row.sent_count || 0),
-      failedCount: Number(row.failed_count || 0),
-      skippedCount: Number(row.skipped_count || 0),
-      createdAt: String(row.created_at || ''),
-      completedAt: row.completed_at || null,
-      metadata: row.metadata && typeof row.metadata === 'object' ? row.metadata : {},
+    const rows = await this.adminRead('CAMPAIGNS', 100);
+    return rows.map((row) => ({
+      id: String(row['id'] || ''),
+      title: String(row['title'] || ''),
+      subject: String(row['subject'] || ''),
+      status: String(row['status'] || 'DRAFT'),
+      audienceType: String(row['audience_type'] || 'ALL'),
+      totalRecipients: Number(row['total_recipients'] || 0),
+      sentCount: Number(row['sent_count'] || 0),
+      failedCount: Number(row['failed_count'] || 0),
+      skippedCount: Number(row['skipped_count'] || 0),
+      createdAt: String(row['created_at'] || ''),
+      completedAt: row['completed_at'] ? String(row['completed_at']) : null,
+      metadata: row['metadata'] && typeof row['metadata'] === 'object' ? row['metadata'] as Record<string, unknown> : {},
     }));
   }
 
@@ -136,13 +123,24 @@ export class NewsletterService {
     if (result.code && result.code !== '') throw new Error(result.code);
   }
 
+  private async adminRead(view: 'SUBSCRIBERS' | 'CAMPAIGNS', limit: number): Promise<Record<string, unknown>[]> {
+    const token = await this.requireToken();
+    const response = await fetch(`/api/partner?op=newsletter-admin-read&view=${encodeURIComponent(view)}&limit=${limit}`, {
+      headers: { authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(20_000),
+    });
+    const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; code?: string; data?: unknown };
+    if (!response.ok || !payload.ok || !Array.isArray(payload.data)) throw new Error(payload.code || `NEWSLETTER_READ_${response.status}`);
+    return payload.data as Record<string, unknown>[];
+  }
+
   private async adminAction(payload: Record<string, unknown>): Promise<NewsletterSendResult> {
     const token = await this.requireToken();
-    const response = await fetch(supabaseFunctionUrl('newsletter-admin'), {
+    const response = await fetch('/api/partner?op=newsletter-admin', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(65_000),
     });
     const body = (await response.json().catch(() => ({}))) as NewsletterSendResult & { ok?: boolean; code?: string };
     if (!response.ok && body.code !== 'EMAIL_NOT_CONFIGURED') throw new Error(body.code || `NEWSLETTER_ADMIN_${response.status}`);
@@ -159,14 +157,6 @@ export class NewsletterService {
     const token = await this.auth.getAccessToken();
     if (!token) throw new Error('ADMIN_SESSION_REQUIRED');
     return token;
-  }
-
-  private adminHeaders(token: string): Record<string, string> {
-    return {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      authorization: `Bearer ${token}`,
-      'content-type': 'application/json',
-    };
   }
 
   private validEmail(value: string): boolean {

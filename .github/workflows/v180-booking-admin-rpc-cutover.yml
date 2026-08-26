@@ -1,0 +1,89 @@
+name: V180 Booking Admin RPC Cutover
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260826051000_v180_booking_admin_service_gateway.sql"
+      - "supabase/functions/booking-admin-actions/**"
+      - "api/bookings.ts"
+      - ".github/workflows/v180-booking-admin-rpc-cutover.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v180-booking-admin-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 22 from immutable action
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Service-only booking mutation contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260826051000_v180_booking_admin_service_gateway.sql
+          grep -Fq 'create or replace function public.service_approve_booking_v180' "$MIG"
+          grep -Fq 'create or replace function public.service_offer_booking_alternative_v180' "$MIG"
+          grep -Fq 'private.can_actor_manage_operations(p_actor)' "$MIG"
+          grep -Fq 'revoke all on function public.service_approve_booking_v180(uuid,uuid,text) from public, anon, authenticated' "$MIG"
+          grep -Fq 'revoke all on function public.service_offer_booking_alternative_v180(uuid,uuid,text) from public, anon, authenticated' "$MIG"
+          grep -Fq 'grant execute on function public.service_approve_booking_v180(uuid,uuid,text) to service_role' "$MIG"
+          grep -Fq 'grant execute on function public.service_offer_booking_alternative_v180(uuid,uuid,text) to service_role' "$MIG"
+
+      - name: Edge must use service-only RPCs
+        shell: bash
+        run: |
+          set -euo pipefail
+          EDGE=supabase/functions/booking-admin-actions/index.ts
+          grep -Fq 'service_approve_booking_v180' "$EDGE"
+          grep -Fq 'service_offer_booking_alternative_v180' "$EDGE"
+          grep -Fq 'consume_rate_limit' "$EDGE"
+          grep -Fq 'RATE_LIMITED' "$EDGE"
+          grep -Fq 'MAX_BODY_BYTES = 16_384' "$EDGE"
+          grep -Fq 'private, no-store, max-age=0' "$EDGE"
+          ! grep -Fq 'rpcAsUser' "$EDGE"
+          ! grep -Fq '"admin_approve_booking"' "$EDGE"
+          ! grep -Fq '"admin_offer_booking_alternative"' "$EDGE"
+          ! grep -Fq 'authorization:admin.authorization' "$EDGE"
+
+      - name: Existing same-origin BFF remains canonical
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'admin-booking-actions' api/bookings.ts
+          grep -Fq 'booking-admin-actions' api/bookings.ts
+
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+
+      - name: Frontend TypeScript
+        run: npm run lint
+
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Edge Function TypeScript
+        run: npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/booking-admin-actions/index.ts
+
+      - name: Vercel function budget
+        run: npm run vercel:functions
+
+      - name: Production build
+        run: npm run build

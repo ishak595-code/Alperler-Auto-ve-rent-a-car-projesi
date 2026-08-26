@@ -40,6 +40,15 @@ export interface CampaignRecord {
   metadata: Record<string, unknown>;
 }
 
+export interface CampaignProof {
+  campaignId: string;
+  pageViewsTotal: number;
+  uniqueViewersTotal: number;
+  recentViewers24h: number;
+  activeViewers15m: number;
+  lastViewedAt?: string;
+}
+
 @Injectable({ providedIn: "root" })
 export class CampaignService {
   private readonly auth = inject(AuthService);
@@ -47,10 +56,16 @@ export class CampaignService {
   private readonly destroyRef = inject(DestroyRef);
   private readonly _campaigns = signal<CampaignRecord[]>([]);
   private readonly _publicCampaigns = signal<CampaignRecord[]>([]);
+  private readonly _proofByCampaign = signal<Record<string, CampaignProof>>({});
+  private readonly _clock = signal(Date.now());
   private publicRefreshTimer?: number;
+  private socialProofInFlight?: Promise<Record<string, CampaignProof>>;
+  private socialProofLastLoadedAt = 0;
 
   readonly campaigns = this._campaigns.asReadonly();
   readonly publicCampaigns = this._publicCampaigns.asReadonly();
+  readonly proofByCampaign = this._proofByCampaign.asReadonly();
+  readonly clock = this._clock.asReadonly();
   readonly realtimeState = this.realtime.state;
 
   constructor() {
@@ -58,9 +73,20 @@ export class CampaignService {
     this.destroyRef.onDestroy(unwatch);
 
     if (typeof window !== "undefined") {
-      const timer = window.setInterval(() => this.queuePublicRefresh(0), 60_000);
+      void this.refreshSocialProof();
+      const timer = window.setInterval(() => {
+        this._clock.set(Date.now());
+        if (document.visibilityState === "visible") {
+          this.queuePublicRefresh(0);
+          void this.refreshSocialProof();
+        }
+      }, 60_000);
       const onVisibility = () => {
-        if (document.visibilityState === "visible") this.queuePublicRefresh(0);
+        if (document.visibilityState === "visible") {
+          this._clock.set(Date.now());
+          this.queuePublicRefresh(0);
+          void this.refreshSocialProof();
+        }
       };
       document.addEventListener("visibilitychange", onVisibility);
       this.destroyRef.onDestroy(() => {
@@ -177,6 +203,60 @@ export class CampaignService {
     await this.refreshAdmin();
     await this.syncHomepageCampaigns(token);
     await this.loadPublic();
+  }
+
+  async refreshSocialProof(force = false): Promise<Record<string, CampaignProof>> {
+    const now = Date.now();
+    if (!force && this.socialProofLastLoadedAt > 0 && now - this.socialProofLastLoadedAt < 45_000) {
+      return this._proofByCampaign();
+    }
+    if (this.socialProofInFlight) return this.socialProofInFlight;
+
+    const request = (async (): Promise<Record<string, CampaignProof>> => {
+      const controller = typeof AbortController !== "undefined" ? new AbortController() : undefined;
+      const timeout = controller && typeof window !== "undefined"
+        ? window.setTimeout(() => controller.abort(), 8_000)
+        : undefined;
+      try {
+        const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/campaign_social_proof`, {
+          method: "POST",
+          cache: "no-store",
+          headers: { apikey: SUPABASE_PUBLISHABLE_KEY, "content-type": "application/json" },
+          body: "{}",
+          signal: controller?.signal,
+        });
+        if (!response.ok) return this._proofByCampaign();
+
+        const rows = await response.json() as Array<Record<string, unknown>>;
+        const map: Record<string, CampaignProof> = {};
+        for (const row of rows) {
+          const campaignId = String(row["campaign_id"] || "");
+          if (!campaignId) continue;
+          map[campaignId] = {
+            campaignId,
+            pageViewsTotal: Number(row["page_views_total"] || 0),
+            uniqueViewersTotal: Number(row["unique_viewers_total"] || 0),
+            recentViewers24h: Number(row["recent_viewers_24h"] || 0),
+            activeViewers15m: Number(row["active_viewers_15m"] || 0),
+            lastViewedAt: row["last_viewed_at"] ? String(row["last_viewed_at"]) : undefined,
+          };
+        }
+        this._proofByCampaign.set(map);
+        this.socialProofLastLoadedAt = Date.now();
+        return map;
+      } catch {
+        return this._proofByCampaign();
+      } finally {
+        if (timeout !== undefined) window.clearTimeout(timeout);
+      }
+    })();
+
+    this.socialProofInFlight = request;
+    try {
+      return await request;
+    } finally {
+      if (this.socialProofInFlight === request) this.socialProofInFlight = undefined;
+    }
   }
 
   private queuePublicRefresh(delay = 120): void {

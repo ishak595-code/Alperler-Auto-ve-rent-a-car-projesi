@@ -111,7 +111,7 @@ export class CarService {
     this.loadFromStorage();
     this.incrementVisitCount();
     this.installLocalPersistence();
-    void Promise.allSettled([this.refreshCloudCatalog(), this.campaignService.loadPublic()]);
+    void this.refreshCloudCatalog();
 
     const unwatch = this.realtime.watch(
       ["vehicles", "tours", "catalog_media", "media_assets", "blog_posts", "faqs", "site_config"],
@@ -123,18 +123,9 @@ export class CarService {
       const handleStorage = (event: StorageEvent) => {
         if (event.key?.startsWith("db_")) this.loadFromStorage();
       };
-      const onVisibility = () => {
-        if (document.visibilityState === "visible") this.queueCloudCatalogRefresh(0);
-      };
-      const fallbackTimer = window.setInterval(() => {
-        if (document.visibilityState === "visible") this.queueCloudCatalogRefresh(0);
-      }, 60_000);
       window.addEventListener("storage", handleStorage);
-      document.addEventListener("visibilitychange", onVisibility);
       this.destroyRef.onDestroy(() => {
         window.removeEventListener("storage", handleStorage);
-        document.removeEventListener("visibilitychange", onVisibility);
-        window.clearInterval(fallbackTimer);
         if (this.cloudRefreshTimer !== undefined) window.clearTimeout(this.cloudRefreshTimer);
       });
     }

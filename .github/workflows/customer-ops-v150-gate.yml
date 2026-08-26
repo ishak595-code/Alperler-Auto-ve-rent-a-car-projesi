@@ -140,7 +140,7 @@ jobs:
           test ! -f src/components/pwa-install-prompt.component.ts
           test ! -f src/services/pwa-install.service.ts
           grep -Fq '"display": "standalone"' public/manifest.json
-          grep -Fq '"display_override": ["fullscreen", "standalone"]' public/manifest.json
+          grep -Fq '"display_override": ["standalone"]' public/manifest.json
           grep -Eq "^const RELEASE = 'v[0-9]+([-._][A-Za-z0-9-]+)*';$" public/service-worker.js
           grep -Fq 'const SHELL_CACHE = `${CACHE_PREFIX}${RELEASE}-shell`;' public/service-worker.js
           grep -Fq 'const STATIC_CACHE = `${CACHE_PREFIX}${RELEASE}-static`;' public/service-worker.js

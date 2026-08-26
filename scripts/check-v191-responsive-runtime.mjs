@@ -30,8 +30,21 @@ assert(layout.includes('@media(min-width:1280px){.customer-main{padding-top:96px
 assert(!app.includes('AnalyticsConsentComponent'), 'first-load analytics consent UI must not be globally mounted');
 assert(!app.includes('<app-analytics-consent>'), 'first-load analytics consent element must be absent');
 assert(app.includes("'requestIdleCallback' in window"), 'noncritical startup should yield to first paint when supported');
-for (const service of ['SystemHealthService', 'NewsletterSyncService', 'VisitorAnalyticsService', 'CustomerProfileAutofillService']) {
-  assert(app.includes(`this.injector.get(${service})`), `${service} must start from the deferred background phase`);
+for (const modulePath of [
+  './services/system-health.service',
+  './services/newsletter-sync.service',
+  './services/visitor-analytics.service',
+  './services/customer-profile-autofill.service',
+]) {
+  assert(app.includes(`import('${modulePath}')`), `${modulePath} must be split behind a dynamic import`);
+}
+for (const access of [
+  'healthModule.SystemHealthService',
+  'newsletterModule.NewsletterSyncService',
+  'analyticsModule.VisitorAnalyticsService',
+  'autofillModule.CustomerProfileAutofillService',
+]) {
+  assert(app.includes(`this.injector.get(${access})`), `${access} must start from the deferred background phase`);
 }
 
 assert(tailwind.includes('@import "tailwindcss" source(none);'), 'Tailwind explicit source mode must remain enabled');
@@ -60,5 +73,8 @@ assert(css.includes('.bg-slate-50') || css.includes('.bg-slate-50{'), 'compiled 
 assert(!css.includes('@source '), 'Tailwind @source directive leaked into production CSS');
 assert(!css.includes('source(none)'), 'unprocessed Tailwind source configuration leaked into production CSS');
 
+const jsFiles = fs.readdirSync('dist').filter((name) => name.endsWith('.js'));
+assert(jsFiles.some((name) => /system-health|newsletter-sync|visitor-analytics|customer-profile-autofill/i.test(name)), 'production build must emit at least one named lazy background-service chunk');
+
 const cssBytes = Buffer.byteLength(css);
-console.log(`V191 responsive runtime guard passed. Compiled global CSS: ${cssBytes} bytes.`);
+console.log(`V191 responsive runtime guard passed. Compiled global CSS: ${cssBytes} bytes; JS chunks: ${jsFiles.length}.`);

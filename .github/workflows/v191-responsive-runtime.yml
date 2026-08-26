@@ -1,0 +1,60 @@
+name: V191 Responsive Runtime Performance PWA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/app.component.ts"
+      - "src/components/navbar.component.ts"
+      - "src/components/main-layout.component.ts"
+      - "src/runtime-stability.css"
+      - "src/tailwind.css"
+      - "public/manifest.json"
+      - "public/service-worker.js"
+      - "scripts/check-pwa-installability.mjs"
+      - "scripts/check-v191-responsive-runtime.mjs"
+      - ".github/workflows/v191-responsive-runtime.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v191-responsive-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+
+      - name: Frontend type check
+        run: npm run lint
+
+      - name: API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Production build
+        run: npm run build
+
+      - name: V191 responsive runtime and compiled CSS guard
+        run: node scripts/check-v191-responsive-runtime.mjs
+
+      - name: PWA installability regression guard
+        run: node scripts/check-pwa-installability.mjs
+
+      - name: Premium design regression guard
+        run: npm run design:premium

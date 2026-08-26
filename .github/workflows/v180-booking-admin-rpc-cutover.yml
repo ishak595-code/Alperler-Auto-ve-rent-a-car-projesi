@@ -5,8 +5,10 @@ on:
     branches: [main]
     paths:
       - "supabase/migrations/20260826051000_v180_booking_admin_service_gateway.sql"
+      - "supabase/migrations/20260826052000_v1801_booking_admin_legacy_cutover.sql"
       - "supabase/functions/booking-admin-actions/**"
       - "api/bookings.ts"
+      - "scripts/check-production-security-v163.mjs"
       - ".github/workflows/v180-booking-admin-rpc-cutover.yml"
       - "package.json"
       - "package-lock.json"
@@ -46,6 +48,15 @@ jobs:
           grep -Fq 'revoke all on function public.service_offer_booking_alternative_v180(uuid,uuid,text) from public, anon, authenticated' "$MIG"
           grep -Fq 'grant execute on function public.service_approve_booking_v180(uuid,uuid,text) to service_role' "$MIG"
           grep -Fq 'grant execute on function public.service_offer_booking_alternative_v180(uuid,uuid,text) to service_role' "$MIG"
+
+      - name: Legacy authenticated booking RPCs must be removed
+        shell: bash
+        run: |
+          set -euo pipefail
+          CUT=supabase/migrations/20260826052000_v1801_booking_admin_legacy_cutover.sql
+          grep -Fq 'drop function if exists public.admin_approve_booking(uuid,text)' "$CUT"
+          grep -Fq 'drop function if exists public.admin_offer_booking_alternative(uuid,text)' "$CUT"
+          grep -Fq 'from public, anon, authenticated, service_role' "$CUT"
 
       - name: Edge must use service-only RPCs
         shell: bash

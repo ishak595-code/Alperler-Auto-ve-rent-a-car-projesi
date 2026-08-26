@@ -37,14 +37,18 @@ for (const item of retired) {
   }
 }
 
-for (const migration of [
-  'supabase/migrations/20260826073500_v184_catalog_admin_security_gateway.sql',
-  'supabase/migrations/20260826080400_v1841_catalog_legacy_admin_write_cutover.sql',
-  'supabase/migrations/20260826090000_v185_media_control_plane_security.sql',
-  'supabase/migrations/20260826090100_v185_catalog_media_cover_state_invariant.sql',
-  'supabase/migrations/20260826090200_v1851_catalog_media_legacy_admin_write_cutover.sql',
+const migrationDir = path.join(root, 'supabase/migrations');
+const migrationNames = fs.readdirSync(migrationDir).filter((name) => name.endsWith('.sql'));
+for (const requiredFragment of [
+  'v184_catalog_admin_security_gateway',
+  'v1841_catalog_legacy_admin_write_cutover',
+  'v185_media_control_plane_security',
+  'v185_catalog_media_cover_state_invariant',
+  'v1851_catalog_media_legacy_admin_write_cutover',
 ]) {
-  if (!fs.existsSync(path.join(root, migration))) fail(`required migration source missing: ${migration}`);
+  if (!migrationNames.some((name) => name.includes(requiredFragment))) {
+    fail(`required migration source missing for: ${requiredFragment}`);
+  }
 }
 
 const envExample = read('.env.example');
@@ -52,7 +56,7 @@ for (const required of ['PUBLIC_APP_URL=', 'PUBLIC_SITE_URL=', 'SUPABASE_PROJECT
   if (!envExample.includes(required)) fail(`.env.example missing ${required}`);
 }
 if (!envExample.includes('https://alperlerrentaacar.com')) fail('.env.example does not document the current production origin');
-if (envExample.includes('alperrentacar.online')) fail('dead domain present in .env.example');
+if (envExample.includes('alperrentacar.online')) fail('.env.example contains dead domain');
 
 const walkFiles = (dir) => {
   const out = [];

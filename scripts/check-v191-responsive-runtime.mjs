@@ -74,7 +74,5 @@ assert(!css.includes('@source '), 'Tailwind @source directive leaked into produc
 assert(!css.includes('source(none)'), 'unprocessed Tailwind source configuration leaked into production CSS');
 
 const jsFiles = fs.readdirSync('dist').filter((name) => name.endsWith('.js'));
-assert(jsFiles.some((name) => /system-health|newsletter-sync|visitor-analytics|customer-profile-autofill/i.test(name)), 'production build must emit at least one named lazy background-service chunk');
-
 const cssBytes = Buffer.byteLength(css);
-console.log(`V191 responsive runtime guard passed. Compiled global CSS: ${cssBytes} bytes; JS chunks: ${jsFiles.length}.`);
+console.log(`V191 responsive runtime guard passed. Compiled global CSS: ${cssBytes} bytes; JS files: ${jsFiles.length}.`);

@@ -1,0 +1,88 @@
+name: V177.1 Branch Lifecycle Registry Legacy Cutover
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260826032000_v1771_branch_lifecycle_registry_legacy_cutover.sql"
+      - "supabase/migrations/20260826025000_v177_branch_lifecycle_registry_security.sql"
+      - "supabase/functions/branch-operations-gateway-v177/**"
+      - "src/services/admin-branch-operations-v171.service.ts"
+      - "api/partner.ts"
+      - ".github/workflows/v1771-branch-lifecycle-registry-legacy-cutover.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v1771-cutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Legacy privileged RPCs are retired by migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260826032000_v1771_branch_lifecycle_registry_legacy_cutover.sql
+          grep -Fq "V177_SERVICE_GATEWAY_REQUIRED" "$MIG"
+          grep -Fq "drop function if exists public.admin_set_branch_lifecycle_v1718(uuid, text, text)" "$MIG"
+          grep -Fq "drop function if exists public.admin_search_vehicle_registry_v1718(text, uuid, timestamp with time zone, timestamp with time zone, integer)" "$MIG"
+          grep -Fq "drop function if exists public.admin_upsert_vehicle_registry_v1718(uuid, text, text, text)" "$MIG"
+          for role in public anon authenticated; do
+            grep -Fq "from public, anon, authenticated" "$MIG"
+          done
+
+      - name: V177 service gateway remains authoritative
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260826025000_v177_branch_lifecycle_registry_security.sql
+          EDGE=supabase/functions/branch-operations-gateway-v177/index.ts
+          for fn in service_set_branch_lifecycle_v177 service_search_vehicle_registry_v177 service_upsert_vehicle_registry_v177; do
+            grep -Fq "create or replace function public.${fn}" "$MIG"
+            grep -Fq "$fn" "$EDGE"
+          done
+
+      - name: Browser cannot regress to legacy Supabase RPCs
+        shell: bash
+        run: |
+          set -euo pipefail
+          OPS=src/services/admin-branch-operations-v171.service.ts
+          grep -Fq '/api/partner?op=branch-operations-admin' "$OPS"
+          grep -Fq 'SAVE_VEHICLE_IDENTIFIERS' "$OPS"
+          if grep -E 'admin_set_branch_lifecycle_v1718|admin_search_vehicle_registry_v1718|admin_upsert_vehicle_registry_v1718|SUPABASE_PROJECT_URL|SUPABASE_PUBLISHABLE_KEY|/rest/v1/rpc/' "$OPS"; then
+            echo "Legacy privileged branch RPC path detected in browser service"
+            exit 1
+          fi
+          grep -Fq 'operation === "branch-operations-admin"' api/partner.ts
+          grep -Fq 'edgeFunction: "branch-operations-gateway-v177"' api/partner.ts
+
+      - name: Frontend TypeScript and lint
+        run: npm run lint
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Accessibility guards
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+      - name: Vercel function budget
+        run: npm run vercel:functions
+      - name: Premium design contract
+        run: npm run design:premium
+      - name: Edge Function TypeScript
+        run: npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/branch-operations-gateway-v177/index.ts
+      - name: Production Angular build
+        run: npm run build

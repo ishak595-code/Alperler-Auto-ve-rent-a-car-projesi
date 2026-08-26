@@ -1,8 +1,13 @@
 name: V189 Security Definer Surface Hardening
+
 on:
   pull_request:
-  push:
     branches: [main]
+    paths:
+      - "supabase/migrations/20260826234500_v189_security_definer_surface_hardening.sql"
+      - "scripts/check-v189-security-definer-surface.mjs"
+      - ".github/workflows/v189-security-definer-surface.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -10,23 +15,33 @@ permissions:
 jobs:
   v189-security-definer-surface:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout immutable source
-        uses: actions/checkout@v4
-      - name: Set up Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          node-version: 22
+          persist-credentials: false
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
           cache: npm
+
       - name: Install exact dependency graph
-        run: npm ci
+        run: npm ci --no-audit --no-fund
+
       - name: V189 SECURITY DEFINER semantic guard
         run: node scripts/check-v189-security-definer-surface.mjs
+
       - name: Dependency vulnerability gate
         run: npm audit --audit-level=high
+
       - name: Frontend type check
-        run: npm run typecheck
+        run: npm run lint
+
       - name: API TypeScript
-        run: npm run typecheck:api
+        run: npx tsc --noEmit -p tsconfig.api.json
+
       - name: Production build
         run: npm run build

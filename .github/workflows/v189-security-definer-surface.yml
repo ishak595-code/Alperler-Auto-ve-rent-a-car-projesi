@@ -6,6 +6,12 @@ on:
     paths:
       - "supabase/migrations/20260826234500_v189_security_definer_surface_hardening.sql"
       - "scripts/check-v189-security-definer-surface.mjs"
+      - "scripts/check-production-completion-invariants.mjs"
+      - "src/services/branch.service.ts"
+      - "src/services/branch-public-v171.service.ts"
+      - "src/services/public-content-refresh-coordinator.service.ts"
+      - "src/pages/campaigns.component.ts"
+      - "vercel.json"
       - ".github/workflows/v189-security-definer-surface.yml"
   workflow_dispatch:
 
@@ -33,6 +39,9 @@ jobs:
 
       - name: V189 SECURITY DEFINER semantic guard
         run: node scripts/check-v189-security-definer-surface.mjs
+
+      - name: Production completion invariants
+        run: node scripts/check-production-completion-invariants.mjs
 
       - name: Dependency vulnerability gate
         run: npm audit --audit-level=high

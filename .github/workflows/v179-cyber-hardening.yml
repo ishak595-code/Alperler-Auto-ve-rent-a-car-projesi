@@ -1,0 +1,78 @@
+name: V179 Cyber Hardening AI Defense
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "api/**"
+      - "src/**"
+      - "public/**"
+      - "supabase/**"
+      - "angular.json"
+      - "vercel.json"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/check-cyber-hardening-v179.mjs"
+      - ".github/workflows/v179-cyber-hardening.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "api/**"
+      - "src/**"
+      - "public/**"
+      - "supabase/**"
+      - "angular.json"
+      - "vercel.json"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/check-cyber-hardening-v179.mjs"
+      - ".github/workflows/v179-cyber-hardening.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v179-cyber-hardening-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cyber-hardening:
+    name: cyber-hardening
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 22 from immutable action
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact lockfile dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Production dependency vulnerability gate
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Complete dependency vulnerability gate
+        run: npm audit --audit-level=high
+
+      - name: Frontend TypeScript and quality check
+        run: npm run lint
+
+      - name: API TypeScript check
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Production build
+        run: npm run build
+
+      - name: V179 cyber hardening invariant gate
+        run: node scripts/check-cyber-hardening-v179.mjs

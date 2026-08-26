@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject, OnInit, signal } from '@angular/core';
+import { Component, Injector, ViewEncapsulation, inject, OnInit, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { ThemeService } from './services/theme.service';
@@ -7,6 +7,7 @@ import { SystemHealthService } from './services/system-health.service';
 import { NewsletterSyncService } from './services/newsletter-sync.service';
 import { VisitorAnalyticsService } from './services/visitor-analytics.service';
 import { CustomerProfileAutofillService } from './services/customer-profile-autofill.service';
+import { PublicContentRefreshCoordinatorService } from './services/public-content-refresh-coordinator.service';
 import { CustomerMobileDockComponent } from './components/customer-mobile-dock.component';
 import { RuntimeStatusGateComponent } from './components/runtime-status-gate.component';
 import { AnalyticsConsentComponent } from './components/analytics-consent.component';
@@ -38,10 +39,12 @@ export class AppComponent implements OnInit {
   themeService = inject(ThemeService);
   seoService = inject(SeoService);
   private readonly router = inject(Router);
+  private readonly injector = inject(Injector);
   private readonly systemHealth = inject(SystemHealthService);
   private readonly newsletterSync = inject(NewsletterSyncService);
   private readonly visitorAnalytics = inject(VisitorAnalyticsService);
   private readonly customerAutofill = inject(CustomerProfileAutofillService);
+  private publicContentRefresh?: PublicContentRefreshCoordinatorService;
   private readonly initialUrl = typeof window !== 'undefined' ? window.location.pathname : this.router.url;
   readonly showCustomerChrome = signal(this.isCustomerRoute(this.initialUrl));
   readonly showCheckoutLoyalty = signal(this.isCheckoutRoute(this.initialUrl));
@@ -53,6 +56,7 @@ export class AppComponent implements OnInit {
       this.showCustomerChrome.set(this.isCustomerRoute(url));
       this.showCheckoutLoyalty.set(this.isCheckoutRoute(url));
       this.showAdminCustomer360.set(this.isAdminCustomerDetail(url));
+      this.syncPublicContentRefresh(url);
     });
   }
 
@@ -62,6 +66,16 @@ export class AppComponent implements OnInit {
     void this.newsletterSync;
     this.visitorAnalytics.init();
     this.customerAutofill.start();
+    this.syncPublicContentRefresh(this.initialUrl);
+  }
+
+  private syncPublicContentRefresh(url: string): void {
+    if (this.isCustomerRoute(url)) {
+      this.publicContentRefresh ??= this.injector.get(PublicContentRefreshCoordinatorService);
+      this.publicContentRefresh.start();
+      return;
+    }
+    this.publicContentRefresh?.stop();
   }
 
   private cleanPath(url:string):string{return url.split('?')[0].split('#')[0];}

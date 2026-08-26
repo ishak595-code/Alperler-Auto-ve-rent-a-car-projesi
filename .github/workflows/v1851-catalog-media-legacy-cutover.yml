@@ -1,0 +1,80 @@
+name: V185.1 Catalog Media Legacy Cutover
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260826090200_v1851_catalog_media_legacy_admin_write_cutover.sql"
+      - "src/services/catalog-media.service.ts"
+      - "src/services/branch-media-v171.service.ts"
+      - ".github/workflows/v1851-catalog-media-legacy-cutover.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v1851-catalog-media-legacy-cutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Legacy central media writes are cut over safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          SQL=supabase/migrations/20260826090200_v1851_catalog_media_legacy_admin_write_cutover.sql
+          grep -Fq 'drop policy if exists catalog_media_admin_insert' "$SQL"
+          grep -Fq 'drop policy if exists catalog_media_admin_update' "$SQL"
+          grep -Fq 'drop policy if exists catalog_media_admin_delete' "$SQL"
+          ! grep -Fq 'drop policy if exists catalog_media_admin_read' "$SQL"
+          ! grep -Fq 'drop policy if exists catalog_media_public_read' "$SQL"
+          ! grep -Fq 'drop policy if exists catalog_media_branch_member_' "$SQL"
+          grep -Fq 'V1851_ADMIN_READ_POLICY_REQUIRED' "$SQL"
+          grep -Fq 'V1851_PUBLIC_READ_POLICY_REQUIRED' "$SQL"
+          grep -Fq 'V1851_BRANCH_MEDIA_POLICIES_REQUIRED' "$SQL"
+
+      - name: Central admin frontend stays on V185 gateway
+        shell: bash
+        run: |
+          set -euo pipefail
+          CATALOG=src/services/catalog-media.service.ts
+          grep -Fq 'op=media-control-admin' "$CATALOG"
+          ! grep -Fq '/rest/v1/catalog_media' "$CATALOG"
+          ! grep -Fq '/rest/v1/rpc/set_catalog_media_cover' "$CATALOG"
+          ! grep -Fq '/rest/v1/rpc/remove_catalog_media_safe' "$CATALOG"
+
+      - name: Branch media path remains RLS based
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH=src/services/branch-media-v171.service.ts
+          grep -Fq 'BranchPortalAuthService' "$BRANCH"
+          grep -Fq '/rest/v1/catalog_media' "$BRANCH"
+          grep -Fq '/storage/v1/object/' "$BRANCH"
+          ! grep -Fq 'media-control-admin' "$BRANCH"
+
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+
+      - name: Frontend lint
+        run: npm run lint
+
+      - name: Vercel function budget
+        run: npm run vercel:functions
+
+      - name: Production build
+        run: npm run build

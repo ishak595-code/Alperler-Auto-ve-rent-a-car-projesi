@@ -79,8 +79,12 @@ export class PublicContentRefreshCoordinatorService {
     window.addEventListener("offline", this.handleOffline);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     const now = Date.now();
-    for (const task of this.tasks) this.nextDueAt.set(task.key, now);
-    void this.runCycle(true, "start");
+    for (const task of this.tasks) {
+      // CarService starts the first catalog hydration while the coordinator is injected.
+      // Avoid immediately queueing a second full catalog cycle at application startup.
+      this.nextDueAt.set(task.key, task.key === "catalog" ? now + task.cadenceMs : now);
+    }
+    void this.runCycle(false, "start");
   }
 
   stop(): void {

@@ -3,6 +3,7 @@
   "framework": "angular",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "ignoreCommand": "if [ -z \"$VERCEL_GIT_PREVIOUS_SHA\" ]; then exit 1; fi; git diff --name-only \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD | grep -Eqv '^(supabase/|docs/|\\.github/|scripts/)' && exit 1 || exit 0",
   "git": {
     "deploymentEnabled": {
       "*": false,

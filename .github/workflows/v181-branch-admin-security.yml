@@ -1,0 +1,116 @@
+name: V181 Branch Admin Security
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260826061000_v181_branch_admin_security_gateway.sql"
+      - "supabase/functions/branch-admin-security-v181/**"
+      - "api/partner.ts"
+      - "src/pages/admin/admin-branch-moderation-v171.component.ts"
+      - "src/pages/admin/admin-branch-identities-v171.component.ts"
+      - ".github/workflows/v181-branch-admin-security.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v181-branch-admin-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 22 from immutable action
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Service-only PostgreSQL contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIG=supabase/migrations/20260826061000_v181_branch_admin_security_gateway.sql
+          for FN in \
+            service_branch_moderation_snapshot_v181 \
+            service_review_branch_listing_v181 \
+            service_branch_identity_snapshot_v181 \
+            service_set_branch_operator_verification_v181; do
+            grep -Fq "public.${FN}" "$MIG"
+          done
+          grep -Fq 'private.can_actor_manage_content_v174(p_actor)' "$MIG"
+          grep -Fq 'private.can_actor_manage_settings_v174(p_actor)' "$MIG"
+          grep -Fq 'private.can_actor_manage_team_v178(p_actor)' "$MIG"
+          grep -Fq 'from public, anon, authenticated' "$MIG"
+          grep -Fq 'to service_role' "$MIG"
+          grep -Fq 'branch_listing_reviewed_v181' "$MIG"
+          grep -Fq 'branch_operator_identity_updated_v181' "$MIG"
+
+      - name: Browser privileged Supabase access must be absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          for FILE in \
+            src/pages/admin/admin-branch-moderation-v171.component.ts \
+            src/pages/admin/admin-branch-identities-v171.component.ts; do
+            ! grep -Fq 'SUPABASE_PROJECT_URL' "$FILE"
+            ! grep -Fq 'SUPABASE_PUBLISHABLE_KEY' "$FILE"
+            ! grep -Fq '/rest/v1/' "$FILE"
+            ! grep -Fq 'admin_review_branch_listing_v1712' "$FILE"
+            ! grep -Fq 'admin_set_branch_operator_verification_v1717' "$FILE"
+            grep -Fq '/api/partner?op=branch-security-admin' "$FILE"
+          done
+
+      - name: Edge authorization and abuse guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          EDGE=supabase/functions/branch-admin-security-v181/index.ts
+          grep -Fq '/auth/v1/user' "$EDGE"
+          grep -Fq 'admin_users?user_id=eq.' "$EDGE"
+          grep -Fq 'service_branch_moderation_snapshot_v181' "$EDGE"
+          grep -Fq 'service_review_branch_listing_v181' "$EDGE"
+          grep -Fq 'service_branch_identity_snapshot_v181' "$EDGE"
+          grep -Fq 'service_set_branch_operator_verification_v181' "$EDGE"
+          grep -Fq 'consume_rate_limit' "$EDGE"
+          grep -Fq 'RATE_LIMITED' "$EDGE"
+          grep -Fq 'MAX_BODY_BYTES = 24_576' "$EDGE"
+          grep -Fq 'private, no-store, max-age=0' "$EDGE"
+          ! grep -Fq 'access-control-allow-origin": "*"' "$EDGE"
+
+      - name: Same-origin proxy contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'operation === "branch-security-admin"' api/partner.ts
+          grep -Fq 'edgeFunction: "branch-admin-security-v181"' api/partner.ts
+          grep -Fq 'forwardQuery: ["view"]' api/partner.ts
+          grep -Fq 'requireAuth: true' api/partner.ts
+
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+
+      - name: Frontend TypeScript
+        run: npm run lint
+
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Edge Function TypeScript
+        run: npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/branch-admin-security-v181/index.ts
+
+      - name: Vercel function budget
+        run: npm run vercel:functions
+
+      - name: Production build
+        run: npm run build

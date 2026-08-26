@@ -10,7 +10,6 @@ import { CustomerProfileAutofillService } from './services/customer-profile-auto
 import { PublicContentRefreshCoordinatorService } from './services/public-content-refresh-coordinator.service';
 import { CustomerMobileDockComponent } from './components/customer-mobile-dock.component';
 import { RuntimeStatusGateComponent } from './components/runtime-status-gate.component';
-import { AnalyticsConsentComponent } from './components/analytics-consent.component';
 import { BookingSuccessOverlayComponent } from './components/booking-success-overlay.component';
 import { CheckoutLoyaltyPanelComponent } from './components/checkout-loyalty-panel.component';
 import { AdminCustomerLifetimePanelComponent } from './components/admin-customer-lifetime-panel.component';
@@ -18,7 +17,7 @@ import { AdminCustomerLifetimePanelComponent } from './components/admin-customer
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CustomerMobileDockComponent, RuntimeStatusGateComponent, AnalyticsConsentComponent, BookingSuccessOverlayComponent, CheckoutLoyaltyPanelComponent, AdminCustomerLifetimePanelComponent],
+  imports: [RouterOutlet, CustomerMobileDockComponent, RuntimeStatusGateComponent, BookingSuccessOverlayComponent, CheckoutLoyaltyPanelComponent, AdminCustomerLifetimePanelComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <router-outlet></router-outlet>
@@ -28,7 +27,6 @@ import { AdminCustomerLifetimePanelComponent } from './components/admin-customer
     @if (showCustomerChrome()) {
       <app-customer-mobile-dock></app-customer-mobile-dock>
       <app-runtime-status-gate></app-runtime-status-gate>
-      <app-analytics-consent></app-analytics-consent>
     }
   `,
   styles: [`
@@ -40,11 +38,8 @@ export class AppComponent implements OnInit {
   seoService = inject(SeoService);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
-  private readonly systemHealth = inject(SystemHealthService);
-  private readonly newsletterSync = inject(NewsletterSyncService);
-  private readonly visitorAnalytics = inject(VisitorAnalyticsService);
-  private readonly customerAutofill = inject(CustomerProfileAutofillService);
   private publicContentRefresh?: PublicContentRefreshCoordinatorService;
+  private backgroundServicesStarted = false;
   private readonly initialUrl = typeof window !== 'undefined' ? window.location.pathname : this.router.url;
   readonly showCustomerChrome = signal(this.isCustomerRoute(this.initialUrl));
   readonly showCheckoutLoyalty = signal(this.isCheckoutRoute(this.initialUrl));
@@ -61,12 +56,35 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit() {
+    // SEO and public-content freshness are user-visible startup work. Everything
+    // else is deliberately moved after first paint so the shell stays responsive
+    // on slower mobile CPUs and networks.
     this.seoService.init();
-    this.systemHealth.start();
-    void this.newsletterSync;
-    this.visitorAnalytics.init();
-    this.customerAutofill.start();
     this.syncPublicContentRefresh(this.initialUrl);
+    this.scheduleBackgroundServices();
+  }
+
+  private scheduleBackgroundServices(): void {
+    if (this.backgroundServicesStarted) return;
+    const start = () => {
+      if (this.backgroundServicesStarted) return;
+      this.backgroundServicesStarted = true;
+      this.injector.get(SystemHealthService).start();
+      void this.injector.get(NewsletterSyncService);
+      this.injector.get(VisitorAnalyticsService).init();
+      this.injector.get(CustomerProfileAutofillService).start();
+    };
+
+    if (typeof window === 'undefined') {
+      start();
+      return;
+    }
+
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(start, { timeout: 2000 });
+      return;
+    }
+    window.setTimeout(start, 500);
   }
 
   private syncPublicContentRefresh(url: string): void {

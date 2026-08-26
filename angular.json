@@ -37,6 +37,9 @@
           },
           "configurations": {
             "production": {
+              "optimization": true,
+              "sourceMap": false,
+              "extractLicenses": true,
               "outputHashing": "all"
             },
             "development": {

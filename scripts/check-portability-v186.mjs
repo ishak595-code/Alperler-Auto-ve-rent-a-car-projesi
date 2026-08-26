@@ -4,6 +4,7 @@ import path from 'node:path';
 const root = process.cwd();
 const fail = (message) => { console.error(`V186_PORTABILITY_FAIL: ${message}`); process.exitCode = 1; };
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
+const DEAD_DOMAIN = ['alper', 'rentacar', '.online'].join('');
 
 const manifest = JSON.parse(read('supabase/functions/deployment-manifest.v186.json'));
 if (manifest.schemaVersion !== 1) fail('unexpected Edge manifest schema');
@@ -55,7 +56,7 @@ if (!newsletterService.includes('op=newsletter-admin-read') || !newsletterServic
 const envExample = read('.env.example');
 for (const required of ['PUBLIC_APP_URL=','PUBLIC_SITE_URL=','SUPABASE_PROJECT_URL=','SUPABASE_PUBLISHABLE_KEY=','SUPABASE_SERVICE_ROLE_KEY=']) if (!envExample.includes(required)) fail(`.env.example missing ${required}`);
 if (!envExample.includes('https://alperlerrentaacar.com')) fail('.env.example does not document current production origin');
-if (envExample.includes('alperrentacar.online')) fail('.env.example contains dead domain');
+if (envExample.includes(DEAD_DOMAIN)) fail('.env.example contains dead domain');
 
 const walkFiles = (dir) => {
   const out = [];
@@ -70,7 +71,7 @@ const walkFiles = (dir) => {
 for (const absolute of ['src','api','scripts','supabase/functions','.github'].flatMap((relative) => walkFiles(path.join(root, relative)))) {
   const text = fs.readFileSync(absolute, 'utf8');
   const relative = path.relative(root, absolute);
-  if (text.includes('alperrentacar.online')) fail(`dead domain reference: ${relative}`);
+  if (text.includes(DEAD_DOMAIN)) fail(`dead domain reference: ${relative}`);
   if (relative.startsWith(`src${path.sep}`) && text.includes('SUPABASE_SERVICE_ROLE_KEY')) fail(`browser source references service-role environment name: ${relative}`);
   if (relative.startsWith(`src${path.sep}`) && /sb_secret_[A-Za-z0-9_-]{20,}/.test(text)) fail(`browser source contains credential-shaped Supabase secret: ${relative}`);
 }

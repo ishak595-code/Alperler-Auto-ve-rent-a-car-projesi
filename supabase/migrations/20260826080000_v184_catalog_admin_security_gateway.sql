@@ -3,6 +3,7 @@ begin;
 -- V184: central catalog administration is moved behind an explicit-actor,
 -- service-role-only PostgreSQL boundary. Existing publication, branch,
 -- media-projection and truth-integrity triggers remain authoritative.
+-- Branch marketplace listings remain on their dedicated branch/moderation path.
 
 create or replace function public.service_catalog_admin_snapshot_v184(p_actor uuid)
 returns jsonb
@@ -19,9 +20,9 @@ begin
   end if;
 
   select coalesce(jsonb_agg(to_jsonb(v) order by v.updated_at desc), '[]'::jsonb)
-    into v_vehicles from public.vehicles v;
+    into v_vehicles from public.vehicles v where v.listing_origin='CENTRAL';
   select coalesce(jsonb_agg(to_jsonb(t) order by t.updated_at desc), '[]'::jsonb)
-    into v_tours from public.tours t;
+    into v_tours from public.tours t where t.listing_origin='CENTRAL';
 
   return jsonb_build_object('vehicles',v_vehicles,'tours',v_tours);
 end;
@@ -47,6 +48,12 @@ begin
   end if;
   if p_id is null or v_kind not in ('VEHICLE','TOUR') then
     raise exception using errcode='22023', message='INVALID_MEDIA_SUMMARY_REQUEST';
+  end if;
+  if v_kind='VEHICLE' and not exists(select 1 from public.vehicles where id=p_id and listing_origin='CENTRAL') then
+    raise exception using errcode='P0002', message='VEHICLE_NOT_FOUND';
+  end if;
+  if v_kind='TOUR' and not exists(select 1 from public.tours where id=p_id and listing_origin='CENTRAL') then
+    raise exception using errcode='P0002', message='TOUR_NOT_FOUND';
   end if;
 
   select
@@ -184,7 +191,7 @@ begin
   if v_origin not in ('REAL','DEMO') then raise exception using errcode='22023',message='INVALID_RECORD_ORIGIN'; end if;
   if v_quality not in ('UNVERIFIED','RESEARCHED','BUSINESS_VERIFIED') then raise exception using errcode='22023',message='INVALID_DATA_QUALITY_STATUS'; end if;
 
-  select v.* into v_row from public.vehicles v where v.id=p_id for update;
+  select v.* into v_row from public.vehicles v where v.id=p_id and v.listing_origin='CENTRAL' for update;
   if not found then raise exception using errcode='P0002',message='VEHICLE_NOT_FOUND'; end if;
   v_before:=to_jsonb(v_row);
 
@@ -224,7 +231,7 @@ begin
     branch_id=nullif(p_payload->>'branch_id','')::uuid,
     metadata=case when jsonb_typeof(coalesce(p_payload->'metadata','{}'::jsonb))='object' then coalesce(p_payload->'metadata','{}'::jsonb) else '{}'::jsonb end,
     updated_at=now()
-  where id=p_id
+  where id=p_id and listing_origin='CENTRAL'
   returning * into v_row;
   v_after:=to_jsonb(v_row);
 
@@ -274,7 +281,7 @@ begin
   if v_origin not in ('REAL','DEMO') then raise exception using errcode='22023',message='INVALID_RECORD_ORIGIN'; end if;
   if v_quality not in ('UNVERIFIED','RESEARCHED','BUSINESS_VERIFIED') then raise exception using errcode='22023',message='INVALID_DATA_QUALITY_STATUS'; end if;
 
-  select t.* into v_row from public.tours t where t.id=p_id for update;
+  select t.* into v_row from public.tours t where t.id=p_id and t.listing_origin='CENTRAL' for update;
   if not found then raise exception using errcode='P0002',message='TOUR_NOT_FOUND'; end if;
   v_before:=to_jsonb(v_row);
 
@@ -311,7 +318,7 @@ begin
     branch_id=nullif(p_payload->>'branch_id','')::uuid,
     metadata=case when jsonb_typeof(coalesce(p_payload->'metadata','{}'::jsonb))='object' then coalesce(p_payload->'metadata','{}'::jsonb) else '{}'::jsonb end,
     updated_at=now()
-  where id=p_id
+  where id=p_id and listing_origin='CENTRAL'
   returning * into v_row;
   v_after:=to_jsonb(v_row);
 

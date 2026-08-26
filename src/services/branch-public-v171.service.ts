@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import { Branch } from "../models/branch.model";
 import { Vehicle } from "../models/car.model";
 import { BranchMediaV171Service, BranchMediaV171 } from "./branch-media-v171.service";
+import { BranchService } from "./branch.service";
 
 export interface BranchDetailV171Payload {
   branch: Branch;
@@ -11,18 +12,18 @@ export interface BranchDetailV171Payload {
   standards: { centralPricing:boolean;listingApproval:boolean;customerGuarantee:boolean };
   media: BranchMediaV171[];
 }
-interface ListResponse { ok?:boolean;branches?:Branch[];code?:string }
 interface DetailResponse { ok?:boolean;branch?:Branch;vehicles?:Vehicle[];tours?:Vehicle[];counts?:{rentals:number;sales:number;tours:number};standards?:{centralPricing:boolean;listingApproval:boolean;customerGuarantee:boolean};code?:string }
 
 @Injectable({providedIn:"root"})
 export class BranchPublicV171Service {
-  constructor(private readonly media:BranchMediaV171Service){}
+  constructor(
+    private readonly media:BranchMediaV171Service,
+    private readonly branchService:BranchService,
+  ){}
 
   async list():Promise<Branch[]>{
-    const response=await fetch(`/api/branches?fresh=${Date.now()}`,{headers:{accept:"application/json","cache-control":"no-cache"},cache:"no-store"});
-    const payload=await response.json().catch(()=>({})) as ListResponse;
-    if(!response.ok||payload.ok!==true||!Array.isArray(payload.branches))throw new Error(String(payload.code||"BRANCH_SOURCE_UNAVAILABLE"));
-    return payload.branches.filter(branch=>branch.isActive&&branch.publicStatus==="ACTIVE").sort((a,b)=>a.priority-b.priority||a.name.localeCompare(b.name,"tr"));
+    await this.branchService.refresh();
+    return this.branchService.branches();
   }
 
   async detail(slug:string):Promise<BranchDetailV171Payload>{

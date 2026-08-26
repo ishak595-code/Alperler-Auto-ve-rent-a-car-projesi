@@ -74,25 +74,8 @@ export class CampaignService {
 
     if (typeof window !== "undefined") {
       void this.refreshSocialProof();
-      const timer = window.setInterval(() => {
-        this._clock.set(Date.now());
-        if (document.visibilityState === "visible") {
-          this.queuePublicRefresh(0);
-          void this.refreshSocialProof();
-        }
-      }, 60_000);
-      const onVisibility = () => {
-        if (document.visibilityState === "visible") {
-          this._clock.set(Date.now());
-          this.queuePublicRefresh(0);
-          void this.refreshSocialProof();
-        }
-      };
-      document.addEventListener("visibilitychange", onVisibility);
       this.destroyRef.onDestroy(() => {
-        window.clearInterval(timer);
         if (this.publicRefreshTimer !== undefined) window.clearTimeout(this.publicRefreshTimer);
-        document.removeEventListener("visibilitychange", onVisibility);
       });
     }
   }
@@ -106,6 +89,15 @@ export class CampaignService {
     const records = ((await response.json()) as any[]).map((row) => this.fromRow(row));
     this._publicCampaigns.set(records);
     return records;
+  }
+
+  async refreshPublicState(forceProof = false): Promise<void> {
+    this._clock.set(Date.now());
+    const [campaigns] = await Promise.allSettled([
+      this.loadPublic(),
+      this.refreshSocialProof(forceProof),
+    ]);
+    if (campaigns.status === "rejected") throw campaigns.reason;
   }
 
   async refreshAdmin(): Promise<void> {
@@ -261,13 +253,13 @@ export class CampaignService {
 
   private queuePublicRefresh(delay = 120): void {
     if (typeof window === "undefined") {
-      void this.loadPublic().catch(() => undefined);
+      void this.refreshPublicState().catch(() => undefined);
       return;
     }
     if (this.publicRefreshTimer !== undefined) window.clearTimeout(this.publicRefreshTimer);
     this.publicRefreshTimer = window.setTimeout(() => {
       this.publicRefreshTimer = undefined;
-      void this.loadPublic().catch((error) => console.info("Campaign realtime refresh deferred.", error));
+      void this.refreshPublicState().catch((error) => console.info("Campaign realtime refresh deferred.", error));
     }, delay);
   }
 

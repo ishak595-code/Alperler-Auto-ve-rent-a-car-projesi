@@ -17,6 +17,8 @@ const offlineHtml = read('public/offline.html');
 const vercel = JSON.parse(read('vercel.json'));
 const angular = JSON.parse(read('angular.json'));
 const mobileDock = read('src/components/customer-mobile-dock.component.ts');
+const navbar = read('src/components/navbar.component.ts');
+const mainLayout = read('src/components/main-layout.component.ts');
 const appComponent = read('src/app.component.ts');
 const runtimeCss = read('src/runtime-stability.css');
 
@@ -24,7 +26,7 @@ assert(manifest.name && manifest.short_name, 'PWA manifest must define name and 
 assert(manifest.start_url === '/', 'PWA start_url must remain root.');
 assert(manifest.scope === '/', 'PWA scope must remain root.');
 assert(manifest.display === 'standalone', 'PWA fallback display must remain standalone.');
-assert(Array.isArray(manifest.display_override) && manifest.display_override[0] === 'fullscreen' && manifest.display_override.includes('standalone'), 'Android install must prefer fullscreen and retain standalone fallback.');
+assert(Array.isArray(manifest.display_override) && manifest.display_override[0] === 'standalone', 'Installed PWA must prefer standalone display mode.');
 assert(manifest.theme_color && manifest.background_color, 'PWA theme/background colors are required.');
 assert(manifest.prefer_related_applications === false, 'PWA must prefer the web app installation flow.');
 
@@ -58,9 +60,9 @@ assert(serviceWorker.includes('cacheNames = await caches.keys()'), 'Activation m
 assert(serviceWorker.includes("name.startsWith(CACHE_PREFIX) && !ACTIVE_CACHES.has(name)"), 'Activation must delete only obsolete Alperler cache releases.');
 assert(serviceWorker.includes('navigationPreload.enable()'), 'Navigation preload must reduce online navigation latency.');
 assert(serviceWorker.includes('event.respondWith(handleNavigation(event))'), 'Navigations must use network-first offline fallback handling.');
-assert(serviceWorker.includes('request.destination === \'script\''), 'Runtime cache must include hashed scripts.');
-assert(serviceWorker.includes('request.destination === \'style\''), 'Runtime cache must include hashed styles.');
-assert(serviceWorker.includes('request.destination === \'font\''), 'Runtime cache must include hashed fonts.');
+assert(serviceWorker.includes("request.destination === 'script'"), 'Runtime cache must include hashed scripts.');
+assert(serviceWorker.includes("request.destination === 'style'"), 'Runtime cache must include hashed styles.');
+assert(serviceWorker.includes("request.destination === 'font'"), 'Runtime cache must include hashed fonts.');
 assert(serviceWorker.includes("pathname.startsWith('/api/')"), 'Same-origin API traffic must be explicitly network-only.');
 assert(serviceWorker.includes("pathname.startsWith('/catalog-media/')"), 'Dynamic catalogue media proxy must remain outside PWA Cache Storage.');
 assert(serviceWorker.includes('if (!isSameOrigin(url) || isDynamicBusinessPath(url.pathname)) return;'), 'Cross-origin Supabase and dynamic business traffic must bypass PWA caches.');
@@ -73,7 +75,7 @@ assert(offlineHtml.includes('Tekrar dene'), 'Offline shell must provide a retry 
 assert(!/<script\b[^>]*\bsrc=/i.test(offlineHtml), 'Offline shell must not depend on external scripts.');
 assert(!/<link\b[^>]*rel=["']stylesheet["']/i.test(offlineHtml), 'Offline shell must be self-contained without external stylesheets.');
 
-// Chrome must own the install entry shown in its three-dot menu. Custom app code
+// Chrome owns the native Install app / Add to Home screen experience. Custom app code
 // may document the browser event by name, but it may not register a listener,
 // prevent the browser default, buffer the event, or render a second installer.
 assert(!/addEventListener\s*\(\s*['"]beforeinstallprompt['"]/.test(bootstrap + pwaRuntime), 'Application must not intercept Chrome beforeinstallprompt.');
@@ -84,10 +86,12 @@ assert(!fs.existsSync('src/components/pwa-install-prompt.component.ts'), 'Legacy
 assert(!fs.existsSync('src/services/pwa-install.service.ts'), 'Legacy PWA install interception service must remain deleted.');
 
 assert(runtimeCss.includes('@media (display-mode: standalone), (display-mode: fullscreen)'), 'Installed PWA must own dynamic viewport behavior.');
-assert(runtimeCss.includes('(display-mode: standalone) and (pointer: coarse)'), 'Standalone touch devices must receive safe-area protection.');
-assert(runtimeCss.includes('(display-mode: fullscreen) and (pointer: coarse)'), 'Fullscreen touch devices must receive safe-area protection.');
-assert(runtimeCss.includes('env(safe-area-inset-top)'), 'Installed PWA must protect top safe area.');
+assert(runtimeCss.includes('--site-safe-top: env(safe-area-inset-top, 0px)'), 'Runtime must expose top safe-area token.');
 assert(runtimeCss.includes('html[data-pwa-display-mode="standalone"]'), 'Runtime display-mode DOM signal must have a CSS contract.');
+assert(navbar.includes('env(safe-area-inset-top)'), 'Fixed customer navbar must consume top safe-area in installed mode.');
+assert(mainLayout.includes('env(safe-area-inset-top)'), 'Customer main shell must offset installed-mode safe area.');
+assert(mobileDock.includes('env(safe-area-inset-bottom)'), 'Mobile dock must consume bottom safe-area.');
+assert(!/body\s*\{[^}]*padding-top:\s*env\(safe-area-inset-top\)/s.test(runtimeCss), 'Body must not double-apply installed top safe-area padding.');
 
 const publicAsset = angular.projects?.app?.architect?.build?.options?.assets?.some((entry) => entry?.input === 'public');
 assert(publicAsset, 'Angular build must copy public PWA assets.');
@@ -108,4 +112,4 @@ assert(mobileDock.includes('.customer-command-dock{display:none}'), 'Mobile dock
 assert(mobileDock.includes('@media (max-width:767px) and (pointer:coarse)'), 'Mobile dock must remain limited to real touch phones, not desktop/tablet widths.');
 assert(mobileDock.includes('(display-mode:fullscreen)'), 'Mobile dock must respect fullscreen installed mode safe-area spacing.');
 
-console.log('PWA installability guard passed: versioned static caches, network-authoritative business data, release cleanup, navigation preload, self-contained offline fallback, installed display-mode state and safe-area behavior are enforced.');
+console.log('PWA installability guard passed: standalone installation, versioned static caches, network-authoritative business data, release cleanup, navigation preload, self-contained offline fallback and component-owned safe areas are enforced.');

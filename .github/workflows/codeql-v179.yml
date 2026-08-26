@@ -1,0 +1,45 @@
+name: V179 CodeQL Security Analysis
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  security-events: write
+  packages: read
+  contents: read
+  actions: read
+
+concurrency:
+  group: v179-codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: javascript-typescript-security
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@42947a340483f03ba47bb1a039b2c519aab3df85
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
+      - name: Analyze source
+        uses: github/codeql-action/analyze@42947a340483f03ba47bb1a039b2c519aab3df85
+        with:
+          category: "/language:javascript-typescript"

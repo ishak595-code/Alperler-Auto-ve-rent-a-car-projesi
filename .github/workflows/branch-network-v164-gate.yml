@@ -49,7 +49,8 @@ jobs:
           grep -Fq 'provision_branch_partner_request' supabase/functions/branch-partner-v164/index.ts
           grep -Fq '/branch-portal/login' supabase/functions/branch-partner-v164/index.ts
           grep -Fq '81 İLDE' src/pages/branch-partner-v164.component.ts
-          ! grep -RFn 'alperrentacar.online' src api public supabase vercel.json docs
+          dead_domain="$(printf '%s%s%s' 'alper' 'rentacar' '.online')"
+          ! grep -RFn "$dead_domain" src api public supabase vercel.json docs
       - name: Frontend type check
         run: npm run lint
       - name: API type check

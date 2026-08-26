@@ -1,4 +1,12 @@
+import fs from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+
+const serviceWorkerSource = fs.readFileSync('public/service-worker.js', 'utf8');
+const releaseMatch = /^const RELEASE = ['"](v[0-9][A-Za-z0-9._-]*)['"];?$/m.exec(serviceWorkerSource);
+if (!releaseMatch) throw new Error('PWA_RELEASE_NOT_FOUND');
+const release = releaseMatch[1];
+const shellCacheName = `alperler-pwa-${release}-shell`;
+const staticCacheName = `alperler-pwa-${release}-static`;
 
 async function waitForWorkerControl(page: Page): Promise<void> {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -18,21 +26,21 @@ async function waitForWorkerControl(page: Page): Promise<void> {
 }
 
 test.describe('Alperler production PWA runtime', () => {
-  test('registers V162 worker, offline shell and cleans obsolete releases', async ({ page }) => {
+  test('registers current worker, offline shell and cleans obsolete releases', async ({ page }) => {
     await waitForWorkerControl(page);
 
-    await expect.poll(() => page.evaluate(() => document.documentElement.dataset.pwaRelease || '')).toBe('v162');
+    await expect.poll(() => page.evaluate(() => document.documentElement.dataset.pwaRelease || '')).toBe(release);
 
-    const state = await page.evaluate(async () => {
+    const state = await page.evaluate(async ({ shellCacheName, staticCacheName }) => {
       const registration = await navigator.serviceWorker.ready;
       const keys = await caches.keys();
-      const shellName = keys.find((name) => name === 'alperler-pwa-v162-shell') || '';
+      const shellName = keys.find((name) => name === shellCacheName) || '';
       const shell = shellName ? await caches.open(shellName) : null;
       const offline = shell ? await shell.match('/offline.html') : null;
       const obsoleteCaches = keys.filter((name) =>
         name.startsWith('alperler-pwa-') &&
-        name !== 'alperler-pwa-v162-shell' &&
-        name !== 'alperler-pwa-v162-static'
+        name !== shellCacheName &&
+        name !== staticCacheName
       );
 
       return {
@@ -44,11 +52,11 @@ test.describe('Alperler production PWA runtime', () => {
         displayMode: document.documentElement.dataset.pwaDisplayMode || '',
         online: document.documentElement.dataset.pwaOnline || '',
       };
-    });
+    }, { shellCacheName, staticCacheName });
 
     expect(state.scope).toBe('http://127.0.0.1:4174/');
     expect(state.controller).toContain('/service-worker.js');
-    expect(state.shellName).toBe('alperler-pwa-v162-shell');
+    expect(state.shellName).toBe(shellCacheName);
     expect(state.offlineReady).toBe(true);
     expect(state.obsoleteCaches).toEqual([]);
     expect(state.displayMode).toBe('browser');
@@ -60,10 +68,10 @@ test.describe('Alperler production PWA runtime', () => {
     await page.reload({ waitUntil: 'domcontentloaded' });
 
     await expect.poll(async () => {
-      return page.evaluate(async () => {
-        const cache = await caches.open('alperler-pwa-v162-static');
+      return page.evaluate(async (staticCacheName) => {
+        const cache = await caches.open(staticCacheName);
         return (await cache.keys()).length;
-      });
+      }, staticCacheName);
     }).toBeGreaterThan(0);
 
     const cachedUrls = await page.evaluate(async () => {

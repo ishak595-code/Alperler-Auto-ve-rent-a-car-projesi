@@ -1,19 +1,10 @@
 import { CommonModule, Location } from "@angular/common";
-import { Component, DestroyRef, computed, inject, signal } from "@angular/core";
+import { Component, computed, inject } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { Router } from "@angular/router";
-import { CampaignRecord, CampaignService } from "../services/campaign.service";
+import { CampaignProof, CampaignRecord, CampaignService } from "../services/campaign.service";
 import { CommercialOfferContextService } from "../services/commercial-offer-context.service";
 import { PublicDetailDataService } from "../services/public-detail-data.service";
-import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
-
-interface CampaignProof {
-  campaignId: string;
-  pageViewsTotal: number;
-  uniqueViewersTotal: number;
-  recentViewers24h: number;
-  activeViewers15m: number;
-}
 
 @Component({
   selector: "app-campaigns",
@@ -47,14 +38,11 @@ export class CampaignsComponent {
   private readonly detailData = inject(PublicDetailDataService);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
-  private readonly destroyRef = inject(DestroyRef);
-  private readonly proofByCampaign = signal<Record<string, CampaignProof>>({});
+  private readonly proofByCampaign = this.campaignService.proofByCampaign;
   readonly campaigns = computed(() => this.campaignService.publicCampaigns().filter((item) => this.isLive(item)).slice().sort((a, b) => a.sortOrder - b.sortOrder));
 
   constructor() {
     void this.campaignService.loadPublic().catch(() => undefined);
-    void this.loadProof();
-    if (typeof window !== "undefined") { const timer = window.setInterval(() => void this.loadProof(), 60_000); this.destroyRef.onDestroy(() => window.clearInterval(timer)); }
   }
   goBack(): void { if (typeof window !== "undefined" && window.history.length > 1) this.location.back(); else void this.router.navigate(["/"]); }
   async openCampaign(campaign: CampaignRecord): Promise<void> {
@@ -74,14 +62,5 @@ export class CampaignsComponent {
   isUrgent(value: string): boolean { const remaining = new Date(value).getTime() - Date.now(); return Number.isFinite(remaining) && remaining > 0 && remaining <= 48 * 3_600_000; }
   formatDeadline(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? "Belirtilmedi" : new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(date); }
   private isLive(item: CampaignRecord): boolean { const now = Date.now(); const start = item.startsAt ? new Date(item.startsAt).getTime() : Number.NEGATIVE_INFINITY; const end = item.endsAt ? new Date(item.endsAt).getTime() : Number.POSITIVE_INFINITY; return item.isActive && item.publicationStatus === "PUBLISHED" && (!item.startsAt || start <= now) && (!item.endsAt || end > now); }
-  private async loadProof(): Promise<void> {
-    try {
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/campaign_social_proof`, { method: "POST", cache: "no-store", headers: { apikey: SUPABASE_PUBLISHABLE_KEY, "content-type": "application/json" }, body: "{}" });
-      if (!response.ok) return;
-      const rows = await response.json() as Array<Record<string, unknown>>;
-      const map: Record<string, CampaignProof> = {};
-      for (const row of rows) { const campaignId = String(row["campaign_id"] || ""); if (!campaignId) continue; map[campaignId] = { campaignId, pageViewsTotal: Number(row["page_views_total"] || 0), uniqueViewersTotal: Number(row["unique_viewers_total"] || 0), recentViewers24h: Number(row["recent_viewers_24h"] || 0), activeViewers15m: Number(row["active_viewers_15m"] || 0) }; }
-      this.proofByCampaign.set(map);
-    } catch { /* Supplemental social proof must not block campaign navigation. */ }
-  }
+
 }

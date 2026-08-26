@@ -1,6 +1,5 @@
 import { Injectable, inject } from '@angular/core';
 import { AuthService } from './auth.service';
-import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
 
 export interface AnalyticsOverview {
   sessions: number;
@@ -85,53 +84,48 @@ export class AdminAnalyticsService {
   private readonly auth = inject(AuthService);
 
   overview(days = 7): Promise<AnalyticsOverview> {
-    return this.rpc<AnalyticsOverview>('analytics_overview', { p_days: days });
+    return this.query<AnalyticsOverview>({ view: 'OVERVIEW', days });
   }
 
   liveSessions(limit = 100): Promise<AnalyticsLiveSession[]> {
-    return this.rpc<AnalyticsLiveSession[]>('analytics_live_sessions', { p_limit: limit });
+    return this.query<AnalyticsLiveSession[]>({ view: 'LIVE_SESSIONS', limit });
   }
 
   topPages(days = 7, limit = 20): Promise<AnalyticsPageRow[]> {
-    return this.rpc<AnalyticsPageRow[]>('analytics_top_pages', { p_days: days, p_limit: limit });
+    return this.query<AnalyticsPageRow[]>({ view: 'TOP_PAGES', days, limit });
   }
 
   interactions(days = 7, limit = 30): Promise<AnalyticsInteractionRow[]> {
-    return this.rpc<AnalyticsInteractionRow[]>('analytics_interactions', { p_days: days, p_limit: limit });
+    return this.query<AnalyticsInteractionRow[]>({ view: 'INTERACTIONS', days, limit });
   }
 
   funnels(days = 7): Promise<AnalyticsFunnelRow[]> {
-    return this.rpc<AnalyticsFunnelRow[]>('analytics_funnels', { p_days: days });
+    return this.query<AnalyticsFunnelRow[]>({ view: 'FUNNELS', days });
   }
 
   deviceBreakdown(days = 7): Promise<AnalyticsDeviceBreakdown> {
-    return this.rpc<AnalyticsDeviceBreakdown>('analytics_device_breakdown', { p_days: days });
+    return this.query<AnalyticsDeviceBreakdown>({ view: 'DEVICE_BREAKDOWN', days });
   }
 
   timeline(sessionId: string, limit = 300): Promise<AnalyticsTimelineEvent[]> {
-    return this.rpc<AnalyticsTimelineEvent[]>('analytics_session_timeline', { p_session_id: sessionId, p_limit: limit });
+    return this.query<AnalyticsTimelineEvent[]>({ view: 'TIMELINE', sessionId, limit });
   }
 
   purge(eventDays = 180, rawIpDays = 30): Promise<{ anonymizedIpRows: number; deletedSessions: number; deletedEventsCascade: number }> {
-    return this.rpc('purge_visitor_analytics', { p_event_days: eventDays, p_raw_ip_days: rawIpDays });
+    return this.query({ view: 'PURGE', eventDays, rawIpDays });
   }
 
-  private async rpc<T>(name: string, body: Record<string, unknown>): Promise<T> {
+  private async query<T>(payload: Record<string, unknown>): Promise<T> {
     const token = await this.auth.getAccessToken();
     if (!token) throw new Error('ADMIN_SESSION_REQUIRED');
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/${encodeURIComponent(name)}`, {
+    const response = await fetch('/api/partner?op=analytics-admin', {
       method: 'POST',
-      headers: {
-        apikey: SUPABASE_PUBLISHABLE_KEY,
-        authorization: `Bearer ${token}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify(body),
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30_000),
     });
-    if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      throw new Error(`ANALYTICS_RPC_FAILED_${response.status}:${text.slice(0, 240)}`);
-    }
-    return await response.json() as T;
+    const body = (await response.json().catch(() => ({}))) as { ok?: boolean; code?: string; data?: T };
+    if (!response.ok || !body.ok || body.data === undefined) throw new Error(body.code || `ANALYTICS_HTTP_${response.status}`);
+    return body.data;
   }
 }

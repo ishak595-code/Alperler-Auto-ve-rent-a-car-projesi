@@ -126,7 +126,9 @@ jobs:
           grep -Fq 'ProfileAdminBridgeService' src/pages/account-dashboard-v150.component.ts
 
           # Chrome owns the native Install app / Add to Home screen flow. V162 keeps
-          # registration and release checks in one dedicated runtime coordinator.
+          # registration and release checks in one dedicated runtime coordinator. The
+          # release identifier may advance; customer-ops validates the cache contract,
+          # while the dedicated PWA gate validates installability and browser behavior.
           grep -Fq "import { startPwaRuntime }" index.tsx
           grep -Fq 'startPwaRuntime();' index.tsx
           grep -Fq 'navigator.serviceWorker.register(SERVICE_WORKER_URL' src/services/pwa-runtime.service.ts
@@ -139,7 +141,9 @@ jobs:
           test ! -f src/services/pwa-install.service.ts
           grep -Fq '"display": "standalone"' public/manifest.json
           grep -Fq '"display_override": ["fullscreen", "standalone"]' public/manifest.json
-          grep -Fq "const RELEASE = 'v162'" public/service-worker.js
+          grep -Eq "^const RELEASE = 'v[0-9]+([-._][A-Za-z0-9-]+)*';$" public/service-worker.js
+          grep -Fq 'const SHELL_CACHE = `${CACHE_PREFIX}${RELEASE}-shell`;' public/service-worker.js
+          grep -Fq 'const STATIC_CACHE = `${CACHE_PREFIX}${RELEASE}-static`;' public/service-worker.js
           grep -Fq "const OFFLINE_URL = '/offline.html'" public/service-worker.js
           test -f public/offline.html
           grep -Fq '@media (max-width:767px) and (pointer:coarse)' src/components/customer-mobile-dock.component.ts

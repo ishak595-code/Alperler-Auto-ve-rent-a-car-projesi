@@ -1,25 +1,15 @@
 import { CommonModule } from "@angular/common";
-import { Component, DestroyRef, Input, inject, signal } from "@angular/core";
+import { Component, Input, inject } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { Router, RouterLink } from "@angular/router";
 import { VehicleListItemComponent } from "./vehicle-list-item.component";
 import { PublicHomepageSection, HomepageLayoutService } from "../services/homepage-layout.service";
 import { CarService, BlogPost } from "../services/car.service";
-import { CampaignRecord, CampaignService } from "../services/campaign.service";
+import { CampaignProof, CampaignRecord, CampaignService } from "../services/campaign.service";
 import { BranchService } from "../services/branch.service";
 import { PublicDetailDataService } from "../services/public-detail-data.service";
 import { Vehicle } from "../models/car.model";
 import { Branch } from "../models/branch.model";
-import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
-
-interface CampaignProof {
-  campaignId: string;
-  pageViewsTotal: number;
-  uniqueViewersTotal: number;
-  recentViewers24h: number;
-  activeViewers15m: number;
-  lastViewedAt?: string;
-}
 
 @Component({
   selector: "app-dynamic-home-section",
@@ -94,17 +84,8 @@ export class DynamicHomeSectionComponent {
   private readonly layout = inject(HomepageLayoutService);
   private readonly router = inject(Router);
   private readonly detailData = inject(PublicDetailDataService);
-  private readonly destroyRef = inject(DestroyRef);
-  private readonly clock = signal(Date.now());
-  private readonly proofByCampaign = signal<Record<string, CampaignProof>>({});
-
-  constructor() {
-    void this.loadCampaignProof();
-    if (typeof window !== "undefined") {
-      const timer = window.setInterval(() => { this.clock.set(Date.now()); void this.loadCampaignProof(); }, 60_000);
-      this.destroyRef.onDestroy(() => window.clearInterval(timer));
-    }
-  }
+  private readonly clock = this.campaignsService.clock;
+  private readonly proofByCampaign = this.campaignsService.proofByCampaign;
 
   shouldRender(): boolean { if (!this.section?.isEnabled) return false; if (this.renderer() === "PARTNER" || this.renderer() === "PROMO") return true; if (this.renderer() === "BRANCHES") return this.branches().length > 0; if (this.section.sectionType === "VEHICLES") return this.vehicles().length > 0; if (this.section.sectionType === "TOURS") return this.tours().length > 0; if (this.section.sectionType === "BLOG") return this.blogs().length > 0; if (this.section.sectionType === "CAMPAIGN") return this.campaigns().length > 0; return false; }
   renderer(): "DEFAULT" | "BRANCHES" | "PARTNER" | "PROMO" { const configured = String(this.setting("renderer", "")).toUpperCase(); if (["BRANCHES","PARTNER","PROMO"].includes(configured)) return configured as "BRANCHES"|"PARTNER"|"PROMO"; if (this.section.sectionKey === "branches") return "BRANCHES"; if (this.section.sectionKey === "partner") return "PARTNER"; return this.section.sectionType === "CUSTOM" ? "PROMO" : "DEFAULT"; }
@@ -145,20 +126,6 @@ export class DynamicHomeSectionComponent {
   campaignAriaLabel(item:CampaignRecord): string { return `${item.title}. ${this.campaignProofLabel(item)}. ${item.endsAt?this.campaignCountdown(item.endsAt)+". ":""}${item.ctaLabel||this.copy("campaignCtaLabel","Kampanyayı incele")}`; }
   async openCampaign(item:CampaignRecord): Promise<void> { const route=await this.detailData.resolveCampaignTarget(item.targetType,item.targetId,item.ctaUrl); const separator=route.includes("?")?"&":"?"; await this.router.navigateByUrl(`${route}${separator}campaign=${encodeURIComponent(item.id)}`); }
 
-  private async loadCampaignProof(): Promise<void> {
-    try {
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/campaign_social_proof`, { method: "POST", cache: "no-store", headers: { apikey: SUPABASE_PUBLISHABLE_KEY, "content-type": "application/json" }, body: "{}" });
-      if (!response.ok) return;
-      const rows = await response.json() as Array<Record<string, unknown>>;
-      const map: Record<string, CampaignProof> = {};
-      for (const row of rows) {
-        const campaignId = String(row["campaign_id"] || "");
-        if (!campaignId) continue;
-        map[campaignId] = { campaignId, pageViewsTotal: Number(row["page_views_total"] || 0), uniqueViewersTotal: Number(row["unique_viewers_total"] || 0), recentViewers24h: Number(row["recent_viewers_24h"] || 0), activeViewers15m: Number(row["active_viewers_15m"] || 0), lastViewedAt: row["last_viewed_at"] ? String(row["last_viewed_at"]) : undefined };
-      }
-      this.proofByCampaign.set(map);
-    } catch { /* analytics social proof is optional */ }
-  }
   private orderedEntities<T>(source:T[], entityType:"VEHICLE"|"TOUR"|"BLOG"|"CAMPAIGN", keys:(item:T)=>string[]):T[] { const ids=this.layout.placementsFor(this.section.sectionKey).filter((p)=>p.entityType===entityType).map((p)=>p.entityId); if(!ids.length) return source.slice(0,this.limit()); const map=new Map<string,T>(); source.forEach((item)=>keys(item).filter(Boolean).forEach((key)=>map.set(key,item))); const ordered=ids.map((id)=>map.get(id)).filter((item):item is T=>Boolean(item)); return (ordered.length?ordered:source).slice(0,this.limit()); }
   private limit():number { const value=Math.floor(Number(this.section.maxItems||1)); return Number.isFinite(value)&&value>=1?value:1; }
   private setting(key:string,fallback:unknown):unknown { const settings=this.section.settings&&typeof this.section.settings==="object"?this.section.settings:{}; return Object.prototype.hasOwnProperty.call(settings,key)?settings[key]:fallback; }

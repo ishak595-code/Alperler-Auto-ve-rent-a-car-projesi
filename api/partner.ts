@@ -1,5 +1,5 @@
 import { clientIp, corsHeaders, guardOrigin, originDecision } from "./_lib/request-security";
-import { SUPABASE_PROJECT_URL } from "./_lib/supabase-public";
+import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "./_lib/supabase-public";
 
 const ALLOWED_METHODS = "GET,POST,PATCH,OPTIONS";
 
@@ -15,6 +15,7 @@ async function proxy(
     unavailableMessage?: string;
     publicCache?: string;
     forwardQuery?: string[];
+    upstreamHeaders?: Record<string, string>;
   },
 ): Promise<Response> {
   const decision = originDecision(request);
@@ -33,10 +34,23 @@ async function proxy(
     body = await request.text();
     if (options.maxBodyBytes && new TextEncoder().encode(body).byteLength > options.maxBodyBytes) return Response.json({ ok: false, code: "PAYLOAD_TOO_LARGE", requestId: decision.requestId }, { status: 413, headers: { ...corsHeaders(decision, ALLOWED_METHODS), "cache-control": "no-store" } });
   }
-  const headers: Record<string, string> = { "content-type": "application/json", "x-client-ip": clientIp(request), "x-request-id": decision.requestId, "x-app-origin": new URL(request.url).origin, "user-agent": request.headers.get("user-agent") || "alperler-web" };
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    "x-client-ip": clientIp(request),
+    "x-request-id": decision.requestId,
+    "x-app-origin": new URL(request.url).origin,
+    "user-agent": request.headers.get("user-agent") || "alperler-web",
+    ...(options.upstreamHeaders || {}),
+  };
   if (authorization) headers.authorization = authorization;
   const upstreamUrl = new URL(`${SUPABASE_PROJECT_URL}/functions/v1/${options.edgeFunction}`);
-  if (options.forwardQuery?.length) { const source = new URL(request.url); for (const key of options.forwardQuery) { const value = source.searchParams.get(key); if (value) upstreamUrl.searchParams.set(key, value.slice(0, 120)); } }
+  if (options.forwardQuery?.length) {
+    const source = new URL(request.url);
+    for (const key of options.forwardQuery) {
+      const value = source.searchParams.get(key);
+      if (value) upstreamUrl.searchParams.set(key, value.slice(0, 120));
+    }
+  }
   try {
     const upstream = await fetch(upstreamUrl, { method, headers, body, signal: AbortSignal.timeout(options.timeout) });
     return new Response(await upstream.text(), { status: upstream.status, headers: { ...corsHeaders(decision, ALLOWED_METHODS), "content-type": upstream.headers.get("content-type") || "application/json; charset=utf-8", "cache-control": options.requireAuth ? "private, no-store" : (options.publicCache || "no-store"), "x-upstream-request-id": upstream.headers.get("x-request-id") || decision.requestId } });
@@ -51,6 +65,10 @@ export default {
     const guarded = guardOrigin(request, ALLOWED_METHODS); if (guarded) return guarded;
     const operation = new URL(request.url).searchParams.get("op") || "requests";
     if (operation === "geo-directory") return proxy(request, { edgeFunction: "geo-directory", allowedMethods: ["GET"], timeout: 35_000, unavailableCode: "GEO_DIRECTORY_UNAVAILABLE", unavailableMessage: "Türkiye il ve ilçe dizinine şu anda ulaşılamıyor.", publicCache: "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400" });
+    if (operation === "newsletter-public") return proxy(request, { edgeFunction: "newsletter-gateway", allowedMethods: ["POST"], timeout: 15_000, maxBodyBytes: 4096, unavailableCode: "NEWSLETTER_UNAVAILABLE", unavailableMessage: "Bülten aboneliği servisine şu anda ulaşılamıyor.", upstreamHeaders: { apikey: SUPABASE_PUBLISHABLE_KEY, "x-alperler-client": "alperler-web-v1" } });
+    if (operation === "newsletter-admin") return proxy(request, { edgeFunction: "newsletter-admin", allowedMethods: ["POST"], timeout: 65_000, requireAuth: true, maxBodyBytes: 20_000, unavailableCode: "NEWSLETTER_ADMIN_UNAVAILABLE", unavailableMessage: "Bülten yönetim servisine şu anda ulaşılamıyor." });
+    if (operation === "newsletter-admin-read") return proxy(request, { edgeFunction: "newsletter-admin-read-v186", allowedMethods: ["GET"], timeout: 20_000, requireAuth: true, unavailableCode: "NEWSLETTER_ADMIN_READ_UNAVAILABLE", unavailableMessage: "Bülten yönetim verilerine şu anda ulaşılamıyor.", forwardQuery: ["view", "limit"] });
+    if (operation === "analytics-admin") return proxy(request, { edgeFunction: "analytics-admin-v186", allowedMethods: ["POST"], timeout: 25_000, requireAuth: true, maxBodyBytes: 16 * 1024, unavailableCode: "ANALYTICS_ADMIN_UNAVAILABLE", unavailableMessage: "Analitik yönetim servisine şu anda ulaşılamıyor." });
     if (operation === "branch-access-claim") return proxy(request, { edgeFunction: "branch-access-v165", allowedMethods: ["POST"], timeout: 15_000, requireAuth: true, maxBodyBytes: 1024, unavailableCode: "BRANCH_ACCESS_UNAVAILABLE", unavailableMessage: "Şube erişim doğrulama servisine şu anda ulaşılamıyor." });
     if (operation === "media") return proxy(request, { edgeFunction: "partner-media", allowedMethods: ["POST"], timeout: 12_000, requireAuth: true, unavailableCode: "PARTNER_MEDIA_UNAVAILABLE" });
     if (operation === "resume") return proxy(request, { edgeFunction: "partner-upload-resume", allowedMethods: ["POST"], timeout: 20_000, unavailableCode: "PARTNER_RESUME_UNAVAILABLE", unavailableMessage: "Dosya yükleme devam servisine şu anda ulaşılamıyor." });

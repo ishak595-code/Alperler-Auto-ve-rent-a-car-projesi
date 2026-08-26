@@ -43,8 +43,15 @@ assert(!availability.includes('reserve_rental_hold'),'availability service must 
 assert(!availability.includes('access-control-allow-origin'),'availability edge must not expose direct browser CORS');
 
 const adminEdge=read('supabase/functions/booking-admin-actions/index.ts');
-all(adminEdge,['admin_approve_booking','listOffers','offer_alternative','BOOKING_ALTERNATIVE_OFFERED','user_id=eq.'],'admin booking edge');
+all(adminEdge,['service_approve_booking_v180','service_offer_booking_alternative_v180','consume_rate_limit','RATE_LIMITED','listOffers','offer_alternative','BOOKING_ALTERNATIVE_OFFERED','user_id=eq.'],'admin booking edge');
 assert(!adminEdge.includes('admin_users?email=eq.'),'admin booking Edge must bind admin authorization to immutable user UUID');
+assert(!adminEdge.includes('rpcAsUser'),'admin booking Edge must never execute privileged RPCs with a browser JWT');
+assert(!adminEdge.includes('"admin_approve_booking"'),'legacy authenticated approval RPC must not be called by active Edge code');
+assert(!adminEdge.includes('"admin_offer_booking_alternative"'),'legacy authenticated alternative RPC must not be called by active Edge code');
+const v180=read('supabase/migrations/20260826051000_v180_booking_admin_service_gateway.sql');
+all(v180,['public.service_approve_booking_v180','public.service_offer_booking_alternative_v180','private.can_actor_manage_operations(p_actor)','to service_role'],'V180 booking service migration');
+all(v180,['from public, anon, authenticated'],'V180 booking service revocation');
+
 const bookingApi=read('api/bookings.ts');
 all(bookingApi,['guardOrigin','x-request-id','x-upstream-request-id','rentalAvailability','adminBookingActions','booking-admin-actions'],'consolidated booking BFF');
 const vercelText=read('vercel.json');
@@ -106,4 +113,4 @@ const removed='alperrentacar'+'.online';
 const hits=[...scan('src',removed),...scan('api',removed),...scan('supabase',removed),...scan('public',removed),...scan('vercel.json',removed)];
 assert(hits.length===0,`removed domain returned in ${hits.join(', ')}`);
 
-console.log('V163 final manual-approval, customer-satisfaction, security and data-integrity invariants are satisfied.');
+console.log('V163/V180 manual-approval, service-boundary security and data-integrity invariants are satisfied.');

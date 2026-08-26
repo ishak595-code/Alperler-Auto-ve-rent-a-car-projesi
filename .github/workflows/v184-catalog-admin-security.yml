@@ -61,8 +61,10 @@ jobs:
         run: |
           set -euo pipefail
           SQL=supabase/migrations/20260826080000_v184_catalog_admin_security_gateway.sql
-          grep -Fq "listing_origin,'CENTRAL'" "$SQL"
-          grep -Fq "'DRAFT','REAL','UNVERIFIED'" "$SQL"
+          grep -Fq 'listing_origin,metadata' "$SQL"
+          grep -Fq "'DRAFT','REAL','UNVERIFIED',false,'CENTRAL'" "$SQL"
+          grep -Fq "false,false,'DRAFT','REAL','UNVERIFIED','CENTRAL'" "$SQL"
+          test "$(grep -Fc "listing_origin='CENTRAL'" "$SQL")" -ge 2
           grep -Fq 'returning * into v_row' "$SQL"
           grep -Fq 'INVALID_CATALOG_FIELD_VALUE' "$SQL"
           grep -Fq 'catalog_vehicle_saved_v184' "$SQL"

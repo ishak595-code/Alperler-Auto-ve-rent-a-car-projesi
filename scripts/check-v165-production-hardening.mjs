@@ -14,6 +14,8 @@ const vercel = JSON.parse(read("vercel.json"));
 const postcss = JSON.parse(read(".postcssrc.json"));
 const index = read("index.html");
 const tailwindSource = read("src/tailwind.css");
+const navbar = read("src/components/navbar.component.ts");
+const mainLayout = read("src/components/main-layout.component.ts");
 const staticHeaders = read("public/_headers");
 const branchAuth = read("src/services/branch-portal-auth.service.ts");
 const branchAccess = read("supabase/functions/branch-access-v165/index.ts");
@@ -36,8 +38,16 @@ const styles = angular.projects?.app?.architect?.build?.options?.styles || [];
 must(styles[0] === "src/tailwind.css", "Tailwind must compile first in Angular global styles");
 must(styles.includes("src/base-shell.css"), "base-shell.css must be compiled by Angular");
 contains(tailwindSource, "@import \"tailwindcss\" source(none);", "Tailwind runtime source auto-detection must be disabled in favor of explicit sources");
-contains(tailwindSource, "@source \"../\";", "Tailwind must explicitly scan the project root");
-contains(tailwindSource, '@source inline("bg-slate-50 text-slate-800 antialiased");', "Critical application-shell Tailwind utilities must be safelisted");
+contains(tailwindSource, "@source \"./\";", "Tailwind must explicitly scan browser runtime src sources");
+contains(tailwindSource, "@source \"../index.html\";", "Tailwind must explicitly scan the document shell");
+contains(tailwindSource, "@source \"../index.tsx\";", "Tailwind must explicitly scan the application bootstrap");
+absent(tailwindSource, "@source \"../\";", "Tailwind must not scan migrations, docs, workflows and other non-runtime repository sources");
+contains(tailwindSource, 'bg-slate-50 text-slate-800 antialiased', "Application-shell baseline Tailwind utilities must remain explicitly discoverable");
+contains(navbar, ".site-navbar{position:fixed", "Critical navbar geometry must have component-owned CSS independent of Tailwind utilities");
+contains(navbar, ".mobile-navigation{position:fixed", "Critical mobile navigation geometry must have component-owned CSS independent of Tailwind utilities");
+contains(navbar, "navigation.mobileMenuEnabled() && isMenuOpen()", "Closed mobile navigation must be absent from the DOM rather than relying on a utility class");
+contains(mainLayout, ".skip-link{position:fixed", "Accessibility skip-link hidden/focus geometry must have component-owned CSS");
+contains(mainLayout, ".customer-main{min-width:0;flex:1;padding-top:72px}", "Customer shell must own its phone header offset");
 must(fs.existsSync("public/runtime-env.js"), "runtime-env.js is missing");
 
 absent(index, "cdn.tailwindcss.com", "Tailwind Play CDN must never be used in production");
@@ -123,4 +133,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("V165 production hardening guard passed: build-time Tailwind, CSP integrity, identity boundaries, payment trust boundary, branch access, analytics privacy and database hardening invariants are intact.");
+console.log("V165 production hardening guard passed: build-time Tailwind, fail-safe responsive shell, CSP integrity, identity boundaries, payment trust boundary, branch access, analytics privacy and database hardening invariants are intact.");

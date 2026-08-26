@@ -1,0 +1,69 @@
+name: V184.1 Catalog Legacy Admin Cutover
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260826083000_v1841_catalog_legacy_admin_write_cutover.sql"
+      - ".github/workflows/v1841-catalog-legacy-cutover.yml"
+      - "src/pages/admin/admin-catalog-editor.component.ts"
+      - "src/services/catalog-admin-editor.service.ts"
+      - "api/partner.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v1841-catalog-legacy-cutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Legacy central write policies only
+        shell: bash
+        run: |
+          set -euo pipefail
+          SQL=supabase/migrations/20260826083000_v1841_catalog_legacy_admin_write_cutover.sql
+          for POLICY in \
+            vehicles_admin_insert vehicles_admin_update vehicles_admin_delete \
+            tours_admin_insert tours_admin_update tours_admin_delete; do
+            grep -Fq "drop policy if exists ${POLICY}" "$SQL"
+          done
+          ! grep -Eq 'drop policy.*(branch_member|public_read|authenticated_public_read|admin_branch_read)' "$SQL"
+          ! grep -Eiq 'revoke .* on (table )?public\.(vehicles|tours)' "$SQL"
+          ! grep -Eiq 'alter table .* disable row level security' "$SQL"
+
+      - name: Active Super Admin catalog stays on V184 gateway
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'CatalogAdminEditorService' src/pages/admin/admin-catalog-editor.component.ts
+          grep -Fq '/api/partner?op=catalog-admin' src/services/catalog-admin-editor.service.ts
+          grep -Fq 'operation === "catalog-admin"' api/partner.ts
+          ! grep -Fq '/rest/v1/' src/services/catalog-admin-editor.service.ts
+
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+
+      - name: Frontend lint
+        run: npm run lint
+
+      - name: API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Production build
+        run: npm run build

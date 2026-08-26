@@ -49,7 +49,7 @@ assert(pwaRuntime.includes("root.dataset.pwaOnline"), 'PWA runtime must expose o
 assert(pwaRuntime.includes("visibilitychange"), 'PWA runtime must re-check releases when the app becomes visible.');
 assert(pwaRuntime.includes("GET_VERSION"), 'PWA runtime must identify the active worker release.');
 
-assert(/const RELEASE = ['"]v\d+(?:[-._][A-Za-z0-9-]+)*['"]/.test(serviceWorker), 'Service worker release must use an explicit versioned cache key.');
+assert(/^const RELEASE = ['"]v[0-9][A-Za-z0-9._-]*['"];?$/m.test(serviceWorker), 'Service worker release must use an explicit versioned cache key.');
 assert(serviceWorker.includes("const CACHE_PREFIX = 'alperler-pwa-'"), 'Service worker must isolate Alperler-owned caches.');
 assert(serviceWorker.includes("const OFFLINE_URL = '/offline.html'"), 'Service worker must define a dedicated offline shell.');
 assert(serviceWorker.includes('await caches.open(SHELL_CACHE)'), 'Offline shell must be precached.');

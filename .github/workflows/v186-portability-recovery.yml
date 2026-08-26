@@ -41,8 +41,12 @@ jobs:
       - name: Production portability source parity
         run: node scripts/check-portability-v186.mjs
 
-      - name: Retired Edge TypeScript
+      - name: V186 Edge TypeScript
         run: |
+          npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/analytics-admin-v186/index.ts
+          npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/newsletter-admin-read-v186/index.ts
+          npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/newsletter-admin/index.ts
+          npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/newsletter-gateway/index.ts
           npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/bootstrap-owner-once/index.ts
           npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/owner-bootstrap-once/index.ts
           npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/v109-vehicle-media-import/index.ts

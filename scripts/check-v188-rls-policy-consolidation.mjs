@@ -119,10 +119,10 @@ for (const token of requiredBoundaryTokens) {
   if (!sql.includes(token)) fail(`authorization/publication boundary token missing: ${token}`);
 }
 
-if (!sql.includes('navigation_items_anon_read_v188\non public.navigation_items for select to anon')) {
+if (!/create\s+policy\s+navigation_items_anon_read_v188\s+on\s+public\.navigation_items\s+for\s+select\s+to\s+anon\b/i.test(sql)) {
   fail('navigation public projection must remain anon-only after authenticated consolidation');
 }
-if (sql.includes('for select to anon, authenticated') || sql.includes('for select to authenticated, anon')) {
+if (/for\s+select\s+to\s+(?:anon\s*,\s*authenticated|authenticated\s*,\s*anon)/i.test(sql)) {
   fail('V188 must not create a mixed anon/authenticated SELECT policy');
 }
 
@@ -138,7 +138,8 @@ const writeSplitTables = [
 ];
 for (const table of writeSplitTables) {
   for (const action of ['insert', 'update', 'delete']) {
-    if (!sql.includes(`_${action}_v188`)) fail(`write split missing ${action} policy for ${table}`);
+    const policy = `${table}_admin_${action}_v188`;
+    if (!sql.includes(`create policy ${policy}`)) fail(`write split missing: ${policy}`);
   }
 }
 

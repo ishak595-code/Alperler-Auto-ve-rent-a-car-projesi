@@ -1,0 +1,137 @@
+name: V186 Targeted Homepage Root Refactor
+
+on:
+  push:
+    branches:
+      - v186-portability-recovery-runbook
+    paths:
+      - .github/workflows/v186-targeted-root-refactor.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v186-targeted-root-refactor
+  cancel-in-progress: false
+
+jobs:
+  refactor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: v186-portability-recovery-runbook
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Apply assertion-guarded root refactor
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          campaign_path = Path('src/services/campaign.service.ts')
+          dynamic_path = Path('src/components/dynamic-home-section.component.ts')
+
+          campaign = campaign_path.read_text()
+          dynamic = dynamic_path.read_text()
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one match, found {count}')
+              return text.replace(old, new, 1)
+
+          campaign = replace_once(
+              campaign,
+              '''}\n\n@Injectable({ providedIn: "root" })''',
+              '''}\n\nexport interface CampaignProof {\n  campaignId: string;\n  pageViewsTotal: number;\n  uniqueViewersTotal: number;\n  recentViewers24h: number;\n  activeViewers15m: number;\n  lastViewedAt?: string;\n}\n\n@Injectable({ providedIn: "root" })''',
+              'campaign proof interface',
+          )
+
+          campaign = replace_once(
+              campaign,
+              '''  private readonly _campaigns = signal<CampaignRecord[]>([]);\n  private readonly _publicCampaigns = signal<CampaignRecord[]>([]);\n  private publicRefreshTimer?: number;\n\n  readonly campaigns = this._campaigns.asReadonly();\n  readonly publicCampaigns = this._publicCampaigns.asReadonly();\n  readonly realtimeState = this.realtime.state;''',
+              '''  private readonly _campaigns = signal<CampaignRecord[]>([]);\n  private readonly _publicCampaigns = signal<CampaignRecord[]>([]);\n  private readonly _proofByCampaign = signal<Record<string, CampaignProof>>({});\n  private readonly _clock = signal(Date.now());\n  private publicRefreshTimer?: number;\n  private socialProofInFlight?: Promise<Record<string, CampaignProof>>;\n  private socialProofLastLoadedAt = 0;\n\n  readonly campaigns = this._campaigns.asReadonly();\n  readonly publicCampaigns = this._publicCampaigns.asReadonly();\n  readonly proofByCampaign = this._proofByCampaign.asReadonly();\n  readonly clock = this._clock.asReadonly();\n  readonly realtimeState = this.realtime.state;''',
+              'campaign shared signals',
+          )
+
+          campaign = replace_once(
+              campaign,
+              '''  constructor() {\n    const unwatch = this.realtime.watch(["campaigns"], () => this.queuePublicRefresh());\n    this.destroyRef.onDestroy(unwatch);\n\n    if (typeof window !== "undefined") {\n      const timer = window.setInterval(() => this.queuePublicRefresh(0), 60_000);\n      const onVisibility = () => {\n        if (document.visibilityState === "visible") this.queuePublicRefresh(0);\n      };\n      document.addEventListener("visibilitychange", onVisibility);\n      this.destroyRef.onDestroy(() => {\n        window.clearInterval(timer);\n        if (this.publicRefreshTimer !== undefined) window.clearTimeout(this.publicRefreshTimer);\n        document.removeEventListener("visibilitychange", onVisibility);\n      });\n    }\n  }''',
+              '''  constructor() {\n    const unwatch = this.realtime.watch(["campaigns"], () => this.queuePublicRefresh());\n    this.destroyRef.onDestroy(unwatch);\n\n    if (typeof window !== "undefined") {\n      void this.refreshSocialProof();\n      const timer = window.setInterval(() => {\n        this._clock.set(Date.now());\n        if (document.visibilityState === "visible") {\n          this.queuePublicRefresh(0);\n          void this.refreshSocialProof();\n        }\n      }, 60_000);\n      const onVisibility = () => {\n        if (document.visibilityState === "visible") {\n          this._clock.set(Date.now());\n          this.queuePublicRefresh(0);\n          void this.refreshSocialProof();\n        }\n      };\n      document.addEventListener("visibilitychange", onVisibility);\n      this.destroyRef.onDestroy(() => {\n        window.clearInterval(timer);\n        if (this.publicRefreshTimer !== undefined) window.clearTimeout(this.publicRefreshTimer);\n        document.removeEventListener("visibilitychange", onVisibility);\n      });\n    }\n  }''',
+              'campaign singleton scheduler',
+          )
+
+          campaign = replace_once(
+              campaign,
+              '''  private queuePublicRefresh(delay = 120): void {''',
+              '''  async refreshSocialProof(force = false): Promise<Record<string, CampaignProof>> {\n    const now = Date.now();\n    if (!force && this.socialProofLastLoadedAt > 0 && now - this.socialProofLastLoadedAt < 45_000) {\n      return this._proofByCampaign();\n    }\n    if (this.socialProofInFlight) return this.socialProofInFlight;\n\n    const request = (async (): Promise<Record<string, CampaignProof>> => {\n      const controller = typeof AbortController !== "undefined" ? new AbortController() : undefined;\n      const timeout = controller && typeof window !== "undefined"\n        ? window.setTimeout(() => controller.abort(), 8_000)\n        : undefined;\n      try {\n        const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/campaign_social_proof`, {\n          method: "POST",\n          cache: "no-store",\n          headers: { apikey: SUPABASE_PUBLISHABLE_KEY, "content-type": "application/json" },\n          body: "{}",\n          signal: controller?.signal,\n        });\n        if (!response.ok) return this._proofByCampaign();\n\n        const rows = await response.json() as Array<Record<string, unknown>>;\n        const map: Record<string, CampaignProof> = {};\n        for (const row of rows) {\n          const campaignId = String(row["campaign_id"] || "");\n          if (!campaignId) continue;\n          map[campaignId] = {\n            campaignId,\n            pageViewsTotal: Number(row["page_views_total"] || 0),\n            uniqueViewersTotal: Number(row["unique_viewers_total"] || 0),\n            recentViewers24h: Number(row["recent_viewers_24h"] || 0),\n            activeViewers15m: Number(row["active_viewers_15m"] || 0),\n            lastViewedAt: row["last_viewed_at"] ? String(row["last_viewed_at"]) : undefined,\n          };\n        }\n        this._proofByCampaign.set(map);\n        this.socialProofLastLoadedAt = Date.now();\n        return map;\n      } catch {\n        return this._proofByCampaign();\n      } finally {\n        if (timeout !== undefined) window.clearTimeout(timeout);\n      }\n    })();\n\n    this.socialProofInFlight = request;\n    try {\n      return await request;\n    } finally {\n      if (this.socialProofInFlight === request) this.socialProofInFlight = undefined;\n    }\n  }\n\n  private queuePublicRefresh(delay = 120): void {''',
+              'campaign social proof loader',
+          )
+
+          dynamic = replace_once(
+              dynamic,
+              '''import { Component, DestroyRef, Input, inject, signal } from "@angular/core";''',
+              '''import { Component, Input, inject } from "@angular/core";''',
+              'dynamic angular imports',
+          )
+          dynamic = replace_once(
+              dynamic,
+              '''import { CampaignRecord, CampaignService } from "../services/campaign.service";''',
+              '''import { CampaignProof, CampaignRecord, CampaignService } from "../services/campaign.service";''',
+              'dynamic campaign imports',
+          )
+          dynamic = replace_once(
+              dynamic,
+              '''import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";\n\ninterface CampaignProof {\n  campaignId: string;\n  pageViewsTotal: number;\n  uniqueViewersTotal: number;\n  recentViewers24h: number;\n  activeViewers15m: number;\n  lastViewedAt?: string;\n}\n''',
+              '''''',
+              'dynamic local network proof model',
+          )
+          dynamic = replace_once(
+              dynamic,
+              '''  private readonly detailData = inject(PublicDetailDataService);\n  private readonly destroyRef = inject(DestroyRef);\n  private readonly clock = signal(Date.now());\n  private readonly proofByCampaign = signal<Record<string, CampaignProof>>({});\n\n  constructor() {\n    void this.loadCampaignProof();\n    if (typeof window !== "undefined") {\n      const timer = window.setInterval(() => { this.clock.set(Date.now()); void this.loadCampaignProof(); }, 60_000);\n      this.destroyRef.onDestroy(() => window.clearInterval(timer));\n    }\n  }''',
+              '''  private readonly detailData = inject(PublicDetailDataService);\n  private readonly clock = this.campaignsService.clock;\n  private readonly proofByCampaign = this.campaignsService.proofByCampaign;''',
+              'dynamic per-instance scheduler',
+          )
+
+          start = dynamic.find('  private async loadCampaignProof(): Promise<void> {')
+          if start < 0:
+              raise SystemExit('dynamic loadCampaignProof: start marker missing')
+          end_marker = '  private orderedEntities<T>('
+          end = dynamic.find(end_marker, start)
+          if end < 0:
+              raise SystemExit('dynamic loadCampaignProof: end marker missing')
+          dynamic = dynamic[:start] + dynamic[end:]
+
+          if 'campaign_social_proof' in dynamic:
+              raise SystemExit('dynamic invariant: direct social-proof RPC remains')
+          if 'setInterval' in dynamic:
+              raise SystemExit('dynamic invariant: per-instance interval remains')
+          if 'window.fetch =' in dynamic:
+              raise SystemExit('dynamic invariant: fetch monkey patch detected')
+          if campaign.count('campaign_social_proof') != 1:
+              raise SystemExit(f'campaign invariant: expected one RPC owner, found {campaign.count("campaign_social_proof")}')
+
+          campaign_path.write_text(campaign)
+          dynamic_path.write_text(dynamic)
+          PY
+
+      - name: Compile and lint targeted refactor
+        shell: bash
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+
+      - name: Commit root refactor
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/services/campaign.service.ts src/components/dynamic-home-section.component.ts
+          git diff --cached --check
+          git commit -m "perf(v186): centralize homepage campaign social proof"
+          git push origin HEAD:v186-portability-recovery-runbook

@@ -1,0 +1,135 @@
+name: V184 Catalog Admin Security Gateway
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/services/catalog-admin-editor.service.ts"
+      - "api/partner.ts"
+      - "supabase/functions/catalog-admin-gateway-v184/**"
+      - "supabase/migrations/20260826080000_v184_catalog_admin_security_gateway.sql"
+      - ".github/workflows/v184-catalog-admin-security.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v184-catalog-admin-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 22 from immutable action
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Service-only PostgreSQL catalog contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          SQL=supabase/migrations/20260826080000_v184_catalog_admin_security_gateway.sql
+          for RPC in \
+            service_catalog_admin_snapshot_v184 \
+            service_catalog_media_summary_v184 \
+            service_create_catalog_vehicle_v184 \
+            service_create_catalog_tour_v184 \
+            service_save_catalog_vehicle_v184 \
+            service_save_catalog_tour_v184; do
+            grep -Fq "function public.${RPC}" "$SQL"
+          done
+          grep -Fq 'private.can_actor_manage_content_v174(p_actor)' "$SQL"
+          grep -Fq 'grant execute on function public.service_catalog_admin_snapshot_v184(uuid) to service_role' "$SQL"
+          grep -Fq 'grant execute on function public.service_save_catalog_vehicle_v184(uuid,uuid,jsonb) to service_role' "$SQL"
+          grep -Fq 'grant execute on function public.service_save_catalog_tour_v184(uuid,uuid,jsonb) to service_role' "$SQL"
+          grep -Fq 'from public,anon,authenticated' "$SQL"
+          ! grep -Eq 'grant execute .* to (anon|authenticated)' "$SQL"
+
+      - name: Central catalog RPC must preserve system fields and truth gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          SQL=supabase/migrations/20260826080000_v184_catalog_admin_security_gateway.sql
+          grep -Fq 'listing_origin,metadata' "$SQL"
+          grep -Fq "'DRAFT','REAL','UNVERIFIED',false,'CENTRAL'" "$SQL"
+          grep -Fq "false,false,'DRAFT','REAL','UNVERIFIED','CENTRAL'" "$SQL"
+          test "$(grep -Fc "listing_origin='CENTRAL'" "$SQL")" -ge 2
+          grep -Fq 'returning * into v_row' "$SQL"
+          grep -Fq 'INVALID_CATALOG_FIELD_VALUE' "$SQL"
+          grep -Fq 'catalog_vehicle_saved_v184' "$SQL"
+          grep -Fq 'catalog_tour_saved_v184' "$SQL"
+          ! grep -Eq 'drop trigger|disable trigger|alter table public\.(vehicles|tours|catalog_media).*disable' "$SQL"
+          ! grep -Eq 'revoke .* on (table )?public\.(vehicles|tours|catalog_media)' "$SQL"
+
+      - name: Browser direct privileged catalog access must be absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE=src/services/catalog-admin-editor.service.ts
+          grep -Fq '/api/partner?op=catalog-admin' "$FILE"
+          ! grep -Fq 'SUPABASE_PROJECT_URL' "$FILE"
+          ! grep -Fq 'SUPABASE_PUBLISHABLE_KEY' "$FILE"
+          ! grep -Fq '/rest/v1/' "$FILE"
+          ! grep -Fq 'vehicles?select=' "$FILE"
+          ! grep -Fq 'tours?select=' "$FILE"
+          ! grep -Fq 'catalog_media?' "$FILE"
+
+      - name: Same-origin catalog BFF contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'operation === "catalog-admin"' api/partner.ts
+          grep -Fq 'edgeFunction: "catalog-admin-gateway-v184"' api/partner.ts
+          grep -Fq 'allowedMethods: ["GET", "POST", "PATCH"]' api/partner.ts
+          grep -Fq 'maxBodyBytes: 128 * 1024' api/partner.ts
+          grep -Fq 'forwardQuery: ["view", "kind", "id"]' api/partner.ts
+
+      - name: Edge authorization and abuse guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          EDGE=supabase/functions/catalog-admin-gateway-v184/index.ts
+          grep -Fq 'https://alperlerrentaacar.com' "$EDGE"
+          grep -Fq 'https://www.alperlerrentaacar.com' "$EDGE"
+          grep -Fq '.vercel.app' "$EDGE"
+          grep -Fq 'ORIGIN_NOT_ALLOWED' "$EDGE"
+          grep -Fq 'MAX_BODY_BYTES = 128 * 1024' "$EDGE"
+          grep -Fq 'PAYLOAD_TOO_LARGE' "$EDGE"
+          grep -Fq 'consume_rate_limit' "$EDGE"
+          grep -Fq 'catalog-admin-read-v184' "$EDGE"
+          grep -Fq 'catalog-admin-write-v184' "$EDGE"
+          grep -Fq 'permissions["content.manage"] === true' "$EDGE"
+          grep -Fq 'permissions["settings.manage"] === true' "$EDGE"
+          ! grep -Fq 'role === "editor"' "$EDGE"
+          grep -Fq 'service_save_catalog_vehicle_v184' "$EDGE"
+          grep -Fq 'service_save_catalog_tour_v184' "$EDGE"
+          ! grep -Fq '"access-control-allow-origin": "*"' "$EDGE"
+
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+
+      - name: Frontend TypeScript
+        run: npm run lint
+
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Catalog Edge Function TypeScript
+        run: npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/catalog-admin-gateway-v184/index.ts
+
+      - name: Vercel function budget
+        run: npm run vercel:functions
+
+      - name: Production build
+        run: npm run build

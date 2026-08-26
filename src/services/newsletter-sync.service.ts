@@ -1,5 +1,4 @@
 import { Injectable, effect, inject } from '@angular/core';
-import { supabaseFunctionUrl } from '../supabase.config';
 import { CarService } from './car.service';
 import { UiService } from './ui.service';
 
@@ -26,11 +25,11 @@ export class NewsletterSyncService {
   private async sync(email: string, locale: string): Promise<void> {
     this.inFlight.add(email);
     try {
-      const response = await fetch(supabaseFunctionUrl('newsletter-gateway'), {
+      const response = await fetch('/api/partner?op=newsletter-public', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ email, locale }),
-        signal: AbortSignal.timeout(12_000),
+        signal: AbortSignal.timeout(15_000),
       });
       const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; code?: string };
       if (!response.ok || !payload.ok) throw new Error(payload.code || `NEWSLETTER_HTTP_${response.status}`);

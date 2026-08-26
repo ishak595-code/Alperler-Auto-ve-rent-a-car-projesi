@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const URL = Deno.env.get("SUPABASE_URL") || "";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const ALLOWED_ORIGINS = new Set([
   Deno.env.get("PUBLIC_SITE_URL") || "",
@@ -24,8 +24,8 @@ function originState(request: Request) { const supplied = clean(request.headers.
 function headers(request: Request): HeadersInit { const origin=originState(request).allowed; return { ...(origin?{"access-control-allow-origin":origin}:{}), "access-control-allow-methods":"GET,OPTIONS", "access-control-allow-headers":"authorization,content-type,x-request-id,x-app-origin", "cache-control":"private, no-store, max-age=0", "content-type":"application/json; charset=utf-8", "x-content-type-options":"nosniff", vary:"Origin" }; }
 function json(request: Request, body: unknown, status=200): Response { return Response.json(body,{status,headers:headers(request)}); }
 function serviceHeaders(): Record<string,string> { return { apikey:SERVICE_KEY, authorization:`Bearer ${SERVICE_KEY}`, "content-type":"application/json" }; }
-async function rpc<T>(name:string, body:Record<string,unknown>):Promise<T>{ const response=await fetch(`${URL}/rest/v1/rpc/${name}`,{method:"POST",headers:serviceHeaders(),body:JSON.stringify(body),signal:AbortSignal.timeout(12_000)}); const payload=await response.json().catch(()=>({})); if(!response.ok){const raw=clean((payload as any)?.message||(payload as any)?.details,500); if(raw.includes("OPERATIONS_PERMISSION_REQUIRED")) throw new Error("OPERATIONS_PERMISSION_REQUIRED"); throw new Error("NEWSLETTER_SNAPSHOT_FAILED");} return payload as T; }
-async function actor(request:Request):Promise<Actor>{ const authorization=request.headers.get("authorization")||""; if(!/^Bearer\s+\S+/i.test(authorization)) throw new Error("UNAUTHORIZED"); const userResponse=await fetch(`${URL}/auth/v1/user`,{headers:{apikey:SERVICE_KEY,authorization},signal:AbortSignal.timeout(8_000)}); if(!userResponse.ok) throw new Error("UNAUTHORIZED"); const user=await userResponse.json().catch(()=>({})); const id=uuid(user?.id); if(!id) throw new Error("UNAUTHORIZED"); return {id}; }
+async function rpc<T>(name:string, body:Record<string,unknown>):Promise<T>{ const response=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`,{method:"POST",headers:serviceHeaders(),body:JSON.stringify(body),signal:AbortSignal.timeout(12_000)}); const payload=await response.json().catch(()=>({})); if(!response.ok){const raw=clean((payload as any)?.message||(payload as any)?.details,500); if(raw.includes("OPERATIONS_PERMISSION_REQUIRED")) throw new Error("OPERATIONS_PERMISSION_REQUIRED"); throw new Error("NEWSLETTER_SNAPSHOT_FAILED");} return payload as T; }
+async function actor(request:Request):Promise<Actor>{ const authorization=request.headers.get("authorization")||""; if(!/^Bearer\s+\S+/i.test(authorization)) throw new Error("UNAUTHORIZED"); const userResponse=await fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:{apikey:SERVICE_KEY,authorization},signal:AbortSignal.timeout(8_000)}); if(!userResponse.ok) throw new Error("UNAUTHORIZED"); const user=await userResponse.json().catch(()=>({})); const id=uuid(user?.id); if(!id) throw new Error("UNAUTHORIZED"); return {id}; }
 async function sha256(value:string):Promise<string>{const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value));return [...new Uint8Array(digest)].map((b)=>b.toString(16).padStart(2,"0")).join("");}
 async function rateLimit(a:Actor):Promise<void>{const ok=await rpc<boolean>("consume_rate_limit",{p_key_hash:await sha256(`newsletter-read-v186:${a.id}`),p_scope:"newsletter-admin-read-v186",p_window_seconds:60,p_limit:120});if(ok!==true)throw new Error("RATE_LIMITED");}
 function status(code:string):number{if(code==="UNAUTHORIZED")return 401;if(code==="OPERATIONS_PERMISSION_REQUIRED")return 403;if(code==="RATE_LIMITED")return 429;if(code==="INVALID_VIEW")return 400;return 500;}
@@ -34,7 +34,7 @@ Deno.serve(async(request)=>{
   const origin=originState(request); if(origin.supplied&&!origin.allowed)return json(request,{ok:false,code:"ORIGIN_NOT_ALLOWED"},403);
   if(request.method==="OPTIONS")return new Response(null,{status:204,headers:headers(request)});
   if(request.method!=="GET")return json(request,{ok:false,code:"METHOD_NOT_ALLOWED"},405);
-  if(!URL||!SERVICE_KEY)return json(request,{ok:false,code:"SERVER_CONFIG_MISSING"},503);
+  if(!SUPABASE_URL||!SERVICE_KEY)return json(request,{ok:false,code:"SERVER_CONFIG_MISSING"},503);
   try{
     const a=await actor(request); await rateLimit(a);
     const url=new URL(request.url), view=clean(url.searchParams.get("view"),30).toUpperCase();

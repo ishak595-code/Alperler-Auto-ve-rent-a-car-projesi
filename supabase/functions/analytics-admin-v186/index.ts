@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const URL = Deno.env.get("SUPABASE_URL") || "";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const MAX_BODY_BYTES = 16 * 1024;
 const ALLOWED_ORIGINS = new Set([
@@ -42,7 +42,7 @@ function headers(request: Request): HeadersInit {
 function json(request: Request, body: unknown, status = 200): Response { return Response.json(body, { status, headers: headers(request) }); }
 function serviceHeaders(): Record<string,string> { return { apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}`, "content-type": "application/json" }; }
 async function rpc<T>(name: string, body: Json): Promise<T> {
-  const response = await fetch(`${URL}/rest/v1/rpc/${name}`, { method: "POST", headers: serviceHeaders(), body: JSON.stringify(body), signal: AbortSignal.timeout(15_000) });
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, { method: "POST", headers: serviceHeaders(), body: JSON.stringify(body), signal: AbortSignal.timeout(15_000) });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     const raw = clean((payload as any)?.message || (payload as any)?.details || (payload as any)?.code, 600);
@@ -54,12 +54,12 @@ async function rpc<T>(name: string, body: Json): Promise<T> {
 async function requireActor(request: Request): Promise<Actor> {
   const authorization = request.headers.get("authorization") || "";
   if (!/^Bearer\s+\S+/i.test(authorization)) throw new Error("UNAUTHORIZED");
-  const response = await fetch(`${URL}/auth/v1/user`, { headers: { apikey: SERVICE_KEY, authorization }, signal: AbortSignal.timeout(8_000) });
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: SERVICE_KEY, authorization }, signal: AbortSignal.timeout(8_000) });
   if (!response.ok) throw new Error("UNAUTHORIZED");
   const user = await response.json().catch(() => ({}));
   const id = uuid(user?.id), email = clean(user?.email, 180).toLowerCase();
   if (!id || !email) throw new Error("UNAUTHORIZED");
-  const adminResponse = await fetch(`${URL}/rest/v1/admin_users?user_id=eq.${encodeURIComponent(id)}&is_active=eq.true&select=user_id&limit=1`, { headers: serviceHeaders(), signal: AbortSignal.timeout(8_000) });
+  const adminResponse = await fetch(`${SUPABASE_URL}/rest/v1/admin_users?user_id=eq.${encodeURIComponent(id)}&is_active=eq.true&select=user_id&limit=1`, { headers: serviceHeaders(), signal: AbortSignal.timeout(8_000) });
   if (!adminResponse.ok) throw new Error("ADMIN_LOOKUP_FAILED");
   const rows = await adminResponse.json().catch(() => []);
   if (!Array.isArray(rows) || !rows[0]) throw new Error("FORBIDDEN");
@@ -94,7 +94,7 @@ Deno.serve(async (request) => {
   if (origin.supplied && !origin.allowed) return json(request, { ok:false, code:"ORIGIN_NOT_ALLOWED" }, 403);
   if (request.method === "OPTIONS") return new Response(null, { status:204, headers:headers(request) });
   if (request.method !== "POST") return json(request, { ok:false, code:"METHOD_NOT_ALLOWED" }, 405);
-  if (!URL || !SERVICE_KEY) return json(request, { ok:false, code:"SERVER_CONFIG_MISSING" }, 503);
+  if (!SUPABASE_URL || !SERVICE_KEY) return json(request, { ok:false, code:"SERVER_CONFIG_MISSING" }, 503);
   try {
     const actor = await requireActor(request);
     const input = await body(request);

@@ -11,6 +11,8 @@ interface BranchApiResponse {
   code?: string;
 }
 
+const PUBLIC_BRANCH_COALESCE_MS = 2_000;
+
 @Injectable({ providedIn: "root" })
 export class BranchService {
   private readonly authService = inject(AuthService);
@@ -21,6 +23,8 @@ export class BranchService {
   private readonly adminLoaded = signal(false);
   private readonly syncError = signal<string | null>(null);
   private realtimeRefreshTimer?: number;
+  private publicRefreshInFlight?: Promise<void>;
+  private publicLastSuccessAt = 0;
 
   readonly branches = computed(() =>
     this.publicRemoteBranches()
@@ -38,7 +42,6 @@ export class BranchService {
   readonly cloudSyncError = this.syncError.asReadonly();
 
   constructor() {
-    void this.refreshPublic();
     const unwatch = this.realtime.watch(["branches"], () => this.queueRealtimeRefresh());
     this.destroyRef.onDestroy(unwatch);
     if (typeof window !== "undefined") {
@@ -68,7 +71,7 @@ export class BranchService {
     });
     const payload = (await response.json().catch(() => ({}))) as BranchApiResponse;
     if (!response.ok || !payload.ok) throw new Error(payload.code || "Şube kaydedilemedi.");
-    await Promise.allSettled([this.refreshAdmin(), this.refreshPublic(false)]);
+    await Promise.allSettled([this.refreshAdmin(), this.refreshPublic(false, true)]);
   }
 
   async remove(id: string): Promise<void> {
@@ -82,7 +85,7 @@ export class BranchService {
     });
     const payload = (await response.json().catch(() => ({}))) as BranchApiResponse;
     if (!response.ok || !payload.ok) throw new Error(payload.code || "Şube pasife alınamadı.");
-    await Promise.allSettled([this.refreshAdmin(), this.refreshPublic(false)]);
+    await Promise.allSettled([this.refreshAdmin(), this.refreshPublic(false, true)]);
   }
 
   async refreshAdmin(): Promise<void> {
@@ -100,7 +103,20 @@ export class BranchService {
     }
   }
 
-  async refreshPublic(showError = true): Promise<void> {
+  async refreshPublic(showError = true, force = false): Promise<void> {
+    if (!force && this.publicLastSuccessAt > 0 && Date.now() - this.publicLastSuccessAt < PUBLIC_BRANCH_COALESCE_MS) return;
+    if (this.publicRefreshInFlight) return this.publicRefreshInFlight;
+
+    const request = this.performPublicRefresh(showError);
+    this.publicRefreshInFlight = request;
+    try {
+      await request;
+    } finally {
+      if (this.publicRefreshInFlight === request) this.publicRefreshInFlight = undefined;
+    }
+  }
+
+  private async performPublicRefresh(showError: boolean): Promise<void> {
     try {
       const records = await this.fetchBranches(`/api/branches?fresh=${Date.now()}`);
       this.usePublicRecords(records);
@@ -120,18 +136,19 @@ export class BranchService {
 
   private usePublicRecords(records: Branch[]): void {
     this.publicRemoteBranches.set(records);
+    this.publicLastSuccessAt = Date.now();
     this.syncError.set(null);
   }
 
   private queueRealtimeRefresh(delay = 120): void {
     if (typeof window === "undefined") {
-      void this.refreshPublic(false);
+      void this.refreshPublic(false, true);
       return;
     }
     if (this.realtimeRefreshTimer !== undefined) window.clearTimeout(this.realtimeRefreshTimer);
     this.realtimeRefreshTimer = window.setTimeout(() => {
       this.realtimeRefreshTimer = undefined;
-      void this.refreshPublic(false);
+      void this.refreshPublic(false, true);
     }, delay);
   }
 

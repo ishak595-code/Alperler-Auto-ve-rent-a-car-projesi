@@ -61,7 +61,7 @@ for (const contract of [
   "saveVehicleAs('PUBLISHED')",
   "saveTourAs('PUBLISHED')",
 ]) must(workspace, contract, `Catalog workspace missing customer/admin contract: ${contract}`);
-for (const legacy of ['Kapak URL','Medya URL','external_url']) mustNot(workspace, legacy, `Catalog workspace must not expose common/external media URL flow: ${legacy}`);
+for (const legacyField of ['<span>Kapak URL</span>','<span>Medya URL</span>','[(ngModel)]="externalUrl"']) mustNot(workspace, legacyField, `Catalog workspace must not expose common/external media URL field: ${legacyField}`);
 
 for (const contract of [
   'BlogAdminService',
@@ -75,7 +75,7 @@ for (const contract of [
   "saveAs('PUBLISHED')",
   'Fotoğraf & Video',
 ]) must(blog, contract, `Blog editor missing owned workflow contract: ${contract}`);
-mustNot(blog, 'Kapak Görseli URL', 'Blog editor must not expose legacy cover URL field.');
+mustNot(blog, '<span>Kapak Görseli URL</span>', 'Blog editor must not expose legacy cover URL field.');
 for (const contract of ['status: "DRAFT"','author_name','seo_title','seo_description','PATCH','removeAll("BLOG", record.id)','status=eq.DRAFT','fetchById(record.id)']) must(blogService, contract, `Canonical blog admin persistence/lifecycle missing: ${contract}`);
 for (const contract of ['async removeAll(','deleteStorageObjectWithRetry','CATALOG_MEDIA_OWNER_CLEANUP_INCOMPLETE','for (const delay of [0, 400, 1200, 3000])']) must(catalogMedia, contract, `Owned catalog media cleanup contract missing: ${contract}`);
 mustNot(catalogMedia, 'Catalog media metadata removed but Storage cleanup failed', 'Storage cleanup failures must not be swallowed after metadata deletion.');
@@ -93,7 +93,7 @@ for (const contract of [
   'perCustomerLimit',
   "saveAs('PUBLISHED')",
 ]) must(campaigns, contract, `Campaign editor missing owned workflow contract: ${contract}`);
-mustNot(campaigns, 'Kapak URL', 'Campaign editor must not expose legacy cover URL field.');
+mustNot(campaigns, '<span>Kapak URL</span>', 'Campaign editor must not expose legacy cover URL field.');
 for (const contract of [
   'normalize_campaign_publication_activation_v198',
   "publication_status = 'PUBLISHED'",

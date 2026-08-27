@@ -1,0 +1,57 @@
+name: V201 Public Detail UX Ownership
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/pages/catalog-detail-shells.component.ts'
+      - 'src/pages/car-detail.component.ts'
+      - 'src/pages/sale-car-detail.component.ts'
+      - 'src/pages/tour-detail.component.ts'
+      - 'src/components/catalog-campaign-context.component.ts'
+      - 'src/pages/campaigns.component.ts'
+      - 'src/services/public-detail-data.service.ts'
+      - 'scripts/check-v201-public-detail-ux-ownership.mjs'
+      - '.github/workflows/v201-public-detail-ux-ownership.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/pages/catalog-detail-shells.component.ts'
+      - 'src/pages/car-detail.component.ts'
+      - 'src/pages/sale-car-detail.component.ts'
+      - 'src/pages/tour-detail.component.ts'
+      - 'src/components/catalog-campaign-context.component.ts'
+      - 'src/pages/campaigns.component.ts'
+      - 'src/services/public-detail-data.service.ts'
+      - 'scripts/check-v201-public-detail-ux-ownership.mjs'
+      - '.github/workflows/v201-public-detail-ux-ownership.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  public-detail-ux-ownership:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Approved public detail UX ownership contract
+        run: node scripts/check-v201-public-detail-ux-ownership.mjs
+      - name: Dependency high severity gate
+        run: npm audit --audit-level=high
+      - name: Frontend lint
+        run: npm run lint
+      - name: API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Production build
+        run: npm run build

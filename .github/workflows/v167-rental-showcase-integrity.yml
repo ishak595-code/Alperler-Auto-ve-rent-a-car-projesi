@@ -68,9 +68,10 @@ jobs:
           set -euo pipefail
           SHOW="src/pages/rental-showcase-v167.component.ts"
           CARD="src/components/rental-vehicle-card-v167.component.ts"
-          DETAIL="src/pages/rental-detail-v167.component.ts"
+          HISTORICAL_DETAIL="src/pages/rental-detail-v167.component.ts"
+          CANONICAL_DETAIL="src/pages/car-detail.component.ts"
           PRICE="src/services/rental-campaign-pricing.service.ts"
-          test -f "$SHOW" && test -f "$CARD" && test -f "$DETAIL" && test -f "$PRICE"
+          test -f "$SHOW" && test -f "$CARD" && test -f "$HISTORICAL_DETAIL" && test -f "$CANONICAL_DETAIL" && test -f "$PRICE"
           grep -q "fuels=computed" "$SHOW"
           grep -q "transmissions=computed" "$SHOW"
           grep -q "priceBounds=computed" "$SHOW"
@@ -79,8 +80,16 @@ jobs:
           grep -q "availability" "$CARD"
           grep -q "discountMethod === 'FIXED_PRICE'" "$PRICE"
           grep -q "discountScope === 'ORDER'" "$PRICE"
-          grep -q "CommercialOfferContextService" "$DETAIL"
-          grep -q "required.includes('driver')" "$DETAIL"
+          grep -q "CommercialOfferContextService" "$HISTORICAL_DETAIL"
+          grep -q "required.includes('driver')" "$HISTORICAL_DETAIL"
+          grep -q "activeCampaign" "$CANONICAL_DETAIL"
+          grep -q "Tüm Özellikler ve Açıklama" "$CANONICAL_DETAIL"
+          grep -q "fixed-actions" "$CANONICAL_DETAIL"
+          grep -q "campaignProofLabel" "$CANONICAL_DETAIL"
+          if grep -q "mobile-actions\|primary-action\|whatsapp-action" "$CANONICAL_DETAIL"; then
+            echo "Canonical rental detail must have one fixed CTA owner only"
+            exit 1
+          fi
           if grep -q "config().address" "$CARD"; then
             echo "Rental card must never mask vehicle location with global company address"
             exit 1
@@ -94,7 +103,11 @@ jobs:
             exit 1
           fi
           grep -q "RentalShowcaseV167Component" src/pages/fleet.component.ts
-          grep -q "RentalDetailV167Component" src/pages/catalog-detail-shells.component.ts
+          grep -q "CarDetailComponent" src/pages/catalog-detail-shells.component.ts
+          if grep -q "RentalDetailV167Component" src/pages/catalog-detail-shells.component.ts; then
+            echo "V201 approved rental detail must remain the public renderer"
+            exit 1
+          fi
 
       - name: Super Admin commercial rule contract
         shell: bash

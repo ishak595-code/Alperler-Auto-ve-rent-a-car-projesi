@@ -1,13 +1,38 @@
 import { Component } from "@angular/core";
-import { RentalDetailV167Component } from "./rental-detail-v167.component";
-import { SaleDetailV1681Component } from "./sale-detail-v1681.component";
-import { TourDetailV170Component } from "./tour-detail-v170.component";
+import { CatalogCampaignContextComponent } from "../components/catalog-campaign-context.component";
+import { CarDetailComponent } from "./car-detail.component";
+import { SaleCarDetailComponent } from "./sale-car-detail.component";
+import { TourDetailComponent } from "./tour-detail.component";
 
-@Component({ selector: "app-rental-detail-shell", standalone: true, imports: [RentalDetailV167Component], template: `<app-rental-detail-v167 />` })
+/**
+ * V201 public-detail ownership boundary.
+ *
+ * Keep the approved customer UX in exactly one component per entity. Newer
+ * catalogue/data/media work must be integrated into these canonical detail
+ * components instead of swapping the public screen to parallel V167/V168/V170
+ * presentations. This prevents data hardening from silently redesigning the
+ * customer journey.
+ */
+@Component({
+  selector: "app-rental-detail-shell",
+  standalone: true,
+  imports: [CarDetailComponent],
+  template: `<app-car-detail />`,
+})
 export class RentalDetailShellComponent {}
 
-@Component({ selector: "app-sale-detail-shell", standalone: true, imports: [SaleDetailV1681Component], template: `<app-sale-detail-v1681 />` })
+@Component({
+  selector: "app-sale-detail-shell",
+  standalone: true,
+  imports: [CatalogCampaignContextComponent, SaleCarDetailComponent],
+  template: `<app-catalog-campaign-context targetKind="SALE" /><app-sale-car-detail />`,
+})
 export class SaleDetailShellComponent {}
 
-@Component({ selector: "app-tour-detail-shell", standalone: true, imports: [TourDetailV170Component], template: `<app-tour-detail-v170 />` })
+@Component({
+  selector: "app-tour-detail-shell",
+  standalone: true,
+  imports: [CatalogCampaignContextComponent, TourDetailComponent],
+  template: `<app-catalog-campaign-context targetKind="TOUR" /><app-tour-detail />`,
+})
 export class TourDetailShellComponent {}

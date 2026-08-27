@@ -52,7 +52,7 @@ jobs:
             exit 1
           fi
 
-      - name: Dated reservation remains mandatory
+      - name: Dated reservation technology remains available
         shell: bash
         run: |
           set -euo pipefail
@@ -63,11 +63,28 @@ jobs:
           grep -Fq "formattedDate" "$FILE"
           grep -Fq "Müşterinin geleceği tarih" "$FILE"
           if grep -Fq "remainingSeats" "$FILE"; then
-            echo "V170 customer booking must not use remaining seats as a hard gate"
+            echo "V170 technology must not use remaining seats as a hard gate"
             exit 1
           fi
 
-      - name: Large group booking is capacity independent
+      - name: Approved public tour keeps reservation behind explicit action
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE=src/pages/tour-detail.component.ts
+          SHELL=src/pages/catalog-detail-shells.component.ts
+          grep -Fq "readonly reservationOpen = signal(false)" "$FILE"
+          grep -Fq '@if (reservationOpen())' "$FILE"
+          grep -Fq 'class="reservation-overlay"' "$FILE"
+          grep -Fq "Bu Turu Rezerve Et" "$FILE"
+          grep -Fq "action-bar" "$FILE"
+          grep -Fq "TourDetailComponent" "$SHELL"
+          if grep -Fq "TourDetailV170Component" "$SHELL"; then
+            echo "V201 approved tour renderer must not be replaced by the always-open V170 presentation"
+            exit 1
+          fi
+
+      - name: Large group booking technology is capacity independent
         shell: bash
         run: |
           set -euo pipefail
@@ -104,7 +121,7 @@ jobs:
             exit 1
           fi
 
-      - name: Dynamic photo and video detail
+      - name: Dynamic photo and video infrastructure remains protected
         shell: bash
         run: |
           set -euo pipefail
@@ -115,7 +132,7 @@ jobs:
           grep -Fq "item.includedItems" "$FILE"
           grep -Fq "item.excludedItems" "$FILE"
           grep -Fq "item.highlights" "$FILE"
-          grep -Fq "TourDetailV170Component" src/pages/catalog-detail-shells.component.ts
+          grep -Fq "DetailMediaLightboxComponent" "$FILE"
 
       - name: Super Admin owned Tour Studio contract
         shell: bash

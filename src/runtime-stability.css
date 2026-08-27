@@ -5,6 +5,10 @@
   --site-content-max: 1280px;
   --site-radius: 18px;
   --site-font-scale: 1;
+  --site-safe-top: env(safe-area-inset-top, 0px);
+  --site-safe-right: env(safe-area-inset-right, 0px);
+  --site-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --site-safe-left: env(safe-area-inset-left, 0px);
 }
 
 html {
@@ -20,6 +24,14 @@ body {
   overflow-x: clip;
   background: var(--site-page-bg);
   font-size: calc(16px * var(--site-font-scale));
+}
+
+/* The mobile navigation is rendered only while open. This lock is a second
+   independent safeguard against the page scrolling underneath the menu. */
+html[data-mobile-menu-open="true"],
+html[data-mobile-menu-open="true"] body {
+  overflow: hidden !important;
+  overscroll-behavior: none;
 }
 
 *, *::before, *::after {
@@ -64,23 +76,13 @@ app-home-v71 .planner-note {
 }
 
 /* Installed PWA surfaces use the dynamic viewport and never inherit browser-tab
-   overscroll behavior. Browser mode is deliberately untouched. */
+   overscroll behavior. Safe areas are consumed by the fixed navbar/dock rather
+   than padding the whole body, which previously risked double top offsets. */
 @media (display-mode: standalone), (display-mode: fullscreen) {
   html,
   body {
     min-height: 100dvh;
     overscroll-behavior-y: none;
-  }
-}
-
-/* Android/iOS installed modes: protect content from status bars, notches and
-   landscape cutouts. Coarse pointer keeps desktop standalone windows unchanged. */
-@media (display-mode: standalone) and (pointer: coarse),
-       (display-mode: fullscreen) and (pointer: coarse) {
-  body {
-    padding-top: env(safe-area-inset-top);
-    padding-right: env(safe-area-inset-right);
-    padding-left: env(safe-area-inset-left);
   }
 }
 

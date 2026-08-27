@@ -1,4 +1,4 @@
-const RELEASE = 'v186-ui-stability';
+const RELEASE = 'v191-responsive-runtime';
 const CACHE_PREFIX = 'alperler-pwa-';
 const SHELL_CACHE = `${CACHE_PREFIX}${RELEASE}-shell`;
 const STATIC_CACHE = `${CACHE_PREFIX}${RELEASE}-static`;

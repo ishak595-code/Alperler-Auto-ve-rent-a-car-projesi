@@ -1,3 +1,10 @@
 @import "tailwindcss" source(none);
-@source "../";
-@source inline("bg-slate-50 text-slate-800 antialiased");
+
+/* Scan only runtime UI sources. The previous repository-root scan also walked
+   migrations, docs, workflows and scripts, increasing build work and the chance
+   of generating utilities that can never render in the browser. */
+@source "./";
+@source "../index.html";
+@source "../index.tsx";
+
+@source inline("bg-slate-50 text-slate-800 antialiased selection:bg-blue-900 selection:text-white");

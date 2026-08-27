@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 
 export type DetailMediaItem = {
   kind: 'IMAGE' | 'VIDEO';
@@ -50,6 +50,7 @@ export type DetailMediaItem = {
   `],
 })
 export class DetailMediaLightboxComponent implements OnChanges, OnDestroy {
+  private readonly host = inject(ElementRef<HTMLElement>);
   @Input() open = false;
   @Input() items: DetailMediaItem[] = [];
   @Input() index = 0;
@@ -62,6 +63,7 @@ export class DetailMediaLightboxComponent implements OnChanges, OnDestroy {
   private invoker: HTMLElement | null = null;
   private previousBodyOverflow = '';
   private touchX = 0;
+  private backgroundState: Array<{ element: HTMLElement; inert: boolean }> = [];
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['open']) {
@@ -144,14 +146,29 @@ export class DetailMediaLightboxComponent implements OnChanges, OnDestroy {
     this.invoker = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    this.inertBackground();
     queueMicrotask(() => {
       this.closeButton?.nativeElement.focus();
       if (!this.closeButton) this.dialog?.nativeElement.focus();
     });
   }
 
+  private inertBackground(): void {
+    const host = this.host.nativeElement;
+    const parent = host.parentElement;
+    if (!parent || this.backgroundState.length) return;
+    for (const child of Array.from(parent.children)) {
+      if (!(child instanceof HTMLElement) || child === host || child.contains(host)) continue;
+      this.backgroundState.push({ element: child, inert: child.inert });
+      child.inert = true;
+    }
+  }
+
   private restorePageState(restoreFocus = true): void {
     if (typeof document !== 'undefined') document.body.style.overflow = this.previousBodyOverflow;
+    for (const state of this.backgroundState.splice(0)) {
+      if (state.element.isConnected) state.element.inert = state.inert;
+    }
     if (restoreFocus && this.invoker?.isConnected) queueMicrotask(() => this.invoker?.focus());
     this.invoker = null;
   }

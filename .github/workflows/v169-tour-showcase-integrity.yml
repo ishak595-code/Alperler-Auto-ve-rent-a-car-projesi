@@ -51,21 +51,28 @@ jobs:
           grep -Fq "INCLUDED_ITEMS_REQUIRED" "$MIG"
           grep -Fq "EXCLUDED_ITEMS_REQUIRED" "$MIG"
 
-      - name: Production tour route uses current successor
+      - name: Production tour showcase and approved detail ownership
         shell: bash
         run: |
           set -euo pipefail
           test -f src/pages/tour-showcase-v170.component.ts
           test -f src/pages/tour-detail-v170.component.ts
+          test -f src/pages/tour-detail.component.ts
           grep -Fq "TourShowcaseV170Component" src/pages/tours.component.ts
-          grep -Fq "TourDetailV170Component" src/pages/catalog-detail-shells.component.ts
+          grep -Fq "TourDetailComponent" src/pages/catalog-detail-shells.component.ts
+          if grep -Fq "TourDetailV170Component" src/pages/catalog-detail-shells.component.ts; then
+            echo "V201 approved tour detail must remain the public renderer"
+            exit 1
+          fi
           grep -Fq "bounds" src/pages/tour-showcase-v170.component.ts
+          grep -Fq "readonly reservationOpen = signal(false)" src/pages/tour-detail.component.ts
+          grep -Fq "Bu Turu Rezerve Et" src/pages/tour-detail.component.ts
           if grep -Eq "0-5000|5000-15000|15000\+|priceRanges[[:space:]]*=" src/pages/tour-showcase-v170.component.ts; then
             echo "Tour filters must remain live-data derived"
             exit 1
           fi
 
-      - name: V170 supersedes hard seat gating while preserving dates
+      - name: V170 flexible demand technology remains available
         shell: bash
         run: |
           set -euo pipefail
@@ -74,7 +81,7 @@ jobs:
           grep -Fq "startDate:this.tourDate" "$FILE"
           grep -Fq "personCount" "$FILE"
           if grep -Fq "remainingSeats" "$FILE"; then
-            echo "Current tour route must not restore hard remaining-seat gating"
+            echo "V170 technology must not restore hard remaining-seat gating"
             exit 1
           fi
 
@@ -113,8 +120,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "RentalDetailV167Component" src/pages/catalog-detail-shells.component.ts
-          grep -Fq "SaleDetailV1681Component" src/pages/catalog-detail-shells.component.ts
+          grep -Fq "CarDetailComponent" src/pages/catalog-detail-shells.component.ts
+          grep -Fq "SaleCarDetailComponent" src/pages/catalog-detail-shells.component.ts
           test -f supabase/migrations/20260825183500_v1681_structured_tramer_truth.sql
           test -f supabase/migrations/20260825170000_v167_rental_campaign_integrity.sql
 

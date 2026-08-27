@@ -133,7 +133,7 @@ export class CatalogMediaService {
         if (!response.record) throw new Error("CATALOG_MEDIA_CREATE_FAILED");
         created = this.fromRow(response.record);
       } catch (error) {
-        await this.deleteStorageObject(objectPath, token).catch(() => undefined);
+        await this.deleteStorageObjectWithRetry(objectPath, token).catch(() => undefined);
         throw error;
       }
 
@@ -184,10 +184,15 @@ export class CatalogMediaService {
     const storageBucket = response.result?.storageBucket || item.storageBucket;
     const objectPath = response.result?.objectPath || item.objectPath;
     if (storageBucket === this.bucket && objectPath) {
-      await this.deleteStorageObject(objectPath, token).catch((error) => {
-        console.warn("Catalog media metadata removed but Storage cleanup failed", error);
-      });
+      await this.deleteStorageObjectWithRetry(objectPath, token);
     }
+  }
+
+  async removeAll(entityType: CatalogEntityType, entityId: string): Promise<void> {
+    const items = await this.load(entityType, entityId);
+    for (const item of items) await this.remove(item);
+    const remaining = await this.load(entityType, entityId);
+    if (remaining.length) throw new Error("CATALOG_MEDIA_OWNER_CLEANUP_INCOMPLETE");
   }
 
   private async gateway(
@@ -302,6 +307,20 @@ export class CatalogMediaService {
       this._uploadProgress.set(Math.min(99, Math.round((offset / file.size) * 100)));
     }
     this._uploadProgress.set(100);
+  }
+
+  private async deleteStorageObjectWithRetry(objectPath: string, token: string): Promise<void> {
+    let lastError: unknown;
+    for (const delay of [0, 400, 1200, 3000]) {
+      if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+      try {
+        await this.deleteStorageObject(objectPath, token);
+        return;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error("CATALOG_STORAGE_DELETE_FAILED");
   }
 
   private async deleteStorageObject(objectPath: string, token: string): Promise<void> {

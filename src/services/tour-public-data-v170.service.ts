@@ -22,10 +22,11 @@ export interface TourV170 extends Tour {
 @Injectable({ providedIn: "root" })
 export class TourPublicDataV170Service {
   private readonly media = inject(PublicCatalogMediaService);
+  private readonly uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   async list(): Promise<TourV170[]> {
     const [rows, media] = await Promise.all([
-      this.fetchRows(),
+      this.fetchRows("tours?is_active=eq.true&publication_status=eq.PUBLISHED&select=*&order=is_featured.desc,updated_at.desc"),
       this.media.loadAll().catch(() => []),
     ]);
     const mapped = rows.map((row) => this.map(row));
@@ -35,15 +36,18 @@ export class TourPublicDataV170Service {
   async load(identifier: string): Promise<TourV170> {
     const clean = String(identifier || "").trim();
     if (!clean) throw new Error("Tur kimliği eksik.");
-    const rows = await this.list();
-    const item = rows.find((tour) => [tour.id, tour.cloudId, tour.cloudSlug]
-      .some((value) => value !== undefined && value !== null && String(value) === clean));
-    if (!item) throw new Error("Bu tur bulunamadı veya yayından kaldırılmış olabilir.");
-    return item;
+    const filter = this.uuidPattern.test(clean)
+      ? `id=eq.${encodeURIComponent(clean)}`
+      : `seo_slug=eq.${encodeURIComponent(clean)}`;
+    const rows = await this.fetchRows(`tours?is_active=eq.true&publication_status=eq.PUBLISHED&${filter}&select=*&limit=1`);
+    const row = rows[0];
+    if (!row) throw new Error("Bu tur bulunamadı veya yayından kaldırılmış olabilir.");
+    const mapped = this.map(row);
+    const media = await this.media.loadForTour(String(mapped.cloudId || mapped.id)).catch(() => []);
+    return (this.media.hydrate([mapped], media)[0] || mapped) as TourV170;
   }
 
-  private async fetchRows(): Promise<Record<string, any>[]> {
-    const path = "tours?is_active=eq.true&publication_status=eq.PUBLISHED&select=*&order=is_featured.desc,updated_at.desc";
+  private async fetchRows(path: string): Promise<Record<string, any>[]> {
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
       method: "GET",
       cache: "no-store",

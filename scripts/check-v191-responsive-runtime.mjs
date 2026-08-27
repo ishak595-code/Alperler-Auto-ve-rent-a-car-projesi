@@ -60,7 +60,7 @@ assert(manifest.display === 'standalone', 'installed PWA must use standalone dis
 assert(Array.isArray(manifest.display_override) && manifest.display_override[0] === 'standalone', 'standalone must be the preferred installed display mode');
 const releaseMatch = worker.match(/const RELEASE = ['"]([^'"]+)['"];?/);
 assert(releaseMatch?.[1], 'PWA cache release identifier is missing');
-assert(/^v\d+[a-z0-9.-]*(?:-[a-z0-9.-]+)*$/i.test(releaseMatch[1]), 'PWA cache release must use a versioned identifier');
+assert(/^v[0-9]+[A-Za-z0-9.-]*$/.test(releaseMatch[1]), 'PWA cache release must use a versioned identifier');
 
 const distIndex = 'dist/index.html';
 assert(fs.existsSync(distIndex), 'production build must exist before V191 guard runs');

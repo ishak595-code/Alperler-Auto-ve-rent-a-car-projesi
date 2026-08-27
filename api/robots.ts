@@ -1,8 +1,4 @@
-function origin(request:Request){
-  const explicit=String(process.env.PUBLIC_APP_URL||'').trim().replace(/\/$/,'');
-  if(explicit){try{const u=new URL(explicit);if(u.protocol==='https:')return u.origin;}catch{}}
-  return new URL(request.url).origin;
-}
+import { requestPublicOrigin } from "./_lib/public-origin";
 
 const privatePaths=['/admin','/branch-portal','/track-car','/booking-checkout','/api'];
 const aiAgents=[
@@ -50,7 +46,7 @@ export default{async fetch(request:Request){
       },
     });
   }
-  const body=`${rules}\nSitemap: ${origin(request)}/sitemap.xml\n`;
+  const body=`${rules}\nSitemap: ${requestPublicOrigin(request)}/sitemap.xml\n`;
   return new Response(request.method==='HEAD'?null:body,{headers:{
     'content-type':'text/plain; charset=utf-8',
     'cache-control':'public, max-age=300, s-maxage=600',

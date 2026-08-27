@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'src/components/detail-media-lightbox.component.ts'
+      - 'src/components/dynamic-home-section.component.ts'
+      - 'src/components/customer-mobile-dock.component.ts'
+      - 'src/components/catalog-mixed-gallery.component.ts'
       - 'src/pages/rental-detail-v167.component.ts'
       - 'src/pages/sale-detail-v1681.component.ts'
       - 'src/pages/tour-detail-v170.component.ts'
@@ -17,6 +20,9 @@ on:
     branches: [main]
     paths:
       - 'src/components/detail-media-lightbox.component.ts'
+      - 'src/components/dynamic-home-section.component.ts'
+      - 'src/components/customer-mobile-dock.component.ts'
+      - 'src/components/catalog-mixed-gallery.component.ts'
       - 'src/pages/rental-detail-v167.component.ts'
       - 'src/pages/sale-detail-v1681.component.ts'
       - 'src/pages/tour-detail-v170.component.ts'

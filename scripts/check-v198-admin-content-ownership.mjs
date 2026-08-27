@@ -1,0 +1,87 @@
+import fs from 'node:fs';
+
+const read = (path) => fs.readFileSync(path, 'utf8');
+const must = (source, needle, message) => {
+  if (!source.includes(needle)) throw new Error(message || `Missing required contract: ${needle}`);
+};
+const mustNot = (source, needle, message) => {
+  if (source.includes(needle)) throw new Error(message || `Forbidden legacy contract present: ${needle}`);
+};
+
+const hub = read('src/pages/admin/admin-content-hub.component.ts');
+const workspace = read('src/pages/admin/admin-catalog-workspace.component.ts');
+const blog = read('src/pages/admin/admin-blog.component.ts');
+const blogService = read('src/services/blog-admin.service.ts');
+const campaigns = read('src/pages/admin/admin-campaigns-v167.component.ts');
+const publicMedia = read('src/services/public-catalog-media.service.ts');
+const publicDetail = read('src/services/public-detail-data.service.ts');
+const blogDetail = read('src/pages/blog-detail.component.ts');
+
+for (const contract of [
+  'mode="RENTAL"',
+  'mode="SALE"',
+  'mode="TOUR"',
+  "path==='/admin/media'",
+  "navigateByUrl('/admin/cars'",
+]) must(hub, contract, `Admin content hub must enforce separate entity workspace contract: ${contract}`);
+for (const legacy of ['AdminCatalogEditorComponent','AdminSaleIntegrityV1681Component','AdminTourStudioV170Component']) {
+  mustNot(hub, legacy, `Admin content hub must not render legacy parallel editor ${legacy}`);
+}
+
+for (const contract of [
+  'Fotoğraf & Video',
+  '+ {{ newButtonLabel() }}',
+  'type="search"',
+  'CatalogMediaService',
+  "upload(type,id,file",
+  "createVehicle(this.mode)",
+  'createTour()',
+  'hourlyRentalEnabled',
+  'minimumRentalHours',
+  'damageExpertise',
+  'tramerStatus',
+  'itinerary=splitLines',
+  'includedItems',
+  'excludedItems',
+  'latitude',
+  'longitude',
+  "saveVehicleAs('PUBLISHED')",
+  "saveTourAs('PUBLISHED')",
+]) must(workspace, contract, `Catalog workspace missing customer/admin contract: ${contract}`);
+for (const legacy of ['Kapak URL','Medya URL','external_url']) mustNot(workspace, legacy, `Catalog workspace must not expose common/external media URL flow: ${legacy}`);
+
+for (const contract of [
+  'BlogAdminService',
+  'CatalogMediaService',
+  '+ Yeni Blog Yazısı',
+  'createDraft()',
+  "upload('BLOG',post.id",
+  'authorName',
+  'seoTitle',
+  'seoDescription',
+  "saveAs('PUBLISHED')",
+  'Fotoğraf & Video',
+]) must(blog, contract, `Blog editor missing owned workflow contract: ${contract}`);
+mustNot(blog, 'Kapak Görseli URL', 'Blog editor must not expose legacy cover URL field.');
+for (const contract of ['status: "DRAFT"','author_name','seo_title','seo_description','PATCH']) must(blogService, contract, `Canonical blog admin persistence missing: ${contract}`);
+
+for (const contract of [
+  '+ Yeni Kampanya',
+  "title:'Yeni Kampanya'",
+  "uploadImage(file,'CAMPAIGN',this.editingId,'cover')",
+  'discountMethod',
+  'discountScope',
+  'visibilityMode',
+  'targetType',
+  'targetId',
+  'maxRedemptions',
+  'perCustomerLimit',
+  "saveAs('PUBLISHED')",
+]) must(campaigns, contract, `Campaign editor missing owned workflow contract: ${contract}`);
+mustNot(campaigns, 'Kapak URL', 'Campaign editor must not expose legacy cover URL field.');
+
+for (const contract of ['blogPostId?: string','blog_post_id','loadForBlog']) must(publicMedia, contract, `Public media service missing blog owner scope: ${contract}`);
+for (const contract of ['BlogDetailPost','author_name','seo_title','seo_description','loadForBlog(ownerId)','media: BlogDetailMediaItem[]']) must(publicDetail, contract, `Public blog hydration missing contract: ${contract}`);
+for (const contract of ['fullscreenOpen','touchStart','touchEnd','article.media.length','authorName']) must(blogDetail, contract, `Public blog detail media contract missing: ${contract}`);
+
+console.log('V198 admin content ownership contract: PASS');

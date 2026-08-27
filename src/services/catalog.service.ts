@@ -49,8 +49,8 @@ const DIRECT_MAX_PAGES = 100;
 export class CatalogService {
   private readonly authService = inject(AuthService);
 
-  async loadVehicles(_fresh = false): Promise<Vehicle[]> {
-    const records = await this.loadList<Record<string, any>>("vehicles", true);
+  async loadVehicles(fresh = false): Promise<Vehicle[]> {
+    const records = await this.loadList<Record<string, any>>("vehicles", fresh);
     return records.map((record) => this.normalizeVehicleRecord(record));
   }
 
@@ -132,13 +132,7 @@ export class CatalogService {
     return payload.records;
   }
 
-  private async publicRequest<T>(resource: PublicResource, fresh: boolean): Promise<CatalogListResponse<T>> {
-    try {
-      const payload = await this.request<CatalogListResponse<T>>("GET", resource, undefined, undefined, fresh);
-      if (payload.ok) return payload;
-    } catch (error) {
-      console.warn(`Public catalog API fallback activated for ${resource}`, error);
-    }
+  private publicRequest<T>(resource: PublicResource, fresh: boolean): Promise<CatalogListResponse<T>> {
     return this.directPublicRequest<T>(resource, fresh);
   }
 
@@ -341,26 +335,13 @@ export class CatalogService {
   ): Promise<T> {
     const token = await this.authService.getAccessToken();
     if (!token) throw new Error("ADMIN_SESSION_REQUIRED");
-    return this.request<T>(method, resource, body, token);
-  }
-
-  private async request<T>(
-    method: "GET" | "PUT" | "POST" | "DELETE",
-    resource: string,
-    body?: unknown,
-    token?: string,
-    fresh = false,
-  ): Promise<T> {
-    const freshQuery = fresh && method === "GET" ? `&fresh=${Date.now()}` : "";
-    const response = await fetch(`/api/catalog?resource=${encodeURIComponent(resource)}${freshQuery}`, {
+    const response = await fetch(`/api/catalog?resource=${encodeURIComponent(resource)}`, {
       method,
-      cache: fresh ? "no-store" : "default",
       headers: {
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-        ...(fresh ? { "cache-control": "no-cache" } : {}),
-        ...(method === "GET" ? {} : { "content-type": "application/json" }),
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
       },
-      body: method === "GET" ? undefined : JSON.stringify(body),
+      body: JSON.stringify(body),
     });
     const payload = (await response.json().catch(() => ({}))) as T & { code?: string };
     if (!response.ok) throw new Error(payload.code || `CATALOG_HTTP_${response.status}`);

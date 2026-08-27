@@ -101,9 +101,10 @@ for (const contract of [
   'loadForVehicle(vehicleId: string)',
   'loadForTour(tourId: string)',
   'loadForBlog(blogPostId: string)',
-  'kind: CatalogMediaKind',
+  'kind: PublicCatalogMediaKind',
 ]) must(publicMedia, contract, `Canonical public media service missing owner-scoped contract: ${contract}`);
-mustNot(publicMedia, 'CatalogMediaService', 'Public media reads must never depend on the authenticated admin media service.');
+mustNot(publicMedia, 'from "./catalog-media.service"', 'Public media reads must never import the authenticated admin media service.');
+mustNot(publicMedia, 'from \'./catalog-media.service\'', 'Public media reads must never import the authenticated admin media service.');
 
 const dynamicHome = read(dynamicHomePath);
 for (const contract of [

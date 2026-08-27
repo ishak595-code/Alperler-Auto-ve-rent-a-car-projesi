@@ -10,14 +10,20 @@
   "display": "standalone",
   "display_override": ["standalone"],
   "orientation": "any",
-  "background_color": "#081426",
-  "theme_color": "#081426",
+  "background_color": "#06080D",
+  "theme_color": "#06080D",
   "prefer_related_applications": false,
   "categories": ["auto", "travel", "business"],
   "launch_handler": {
     "client_mode": "navigate-existing"
   },
   "icons": [
+    {
+      "src": "/brand/alperler-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",

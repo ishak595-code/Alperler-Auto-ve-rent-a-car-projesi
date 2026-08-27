@@ -14,6 +14,21 @@
   --alper-subtle: #81858A;
 }
 
+/* Repo-owned logo fallback keeps the brand portable when no remote logoUrl is configured. */
+app-navbar .brand-lockup::before {
+  content: "";
+  display: block;
+  width: min(52vw, 220px);
+  height: 54px;
+  background: url('/brand/alperler-logo.svg') center / contain no-repeat;
+  filter: drop-shadow(0 8px 14px rgba(0,0,0,.42)) drop-shadow(0 0 10px rgba(212,175,55,.12));
+}
+app-navbar .brand-lockup > .brand-mark,
+app-navbar .brand-lockup > .brand-copy { display: none !important; }
+@media (min-width: 1280px) {
+  app-navbar .brand-lockup::before { width: 270px; height: 70px; }
+}
+
 /* Customer account chrome must stay connected to the admin-managed palette even when component CSS contains safe fallbacks. */
 app-navbar .brand-mark,
 app-account-login .brand-mark,

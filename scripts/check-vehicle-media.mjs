@@ -70,7 +70,8 @@ if (!dynamicHome.includes("KAMPANYA") || !dynamicHome.includes("campaignProofLab
 if (!campaigns.includes("proofLabel")) failures.push("campaign listing lacks real interest proof label");
 if (!fs.existsSync(campaignProofMigration)) failures.push("campaign social proof migration missing");
 if (!detailData.includes("targetType === \"VEHICLE\"") || !detailData.includes("targetType === \"TOUR\"") || !detailData.includes("cta.startsWith(\"/\")")) failures.push("campaign target resolver is incomplete");
-if (!detailData.includes("loadToursDirect") || !detailData.includes("cache: \"no-store\"")) failures.push("tour detail does not perform direct no-cache DB read");
+if (!detailData.includes("loadTourDirect(") || !detailData.includes("&select=*&limit=1") || !detailData.includes('cache: "no-store"')) failures.push("tour detail does not perform a direct single-record no-cache DB read");
+if (detailData.includes("loadToursDirect()")) failures.push("tour detail reintroduced the deprecated whole-tour loader");
 
 for (const token of ["externalUrl","addExternalMedia","Kaynaklı Medyayı Ekle","Dış görsel","Dış video"]) if (admin.includes(token)) failures.push(`admin still exposes ${token}`);
 if (/async\s+addExternal\s*\(/.test(mediaService)) failures.push("CatalogMediaService still exposes addExternal()");
@@ -92,4 +93,4 @@ if (publicMedia.includes("/vehicle-media/") || vercel.includes("/vehicle-media/"
 if (!fs.existsSync(campaignMigration)) failures.push("campaign cover synchronization migration missing");
 
 if (failures.length) { console.error(failures.join("\n")); process.exit(1); }
-console.log("Unified catalogue guard passed: sale keeps its dedicated listing UX; rental remains compact; campaign proof has one root service owner with shared deduped state; app routing and Storage remain canonical.");
+console.log("Unified catalogue guard passed: sale keeps its dedicated listing UX; rental remains compact; campaign proof has one root service owner with shared deduped state; V197 single-record detail routing and Storage remain canonical.");

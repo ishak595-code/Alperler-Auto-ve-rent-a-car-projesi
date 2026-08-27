@@ -8,6 +8,7 @@ const mustNot = (source, needle, message) => {
   if (source.includes(needle)) throw new Error(message || `Forbidden legacy contract present: ${needle}`);
 };
 
+const routes = read('src/app.routes.ts');
 const hub = read('src/pages/admin/admin-content-hub.component.ts');
 const workspace = read('src/pages/admin/admin-catalog-workspace.component.ts');
 const blog = read('src/pages/admin/admin-blog.component.ts');
@@ -18,11 +19,21 @@ const publicDetail = read('src/services/public-detail-data.service.ts');
 const blogDetail = read('src/pages/blog-detail.component.ts');
 
 for (const contract of [
+  "{ path: 'catalog-editor', redirectTo: 'cars', pathMatch: 'full' }",
+  "{ path: 'media', redirectTo: 'cars', pathMatch: 'full' }",
+  "data: { contentSection: 'rental' }",
+  "data: { contentSection: 'sale' }",
+  "data: { contentSection: 'tour' }",
+  "data: { contentSection: 'campaigns' }",
+  "data: { contentSection: 'blog' }",
+  "data: { contentSection: 'benefits' }",
+]) must(routes, contract, `Admin route ownership contract missing: ${contract}`);
+
+for (const contract of [
   'mode="RENTAL"',
   'mode="SALE"',
   'mode="TOUR"',
-  "path==='/admin/media'",
-  "navigateByUrl('/admin/cars'",
+  "benefits:'/admin/benefits'",
 ]) must(hub, contract, `Admin content hub must enforce separate entity workspace contract: ${contract}`);
 for (const legacy of ['AdminCatalogEditorComponent','AdminSaleIntegrityV1681Component','AdminTourStudioV170Component']) {
   mustNot(hub, legacy, `Admin content hub must not render legacy parallel editor ${legacy}`);
@@ -63,7 +74,7 @@ for (const contract of [
   'Fotoğraf & Video',
 ]) must(blog, contract, `Blog editor missing owned workflow contract: ${contract}`);
 mustNot(blog, 'Kapak Görseli URL', 'Blog editor must not expose legacy cover URL field.');
-for (const contract of ['status: "DRAFT"','author_name','seo_title','seo_description','PATCH']) must(blogService, contract, `Canonical blog admin persistence missing: ${contract}`);
+for (const contract of ['status: "DRAFT"','author_name','seo_title','seo_description','PATCH','removeAll("BLOG", record.id)','status=eq.DRAFT']) must(blogService, contract, `Canonical blog admin persistence/lifecycle missing: ${contract}`);
 
 for (const contract of [
   '+ Yeni Kampanya',

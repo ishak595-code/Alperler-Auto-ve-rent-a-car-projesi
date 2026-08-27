@@ -150,7 +150,7 @@ jobs:
 
       - name: Upload build diagnostics on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: v166-commercial-offer-diagnostics
           path: v166-angular-build.log

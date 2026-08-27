@@ -1,4 +1,5 @@
 import { Component } from "@angular/core";
+import { CatalogCampaignContextComponent } from "../components/catalog-campaign-context.component";
 import { CarDetailComponent } from "./car-detail.component";
 import { SaleCarDetailComponent } from "./sale-car-detail.component";
 import { TourDetailComponent } from "./tour-detail.component";
@@ -23,15 +24,15 @@ export class RentalDetailShellComponent {}
 @Component({
   selector: "app-sale-detail-shell",
   standalone: true,
-  imports: [SaleCarDetailComponent],
-  template: `<app-sale-car-detail />`,
+  imports: [CatalogCampaignContextComponent, SaleCarDetailComponent],
+  template: `<app-catalog-campaign-context targetKind="SALE" /><app-sale-car-detail />`,
 })
 export class SaleDetailShellComponent {}
 
 @Component({
   selector: "app-tour-detail-shell",
   standalone: true,
-  imports: [TourDetailComponent],
-  template: `<app-tour-detail />`,
+  imports: [CatalogCampaignContextComponent, TourDetailComponent],
+  template: `<app-catalog-campaign-context targetKind="TOUR" /><app-tour-detail />`,
 })
 export class TourDetailShellComponent {}

@@ -13,7 +13,7 @@ const staleAdminPath = 'src/pages/admin/admin-campaigns.component.ts';
 const mediaPath = 'src/services/admin-media.service.ts';
 const bookingGatewayPath = 'supabase/functions/booking-gateway-v166/index.ts';
 const paymentsPath = 'api/payments.ts';
-const pricingMigrationPath = 'supabase/migrations/20260827210531_v2002_campaign_display_price_truth.sql';
+const pricingMigrationPath = 'supabase/migrations/20260827211410_v2003_campaign_draft_price_flexibility.sql';
 const gcMigrationPath = 'supabase/migrations/20260827210236_v2001_campaign_media_binding_gc.sql';
 const routePath = 'src/pages/admin/admin-content-hub.component.ts';
 
@@ -69,11 +69,12 @@ mustNot(payments, 'calculateCharge(Number(body.amount)', 'Client supplied amount
 
 const pricingMigration = read(pricingMigrationPath);
 for (const contract of [
-  'campaigns_display_price_matches_authoritative_v2002',
+  'campaigns_display_price_matches_authoritative_v2003',
+  "publication_status not in ('PUBLISHED','SCHEDULED')",
   "discount_method = 'FIXED_PRICE'",
   "discount_method = 'FIXED_AMOUNT' and discount_scope = 'ORDER'",
   "discount_method = 'PERCENT'",
-  'validate constraint campaigns_display_price_matches_authoritative_v2002',
+  'validate constraint campaigns_display_price_matches_authoritative_v2003',
 ]) must(pricingMigration.toLowerCase(), contract.toLowerCase(), `Campaign display/charge truth constraint missing: ${contract}`);
 
 const gcMigration = read(gcMigrationPath);

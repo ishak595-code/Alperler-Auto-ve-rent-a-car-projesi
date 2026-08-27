@@ -12,6 +12,7 @@ on:
       - 'supabase/migrations/20260827210122_v200_campaign_media_rollback_integrity.sql'
       - 'supabase/migrations/20260827210236_v2001_campaign_media_binding_gc.sql'
       - 'supabase/migrations/20260827210531_v2002_campaign_display_price_truth.sql'
+      - 'supabase/migrations/20260827211410_v2003_campaign_draft_price_flexibility.sql'
       - 'scripts/check-v200-campaign-price-media-integrity.mjs'
       - '.github/workflows/v200-campaign-price-media-integrity.yml'
   push:
@@ -25,6 +26,7 @@ on:
       - 'supabase/migrations/20260827210122_v200_campaign_media_rollback_integrity.sql'
       - 'supabase/migrations/20260827210236_v2001_campaign_media_binding_gc.sql'
       - 'supabase/migrations/20260827210531_v2002_campaign_display_price_truth.sql'
+      - 'supabase/migrations/20260827211410_v2003_campaign_draft_price_flexibility.sql'
       - 'scripts/check-v200-campaign-price-media-integrity.mjs'
       - '.github/workflows/v200-campaign-price-media-integrity.yml'
 

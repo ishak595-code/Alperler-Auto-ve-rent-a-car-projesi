@@ -134,7 +134,11 @@ export class CatalogMediaService {
         if (!response.record) throw new Error("CATALOG_MEDIA_CREATE_FAILED");
         created = this.fromRow(response.record);
       } catch (error) {
-        await this.deleteStorageObjectWithRetry(objectPath, token).catch(() => undefined);
+        try {
+          await this.gateway("POST", { action: "QUEUE_STORAGE_CLEANUP", entityType, entityId, objectPath });
+        } catch {
+          await this.deleteStorageObjectWithRetry(objectPath, token).catch(() => undefined);
+        }
         throw error;
       }
 

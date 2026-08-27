@@ -48,14 +48,19 @@ for (const contract of [
   'aria-label="Bu turu rezerve et"','focusAfterRender','Bu Turu Rezerve Et','Tur Hakkında','Tur Programı','Kapsam','action-bar','map-panel','Buluşma ve rota','Haritada aç',
   'TourBookingV170Service','TourDemandV170Service','onDateChange($event)','1_000_000_000','sert limit değildir',
   'DetailMediaLightboxComponent','for (const video of item.videos || [])','commercialOffer.activateCampaign(verified)',
-]) must(tour, contract, `Tour approved UX/flexible-demand contract missing: ${contract}`);
+  'new URL(record.mapUrl)','parsed.searchParams.get("q")','maps/search/?api=1&query=','Math.abs(latitude) <= 90','Math.abs(longitude) <= 180',
+  'aria-label="Tur detayına dön"','aria-label="İletişim bilgileri adımına devam et"','aria-label="Rezervasyon onay adımına devam et"',
+  'aria-label="Rezervasyon talebini gönder"','aria-label="Tur bilgilerini tekrar yükle"',
+]) must(tour, contract, `Tour approved UX/flexible-demand/map/a11y contract missing: ${contract}`);
 mustNot(tour, 'TARİHLİ REZERVASYON', 'Tour booking controls must not render as an always-open page section.');
 mustNot(tour, 'Ne zaman geleceksiniz?', 'Tour booking form must stay behind the explicit reservation action.');
 mustNot(tour, 'BookingService', 'Canonical tour must use the flexible-demand booking service.');
+mustNot(tour, 'if (record.mapUrl && /^https:\/\\/\\//i.test(record.mapUrl)) return record.mapUrl;', 'Tour map button must not blindly return an embed URL.');
 
 const mapIndex = tour.indexOf('class="panel map-panel"');
 const actionIndex = tour.indexOf('class="action-bar"');
-if (mapIndex < 0 || actionIndex < 0 || mapIndex > actionIndex) throw new Error('Tour map must remain in tour content before the fixed reservation action bar.');
+const overlayIndex = tour.indexOf('class="reservation-overlay"');
+if (mapIndex < 0 || actionIndex < 0 || overlayIndex < 0 || mapIndex > actionIndex || mapIndex > overlayIndex) throw new Error('Tour map must remain in tour content before the fixed reservation action and reservation overlay.');
 
 for (const contract of [
   "queryParamMap.get('campaign')","item.targetType === expectedTarget","String(item.targetId || '') === this.routeId",
@@ -89,4 +94,4 @@ for (const contract of [
   'revoke all on function public.reserve_booking_commercial_offer',
 ]) must(pricingGuard, contract, `Campaign normal-price reference guard missing: ${contract}`);
 
-console.log('V201 canonical public detail UX, live schema, single CTA, map, campaign lifecycle and pricing ownership: PASS');
+console.log('V201.1 canonical detail UX, single CTA, external map, accessibility, live schema and pricing ownership: PASS');

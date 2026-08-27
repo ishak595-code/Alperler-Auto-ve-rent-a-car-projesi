@@ -10,6 +10,7 @@ const sale = read('src/pages/sale-car-detail.component.ts');
 const tour = read('src/pages/tour-detail.component.ts');
 const campaignContext = read('src/components/catalog-campaign-context.component.ts');
 const campaigns = read('src/pages/campaigns.component.ts');
+const campaignService = read('src/services/campaign.service.ts');
 const bookingService = read('src/services/booking.service.ts');
 const tourBooking = read('src/services/tour-booking-v170.service.ts');
 const detailData = read('src/services/public-detail-data.service.ts');
@@ -63,6 +64,10 @@ for (const contract of [
 for (const forbidden of ['openReservation(', 'whatsapp(', 'router.navigate']) mustNot(campaignContext, forbidden, `Campaign context must never become a second CTA owner: ${forbidden}`);
 
 for (const contract of ['campaign=${encodeURIComponent(campaign.id)}','activateCampaign(campaign)']) must(campaigns, contract, `Campaign navigation context missing: ${contract}`);
+for (const contract of [
+  'input.publicationStatus === "PUBLISHED" || input.publicationStatus === "SCHEDULED"',
+  'input.publicationStatus === "ARCHIVED"','is_active: isActive','inPublicWindow(item, now)',
+]) must(campaignService, contract, `Campaign publication lifecycle contract missing: ${contract}`);
 for (const contract of ['campaignId:this.optionalUuid(campaignIntent)','campaignIdForItem(itemId)']) must(bookingService, contract, `Rental booking flow must preserve verified campaign intent: ${contract}`);
 for (const contract of ['campaignIdForItem(itemId)','/functions/v1/tour-booking-v170','loyaltyPointsForCheckout()']) must(tourBooking, contract, `Tour booking flow must preserve authoritative commercial intent: ${contract}`);
 
@@ -84,4 +89,4 @@ for (const contract of [
   'revoke all on function public.reserve_booking_commercial_offer',
 ]) must(pricingGuard, contract, `Campaign normal-price reference guard missing: ${contract}`);
 
-console.log('V201 canonical public detail UX, live schema, single CTA, map and pricing ownership: PASS');
+console.log('V201 canonical public detail UX, live schema, single CTA, map, campaign lifecycle and pricing ownership: PASS');

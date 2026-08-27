@@ -86,17 +86,17 @@ import { TourDemandV170, TourDemandV170Service } from "../services/tour-demand-v
             <header><button type="button" (click)="closeReservation()" [disabled]="submitting()" aria-label="Tur rezervasyonunu kapat"><mat-icon aria-hidden="true">close</mat-icon></button><div><span>Adım {{ reservationStep() }} / 3</span><h2 id="tour-booking-title">Tur Rezervasyonu</h2></div></header>
             <div class="reservation-content">
               @if (reservationSuccess()) {
-                <section class="success" role="status"><mat-icon aria-hidden="true">check_circle</mat-icon><h3>Rezervasyon talebiniz kaydedildi</h3><p>Referans: {{ reservationReference() }}</p><button type="button" (click)="closeReservation()">Tura Dön</button></section>
+                <section class="success" role="status"><mat-icon aria-hidden="true">check_circle</mat-icon><h3>Rezervasyon talebiniz kaydedildi</h3><p>Referans: {{ reservationReference() }}</p><button type="button" (click)="closeReservation()" aria-label="Tur detayına dön">Tura Dön</button></section>
               } @else if (reservationStep() === 1) {
                 <section id="tour-step-1" class="step-card" tabindex="-1"><p class="step-kicker">1. Tarih ve kişi sayısı</p><h3>Tur planınızı belirleyin</h3><app-accessible-native-date label="Tur Tarihi" [value]="tourDate" [min]="today" (valueChange)="onDateChange($event)" />
                   <div class="demand-box">@if(demandLoading()){<mat-icon aria-hidden="true">sync</mat-icon><div><strong>Güncel talep okunuyor</strong><span>Seçtiğiniz tarih kontrol ediliyor.</span></div>}@else if(demand();as live){<mat-icon aria-hidden="true">event_available</mat-icon><div><strong>Rezervasyon talebi oluşturabilirsiniz</strong><span>{{live.approvedReservations}} onaylı · {{live.pendingReservations}} bekleyen talep · toplam {{live.approvedPeople + live.pendingPeople}} kişi talebi</span></div>}@else if(tourDate){<mat-icon aria-hidden="true">info</mat-icon><div><strong>Talep metriği şu an görüntülenemiyor</strong><span>Rezervasyon sunucuda yine doğrulanacaktır.</span></div>}@else{<mat-icon aria-hidden="true">calendar_month</mat-icon><div><strong>Tarih seçin</strong><span>Canlı talep bilgisi tarih seçildikten sonra burada görünür.</span></div>}</div>
                   <div class="people"><span>Kişi Sayısı</span><div><button type="button" (click)="decreasePerson()" aria-label="Kişi sayısını azalt"><mat-icon aria-hidden="true">remove</mat-icon></button><input type="number" min="1" max="1000000000" [ngModel]="personCount()" (ngModelChange)="setPersonCount($event)" aria-label="Kişi sayısı" /><button type="button" (click)="increasePerson()" aria-label="Kişi sayısını artır"><mat-icon aria-hidden="true">add</mat-icon></button></div><small>Önerilen grup: {{ item.capacity ? item.capacity + ' kişi' : 'belirtilmedi' }}. Bu sayı rezervasyon için sert limit değildir.</small></div>
-                  <div class="total"><span>{{ activeCampaign() ? 'Kampanyalı tahmini toplam' : 'Tahmini toplam' }}</span><strong>{{ estimatedTotal() | turkishCurrency }}</strong></div>@if(reservationError()){<p class="form-error" role="alert">{{reservationError()}}</p>}<button type="button" class="next" (click)="goToContact()">Devam Et</button>
+                  <div class="total"><span>{{ activeCampaign() ? 'Kampanyalı tahmini toplam' : 'Tahmini toplam' }}</span><strong>{{ estimatedTotal() | turkishCurrency }}</strong></div>@if(reservationError()){<p class="form-error" role="alert">{{reservationError()}}</p>}<button type="button" class="next" (click)="goToContact()" aria-label="İletişim bilgileri adımına devam et">Devam Et</button>
                 </section>
               } @else if (reservationStep() === 2) {
-                <section id="tour-step-2" class="step-card" tabindex="-1"><p class="step-kicker">2. İletişim</p><h3>İletişim bilgilerinizi tamamlayın</h3><div class="form-grid"><label><span>Ad</span><input [(ngModel)]="firstName" autocomplete="given-name" /></label><label><span>Soyad</span><input [(ngModel)]="lastName" autocomplete="family-name" /></label><label><span>Telefon</span><input type="tel" [(ngModel)]="phone" autocomplete="tel" /></label><label><span>E-posta</span><input type="email" [(ngModel)]="email" autocomplete="email" /></label></div><label class="note"><span>Not</span><textarea rows="3" [(ngModel)]="notes"></textarea></label>@if(reservationError()){<p class="form-error" role="alert">{{reservationError()}}</p>}<div class="step-actions"><button type="button" class="secondary" (click)="setReservationStep(1)">Geri</button><button type="button" class="next" (click)="goToReview()">Devam Et</button></div></section>
+                <section id="tour-step-2" class="step-card" tabindex="-1"><p class="step-kicker">2. İletişim</p><h3>İletişim bilgilerinizi tamamlayın</h3><div class="form-grid"><label><span>Ad</span><input [(ngModel)]="firstName" autocomplete="given-name" /></label><label><span>Soyad</span><input [(ngModel)]="lastName" autocomplete="family-name" /></label><label><span>Telefon</span><input type="tel" [(ngModel)]="phone" autocomplete="tel" /></label><label><span>E-posta</span><input type="email" [(ngModel)]="email" autocomplete="email" /></label></div><label class="note"><span>Not</span><textarea rows="3" [(ngModel)]="notes"></textarea></label>@if(reservationError()){<p class="form-error" role="alert">{{reservationError()}}</p>}<div class="step-actions"><button type="button" class="secondary" (click)="setReservationStep(1)" aria-label="Tarih ve kişi sayısı adımına geri dön">Geri</button><button type="button" class="next" (click)="goToReview()" aria-label="Rezervasyon onay adımına devam et">Devam Et</button></div></section>
               } @else {
-                <section id="tour-step-3" class="step-card" tabindex="-1"><p class="step-kicker">3. Onay</p><h3>Talebinizi kontrol edin</h3><dl class="review"><div><dt>Tur</dt><dd>{{item.title}}</dd></div><div><dt>Tarih</dt><dd>{{formattedTourDate()}}</dd></div><div><dt>Kişi</dt><dd>{{personCount()}}</dd></div><div><dt>Tahmini toplam</dt><dd>{{estimatedTotal()|turkishCurrency}}</dd></div></dl><p class="server-note">Kesin fiyat, kampanya, sadakat ve uygunluk sunucuda hesaplanır.</p>@if(reservationError()){<p class="form-error" role="alert">{{reservationError()}}</p>}<div class="step-actions"><button type="button" class="secondary" (click)="setReservationStep(2)">Geri</button><button type="button" class="next" (click)="submitReservation()" [disabled]="submitting()">{{submitting()?'Kaydediliyor...':'Rezervasyon Talebini Gönder'}}</button></div></section>
+                <section id="tour-step-3" class="step-card" tabindex="-1"><p class="step-kicker">3. Onay</p><h3>Talebinizi kontrol edin</h3><dl class="review"><div><dt>Tur</dt><dd>{{item.title}}</dd></div><div><dt>Tarih</dt><dd>{{formattedTourDate()}}</dd></div><div><dt>Kişi</dt><dd>{{personCount()}}</dd></div><div><dt>Tahmini toplam</dt><dd>{{estimatedTotal()|turkishCurrency}}</dd></div></dl><p class="server-note">Kesin fiyat, kampanya, sadakat ve uygunluk sunucuda hesaplanır.</p>@if(reservationError()){<p class="form-error" role="alert">{{reservationError()}}</p>}<div class="step-actions"><button type="button" class="secondary" (click)="setReservationStep(2)" aria-label="İletişim bilgileri adımına geri dön">Geri</button><button type="button" class="next" (click)="submitReservation()" [disabled]="submitting()" aria-label="Rezervasyon talebini gönder">{{submitting()?'Kaydediliyor...':'Rezervasyon Talebini Gönder'}}</button></div></section>
               }
             </div>
           </div>
@@ -104,7 +104,7 @@ import { TourDemandV170, TourDemandV170Service } from "../services/tour-demand-v
       } @else if (loading()) {
         <section class="state-panel" role="status"><div class="spinner"></div><strong>Tur bilgileri yükleniyor</strong></section>
       } @else {
-        <section class="state-panel error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><strong>Tur yüklenemedi</strong><span>{{ loadError() }}</span><button type="button" (click)="reload()">Tekrar Dene</button></section>
+        <section class="state-panel error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><strong>Tur yüklenemedi</strong><span>{{ loadError() }}</span><button type="button" (click)="reload()" aria-label="Tur bilgilerini tekrar yükle">Tekrar Dene</button></section>
       }
     </main>
   `,
@@ -212,10 +212,27 @@ export class TourDetailComponent implements OnInit {
   touchEnd(event: TouchEvent): void { const end = event.changedTouches[0]?.clientX || 0; if (Math.abs(end - this.touchX) < 45) return; end < this.touchX ? this.nextMedia() : this.previousMedia(); }
   mapHref(item: Tour): string {
     const record = item as Tour & { mapUrl?: string; latitude?: number; longitude?: number; locationName?: string };
-    if (record.mapUrl && /^https:\/\//i.test(record.mapUrl)) return record.mapUrl;
-    if (Number.isFinite(Number(record.latitude)) && Number.isFinite(Number(record.longitude))) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${record.latitude},${record.longitude}`)}`;
-    const query = String(record.meetingPoint || record.locationName || record.location || "").trim();
-    return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : "";
+    const latitude = Number(record.latitude);
+    const longitude = Number(record.longitude);
+    if (Number.isFinite(latitude) && Number.isFinite(longitude) && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180) {
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${latitude},${longitude}`)}`;
+    }
+
+    const fallbackQuery = String(record.meetingPoint || record.locationName || record.location || "").trim();
+    if (record.mapUrl && /^https:\/\//i.test(record.mapUrl)) {
+      try {
+        const parsed = new URL(record.mapUrl);
+        const isGoogleMaps = /(^|\.)google\.[a-z.]+$/i.test(parsed.hostname) && parsed.pathname.startsWith("/maps");
+        if (isGoogleMaps) {
+          const mapQuery = String(parsed.searchParams.get("q") || parsed.searchParams.get("query") || fallbackQuery).trim();
+          if (mapQuery) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+        }
+        return parsed.toString();
+      } catch {
+        // Fall through to the validated location text instead of returning a malformed URL.
+      }
+    }
+    return fallbackQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fallbackQuery)}` : "";
   }
   private focusAfterRender(selector: string): void { if (typeof window === "undefined") return; window.setTimeout(() => document.querySelector<HTMLElement>(selector)?.focus({ preventScroll: true }), 0); }
   openReservation(): void { this.reservationOpen.set(true); this.reservationStep.set(1); this.reservationError.set(""); this.reservationSuccess.set(false); this.focusAfterRender(".reservation-overlay > header button"); }

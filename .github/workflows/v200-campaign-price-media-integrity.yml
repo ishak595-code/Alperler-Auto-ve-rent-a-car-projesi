@@ -8,6 +8,7 @@ on:
       - 'src/pages/admin/admin-campaigns.component.ts'
       - 'src/services/admin-media.service.ts'
       - 'supabase/functions/booking-gateway-v166/index.ts'
+      - 'api/payments.ts'
       - 'supabase/migrations/20260827210122_v200_campaign_media_rollback_integrity.sql'
       - 'supabase/migrations/20260827210236_v2001_campaign_media_binding_gc.sql'
       - 'supabase/migrations/20260827210531_v2002_campaign_display_price_truth.sql'
@@ -20,6 +21,7 @@ on:
       - 'src/pages/admin/admin-campaigns.component.ts'
       - 'src/services/admin-media.service.ts'
       - 'supabase/functions/booking-gateway-v166/index.ts'
+      - 'api/payments.ts'
       - 'supabase/migrations/20260827210122_v200_campaign_media_rollback_integrity.sql'
       - 'supabase/migrations/20260827210236_v2001_campaign_media_binding_gc.sql'
       - 'supabase/migrations/20260827210531_v2002_campaign_display_price_truth.sql'
@@ -45,7 +47,7 @@ jobs:
           cache: npm
       - name: Install exact dependencies
         run: npm ci --no-audit --no-fund
-      - name: Campaign price and media ownership contract
+      - name: Campaign price, media and payment contract
         run: node scripts/check-v200-campaign-price-media-integrity.mjs
       - name: Dependency high severity gate
         run: npm audit --audit-level=high

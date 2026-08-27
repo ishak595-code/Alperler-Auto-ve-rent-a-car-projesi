@@ -11,6 +11,20 @@ export class PublicDetailDataService {
   private readonly media = inject(PublicCatalogMediaService);
   private readonly storagePrefix = `${SUPABASE_PROJECT_URL}/storage/v1/object/public/catalog-media/`;
   private readonly uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  private readonly vehicleSelect = [
+    "id", "stock_code", "category", "brand", "model", "model_year", "price", "currency",
+    "rental_price_daily", "rental_price_hourly", "hourly_rental_enabled", "minimum_rental_hours", "hourly_mileage_limit",
+    "mileage_km", "fuel_type", "transmission", "body_type", "color", "engine", "seats", "doors", "location",
+    "description", "features", "images", "cover_image", "is_featured", "is_active", "availability_status", "seo_slug",
+    "metadata", "created_at", "updated_at", "publication_status", "published_at", "scheduled_at", "branch_id", "listing_origin",
+  ].join(",");
+  private readonly tourSelect = [
+    "id", "title", "short_description", "description", "price_per_person", "currency", "duration", "capacity", "meeting_point",
+    "itinerary", "included_items", "excluded_items", "cover_image", "images", "is_featured", "is_active", "seo_slug", "metadata",
+    "created_at", "updated_at", "publication_status", "published_at", "scheduled_at", "latitude", "longitude", "map_url", "category",
+    "location_name", "branch_id", "listing_origin",
+  ].join(",");
+  private readonly blogSelect = "id,slug,title,excerpt,content,cover_image,published_at,metadata,status";
 
   async load(kind: DetailKind, routeId: string): Promise<Vehicle> {
     const clean = String(routeId || "").trim();
@@ -28,7 +42,7 @@ export class PublicDetailDataService {
     const filter = this.uuidPattern.test(clean)
       ? `id=eq.${encodeURIComponent(clean)}`
       : `slug=eq.${encodeURIComponent(clean)}`;
-    const rows = await this.fetchRows(`blog_posts?status=eq.PUBLISHED&${filter}&select=*&limit=1`, "BLOG_DETAIL_DB");
+    const rows = await this.fetchRows(`blog_posts?status=eq.PUBLISHED&${filter}&select=${this.blogSelect}&limit=1`, "BLOG_DETAIL_DB");
     const row = rows[0];
     if (!row) throw new Error("Bu blog yazısı bulunamadı veya yayından kaldırılmış olabilir.");
     const metadata = row["metadata"] && typeof row["metadata"] === "object" ? row["metadata"] as Record<string, unknown> : {};
@@ -92,7 +106,7 @@ export class PublicDetailDataService {
     const filter = this.uuidPattern.test(routeId)
       ? `id=eq.${encodeURIComponent(routeId)}`
       : `stock_code=eq.${encodeURIComponent(routeId)}`;
-    const rows = await this.fetchRows(`vehicles?is_active=eq.true&publication_status=eq.PUBLISHED&category=eq.${kind}&${filter}&select=*&limit=1`, "VEHICLE_DETAIL_DB");
+    const rows = await this.fetchRows(`vehicles?is_active=eq.true&publication_status=eq.PUBLISHED&category=eq.${kind}&${filter}&select=${this.vehicleSelect}&limit=1`, "VEHICLE_DETAIL_DB");
     const row = rows[0];
     if (!row) return null;
     const mapped = this.mapVehicle(row, kind);
@@ -105,7 +119,7 @@ export class PublicDetailDataService {
     const filter = this.uuidPattern.test(routeId)
       ? `id=eq.${encodeURIComponent(routeId)}`
       : `seo_slug=eq.${encodeURIComponent(routeId)}`;
-    const rows = await this.fetchRows(`tours?is_active=eq.true&publication_status=eq.PUBLISHED&${filter}&select=*&limit=1`, "TOUR_DETAIL_DB");
+    const rows = await this.fetchRows(`tours?is_active=eq.true&publication_status=eq.PUBLISHED&${filter}&select=${this.tourSelect}&limit=1`, "TOUR_DETAIL_DB");
     const row = rows[0];
     if (!row) return null;
     const mapped = this.mapTour(row);

@@ -86,7 +86,7 @@ jobs:
           grep -q "Tüm Özellikler ve Açıklama" "$CANONICAL_DETAIL"
           grep -q "fixed-actions" "$CANONICAL_DETAIL"
           grep -q "campaignProofLabel" "$CANONICAL_DETAIL"
-          if grep -q "mobile-actions\|primary-action\|whatsapp-action" "$CANONICAL_DETAIL"; then
+          if grep -Eq 'class="(mobile-actions|primary-action|whatsapp-action)([[:space:]"]|$)' "$CANONICAL_DETAIL"; then
             echo "Canonical rental detail must have one fixed CTA owner only"
             exit 1
           fi

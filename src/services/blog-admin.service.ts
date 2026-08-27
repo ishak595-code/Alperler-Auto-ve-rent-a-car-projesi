@@ -1,5 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 import { AuthService } from "./auth.service";
+import { CatalogMediaService } from "./catalog-media.service";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 
 export type BlogPublicationStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
@@ -26,6 +27,7 @@ export interface BlogAdminRecord {
 @Injectable({ providedIn: "root" })
 export class BlogAdminService {
   private readonly auth = inject(AuthService);
+  private readonly media = inject(CatalogMediaService);
 
   async list(): Promise<BlogAdminRecord[]> {
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/blog_posts?select=*&order=updated_at.desc`, {
@@ -99,11 +101,31 @@ export class BlogAdminService {
 
   async removeDraft(record: BlogAdminRecord): Promise<void> {
     if (record.status !== "DRAFT") throw new Error("Yalnız taslak yazı kalıcı olarak silinebilir. Yayınlanmış yazıyı arşivleyin.");
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/blog_posts?id=eq.${encodeURIComponent(record.id)}`, {
+
+    const current = await this.fetchById(record.id);
+    if (!current) return;
+    if (current.status !== "DRAFT") throw new Error("Bu yazı artık taslak değil. Güncel durumu yenileyip tekrar kontrol edin.");
+
+    await this.media.removeAll("BLOG", record.id);
+
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/blog_posts?id=eq.${encodeURIComponent(record.id)}&status=eq.DRAFT&select=id`, {
       method: "DELETE",
-      headers: await this.headers(),
+      headers: { ...(await this.headers()), Prefer: "return=representation" },
     });
     if (!response.ok) throw new Error(await this.errorCode(response, "BLOG_DELETE"));
+    const deleted = await response.json() as Array<{ id?: string }>;
+    if (!deleted.some((row) => row.id === record.id)) throw new Error("BLOG_DELETE_STATE_CHANGED");
+  }
+
+  private async fetchById(id: string): Promise<BlogAdminRecord | null> {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/blog_posts?id=eq.${encodeURIComponent(id)}&select=*&limit=1`, {
+      method: "GET",
+      cache: "no-store",
+      headers: await this.headers(),
+    });
+    if (!response.ok) throw new Error(await this.errorCode(response, "BLOG_ADMIN_READ"));
+    const rows = await response.json() as Record<string, unknown>[];
+    return rows[0] ? this.fromRow(rows[0]) : null;
   }
 
   private async headers(): Promise<Record<string, string>> {

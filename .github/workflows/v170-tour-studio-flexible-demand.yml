@@ -117,11 +117,12 @@ jobs:
           grep -Fq "item.highlights" "$FILE"
           grep -Fq "TourDetailV170Component" src/pages/catalog-detail-shells.component.ts
 
-      - name: Super Admin Tour Studio contract
+      - name: Super Admin owned Tour Studio contract
         shell: bash
         run: |
           set -euo pipefail
-          FILE=src/pages/admin/admin-tour-studio-v170.component.ts
+          FILE=src/pages/admin/admin-catalog-workspace.component.ts
+          HUB=src/pages/admin/admin-content-hub.component.ts
           test -f "$FILE"
           grep -Fq "CatalogMediaService" "$FILE"
           grep -Fq "Fotoğraf & Video" "$FILE"
@@ -134,8 +135,12 @@ jobs:
           grep -Fq "tour.includedItems" "$FILE"
           grep -Fq "tour.excludedItems" "$FILE"
           grep -Fq "tour.itinerary" "$FILE"
-          grep -Fq "isCover:true" "$FILE"
-          grep -Fq "app-admin-tour-studio-v170" src/pages/admin/admin-content-hub.component.ts
+          grep -Fq "isCover:image&&!hasCover" "$FILE"
+          grep -Fq 'mode="TOUR"' "$HUB"
+          if grep -Fq "app-admin-tour-studio-v170" "$HUB"; then
+            echo "Legacy parallel tour studio must not return to the active content hub"
+            exit 1
+          fi
 
       - name: Sale selected cover remains canonical
         shell: bash

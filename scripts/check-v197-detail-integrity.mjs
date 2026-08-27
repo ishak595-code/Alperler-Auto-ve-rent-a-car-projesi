@@ -38,7 +38,7 @@ if (!tours.includes('loadForTour(')) fail('tour detail must hydrate only its own
 const blog = read('src/pages/blog-detail.component.ts');
 if (blog.includes('getBlogPosts()')) fail('blog detail must not depend on global catalogue hydration');
 if (!blog.includes('detailData.loadBlog(id)')) fail('blog detail must load its own route record');
-if (!blog.includes('@else if (loading())')) fail('blog detail must distinguish loading from real not-found');
+if (!blog.includes('@else if(loading())') || !blog.includes('readonly loading = signal(true)') || !blog.includes('this.loading.set(true)') || !blog.includes('this.loading.set(false)') || !blog.includes('role="alert"')) fail('blog detail must distinguish loading from real not-found independent of template spacing');
 
 const campaignMigration = read('supabase/migrations/20260827194000_v197_campaign_target_route_integrity.sql');
 if (!campaignMigration.includes('new.cta_url := null')) fail('targeted campaign CTA normalization missing');

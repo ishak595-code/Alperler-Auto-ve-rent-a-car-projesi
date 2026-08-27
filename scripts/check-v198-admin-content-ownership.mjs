@@ -13,10 +13,12 @@ const hub = read('src/pages/admin/admin-content-hub.component.ts');
 const workspace = read('src/pages/admin/admin-catalog-workspace.component.ts');
 const blog = read('src/pages/admin/admin-blog.component.ts');
 const blogService = read('src/services/blog-admin.service.ts');
+const catalogMedia = read('src/services/catalog-media.service.ts');
 const campaigns = read('src/pages/admin/admin-campaigns-v167.component.ts');
 const publicMedia = read('src/services/public-catalog-media.service.ts');
 const publicDetail = read('src/services/public-detail-data.service.ts');
 const blogDetail = read('src/pages/blog-detail.component.ts');
+const campaignInvariant = read('supabase/migrations/20260827193000_v198_campaign_publication_activation_invariant.sql');
 
 for (const contract of [
   "{ path: 'catalog-editor', redirectTo: 'cars', pathMatch: 'full' }",
@@ -74,7 +76,9 @@ for (const contract of [
   'Fotoğraf & Video',
 ]) must(blog, contract, `Blog editor missing owned workflow contract: ${contract}`);
 mustNot(blog, 'Kapak Görseli URL', 'Blog editor must not expose legacy cover URL field.');
-for (const contract of ['status: "DRAFT"','author_name','seo_title','seo_description','PATCH','removeAll("BLOG", record.id)','status=eq.DRAFT']) must(blogService, contract, `Canonical blog admin persistence/lifecycle missing: ${contract}`);
+for (const contract of ['status: "DRAFT"','author_name','seo_title','seo_description','PATCH','removeAll("BLOG", record.id)','status=eq.DRAFT','fetchById(record.id)']) must(blogService, contract, `Canonical blog admin persistence/lifecycle missing: ${contract}`);
+for (const contract of ['async removeAll(','deleteStorageObjectWithRetry','CATALOG_MEDIA_OWNER_CLEANUP_INCOMPLETE','for (const delay of [0, 400, 1200, 3000])']) must(catalogMedia, contract, `Owned catalog media cleanup contract missing: ${contract}`);
+mustNot(catalogMedia, 'Catalog media metadata removed but Storage cleanup failed', 'Storage cleanup failures must not be swallowed after metadata deletion.');
 
 for (const contract of [
   '+ Yeni Kampanya',
@@ -90,6 +94,15 @@ for (const contract of [
   "saveAs('PUBLISHED')",
 ]) must(campaigns, contract, `Campaign editor missing owned workflow contract: ${contract}`);
 mustNot(campaigns, 'Kapak URL', 'Campaign editor must not expose legacy cover URL field.');
+for (const contract of [
+  'normalize_campaign_publication_activation_v198',
+  "publication_status = 'PUBLISHED'",
+  'new.is_active := true',
+  "publication_status = 'ARCHIVED'",
+  'new.is_active := false',
+  'campaigns_publication_activation_v198_check',
+  'validate constraint campaigns_publication_activation_v198_check',
+]) must(campaignInvariant, contract, `Campaign publication DB invariant missing: ${contract}`);
 
 for (const contract of ['blogPostId?: string','blog_post_id','loadForBlog']) must(publicMedia, contract, `Public media service missing blog owner scope: ${contract}`);
 for (const contract of ['BlogDetailPost','author_name','seo_title','seo_description','loadForBlog(ownerId)','media: BlogDetailMediaItem[]']) must(publicDetail, contract, `Public blog hydration missing contract: ${contract}`);

@@ -1,3 +1,5 @@
+import { normalizeHttpsOrigin, vercelDeploymentOrigin, vercelProductionOrigin } from './public-origin';
+
 export type PaymentProvider = "none" | "generic_hosted" | "paytr";
 
 export interface ServerPaymentConfig {
@@ -25,15 +27,10 @@ function normalizeProvider(value: string | undefined): PaymentProvider {
   if (normalized === "generic_hosted") return "generic_hosted";
   return "none";
 }
-function normalizeOrigin(value: string): string | null {
-  try { return new URL(value).origin; } catch { return null; }
-}
+function normalizeOrigin(value: string): string | null { return normalizeHttpsOrigin(value); }
 export function getAppUrl(): string | null {
-  const explicit = process.env.PUBLIC_APP_URL?.trim();
-  if (explicit) return normalizeOrigin(explicit);
-  const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
-  if (productionHost) return `https://${productionHost}`;
-  return null;
+  const explicit = normalizeHttpsOrigin(process.env.PUBLIC_APP_URL);
+  return explicit || vercelProductionOrigin() || vercelDeploymentOrigin();
 }
 export function getPaymentConfig(): ServerPaymentConfig {
   const provider = normalizeProvider(process.env.PAYMENT_PROVIDER);
@@ -51,7 +48,14 @@ export function getPaymentConfig(): ServerPaymentConfig {
       : false;
   const explicitOrigins = (process.env.PAYMENT_ALLOWED_ORIGINS || "").split(",").map((origin) => origin.trim()).filter(Boolean).map(normalizeOrigin).filter((origin): origin is string => Boolean(origin));
   const appUrl = getAppUrl();
-  const allowedOrigins = Array.from(new Set([...(appUrl ? [appUrl] : []), ...explicitOrigins]));
+  const productionUrl = vercelProductionOrigin();
+  const deploymentUrl = vercelDeploymentOrigin();
+  const allowedOrigins = Array.from(new Set([
+    ...(appUrl ? [appUrl] : []),
+    ...(productionUrl ? [productionUrl] : []),
+    ...(deploymentUrl ? [deploymentUrl] : []),
+    ...explicitOrigins,
+  ]));
   return {
     provider, configured,
     cardEnabled: configured && asBoolean(process.env.PAYMENT_CARD_ENABLED, false),
@@ -66,6 +70,8 @@ export function isAllowedRequestOrigin(request: Request): boolean {
   if (!origin) return true;
   const normalized = normalizeOrigin(origin);
   if (!normalized) return false;
+  const requestOrigin = normalizeHttpsOrigin(request.url);
+  if (requestOrigin && normalized === requestOrigin) return true;
   const config = getPaymentConfig();
   if (config.allowedOrigins.includes(normalized)) return true;
   const hostname = new URL(normalized).hostname;

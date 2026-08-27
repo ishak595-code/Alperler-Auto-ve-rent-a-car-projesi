@@ -1,0 +1,47 @@
+name: V198 Admin Content Ownership
+
+on:
+  pull_request:
+    paths:
+      - 'src/app.routes.ts'
+      - 'src/pages/admin/**'
+      - 'src/pages/blog-detail.component.ts'
+      - 'src/services/blog-admin.service.ts'
+      - 'src/services/catalog-media.service.ts'
+      - 'src/services/public-catalog-media.service.ts'
+      - 'src/services/public-detail-data.service.ts'
+      - 'supabase/migrations/20260827193000_v198_campaign_publication_activation_invariant.sql'
+      - 'scripts/check-v198-admin-content-ownership.mjs'
+      - '.github/workflows/v198-admin-content-ownership.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/app.routes.ts'
+      - 'src/pages/admin/**'
+      - 'src/pages/blog-detail.component.ts'
+      - 'src/services/blog-admin.service.ts'
+      - 'src/services/catalog-media.service.ts'
+      - 'src/services/public-catalog-media.service.ts'
+      - 'src/services/public-detail-data.service.ts'
+      - 'supabase/migrations/20260827193000_v198_campaign_publication_activation_invariant.sql'
+      - 'scripts/check-v198-admin-content-ownership.mjs'
+      - '.github/workflows/v198-admin-content-ownership.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ownership-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: node scripts/check-v198-admin-content-ownership.mjs
+      - run: npm run lint
+      - run: npx tsc --noEmit -p tsconfig.api.json
+      - run: npm run build

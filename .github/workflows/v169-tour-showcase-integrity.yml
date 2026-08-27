@@ -89,20 +89,25 @@ jobs:
           grep -Fq "consume_rate_limit" supabase/functions/tour-availability-v169/index.ts
           grep -Fq "tour_demand_v170" supabase/functions/tour-availability-v169/index.ts
 
-      - name: Current Super Admin tour studio
+      - name: Current Super Admin tour workspace
         shell: bash
         run: |
           set -euo pipefail
-          FILE=src/pages/admin/admin-tour-studio-v170.component.ts
+          FILE=src/pages/admin/admin-catalog-workspace.component.ts
+          HUB=src/pages/admin/admin-content-hub.component.ts
           test -f "$FILE"
-          grep -Fq "Tur Programı" "$FILE" || grep -Fq "Tur programı" "$FILE"
+          grep -Fq "Tur Programı" "$FILE"
           grep -Fq "tour.itinerary" "$FILE"
           grep -Fq "tour.includedItems" "$FILE"
           grep -Fq "tour.excludedItems" "$FILE"
           grep -Fq "tour.capacity" "$FILE"
           grep -Fq "tour.meetingPoint" "$FILE"
           grep -Fq "Fotoğraf & Video" "$FILE"
-          grep -Fq "AdminTourStudioV170Component" src/pages/admin/admin-content-hub.component.ts
+          grep -Fq 'mode="TOUR"' "$HUB"
+          if grep -Fq "AdminTourStudioV170Component" "$HUB"; then
+            echo "Legacy parallel tour studio must not return to the active content hub"
+            exit 1
+          fi
 
       - name: Preserve rental and sale integrity
         shell: bash

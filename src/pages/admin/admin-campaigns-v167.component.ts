@@ -1,68 +1,503 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
 import { AdminMediaService } from '../../services/admin-media.service';
 import { CampaignRecord, CampaignService } from '../../services/campaign.service';
 import { CarService } from '../../services/car.service';
+import { ConfirmService } from '../../services/confirm.service';
 import { ToastService } from '../../services/toast.service';
 
+type CampaignStep = 1 | 2 | 3 | 4;
+type CampaignTargetOption = { id: string; label: string };
+
 @Component({
-  selector:'app-admin-campaigns-v167',standalone:true,imports:[CommonModule,FormsModule,MatIconModule],
-  template:`
-    <main class="page"><div class="shell">
-      <header class="hero"><p>V167 TİCARİ KURAL MERKEZİ</p><h1>Kampanyalar</h1><span>Vitrin metni ile gerçek fiyat motorunu aynı ekrandan yönetin. Eski/yeni fiyat alanları pazarlama referansıdır; kesin hesaplama aşağıdaki ticari kurallardan yapılır.</span><div><article><small>Yayında</small><strong>{{published().length}}</strong></article><article><small>Campaign-only</small><strong>{{campaignOnly().length}}</strong></article><article><small>Aktif müşteri limiti</small><strong>{{limited().length}}</strong></article></div></header>
+  selector: 'app-admin-campaigns-v167',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
+    <main class="page">
+      <div class="shell">
+        <header class="hero">
+          <div>
+            <p>KAMPANYA YÖNETİMİ</p>
+            <h1>Kampanyalar</h1>
+            <span>Her kampanya kendi görseli, müşteri metni, authoritative fiyat kuralı, hedefi ve yayın durumu ile tek editörde yönetilir. Ortak galeri veya dışarıdan kapak URL girişi yoktur.</span>
+          </div>
+          <div class="hero-actions">
+            <input type="search" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Kampanya ara…" aria-label="Kampanyalarda ara" />
+            <button type="button" (click)="startNew()" [disabled]="saving()">+ Yeni Kampanya</button>
+          </div>
+        </header>
 
-      <section class="actions"><input type="search" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Kampanya ara" aria-label="Kampanyalarda ara"/><button type="button" (click)="startNew()">+ Yeni Kampanya</button><button type="button" class="secondary" (click)="refresh()">Yenile</button></section>
+        @if (!editorOpen()) {
+          <section class="list">
+            <header>
+              <div><h2>Kampanya Listesi</h2><p>{{ filtered().length }} kayıt · {{ published().length }} canlı</p></div>
+              <button type="button" (click)="refresh()">Yenile</button>
+            </header>
+            <div class="cards">
+              @for (c of filtered(); track c.id) {
+                <article>
+                  <div class="cover">
+                    @if (c.coverImage) { <img [src]="c.coverImage" [alt]="c.title" /> }
+                    <b>{{ c.badge || c.campaignType }}</b><span>{{ statusLabel(c) }}</span>
+                  </div>
+                  <div class="copy">
+                    <h3>{{ c.title }}</h3>
+                    <p>{{ c.shortDescription || 'Kısa açıklama yok.' }}</p>
+                    <div class="badges"><span>{{ methodLabel(c) }}</span><span>{{ c.targetType || 'GENERAL' }}</span><span>{{ c.visibilityMode }}</span></div>
+                    <div class="row"><button type="button" (click)="edit(c)">Düzenle</button><button type="button" class="danger" (click)="remove(c)">Sil</button></div>
+                  </div>
+                </article>
+              } @empty { <div class="empty">Kampanya bulunamadı.</div> }
+            </div>
+          </section>
+        } @else {
+          <section class="editor" id="campaign-owned-editor">
+            <header>
+              <button type="button" (click)="closeEditor()">← Listeye dön</button>
+              <div><p>{{ title || 'Yeni Kampanya' }}</p><strong>{{ stepTitle() }}</strong></div>
+              <b>{{ step() }}/4</b>
+            </header>
 
-      <div class="workspace">
-        @if(editorOpen()){
-          <form class="editor" (ngSubmit)="save()" id="v167-campaign-editor"><header><div><small>{{editingId?'DÜZENLE':'YENİ KAMPANYA'}}</small><h2>{{title||'Kampanya kuralı'}}</h2></div><button type="button" (click)="closeEditor()" aria-label="Kampanya editörünü kapat"><mat-icon aria-hidden="true">close</mat-icon></button></header>
-            <section><h3>Vitrin içeriği</h3><div class="grid"><label class="wide"><span>Başlık</span><input [(ngModel)]="title" name="title" required maxlength="180"/></label><label class="wide"><span>Kısa açıklama</span><textarea [(ngModel)]="shortDescription" name="shortDescription" rows="3"></textarea></label><label><span>Tür</span><select [(ngModel)]="campaignType" name="campaignType"><option value="DISCOUNT">İndirim</option><option value="PRICE">Fiyat</option><option value="BUNDLE">Paket</option><option value="SEASONAL">Sezon</option><option value="CUSTOM">Özel</option></select></label><label><span>Rozet</span><input [(ngModel)]="badge" name="badge"/></label></div>
-              <div class="media"><label><span>Kapak URL</span><input [(ngModel)]="coverImage" name="coverImage" type="url"/></label><label class="upload">Dosya yükle<input type="file" class="sr-only" accept="image/jpeg,image/png,image/webp,image/avif" (change)="uploadCover($event)"/></label>@if(coverImage){<img [src]="coverImage" alt="Kampanya kapak önizlemesi"/>}</div>
-            </section>
+            <nav class="steps" aria-label="Kampanya düzenleme adımları">
+              @for (item of steps; track item.id) {
+                <button type="button" [class.active]="step() === item.id" [class.done]="step() > item.id" (click)="step.set(item.id)">
+                  <b>{{ item.id }}</b><span>{{ item.label }}</span>
+                </button>
+              }
+            </nav>
 
-            <section class="authority"><h3>Authoritative fiyat motoru</h3><p>Checkout bu alanları server-side uygular. Tarayıcıdaki fiyat kesin kaynak değildir.</p><div class="grid">
-              <label><span>İndirim yöntemi</span><select [(ngModel)]="discountMethod" name="discountMethod"><option value="FIXED_AMOUNT">Sabit indirim tutarı</option><option value="PERCENT">Yüzde indirim</option><option value="FIXED_PRICE">Sabit kampanya fiyatı</option></select></label>
-              <label><span>Değer</span><input [(ngModel)]="discountValue" name="discountValue" type="number" min="0" step="0.01" required/></label>
-              <label><span>Kapsam</span><select [(ngModel)]="discountScope" name="discountScope"><option value="ORDER">İşlem başına bir kez</option><option value="UNIT">Gün/saat/birim başına</option></select></label>
-              <label><span>Görünürlük</span><select [(ngModel)]="visibilityMode" name="visibilityMode"><option value="CAMPAIGN_ONLY">Sadece kampanya vitrini</option><option value="EVERYWHERE">Normal vitrinde de göster</option></select></label>
-              <label><span>Minimum işlem tutarı TL</span><input [(ngModel)]="minimumOrderAmount" name="minimumOrderAmount" type="number" min="0"/></label>
-              <label><span>Minimum kiralama günü</span><input [(ngModel)]="minimumRentalDays" name="minimumRentalDays" type="number" min="1" max="3650"/></label>
-              <label><span>Minimum kiralama saati</span><input [(ngModel)]="minimumRentalHours" name="minimumRentalHours" type="number" min="1" max="23"/></label>
-              <label><span>Toplam kullanım limiti</span><input [(ngModel)]="maxRedemptions" name="maxRedemptions" type="number" min="1" placeholder="Boş = limitsiz"/></label>
-              <label><span>Müşteri başı limit</span><input [(ngModel)]="perCustomerLimit" name="perCustomerLimit" type="number" min="1" max="1000"/></label>
-              <label><span>Öncelik</span><input [(ngModel)]="priority" name="priority" type="number" min="0"/></label>
-            </div><div class="checks"><label><input type="checkbox" [(ngModel)]="allowReferralDiscount" name="allowReferralDiscount"/> Referral indirimiyle birlikte kullanılabilir</label><label><input type="checkbox" [(ngModel)]="allowLoyaltyRedemption" name="allowLoyaltyRedemption"/> Sadakat puanıyla birlikte kullanılabilir</label><label [class.disabled]="targetType!=='VEHICLE'"><input type="checkbox" [(ngModel)]="requiredDriver" name="requiredDriver" [disabled]="targetType!=='VEHICLE'"/> Şoförlü paket zorunluluğu (driver extra)</label></div></section>
+            @if (step() === 1) {
+              <section class="panel">
+                <header><h2>Kampanya Görseli</h2><p>Dosya yalnız bu kampanyanın kimliği altında yüklenir. 6 MB ve üzeri dosyalarda kesintiye dayanıklı TUS yükleme kullanılır.</p></header>
+                <label class="upload">
+                  <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" (change)="uploadCover($event)" [disabled]="uploading()" />
+                  <strong>{{ uploading() ? 'Yükleniyor ve kampanyaya bağlanıyor…' : 'Kapak Görseli Dosyası Seç' }}</strong>
+                  <span>JPG, PNG, WebP veya AVIF · en fazla 15 MB</span>
+                </label>
+                @if (coverImage) {
+                  <div class="preview-cover"><img [src]="coverImage" [alt]="title || 'Kampanya kapağı'" /><button type="button" (click)="coverImage = ''">Kapağı Kaldır</button></div>
+                }
+                <p class="integrity-note">Yüklenen ama kampanya kaydına bağlanamayan dosyalar kalıcı bırakılmaz, güvenli temizlik kuyruğu tarafından otomatik temizlenir.</p>
+              </section>
+            }
 
-            <section><h3>Hedef ve zaman</h3><div class="grid"><label><span>Hedef türü</span><select [(ngModel)]="targetType" name="targetType" (ngModelChange)="targetId='';requiredDriver=false"><option value="GENERAL">Genel</option><option value="VEHICLE">Araç</option><option value="TOUR">Tur</option></select></label><label><span>Hedef kayıt</span><select [(ngModel)]="targetId" name="targetId" [disabled]="targetType==='GENERAL'"><option value="">Seçin</option>@for(target of targets();track target.id){<option [value]="target.id">{{target.label}}</option>}</select></label><label><span>Başlangıç</span><input [(ngModel)]="startsAt" name="startsAt" type="datetime-local"/></label><label><span>Bitiş</span><input [(ngModel)]="endsAt" name="endsAt" type="datetime-local"/></label><label><span>Yayın durumu</span><select [(ngModel)]="publicationStatus" name="publicationStatus"><option value="DRAFT">Taslak</option><option value="SCHEDULED">Planlandı</option><option value="PUBLISHED">Yayınlandı</option><option value="ARCHIVED">Arşiv</option></select></label><label><span>Vitrin sırası</span><input [(ngModel)]="sortOrder" name="sortOrder" type="number" min="0"/></label></div></section>
+            @if (step() === 2) {
+              <section class="panel">
+                <header><h2>Vitrin & Müşteri İçeriği</h2><p>Kampanya kartında ve müşterinin gördüğü akışta kullanılan içerik.</p></header>
+                <div class="grid">
+                  <label class="wide"><span>Başlık</span><input [(ngModel)]="title" maxlength="180" /></label>
+                  <label class="wide"><span>Kısa açıklama</span><textarea [(ngModel)]="shortDescription" rows="3"></textarea></label>
+                  <label class="wide"><span>Detaylı açıklama</span><textarea [(ngModel)]="description" rows="6"></textarea></label>
+                  <label><span>Kampanya türü</span><select [(ngModel)]="campaignType"><option value="DISCOUNT">İndirim</option><option value="PRICE">Fiyat</option><option value="BUNDLE">Paket</option><option value="SEASONAL">Sezon</option><option value="CUSTOM">Özel</option></select></label>
+                  <label><span>Rozet</span><input [(ngModel)]="badge" /></label>
+                  <label><span>Fiyat etiketi</span><input [(ngModel)]="priceLabel" /></label>
+                  <label><span>Fiyat birimi</span><input [(ngModel)]="priceSuffix" placeholder="/ gün, / kişi" /></label>
+                  <label class="wide"><span>Güven cümlesi</span><input [(ngModel)]="trustLine" /></label>
+                  <label class="wide"><span>Avantajlar, satır başına bir</span><textarea [ngModel]="benefits.join('\n')" (ngModelChange)="benefits = lines($event)" rows="5"></textarea></label>
+                  <label><span>CTA metni</span><input [(ngModel)]="ctaLabel" /></label>
+                  <label class="wide"><span>WhatsApp mesajı</span><textarea [(ngModel)]="whatsappMessage" rows="3"></textarea></label>
+                </div>
+              </section>
+            }
 
-            <section><h3>Pazarlama referansı</h3><p>Bu değerler kampanya kartındaki anlatımı destekler, checkout fiyatını belirlemez.</p><div class="grid"><label><span>Eski fiyat</span><input [(ngModel)]="oldPrice" name="oldPrice" type="number" min="0"/></label><label><span>Yeni/paket fiyatı</span><input [(ngModel)]="newPrice" name="newPrice" type="number" min="0"/></label><label><span>Gösterilecek % avantaj</span><input [(ngModel)]="discountPercent" name="discountPercent" type="number" min="0" max="100"/></label><label><span>Fiyat etiketi</span><input [(ngModel)]="priceLabel" name="priceLabel"/></label><label><span>Fiyat birimi</span><input [(ngModel)]="priceSuffix" name="priceSuffix"/></label><label><span>Güven cümlesi</span><input [(ngModel)]="trustLine" name="trustLine"/></label><label class="wide"><span>Avantajlar, satır başına bir</span><textarea [ngModel]="benefits.join('\n')" (ngModelChange)="benefits=lines($event)" name="benefits" rows="4"></textarea></label><label><span>CTA metni</span><input [(ngModel)]="ctaLabel" name="ctaLabel"/></label><label><span>CTA URL</span><input [(ngModel)]="ctaUrl" name="ctaUrl"/></label><label class="wide"><span>WhatsApp mesajı</span><textarea [(ngModel)]="whatsappMessage" name="whatsappMessage" rows="3"></textarea></label></div></section>
+            @if (step() === 3) {
+              <div class="stack">
+                <section class="panel authority">
+                  <header><h2>Authoritative Fiyat Motoru</h2><p>Rezervasyonda kesilecek fiyat sunucu tarafından bu kurallardan yeniden hesaplanır. Tarayıcıdan gelen toplam fiyat güvenilir kabul edilmez.</p></header>
+                  <div class="grid">
+                    <label><span>İndirim yöntemi</span><select [(ngModel)]="discountMethod"><option value="FIXED_AMOUNT">Sabit indirim</option><option value="PERCENT">Yüzde indirim</option><option value="FIXED_PRICE">Sabit kampanya fiyatı</option></select></label>
+                    <label><span>İndirim değeri</span><input [(ngModel)]="discountValue" type="number" min="0" step="0.01" /></label>
+                    <label><span>İndirim kapsamı</span><select [(ngModel)]="discountScope"><option value="ORDER">İşlem başına</option><option value="UNIT">Gün/saat/birim başına</option></select></label>
+                    <label><span>Görünürlük</span><select [(ngModel)]="visibilityMode"><option value="CAMPAIGN_ONLY">Sadece kampanya alanı</option><option value="EVERYWHERE">Normal vitrinde de göster</option></select></label>
+                    <label><span>Minimum işlem tutarı TL</span><input [(ngModel)]="minimumOrderAmount" type="number" min="0" /></label>
+                    <label><span>Minimum kiralama günü</span><input [(ngModel)]="minimumRentalDays" type="number" min="1" max="3650" /></label>
+                    <label><span>Minimum kiralama saati</span><input [(ngModel)]="minimumRentalHours" type="number" min="1" max="23" /></label>
+                    <label><span>Toplam kullanım limiti</span><input [(ngModel)]="maxRedemptions" type="number" min="1" placeholder="Boş = limitsiz" /></label>
+                    <label><span>Müşteri başı limit</span><input [(ngModel)]="perCustomerLimit" type="number" min="1" max="1000" /></label>
+                    <label><span>Öncelik</span><input [(ngModel)]="priority" type="number" min="0" /></label>
+                  </div>
+                  <div class="checks">
+                    <label><input type="checkbox" [(ngModel)]="allowReferralDiscount" /> Referral indirimiyle birlikte kullanılabilir</label>
+                    <label><input type="checkbox" [(ngModel)]="allowLoyaltyRedemption" /> Sadakat puanıyla birlikte kullanılabilir</label>
+                    <label [class.disabled]="targetType !== 'VEHICLE'"><input type="checkbox" [(ngModel)]="requiredDriver" [disabled]="targetType !== 'VEHICLE'" /> Şoförlü paket zorunlu</label>
+                  </div>
+                </section>
 
-            <div class="savebar"><label><input type="checkbox" [(ngModel)]="isActive" name="isActive"/> Aktif</label><button type="submit" [disabled]="saving()||!title.trim()">{{saving()?'Kaydediliyor…':'Kuralları Kaydet ve Yayınla'}}</button></div>
-          </form>
+                <section class="panel">
+                  <header><h2>Vitrin Fiyat Referansı</h2><p>Müşteriye gösterilen eski/yeni fiyat authoritative kural ile çelişemez.</p></header>
+                  <div class="grid">
+                    <label><span>Eski fiyat</span><input [(ngModel)]="oldPrice" type="number" min="0" /></label>
+                    <label><span>Yeni / paket fiyatı</span><input [(ngModel)]="newPrice" type="number" min="0" /></label>
+                    <label><span>Gösterilecek % avantaj</span><input [(ngModel)]="discountPercent" type="number" min="0" max="100" /></label>
+                  </div>
+                  @if (pricingReferenceError()) { <p class="validation">{{ pricingReferenceError() }}</p> }
+                </section>
+              </div>
+            }
+
+            @if (step() === 4) {
+              <div class="preview-layout">
+                <section class="panel">
+                  <header><h2>Hedef, Zaman & Önizleme</h2></header>
+                  <div class="grid">
+                    <label><span>Hedef türü</span><select [(ngModel)]="targetType" (ngModelChange)="targetId = ''; requiredDriver = false"><option value="GENERAL">Genel</option><option value="VEHICLE">Araç</option><option value="TOUR">Tur</option></select></label>
+                    <label><span>Hedef kayıt</span><select [(ngModel)]="targetId" [disabled]="targetType === 'GENERAL'"><option value="">Seçin</option>@for (target of targets(); track target.id) { <option [value]="target.id">{{ target.label }}</option> }</select></label>
+                    @if (targetType === 'GENERAL') { <label class="wide"><span>Genel CTA yolu</span><input [(ngModel)]="ctaUrl" placeholder="/campaigns veya başka bir iç sayfa" /></label> }
+                    <label><span>Başlangıç</span><input [(ngModel)]="startsAt" type="datetime-local" /></label>
+                    <label><span>Bitiş</span><input [(ngModel)]="endsAt" type="datetime-local" /></label>
+                    <label><span>Vitrin sırası</span><input [(ngModel)]="sortOrder" type="number" min="0" /></label>
+                    <label class="check"><input type="checkbox" [(ngModel)]="isActive" /> Aktif</label>
+                  </div>
+                  <article class="campaign-preview">
+                    @if (coverImage) { <img [src]="coverImage" [alt]="title" /> }
+                    <div><b>{{ badge || campaignType }}</b><h2>{{ title }}</h2><p>{{ shortDescription }}</p><strong>{{ previewPrice() }}</strong><span>{{ ctaLabel }}</span></div>
+                  </article>
+                </section>
+
+                <section class="panel publish">
+                  <header><h2>Yayınlama</h2><p>Canlı veya planlı kampanyada vitrin fiyatı ile rezervasyonda kesilecek authoritative fiyat aynı kurala bağlı olmak zorundadır.</p></header>
+                  @if (pricingReferenceError()) { <p class="validation">{{ pricingReferenceError() }}</p> }
+                  <div class="publish-actions"><button type="button" (click)="saveAs('DRAFT')">Taslak Kaydet</button><button type="button" class="planned" (click)="saveAs('SCHEDULED')">Planla</button><button type="button" class="live" (click)="saveAs('PUBLISHED')">Canlı Yayınla</button><button type="button" class="archive" (click)="saveAs('ARCHIVED')">Arşivle</button></div>
+                </section>
+              </div>
+            }
+
+            <footer>
+              <button type="button" (click)="previous()" [disabled]="step() === 1">← Önceki</button>
+              <div><button type="button" (click)="saveAs('DRAFT', false)" [disabled]="saving()">{{ saving() ? 'Kaydediliyor…' : 'Taslağı Kaydet' }}</button>@if (step() < 4) { <button type="button" class="next" (click)="next()">Sonraki →</button> }</div>
+            </footer>
+          </section>
         }
-
-        <section class="list">@for(c of filtered();track c.id){<article><div class="cover">@if(c.coverImage){<img [src]="c.coverImage" [alt]="c.title"/>}<span>{{c.badge||c.campaignType}}</span></div><div class="copy"><div class="title"><div><h2>{{c.title}}</h2><p>{{c.shortDescription||'Açıklama yok'}}</p></div><strong [class.off]="!c.isActive">{{c.isActive&&c.publicationStatus==='PUBLISHED'?'CANLI':c.publicationStatus}}</strong></div><div class="badges"><span>{{methodLabel(c)}}</span><span>{{c.discountScope}}</span><span>{{c.visibilityMode}}</span><span>Müşteri {{c.perCustomerLimit}}×</span>@if(c.minimumRentalDays){<span>Min {{c.minimumRentalDays}} gün</span>}@if(requiredExtras(c).length){<span>Zorunlu: {{requiredExtras(c).join(', ')}}</span>}</div><div class="row"><button type="button" (click)="edit(c)">Düzenle</button><button type="button" class="danger" (click)="remove(c)">Sil</button></div></div></article>}@empty{<div class="empty">Kampanya bulunamadı.</div>}</section>
       </div>
-    </div></main>
+    </main>
   `,
-  styles:[`
-    :host{display:block}.page{min-height:100vh;background:#f3f6fa;padding:14px;color:#0f172a}.shell{width:min(100%,1320px);margin:auto}.hero{border-radius:24px;background:#07101e;padding:22px;color:#fff;box-shadow:0 18px 42px rgba(15,23,42,.15)}.hero>p{margin:0;color:#fbbf24;font-size:9px;font-weight:950;letter-spacing:.14em}.hero h1{margin:4px 0 0;font-size:30px}.hero>span{display:block;max-width:900px;margin-top:6px;color:#aeb9c8;font-size:11px;line-height:1.6}.hero>div{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:14px}.hero article{border-radius:12px;background:#111c2e;padding:10px}.hero article small,.hero article strong{display:block}.hero article small{color:#8998ad;font-size:8px}.hero article strong{margin-top:3px;font-size:20px}.actions{display:grid;grid-template-columns:1fr auto auto;gap:7px;margin-top:10px;border:1px solid #dbe3ee;border-radius:16px;background:#fff;padding:8px}.actions input{min-height:44px;border:1px solid #dbe3ee;border-radius:10px;padding:0 11px}.actions button{min-height:44px;border:0;border-radius:10px;background:#f59e0b;padding:0 13px;font-weight:950}.actions .secondary{border:1px solid #dbe3ee;background:#fff}.workspace{display:grid;gap:12px;margin-top:12px}.editor,.list article,.empty{border:1px solid #dbe3ee;border-radius:20px;background:#fff;box-shadow:0 8px 22px rgba(15,23,42,.05)}.editor{overflow:hidden}.editor>header{display:flex;align-items:center;justify-content:space-between;background:#0f172a;padding:14px;color:#fff}.editor>header small{color:#fbbf24;font-size:8px;font-weight:950}.editor>header h2{margin:3px 0 0}.editor>header button{display:grid;width:40px;height:40px;place-items:center;border:0;border-radius:10px;background:#1e293b;color:#fff}.editor section{padding:14px}.editor section+section{border-top:1px solid #e2e8f0}.editor h3{margin:0 0 8px;font-size:13px}.editor section>p{margin:-4px 0 10px;color:#64748b;font-size:9px}.grid{display:grid;grid-template-columns:1fr;gap:9px}.grid label,.media label{display:flex;flex-direction:column;gap:5px}.grid label>span,.media label>span{color:#475569;font-size:8px;font-weight:950;text-transform:uppercase}.grid input,.grid select,.grid textarea,.media input{width:100%;min-height:44px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;padding:8px 10px;color:#0f172a}.wide{grid-column:1/-1}.media{display:grid;gap:8px;margin-top:9px}.upload{display:grid!important;min-height:44px;place-items:center;border:1px solid #f59e0b;border-radius:10px;background:#fffbeb;color:#92400e;font-size:10px;font-weight:950}.media img{width:100%;max-height:230px;border-radius:12px;object-fit:cover}.authority{background:#fffbeb}.checks{display:grid;gap:6px;margin-top:10px}.checks label,.savebar>label{display:flex;align-items:center;gap:7px;border-radius:10px;background:#fff;padding:9px;font-size:9px;font-weight:850}.checks .disabled{opacity:.5}.savebar{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid #e2e8f0;background:#f8fafc;padding:12px}.savebar button{min-height:46px;border:0;border-radius:10px;background:#0f172a;padding:0 16px;color:#fff;font-weight:950}.savebar button:disabled{opacity:.45}.list{display:grid;gap:10px}.list article{overflow:hidden}.cover{position:relative;aspect-ratio:16/7;background:#1e293b}.cover img{width:100%;height:100%;object-fit:cover}.cover span{position:absolute;left:9px;top:9px;border-radius:999px;background:#fbbf24;padding:5px 8px;font-size:8px;font-weight:950}.copy{padding:12px}.title{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.title h2{margin:0;font-size:16px}.title p{margin:4px 0 0;color:#64748b;font-size:10px}.title>strong{border-radius:999px;background:#dcfce7;padding:5px 7px;color:#166534;font-size:8px}.title>strong.off{background:#f1f5f9;color:#64748b}.badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}.badges span{border-radius:999px;background:#eff6ff;padding:5px 7px;color:#1d4ed8;font-size:8px;font-weight:900}.row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}.row button{min-height:42px;border:0;border-radius:9px;background:#0f172a;color:#fff;font-weight:900}.row .danger{background:#fff1f2;color:#be123c}.empty{padding:40px;text-align:center;color:#64748b}@media(min-width:700px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.media{grid-template-columns:1fr auto}.media img{grid-column:1/-1}}@media(min-width:1040px){.workspace{grid-template-columns:450px minmax(0,1fr);align-items:start}.editor{position:sticky;top:10px;max-height:calc(100vh - 20px);overflow:auto}.cover{aspect-ratio:16/5}}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
-  `]
+  styles: [`
+    :host{display:block}.page{min-height:100vh;background:#f3f6fa;padding:14px;color:#0f172a}.shell{width:min(100%,1320px);margin:auto}.hero{display:grid;gap:16px;border-radius:24px;background:#07101e;padding:22px;color:#fff}.hero p{margin:0;color:#fbbf24;font-size:9px;font-weight:950;letter-spacing:.14em}.hero h1{margin:4px 0 0;font-size:30px}.hero span{display:block;margin-top:6px;color:#aeb9c8;font-size:11px;line-height:1.6}.hero-actions{display:grid;gap:7px}.hero-actions input,.hero-actions button{min-height:46px;border-radius:11px}.hero-actions input{border:1px solid #334155;background:#0f1c31;padding:0 12px;color:#fff}.hero-actions button,.next{border:0;background:#f59e0b;padding:0 14px;color:#111827;font-weight:950}.list,.editor{margin-top:12px;border:1px solid #dbe3ee;border-radius:20px;background:#fff;overflow:hidden}.list>header{display:flex;align-items:center;justify-content:space-between;padding:13px;border-bottom:1px solid #e2e8f0}.list h2,.list p{margin:0}.list p{margin-top:3px;color:#64748b;font-size:9px}.list>header button,.row button,.editor>header button,footer button,.publish-actions button{min-height:40px;border:1px solid #dbe3ee;border-radius:10px;background:#fff;padding:0 11px;font-size:9px;font-weight:900}.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;padding:13px}.cards article{overflow:hidden;border:1px solid #e2e8f0;border-radius:15px}.cover{position:relative;aspect-ratio:16/8;background:#1e293b}.cover img{width:100%;height:100%;object-fit:cover}.cover b,.cover span{position:absolute;top:7px;border-radius:999px;padding:5px 8px;font-size:8px}.cover b{left:7px;background:#fbbf24}.cover span{right:7px;background:#07101f;color:#fff}.copy{padding:11px}.copy h3{margin:0}.copy p{min-height:34px;color:#64748b;font-size:10px}.badges{display:flex;flex-wrap:wrap;gap:4px}.badges span{border-radius:999px;background:#eff6ff;padding:4px 6px;color:#1d4ed8;font-size:8px;font-weight:900}.row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:9px}.row .danger{color:#be123c}.empty{grid-column:1/-1;padding:34px;text-align:center;color:#64748b}.editor>header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;background:#0f172a;padding:12px;color:#fff}.editor>header p{margin:0;color:#94a3b8;font-size:9px}.editor>header strong{display:block}.editor>header>b{display:grid;width:42px;height:42px;place-items:center;border-radius:50%;background:#d97706;font-size:10px}.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#e2e8f0}.steps button{display:grid;min-height:62px;place-items:center;border:0;background:#fff;color:#64748b}.steps b{display:grid;width:24px;height:24px;place-items:center;border-radius:50%;background:#e2e8f0;font-size:9px}.steps span{font-size:8px;font-weight:900}.steps .active{background:#fffbeb;color:#92400e}.steps .active b,.steps .done b{background:#d97706;color:#fff}.panel{margin:13px;border:1px solid #e2e8f0;border-radius:17px;padding:14px}.panel>header{margin-bottom:12px}.panel h2{margin:0}.panel header p{margin:5px 0 0;color:#64748b;font-size:10px}.upload{display:grid;min-height:180px;place-items:center;align-content:center;gap:6px;border:2px dashed #fbbf24;border-radius:16px;background:#fffbeb;text-align:center}.upload input{position:absolute;width:1px;height:1px;opacity:0}.upload strong{color:#92400e}.upload span{color:#64748b;font-size:9px}.preview-cover{position:relative;margin-top:10px;overflow:hidden;border-radius:14px}.preview-cover img{width:100%;max-height:360px;object-fit:cover}.preview-cover button{position:absolute;right:8px;bottom:8px;min-height:38px;border:0;border-radius:9px;background:#07101f;padding:0 10px;color:#fff}.integrity-note{margin:10px 0 0;border-radius:10px;background:#ecfdf5;padding:9px;color:#065f46;font-size:9px;line-height:1.5}.grid{display:grid;grid-template-columns:1fr;gap:9px}.grid label{display:flex;flex-direction:column;gap:5px;color:#475569;font-size:9px;font-weight:850}.grid input,.grid select,.grid textarea{min-height:44px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;padding:8px 10px}.wide{grid-column:1/-1}.authority{background:#fffbeb}.checks{display:grid;gap:6px;margin-top:10px}.checks label,.check{display:flex!important;min-height:44px;flex-direction:row!important;align-items:center;gap:7px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;padding:8px;font-size:9px}.checks .disabled{opacity:.5}.stack{display:grid}.preview-layout{display:grid}.campaign-preview{margin-top:14px;overflow:hidden;border:1px solid #e2e8f0;border-radius:15px}.campaign-preview>img{width:100%;aspect-ratio:16/8;object-fit:cover}.campaign-preview>div{padding:13px}.campaign-preview b{color:#d97706;font-size:9px}.campaign-preview h2{margin:5px 0}.campaign-preview p{color:#64748b;font-size:10px}.campaign-preview strong,.campaign-preview span{display:block;margin-top:7px}.campaign-preview span{border-radius:9px;background:#0f172a;padding:9px;color:#fff;text-align:center;font-size:9px}.validation{border:1px solid #fecaca;border-radius:10px;background:#fef2f2;padding:9px;color:#b91c1c;font-size:9px;font-weight:800;line-height:1.45}.publish-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.publish-actions .planned{background:#fef3c7;color:#92400e}.publish-actions .live{background:#16a34a;color:#fff}.publish-actions .archive{background:#0f172a;color:#fff}.editor>footer{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #e2e8f0;background:#f8fafc;padding:11px}.editor>footer>div{display:flex;gap:6px}@media(min-width:720px){.hero{grid-template-columns:1fr minmax(420px,.65fr);align-items:end}.hero-actions{grid-template-columns:1fr auto}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.preview-layout{grid-template-columns:minmax(0,1fr) minmax(300px,.5fr)}}@media(max-width:560px){.steps span{display:none}.panel{margin:8px}.editor>header{grid-template-columns:1fr auto}.editor>header>button{grid-column:1/-1;justify-self:start}.editor>footer{align-items:stretch;flex-direction:column}.editor>footer>div{display:grid;grid-template-columns:1fr 1fr}.publish-actions{grid-template-columns:1fr}}
+  `],
 })
-export class AdminCampaignsV167Component implements OnInit{
-  private readonly service=inject(CampaignService);private readonly cars=inject(CarService);private readonly media=inject(AdminMediaService);private readonly toast=inject(ToastService);readonly campaigns=this.service.campaigns;readonly search=signal('');readonly editorOpen=signal(false);readonly saving=signal(false);
-  editingId='';title='';shortDescription='';badge='FIRSAT';campaignType:CampaignRecord['campaignType']='DISCOUNT';coverImage='';oldPrice?:number;newPrice?:number;discountPercent?:number;discountMethod:CampaignRecord['discountMethod']='FIXED_AMOUNT';discountValue=0;discountScope:CampaignRecord['discountScope']='ORDER';visibilityMode:CampaignRecord['visibilityMode']='CAMPAIGN_ONLY';minimumOrderAmount=0;minimumRentalDays?:number;minimumRentalHours?:number;maxRedemptions?:number;perCustomerLimit=1;allowReferralDiscount=true;allowLoyaltyRedemption=true;priority=100;requiredDriver=false;targetType:NonNullable<CampaignRecord['targetType']>='GENERAL';targetId='';ctaLabel='Fırsatı İncele';ctaUrl='';whatsappMessage='';startsAt='';endsAt='';publicationStatus:CampaignRecord['publicationStatus']='DRAFT';isActive=true;sortOrder=0;benefits:string[]=[];trustLine='Şeffaf fiyat • Açık koşullar • Hızlı destek';priceLabel='Kampanya fiyatı';priceSuffix='';private editingMetadata:Record<string,unknown>={};
-  readonly published=computed(()=>this.campaigns().filter(c=>c.isActive&&c.publicationStatus==='PUBLISHED'));readonly campaignOnly=computed(()=>this.published().filter(c=>c.visibilityMode==='CAMPAIGN_ONLY'));readonly limited=computed(()=>this.published().filter(c=>c.perCustomerLimit>0));readonly filtered=computed(()=>{const q=this.search().trim().toLocaleLowerCase('tr-TR');return this.campaigns().filter(c=>!q||`${c.title} ${c.badge||''} ${c.publicationStatus} ${c.discountMethod}`.toLocaleLowerCase('tr-TR').includes(q));});
-  readonly targets=computed(()=>{if(this.targetType==='VEHICLE')return this.cars.getAllVehicles()().filter(v=>v.category!=='TOUR'&&v.cloudId).map(v=>({id:String(v.cloudId),label:`${v.brand||''} ${v.model||''} · ${v.category}`.trim()}));if(this.targetType==='TOUR')return this.cars.getTours()().filter(v=>v.cloudId).map(v=>({id:String(v.cloudId),label:v.title||String(v.id)}));return[];});
-  ngOnInit():void{void this.refresh();}async refresh():Promise<void>{try{await this.service.refreshAdmin();}catch(e){this.toast.show(this.message(e),'error');}}
-  startNew():void{this.reset();this.editorOpen.set(true);queueMicrotask(()=>document.getElementById('v167-campaign-editor')?.scrollIntoView({behavior:'smooth',block:'start'}));}closeEditor():void{this.editorOpen.set(false);}requiredExtras(c:CampaignRecord):string[]{const raw=c.metadata?.['requiredExtraIds'];return Array.isArray(raw)?raw.map(String):[];}
-  async save():Promise<void>{if(this.targetType!=='GENERAL'&&!this.targetId){this.toast.show('Hedef kayıt seçin.','error');return;}if(this.discountMethod==='PERCENT'&&(this.discountValue<0||this.discountValue>100)){this.toast.show('Yüzde indirim 0 ile 100 arasında olmalı.','error');return;}this.saving.set(true);try{const requiredExtraIds=this.targetType==='VEHICLE'&&this.requiredDriver?['driver']:[];await this.service.save({id:this.editingId||undefined,title:this.title,campaignType:this.campaignType,shortDescription:this.shortDescription||undefined,badge:this.badge||undefined,coverImage:this.coverImage||undefined,oldPrice:this.optional(this.oldPrice),newPrice:this.optional(this.newPrice),discountPercent:this.optional(this.discountPercent),discountMethod:this.discountMethod,discountValue:Number(this.discountValue||0),discountScope:this.discountScope,visibilityMode:this.visibilityMode,minimumOrderAmount:Number(this.minimumOrderAmount||0),minimumRentalDays:this.optionalInt(this.minimumRentalDays),minimumRentalHours:this.optionalInt(this.minimumRentalHours),maxRedemptions:this.optionalInt(this.maxRedemptions),perCustomerLimit:Math.max(1,Number(this.perCustomerLimit||1)),allowReferralDiscount:this.allowReferralDiscount,allowLoyaltyRedemption:this.allowLoyaltyRedemption,priority:Math.max(0,Number(this.priority||0)),targetType:this.targetType,targetId:this.targetType==='GENERAL'?undefined:this.targetId,ctaLabel:this.ctaLabel,ctaUrl:this.ctaUrl||undefined,whatsappMessage:this.whatsappMessage||undefined,startsAt:this.iso(this.startsAt),endsAt:this.iso(this.endsAt),publicationStatus:this.publicationStatus,isActive:this.isActive,sortOrder:Number(this.sortOrder||0),metadata:{...this.editingMetadata,benefits:this.benefits,trustLine:this.trustLine.trim(),priceLabel:this.priceLabel.trim(),priceSuffix:this.priceSuffix.trim(),requiredExtraIds,pricingVersion:'V167'}});this.toast.show('Kampanya vitrini ve ticari kurallar kaydedildi.','success');this.reset();this.editorOpen.set(false);}catch(e){this.toast.show(this.message(e),'error');}finally{this.saving.set(false);}}
-  edit(c:CampaignRecord):void{this.editorOpen.set(true);this.editingId=c.id;this.title=c.title;this.shortDescription=c.shortDescription||'';this.badge=c.badge||'';this.campaignType=c.campaignType;this.coverImage=c.coverImage||'';this.oldPrice=c.oldPrice;this.newPrice=c.newPrice;this.discountPercent=c.discountPercent;this.discountMethod=c.discountMethod;this.discountValue=c.discountValue;this.discountScope=c.discountScope;this.visibilityMode=c.visibilityMode;this.minimumOrderAmount=c.minimumOrderAmount;this.minimumRentalDays=c.minimumRentalDays;this.minimumRentalHours=c.minimumRentalHours;this.maxRedemptions=c.maxRedemptions;this.perCustomerLimit=c.perCustomerLimit;this.allowReferralDiscount=c.allowReferralDiscount;this.allowLoyaltyRedemption=c.allowLoyaltyRedemption;this.priority=c.priority;this.requiredDriver=this.requiredExtras(c).includes('driver');this.targetType=c.targetType||'GENERAL';this.targetId=c.targetId||'';this.ctaLabel=c.ctaLabel;this.ctaUrl=c.ctaUrl||'';this.whatsappMessage=c.whatsappMessage||'';this.startsAt=this.local(c.startsAt);this.endsAt=this.local(c.endsAt);this.publicationStatus=c.publicationStatus;this.isActive=c.isActive;this.sortOrder=c.sortOrder;this.benefits=Array.isArray(c.metadata?.['benefits'])?(c.metadata['benefits'] as unknown[]).map(String):[];this.trustLine=String(c.metadata?.['trustLine']||'');this.priceLabel=String(c.metadata?.['priceLabel']||'Kampanya fiyatı');this.priceSuffix=String(c.metadata?.['priceSuffix']||'');this.editingMetadata={...(c.metadata||{})};queueMicrotask(()=>document.getElementById('v167-campaign-editor')?.scrollIntoView({behavior:'smooth',block:'start'}));}
-  async remove(c:CampaignRecord):Promise<void>{if(!window.confirm(`“${c.title}” kampanyası silinsin mi?`))return;try{await this.service.remove(c.id);this.toast.show('Kampanya silindi.','info');}catch(e){this.toast.show(this.message(e),'error');}}
-  async uploadCover(event:Event):Promise<void>{const input=event.target as HTMLInputElement,file=input.files?.[0];if(!file)return;try{const uploaded=await this.media.uploadImage(file,'CAMPAIGN',this.editingId||`draft-${Date.now()}`,'cover');this.coverImage=uploaded.publicUrl;this.toast.show('Kampanya görseli yüklendi.','success');}catch(e){this.toast.show(this.message(e),'error');}finally{input.value='';}}
-  methodLabel(c:CampaignRecord):string{return c.discountMethod==='PERCENT'?`%${c.discountValue}`:c.discountMethod==='FIXED_PRICE'?`Sabit fiyat ${c.discountValue.toLocaleString('tr-TR')} TL`:`${c.discountValue.toLocaleString('tr-TR')} TL indirim`;}
-  lines(value:unknown):string[]{return String(value||'').split(/\r?\n/).map(v=>v.trim()).filter(Boolean).slice(0,30);}private optional(v:number|undefined):number|undefined{return v==null||v===("" as unknown as number)?undefined:Number(v);}private optionalInt(v:number|undefined):number|undefined{const n=this.optional(v);return n==null?undefined:Math.round(n);}private iso(v:string):string|undefined{if(!v)return undefined;const d=new Date(v);return Number.isNaN(d.getTime())?undefined:d.toISOString();}private local(v?:string):string{if(!v)return'';const d=new Date(v);if(Number.isNaN(d.getTime()))return'';const local=new Date(d.getTime()-d.getTimezoneOffset()*60000);return local.toISOString().slice(0,16);}private message(e:unknown):string{return e instanceof Error?e.message:'İşlem tamamlanamadı.';}
-  private reset():void{this.editingId='';this.title='';this.shortDescription='';this.badge='FIRSAT';this.campaignType='DISCOUNT';this.coverImage='';this.oldPrice=undefined;this.newPrice=undefined;this.discountPercent=undefined;this.discountMethod='FIXED_AMOUNT';this.discountValue=0;this.discountScope='ORDER';this.visibilityMode='CAMPAIGN_ONLY';this.minimumOrderAmount=0;this.minimumRentalDays=undefined;this.minimumRentalHours=undefined;this.maxRedemptions=undefined;this.perCustomerLimit=1;this.allowReferralDiscount=true;this.allowLoyaltyRedemption=true;this.priority=100;this.requiredDriver=false;this.targetType='GENERAL';this.targetId='';this.ctaLabel='Fırsatı İncele';this.ctaUrl='';this.whatsappMessage='';this.startsAt='';this.endsAt='';this.publicationStatus='DRAFT';this.isActive=true;this.sortOrder=this.campaigns().length+1;this.benefits=[];this.trustLine='Şeffaf fiyat • Açık koşullar • Hızlı destek';this.priceLabel='Kampanya fiyatı';this.priceSuffix='';this.editingMetadata={};}
+export class AdminCampaignsV167Component implements OnInit {
+  private readonly service = inject(CampaignService);
+  private readonly cars = inject(CarService);
+  private readonly media = inject(AdminMediaService);
+  private readonly toast = inject(ToastService);
+  private readonly confirm = inject(ConfirmService);
+
+  readonly campaigns = this.service.campaigns;
+  readonly search = signal('');
+  readonly editorOpen = signal(false);
+  readonly saving = signal(false);
+  readonly uploading = signal(false);
+  readonly step = signal<CampaignStep>(1);
+  readonly steps = [
+    { id: 1 as const, label: 'Görsel' },
+    { id: 2 as const, label: 'Vitrin' },
+    { id: 3 as const, label: 'Fiyat Kuralları' },
+    { id: 4 as const, label: 'Hedef & Yayın' },
+  ];
+
+  editingId = '';
+  title = '';
+  shortDescription = '';
+  description = '';
+  badge = 'FIRSAT';
+  campaignType: CampaignRecord['campaignType'] = 'DISCOUNT';
+  coverImage = '';
+  oldPrice?: number;
+  newPrice?: number;
+  discountPercent?: number;
+  discountMethod: CampaignRecord['discountMethod'] = 'FIXED_AMOUNT';
+  discountValue = 0;
+  discountScope: CampaignRecord['discountScope'] = 'ORDER';
+  visibilityMode: CampaignRecord['visibilityMode'] = 'CAMPAIGN_ONLY';
+  minimumOrderAmount = 0;
+  minimumRentalDays?: number;
+  minimumRentalHours?: number;
+  maxRedemptions?: number;
+  perCustomerLimit = 1;
+  allowReferralDiscount = true;
+  allowLoyaltyRedemption = true;
+  priority = 100;
+  requiredDriver = false;
+  targetType: NonNullable<CampaignRecord['targetType']> = 'GENERAL';
+  targetId = '';
+  ctaLabel = 'Fırsatı İncele';
+  ctaUrl = '';
+  whatsappMessage = '';
+  startsAt = '';
+  endsAt = '';
+  publicationStatus: CampaignRecord['publicationStatus'] = 'DRAFT';
+  isActive = true;
+  sortOrder = 0;
+  benefits: string[] = [];
+  trustLine = 'Şeffaf fiyat · Açık koşullar · Hızlı destek';
+  priceLabel = 'Kampanya fiyatı';
+  priceSuffix = '';
+  private editingMetadata: Record<string, unknown> = {};
+
+  readonly published = computed(() => this.campaigns().filter((c) => c.isActive && c.publicationStatus === 'PUBLISHED'));
+  readonly filtered = computed(() => {
+    const q = this.search().trim().toLocaleLowerCase('tr-TR');
+    return this.campaigns().filter((c) => !q || `${c.title} ${c.badge || ''} ${c.publicationStatus} ${c.discountMethod}`.toLocaleLowerCase('tr-TR').includes(q));
+  });
+
+  ngOnInit(): void { void this.refresh(); }
+
+  async refresh(): Promise<void> {
+    try { await this.service.refreshAdmin(); }
+    catch (error) { this.toast.show(this.message(error), 'error'); }
+  }
+
+  targets(): CampaignTargetOption[] {
+    if (this.targetType === 'VEHICLE') {
+      return this.cars.getAllVehicles()()
+        .filter((v) => v.category !== 'TOUR' && v.cloudId)
+        .map((v) => ({ id: String(v.cloudId), label: `${v.brand || ''} ${v.model || ''} · ${v.category}`.trim() }));
+    }
+    if (this.targetType === 'TOUR') {
+      return this.cars.getTours()().filter((v) => v.cloudId).map((v) => ({ id: String(v.cloudId), label: v.title || String(v.id) }));
+    }
+    return [];
+  }
+
+  async startNew(): Promise<void> {
+    this.reset();
+    this.saving.set(true);
+    try {
+      const draft = await this.service.save({
+        title: 'Yeni Kampanya', campaignType: 'DISCOUNT', ctaLabel: 'Fırsatı İncele', publicationStatus: 'DRAFT',
+        discountMethod: 'FIXED_AMOUNT', discountValue: 0, discountScope: 'ORDER', visibilityMode: 'CAMPAIGN_ONLY',
+        minimumOrderAmount: 0, perCustomerLimit: 1, allowReferralDiscount: true, allowLoyaltyRedemption: true,
+        priority: 100, targetType: 'GENERAL', isActive: false, sortOrder: this.campaigns().length + 1,
+        metadata: { benefits: [], pricingVersion: 'V200' },
+      });
+      this.edit(draft);
+      this.step.set(1);
+      this.toast.show('Kampanya taslağı oluşturuldu. Önce kendi görselini yükleyebilirsiniz.', 'success');
+    } catch (error) { this.toast.show(this.message(error), 'error'); }
+    finally { this.saving.set(false); }
+  }
+
+  edit(c: CampaignRecord): void {
+    this.editorOpen.set(true);
+    this.editingId = c.id;
+    this.title = c.title;
+    this.shortDescription = c.shortDescription || '';
+    this.description = c.description || '';
+    this.badge = c.badge || '';
+    this.campaignType = c.campaignType;
+    this.coverImage = c.coverImage || '';
+    this.oldPrice = c.oldPrice;
+    this.newPrice = c.newPrice;
+    this.discountPercent = c.discountPercent;
+    this.discountMethod = c.discountMethod;
+    this.discountValue = c.discountValue;
+    this.discountScope = c.discountScope;
+    this.visibilityMode = c.visibilityMode;
+    this.minimumOrderAmount = c.minimumOrderAmount;
+    this.minimumRentalDays = c.minimumRentalDays;
+    this.minimumRentalHours = c.minimumRentalHours;
+    this.maxRedemptions = c.maxRedemptions;
+    this.perCustomerLimit = c.perCustomerLimit;
+    this.allowReferralDiscount = c.allowReferralDiscount;
+    this.allowLoyaltyRedemption = c.allowLoyaltyRedemption;
+    this.priority = c.priority;
+    this.requiredDriver = this.requiredExtras(c).includes('driver');
+    this.targetType = c.targetType || 'GENERAL';
+    this.targetId = c.targetId || '';
+    this.ctaLabel = c.ctaLabel;
+    this.ctaUrl = c.ctaUrl || '';
+    this.whatsappMessage = c.whatsappMessage || '';
+    this.startsAt = this.local(c.startsAt);
+    this.endsAt = this.local(c.endsAt);
+    this.publicationStatus = c.publicationStatus;
+    this.isActive = c.isActive;
+    this.sortOrder = c.sortOrder;
+    this.benefits = Array.isArray(c.metadata?.['benefits']) ? (c.metadata['benefits'] as unknown[]).map(String) : [];
+    this.trustLine = String(c.metadata?.['trustLine'] || 'Şeffaf fiyat · Açık koşullar · Hızlı destek');
+    this.priceLabel = String(c.metadata?.['priceLabel'] || 'Kampanya fiyatı');
+    this.priceSuffix = String(c.metadata?.['priceSuffix'] || '');
+    this.editingMetadata = { ...(c.metadata || {}) };
+    this.step.set(1);
+  }
+
+  closeEditor(): void { this.editorOpen.set(false); this.reset(); }
+  stepTitle(): string { return this.steps.find((item) => item.id === this.step())?.label || ''; }
+  next(): void { this.step.set(Math.min(4, this.step() + 1) as CampaignStep); }
+  previous(): void { this.step.set(Math.max(1, this.step() - 1) as CampaignStep); }
+
+  async uploadCover(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file || !this.editingId) return;
+
+    const previousCover = this.coverImage;
+    const previousStatus = this.publicationStatus;
+    const previousActive = this.isActive;
+    const previousStep = this.step();
+    const campaignId = this.editingId;
+    this.uploading.set(true);
+
+    try {
+      const uploaded = await this.media.uploadImage(file, 'CAMPAIGN', campaignId, 'cover');
+      this.coverImage = uploaded.publicUrl;
+      const saved = await this.persist(previousStatus, false, true, previousStep);
+      if (saved) {
+        this.toast.show('Görsel bu kampanyaya bağlandı, yayın durumu değiştirilmedi.', 'success');
+        return;
+      }
+
+      await this.service.refreshAdmin().catch(() => undefined);
+      const authoritative = this.campaigns().find((campaign) => campaign.id === campaignId);
+      if (authoritative?.coverImage === uploaded.publicUrl) {
+        this.edit(authoritative);
+        this.step.set(previousStep);
+        this.toast.show('Görsel kampanyaya kaydedildi ve sunucudan doğrulandı.', 'success');
+        return;
+      }
+
+      this.coverImage = previousCover;
+      this.publicationStatus = previousStatus;
+      this.isActive = previousActive;
+      this.step.set(previousStep);
+      this.toast.show('Görsel kampanyaya bağlanamadı. Kullanılmayan yükleme otomatik temizlenecek.', 'error');
+    } catch (error) {
+      this.coverImage = previousCover;
+      this.publicationStatus = previousStatus;
+      this.isActive = previousActive;
+      this.step.set(previousStep);
+      this.toast.show(this.message(error), 'error');
+    } finally {
+      this.uploading.set(false);
+      input.value = '';
+    }
+  }
+
+  async saveAs(status: CampaignRecord['publicationStatus'], announce = true): Promise<void> {
+    await this.persist(status, announce, false, this.step());
+  }
+
+  private async persist(status: CampaignRecord['publicationStatus'], announce: boolean, silentError: boolean, preserveStep: CampaignStep): Promise<CampaignRecord | null> {
+    if (!this.editingId) return null;
+    const validation = this.validationError(status);
+    if (validation) {
+      if (!silentError) this.toast.show(validation, 'error');
+      return null;
+    }
+
+    this.saving.set(true);
+    try {
+      const requiredExtraIds = this.targetType === 'VEHICLE' && this.requiredDriver ? ['driver'] : [];
+      const saved = await this.service.save({
+        id: this.editingId,
+        title: this.title,
+        campaignType: this.campaignType,
+        shortDescription: this.shortDescription || undefined,
+        description: this.description || undefined,
+        badge: this.badge || undefined,
+        coverImage: this.coverImage || undefined,
+        oldPrice: this.optional(this.oldPrice),
+        newPrice: this.optional(this.newPrice),
+        discountPercent: this.optional(this.discountPercent),
+        discountMethod: this.discountMethod,
+        discountValue: Number(this.discountValue || 0),
+        discountScope: this.discountScope,
+        visibilityMode: this.visibilityMode,
+        minimumOrderAmount: Number(this.minimumOrderAmount || 0),
+        minimumRentalDays: this.optionalInt(this.minimumRentalDays),
+        minimumRentalHours: this.optionalInt(this.minimumRentalHours),
+        maxRedemptions: this.optionalInt(this.maxRedemptions),
+        perCustomerLimit: Math.max(1, Number(this.perCustomerLimit || 1)),
+        allowReferralDiscount: this.allowReferralDiscount,
+        allowLoyaltyRedemption: this.allowLoyaltyRedemption,
+        priority: Math.max(0, Number(this.priority || 0)),
+        targetType: this.targetType,
+        targetId: this.targetType === 'GENERAL' ? undefined : this.targetId,
+        ctaLabel: this.ctaLabel.trim() || 'Fırsatı İncele',
+        ctaUrl: this.targetType === 'GENERAL' ? (this.ctaUrl.trim() || undefined) : undefined,
+        whatsappMessage: this.whatsappMessage || undefined,
+        startsAt: this.iso(this.startsAt),
+        endsAt: this.iso(this.endsAt),
+        publicationStatus: status,
+        isActive: status === 'ARCHIVED' ? false : status === 'PUBLISHED' ? true : this.isActive,
+        sortOrder: Number(this.sortOrder || 0),
+        metadata: {
+          ...this.editingMetadata,
+          benefits: this.benefits,
+          trustLine: this.trustLine.trim(),
+          priceLabel: this.priceLabel.trim(),
+          priceSuffix: this.priceSuffix.trim(),
+          requiredExtraIds,
+          pricingVersion: 'V200',
+        },
+      });
+      this.edit(saved);
+      this.step.set(announce ? 4 : preserveStep);
+      if (announce) {
+        this.toast.show(status === 'PUBLISHED' ? 'Kampanya canlı yayınlandı.' : status === 'SCHEDULED' ? 'Kampanya planlandı.' : status === 'ARCHIVED' ? 'Kampanya arşivlendi.' : 'Kampanya taslağı kaydedildi.', 'success');
+      }
+      return saved;
+    } catch (error) {
+      if (!silentError) this.toast.show(this.message(error), 'error');
+      return null;
+    } finally { this.saving.set(false); }
+  }
+
+  async remove(c: CampaignRecord): Promise<void> {
+    const ok = await this.confirm.confirm({ title: 'Kampanyayı Sil', message: `“${c.title}” kampanyası kalıcı olarak silinsin mi?` });
+    if (!ok) return;
+    try { await this.service.remove(c.id); this.toast.show('Kampanya silindi.', 'info'); }
+    catch (error) { this.toast.show(this.message(error), 'error'); }
+  }
+
+  requiredExtras(c: CampaignRecord): string[] { const raw = c.metadata?.['requiredExtraIds']; return Array.isArray(raw) ? raw.map(String) : []; }
+  methodLabel(c: CampaignRecord): string { return c.discountMethod === 'PERCENT' ? `%${c.discountValue}` : c.discountMethod === 'FIXED_PRICE' ? `Sabit ${c.discountValue.toLocaleString('tr-TR')} TL` : `${c.discountValue.toLocaleString('tr-TR')} TL indirim`; }
+  statusLabel(c: CampaignRecord): string { return c.isActive && c.publicationStatus === 'PUBLISHED' ? 'CANLI' : c.publicationStatus === 'SCHEDULED' ? 'PLANLI' : c.publicationStatus === 'ARCHIVED' ? 'ARŞİV' : 'TASLAK'; }
+  previewPrice(): string { if (this.newPrice != null && Number(this.newPrice) > 0) return `${Number(this.newPrice).toLocaleString('tr-TR')} TL ${this.priceSuffix}`.trim(); if (this.discountMethod === 'PERCENT') return `%${Number(this.discountValue || 0)} avantaj`; if (this.discountMethod === 'FIXED_PRICE') return `${Number(this.discountValue || 0).toLocaleString('tr-TR')} TL`; return `${Number(this.discountValue || 0).toLocaleString('tr-TR')} TL indirim`; }
+  lines(value: unknown): string[] { return String(value || '').split(/\r?\n/).map((v) => v.trim()).filter(Boolean).slice(0, 50); }
+
+  pricingReferenceError(): string {
+    const oldPrice = this.optional(this.oldPrice);
+    const newPrice = this.optional(this.newPrice);
+    const value = Number(this.discountValue || 0);
+    if (oldPrice === undefined || newPrice === undefined) return '';
+    if (newPrice > oldPrice) return 'Yeni kampanya fiyatı eski fiyattan yüksek olamaz.';
+    if (this.discountMethod === 'FIXED_PRICE' && Math.abs(newPrice - value) > 0.01) return 'Sabit kampanya fiyatında “Yeni fiyat” ile authoritative “İndirim değeri” aynı olmalıdır.';
+    if (this.discountMethod === 'FIXED_AMOUNT' && this.discountScope === 'ORDER' && Math.abs((oldPrice - newPrice) - value) > 0.01) return 'İşlem başına sabit indirimde Eski fiyat - Yeni fiyat, authoritative indirim değeriyle aynı olmalıdır.';
+    if (this.discountMethod === 'PERCENT') {
+      const expected = oldPrice * (1 - value / 100);
+      if (Math.abs(newPrice - expected) > 0.02) return `Yüzde indirime göre yeni fiyat ${expected.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} TL olmalıdır.`;
+    }
+    return '';
+  }
+
+  private validationError(status: CampaignRecord['publicationStatus']): string {
+    if (!this.title.trim()) return 'Kampanya başlığı zorunlu.';
+    if (this.targetType !== 'GENERAL' && !this.targetId) return 'Araç veya tur hedefi için hedef kaydı seçin.';
+    const discountValue = Number(this.discountValue || 0);
+    if (!Number.isFinite(discountValue) || discountValue < 0) return 'İndirim değeri geçerli bir sayı olmalıdır.';
+    if (this.discountMethod === 'PERCENT' && discountValue > 100) return 'Yüzde indirim 0 ile 100 arasında olmalı.';
+    if ((status === 'PUBLISHED' || status === 'SCHEDULED') && discountValue <= 0) return 'Canlı veya planlı kampanyada authoritative indirim değeri 0’dan büyük olmalıdır.';
+    if (this.startsAt && this.endsAt && new Date(this.endsAt).getTime() <= new Date(this.startsAt).getTime()) return 'Kampanya bitiş zamanı başlangıçtan sonra olmalı.';
+    if ((status === 'PUBLISHED' || status === 'SCHEDULED') && this.pricingReferenceError()) return this.pricingReferenceError();
+    return '';
+  }
+
+  private reset(): void {
+    this.editingId = ''; this.title = ''; this.shortDescription = ''; this.description = ''; this.badge = 'FIRSAT'; this.campaignType = 'DISCOUNT';
+    this.coverImage = ''; this.oldPrice = undefined; this.newPrice = undefined; this.discountPercent = undefined; this.discountMethod = 'FIXED_AMOUNT';
+    this.discountValue = 0; this.discountScope = 'ORDER'; this.visibilityMode = 'CAMPAIGN_ONLY'; this.minimumOrderAmount = 0; this.minimumRentalDays = undefined;
+    this.minimumRentalHours = undefined; this.maxRedemptions = undefined; this.perCustomerLimit = 1; this.allowReferralDiscount = true; this.allowLoyaltyRedemption = true;
+    this.priority = 100; this.requiredDriver = false; this.targetType = 'GENERAL'; this.targetId = ''; this.ctaLabel = 'Fırsatı İncele'; this.ctaUrl = '';
+    this.whatsappMessage = ''; this.startsAt = ''; this.endsAt = ''; this.publicationStatus = 'DRAFT'; this.isActive = true; this.sortOrder = 0;
+    this.benefits = []; this.trustLine = 'Şeffaf fiyat · Açık koşullar · Hızlı destek'; this.priceLabel = 'Kampanya fiyatı'; this.priceSuffix = '';
+    this.editingMetadata = {}; this.step.set(1);
+  }
+
+  private optional(value: unknown): number | undefined { if (value === undefined || value === null || value === '') return undefined; const number = Number(value); return Number.isFinite(number) ? number : undefined; }
+  private optionalInt(value: unknown): number | undefined { const number = this.optional(value); return number === undefined ? undefined : Math.max(1, Math.round(number)); }
+  private iso(value: string): string | undefined { if (!value) return undefined; const date = new Date(value); return Number.isFinite(date.getTime()) ? date.toISOString() : undefined; }
+  private local(value?: string): string { if (!value) return ''; const date = new Date(value); if (!Number.isFinite(date.getTime())) return ''; const offset = date.getTimezoneOffset() * 60_000; return new Date(date.getTime() - offset).toISOString().slice(0, 16); }
+  private message(error: unknown): string { return error instanceof Error ? error.message : 'İşlem tamamlanamadı.'; }
 }

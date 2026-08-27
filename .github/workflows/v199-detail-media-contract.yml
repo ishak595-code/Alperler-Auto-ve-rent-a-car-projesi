@@ -1,0 +1,53 @@
+name: V199 Detail Media Contract
+
+on:
+  pull_request:
+    paths:
+      - 'src/components/detail-media-lightbox.component.ts'
+      - 'src/components/dynamic-home-section.component.ts'
+      - 'src/components/customer-mobile-dock.component.ts'
+      - 'src/components/catalog-mixed-gallery.component.ts'
+      - 'src/pages/rental-detail-v167.component.ts'
+      - 'src/pages/sale-detail-v1681.component.ts'
+      - 'src/pages/tour-detail-v170.component.ts'
+      - 'src/pages/blog-detail.component.ts'
+      - 'src/services/public-catalog-media.service.ts'
+      - 'src/app/components/catalog-mixed-gallery.component.ts'
+      - 'src/app/services/public-catalog-media.service.ts'
+      - 'scripts/check-v199-detail-media-contract.mjs'
+      - '.github/workflows/v199-detail-media-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/components/detail-media-lightbox.component.ts'
+      - 'src/components/dynamic-home-section.component.ts'
+      - 'src/components/customer-mobile-dock.component.ts'
+      - 'src/components/catalog-mixed-gallery.component.ts'
+      - 'src/pages/rental-detail-v167.component.ts'
+      - 'src/pages/sale-detail-v1681.component.ts'
+      - 'src/pages/tour-detail-v170.component.ts'
+      - 'src/pages/blog-detail.component.ts'
+      - 'src/services/public-catalog-media.service.ts'
+      - 'src/app/components/catalog-mixed-gallery.component.ts'
+      - 'src/app/services/public-catalog-media.service.ts'
+      - 'scripts/check-v199-detail-media-contract.mjs'
+      - '.github/workflows/v199-detail-media-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  detail-media-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: node scripts/check-v199-detail-media-contract.mjs
+      - run: npm run lint
+      - run: npx tsc --noEmit -p tsconfig.api.json
+      - run: npm run build

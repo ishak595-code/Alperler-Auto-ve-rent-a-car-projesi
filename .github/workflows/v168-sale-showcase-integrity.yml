@@ -98,22 +98,27 @@ jobs:
           grep -q "SalesShowcaseV168Component" src/pages/sales-results.component.ts
           grep -q "SaleDetailV1681Component" src/pages/catalog-detail-shells.component.ts
 
-      - name: Super Admin sale integrity contract
+      - name: Current Super Admin sale workspace contract
         shell: bash
         run: |
           set -euo pipefail
-          ADMIN="src/pages/admin/admin-sale-integrity-v1681.component.ts"
+          ADMIN="src/pages/admin/admin-catalog-workspace.component.ts"
+          HUB="src/pages/admin/admin-content-hub.component.ts"
           test -f "$ADMIN"
           grep -q "damageExpertise" "$ADMIN"
           grep -q "isDamageFree" "$ADMIN"
-          grep -q "hasPaintOrChange" "$ADMIN"
+          grep -q "saleTruthError" "$ADMIN"
           grep -q "damageStatus" "$ADMIN"
           grep -q "tramerStatus" "$ADMIN"
           grep -q "local_painted" "$ADMIN"
           grep -q "frontLeftDoor" "$ADMIN"
           grep -q "rearRightFender" "$ADMIN"
-          grep -q "AdminSaleIntegrityV1681Component" src/pages/admin/admin-content-hub.component.ts
-          grep -q "sale-integrity" src/pages/admin/admin-content-hub.component.ts
+          grep -q "mode=\"SALE\"" "$HUB"
+          grep -q "'/admin/sales'" "$HUB"
+          if grep -q "AdminSaleIntegrityV1681Component" "$HUB"; then
+            echo "Legacy parallel sale editor must not return to the active content hub"
+            exit 1
+          fi
 
       - name: Preserve V167 rental commercial integrity
         shell: bash

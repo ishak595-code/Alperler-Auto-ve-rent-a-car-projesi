@@ -1,231 +1,65 @@
-
-import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { CarService } from '../../services/car.service';
-import { ToastService } from '../../services/toast.service';
+import { BlogAdminRecord, BlogAdminService, BlogPublicationStatus } from '../../services/blog-admin.service';
+import { CatalogMediaItem, CatalogMediaService } from '../../services/catalog-media.service';
 import { ConfirmService } from '../../services/confirm.service';
-import { AdminMediaService } from '../../services/admin-media.service';
+import { ToastService } from '../../services/toast.service';
+
+type BlogStep=1|2|3|4;
 
 @Component({
-  selector: 'app-admin-blog',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  template: `
-    <div class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-4 shadow-sm backdrop-blur md:px-8">
-        <div class="mx-auto flex max-w-7xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div class="flex items-center gap-4">
-            <button (click)="goBack()" aria-label="Kontrol Paneline Dön" class="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg></button>
-            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Blog Yönetimi</h1>
-          </div>
-          <div class="grid w-full gap-2 sm:grid-cols-[minmax(220px,1fr)_auto] lg:w-auto">
-            <input [(ngModel)]="searchQuery" type="search" autocomplete="off" placeholder="Blog başlığı veya içerik ara…" aria-label="Blog yazılarında ara" class="min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500" />
-            <button (click)="toggleForm()" class="min-h-11 rounded-xl bg-blue-600 px-4 text-sm font-black text-white shadow hover:bg-blue-700">+ Yeni Yazı Ekle</button>
-          </div>
-        </div>
-    </div>
+  selector:'app-admin-blog',standalone:true,imports:[CommonModule,FormsModule],
+  template:`
+    <main class="page"><div class="shell">
+      <header class="hero"><div><p>BLOG YÖNETİMİ</p><h1>Blog Yazıları</h1><span>Her yazı kendi medya, içerik, SEO ve yayın ayarlarıyla tek akışta yönetilir. Ortak galeri veya kapak URL alanı kullanılmaz.</span></div><div class="actions"><input [(ngModel)]="search" type="search" placeholder="Başlık, özet veya yazar ara…" aria-label="Blog yazılarında ara"/><button type="button" (click)="startNew()" [disabled]="saving()">+ Yeni Blog Yazısı</button></div></header>
+      @if(error()){<div class="alert">{{error()}}</div>}
 
-    <div class="w-full bg-slate-50 min-h-[calc(100vh-10rem)] p-4 md:p-8">
+      @if(!editing()){
+        <section class="list"><header><h2>Yazı Listesi</h2><button type="button" (click)="refresh()">Yenile</button></header><div class="grid">@for(post of filtered();track post.id){<article><div class="cover">@if(post.coverImage){<img [src]="post.coverImage" [alt]="post.title"/>}<span>{{statusLabel(post.status)}}</span></div><div class="copy"><h3>{{post.title}}</h3><p>{{post.excerpt||'Özet girilmedi.'}}</p><small>{{post.authorName}} · {{post.originalDate||'Tarih yok'}}</small><div><button type="button" (click)="edit(post)">Düzenle</button>@if(post.status==='DRAFT'){<button type="button" class="danger" (click)="removeDraft(post)">Taslağı Sil</button>}@else{<button type="button" (click)="archive(post)">Arşivle</button>}</div></div></article>}@empty{<div class="empty">Blog yazısı bulunamadı.</div>}</div></section>
+      }@else if(draft();as post){
+        <section class="editor"><header><button type="button" (click)="closeEditor()">← Listeye dön</button><div><p>{{post.title}}</p><strong>{{stepTitle()}}</strong></div><b>{{step()}}/4</b></header>
+          <nav class="steps">@for(item of steps;track item.id){<button type="button" [class.active]="step()===item.id" [class.done]="step()>item.id" (click)="step.set(item.id)"><b>{{item.id}}</b><span>{{item.label}}</span></button>}</nav>
 
-    @if (showForm()) {
-        <div class="fixed inset-0 bg-white overflow-y-auto w-full h-full min-h-[100dvh] animate-in fade-in duration-300" style="z-index: 99999;">
-           <div class="max-w-5xl mx-auto w-full min-h-screen flex flex-col bg-white">
-             <!-- Header -->
-             <div class="p-6 md:p-8 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 bg-white/95 backdrop-blur-md z-20">
-                <div class="flex items-center gap-4">
-                    <button (click)="toggleForm()" class="bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 p-2 md:px-5 md:py-2.5 rounded-xl transition-all flex items-center gap-2 font-bold text-sm">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                        <span class="hidden md:inline">İptal Edip Geri Dön</span>
-                    </button>
-                    <h3 class="font-bold text-2xl text-slate-900 tracking-tight">
-                        {{ newPost.id ? 'Blog Yazısını Düzenle' : 'Yeni Blog Yazısı' }}
-                    </h3>
-                </div>
-             </div>
+          @if(step()===1){<section class="panel"><header><h2>Fotoğraf & Video</h2><p>Dosyalar yalnız bu blog yazısına bağlanır. İlk fotoğraf otomatik kapak olur, istediğiniz fotoğrafı sonra kapak yapabilirsiniz.</p></header><label class="upload"><input type="file" multiple accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm" (change)="uploadFiles($event)"/><strong>{{uploading()?'Yükleniyor %'+mediaService.uploadProgress():'Fotoğraf veya Video Dosyası Seç'}}</strong><span>JPEG, PNG, WebP, AVIF, MP4, WebM · 50 MB/dosya</span></label><div class="media-grid">@for(item of media();track item.id){<article><div class="media">@if(item.kind==='IMAGE'){<img [src]="item.url" [alt]="item.altText||post.title"/>}@else{<video [src]="item.url" [poster]="item.posterUrl" controls playsinline preload="metadata"></video>}@if(item.isCover){<b>KAPAK</b>}</div><label><span>Alternatif metin</span><input [ngModel]="item.altText" (ngModelChange)="changeAlt(item,$event)"/></label><div class="media-actions">@if(item.kind==='IMAGE'){<button type="button" (click)="makeCover(item)" [disabled]="item.isCover">Kapak Yap</button>}<button type="button" class="danger" (click)="removeMedia(item)">Kaldır</button></div></article>}@empty{<div class="empty">Bu yazıya henüz medya eklenmedi.</div>}</div></section>}
 
-             <!-- Form Content -->
-             <div class="p-6 md:p-8">
-                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                     <!-- Main Content Left -->
-                     <div class="space-y-6">
-                         <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Başlık</label>
-                            <input [(ngModel)]="newPost.title" aria-label="Blog yazısı başlığı" placeholder="Blog yazısının çarpıcı başlığı" class="w-full p-4 border border-slate-200 rounded-xl bg-slate-50 font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
-                         </div>
-                         
-                         <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Kısa Özet (Meta Description)</label>
-                            <textarea [(ngModel)]="newPost.summary" rows="3" aria-label="Blog yazısı kısa özeti" placeholder="Yazının kısa, merak uyandıran özeti. Arama motorlarında da bu görünür." class="w-full p-4 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none resize-none"></textarea>
-                         </div>
-                         
-                         <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Yazı İçeriği (HTML Kullanabilirsiniz)</label>
-                            <textarea [(ngModel)]="newPost.content" rows="12" aria-label="Blog yazısı içeriği" placeholder="<p>Blog içeriğiniz...</p>" class="w-full p-4 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 font-mono text-sm leading-relaxed focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"></textarea>
-                         </div>
-                     </div>
-                     
-                     <!-- Sidebar Config Right -->
-                     <div class="space-y-6">
-                         <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
-                             <h4 class="font-bold text-sm text-slate-800 mb-4 border-b border-slate-200 pb-2">Görsel & Medya</h4>
-                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Kapak Görseli URL</label>
-                             <input [(ngModel)]="newPost.image" placeholder="https://..." aria-label="Blog kapak görseli URL adresi" class="w-full p-3 border border-slate-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none mb-2">
-                             <label class="mb-4 flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 text-xs font-black text-blue-700">Dosya Seç
-                               <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" class="sr-only" (change)="onBlogImageSelected($event)" aria-label="Blog kapak görseli dosyası seç" />
-                             </label>
-                             
-                             <!-- Preview -->
-                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Önizleme</label>
-                             <div class="w-full aspect-video rounded-lg overflow-hidden border border-slate-200 bg-slate-200 relative">
-                                 @if(newPost.image) {
-                                     <img [src]="newPost.image" class="w-full h-full object-cover">
-                                 } @else {
-                                     <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
-                                         <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                         <span class="text-xs font-medium">Görsel Yok</span>
-                                     </div>
-                                 }
-                             </div>
-                         </div>
-                         
-                         <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
-                             <h4 class="font-bold text-sm text-slate-800 mb-4 border-b border-slate-200 pb-2">Yayın Ayarları</h4>
-                             
-                             <div class="space-y-4">
-                                 <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Yayın Tarihi</label>
-                                    <input [(ngModel)]="newPost.date" aria-label="Blog yayın tarihi" placeholder="Örn: 15 Mayıs 2024" class="w-full p-3 border border-slate-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
-                                 </div>
-                                 <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Okuma Süresi</label>
-                                    <input [(ngModel)]="newPost.readTime" aria-label="Blog okuma süresi" placeholder="Örn: 4 dk" class="w-full p-3 border border-slate-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
-                                 </div>
-                             </div>
-                         </div>
-                     </div>
-                 </div>
-             </div>
-             
-             <!-- Footer Actions -->
-             <div class="bg-white/95 backdrop-blur-md px-6 py-4 border-t border-slate-200 flex items-center justify-between sticky bottom-0 z-20">
-                 <button (click)="toggleForm()" class="px-6 py-2.5 text-slate-600 font-bold hover:bg-slate-200 rounded-lg transition-colors">Vazgeç</button>
-                 <button (click)="addPost()" class="bg-slate-900 text-white px-8 py-2.5 rounded-lg font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-slate-900/20 flex items-center gap-2">
-                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                     {{ newPost.id ? 'Değişiklikleri Kaydet' : 'Yazıyı Yayınla' }}
-                 </button>
-             </div>
-           </div>
-        </div>
-    } @else {
+          @if(step()===2){<section class="panel"><header><h2>Başlık & İçerik</h2><p>Blog kartında ve detay sayfasında görünen metinler.</p></header><div class="form-grid"><label class="wide"><span>Başlık</span><input [(ngModel)]="post.title" maxlength="240"/></label><label class="wide"><span>Kısa özet</span><textarea [(ngModel)]="post.excerpt" rows="4" maxlength="2000"></textarea></label><label class="wide"><span>Yazı içeriği</span><textarea [(ngModel)]="post.content" rows="18" placeholder="HTML desteklenir"></textarea></label><label><span>Yazar</span><input [(ngModel)]="post.authorName" maxlength="180"/></label><label><span>Okuma süresi</span><input [(ngModel)]="post.readTime" placeholder="4 Dk Okuma"/></label><label><span>Görünen tarih</span><input [(ngModel)]="post.originalDate" placeholder="27 Ağustos 2026"/></label><label><span>URL / slug</span><input [(ngModel)]="post.slug" maxlength="140"/></label></div></section>}
 
-    <!-- List View -->
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-in fade-in duration-300">
-        @for (post of filteredPosts(); track post.id) {
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col group hover:shadow-md hover:border-blue-300 transition-all">
-                <div class="aspect-[16/9] relative overflow-hidden bg-slate-100">
-                    <img [src]="post.image" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div class="absolute top-3 right-3 flex gap-2">
-                         <button type="button" (click)="editPost(post)" [attr.aria-label]="post.title + ' yazısını düzenle'" class="p-2 bg-white/90 text-blue-600 rounded-full hover:bg-white shadow backdrop-blur-sm transition-all transform opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0" title="Düzenle">
-                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                         </button>
-                         <button type="button" (click)="deletePost(post.id)" [attr.aria-label]="post.title + ' yazısını sil'" class="p-2 bg-white/90 text-red-600 rounded-full hover:bg-red-50 shadow backdrop-blur-sm transition-all transform opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 delay-75" title="Sil">
-                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                         </button>
-                    </div>
-                </div>
-                <div class="p-5 flex flex-col flex-1">
-                    <h3 class="font-bold text-lg text-slate-900 group-hover:text-blue-600 transition-colors mb-2">{{ post.title }}</h3>
-                    <p class="text-slate-500 text-sm line-clamp-2 mb-4 flex-1">{{ post.summary }}</p>
-                    <div class="flex items-center justify-between text-xs font-semibold text-slate-400 pt-4 border-t border-slate-100">
-                        <span class="flex items-center gap-1.5">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                            {{ post.date }}
-                        </span>
-                        <span class="flex items-center gap-1.5 text-blue-500 bg-blue-50 px-2 py-1 rounded-md">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            {{ post.readTime }}
-                        </span>
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-    }
-    </div>
-  `
+          @if(step()===3){<section class="panel"><header><h2>SEO & Arama Görünümü</h2><p>Arama motoru başlığı ve açıklaması içerikten bağımsız düzenlenebilir.</p></header><div class="form-grid"><label class="wide"><span>SEO başlığı</span><input [(ngModel)]="post.seoTitle" maxlength="180" [placeholder]="post.title"/></label><label class="wide"><span>SEO açıklaması</span><textarea [(ngModel)]="post.seoDescription" rows="4" maxlength="320" [placeholder]="post.excerpt"></textarea></label></div><div class="search-preview"><small>{{siteHost}}</small><strong>{{post.seoTitle||post.title}}</strong><p>{{post.seoDescription||post.excerpt||'SEO açıklaması girilmedi.'}}</p></div></section>}
+
+          @if(step()===4){<div class="preview-layout"><section class="panel"><header><h2>Kart & Detay Önizlemesi</h2></header><article class="blog-preview">@if(coverUrl()){<img [src]="coverUrl()" [alt]="post.title"/>}<div><small>{{post.authorName}} · {{post.originalDate}} · {{post.readTime}}</small><h2>{{post.title}}</h2><p>{{post.excerpt}}</p></div></article><div class="detail-preview"><h2>{{post.title}}</h2><p>{{post.excerpt}}</p><div [innerHTML]="post.content"></div></div></section><section class="panel publish"><header><h2>Yayınlama</h2><p>Yazıyı taslak bırakın, canlı yayınlayın veya arşivleyin.</p></header><label><span>Yayın zamanı</span><input [(ngModel)]="post.publishedAt" type="datetime-local" [disabled]="post.status!=='PUBLISHED'"/></label><div class="publish-actions"><button type="button" (click)="saveAs('DRAFT')" [disabled]="saving()">Taslak Kaydet</button><button type="button" class="live" (click)="saveAs('PUBLISHED')" [disabled]="saving()">Canlı Yayınla</button><button type="button" class="archive" (click)="saveAs('ARCHIVED')" [disabled]="saving()">Arşivle</button></div>@if(post.status==='PUBLISHED'){<a [href]="'/blog/'+post.slug" target="_blank" rel="noopener">Müşteri detay sayfasını aç</a>}</section></div>}
+
+          <footer><button type="button" (click)="previous()" [disabled]="step()===1">← Önceki</button><div><button type="button" (click)="saveAs('DRAFT',false)" [disabled]="saving()">{{saving()?'Kaydediliyor…':'Taslağı Kaydet'}}</button>@if(step()<4){<button type="button" class="next" (click)="next()">Sonraki →</button>}</div></footer>
+        </section>
+      }
+    </div></main>`,
+  styles:[`:host{display:block}.page{min-height:100vh;background:#f4f7fb;padding:14px;color:#0f172a}.shell{width:min(100%,1320px);margin:auto}.hero{display:grid;gap:16px;border-radius:24px;background:#07101f;padding:22px;color:#fff}.hero p{margin:0;color:#60a5fa;font-size:9px;font-weight:950;letter-spacing:.15em}.hero h1{margin:4px 0 0;font-size:30px}.hero span{display:block;margin-top:6px;color:#a9b7ca;font-size:11px;line-height:1.6}.actions{display:grid;gap:7px}.actions input,.actions button{min-height:46px;border-radius:11px}.actions input{border:1px solid #334155;background:#0f1c31;padding:0 12px;color:#fff}.actions button,.next{border:0;background:#2563eb;padding:0 14px;color:#fff;font-weight:950}.alert{margin-top:10px;border:1px solid #fecaca;border-radius:12px;background:#fff1f2;padding:10px;color:#9f1239}.list,.editor{margin-top:12px;border:1px solid #dbe4ef;border-radius:20px;background:#fff;overflow:hidden}.list>header{display:flex;align-items:center;justify-content:space-between;padding:13px;border-bottom:1px solid #e2e8f0}.list>header h2{margin:0}.list>header button,.copy button,.editor>header button,footer button,.media-actions button,.publish-actions button{min-height:40px;border:1px solid #dbe4ef;border-radius:10px;background:#fff;padding:0 11px;font-size:9px;font-weight:900}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;padding:13px}.grid article{overflow:hidden;border:1px solid #e2e8f0;border-radius:15px}.cover{position:relative;aspect-ratio:16/9;background:#e2e8f0}.cover img{width:100%;height:100%;object-fit:cover}.cover span{position:absolute;top:7px;right:7px;border-radius:999px;background:#07101f;padding:5px 8px;color:#fff;font-size:8px;font-weight:950}.copy{padding:11px}.copy h3{margin:0}.copy p{min-height:32px;color:#64748b;font-size:10px}.copy small{display:block;color:#64748b;font-size:9px}.copy>div{display:flex;gap:6px;margin-top:10px}.danger{color:#be123c!important}.empty{grid-column:1/-1;padding:32px;text-align:center;color:#64748b}.editor>header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;background:#07101f;padding:12px;color:#fff}.editor>header p{margin:0;color:#94a3b8;font-size:9px}.editor>header strong{display:block}.editor>header>b{display:grid;width:42px;height:42px;place-items:center;border-radius:50%;background:#1d4ed8;font-size:10px}.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#e2e8f0}.steps button{display:grid;min-height:62px;place-items:center;border:0;background:#fff;color:#64748b}.steps b{display:grid;width:24px;height:24px;place-items:center;border-radius:50%;background:#e2e8f0;font-size:9px}.steps span{font-size:8px;font-weight:900}.steps .active{background:#eff6ff;color:#1d4ed8}.steps .active b,.steps .done b{background:#2563eb;color:#fff}.panel{margin:13px;border:1px solid #e2e8f0;border-radius:17px;padding:14px}.panel>header{margin-bottom:12px}.panel h2{margin:0}.panel header p{margin:5px 0 0;color:#64748b;font-size:10px}.upload{display:grid;min-height:180px;place-items:center;align-content:center;gap:6px;border:2px dashed #93c5fd;border-radius:16px;background:#eff6ff;text-align:center}.upload input{position:absolute;width:1px;height:1px;opacity:0}.upload strong{color:#1d4ed8}.upload span{color:#64748b;font-size:9px}.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:9px;margin-top:10px}.media-grid>article{border:1px solid #e2e8f0;border-radius:13px;padding:8px}.media{position:relative;aspect-ratio:16/10;overflow:hidden;border-radius:9px;background:#0f172a}.media img,.media video{width:100%;height:100%;object-fit:cover}.media>b{position:absolute;top:6px;left:6px;border-radius:999px;background:#fbbf24;padding:4px 7px;font-size:8px}.panel label{display:flex;flex-direction:column;gap:5px;color:#475569;font-size:9px;font-weight:850}.panel input,.panel textarea{min-height:44px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;padding:8px 10px}.media-actions,.publish-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:7px}.form-grid{display:grid;grid-template-columns:1fr;gap:9px}.wide{grid-column:1/-1}.search-preview{margin-top:14px;border-left:4px solid #2563eb;border-radius:12px;background:#f8fafc;padding:14px}.search-preview small,.search-preview strong{display:block}.search-preview small{color:#15803d}.search-preview strong{margin-top:5px;color:#1d4ed8}.search-preview p{margin-bottom:0;color:#475569;font-size:11px}.preview-layout{display:grid}.blog-preview{overflow:hidden;border:1px solid #e2e8f0;border-radius:14px}.blog-preview>img{width:100%;aspect-ratio:16/9;object-fit:cover}.blog-preview>div{padding:13px}.blog-preview small{color:#64748b;font-size:9px}.blog-preview h2{margin:5px 0}.blog-preview p{color:#64748b;font-size:11px}.detail-preview{margin-top:12px;border-top:1px solid #e2e8f0;padding-top:12px}.detail-preview>p{color:#64748b}.detail-preview>div{font-size:11px;line-height:1.7}.publish-actions .live{background:#16a34a;color:#fff}.publish-actions .archive{background:#0f172a;color:#fff}.publish>a{display:flex;min-height:44px;align-items:center;justify-content:center;margin-top:9px;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:9px;font-weight:900;text-decoration:none}.editor>footer{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #e2e8f0;background:#f8fafc;padding:11px}.editor>footer>div{display:flex;gap:6px}@media(min-width:720px){.hero{grid-template-columns:1fr minmax(420px,.65fr);align-items:end}.actions{grid-template-columns:1fr auto}.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.preview-layout{grid-template-columns:minmax(0,1fr) minmax(320px,.55fr)}}@media(max-width:560px){.steps span{display:none}.panel{margin:8px}.editor>header{grid-template-columns:1fr auto}.editor>header>button{grid-column:1/-1;justify-self:start}.editor>footer{align-items:stretch;flex-direction:column}.editor>footer>div{display:grid;grid-template-columns:1fr 1fr}}`]
 })
-export class AdminBlogComponent {
-  carService = inject(CarService);
-  toastService = inject(ToastService);
-  confirmService = inject(ConfirmService);
-  mediaService = inject(AdminMediaService);
-  router = inject(Router);
-  posts = this.carService.getBlogPosts();
-  showForm = signal(false);
-  searchQuery = "";
-
-  newPost: any = {
-      title: '', summary: '', content: '', image: '', readTime: '', date: new Date().toLocaleDateString('tr-TR')
-  };
-
-  filteredPosts() {
-      const q = this.searchQuery.trim().toLocaleLowerCase('tr-TR');
-      if (!q) return this.posts();
-      return this.posts().filter((post) => `${post.title} ${post.summary} ${post.content}`.toLocaleLowerCase('tr-TR').includes(q));
-  }
-
-  async onBlogImageSelected(event: Event) {
-      const input = event.target as HTMLInputElement;
-      const file = input.files?.[0];
-      if (!file) return;
-      try {
-          const entityId = String(this.newPost.cloudId || this.newPost.id || `draft-${Date.now()}`);
-          const uploaded = await this.mediaService.uploadImage(file, 'BLOG', entityId, 'cover');
-          this.newPost.image = uploaded.publicUrl;
-          this.toastService.show("Blog görseli yüklendi.", 'success');
-      } catch (error) {
-          this.toastService.show(error instanceof Error ? error.message : 'Blog görseli yüklenemedi.', 'error');
-      } finally { input.value = ''; }
-  }
-
-  goBack() {
-      this.router.navigate(['/admin/dashboard']);
-  }
-
-  toggleForm() { 
-      this.showForm.update(v => !v); 
-      if (!this.showForm()) {
-          this.newPost = { title: '', summary: '', content: '', image: '', readTime: '', date: new Date().toLocaleDateString('tr-TR') };
-      }
-  }
-
-  editPost(post: any) {
-      this.newPost = { ...post };
-      this.showForm.set(true);
-  }
-
-  addPost() {
-      if (!this.newPost.title || !this.newPost.content) {
-          this.toastService.show('Lütfen başlık ve içerik alanlarını doldurun.', 'error');
-          return;
-      }
-      this.carService.addBlogPost(this.newPost);
-      this.toastService.show(this.newPost.id ? 'Yazı güncellendi.' : 'Yeni yazı eklendi.', 'success');
-      this.showForm.set(false);
-      // Reset
-      this.newPost = { title: '', summary: '', content: '', image: '', readTime: '', date: new Date().toLocaleDateString('tr-TR') };
-  }
-
-  async deletePost(id: number) {
-      const confirmed = await this.confirmService.confirm({
-          title: 'Yazıyı Sil',
-          message: 'Bu yazıyı silmek istediğinize emin misiniz?'
-      });
-      if(confirmed) {
-          this.carService.deleteBlogPost(id);
-          this.toastService.show('Yazı silindi.', 'info');
-      }
-  }
+export class AdminBlogComponent implements OnInit{
+  private readonly blog=inject(BlogAdminService);readonly mediaService=inject(CatalogMediaService);private readonly toast=inject(ToastService);private readonly confirm=inject(ConfirmService);private readonly router=inject(Router);
+  readonly posts=signal<BlogAdminRecord[]>([]);readonly draft=signal<BlogAdminRecord|null>(null);readonly media=signal<CatalogMediaItem[]>([]);readonly editing=signal(false);readonly step=signal<BlogStep>(1);readonly loading=signal(false);readonly saving=signal(false);readonly uploading=signal(false);readonly error=signal('');search='';readonly siteHost=typeof window!=='undefined'?window.location.host:'alperler.com';readonly steps=[{id:1 as const,label:'Medya'},{id:2 as const,label:'İçerik'},{id:3 as const,label:'SEO'},{id:4 as const,label:'Önizleme & Yayın'}];
+  readonly filtered=computed(()=>{const q=this.search.trim().toLocaleLowerCase('tr-TR');return this.posts().filter((post)=>!q||`${post.title} ${post.excerpt} ${post.authorName}`.toLocaleLowerCase('tr-TR').includes(q));});readonly coverUrl=computed(()=>this.media().find((item)=>item.kind==='IMAGE'&&item.isCover)?.url||this.media().find((item)=>item.kind==='IMAGE')?.url||this.draft()?.coverImage||'');
+  ngOnInit():void{void this.refresh();}
+  async refresh():Promise<void>{this.loading.set(true);this.error.set('');try{this.posts.set(await this.blog.list());}catch(error){this.error.set(this.message(error));}finally{this.loading.set(false);}}
+  async startNew():Promise<void>{this.saving.set(true);try{const post=await this.blog.createDraft();this.posts.update((rows)=>[post,...rows]);await this.open(post);this.toast.show('Blog taslağı oluşturuldu. Önce medya ekleyebilirsiniz.','success');}catch(error){this.toast.show(this.message(error),'error');}finally{this.saving.set(false);}}
+  async edit(post:BlogAdminRecord):Promise<void>{await this.open(post);}
+  private async open(post:BlogAdminRecord):Promise<void>{this.draft.set(this.clone(post));this.editing.set(true);this.step.set(1);try{this.media.set(await this.mediaService.load('BLOG',post.id));}catch{this.media.set([]);}}
+  closeEditor():void{this.editing.set(false);this.draft.set(null);this.media.set([]);this.step.set(1);}
+  stepTitle():string{return this.steps.find((item)=>item.id===this.step())?.label||'';}
+  next():void{this.step.set(Math.min(4,this.step()+1) as BlogStep);}
+  previous():void{this.step.set(Math.max(1,this.step()-1) as BlogStep);}
+  async uploadFiles(event:Event):Promise<void>{const input=event.target as HTMLInputElement;const post=this.draft();const files=Array.from(input.files||[]).slice(0,20);if(!post||!files.length)return;this.uploading.set(true);try{let cover=this.media().some((item)=>item.kind==='IMAGE'&&item.isCover),sort=this.media().length+1;for(const file of files){const image=file.type.startsWith('image/');await this.mediaService.upload('BLOG',post.id,file,{altText:file.name,isCover:image&&!cover,sortOrder:sort++});if(image&&!cover)cover=true;}this.media.set(await this.mediaService.load('BLOG',post.id));await this.reloadDraft();this.toast.show('Dosyalar yalnız bu blog yazısına bağlandı.','success');}catch(error){this.toast.show(this.message(error),'error');}finally{this.uploading.set(false);input.value='';}}
+  async makeCover(item:CatalogMediaItem):Promise<void>{try{await this.mediaService.update(item,{isCover:true});await this.reloadMedia();await this.reloadDraft();this.toast.show('Blog kapağı değiştirildi.','success');}catch(error){this.toast.show(this.message(error),'error');}}
+  async changeAlt(item:CatalogMediaItem,value:string):Promise<void>{try{await this.mediaService.update(item,{altText:value});this.media.update((rows)=>rows.map((row)=>row.id===item.id?{...row,altText:value}:row));}catch(error){this.toast.show(this.message(error),'error');}}
+  async removeMedia(item:CatalogMediaItem):Promise<void>{try{await this.mediaService.remove(item);await this.reloadMedia();await this.reloadDraft();this.toast.show('Medya kaldırıldı.','info');}catch(error){this.toast.show(this.message(error),'error');}}
+  async saveAs(status:BlogPublicationStatus,announce=true):Promise<void>{const post=this.draft();if(!post)return;if(!post.title.trim()){this.toast.show('Blog başlığı zorunlu.','error');return;}if(status==='PUBLISHED'&&!post.content.trim()){this.toast.show('Yayınlamak için yazı içeriği zorunlu.','error');return;}if(status==='PUBLISHED'&&!this.media().some((item)=>item.kind==='IMAGE'&&item.isActive)){this.toast.show('Yayınlamak için en az bir fotoğraf yükleyin.','error');return;}post.status=status;if(status==='PUBLISHED'&&!post.publishedAt)post.publishedAt=new Date().toISOString();if(status!=='PUBLISHED')post.publishedAt=undefined;this.saving.set(true);try{const saved=await this.blog.save(post);this.draft.set(saved);await this.refresh();await this.reloadMedia();if(announce)this.toast.show(status==='PUBLISHED'?'Blog yazısı canlı yayınlandı.':status==='ARCHIVED'?'Blog yazısı arşivlendi.':'Taslak kaydedildi.','success');}catch(error){this.toast.show(this.message(error),'error');}finally{this.saving.set(false);}}
+  async archive(post:BlogAdminRecord):Promise<void>{try{await this.blog.archive(post);await this.refresh();this.toast.show('Blog yazısı arşivlendi.','info');}catch(error){this.toast.show(this.message(error),'error');}}
+  async removeDraft(post:BlogAdminRecord):Promise<void>{const ok=await this.confirm.confirm({title:'Taslağı Sil',message:'Bu blog taslağını ve bağlı olmayan içerik kaydını kalıcı olarak silmek istiyor musunuz?'});if(!ok)return;try{await this.blog.removeDraft(post);await this.refresh();this.toast.show('Taslak silindi.','info');}catch(error){this.toast.show(this.message(error),'error');}}
+  goBack():void{void this.router.navigate(['/admin/dashboard']);}
+  statusLabel(status:BlogPublicationStatus):string{return status==='PUBLISHED'?'CANLI':status==='ARCHIVED'?'ARŞİV':'TASLAK';}
+  private async reloadMedia():Promise<void>{const post=this.draft();if(post)this.media.set(await this.mediaService.load('BLOG',post.id));}
+  private async reloadDraft():Promise<void>{const id=this.draft()?.id;if(!id)return;const rows=await this.blog.list();this.posts.set(rows);const row=rows.find((item)=>item.id===id);if(row)this.draft.set(this.clone(row));}
+  private clone<T>(value:T):T{return JSON.parse(JSON.stringify(value)) as T;}
+  private message(error:unknown):string{return error instanceof Error?error.message:'İşlem tamamlanamadı.';}
 }

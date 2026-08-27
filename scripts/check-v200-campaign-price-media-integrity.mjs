@@ -13,7 +13,7 @@ const staleAdminPath = 'src/pages/admin/admin-campaigns.component.ts';
 const mediaPath = 'src/services/admin-media.service.ts';
 const bookingGatewayPath = 'supabase/functions/booking-gateway-v166/index.ts';
 const paymentsPath = 'api/payments.ts';
-const pricingMigrationPath = 'supabase/migrations/20260827211410_v2003_campaign_draft_price_flexibility.sql';
+const pricingMigrationPath = 'supabase/migrations/20260827211246_v2003_campaign_draft_price_flexibility.sql';
 const gcMigrationPath = 'supabase/migrations/20260827210236_v2001_campaign_media_binding_gc.sql';
 const routePath = 'src/pages/admin/admin-content-hub.component.ts';
 

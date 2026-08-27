@@ -3,6 +3,7 @@ import { Component, Input, OnInit, computed, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { CampaignProof, CampaignRecord, CampaignService } from '../services/campaign.service';
+import { CommercialOfferContextService } from '../services/commercial-offer-context.service';
 import { TurkishCurrencyPipe } from '../pipes/turkish-currency.pipe';
 
 type CampaignTargetKind = 'TOUR' | 'SALE';
@@ -62,6 +63,7 @@ export class CatalogCampaignContextComponent implements OnInit {
   @Input({ required: true }) targetKind: CampaignTargetKind = 'TOUR';
   private readonly route = inject(ActivatedRoute);
   private readonly campaigns = inject(CampaignService);
+  private readonly commercialOffer = inject(CommercialOfferContextService);
   private readonly campaignId = this.route.snapshot.queryParamMap.get('campaign') || '';
   private readonly routeId = this.route.snapshot.paramMap.get('id') || '';
 
@@ -80,6 +82,8 @@ export class CatalogCampaignContextComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     if (!this.campaignId) return;
     await this.campaigns.refreshPublicState(true).catch(() => undefined);
+    const verified = this.campaign();
+    if (verified) this.commercialOffer.activateCampaign(verified);
   }
 
   proofFor(item: CampaignRecord): CampaignProof {

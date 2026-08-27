@@ -84,7 +84,12 @@ jobs:
           grep -q "required.includes('driver')" "$HISTORICAL_DETAIL"
           grep -q "activeCampaign" "$CANONICAL_DETAIL"
           grep -q "Tüm Özellikler ve Açıklama" "$CANONICAL_DETAIL"
-          grep -q "mobile-actions" "$CANONICAL_DETAIL"
+          grep -q "fixed-actions" "$CANONICAL_DETAIL"
+          grep -q "campaignProofLabel" "$CANONICAL_DETAIL"
+          if grep -q "mobile-actions\|primary-action\|whatsapp-action" "$CANONICAL_DETAIL"; then
+            echo "Canonical rental detail must have one fixed CTA owner only"
+            exit 1
+          fi
           if grep -q "config().address" "$CARD"; then
             echo "Rental card must never mask vehicle location with global company address"
             exit 1

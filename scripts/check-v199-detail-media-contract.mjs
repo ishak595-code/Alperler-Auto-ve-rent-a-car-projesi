@@ -15,14 +15,20 @@ const salePath = 'src/pages/sale-detail-v1681.component.ts';
 const tourPath = 'src/pages/tour-detail-v170.component.ts';
 const blogPath = 'src/pages/blog-detail.component.ts';
 const canonicalPublicMediaPath = 'src/services/public-catalog-media.service.ts';
-const duplicateGalleryPath = 'src/app/components/catalog-mixed-gallery.component.ts';
-const duplicateMediaPath = 'src/app/services/public-catalog-media.service.ts';
+const dynamicHomePath = 'src/components/dynamic-home-section.component.ts';
+const mobileDockPath = 'src/components/customer-mobile-dock.component.ts';
+const duplicatePaths = [
+  'src/components/catalog-mixed-gallery.component.ts',
+  'src/app/components/catalog-mixed-gallery.component.ts',
+  'src/app/services/public-catalog-media.service.ts',
+];
 
-for (const path of [lightboxPath, rentalPath, salePath, tourPath, blogPath, canonicalPublicMediaPath]) {
+for (const path of [lightboxPath, rentalPath, salePath, tourPath, blogPath, canonicalPublicMediaPath, dynamicHomePath, mobileDockPath]) {
   if (!fs.existsSync(path)) throw new Error(`Required V199 file missing: ${path}`);
 }
-if (fs.existsSync(duplicateGalleryPath)) throw new Error('Duplicate public gallery path must remain deleted.');
-if (fs.existsSync(duplicateMediaPath)) throw new Error('Duplicate public media service path must remain deleted.');
+for (const path of duplicatePaths) {
+  if (fs.existsSync(path)) throw new Error(`Duplicate/legacy public media path must remain deleted: ${path}`);
+}
 
 const lightbox = read(lightboxPath);
 for (const contract of [
@@ -97,9 +103,25 @@ for (const contract of [
   'loadForBlog(blogPostId: string)',
   'kind: CatalogMediaKind',
 ]) must(publicMedia, contract, `Canonical public media service missing owner-scoped contract: ${contract}`);
+mustNot(publicMedia, 'CatalogMediaService', 'Public media reads must never depend on the authenticated admin media service.');
+
+const dynamicHome = read(dynamicHomePath);
+for (const contract of [
+  "section.sectionType === 'CAMPAIGN'",
+  '(click)="openCampaign(campaign)"',
+  'resolveCampaignTarget(item.targetType,item.targetId,item.ctaUrl)',
+]) must(dynamicHome, contract, `Homepage campaign routing contract missing: ${contract}`);
+if (count(dynamicHome, '(click)="openCampaign(campaign)"') !== 1) throw new Error('Homepage campaign card must expose exactly one campaign action surface.');
+
+const mobileDock = read(mobileDockPath);
+for (const contract of [
+  'const shouldHide = path !== "/"',
+  'this.hidden.set(shouldHide)',
+  'setMobileDockRouteHidden(shouldHide)',
+]) must(mobileDock, contract, `Global mobile dock must stay hidden on all detail routes: ${contract}`);
 
 if (count(tour, '(click)="openReservation()"') !== 1) throw new Error('Tour detail must expose exactly one primary reservation action.');
 if (count(tour, '(click)="whatsapp()"') !== 1) throw new Error('Tour detail must expose exactly one WhatsApp action.');
 if (count(sale, '(click)="whatsapp()"') !== 1) throw new Error('Sale detail must expose exactly one WhatsApp action.');
 
-console.log('V199 detail media contract: PASS');
+console.log('V199 detail media and CTA ownership contract: PASS');

@@ -44,7 +44,7 @@ jobs:
           grep -Fq 'payment_settings?config_key=eq.main' src/services/payment-settings.service.ts
 
       - name: Set up Node.js 22 from immutable action
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: "22"
           cache: npm

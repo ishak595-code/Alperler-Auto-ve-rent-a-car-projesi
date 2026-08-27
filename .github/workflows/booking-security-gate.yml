@@ -113,10 +113,11 @@ jobs:
           grep -Fq 'newsletter_consent_events_admin_read' supabase/migrations/20260817181500_v90_newsletter_consent_audit.sql
           grep -Fq 'private.can_manage_operations()' supabase/migrations/20260817181500_v90_newsletter_consent_audit.sql
 
-          # Admin legal center must remain inside the authenticated Site Settings hub.
+          # Admin legal center must remain inside the authenticated, lazy-loaded Site Settings hub.
           test -f src/pages/admin/admin-legal-center.component.ts
           test -f src/pages/admin/admin-site-settings-hub.component.ts
-          grep -Fq "path: 'legal', component: AdminSiteSettingsHubComponent" src/app.routes.ts
+          grep -Fq "const loadAdminSiteSettingsHub = () => import('./pages/admin/admin-site-settings-hub.component')" src/app.routes.ts
+          grep -Fq "path: 'legal', loadComponent: loadAdminSiteSettingsHub" src/app.routes.ts
           grep -Fq "settingsSection: 'legal'" src/app.routes.ts
           grep -Fq "adminAreaGuard('settings')" src/app.routes.ts
 

@@ -4,7 +4,7 @@ import { CampaignService } from "./campaign.service";
 import { CarService } from "./car.service";
 import { HomepageLayoutService } from "./homepage-layout.service";
 
-type PublicRefreshTaskKey = "catalog" | "campaigns" | "homepage" | "branches";
+type PublicRefreshTaskKey = "config" | "homepage" | "branches" | "campaigns" | "catalog";
 type PublicRefreshReason = "start" | "timer" | "visible" | "online" | "manual";
 
 interface PublicRefreshTask {
@@ -23,9 +23,10 @@ export interface PublicContentRefreshState {
 }
 
 const ACTIVE_CONTENT_CADENCE_MS = 60_000;
+const CONFIG_CADENCE_MS = 5 * 60_000;
 const BRANCH_DIRECTORY_CADENCE_MS = 5 * 60_000;
 const FAILURE_RETRY_BASE_MS = 15_000;
-const MIN_TIMER_DELAY_MS = 1_000;
+const MIN_TIMER_DELAY_MS = 80;
 
 @Injectable({ providedIn: "root" })
 export class PublicContentRefreshCoordinatorService {
@@ -36,14 +37,9 @@ export class PublicContentRefreshCoordinatorService {
 
   private readonly tasks: PublicRefreshTask[] = [
     {
-      key: "catalog",
-      cadenceMs: ACTIVE_CONTENT_CADENCE_MS,
-      run: () => this.carService.refreshCloudCatalog(true),
-    },
-    {
-      key: "campaigns",
-      cadenceMs: ACTIVE_CONTENT_CADENCE_MS,
-      run: () => this.campaignService.refreshPublicState(),
+      key: "config",
+      cadenceMs: CONFIG_CADENCE_MS,
+      run: () => this.carService.refreshSiteConfig(true),
     },
     {
       key: "homepage",
@@ -54,6 +50,16 @@ export class PublicContentRefreshCoordinatorService {
       key: "branches",
       cadenceMs: BRANCH_DIRECTORY_CADENCE_MS,
       run: () => this.branchService.refresh(),
+    },
+    {
+      key: "campaigns",
+      cadenceMs: ACTIVE_CONTENT_CADENCE_MS,
+      run: () => this.campaignService.refreshPublicState(),
+    },
+    {
+      key: "catalog",
+      cadenceMs: ACTIVE_CONTENT_CADENCE_MS,
+      run: () => this.carService.refreshCloudCatalog(true),
     },
   ];
 
@@ -78,11 +84,11 @@ export class PublicContentRefreshCoordinatorService {
     window.addEventListener("online", this.handleOnline);
     window.addEventListener("offline", this.handleOffline);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
+
     const now = Date.now();
+    const startup = this.startupOffsets();
     for (const task of this.tasks) {
-      // CarService starts the first catalog hydration while the coordinator is injected.
-      // Avoid immediately queueing a second full catalog cycle at application startup.
-      this.nextDueAt.set(task.key, task.key === "catalog" ? now + task.cadenceMs : now);
+      this.nextDueAt.set(task.key, now + startup[task.key]);
     }
     void this.runCycle(false, "start");
   }
@@ -188,6 +194,17 @@ export class PublicContentRefreshCoordinatorService {
       this.timer = undefined;
       void this.runCycle(false, "timer");
     }, delay);
+  }
+
+  private startupOffsets(): Record<PublicRefreshTaskKey, number> {
+    const connection = typeof navigator !== "undefined"
+      ? (navigator as Navigator & { connection?: { effectiveType?: string; saveData?: boolean } }).connection
+      : undefined;
+    const constrained = connection?.saveData === true || connection?.effectiveType === "slow-2g" || connection?.effectiveType === "2g";
+    if (constrained) {
+      return { config: 0, homepage: 220, branches: 650, campaigns: 1_300, catalog: 2_500 };
+    }
+    return { config: 0, homepage: 100, branches: 280, campaigns: 620, catalog: 1_100 };
   }
 
   private clearTimer(): void {

@@ -76,12 +76,11 @@ if (!app.includes("injector.get(PublicContentRefreshCoordinatorService)")) fail(
 if (!app.includes("this.publicContentRefresh.start()")) fail("customer routes must start shared public refresh");
 if (!app.includes("this.publicContentRefresh?.stop()")) fail("admin/branch portal routes must stop shared fallback polling");
 
-const expectedSectionKeys = ["campaigns", "rental_featured", "sale_featured", "tour_featured", "branches", "partner", "blog_featured"];
-for (const key of expectedSectionKeys) {
-  if (!home.includes(`sectionKey:\"${key}\"`)) fail(`homepage fallback section missing: ${key}`);
-}
-if ((home.match(/sectionKey:\"(?:campaigns|rental_featured|sale_featured|tour_featured|branches|partner|blog_featured)\"/g) || []).length !== 7) {
-  fail("homepage fallback must retain exactly seven managed public sections");
+if (!home.includes("homepageLayout.sections()")) fail("homepage sections must be owned by HomepageLayoutService state");
+if (!home.includes("managedSections=computed")) fail("homepage must derive rendered sections from managed layout state");
+if (home.includes("fallbackSections")) fail("homepage must not reintroduce a static managed-section fallback");
+for (const key of ["campaigns", "rental_featured", "sale_featured", "tour_featured", "branches", "partner", "blog_featured"]) {
+  if (home.includes(`sectionKey:\"${key}\"`)) fail(`homepage must not hard-code managed section ${key}`);
 }
 
 for (const forbidden of ["setInterval", "visibilitychange", "SUPABASE_PROJECT_URL", "/rest/v1/"]) {
@@ -92,5 +91,5 @@ if (!realtime.includes("postgres_changes")) fail("event-driven realtime must rem
 if (!realtime.includes("branches")) fail("public realtime table set must retain branch directory updates");
 
 if (!process.exitCode) {
-  console.log("V187 public content orchestration OK: four isolated domains, one lifecycle scheduler, seven dynamic home sections, branch-safe public scope.");
+  console.log("V187 public content orchestration OK: isolated domains, one lifecycle scheduler, DB-owned homepage sections, branch-safe public scope.");
 }

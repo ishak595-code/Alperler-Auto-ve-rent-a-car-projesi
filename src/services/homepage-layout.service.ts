@@ -36,7 +36,8 @@ export class HomepageLayoutService {
   private readonly _error = signal('');
   private readonly _clock = signal(Date.now());
   private refreshTimer?: number;
-  private refreshQueued = false;
+  private inFlight?: Promise<void>;
+  private realtimeDirtyWhileLoading = false;
 
   readonly sections = this._sections.asReadonly();
   readonly placements = this._placements.asReadonly();
@@ -48,7 +49,7 @@ export class HomepageLayoutService {
   constructor() {
     const unwatch = this.realtime.watch(
       ['homepage_sections', 'homepage_placements'],
-      () => this.queueRealtimeRefresh(),
+      () => this.onRealtimeChange(),
     );
     this.destroyRef.onDestroy(unwatch);
 
@@ -59,50 +60,54 @@ export class HomepageLayoutService {
     }
   }
 
-  async load(): Promise<void> {
-    if (this._loading()) {
-      this.refreshQueued = true;
-      return;
-    }
-    this._loading.set(true);
-    this._error.set('');
-    try {
-      const [sectionRows, placementRows] = await Promise.all([
-        this.get<any[]>('homepage_sections?is_enabled=eq.true&select=*&order=sort_order.asc'),
-        this.get<any[]>('homepage_placements?is_active=eq.true&select=*&order=section_key.asc,sort_order.asc'),
-      ]);
-      this._sections.set(sectionRows.map((row) => ({
-        sectionKey: String(row.section_key || ''),
-        title: String(row.title || ''),
-        sectionType: row.section_type,
-        isEnabled: row.is_enabled !== false,
-        sortOrder: Number(row.sort_order || 0),
-        maxItems: Math.max(1, Math.floor(Number(row.max_items || 6))),
-        settings: row.settings && typeof row.settings === 'object' ? row.settings : {},
-      })).filter((row) => row.sectionKey && row.isEnabled));
-      this._placements.set(placementRows.map((row) => ({
-        id: String(row.id || ''),
-        sectionKey: String(row.section_key || ''),
-        entityType: row.entity_type,
-        entityId: String(row.entity_id || ''),
-        label: row.label || undefined,
-        sortOrder: Number(row.sort_order || 0),
-        isActive: row.is_active !== false,
-        startsAt: row.starts_at || undefined,
-        endsAt: row.ends_at || undefined,
-        metadata: row.metadata && typeof row.metadata === 'object' ? row.metadata : {},
-      })).filter((row) => row.id && row.sectionKey && row.entityId && row.isActive));
-      this._loaded.set(true);
-    } catch (error) {
-      this._error.set(error instanceof Error ? error.message : 'HOMEPAGE_LAYOUT_LOAD_FAILED');
-      this._loaded.set(true);
-    } finally {
-      this._loading.set(false);
-      if (this.refreshQueued) {
-        this.refreshQueued = false;
-        this.queueRealtimeRefresh(50);
+  load(): Promise<void> {
+    if (this.inFlight) return this.inFlight;
+
+    const run = async () => {
+      this._loading.set(true);
+      this._error.set('');
+      try {
+        const [sectionRows, placementRows] = await Promise.all([
+          this.get<any[]>('homepage_sections?is_enabled=eq.true&select=*&order=sort_order.asc'),
+          this.get<any[]>('homepage_placements?is_active=eq.true&select=*&order=section_key.asc,sort_order.asc'),
+        ]);
+        this._sections.set(sectionRows.map((row) => ({
+          sectionKey: String(row.section_key || ''),
+          title: String(row.title || ''),
+          sectionType: row.section_type,
+          isEnabled: row.is_enabled !== false,
+          sortOrder: Number(row.sort_order || 0),
+          maxItems: Math.max(1, Math.floor(Number(row.max_items || 6))),
+          settings: row.settings && typeof row.settings === 'object' ? row.settings : {},
+        })).filter((row) => row.sectionKey && row.isEnabled));
+        this._placements.set(placementRows.map((row) => ({
+          id: String(row.id || ''),
+          sectionKey: String(row.section_key || ''),
+          entityType: row.entity_type,
+          entityId: String(row.entity_id || ''),
+          label: row.label || undefined,
+          sortOrder: Number(row.sort_order || 0),
+          isActive: row.is_active !== false,
+          startsAt: row.starts_at || undefined,
+          endsAt: row.ends_at || undefined,
+          metadata: row.metadata && typeof row.metadata === 'object' ? row.metadata : {},
+        })).filter((row) => row.id && row.sectionKey && row.entityId && row.isActive));
+        this._loaded.set(true);
+      } catch (error) {
+        this._error.set(error instanceof Error ? error.message : 'HOMEPAGE_LAYOUT_LOAD_FAILED');
+        this._loaded.set(true);
+      } finally {
+        this._loading.set(false);
+        this.inFlight = undefined;
+        if (this.realtimeDirtyWhileLoading) {
+          this.realtimeDirtyWhileLoading = false;
+          this.queueRealtimeRefresh(50);
+        }
       }
-    }
+    };
+
+    this.inFlight = run();
+    return this.inFlight;
   }
 
   async refreshPublicState(): Promise<void> {
@@ -115,6 +120,14 @@ export class HomepageLayoutService {
     return this._placements()
       .filter((row) => row.sectionKey === sectionKey && row.isActive && this.isInsideWindow(row, now))
       .sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
+  private onRealtimeChange(): void {
+    if (this.inFlight) {
+      this.realtimeDirtyWhileLoading = true;
+      return;
+    }
+    this.queueRealtimeRefresh();
   }
 
   private queueRealtimeRefresh(delay = 140): void {

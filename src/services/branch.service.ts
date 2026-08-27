@@ -118,17 +118,10 @@ export class BranchService {
 
   private async performPublicRefresh(showError: boolean): Promise<void> {
     try {
-      const records = await this.fetchBranches(`/api/branches?fresh=${Date.now()}`);
-      this.usePublicRecords(records);
-      return;
-    } catch (apiError) {
-      console.info("Branch API unavailable; trying direct public Supabase read.", apiError);
-    }
-    try {
       const records = await this.fetchPublicDirect();
       this.usePublicRecords(records);
-    } catch (directError) {
-      console.info("Verified public branch sources unavailable; failing closed.", directError);
+    } catch (error) {
+      console.info("Public branch source unavailable; failing closed.", error);
       this.publicRemoteBranches.set([]);
       if (showError) this.syncError.set("Şube veri kaynağına şu anda ulaşılamıyor.");
     }

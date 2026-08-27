@@ -106,18 +106,25 @@ export class CarService {
   private cloudRefreshTimer?: number;
   private cloudRefreshInFlight = false;
   private cloudRefreshQueued = false;
+  private configRefreshTimer?: number;
+  private configRefreshInFlight?: Promise<void>;
+  private configRefreshQueued = false;
 
   constructor() {
     this.loadFromStorage();
     this.incrementVisitCount();
     this.installLocalPersistence();
-    void this.refreshCloudCatalog();
 
-    const unwatch = this.realtime.watch(
-      ["vehicles", "tours", "catalog_media", "media_assets", "blog_posts", "faqs", "site_config"],
+    const unwatchCatalog = this.realtime.watch(
+      ["vehicles", "tours", "catalog_media", "media_assets", "blog_posts", "faqs"],
       () => this.queueCloudCatalogRefresh(),
     );
-    this.destroyRef.onDestroy(unwatch);
+    const unwatchConfig = this.realtime.watch(
+      ["site_config"],
+      () => this.queueConfigRefresh(),
+    );
+    this.destroyRef.onDestroy(unwatchCatalog);
+    this.destroyRef.onDestroy(unwatchConfig);
 
     if (typeof window !== "undefined") {
       const handleStorage = (event: StorageEvent) => {
@@ -127,8 +134,30 @@ export class CarService {
       this.destroyRef.onDestroy(() => {
         window.removeEventListener("storage", handleStorage);
         if (this.cloudRefreshTimer !== undefined) window.clearTimeout(this.cloudRefreshTimer);
+        if (this.configRefreshTimer !== undefined) window.clearTimeout(this.configRefreshTimer);
       });
     }
+  }
+
+  refreshSiteConfig(fresh = false): Promise<void> {
+    if (this.configRefreshInFlight) {
+      if (fresh) this.configRefreshQueued = true;
+      return this.configRefreshInFlight;
+    }
+
+    const request = (async () => {
+      const config = await this.catalogService.loadConfig(fresh);
+      if (config) this._config.set(this.normalizeConfig(config));
+    })();
+
+    this.configRefreshInFlight = request;
+    return request.finally(() => {
+      if (this.configRefreshInFlight === request) this.configRefreshInFlight = undefined;
+      if (this.configRefreshQueued) {
+        this.configRefreshQueued = false;
+        this.queueConfigRefresh(60);
+      }
+    });
   }
 
   async refreshCloudCatalog(fresh = false): Promise<void> {
@@ -138,12 +167,11 @@ export class CarService {
     }
     this.cloudRefreshInFlight = true;
     try {
-      const [vehicles, tours, blog, faqs, config, media] = await Promise.allSettled([
+      const [vehicles, tours, blog, faqs, media] = await Promise.allSettled([
         this.catalogService.loadVehicles(fresh),
         this.catalogService.loadTours(fresh),
         this.catalogService.loadBlog(fresh),
         this.catalogService.loadFaqs(fresh),
-        this.catalogService.loadConfig(fresh),
         this.catalogMediaService.loadAll(),
       ]);
 
@@ -173,10 +201,6 @@ export class CarService {
       if (faqs.status === "fulfilled") {
         this._faqs.set(faqs.value.map((faq) => this.catalogFaqToFaq(faq)));
       }
-
-      if (config.status === "fulfilled" && config.value) {
-        this._config.set(this.normalizeConfig(config.value));
-      }
     } finally {
       this.cloudRefreshInFlight = false;
       if (this.cloudRefreshQueued) {
@@ -187,7 +211,11 @@ export class CarService {
   }
 
   async ensureVehicleCloudInventory(): Promise<void> {
-    await Promise.allSettled([this.refreshCloudCatalog(true), this.campaignService.loadPublic()]);
+    await Promise.allSettled([
+      this.refreshSiteConfig(true),
+      this.refreshCloudCatalog(true),
+      this.campaignService.loadPublic(),
+    ]);
   }
 
   resetStats(): void {
@@ -726,6 +754,18 @@ export class CarService {
     this.cloudRefreshTimer = window.setTimeout(() => {
       this.cloudRefreshTimer = undefined;
       void this.refreshCloudCatalog(true);
+    }, delay);
+  }
+
+  private queueConfigRefresh(delay = 140): void {
+    if (typeof window === "undefined") {
+      void this.refreshSiteConfig(true);
+      return;
+    }
+    if (this.configRefreshTimer !== undefined) window.clearTimeout(this.configRefreshTimer);
+    this.configRefreshTimer = window.setTimeout(() => {
+      this.configRefreshTimer = undefined;
+      void this.refreshSiteConfig(true);
     }, delay);
   }
 

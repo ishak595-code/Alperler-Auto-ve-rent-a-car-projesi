@@ -1,9 +1,10 @@
-import { Component, computed, inject, OnInit, signal } from "@angular/core";
+import { Component, inject, OnInit, signal } from "@angular/core";
 import { CommonModule, Location } from "@angular/common";
 import { ActivatedRoute, RouterLink, Router } from "@angular/router";
-import { CarService } from "../services/car.service";
 import { UiService } from "../services/ui.service";
 import { MatIconModule } from "@angular/material/icon";
+import type { CatalogBlogPost } from "../services/catalog.service";
+import { PublicDetailDataService } from "../services/public-detail-data.service";
 
 @Component({
   selector: "app-blog-detail",
@@ -81,9 +82,15 @@ import { MatIconModule } from "@angular/material/icon";
             </div>
           </div>
         </div>
+      } @else if (loading()) {
+        <div class="min-h-[70vh] flex flex-col items-center justify-center gap-4 px-6 text-center" role="status">
+          <mat-icon aria-hidden="true" class="animate-spin text-slate-500">sync</mat-icon>
+          <p class="text-slate-500 text-xl">Yazı hazırlanıyor…</p>
+        </div>
       } @else {
-        <div class="min-h-[70vh] flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <div class="min-h-[70vh] flex flex-col items-center justify-center gap-4 px-6 text-center" role="alert">
           <p class="text-slate-500 text-xl">Yazı bulunamadı.</p>
+          @if (error()) {<p class="max-w-xl text-sm text-slate-400">{{ error() }}</p>}
           <a routerLink="/blog" class="min-h-11 rounded-xl bg-slate-900 px-5 py-3 font-bold text-white">Tüm Yazılara Dön</a>
         </div>
       }
@@ -91,20 +98,16 @@ import { MatIconModule } from "@angular/material/icon";
   `,
 })
 export class BlogDetailComponent implements OnInit {
-  route = inject(ActivatedRoute);
-  router = inject(Router);
-  location = inject(Location);
-  carService = inject(CarService);
-  uiService = inject(UiService);
-  private readonly routeId = signal("");
-  readonly post = computed(() => {
-    const id = this.routeId();
-    if (!id) return undefined;
-    return this.carService.getBlogPosts()().find((item) =>
-      String(item.id) === id || String(item.cloudId || "") === id || String(item.cloudSlug || "") === id,
-    );
-  });
-  showCopyMsg = signal(false);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly location = inject(Location);
+  private readonly detailData = inject(PublicDetailDataService);
+  readonly uiService = inject(UiService);
+  readonly post = signal<CatalogBlogPost | null>(null);
+  readonly loading = signal(true);
+  readonly error = signal("");
+  readonly showCopyMsg = signal(false);
+  private requestSequence = 0;
 
   goBack(): void {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -116,9 +119,27 @@ export class BlogDetailComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.params.subscribe((params) => {
-      this.routeId.set(String(params["id"] || "").trim());
+      const id = String(params["id"] || "").trim();
       if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "auto" });
+      void this.loadPost(id);
     });
+  }
+
+  private async loadPost(id: string): Promise<void> {
+    const sequence = ++this.requestSequence;
+    this.loading.set(true);
+    this.error.set("");
+    this.post.set(null);
+    try {
+      const post = await this.detailData.loadBlog(id);
+      if (sequence !== this.requestSequence) return;
+      this.post.set(post);
+    } catch (error) {
+      if (sequence !== this.requestSequence) return;
+      this.error.set(error instanceof Error ? error.message : "Blog yazısı yüklenemedi.");
+    } finally {
+      if (sequence === this.requestSequence) this.loading.set(false);
+    }
   }
 
   openContact(): void {

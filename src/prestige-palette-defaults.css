@@ -1,17 +1,17 @@
 /* Initial paint fallback only. Runtime ThemeService and admin-managed site_settings override these variables after config load. */
 :root {
-  --alper-bg: #060A12;
-  --alper-list: #08101B;
-  --alper-surface: #0B1420;
-  --alper-card: #0E1724;
-  --alper-elevated: #121D2C;
-  --alper-border: #27364A;
-  --alper-blue: #315E86;
-  --alper-blue-light: #7899B8;
-  --alper-gold: #C6A15B;
-  --alper-text: #F4F6F8;
-  --alper-muted: #A2ADBA;
-  --alper-subtle: #718096;
+  --alper-bg: #06080D;
+  --alper-list: #090C12;
+  --alper-surface: #0D1118;
+  --alper-card: #11161E;
+  --alper-elevated: #171D26;
+  --alper-border: #303846;
+  --alper-blue: #9E1B24;
+  --alper-blue-light: #E15A62;
+  --alper-gold: #D4AF37;
+  --alper-text: #F8F6F1;
+  --alper-muted: #B8B4AA;
+  --alper-subtle: #81858A;
 }
 
 /* Customer account chrome must stay connected to the admin-managed palette even when component CSS contains safe fallbacks. */
@@ -57,7 +57,7 @@ app-account-wallet :is(.actions a, .card-actions button, .privacy button) {
 app-account-login .primary,
 app-account-dashboard .primary,
 app-account-wallet .primary {
-  background: var(--alper-blue) !important;
+  background: linear-gradient(135deg, #B9141E, #7A0D15) !important;
   color: #fff !important;
 }
 

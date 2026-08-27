@@ -8,11 +8,7 @@ const MAX_BODY_BYTES = 16 * 1024;
 const COMMANDS = ["LOCK", "UNLOCK", "HORN", "IMMOBILIZE_NEXT_STOP", "CLEAR_IMMOBILIZER"] as const;
 
 const ALLOWED_ORIGINS = new Set(
-  [
-    Deno.env.get("PUBLIC_SITE_URL") || "",
-    "https://alperlerrentaacar.com",
-    "https://www.alperlerrentaacar.com",
-  ]
+  [Deno.env.get("PUBLIC_SITE_URL") || ""]
     .map((value) => {
       try { return new URL(value).origin; } catch { return ""; }
     })

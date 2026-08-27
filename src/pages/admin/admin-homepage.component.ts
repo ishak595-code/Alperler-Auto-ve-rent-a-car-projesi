@@ -261,7 +261,7 @@ export class AdminHomepageComponent implements OnInit {
     { value: 'light', label: 'Beyaz', preview: '#ffffff', text: '#0f172a' },
     { value: 'soft', label: 'Buz', preview: '#f1f5f9', text: '#0f172a' },
     { value: 'dark', label: 'Gece', preview: '#050b18', text: '#ffffff' },
-    { value: 'brand', label: 'Alperler Auto', preview: 'linear-gradient(145deg,#071124,#0b2347)', text: '#ffffff' },
+    { value: 'brand', label: 'Alperler Auto', preview: 'linear-gradient(145deg,#06080D,#171D26 58%,#720B12)', text: '#F8F6F1' },
     { value: 'ocean', label: 'Okyanus', preview: 'linear-gradient(145deg,#062a4e,#0b5b83)', text: '#ffffff' },
     { value: 'emerald', label: 'Zümrüt', preview: 'linear-gradient(145deg,#052e2b,#0f766e)', text: '#ffffff' },
     { value: 'sunset', label: 'Gün Batımı', preview: 'linear-gradient(145deg,#7c2d12,#ea580c)', text: '#ffffff' },
@@ -311,7 +311,6 @@ export class AdminHomepageComponent implements OnInit {
       homeContent['trustSupport'] = this.trustSupport.trim();
       homeContent['trustVerified'] = this.trustVerified.trim();
       await this.cars.updateConfig({ ...current, homeContent: homeContent as any });
-      await this.cars.refreshCloudCatalog(true);
       this.syncTopArea();
       this.toast.show('Ana sayfa üst alanı kaydedildi ve uygulandı.', 'success');
     } catch (error) { this.toast.show(this.message(error), 'error'); }

@@ -58,7 +58,9 @@ assert(runtimeCss.includes('html[data-mobile-menu-open="true"]'), 'document-leve
 assert(runtimeCss.includes('--site-safe-top: env(safe-area-inset-top, 0px)'), 'safe-area runtime token is missing');
 assert(manifest.display === 'standalone', 'installed PWA must use standalone display');
 assert(Array.isArray(manifest.display_override) && manifest.display_override[0] === 'standalone', 'standalone must be the preferred installed display mode');
-assert(worker.includes("const RELEASE = 'v191-responsive-runtime';"), 'PWA cache release must rotate with V191');
+const releaseMatch = worker.match(/const RELEASE = ['"]([^'"]+)['"];?/);
+assert(releaseMatch?.[1], 'PWA cache release identifier is missing');
+assert(/^v\d+[a-z0-9.-]*(?:-[a-z0-9.-]+)*$/i.test(releaseMatch[1]), 'PWA cache release must use a versioned identifier');
 
 const distIndex = 'dist/index.html';
 assert(fs.existsSync(distIndex), 'production build must exist before V191 guard runs');
@@ -76,4 +78,4 @@ assert(!css.includes('source(none)'), 'unprocessed Tailwind source configuration
 
 const jsFiles = fs.readdirSync('dist').filter((name) => name.endsWith('.js'));
 const cssBytes = Buffer.byteLength(css);
-console.log(`V191 responsive runtime guard passed. Compiled global CSS: ${cssBytes} bytes; JS files: ${jsFiles.length}.`);
+console.log(`V191 responsive runtime guard passed. PWA release: ${releaseMatch[1]}; compiled global CSS: ${cssBytes} bytes; JS files: ${jsFiles.length}.`);

@@ -5,18 +5,18 @@ import { CarService } from './car.service';
 export type Theme = 'light' | 'dark' | 'luxury' | 'corporate';
 
 const PREMIUM_DEFAULTS: Required<PremiumThemePalette> = {
-  background: '#060A12',
-  listBackground: '#08101B',
-  surface: '#0B1420',
-  card: '#0E1724',
-  elevated: '#121D2C',
-  border: '#27364A',
-  primaryBlue: '#315E86',
-  blueLight: '#7899B8',
-  brandGold: '#C6A15B',
-  text: '#F4F6F8',
-  textMuted: '#A2ADBA',
-  textSubtle: '#718096',
+  background: '#06080D',
+  listBackground: '#090C12',
+  surface: '#0D1118',
+  card: '#11161E',
+  elevated: '#171D26',
+  border: '#303846',
+  primaryBlue: '#9E1B24',
+  blueLight: '#E15A62',
+  brandGold: '#D4AF37',
+  text: '#F8F6F1',
+  textMuted: '#B8B4AA',
+  textSubtle: '#81858A',
 };
 
 @Injectable({ providedIn: 'root' })
@@ -122,10 +122,10 @@ export class ThemeService {
     const configured = config.premiumPalette?.background || config.pageBackground;
     if (/^#[0-9a-f]{6}$/i.test(String(configured || ''))) return String(configured);
     switch (theme) {
-      case 'dark': return '#0F172A';
+      case 'dark': return '#090C12';
       case 'luxury': return PREMIUM_DEFAULTS.background;
-      case 'corporate': return '#0C4A6E';
-      default: return '#F8FAFC';
+      case 'corporate': return '#11161E';
+      default: return '#F8F6F1';
     }
   }
 }

@@ -1,0 +1,57 @@
+name: V200 Campaign Price Media Integrity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/pages/admin/admin-campaigns-v167.component.ts'
+      - 'src/pages/admin/admin-campaigns.component.ts'
+      - 'src/services/admin-media.service.ts'
+      - 'supabase/functions/booking-gateway-v166/index.ts'
+      - 'supabase/migrations/20260827210122_v200_campaign_media_rollback_integrity.sql'
+      - 'supabase/migrations/20260827210236_v2001_campaign_media_binding_gc.sql'
+      - 'supabase/migrations/20260827210531_v2002_campaign_display_price_truth.sql'
+      - 'scripts/check-v200-campaign-price-media-integrity.mjs'
+      - '.github/workflows/v200-campaign-price-media-integrity.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/pages/admin/admin-campaigns-v167.component.ts'
+      - 'src/pages/admin/admin-campaigns.component.ts'
+      - 'src/services/admin-media.service.ts'
+      - 'supabase/functions/booking-gateway-v166/index.ts'
+      - 'supabase/migrations/20260827210122_v200_campaign_media_rollback_integrity.sql'
+      - 'supabase/migrations/20260827210236_v2001_campaign_media_binding_gc.sql'
+      - 'supabase/migrations/20260827210531_v2002_campaign_display_price_truth.sql'
+      - 'scripts/check-v200-campaign-price-media-integrity.mjs'
+      - '.github/workflows/v200-campaign-price-media-integrity.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  campaign-price-media-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Campaign price and media ownership contract
+        run: node scripts/check-v200-campaign-price-media-integrity.mjs
+      - name: Dependency high severity gate
+        run: npm audit --audit-level=high
+      - name: Frontend lint
+        run: npm run lint
+      - name: API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Production build
+        run: npm run build

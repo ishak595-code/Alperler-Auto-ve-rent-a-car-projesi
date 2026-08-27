@@ -11,6 +11,8 @@ const ALLOWED_ORIGINS = new Set(
 
 type JsonObject = Record<string, unknown>;
 type AdminIdentity = { id: string; email: string; role: string; permissions: Record<string, unknown> };
+type CleanupJob = { id: string; storage_bucket: string; object_path: string; attempts?: number };
+type CleanupSummary = { attempted: number; completed: number; pending: number };
 
 function clean(value: unknown, max = 500): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -65,6 +67,15 @@ function serviceHeaders(): Record<string, string> {
 }
 async function rest(path: string): Promise<Response> {
   return fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: serviceHeaders(), signal: AbortSignal.timeout(10_000) });
+}
+async function restPatch(path: string, body: JsonObject): Promise<void> {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method: "PATCH",
+    headers: { ...serviceHeaders(), prefer: "return=minimal" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) throw new Error(`MEDIA_CLEANUP_STATE_${response.status}`);
 }
 function normalizedRpcError(payload: any, status: number, name: string): string {
   const raw = clean(payload?.message || payload?.details || payload?.code, 1200);
@@ -132,6 +143,48 @@ async function readBody(request: Request): Promise<JsonObject> {
     throw new Error("INVALID_JSON");
   }
 }
+async function drainMediaCleanup(limit = 20): Promise<CleanupSummary> {
+  const safeLimit = Math.max(1, Math.min(50, Math.trunc(limit)));
+  const response = await rest(`media_cleanup_jobs_v198?status=eq.PENDING&completed_at=is.null&select=id,storage_bucket,object_path,attempts&order=created_at.asc&limit=${safeLimit}`);
+  if (!response.ok) throw new Error(`MEDIA_CLEANUP_LIST_${response.status}`);
+  const jobs = await response.json().catch(() => []) as CleanupJob[];
+  let completed = 0;
+  let pending = 0;
+
+  for (const job of jobs) {
+    const bucket = clean(job.storage_bucket, 100);
+    const objectPath = clean(job.object_path, 1200);
+    const attempts = Math.max(0, Number(job.attempts || 0)) + 1;
+    if (bucket !== "catalog-media" || !objectPath) {
+      await restPatch(`media_cleanup_jobs_v198?id=eq.${encodeURIComponent(job.id)}`, {
+        attempts, last_error: "INVALID_CLEANUP_JOB", updated_at: new Date().toISOString(),
+      });
+      pending++;
+      continue;
+    }
+
+    try {
+      const removed = await fetch(`${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(bucket)}`, {
+        method: "DELETE",
+        headers: serviceHeaders(),
+        body: JSON.stringify({ prefixes: [objectPath] }),
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!removed.ok && removed.status !== 404) throw new Error(`STORAGE_DELETE_${removed.status}`);
+      await restPatch(`media_cleanup_jobs_v198?id=eq.${encodeURIComponent(job.id)}`, {
+        status: "COMPLETED", attempts, last_error: null, completed_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      });
+      completed++;
+    } catch (error) {
+      await restPatch(`media_cleanup_jobs_v198?id=eq.${encodeURIComponent(job.id)}`, {
+        status: "PENDING", attempts, last_error: clean(error instanceof Error ? error.message : "STORAGE_DELETE_FAILED", 500), updated_at: new Date().toISOString(),
+      });
+      pending++;
+    }
+  }
+
+  return { attempted: jobs.length, completed, pending };
+}
 function statusFor(code: string): number {
   if (code === "UNAUTHORIZED") return 401;
   if (code === "FORBIDDEN" || code === "CONTENT_PERMISSION_REQUIRED" || code === "STORAGE_OBJECT_OWNERSHIP_REQUIRED") return 403;
@@ -155,6 +208,7 @@ Deno.serve(async (request: Request) => {
     const admin = await requireAdmin(request);
     if (request.method === "GET") {
       await enforceRateLimit(admin,"media-control-read-v185",120);
+      await drainMediaCleanup(10).catch((error) => console.error("media-cleanup-background-v198", id, error));
       const url = new URL(request.url);
       const entityType = clean(url.searchParams.get("entityType"),20).toUpperCase();
       const entityId = uuid(url.searchParams.get("entityId"));
@@ -193,13 +247,18 @@ Deno.serve(async (request: Request) => {
     if (request.method === "POST" && action === "REMOVE_CATALOG_MEDIA") {
       const mediaId=uuid(input["mediaId"]); if(!mediaId)return json(request,{ok:false,code:"INVALID_MEDIA_PAYLOAD"},400,id);
       const result=await rpc<JsonObject>("service_catalog_media_remove_v185",{p_actor:admin.id,p_media_id:mediaId});
-      return json(request,{ok:true,result},200,id);
+      const cleanup=await drainMediaCleanup(20);
+      return json(request,{ok:true,result,cleanup},200,id);
     }
     if (request.method === "POST" && action === "REGISTER_MEDIA_ASSET") {
       const payload=input["payload"];
       if(!payload||typeof payload!=="object"||Array.isArray(payload))return json(request,{ok:false,code:"INVALID_MEDIA_ASSET_PAYLOAD"},400,id);
       const record=await rpc<JsonObject>("service_register_media_asset_v185",{p_actor:admin.id,p_payload:payload as JsonObject});
       return json(request,{ok:true,record},201,id);
+    }
+    if (request.method === "POST" && action === "DRAIN_MEDIA_CLEANUP") {
+      const cleanup=await drainMediaCleanup(Number(input["limit"]||30));
+      return json(request,{ok:true,cleanup},200,id);
     }
     return json(request,{ok:false,code:"UNKNOWN_ACTION"},400,id);
   } catch (error) {

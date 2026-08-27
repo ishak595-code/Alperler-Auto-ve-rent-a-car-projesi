@@ -166,7 +166,7 @@ jobs:
           ! grep -Fq 'Ödeme Yöntemlerim' src/pages/account-wallet.component.ts
 
       - name: Set up Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm

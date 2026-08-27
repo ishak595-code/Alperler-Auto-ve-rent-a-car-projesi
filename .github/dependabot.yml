@@ -17,6 +17,23 @@ updates:
         update-types:
           - "patch"
           - "minor"
+      frontend-toolchain:
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/postcss"
+        update-types:
+          - "patch"
+          - "minor"
+    ignore:
+      # Framework/runtime majors must be coordinated migrations, never isolated PRs.
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+      # PDFKit 0.x minors may contain documented breaking changes. Keep automatic
+      # patch maintenance, but require an explicit compatibility migration for minors.
+      - dependency-name: "pdfkit"
+        update-types:
+          - "version-update:semver-minor"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -28,3 +45,9 @@ updates:
     open-pull-requests-limit: 3
     labels:
       - "dependencies"
+    groups:
+      first-party-actions-runtime:
+        patterns:
+          - "actions/checkout"
+          - "actions/setup-node"
+          - "actions/upload-artifact"

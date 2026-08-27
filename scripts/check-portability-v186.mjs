@@ -6,6 +6,7 @@ const fail = (message) => { console.error(`V186_PORTABILITY_FAIL: ${message}`); 
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
 const DEAD_DOMAIN = ['alper', 'rentacar', '.online'].join('');
 const UNOWNED_DOMAIN = ['alperler', 'rentaacar', '.com'].join('');
+const HARDCODED_VERCEL_HOST = /(?:https?:\/\/)?[a-z0-9-]{3,}\.vercel\.app\b/i;
 
 const manifest = JSON.parse(read('supabase/functions/deployment-manifest.v186.json'));
 if (manifest.schemaVersion !== 1) fail('unexpected Edge manifest schema');
@@ -71,6 +72,7 @@ for (const key of ['PUBLIC_APP_URL', 'PUBLIC_SITE_URL', 'PAYMENT_ALLOWED_ORIGINS
 }
 if (envExample.includes(DEAD_DOMAIN)) fail('.env.example contains dead domain');
 if (envExample.includes(UNOWNED_DOMAIN)) fail('.env.example contains an unowned production domain');
+if (HARDCODED_VERCEL_HOST.test(envExample)) fail('.env.example must not pin a specific Vercel test hostname');
 
 const publicOriginHelper = read('api/_lib/public-origin.ts');
 if (!publicOriginHelper.includes('requestPublicOrigin')) fail('request-authoritative public origin helper is missing');
@@ -83,7 +85,7 @@ for (const relative of ['api/robots.ts','api/sitemap.ts','api/social-preview.ts'
 }
 const integrationConfig = read('api/_lib/integration-config.ts');
 if (!integrationConfig.includes('vercelProductionOrigin()')) fail('payment config must include Vercel production origin fallback');
-if (!integrationConfig.includes('vercelDeploymentOrigin()')) fail('payment config must include Vercel deployment origin fallback');
+if (!integrationConfig.includes('vercelDeploymentOrigin()')) fail('payment config must include deployment fallback');
 if (!integrationConfig.includes('normalized === requestOrigin')) fail('payment request origin must accept the actual same-origin request independently of stale env configuration');
 
 const walkFiles = (dir) => {
@@ -96,11 +98,12 @@ const walkFiles = (dir) => {
   }
   return out;
 };
-for (const absolute of ['src','api','scripts','supabase/functions','.github'].flatMap((relative) => walkFiles(path.join(root, relative)))) {
+for (const absolute of ['src','api','scripts','supabase/functions','.github','docs'].flatMap((relative) => walkFiles(path.join(root, relative)))) {
   const text = fs.readFileSync(absolute, 'utf8');
   const relative = path.relative(root, absolute);
   if (text.includes(DEAD_DOMAIN)) fail(`dead domain reference: ${relative}`);
   if (text.includes(UNOWNED_DOMAIN)) fail(`unowned production domain reference: ${relative}`);
+  if (HARDCODED_VERCEL_HOST.test(text)) fail(`specific Vercel test hostname is hardcoded: ${relative}`);
   if (relative.startsWith(`src${path.sep}`) && text.includes('SUPABASE_SERVICE_ROLE_KEY')) fail(`browser source references service-role environment name: ${relative}`);
   if (relative.startsWith(`src${path.sep}`) && /sb_secret_[A-Za-z0-9_-]{20,}/.test(text)) fail(`browser source contains credential-shaped Supabase secret: ${relative}`);
 }

@@ -3,11 +3,11 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const MAX_BODY_BYTES = 16 * 1024;
-const ALLOWED_ORIGINS = new Set([
-  Deno.env.get("PUBLIC_SITE_URL") || "",
-  "https://alperlerrentaacar.com",
-  "https://www.alperlerrentaacar.com",
-].map((value) => { try { return new URL(value).origin; } catch { return ""; } }).filter(Boolean));
+const ALLOWED_ORIGINS = new Set(
+  [Deno.env.get("PUBLIC_SITE_URL") || ""]
+    .map((value) => { try { return new URL(value).origin; } catch { return ""; } })
+    .filter(Boolean),
+);
 
 type Json = Record<string, unknown>;
 type Actor = { id: string; email: string };

@@ -59,6 +59,7 @@ interface MediaControlResponse {
   records?: CatalogMediaRow[];
   record?: CatalogMediaRow;
   result?: { removed?: boolean; storageBucket?: string | null; objectPath?: string | null };
+  cleanup?: { attempted?: number; completed?: number; pending?: number };
 }
 
 @Injectable({ providedIn: "root" })
@@ -179,13 +180,7 @@ export class CatalogMediaService {
   }
 
   async remove(item: CatalogMediaItem): Promise<void> {
-    const token = await this.requiredToken();
-    const response = await this.gateway("POST", { action: "REMOVE_CATALOG_MEDIA", mediaId: item.id });
-    const storageBucket = response.result?.storageBucket || item.storageBucket;
-    const objectPath = response.result?.objectPath || item.objectPath;
-    if (storageBucket === this.bucket && objectPath) {
-      await this.deleteStorageObjectWithRetry(objectPath, token);
-    }
+    await this.gateway("POST", { action: "REMOVE_CATALOG_MEDIA", mediaId: item.id });
   }
 
   async removeAll(entityType: CatalogEntityType, entityId: string): Promise<void> {

@@ -59,6 +59,7 @@ export class CampaignService {
   private readonly _proofByCampaign = signal<Record<string, CampaignProof>>({});
   private readonly _clock = signal(Date.now());
   private publicRefreshTimer?: number;
+  private publicLoadInFlight?: Promise<CampaignRecord[]>;
   private socialProofInFlight?: Promise<Record<string, CampaignProof>>;
   private socialProofLastLoadedAt = 0;
 
@@ -73,22 +74,30 @@ export class CampaignService {
     this.destroyRef.onDestroy(unwatch);
 
     if (typeof window !== "undefined") {
-      void this.refreshSocialProof();
       this.destroyRef.onDestroy(() => {
         if (this.publicRefreshTimer !== undefined) window.clearTimeout(this.publicRefreshTimer);
       });
     }
   }
 
-  async loadPublic(): Promise<CampaignRecord[]> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?is_active=eq.true&publication_status=eq.PUBLISHED&select=*&order=sort_order.asc,created_at.desc`, {
-      headers: { ...this.publicHeaders(), "cache-control": "no-cache" },
-      cache: "no-store",
+  loadPublic(): Promise<CampaignRecord[]> {
+    if (this.publicLoadInFlight) return this.publicLoadInFlight;
+
+    const request = (async () => {
+      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?is_active=eq.true&publication_status=eq.PUBLISHED&select=*&order=sort_order.asc,created_at.desc`, {
+        headers: { ...this.publicHeaders(), "cache-control": "no-cache" },
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(`CAMPAIGNS_PUBLIC_${response.status}`);
+      const records = ((await response.json()) as any[]).map((row) => this.fromRow(row));
+      this._publicCampaigns.set(records);
+      return records;
+    })();
+
+    this.publicLoadInFlight = request;
+    return request.finally(() => {
+      if (this.publicLoadInFlight === request) this.publicLoadInFlight = undefined;
     });
-    if (!response.ok) throw new Error(`CAMPAIGNS_PUBLIC_${response.status}`);
-    const records = ((await response.json()) as any[]).map((row) => this.fromRow(row));
-    this._publicCampaigns.set(records);
-    return records;
   }
 
   async refreshPublicState(forceProof = false): Promise<void> {

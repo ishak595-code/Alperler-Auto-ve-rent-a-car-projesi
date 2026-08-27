@@ -10,7 +10,9 @@ on:
       - 'src/pages/tour-detail.component.ts'
       - 'src/components/catalog-campaign-context.component.ts'
       - 'src/pages/campaigns.component.ts'
+      - 'src/services/booking.service.ts'
       - 'src/services/public-detail-data.service.ts'
+      - 'supabase/migrations/20260827221629_v201_campaign_normal_price_reference_guard.sql'
       - 'scripts/check-v201-public-detail-ux-ownership.mjs'
       - '.github/workflows/v201-public-detail-ux-ownership.yml'
   push:
@@ -22,7 +24,9 @@ on:
       - 'src/pages/tour-detail.component.ts'
       - 'src/components/catalog-campaign-context.component.ts'
       - 'src/pages/campaigns.component.ts'
+      - 'src/services/booking.service.ts'
       - 'src/services/public-detail-data.service.ts'
+      - 'supabase/migrations/20260827221629_v201_campaign_normal_price_reference_guard.sql'
       - 'scripts/check-v201-public-detail-ux-ownership.mjs'
       - '.github/workflows/v201-public-detail-ux-ownership.yml'
 
@@ -45,7 +49,7 @@ jobs:
           cache: npm
       - name: Install exact dependencies
         run: npm ci --no-audit --no-fund
-      - name: Approved public detail UX ownership contract
+      - name: Approved public detail UX and campaign price ownership contract
         run: node scripts/check-v201-public-detail-ux-ownership.mjs
       - name: Dependency high severity gate
         run: npm audit --audit-level=high

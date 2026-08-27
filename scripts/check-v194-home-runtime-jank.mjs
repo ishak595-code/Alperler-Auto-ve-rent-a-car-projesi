@@ -21,7 +21,8 @@ assert(refreshStart >= 0 && refreshEnd > refreshStart, 'admin refresh method bou
 const refreshBody = admin.slice(refreshStart, refreshEnd);
 assert(refreshBody.includes('refreshCloudCatalog(true)'), 'explicit admin showcase refresh must retain catalog candidate refresh');
 
-assert(worker.includes("const RELEASE = 'v194-home-runtime-jank';"), 'service worker cache generation must rotate for V194');
+const releaseMatch = worker.match(/const RELEASE = 'v([0-9]+)[^']*';/);
+assert(releaseMatch && Number(releaseMatch[1]) >= 194, 'service worker cache generation must remain V194 or newer');
 assert(!v191.includes("worker.includes(\"const RELEASE = 'v191-responsive-runtime';\")"), 'V191 regression guard must not freeze future PWA cache generations');
 assert(v191.includes('releaseMatch = worker.match'), 'V191 guard must validate a versioned release generically');
 
@@ -46,4 +47,4 @@ assert(cinematic.includes('app-dynamic-home-section .home-section.theme-brand'),
 assert(cinematic.includes('linear-gradient(145deg, #06080D, #171D26 58%, #720B12)'), 'brand theme must use the premium black/graphite/red identity');
 assert(admin.includes("value: 'brand', label: 'Alperler Auto', preview: 'linear-gradient(145deg,#06080D,#171D26 58%,#720B12)'"), 'admin brand preview must match runtime brand identity');
 
-console.log('V194 homepage jank guard passed: config saves are isolated, PWA cache rotates, mobile compositing is flattened, desktop 3D is preserved, and brand theme ownership is aligned.');
+console.log('V194 homepage jank guard passed: config saves are isolated, PWA cache is V194+, mobile compositing is flattened, desktop 3D is preserved, and brand theme ownership is aligned.');

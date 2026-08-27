@@ -49,7 +49,7 @@
     "@types/pdfkit": "^0.17.6",
     "archiver": "^8.0.0",
     "postcss": "8.5.26",
-    "tailwindcss": "4.2.1",
+    "tailwindcss": "4.3.3",
     "typescript": "~5.9.3"
   }
 }

@@ -10,7 +10,9 @@ const detail = read('src/services/public-detail-data.service.ts');
 if (!detail.includes('loadForVehicle(ownerId)')) fail('vehicle detail must hydrate media for the selected vehicle only');
 if (!detail.includes('loadForTour(ownerId)')) fail('tour detail must hydrate media for the selected tour only');
 if (!detail.includes('async loadBlog(routeId: string)')) fail('blog detail must have direct route hydration');
-if (!detail.includes('&select=*&limit=1')) fail('detail queries must be single-record queries');
+if (!detail.includes('select=${this.vehicleSelect}&limit=1') || !detail.includes('select=${this.tourSelect}&limit=1') || !detail.includes('select=${this.blogSelect}&limit=1')) fail('detail queries must be single-record queries with explicit public projections');
+if (detail.includes('select=*&limit=1')) fail('detail queries must never expose all table columns');
+if (!detail.includes('private readonly vehicleSelect') || !detail.includes('private readonly tourSelect') || !detail.includes('private readonly blogSelect')) fail('customer-safe detail projections are missing');
 if (detail.includes('catalog.loadVehicles(true)')) fail('vehicle detail must not download the whole vehicle catalogue');
 if (detail.includes('loadToursDirect()')) fail('detail service must not retain the old whole-tour loader');
 if (!detail.includes('row["rental_price_hourly"] ?? metadata["hourlyPrice"]')) fail('hourly price must prefer the authoritative vehicle column');
@@ -59,5 +61,5 @@ if (!release || Number(release[1]) < 197) fail('PWA cache generation must be V19
 if (!worker.includes('request.mode === \'navigate\'')) fail('PWA navigation must remain network-authoritative');
 
 if (!process.exitCode) {
-  console.log('V197 detail integrity OK: single-record hydration, owner media, one canonical hourly rental sync, complete rental public facts, direct blog load, canonical campaign targets and fresh PWA generation are enforced.');
+  console.log('V197 detail integrity OK: safe single-record projections, owner media, one canonical hourly rental sync, complete rental public facts, direct blog load, canonical campaign targets and fresh PWA generation are enforced.');
 }

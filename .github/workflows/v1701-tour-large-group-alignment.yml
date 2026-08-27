@@ -58,12 +58,22 @@ jobs:
             exit 1
           fi
 
-      - name: Preserve V170 dated demand architecture
+      - name: Preserve canonical dated demand architecture
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "TourDetailV170Component" src/pages/catalog-detail-shells.component.ts
-          grep -Fq "startDate:this.tourDate" src/pages/tour-detail-v170.component.ts
+          SHELL=src/pages/catalog-detail-shells.component.ts
+          DETAIL=src/pages/tour-detail.component.ts
+          grep -Fq "TourDetailComponent" "$SHELL"
+          if grep -Fq "TourDetailV170Component" "$SHELL"; then
+            echo "Legacy V170 detail renderer must not return to the public shell"
+            exit 1
+          fi
+          grep -Fq "TourBookingV170Service" "$DETAIL"
+          grep -Fq "startDate: this.tourDate" "$DETAIL"
+          grep -Fq "1_000_000_000" "$DETAIL"
+          grep -Fq "Önerilen grup" "$DETAIL"
+          grep -Fq "sert limit değildir" "$DETAIL"
           grep -Fq "TourStudio" src/pages/admin/admin-tour-studio-v170.component.ts || grep -Fq "Tur Stüdyosu" src/pages/admin/admin-tour-studio-v170.component.ts
           grep -Fq "tour_demand_v170" supabase/migrations/20260825193000_v170_tour_flexible_demand_security.sql
 

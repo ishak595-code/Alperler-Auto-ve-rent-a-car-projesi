@@ -95,10 +95,26 @@ export class AdminMediaService {
       const payload = await asset.json().catch(() => ({})) as { ok?: boolean; code?: string };
       if (!asset.ok || payload.ok !== true) throw new Error(payload.code || `MEDIA_ASSET_${asset.status}`);
     } catch (error) {
-      await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/${this.bucket}/${encodedPath}`, {
-        method: 'DELETE',
-        headers: { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}` },
-      }).catch(() => undefined);
+      try {
+        const cleanup = await fetch('/api/partner?op=media-control-admin', {
+          method: 'POST',
+          cache: 'no-store',
+          headers: {
+            authorization: `Bearer ${token}`,
+            'content-type': 'application/json',
+            accept: 'application/json',
+            'x-request-id': crypto.randomUUID(),
+          },
+          body: JSON.stringify({ action: 'QUEUE_STORAGE_CLEANUP', entityType: 'ADMIN', entityId: safeEntity, objectPath }),
+        });
+        const cleanupPayload = await cleanup.json().catch(() => ({})) as { ok?: boolean };
+        if (!cleanup.ok || cleanupPayload.ok !== true) throw new Error(`MEDIA_CLEANUP_QUEUE_${cleanup.status}`);
+      } catch {
+        await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/${this.bucket}/${encodedPath}`, {
+          method: 'DELETE',
+          headers: { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}` },
+        }).catch(() => undefined);
+      }
       throw error;
     }
 

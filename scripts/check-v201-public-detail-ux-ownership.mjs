@@ -44,7 +44,7 @@ mustNot(sale, 'getTechnicalSpecs', 'Sale detail must use the live canonical reco
 
 for (const contract of [
   'readonly reservationOpen = signal(false)','@if (reservationOpen())','class="reservation-overlay"','(click)="openReservation()"',
-  'Bu Turu Rezerve Et','Tur Hakkında','Tur Programı','Kapsam','action-bar','map-panel','Buluşma ve rota','Haritada aç',
+  'aria-label="Bu turu rezerve et"','focusAfterRender','Bu Turu Rezerve Et','Tur Hakkında','Tur Programı','Kapsam','action-bar','map-panel','Buluşma ve rota','Haritada aç',
   'TourBookingV170Service','TourDemandV170Service','onDateChange($event)','1_000_000_000','sert limit değildir',
   'DetailMediaLightboxComponent','for (const video of item.videos || [])','commercialOffer.activateCampaign(verified)',
 ]) must(tour, contract, `Tour approved UX/flexible-demand contract missing: ${contract}`);
@@ -68,7 +68,9 @@ for (const contract of ['campaignIdForItem(itemId)','/functions/v1/tour-booking-
 
 for (const contract of [
   'fuel: row["fuel_type"] ?? undefined','transmission: row["transmission"] || undefined','type: row["body_type"] ?? undefined',
-  'seats: row["seats"] ?? undefined','availability_status','loadForVehicle(ownerId)','loadForTour(ownerId)','latitude','longitude','map_url',
+  'seats: row["seats"] ?? undefined','availability_status','loadForVehicle(ownerId)','loadForTour(ownerId)',
+  'locationName: row["location_name"] || undefined','latitude: this.numberOrUndefined(row["latitude"])',
+  'longitude: this.numberOrUndefined(row["longitude"])','mapUrl: row["map_url"] || undefined',
 ]) must(detailData, contract, `Public detail DB mapping missing: ${contract}`);
 
 for (const contract of [
@@ -82,4 +84,4 @@ for (const contract of [
   'revoke all on function public.reserve_booking_commercial_offer',
 ]) must(pricingGuard, contract, `Campaign normal-price reference guard missing: ${contract}`);
 
-console.log('V201 canonical public detail UX, live schema, single CTA and pricing ownership: PASS');
+console.log('V201 canonical public detail UX, live schema, single CTA, map and pricing ownership: PASS');

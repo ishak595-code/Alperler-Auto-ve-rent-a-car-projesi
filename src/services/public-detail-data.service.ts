@@ -36,9 +36,7 @@ export class PublicDetailDataService {
   async load(kind: DetailKind, routeId: string): Promise<Vehicle> {
     const clean = String(routeId || "").trim();
     if (!clean) throw new Error(this.notFoundMessage(kind));
-    const item = kind === "TOUR"
-      ? await this.loadTourDirect(clean)
-      : await this.loadVehicleDirect(kind, clean);
+    const item = kind === "TOUR" ? await this.loadTourDirect(clean) : await this.loadVehicleDirect(kind, clean);
     if (!item) throw new Error(this.notFoundMessage(kind));
     return this.prepare(item, kind);
   }
@@ -46,9 +44,7 @@ export class PublicDetailDataService {
   async loadBlog(routeId: string): Promise<BlogDetailPost> {
     const clean = String(routeId || "").trim();
     if (!clean) throw new Error("Bu blog yazısı bulunamadı veya yayından kaldırılmış olabilir.");
-    const filter = this.uuidPattern.test(clean)
-      ? `id=eq.${encodeURIComponent(clean)}`
-      : `slug=eq.${encodeURIComponent(clean)}`;
+    const filter = this.uuidPattern.test(clean) ? `id=eq.${encodeURIComponent(clean)}` : `slug=eq.${encodeURIComponent(clean)}`;
     const rows = await this.fetchRows(`blog_posts?status=eq.PUBLISHED&${filter}&select=${this.blogSelect}&limit=1`, "BLOG_DETAIL_DB");
     const row = rows[0];
     if (!row) throw new Error("Bu blog yazısı bulunamadı veya yayından kaldırılmış olabilir.");
@@ -125,9 +121,7 @@ export class PublicDetailDataService {
   }
 
   private async loadVehicleDirect(kind: "RENTAL" | "SALE", routeId: string): Promise<Vehicle | null> {
-    const filter = this.uuidPattern.test(routeId)
-      ? `id=eq.${encodeURIComponent(routeId)}`
-      : `stock_code=eq.${encodeURIComponent(routeId)}`;
+    const filter = this.uuidPattern.test(routeId) ? `id=eq.${encodeURIComponent(routeId)}` : `stock_code=eq.${encodeURIComponent(routeId)}`;
     const rows = await this.fetchRows(`vehicles?is_active=eq.true&publication_status=eq.PUBLISHED&category=eq.${kind}&${filter}&select=${this.vehicleSelect}&limit=1`, "VEHICLE_DETAIL_DB");
     const row = rows[0];
     if (!row) return null;
@@ -138,9 +132,7 @@ export class PublicDetailDataService {
   }
 
   private async loadTourDirect(routeId: string): Promise<Vehicle | null> {
-    const filter = this.uuidPattern.test(routeId)
-      ? `id=eq.${encodeURIComponent(routeId)}`
-      : `seo_slug=eq.${encodeURIComponent(routeId)}`;
+    const filter = this.uuidPattern.test(routeId) ? `id=eq.${encodeURIComponent(routeId)}` : `seo_slug=eq.${encodeURIComponent(routeId)}`;
     const rows = await this.fetchRows(`tours?is_active=eq.true&publication_status=eq.PUBLISHED&${filter}&select=${this.tourSelect}&limit=1`, "TOUR_DETAIL_DB");
     const row = rows[0];
     if (!row) return null;
@@ -154,11 +146,7 @@ export class PublicDetailDataService {
     const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
       method: "GET",
       cache: "no-store",
-      headers: {
-        apikey: SUPABASE_PUBLISHABLE_KEY,
-        accept: "application/json",
-        "cache-control": "no-cache",
-      },
+      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, accept: "application/json", "cache-control": "no-cache" },
       signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) throw new Error(`${code}_${response.status}`);
@@ -168,9 +156,7 @@ export class PublicDetailDataService {
 
   private mapVehicle(row: Record<string, any>, category: "RENTAL" | "SALE"): Vehicle {
     const metadata = row["metadata"] && typeof row["metadata"] === "object" ? row["metadata"] : {};
-    const images = Array.isArray(row["images"])
-      ? row["images"].filter((value: unknown): value is string => typeof value === "string" && Boolean(value.trim()))
-      : [];
+    const images = Array.isArray(row["images"]) ? row["images"].filter((value: unknown): value is string => typeof value === "string" && Boolean(value.trim())) : [];
     const availabilityStatus = row["availability_status"];
     const price = Number(category === "RENTAL" ? row["rental_price_daily"] ?? row["price"] ?? 0 : row["price"] ?? 0);
     const hourlyPrice = this.numberOrUndefined(row["rental_price_hourly"] ?? metadata["hourlyPrice"]);
@@ -204,13 +190,9 @@ export class PublicDetailDataService {
       image: row["cover_image"] ?? images[0] ?? undefined,
       isFeatured: Boolean(row["is_featured"]),
       isAvailable: availabilityStatus ? availabilityStatus === "AVAILABLE" : true,
-      availability: category === "SALE"
-        ? availabilityStatus === "SOLD" ? "Satıldı" : metadata["availability"] || "Satışta"
-        : metadata["availability"],
+      availability: category === "SALE" ? availabilityStatus === "SOLD" ? "Satıldı" : metadata["availability"] || "Satışta" : metadata["availability"],
       hourlyPrice,
-      hourlyRentalEnabled: row["hourly_rental_enabled"] != null
-        ? Boolean(row["hourly_rental_enabled"])
-        : Boolean(metadata["hourlyRentalEnabled"]),
+      hourlyRentalEnabled: row["hourly_rental_enabled"] != null ? Boolean(row["hourly_rental_enabled"]) : Boolean(metadata["hourlyRentalEnabled"]),
       minimumRentalHours,
       hourlyMileageLimit,
       publicationStatus: row["publication_status"] ?? undefined,
@@ -225,9 +207,7 @@ export class PublicDetailDataService {
 
   private mapTour(row: Record<string, any>): Vehicle {
     const metadata = row["metadata"] && typeof row["metadata"] === "object" ? row["metadata"] : {};
-    const images = Array.isArray(row["images"])
-      ? row["images"].filter((value: unknown): value is string => typeof value === "string" && Boolean(value.trim()))
-      : [];
+    const images = Array.isArray(row["images"]) ? row["images"].filter((value: unknown): value is string => typeof value === "string" && Boolean(value.trim())) : [];
     const published = row["publication_status"] === "PUBLISHED" && row["is_active"] === true;
     return {
       ...metadata,
@@ -240,6 +220,10 @@ export class PublicDetailDataService {
       capacity: Number(row["capacity"] || 0) || undefined,
       meetingPoint: row["meeting_point"] || undefined,
       location: row["location_name"] || row["meeting_point"] || undefined,
+      locationName: row["location_name"] || undefined,
+      latitude: this.numberOrUndefined(row["latitude"]),
+      longitude: this.numberOrUndefined(row["longitude"]),
+      mapUrl: row["map_url"] || undefined,
       itinerary: Array.isArray(row["itinerary"]) ? row["itinerary"] : [],
       includedItems: Array.isArray(row["included_items"]) ? row["included_items"] : [],
       excludedItems: Array.isArray(row["excluded_items"]) ? row["excluded_items"] : [],
@@ -251,6 +235,8 @@ export class PublicDetailDataService {
       cloudId: row["id"],
       cloudSlug: row["seo_slug"] || undefined,
       publicationStatus: row["publication_status"],
+      publishedAt: row["published_at"] || undefined,
+      scheduledAt: row["scheduled_at"] || undefined,
       branchId: row["branch_id"] || undefined,
       listingOrigin: row["listing_origin"] || undefined,
       createdAt: row["created_at"] || undefined,
@@ -266,9 +252,7 @@ export class PublicDetailDataService {
 
   private prepare(item: Vehicle, kind: DetailKind): Vehicle {
     const images = this.mediaUrls(item);
-    const videos = (item.videos || [])
-      .map((video) => ({ ...video, url: this.mediaUrl(video.url), posterUrl: this.mediaUrl(video.posterUrl) }))
-      .filter((video) => Boolean(video.url));
+    const videos = (item.videos || []).map((video) => ({ ...video, url: this.mediaUrl(video.url), posterUrl: this.mediaUrl(video.posterUrl) })).filter((video) => Boolean(video.url));
     return {
       ...item,
       category: kind,

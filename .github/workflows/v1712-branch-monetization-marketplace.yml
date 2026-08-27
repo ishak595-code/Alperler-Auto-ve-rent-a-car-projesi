@@ -179,7 +179,8 @@ jobs:
           set -euo pipefail
           ! grep -Fq 'fallbackBranches' src/services/branch.service.ts
           ! grep -Fq 'verified local fallback remains active' src/services/branch.service.ts
-          grep -Fq 'Verified public branch sources unavailable; failing closed.' src/services/branch.service.ts
+          grep -Fq 'this.publicRemoteBranches.set([]);' src/services/branch.service.ts
+          grep -Fq 'fetchPublicDirect()' src/services/branch.service.ts
           grep -Fq 'AccessibleNativeDateComponent' src/pages/admin/admin-branches.component.ts
           grep -Fq 'AccessibleNativeDateComponent' src/pages/admin/admin-vehicle-registry-v171.component.ts
           grep -Fq 'label="Oluşturulma başlangıcı"' src/pages/admin/admin-branches.component.ts

@@ -1,0 +1,61 @@
+name: V197 Detail Integrity
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/services/public-detail-data.service.ts"
+      - "src/services/public-catalog-media.service.ts"
+      - "src/services/tour-public-data-v170.service.ts"
+      - "src/pages/blog-detail.component.ts"
+      - "public/service-worker.js"
+      - "supabase/migrations/*v197_campaign_target_route_integrity.sql"
+      - "scripts/check-v197-detail-integrity.mjs"
+      - ".github/workflows/v197-detail-integrity.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "src/services/public-detail-data.service.ts"
+      - "src/services/public-catalog-media.service.ts"
+      - "src/services/tour-public-data-v170.service.ts"
+      - "src/pages/blog-detail.component.ts"
+      - "public/service-worker.js"
+      - "supabase/migrations/*v197_campaign_target_route_integrity.sql"
+      - "scripts/check-v197-detail-integrity.mjs"
+      - ".github/workflows/v197-detail-integrity.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  detail-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Verify V197 ownership invariants
+        run: node scripts/check-v197-detail-integrity.mjs
+
+      - name: Frontend TypeScript
+        run: npx tsc -p tsconfig.json --noEmit
+
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+
+      - name: Production build
+        run: npm run build

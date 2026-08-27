@@ -55,17 +55,22 @@ jobs:
           grep -Fq "VERIFIED_CLEAN" "$FILE"
           grep -Fq "tramerVerifiedAt" "$FILE"
           grep -Fq "rearBumper" "$FILE"
-      - name: Public sale detail and card truth contract
+      - name: Historical sale truth renderer and current approved detail
         shell: bash
         run: |
           set -euo pipefail
-          DETAIL=src/pages/sale-detail-v1681.component.ts
+          HISTORICAL=src/pages/sale-detail-v1681.component.ts
+          CANONICAL=src/pages/sale-car-detail.component.ts
           GRAPHIC=src/components/expertise-graphic.component.ts
           CARD=src/components/sale-vehicle-card-v168.component.ts
-          grep -Fq "Beyan ve doğrulama birbirinden ayrı gösterilir" "$DETAIL"
-          grep -Fq "local_painted" "$DETAIL"
-          grep -Fq "tramerAmountLabel" "$DETAIL"
-          grep -Fq "safeSourceUrl" "$DETAIL"
+          grep -Fq "Beyan ve doğrulama birbirinden ayrı gösterilir" "$HISTORICAL"
+          grep -Fq "local_painted" "$HISTORICAL"
+          grep -Fq "tramerAmountLabel" "$HISTORICAL"
+          grep -Fq "safeSourceUrl" "$HISTORICAL"
+          grep -Fq "İLAN BİLGİLERİ" "$CANONICAL"
+          grep -Fq "AÇIKLAMA" "$CANONICAL"
+          grep -Fq "KONUM" "$CANONICAL"
+          grep -Fq "Ekspertiz ve Tramer Durumu" "$CANONICAL"
           grep -Fq "local_painted" "$GRAPHIC"
           grep -Fq "rearBumper" "$GRAPHIC"
           grep -Fq "Arka tampon" "$GRAPHIC"
@@ -82,14 +87,18 @@ jobs:
           grep -Fq "tramerAmount" "$FILE"
           grep -Fq "local_painted" "$FILE"
           grep -Fq "tramerSourceUrl" "$FILE"
-      - name: Preserve previous sale and rental integrity
+      - name: Preserve previous sale and rental integrity without renderer regression
         shell: bash
         run: |
           set -euo pipefail
           grep -Fq "SalesShowcaseV168Component" src/pages/sales-results.component.ts
           grep -Fq "RentalShowcaseV167Component" src/pages/fleet.component.ts
-          grep -Fq "RentalDetailV167Component" src/pages/catalog-detail-shells.component.ts
-          grep -Fq "SaleDetailV1681Component" src/pages/catalog-detail-shells.component.ts
+          grep -Fq "CarDetailComponent" src/pages/catalog-detail-shells.component.ts
+          grep -Fq "SaleCarDetailComponent" src/pages/catalog-detail-shells.component.ts
+          if grep -Fq "RentalDetailV167Component" src/pages/catalog-detail-shells.component.ts || grep -Fq "SaleDetailV1681Component" src/pages/catalog-detail-shells.component.ts; then
+            echo "V201 approved public detail owners must not be replaced by historical renderer generations"
+            exit 1
+          fi
       - name: Frontend TypeScript
         run: npm run lint
       - name: Vercel API TypeScript

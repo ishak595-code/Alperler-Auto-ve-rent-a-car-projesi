@@ -4,11 +4,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const MAX_BODY_BYTES = 128 * 1024;
 const ALLOWED_ORIGINS = new Set(
-  [
-    Deno.env.get("PUBLIC_SITE_URL") || "",
-    "https://alperlerrentaacar.com",
-    "https://www.alperlerrentaacar.com",
-  ]
+  [Deno.env.get("PUBLIC_SITE_URL") || ""]
     .map((value) => { try { return new URL(value).origin; } catch { return ""; } })
     .filter(Boolean),
 );

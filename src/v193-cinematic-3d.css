@@ -1,0 +1,417 @@
+/* V193 Cinematic 3D layer
+   Premium automotive depth without WebGL dependency.
+   The layer intentionally respects existing admin-managed content/theme ownership. */
+
+:root {
+  --v193-black: #06080D;
+  --v193-black-2: #090C12;
+  --v193-graphite: #171D26;
+  --v193-gold: #D4AF37;
+  --v193-gold-light: #F3D77A;
+  --v193-red: #B9141E;
+  --v193-red-dark: #720B12;
+  --v193-glass: rgba(11, 15, 22, .74);
+  --v193-edge: rgba(212, 175, 55, .28);
+  --v193-depth-shadow: 0 30px 80px rgba(0, 0, 0, .44), 0 8px 24px rgba(0, 0, 0, .28);
+}
+
+/* Navigation becomes a floating automotive cockpit strip. */
+app-navbar .site-navbar {
+  background:
+    linear-gradient(180deg, rgba(6, 8, 13, .96), rgba(6, 8, 13, .88)) !important;
+  border-bottom-color: rgba(212, 175, 55, .22) !important;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .34), inset 0 -1px 0 rgba(255,255,255,.025) !important;
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+}
+
+app-navbar .brand-logo {
+  filter: drop-shadow(0 8px 13px rgba(0,0,0,.44)) drop-shadow(0 0 12px rgba(212,175,55,.14));
+}
+
+app-navbar .brand-link,
+app-navbar .nav-link,
+app-navbar .desktop-control,
+app-navbar .auth-entry,
+app-navbar .account-entry {
+  transform: translateZ(0);
+}
+
+app-navbar .nav-link-active {
+  border-color: var(--v193-gold) !important;
+  color: #fff !important;
+  text-shadow: 0 0 18px rgba(212,175,55,.26);
+}
+
+/* Home hero owns a cinematic layered stage. Dynamic admin hero image still wins.
+   Repo-owned hero is only used when no configured background exists. */
+app-home-v71 .hero[style*="background-image: none"] {
+  background-image: url('/brand/alperler-hero.svg') !important;
+}
+
+app-home-v71 .hero {
+  min-height: min(920px, calc(100svh - 72px));
+  background-position: center 52% !important;
+  background-size: cover !important;
+  border-bottom: 1px solid rgba(212,175,55,.16);
+  box-shadow: inset 0 -70px 100px rgba(0,0,0,.34);
+}
+
+app-home-v71 .hero::before,
+app-home-v71 .hero::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+app-home-v71 .hero::before {
+  inset: -15% -8%;
+  background:
+    radial-gradient(circle at 78% 38%, rgba(212,175,55,.16), transparent 27%),
+    radial-gradient(circle at 71% 52%, rgba(185,20,30,.14), transparent 24%),
+    linear-gradient(115deg, rgba(255,255,255,.025), transparent 28%);
+  filter: blur(2px);
+  transform: translateZ(0);
+}
+
+app-home-v71 .hero::after {
+  left: 4%;
+  right: 4%;
+  bottom: 1.5%;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(212,175,55,.13), rgba(185,20,30,.05) 38%, transparent 70%);
+  filter: blur(20px);
+  opacity: .8;
+}
+
+app-home-v71 .hero-shade {
+  z-index: 0 !important;
+  background:
+    linear-gradient(100deg, rgba(3,5,9,.98) 0%, rgba(3,5,9,.91) 38%, rgba(3,5,9,.62) 64%, rgba(3,5,9,.24) 100%),
+    linear-gradient(0deg, rgba(3,5,9,.78) 0%, transparent 43%) !important;
+}
+
+app-home-v71 .hero-stage {
+  position: relative;
+  z-index: 2;
+  perspective: 1500px;
+  transform-style: preserve-3d;
+}
+
+app-home-v71 .hero-copy-block,
+app-home-v71 .planner {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+app-home-v71 .hero-copy-block {
+  position: relative;
+  transform: translateZ(34px);
+}
+
+app-home-v71 .hero-copy-block::before {
+  content: "";
+  position: absolute;
+  inset: -1.25rem -1.4rem;
+  z-index: -1;
+  border-radius: 34px;
+  background: linear-gradient(120deg, rgba(6,8,13,.48), rgba(6,8,13,.13) 60%, transparent);
+  filter: blur(.2px);
+}
+
+app-home-v71 .eyebrow,
+app-home-v71 .planner-kicker {
+  color: var(--v193-gold-light) !important;
+  text-shadow: 0 0 22px rgba(212,175,55,.22);
+}
+
+app-home-v71 .hero h1 {
+  color: #F8F6F1;
+  text-shadow: 0 8px 34px rgba(0,0,0,.56), 0 1px 0 rgba(255,255,255,.08);
+}
+
+app-home-v71 .hero-copy {
+  color: #D8D5CC !important;
+  text-shadow: 0 4px 18px rgba(0,0,0,.42);
+}
+
+app-home-v71 .search-shell,
+app-home-v71 .trust-row span,
+app-home-v71 .planner {
+  border-color: rgba(212,175,55,.23) !important;
+  background:
+    linear-gradient(145deg, rgba(20,24,31,.84), rgba(5,7,11,.79)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.055),
+    inset 0 -1px 0 rgba(0,0,0,.4),
+    0 18px 48px rgba(0,0,0,.30) !important;
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+}
+
+app-home-v71 .search-shell {
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(18px);
+}
+
+app-home-v71 .search-shell::after,
+app-home-v71 .planner::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg, rgba(255,255,255,.10), transparent 18%, transparent 72%, rgba(212,175,55,.06));
+  mask: linear-gradient(#000,#000) content-box, linear-gradient(#000,#000);
+  -webkit-mask: linear-gradient(#000,#000) content-box, linear-gradient(#000,#000);
+  padding: 1px;
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+}
+
+app-home-v71 .search-shell button,
+app-home-v71 .planner-action,
+app-dynamic-home-section .primary-cta {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(243,215,122,.25) !important;
+  background: linear-gradient(145deg, #C8212D, #8A111A 56%, #620A10) !important;
+  color: #fff !important;
+  box-shadow: 0 12px 28px rgba(185,20,30,.26), inset 0 1px 0 rgba(255,255,255,.13) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.35);
+}
+
+app-home-v71 .planner {
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(72px) rotateY(-1.2deg) rotateX(.35deg);
+  transform-origin: 50% 50%;
+  box-shadow:
+    0 42px 90px rgba(0,0,0,.50),
+    0 14px 34px rgba(0,0,0,.34),
+    inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+
+app-home-v71 .planner-icon {
+  border: 1px solid rgba(212,175,55,.25);
+  background: linear-gradient(145deg, rgba(212,175,55,.18), rgba(185,20,30,.12)) !important;
+  color: var(--v193-gold-light) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 10px 22px rgba(0,0,0,.28);
+  transform: translateZ(24px);
+}
+
+app-home-v71 .field select,
+app-home-v71 .field input {
+  border-color: rgba(212,175,55,.19) !important;
+  background: rgba(5,7,11,.86) !important;
+  box-shadow: inset 0 2px 9px rgba(0,0,0,.34);
+}
+
+app-home-v71 .field select:focus,
+app-home-v71 .field input:focus {
+  border-color: var(--v193-gold) !important;
+  box-shadow: 0 0 0 3px rgba(212,175,55,.11), inset 0 2px 9px rgba(0,0,0,.34) !important;
+}
+
+app-home-v71 .trust-row span {
+  color: #DEDAD0 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 9px 22px rgba(0,0,0,.20) !important;
+  transform: translateZ(12px);
+}
+
+app-home-v71 .trust-row mat-icon {
+  color: var(--v193-gold-light) !important;
+}
+
+/* Dynamic sections keep admin-owned content but gain physical depth and material edges. */
+app-dynamic-home-section .home-section {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+app-dynamic-home-section .home-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(212,175,55,.055), transparent 28%),
+    radial-gradient(circle at 5% 100%, rgba(185,20,30,.045), transparent 26%);
+}
+
+app-dynamic-home-section .section-inner {
+  perspective: 1400px;
+}
+
+app-dynamic-home-section .section-kicker,
+app-dynamic-home-section .micro {
+  color: var(--v193-red) !important;
+}
+
+app-dynamic-home-section .vehicle-shell,
+app-dynamic-home-section .image-card,
+app-dynamic-home-section .branch-card,
+app-dynamic-home-section .campaign-card,
+app-dynamic-home-section .partner-card,
+app-dynamic-home-section .promo-card {
+  position: relative;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  border-color: rgba(212,175,55,.22) !important;
+  box-shadow:
+    0 22px 46px rgba(0,0,0,.15),
+    0 7px 18px rgba(0,0,0,.09),
+    inset 0 1px 0 rgba(255,255,255,.42) !important;
+  transition: transform .32s cubic-bezier(.2,.75,.2,1), box-shadow .32s ease, border-color .32s ease;
+}
+
+app-dynamic-home-section .vehicle-shell::after,
+app-dynamic-home-section .image-card::after,
+app-dynamic-home-section .branch-card::after,
+app-dynamic-home-section .campaign-card::after,
+app-dynamic-home-section .partner-card::after,
+app-dynamic-home-section .promo-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(255,255,255,.15), transparent 14%, transparent 72%, rgba(212,175,55,.075));
+  opacity: .55;
+}
+
+app-dynamic-home-section .media,
+app-dynamic-home-section .campaign-media,
+app-dynamic-home-section .promo-media {
+  transform: translateZ(10px);
+}
+
+app-dynamic-home-section .media img,
+app-dynamic-home-section .campaign-media img,
+app-dynamic-home-section .promo-media img {
+  transition: transform .55s cubic-bezier(.2,.75,.2,1), filter .4s ease;
+}
+
+app-dynamic-home-section .branch-icon,
+app-dynamic-home-section .section-profile {
+  box-shadow: 0 12px 26px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.32);
+  transform: translateZ(20px);
+}
+
+app-dynamic-home-section .view-all,
+app-dynamic-home-section .text-link,
+app-dynamic-home-section .mobile-view-all,
+app-dynamic-home-section .campaign-cta {
+  color: var(--v193-red) !important;
+}
+
+/* Desktop gets the full 3D showroom effect. */
+@media (min-width: 1024px) {
+  app-home-v71 .hero-stage {
+    min-height: 760px;
+    align-items: center;
+  }
+
+  app-home-v71 .hero-copy-block {
+    transform: translate3d(0,-6px,46px) rotateY(1.15deg);
+  }
+
+  app-home-v71 .planner {
+    transform: translate3d(0,8px,88px) rotateY(-2.2deg) rotateX(.7deg);
+  }
+
+  app-home-v71 .desktop-search {
+    display: block !important;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  app-navbar .brand-link:hover .brand-logo {
+    filter: drop-shadow(0 12px 18px rgba(0,0,0,.48)) drop-shadow(0 0 18px rgba(212,175,55,.23));
+  }
+
+  app-home-v71 .search-shell:hover {
+    transform: translateZ(26px) translateY(-2px);
+    border-color: rgba(212,175,55,.36) !important;
+  }
+
+  app-home-v71 .planner:hover {
+    transform: translate3d(0,2px,96px) rotateY(-1.25deg) rotateX(.15deg);
+    border-color: rgba(212,175,55,.34) !important;
+  }
+
+  app-dynamic-home-section .vehicle-shell:hover,
+  app-dynamic-home-section .image-card:hover,
+  app-dynamic-home-section .branch-card:hover,
+  app-dynamic-home-section .campaign-card:hover,
+  app-dynamic-home-section .partner-card:hover,
+  app-dynamic-home-section .promo-card:hover {
+    transform: translate3d(0,-10px,34px) rotateX(1deg) rotateY(-.8deg) scale(1.012);
+    border-color: rgba(212,175,55,.42) !important;
+    box-shadow:
+      0 34px 70px rgba(0,0,0,.23),
+      0 12px 28px rgba(185,20,30,.08),
+      inset 0 1px 0 rgba(255,255,255,.48) !important;
+  }
+
+  app-dynamic-home-section .image-card:hover .media img,
+  app-dynamic-home-section .campaign-card:hover .campaign-media img,
+  app-dynamic-home-section .promo-card:hover .promo-media img {
+    transform: scale(1.045) translateZ(8px);
+    filter: saturate(1.04) contrast(1.025);
+  }
+}
+
+/* Touch/mobile keeps depth but avoids hover-driven GPU churn. */
+@media (max-width: 767px), (pointer: coarse) {
+  app-home-v71 .hero {
+    min-height: auto;
+  }
+
+  app-home-v71 .hero-copy-block,
+  app-home-v71 .planner,
+  app-home-v71 .search-shell,
+  app-home-v71 .trust-row span {
+    transform: none !important;
+  }
+
+  app-home-v71 .planner {
+    box-shadow: 0 24px 52px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.05) !important;
+  }
+
+  app-dynamic-home-section .vehicle-shell,
+  app-dynamic-home-section .image-card,
+  app-dynamic-home-section .branch-card,
+  app-dynamic-home-section .campaign-card,
+  app-dynamic-home-section .partner-card,
+  app-dynamic-home-section .promo-card {
+    transform: translateZ(0);
+  }
+}
+
+/* Accessibility: no decorative motion when reduced motion is requested or forced in site settings. */
+@media (prefers-reduced-motion: reduce) {
+  app-home-v71 *,
+  app-dynamic-home-section *,
+  app-navbar * {
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+body[data-motion="reduced"] app-home-v71 *,
+body[data-motion="reduced"] app-dynamic-home-section *,
+body[data-motion="reduced"] app-navbar * {
+  transition-duration: .01ms !important;
+  animation-duration: .01ms !important;
+  animation-iteration-count: 1 !important;
+}

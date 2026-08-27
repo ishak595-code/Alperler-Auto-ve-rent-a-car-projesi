@@ -82,8 +82,9 @@ mustNot(catalogMedia, 'Catalog media metadata removed but Storage cleanup failed
 
 for (const contract of [
   '+ Yeni Kampanya',
-  "title:'Yeni Kampanya'",
-  "uploadImage(file,'CAMPAIGN',this.editingId,'cover')",
+  "title: 'Yeni Kampanya'",
+  "uploadImage(file, 'CAMPAIGN', campaignId, 'cover')",
+  'this.persist(previousStatus, false, true, previousStep)',
   'discountMethod',
   'discountScope',
   'visibilityMode',
@@ -94,6 +95,7 @@ for (const contract of [
   "saveAs('PUBLISHED')",
 ]) must(campaigns, contract, `Campaign editor missing owned workflow contract: ${contract}`);
 mustNot(campaigns, '<span>Kapak URL</span>', 'Campaign editor must not expose legacy cover URL field.');
+mustNot(campaigns, "await this.saveAs('DRAFT',false)", 'Campaign media upload must preserve the existing publication status.');
 for (const contract of [
   'normalize_campaign_publication_activation_v198',
   "publication_status = 'PUBLISHED'",

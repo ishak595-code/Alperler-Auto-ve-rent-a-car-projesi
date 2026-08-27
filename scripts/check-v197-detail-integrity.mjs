@@ -13,6 +13,10 @@ if (!detail.includes('async loadBlog(routeId: string)')) fail('blog detail must 
 if (!detail.includes('&select=*&limit=1')) fail('detail queries must be single-record queries');
 if (detail.includes('catalog.loadVehicles(true)')) fail('vehicle detail must not download the whole vehicle catalogue');
 if (detail.includes('loadToursDirect()')) fail('detail service must not retain the old whole-tour loader');
+if (!detail.includes('row["rental_price_hourly"] ?? metadata["hourlyPrice"]')) fail('hourly price must prefer the authoritative vehicle column');
+if (!detail.includes('row["hourly_rental_enabled"] != null')) fail('hourly rental enabled state must prefer the authoritative vehicle column');
+if (!detail.includes('row["minimum_rental_hours"] ?? metadata["minimumRentalHours"]')) fail('minimum rental hours must prefer the authoritative vehicle column');
+if (!detail.includes('row["hourly_mileage_limit"] ?? metadata["hourlyMileageLimit"]')) fail('hourly mileage limit must prefer the authoritative vehicle column');
 
 const media = read('src/services/public-catalog-media.service.ts');
 if (!media.includes('loadForVehicle(vehicleId: string)')) fail('catalog media owner query missing for vehicles');
@@ -39,5 +43,5 @@ if (!release || Number(release[1]) < 197) fail('PWA cache generation must be V19
 if (!worker.includes('request.mode === \'navigate\'')) fail('PWA navigation must remain network-authoritative');
 
 if (!process.exitCode) {
-  console.log('V197 detail integrity OK: single-record detail hydration, owner media, direct blog load, canonical campaign targets and fresh PWA generation are enforced.');
+  console.log('V197 detail integrity OK: single-record detail hydration, owner media, authoritative hourly rental fields, direct blog load, canonical campaign targets and fresh PWA generation are enforced.');
 }

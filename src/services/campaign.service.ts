@@ -72,7 +72,6 @@ export class CampaignService {
   constructor() {
     const unwatch = this.realtime.watch(["campaigns"], () => this.queuePublicRefresh());
     this.destroyRef.onDestroy(unwatch);
-
     if (typeof window !== "undefined") {
       this.destroyRef.onDestroy(() => {
         if (this.publicRefreshTimer !== undefined) window.clearTimeout(this.publicRefreshTimer);
@@ -82,18 +81,19 @@ export class CampaignService {
 
   loadPublic(): Promise<CampaignRecord[]> {
     if (this.publicLoadInFlight) return this.publicLoadInFlight;
-
     const request = (async () => {
       const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?is_active=eq.true&publication_status=eq.PUBLISHED&select=*&order=sort_order.asc,created_at.desc`, {
         headers: { ...this.publicHeaders(), "cache-control": "no-cache" },
         cache: "no-store",
       });
       if (!response.ok) throw new Error(`CAMPAIGNS_PUBLIC_${response.status}`);
-      const records = ((await response.json()) as any[]).map((row) => this.fromRow(row));
+      const now = Date.now();
+      const records = ((await response.json()) as any[])
+        .map((row) => this.fromRow(row))
+        .filter((item) => this.inPublicWindow(item, now));
       this._publicCampaigns.set(records);
       return records;
     })();
-
     this.publicLoadInFlight = request;
     return request.finally(() => {
       if (this.publicLoadInFlight === request) this.publicLoadInFlight = undefined;
@@ -102,10 +102,7 @@ export class CampaignService {
 
   async refreshPublicState(forceProof = false): Promise<void> {
     this._clock.set(Date.now());
-    const [campaigns] = await Promise.allSettled([
-      this.loadPublic(),
-      this.refreshSocialProof(forceProof),
-    ]);
+    const [campaigns] = await Promise.allSettled([this.loadPublic(), this.refreshSocialProof(forceProof)]);
     if (campaigns.status === "rejected") throw campaigns.reason;
   }
 
@@ -124,6 +121,11 @@ export class CampaignService {
     const existing = input.id ? this._campaigns().find((row) => row.id === input.id) : undefined;
     const discountMethod = input.discountMethod ?? existing?.discountMethod ?? "FIXED_AMOUNT";
     const discountValue = this.nonNegative(input.discountValue ?? existing?.discountValue ?? 0, discountMethod === "PERCENT" ? 100 : 50_000_000);
+    const isActive = input.publicationStatus === "ARCHIVED"
+      ? false
+      : input.publicationStatus === "PUBLISHED" || input.publicationStatus === "SCHEDULED"
+        ? true
+        : input.isActive !== false;
     const body = {
       title: input.title.trim(),
       slug: (input.slug || existing?.slug || this.slugify(input.title)).trim(),
@@ -155,7 +157,7 @@ export class CampaignService {
       starts_at: input.startsAt || null,
       ends_at: input.endsAt || null,
       publication_status: input.publicationStatus,
-      is_active: input.isActive !== false,
+      is_active: isActive,
       sort_order: input.sortOrder ?? existing?.sortOrder ?? this._campaigns().length + 1,
       metadata: input.metadata ?? existing?.metadata ?? {},
       updated_at: new Date().toISOString(),
@@ -208,16 +210,11 @@ export class CampaignService {
 
   async refreshSocialProof(force = false): Promise<Record<string, CampaignProof>> {
     const now = Date.now();
-    if (!force && this.socialProofLastLoadedAt > 0 && now - this.socialProofLastLoadedAt < 45_000) {
-      return this._proofByCampaign();
-    }
+    if (!force && this.socialProofLastLoadedAt > 0 && now - this.socialProofLastLoadedAt < 45_000) return this._proofByCampaign();
     if (this.socialProofInFlight) return this.socialProofInFlight;
-
     const request = (async (): Promise<Record<string, CampaignProof>> => {
       const controller = typeof AbortController !== "undefined" ? new AbortController() : undefined;
-      const timeout = controller && typeof window !== "undefined"
-        ? window.setTimeout(() => controller.abort(), 8_000)
-        : undefined;
+      const timeout = controller && typeof window !== "undefined" ? window.setTimeout(() => controller.abort(), 8_000) : undefined;
       try {
         const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/campaign_social_proof`, {
           method: "POST",
@@ -227,7 +224,6 @@ export class CampaignService {
           signal: controller?.signal,
         });
         if (!response.ok) return this._proofByCampaign();
-
         const rows = await response.json() as Array<Record<string, unknown>>;
         const map: Record<string, CampaignProof> = {};
         for (const row of rows) {
@@ -251,13 +247,9 @@ export class CampaignService {
         if (timeout !== undefined) window.clearTimeout(timeout);
       }
     })();
-
     this.socialProofInFlight = request;
-    try {
-      return await request;
-    } finally {
-      if (this.socialProofInFlight === request) this.socialProofInFlight = undefined;
-    }
+    try { return await request; }
+    finally { if (this.socialProofInFlight === request) this.socialProofInFlight = undefined; }
   }
 
   private queuePublicRefresh(delay = 120): void {
@@ -273,16 +265,15 @@ export class CampaignService {
   }
 
   private async syncHomepageCampaigns(token: string): Promise<void> {
+    const now = Date.now();
     const ordered = [...this._campaigns()]
-      .filter((item) => item.isActive && item.publicationStatus === "PUBLISHED")
+      .filter((item) => item.isActive && item.publicationStatus === "PUBLISHED" && this.inPublicWindow(item, now))
       .sort((a, b) => a.sortOrder - b.sortOrder);
-
     const clearPlacements = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/homepage_placements?section_key=eq.campaigns&entity_type=eq.CAMPAIGN`, {
       method: "DELETE",
       headers: this.authHeaders(token),
     });
     if (!clearPlacements.ok) throw new Error(`CAMPAIGN_PLACEMENTS_CLEAR_${clearPlacements.status}`);
-
     if (ordered.length) {
       const placementResponse = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/homepage_placements`, {
         method: "POST",
@@ -301,21 +292,17 @@ export class CampaignService {
       });
       if (!placementResponse.ok) throw new Error(`CAMPAIGN_PLACEMENTS_SAVE_${placementResponse.status}`);
     }
-
     const sectionResponse = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/homepage_sections?section_key=eq.campaigns`, {
       method: "PATCH",
       headers: this.authHeaders(token),
       body: JSON.stringify({ is_enabled: true, max_items: 3, updated_at: new Date().toISOString() }),
     });
     if (!sectionResponse.ok) throw new Error(`CAMPAIGN_SECTION_SAVE_${sectionResponse.status}`);
-
     await this.syncHomepageBanner(token, ordered[0]);
   }
 
   private async syncHomepageBanner(token: string, primary?: CampaignRecord): Promise<void> {
-    const currentResponse = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/site_config?key=eq.site_settings&select=value&limit=1`, {
-      headers: this.authHeaders(token),
-    });
+    const currentResponse = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/site_config?key=eq.site_settings&select=value&limit=1`, { headers: this.authHeaders(token) });
     if (!currentResponse.ok) throw new Error(`SITE_CONFIG_CAMPAIGN_READ_${currentResponse.status}`);
     const currentRows = (await currentResponse.json()) as Array<{ value?: Record<string, unknown> }>;
     const current = currentRows[0]?.value && typeof currentRows[0].value === "object" ? currentRows[0].value : {};
@@ -340,6 +327,14 @@ export class CampaignService {
       body: JSON.stringify({ key: "site_settings", value, is_public: true, updated_at: new Date().toISOString() }),
     });
     if (!response.ok) throw new Error(`SITE_CONFIG_CAMPAIGN_SAVE_${response.status}`);
+  }
+
+  private inPublicWindow(item: CampaignRecord, now = Date.now()): boolean {
+    const start = item.startsAt ? new Date(item.startsAt).getTime() : Number.NEGATIVE_INFINITY;
+    const end = item.endsAt ? new Date(item.endsAt).getTime() : Number.POSITIVE_INFINITY;
+    return Number.isFinite(start) || start === Number.NEGATIVE_INFINITY
+      ? (start <= now && (Number.isFinite(end) ? end > now : end === Number.POSITIVE_INFINITY))
+      : false;
   }
 
   private fromRow(row: any): CampaignRecord {

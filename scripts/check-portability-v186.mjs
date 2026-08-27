@@ -5,6 +5,7 @@ const root = process.cwd();
 const fail = (message) => { console.error(`V186_PORTABILITY_FAIL: ${message}`); process.exitCode = 1; };
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
 const DEAD_DOMAIN = ['alper', 'rentacar', '.online'].join('');
+const UNOWNED_DOMAIN = ['alperler', 'rentaacar', '.com'].join('');
 
 const manifest = JSON.parse(read('supabase/functions/deployment-manifest.v186.json'));
 if (manifest.schemaVersion !== 1) fail('unexpected Edge manifest schema');
@@ -54,8 +55,7 @@ for (const [name, source] of [['newsletter.service.ts', newsletterService], ['ne
 if (!newsletterService.includes('op=newsletter-admin-read') || !newsletterService.includes('op=newsletter-admin')) fail('newsletter admin frontend must use same-origin admin gateways');
 
 const envExample = read('.env.example');
-for (const required of ['PUBLIC_APP_URL=','PUBLIC_SITE_URL=','SUPABASE_PROJECT_URL=','SUPABASE_PUBLISHABLE_KEY=','SUPABASE_SERVICE_ROLE_KEY=']) if (!envExample.includes(required)) fail(`.env.example missing ${required}`);
-const productionOrigin = 'https://alperlerrentaacar.com';
+for (const required of ['PUBLIC_APP_URL=','PUBLIC_SITE_URL=','SUPABASE_PROJECT_URL=','SUPABASE_PUBLISHABLE_KEY=','SUPABASE_SERVICE_ROLE_KEY=','PAYMENT_ALLOWED_ORIGINS=']) if (!envExample.includes(required)) fail(`.env.example missing ${required}`);
 const envValues = new Map(
   envExample
     .split(/\r?\n/)
@@ -66,10 +66,25 @@ const envValues = new Map(
       return [line.slice(0, separator).trim(), line.slice(separator + 1).trim()];
     }),
 );
-for (const key of ['PUBLIC_APP_URL', 'PUBLIC_SITE_URL']) {
-  if (envValues.get(key) !== productionOrigin) fail(`.env.example ${key} must exactly match the production origin`);
+for (const key of ['PUBLIC_APP_URL', 'PUBLIC_SITE_URL', 'PAYMENT_ALLOWED_ORIGINS']) {
+  if (envValues.get(key) !== '') fail(`.env.example ${key} must stay blank until a registered production origin is actually connected`);
 }
 if (envExample.includes(DEAD_DOMAIN)) fail('.env.example contains dead domain');
+if (envExample.includes(UNOWNED_DOMAIN)) fail('.env.example contains an unowned production domain');
+
+const publicOriginHelper = read('api/_lib/public-origin.ts');
+if (!publicOriginHelper.includes('requestPublicOrigin')) fail('request-authoritative public origin helper is missing');
+if (!publicOriginHelper.includes('VERCEL_PROJECT_PRODUCTION_URL')) fail('public origin helper must support Vercel production fallback');
+if (!publicOriginHelper.includes('VERCEL_URL')) fail('public origin helper must support deployment fallback');
+for (const relative of ['api/robots.ts','api/sitemap.ts','api/social-preview.ts']) {
+  const source = read(relative);
+  if (!source.includes('requestPublicOrigin')) fail(`${relative} must use request-authoritative public origin resolution`);
+  if (source.includes('process.env.PUBLIC_APP_URL')) fail(`${relative} must not trust PUBLIC_APP_URL directly`);
+}
+const integrationConfig = read('api/_lib/integration-config.ts');
+if (!integrationConfig.includes('vercelProductionOrigin()')) fail('payment config must include Vercel production origin fallback');
+if (!integrationConfig.includes('vercelDeploymentOrigin()')) fail('payment config must include Vercel deployment origin fallback');
+if (!integrationConfig.includes('normalized === requestOrigin')) fail('payment request origin must accept the actual same-origin request independently of stale env configuration');
 
 const walkFiles = (dir) => {
   const out = [];
@@ -85,8 +100,9 @@ for (const absolute of ['src','api','scripts','supabase/functions','.github'].fl
   const text = fs.readFileSync(absolute, 'utf8');
   const relative = path.relative(root, absolute);
   if (text.includes(DEAD_DOMAIN)) fail(`dead domain reference: ${relative}`);
+  if (text.includes(UNOWNED_DOMAIN)) fail(`unowned production domain reference: ${relative}`);
   if (relative.startsWith(`src${path.sep}`) && text.includes('SUPABASE_SERVICE_ROLE_KEY')) fail(`browser source references service-role environment name: ${relative}`);
   if (relative.startsWith(`src${path.sep}`) && /sb_secret_[A-Za-z0-9_-]{20,}/.test(text)) fail(`browser source contains credential-shaped Supabase secret: ${relative}`);
 }
 
-if (!process.exitCode) console.log(`V186 portability baseline OK: ${manifestSlugs.length} Edge sources manifested; admin analytics/newsletter cut over; ${retired.length} legacy functions retired.`);
+if (!process.exitCode) console.log(`V186 portability baseline OK: ${manifestSlugs.length} Edge sources manifested; admin analytics/newsletter cut over; ${retired.length} legacy functions retired; public origins remain deployment-portable.`);

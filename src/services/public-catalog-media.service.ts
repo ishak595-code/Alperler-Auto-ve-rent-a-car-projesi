@@ -11,6 +11,7 @@ export interface PublicCatalogMediaItem {
   id: string;
   vehicleId?: string;
   tourId?: string;
+  blogPostId?: string;
   kind: PublicCatalogMediaKind;
   url: string;
   posterUrl?: string;
@@ -27,6 +28,7 @@ interface PublicCatalogMediaRow {
   id: string;
   vehicle_id?: string | null;
   tour_id?: string | null;
+  blog_post_id?: string | null;
   kind?: string | null;
   storage_bucket?: string | null;
   object_path?: string | null;
@@ -43,7 +45,7 @@ interface PublicCatalogMediaRow {
 
 @Injectable({ providedIn: "root" })
 export class PublicCatalogMediaService {
-  private readonly select = "id,vehicle_id,tour_id,kind,storage_bucket,object_path,external_url,poster_url,source_url,source_name,license,attribution,alt_text,sort_order,is_cover";
+  private readonly select = "id,vehicle_id,tour_id,blog_post_id,kind,storage_bucket,object_path,external_url,poster_url,source_url,source_name,license,attribution,alt_text,sort_order,is_cover";
 
   loadAll(): Promise<PublicCatalogMediaItem[]> {
     return this.loadPath(`catalog_media?is_active=eq.true&select=${this.select}&order=sort_order.asc,created_at.asc`);
@@ -59,6 +61,12 @@ export class PublicCatalogMediaService {
     const id = String(tourId || "").trim();
     if (!id) return Promise.resolve([]);
     return this.loadPath(`catalog_media?is_active=eq.true&tour_id=eq.${encodeURIComponent(id)}&select=${this.select}&order=sort_order.asc,created_at.asc`);
+  }
+
+  loadForBlog(blogPostId: string): Promise<PublicCatalogMediaItem[]> {
+    const id = String(blogPostId || "").trim();
+    if (!id) return Promise.resolve([]);
+    return this.loadPath(`catalog_media?is_active=eq.true&blog_post_id=eq.${encodeURIComponent(id)}&select=${this.select}&order=sort_order.asc,created_at.asc`);
   }
 
   hydrate(records: Vehicle[], media: PublicCatalogMediaItem[]): Vehicle[] {
@@ -122,6 +130,7 @@ export class PublicCatalogMediaService {
       id: row.id,
       vehicleId: row.vehicle_id || undefined,
       tourId: row.tour_id || undefined,
+      blogPostId: row.blog_post_id || undefined,
       kind,
       url,
       posterUrl: row.poster_url ? this.safeExternalUrl(row.poster_url) : undefined,

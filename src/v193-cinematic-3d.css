@@ -234,6 +234,11 @@ app-dynamic-home-section .home-section {
   isolation: isolate;
 }
 
+app-dynamic-home-section .home-section.theme-brand {
+  background: linear-gradient(145deg, #06080D, #171D26 58%, #720B12) !important;
+  color: #F8F6F1 !important;
+}
+
 app-dynamic-home-section .home-section::before {
   content: "";
   position: absolute;

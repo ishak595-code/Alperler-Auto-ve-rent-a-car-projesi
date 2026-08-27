@@ -369,21 +369,64 @@ app-dynamic-home-section .campaign-cta {
   }
 }
 
-/* Touch/mobile keeps depth but avoids hover-driven GPU churn. */
+/* Touch/mobile keeps the premium material look without persistent GPU-heavy 3D/blur layers. */
 @media (max-width: 767px), (pointer: coarse) {
+  app-navbar .site-navbar,
+  app-home-v71 .search-shell,
+  app-home-v71 .trust-row span,
+  app-home-v71 .planner {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  app-navbar .site-navbar {
+    background: #06080D !important;
+  }
+
   app-home-v71 .hero {
     min-height: auto;
+  }
+
+  app-home-v71 .hero-stage,
+  app-dynamic-home-section .section-inner {
+    perspective: none !important;
+    transform-style: flat !important;
   }
 
   app-home-v71 .hero-copy-block,
   app-home-v71 .planner,
   app-home-v71 .search-shell,
-  app-home-v71 .trust-row span {
+  app-home-v71 .trust-row span,
+  app-home-v71 .planner-icon,
+  app-dynamic-home-section .media,
+  app-dynamic-home-section .campaign-media,
+  app-dynamic-home-section .promo-media,
+  app-dynamic-home-section .branch-icon,
+  app-dynamic-home-section .section-profile {
     transform: none !important;
   }
 
+  app-home-v71 .hero-copy-block,
+  app-home-v71 .planner,
+  app-dynamic-home-section .vehicle-shell,
+  app-dynamic-home-section .image-card,
+  app-dynamic-home-section .branch-card,
+  app-dynamic-home-section .campaign-card,
+  app-dynamic-home-section .partner-card,
+  app-dynamic-home-section .promo-card {
+    transform-style: flat !important;
+    backface-visibility: visible !important;
+    -webkit-backface-visibility: visible !important;
+  }
+
   app-home-v71 .planner {
+    background: linear-gradient(145deg, #14181F, #05070B) !important;
     box-shadow: 0 24px 52px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.05) !important;
+  }
+
+  app-home-v71 .search-shell,
+  app-home-v71 .trust-row span {
+    background: #11161F !important;
   }
 
   app-dynamic-home-section .vehicle-shell,
@@ -392,7 +435,14 @@ app-dynamic-home-section .campaign-cta {
   app-dynamic-home-section .campaign-card,
   app-dynamic-home-section .partner-card,
   app-dynamic-home-section .promo-card {
-    transform: translateZ(0);
+    transform: none !important;
+    transition: border-color .18s ease, box-shadow .18s ease;
+  }
+
+  app-dynamic-home-section .media img,
+  app-dynamic-home-section .campaign-media img,
+  app-dynamic-home-section .promo-media img {
+    transition: none !important;
   }
 }
 

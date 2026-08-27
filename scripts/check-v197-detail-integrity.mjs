@@ -49,11 +49,15 @@ if (!hourlyMigration.includes('vehicles_hourly_enabled_integrity_v1971_ck')) fai
 if (!hourlyMigration.includes("meta -> 'hourlyPrice'")) fail('admin hourly price changes are not synchronized to the canonical column');
 if (!hourlyMigration.includes("meta -> 'minimumRentalHours'")) fail('admin minimum-hour changes are not synchronized to the canonical column');
 
+const hourlyCleanup = read('supabase/migrations/20260827204500_v1972_remove_legacy_hourly_sync.sql');
+if (!hourlyCleanup.includes('drop trigger if exists vehicles_sync_hourly_fields')) fail('legacy duplicate hourly trigger cleanup missing');
+if (!hourlyCleanup.includes('drop function if exists public.sync_vehicle_hourly_fields()')) fail('legacy public hourly trigger function cleanup missing');
+
 const worker = read('public/service-worker.js');
 const release = worker.match(/const RELEASE = 'v([0-9]+)[^']*'/);
 if (!release || Number(release[1]) < 197) fail('PWA cache generation must be V197 or newer for this runtime release');
 if (!worker.includes('request.mode === \'navigate\'')) fail('PWA navigation must remain network-authoritative');
 
 if (!process.exitCode) {
-  console.log('V197 detail integrity OK: single-record hydration, owner media, canonical hourly rental sync, complete rental public facts, direct blog load, canonical campaign targets and fresh PWA generation are enforced.');
+  console.log('V197 detail integrity OK: single-record hydration, owner media, one canonical hourly rental sync, complete rental public facts, direct blog load, canonical campaign targets and fresh PWA generation are enforced.');
 }

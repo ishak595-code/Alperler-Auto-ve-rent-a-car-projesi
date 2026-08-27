@@ -14,8 +14,9 @@ begin
     return new;
   end if;
 
-  if tg_op = 'INSERT' or (meta -> 'hourlyRentalEnabled') is distinct from (old_meta -> 'hourlyRentalEnabled') then
-    if not (meta ? 'hourlyRentalEnabled') or jsonb_typeof(meta -> 'hourlyRentalEnabled') = 'null' then
+  if (tg_op = 'INSERT' and meta ? 'hourlyRentalEnabled')
+     or (tg_op = 'UPDATE' and (meta -> 'hourlyRentalEnabled') is distinct from (old_meta -> 'hourlyRentalEnabled')) then
+    if jsonb_typeof(meta -> 'hourlyRentalEnabled') = 'null' then
       new.hourly_rental_enabled := false;
     elsif jsonb_typeof(meta -> 'hourlyRentalEnabled') = 'boolean' then
       new.hourly_rental_enabled := (meta ->> 'hourlyRentalEnabled')::boolean;
@@ -26,8 +27,9 @@ begin
     meta := jsonb_set(meta, '{hourlyRentalEnabled}', to_jsonb(coalesce(new.hourly_rental_enabled, false)), true);
   end if;
 
-  if tg_op = 'INSERT' or (meta -> 'hourlyPrice') is distinct from (old_meta -> 'hourlyPrice') then
-    if not (meta ? 'hourlyPrice') or jsonb_typeof(meta -> 'hourlyPrice') = 'null' then
+  if (tg_op = 'INSERT' and meta ? 'hourlyPrice')
+     or (tg_op = 'UPDATE' and (meta -> 'hourlyPrice') is distinct from (old_meta -> 'hourlyPrice')) then
+    if jsonb_typeof(meta -> 'hourlyPrice') = 'null' then
       new.rental_price_hourly := null;
     elsif jsonb_typeof(meta -> 'hourlyPrice') in ('number', 'string') and trim(meta ->> 'hourlyPrice') ~ '^[0-9]+([.][0-9]+)?$' then
       new.rental_price_hourly := (meta ->> 'hourlyPrice')::numeric;
@@ -40,8 +42,9 @@ begin
     meta := jsonb_set(meta, '{hourlyPrice}', to_jsonb(new.rental_price_hourly), true);
   end if;
 
-  if tg_op = 'INSERT' or (meta -> 'minimumRentalHours') is distinct from (old_meta -> 'minimumRentalHours') then
-    if not (meta ? 'minimumRentalHours') or jsonb_typeof(meta -> 'minimumRentalHours') = 'null' then
+  if (tg_op = 'INSERT' and meta ? 'minimumRentalHours')
+     or (tg_op = 'UPDATE' and (meta -> 'minimumRentalHours') is distinct from (old_meta -> 'minimumRentalHours')) then
+    if jsonb_typeof(meta -> 'minimumRentalHours') = 'null' then
       new.minimum_rental_hours := 1;
     elsif jsonb_typeof(meta -> 'minimumRentalHours') in ('number', 'string') and trim(meta ->> 'minimumRentalHours') ~ '^[0-9]+$' then
       new.minimum_rental_hours := (meta ->> 'minimumRentalHours')::integer;
@@ -52,8 +55,9 @@ begin
     meta := jsonb_set(meta, '{minimumRentalHours}', to_jsonb(coalesce(new.minimum_rental_hours, 1)), true);
   end if;
 
-  if tg_op = 'INSERT' or (meta -> 'hourlyMileageLimit') is distinct from (old_meta -> 'hourlyMileageLimit') then
-    if not (meta ? 'hourlyMileageLimit') or jsonb_typeof(meta -> 'hourlyMileageLimit') = 'null' then
+  if (tg_op = 'INSERT' and meta ? 'hourlyMileageLimit')
+     or (tg_op = 'UPDATE' and (meta -> 'hourlyMileageLimit') is distinct from (old_meta -> 'hourlyMileageLimit')) then
+    if jsonb_typeof(meta -> 'hourlyMileageLimit') = 'null' then
       new.hourly_mileage_limit := null;
     elsif jsonb_typeof(meta -> 'hourlyMileageLimit') in ('number', 'string') and trim(meta ->> 'hourlyMileageLimit') ~ '^[0-9]+$' then
       new.hourly_mileage_limit := (meta ->> 'hourlyMileageLimit')::integer;

@@ -6,7 +6,7 @@ Baseline date: 2026-08-26
 
 The GitHub `main` branch is the authoritative application and infrastructure source. PostgreSQL changes must exist under `supabase/migrations/` and Supabase Edge Function source must exist under `supabase/functions/`. Do not create production-only SQL, policies, RPCs, or Edge code.
 
-The intended public production origin is `https://alperlerrentaacar.com`. When moving to another domain, update the hosting domain, `PUBLIC_APP_URL`, `PUBLIC_SITE_URL`, payment allowed origins, Supabase Auth Site URL/redirect URLs, and any provider callback/webhook allowlists together.
+No custom production domain is assumed in source control. Until a real domain is registered and connected, the active Vercel deployment/request origin is authoritative for browser-visible URLs, robots, sitemap, social previews and same-origin payment security. Keep `PUBLIC_APP_URL`, `PUBLIC_SITE_URL` and `PAYMENT_ALLOWED_ORIGINS` blank in the repository template. When a real custom domain is later connected and serving HTTPS, set the hosting domain and the relevant platform/provider allowlists together without changing application code.
 
 ## Secrets
 
@@ -35,27 +35,36 @@ Never restore historical bootstrap or migration behavior into these slugs.
 
 ## Web application recovery
 
-1. Configure server environment values from `.env.example`.
+1. Configure server environment values from `.env.example`. Leave custom-origin fields blank unless the target hostname is already registered and serving HTTPS.
 2. Install the exact lockfile dependency graph with `npm ci`.
 3. Run `node scripts/check-portability-v186.mjs`.
 4. Run dependency audit, lint, API TypeScript checks, Vercel function-budget check, and production build.
 5. Deploy the tested Git commit only.
-6. Verify the deployment status for that exact commit and then smoke-test the public root, booking flows, admin login, public newsletter subscription, catalog, media, and same-origin admin gateways.
+6. Verify the deployment status for that exact commit and then smoke-test the actual deployment origin, booking flows, admin login, public newsletter subscription, catalog, media, and same-origin admin gateways.
 
-## Domain cutover
+## Vercel test/pre-domain mode
 
-1. Add the custom domain to the production hosting project.
-2. Configure the DNS records exactly as the hosting provider reports for that project; do not copy generic DNS values from another project.
-3. Wait for the hosting provider to show the domain as configured and TLS certificate active.
-4. Set the canonical production origin values and redeploy.
-5. In Supabase Auth, set the Site URL to the canonical HTTPS origin and retain only intentional redirect URLs.
-6. Verify both apex and `www` behavior and choose one canonical redirect direction.
-7. Re-test CORS/origin-protected admin gateways after the final hostname is active.
+1. Use the deployment URL supplied by Vercel as the active test origin.
+2. Do not invent or reserve a fake canonical domain in source code or `.env.example`.
+3. `VERCEL_URL` and `VERCEL_PROJECT_PRODUCTION_URL` are runtime fallbacks. Request-facing SEO endpoints prefer the actual HTTPS request origin.
+4. Payment same-origin validation accepts the actual request origin and the Vercel deployment/production origins without requiring a custom domain.
+5. Keep DNS/TLS and custom-domain Auth configuration out of the critical path until a domain is actually purchased.
+
+## Future custom-domain cutover
+
+1. Register the chosen domain first.
+2. Add it to the production hosting project.
+3. Configure the DNS records exactly as the hosting provider reports for that project; do not copy generic DNS values from another project.
+4. Wait for the hosting provider to show the domain as configured and TLS certificate active.
+5. Only then set `PUBLIC_APP_URL`, `PUBLIC_SITE_URL` and any additional `PAYMENT_ALLOWED_ORIGINS` values where required, and redeploy.
+6. In Supabase Auth, set the Site URL to the canonical HTTPS origin and retain only intentional redirect URLs.
+7. Verify both apex and `www` behavior and choose one canonical redirect direction.
+8. Re-test CORS/origin-protected admin gateways, payment return URLs, robots, sitemap and social previews after the final hostname is active.
 
 ## Security launch checklist
 
 - No browser service-role key or provider secret.
-- No dead domain references.
+- No dead or unowned domain references.
 - All privileged central admin traffic uses same-origin APIs and hardened Edge/service boundaries.
 - Legacy privileged write paths are revoked only after replacement paths are live and verified.
 - Owner bootstrap functions remain retired.
@@ -66,4 +75,4 @@ Never restore historical bootstrap or migration behavior into these slugs.
 
 ## Do not call the system globally “secure” or “complete” solely because CI is green
 
-CI proves repository contracts. Launch readiness also requires successful production deployment, live endpoint verification, DNS/TLS, Auth redirect configuration, and review of platform-level security settings that are not represented in source code.
+CI proves repository contracts. Launch readiness also requires successful deployment, live endpoint verification and review of platform-level security settings that are not represented in source code. DNS/TLS and custom-domain Auth redirect verification become required only after a real custom domain is registered and connected.

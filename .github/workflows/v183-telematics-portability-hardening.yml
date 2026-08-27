@@ -59,8 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           EDGE=supabase/functions/telematics-admin/index.ts
-          grep -Fq 'https://alperlerrentaacar.com' "$EDGE"
-          grep -Fq 'https://www.alperlerrentaacar.com' "$EDGE"
+          grep -Fq 'Deno.env.get("PUBLIC_SITE_URL")' "$EDGE"
           grep -Fq '.vercel.app' "$EDGE"
           grep -Fq 'ORIGIN_NOT_ALLOWED' "$EDGE"
           grep -Fq 'MAX_BODY_BYTES = 16 * 1024' "$EDGE"
@@ -70,6 +69,7 @@ jobs:
           grep -Fq 'telematics-config-v183' "$EDGE"
           grep -Fq 'telematics-command-v183' "$EDGE"
           grep -Fq 'RATE_LIMITED' "$EDGE"
+          ! grep -Fq "$(printf '%s%s%s' 'alperler' 'rentaacar' '.com')" "$EDGE"
           ! grep -Fq '"access-control-allow-origin": "*"' "$EDGE"
           ! grep -Fq "'access-control-allow-origin':'*'" "$EDGE"
 

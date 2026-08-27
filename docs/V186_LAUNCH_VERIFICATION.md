@@ -2,7 +2,8 @@
 
 This file records the repository-side launch contract. Production observations must be re-checked immediately before merge and after deployment.
 
-- Canonical domain target: `https://alperlerrentaacar.com`
+- Custom domain status: not assumed by the repository. A real custom domain is configured only after it is registered and connected.
+- Current test/live-preview origin: the HTTPS Vercel deployment/request origin.
 - Current source-of-truth branch after approval: `main`
 - Supabase project: `alperler-auto-prod` (`hrztrgjvgdnaurejnsgs`)
 - Edge deployment contract: `supabase/functions/deployment-manifest.v186.json`
@@ -10,7 +11,7 @@ This file records the repository-side launch contract. Production observations m
 - Recovery procedure: `docs/PRODUCTION_RECOVERY_RUNBOOK_V186.md`
 - Vercel serverless function budget: must remain within repository gate (currently 12/12)
 
-Production cutover order for V186:
+Production/test cutover order for V186:
 
 1. All PR workflows green on the exact head SHA.
 2. Apply `v186_analytics_newsletter_admin_gateway` migration.
@@ -21,4 +22,6 @@ Production cutover order for V186:
 7. Apply `v1861_analytics_newsletter_legacy_cutover`.
 8. Verify old authenticated analytics RPC execution and direct newsletter table grants/policies are removed.
 9. Re-run Supabase advisors.
-10. Merge exact head, wait for Vercel success, then smoke-test the public domain and same-origin routes.
+10. Merge exact head, wait for Vercel success, then smoke-test the actual Vercel deployment origin and same-origin routes.
+11. Do not set `PUBLIC_APP_URL`, `PUBLIC_SITE_URL`, payment domain allowlists, DNS or custom-domain Auth redirects until a real domain is registered and serving HTTPS.
+12. When a custom domain is eventually purchased, follow the domain-cutover section in `PRODUCTION_RECOVERY_RUNBOOK_V186.md` without changing application architecture.

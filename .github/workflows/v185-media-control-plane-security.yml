@@ -108,8 +108,7 @@ jobs:
         run: |
           set -euo pipefail
           EDGE=supabase/functions/media-control-admin-v185/index.ts
-          grep -Fq 'https://alperlerrentaacar.com' "$EDGE"
-          grep -Fq 'https://www.alperlerrentaacar.com' "$EDGE"
+          grep -Fq 'Deno.env.get("PUBLIC_SITE_URL")' "$EDGE"
           grep -Fq '.vercel.app' "$EDGE"
           grep -Fq 'ORIGIN_NOT_ALLOWED' "$EDGE"
           grep -Fq 'MAX_BODY_BYTES = 64 * 1024' "$EDGE"
@@ -118,6 +117,7 @@ jobs:
           grep -Fq 'consume_rate_limit' "$EDGE"
           grep -Fq 'service_catalog_media_create_v185' "$EDGE"
           grep -Fq 'service_register_media_asset_v185' "$EDGE"
+          ! grep -Fq "$(printf '%s%s%s' 'alperler' 'rentaacar' '.com')" "$EDGE"
           ! grep -Fq '"access-control-allow-origin": "*"' "$EDGE"
 
       - name: Dependency vulnerability gate

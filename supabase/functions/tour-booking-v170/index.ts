@@ -4,19 +4,27 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const MAX_TOUR_PERSON_COUNT = 1_000_000_000;
 const MAX_BOOKING_MONEY = 999_999_999_999.99;
-
-const ALLOWED_ORIGINS = new Set([
-  "https://alperlerrentaacar.com",
-  "https://www.alperlerrentaacar.com",
-  "https://alperler-auto-production.vercel.app",
-  "http://localhost:4200",
-  "http://localhost:5173",
-]);
+const ALLOWED_ORIGINS = new Set(
+  [Deno.env.get("PUBLIC_SITE_URL") || ""]
+    .map((value) => { try { return new URL(value).origin; } catch { return ""; } })
+    .filter(Boolean),
+);
 
 type CustomerIdentity = { id: string; email: string | null };
 
 function clean(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+function allowedOrigin(value: string): string {
+  if (!value) return "";
+  try {
+    const parsed = new URL(value);
+    if ((parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") && ["http:", "https:"].includes(parsed.protocol)) return parsed.origin;
+    if (parsed.protocol === "https:" && parsed.hostname.endsWith(".vercel.app")) return parsed.origin;
+    return ALLOWED_ORIGINS.has(parsed.origin) ? parsed.origin : "";
+  } catch {
+    return "";
+  }
 }
 function uuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -149,9 +157,9 @@ async function notify(internalId: string): Promise<unknown> {
 }
 
 Deno.serve(async (request: Request) => {
-  const origin = clean(request.headers.get("origin"), 240);
+  const origin = allowedOrigin(clean(request.headers.get("origin"), 240));
   const requestId = clean(request.headers.get("x-request-id"), 80) || crypto.randomUUID();
-  if (!origin || !ALLOWED_ORIGINS.has(origin)) return Response.json({ ok: false, code: "ORIGIN_NOT_ALLOWED", requestId }, { status: 403, headers: { "cache-control": "no-store" } });
+  if (!origin) return Response.json({ ok: false, code: "ORIGIN_NOT_ALLOWED", requestId }, { status: 403, headers: { "cache-control": "no-store" } });
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin) });
   if (request.method !== "POST") return response(origin, { ok: false, code: "METHOD_NOT_ALLOWED", requestId }, 405, requestId);
   if (!SUPABASE_URL || !SERVICE_KEY) return response(origin, { ok: false, code: "SERVICE_NOT_CONFIGURED", requestId }, 503, requestId);

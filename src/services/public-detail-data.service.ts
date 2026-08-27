@@ -5,6 +5,13 @@ import type { CatalogBlogPost } from "./catalog.service";
 import { PublicCatalogMediaService } from "./public-catalog-media.service";
 
 export type DetailKind = "RENTAL" | "SALE" | "TOUR";
+export type BlogDetailMediaItem = { kind: "IMAGE" | "VIDEO"; url: string; posterUrl?: string; title: string };
+export interface BlogDetailPost extends CatalogBlogPost {
+  authorName?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  media: BlogDetailMediaItem[];
+}
 
 @Injectable({ providedIn: "root" })
 export class PublicDetailDataService {
@@ -24,7 +31,7 @@ export class PublicDetailDataService {
     "created_at", "updated_at", "publication_status", "published_at", "scheduled_at", "latitude", "longitude", "map_url", "category",
     "location_name", "branch_id", "listing_origin",
   ].join(",");
-  private readonly blogSelect = "id,slug,title,excerpt,content,cover_image,published_at,metadata,status";
+  private readonly blogSelect = "id,slug,title,excerpt,content,cover_image,author_name,published_at,seo_title,seo_description,metadata,status";
 
   async load(kind: DetailKind, routeId: string): Promise<Vehicle> {
     const clean = String(routeId || "").trim();
@@ -36,7 +43,7 @@ export class PublicDetailDataService {
     return this.prepare(item, kind);
   }
 
-  async loadBlog(routeId: string): Promise<CatalogBlogPost> {
+  async loadBlog(routeId: string): Promise<BlogDetailPost> {
     const clean = String(routeId || "").trim();
     if (!clean) throw new Error("Bu blog yazısı bulunamadı veya yayından kaldırılmış olabilir.");
     const filter = this.uuidPattern.test(clean)
@@ -46,16 +53,31 @@ export class PublicDetailDataService {
     const row = rows[0];
     if (!row) throw new Error("Bu blog yazısı bulunamadı veya yayından kaldırılmış olabilir.");
     const metadata = row["metadata"] && typeof row["metadata"] === "object" ? row["metadata"] as Record<string, unknown> : {};
+    const ownerId = String(row["id"] || "");
+    const ownerMedia = ownerId ? await this.media.loadForBlog(ownerId).catch(() => []) : [];
+    const imageMedia = ownerMedia.filter((item) => item.kind === "IMAGE" && item.url);
+    const videoMedia = ownerMedia.filter((item) => item.kind === "VIDEO" && item.url);
+    const cover = imageMedia.find((item) => item.isCover) || imageMedia[0];
+    const fallbackCover = this.mediaUrl(String(row["cover_image"] || ""));
+    const media: BlogDetailMediaItem[] = [
+      ...imageMedia.map((item) => ({ kind: "IMAGE" as const, url: item.url, title: item.altText || String(row["title"] || "Blog görseli") })),
+      ...videoMedia.map((item) => ({ kind: "VIDEO" as const, url: item.url, posterUrl: item.posterUrl || cover?.url || fallbackCover || undefined, title: item.altText || String(row["title"] || "Blog videosu") })),
+    ];
+    if (!media.length && fallbackCover) media.push({ kind: "IMAGE", url: fallbackCover, title: String(row["title"] || "Blog görseli") });
     return {
       id: String(row["id"] || clean),
       title: String(row["title"] || ""),
       summary: String(row["excerpt"] || ""),
       content: String(row["content"] || ""),
-      image: String(row["cover_image"] || ""),
+      image: cover?.url || fallbackCover,
       readTime: String(metadata["readTime"] || "4 Dk Okuma"),
       date: String(metadata["originalDate"] || (row["published_at"] ? new Date(String(row["published_at"])).toLocaleDateString("tr-TR") : "")),
-      cloudId: String(row["id"] || "") || undefined,
+      cloudId: ownerId || undefined,
       cloudSlug: String(row["slug"] || "") || undefined,
+      authorName: String(row["author_name"] || "") || undefined,
+      seoTitle: String(row["seo_title"] || "") || undefined,
+      seoDescription: String(row["seo_description"] || "") || undefined,
+      media,
     };
   }
 

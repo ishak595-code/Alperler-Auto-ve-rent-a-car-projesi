@@ -256,6 +256,18 @@ Deno.serve(async (request: Request) => {
       const record=await rpc<JsonObject>("service_register_media_asset_v185",{p_actor:admin.id,p_payload:payload as JsonObject});
       return json(request,{ok:true,record},201,id);
     }
+    if (request.method === "POST" && action === "QUEUE_STORAGE_CLEANUP") {
+      const entityType=clean(input["entityType"],20).toUpperCase();
+      const entityId=clean(input["entityId"],200);
+      const objectPath=clean(input["objectPath"],1200);
+      if(!["VEHICLE","TOUR","BLOG","ADMIN"].includes(entityType)||!objectPath)return json(request,{ok:false,code:"INVALID_MEDIA_OWNER"},400,id);
+      if(entityType!=="ADMIN"&&!uuid(entityId))return json(request,{ok:false,code:"INVALID_MEDIA_OWNER"},400,id);
+      const result=await rpc<JsonObject>("service_enqueue_owned_storage_cleanup_v198",{
+        p_actor:admin.id,p_entity_type:entityType,p_entity_id:entityId||null,p_object_path:objectPath,
+      });
+      const cleanup=await drainMediaCleanup(20);
+      return json(request,{ok:true,result,cleanup},200,id);
+    }
     if (request.method === "POST" && action === "DRAIN_MEDIA_CLEANUP") {
       const cleanup=await drainMediaCleanup(Number(input["limit"]||30));
       return json(request,{ok:true,cleanup},200,id);

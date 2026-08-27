@@ -18,6 +18,12 @@ if (!detail.includes('row["hourly_rental_enabled"] != null')) fail('hourly renta
 if (!detail.includes('row["minimum_rental_hours"] ?? metadata["minimumRentalHours"]')) fail('minimum rental hours must prefer the authoritative vehicle column');
 if (!detail.includes('row["hourly_mileage_limit"] ?? metadata["hourlyMileageLimit"]')) fail('hourly mileage limit must prefer the authoritative vehicle column');
 
+const rental = read('src/pages/rental-detail-v167.component.ts');
+if (!rental.includes('<dt>Kapı</dt>') || !rental.includes('car.doors')) fail('rental detail must surface the canonical door count');
+if (!rental.includes('<dt>Bagaj adedi</dt>') || !rental.includes('car.luggage')) fail('rental detail must surface admin luggage capacity');
+if (!rental.includes('displayFeatures=computed')) fail('rental detail must merge flat and categorized admin features');
+if (!rental.includes('car.cylinderCount') || !rental.includes('car.cityFuelConsumption') || !rental.includes('car.highwayFuelConsumption')) fail('rental technical facts must retain extended admin-entered specs');
+
 const media = read('src/services/public-catalog-media.service.ts');
 if (!media.includes('loadForVehicle(vehicleId: string)')) fail('catalog media owner query missing for vehicles');
 if (!media.includes('loadForTour(tourId: string)')) fail('catalog media owner query missing for tours');
@@ -32,10 +38,16 @@ if (blog.includes('getBlogPosts()')) fail('blog detail must not depend on global
 if (!blog.includes('detailData.loadBlog(id)')) fail('blog detail must load its own route record');
 if (!blog.includes('@else if (loading())')) fail('blog detail must distinguish loading from real not-found');
 
-const migration = read('supabase/migrations/20260827194000_v197_campaign_target_route_integrity.sql');
-if (!migration.includes('new.cta_url := null')) fail('targeted campaign CTA normalization missing');
-if (!migration.includes('campaigns_target_reference_v197_ck')) fail('targeted campaign reference constraint missing');
-if (!migration.includes('campaigns_target_route_v197')) fail('campaign target route trigger missing');
+const campaignMigration = read('supabase/migrations/20260827194000_v197_campaign_target_route_integrity.sql');
+if (!campaignMigration.includes('new.cta_url := null')) fail('targeted campaign CTA normalization missing');
+if (!campaignMigration.includes('campaigns_target_reference_v197_ck')) fail('targeted campaign reference constraint missing');
+if (!campaignMigration.includes('campaigns_target_route_v197')) fail('campaign target route trigger missing');
+
+const hourlyMigration = read('supabase/migrations/20260827203000_v1971_vehicle_hourly_canonical_sync.sql');
+if (!hourlyMigration.includes('vehicles_hourly_canonical_v1971')) fail('hourly rental metadata/canonical sync trigger missing');
+if (!hourlyMigration.includes('vehicles_hourly_enabled_integrity_v1971_ck')) fail('hourly rental DB integrity constraint missing');
+if (!hourlyMigration.includes("meta -> 'hourlyPrice'")) fail('admin hourly price changes are not synchronized to the canonical column');
+if (!hourlyMigration.includes("meta -> 'minimumRentalHours'")) fail('admin minimum-hour changes are not synchronized to the canonical column');
 
 const worker = read('public/service-worker.js');
 const release = worker.match(/const RELEASE = 'v([0-9]+)[^']*'/);
@@ -43,5 +55,5 @@ if (!release || Number(release[1]) < 197) fail('PWA cache generation must be V19
 if (!worker.includes('request.mode === \'navigate\'')) fail('PWA navigation must remain network-authoritative');
 
 if (!process.exitCode) {
-  console.log('V197 detail integrity OK: single-record detail hydration, owner media, authoritative hourly rental fields, direct blog load, canonical campaign targets and fresh PWA generation are enforced.');
+  console.log('V197 detail integrity OK: single-record hydration, owner media, canonical hourly rental sync, complete rental public facts, direct blog load, canonical campaign targets and fresh PWA generation are enforced.');
 }

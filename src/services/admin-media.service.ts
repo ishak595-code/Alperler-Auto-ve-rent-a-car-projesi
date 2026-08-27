@@ -8,6 +8,11 @@ export interface AdminMediaUploadResult {
   publicUrl: string;
 }
 
+const HOMEPAGE_BACKGROUND_MAX_WIDTH = 1920;
+const HOMEPAGE_BACKGROUND_MAX_HEIGHT = 1280;
+const HOMEPAGE_BACKGROUND_TARGET_BYTES = 1_500_000;
+const HOMEPAGE_BACKGROUND_QUALITIES = [0.82, 0.74, 0.66, 0.58] as const;
+
 @Injectable({ providedIn: 'root' })
 export class AdminMediaService {
   private readonly auth = inject(AuthService);
@@ -16,7 +21,8 @@ export class AdminMediaService {
   private readonly allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
 
   async uploadHomepageImage(file: File, sectionKey: string, purpose: 'profile' | 'cover' | 'background'): Promise<AdminMediaUploadResult> {
-    return this.uploadImage(file, 'HOMEPAGE_SECTION', sectionKey, purpose);
+    const prepared = purpose === 'background' ? await this.prepareHomepageBackground(file) : file;
+    return this.uploadImage(prepared, 'HOMEPAGE_SECTION', sectionKey, purpose);
   }
 
   async uploadImage(file: File, entityType: string, entityId: string, purpose = 'image'): Promise<AdminMediaUploadResult> {
@@ -41,7 +47,7 @@ export class AdminMediaService {
         authorization: `Bearer ${token}`,
         'content-type': file.type,
         'x-upsert': 'false',
-        'cache-control': '3600',
+        'cache-control': '31536000',
       },
       body: file,
     });
@@ -75,6 +81,7 @@ export class AdminMediaService {
               originalName: file.name.slice(0, 180),
               size: file.size,
               mimeType: file.type,
+              optimizedForHomepage: entityType === 'HOMEPAGE_SECTION' && purpose === 'background',
             },
           },
         }),
@@ -90,6 +97,59 @@ export class AdminMediaService {
     }
 
     return { bucket: this.bucket, objectPath, publicUrl };
+  }
+
+  private async prepareHomepageBackground(file: File): Promise<File> {
+    if (!this.allowedImageTypes.has(file.type)) throw new Error('Yalnız JPG, PNG, WEBP veya AVIF görsel yükleyebilirsiniz.');
+    if (!file.size || file.size > this.maxImageBytes) throw new Error('Görsel en fazla 15 MB olabilir.');
+    if (typeof document === 'undefined' || typeof createImageBitmap !== 'function') {
+      if (file.size <= HOMEPAGE_BACKGROUND_TARGET_BYTES) return file;
+      throw new Error('Bu tarayıcı büyük hero görsellerini güvenli biçimde optimize edemiyor. Daha küçük bir görsel yükleyin.');
+    }
+
+    let bitmap: ImageBitmap;
+    try {
+      bitmap = await createImageBitmap(file);
+    } catch {
+      throw new Error('Hero görseli tarayıcı tarafından okunamadı. JPG, PNG, WEBP veya AVIF dosyasını yeniden seçin.');
+    }
+
+    try {
+      const scale = Math.min(
+        1,
+        HOMEPAGE_BACKGROUND_MAX_WIDTH / Math.max(1, bitmap.width),
+        HOMEPAGE_BACKGROUND_MAX_HEIGHT / Math.max(1, bitmap.height),
+      );
+      const width = Math.max(1, Math.round(bitmap.width * scale));
+      const height = Math.max(1, Math.round(bitmap.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext('2d', { alpha: false });
+      if (!context) throw new Error('HERO_IMAGE_CANVAS_UNAVAILABLE');
+      context.drawImage(bitmap, 0, 0, width, height);
+
+      let selected: Blob | null = null;
+      for (const quality of HOMEPAGE_BACKGROUND_QUALITIES) {
+        const candidate = await this.canvasBlob(canvas, 'image/webp', quality);
+        if (!candidate) continue;
+        selected = candidate;
+        if (candidate.size <= HOMEPAGE_BACKGROUND_TARGET_BYTES) break;
+      }
+      if (!selected) throw new Error('HERO_IMAGE_ENCODING_FAILED');
+
+      const baseName = file.name.replace(/\.[^.]+$/, '').trim() || 'homepage-hero';
+      return new File([selected], `${baseName}.webp`, { type: 'image/webp', lastModified: Date.now() });
+    } catch (error) {
+      if (error instanceof Error && !/^HERO_IMAGE_/.test(error.message)) throw error;
+      throw new Error('Hero görseli optimize edilemedi. Lütfen farklı bir görsel deneyin.');
+    } finally {
+      bitmap.close();
+    }
+  }
+
+  private canvasBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {
+    return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
   }
 
   private extensionFor(file: File): string {

@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnInit, computed, inject } from '@angular/core';
+import { Component, Input, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { CampaignProof, CampaignRecord, CampaignService } from '../services/campaign.service';
 import { CommercialOfferContextService } from '../services/commercial-offer-context.service';
+import { PublicDetailDataService } from '../services/public-detail-data.service';
 import { TurkishCurrencyPipe } from '../pipes/turkish-currency.pipe';
 
 type CampaignTargetKind = 'TOUR' | 'SALE';
@@ -20,7 +21,7 @@ type CampaignTargetKind = 'TOUR' | 'SALE';
             <span class="campaign-badge">{{ offer.badge || 'KAMPANYA' }}</span>
             @if (discountLabel(offer)) { <span class="discount-badge">{{ discountLabel(offer) }}</span> }
           </div>
-          <p class="eyebrow">KAMPANYADAN GELDİNİZ</p>
+          <p class="eyebrow">AKTİF KAMPANYA</p>
           <h2>{{ offer.title }}</h2>
           @if (offer.shortDescription || offer.description) {
             <p class="description">{{ offer.shortDescription || offer.description }}</p>
@@ -64,24 +65,32 @@ export class CatalogCampaignContextComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly campaigns = inject(CampaignService);
   private readonly commercialOffer = inject(CommercialOfferContextService);
+  private readonly detailData = inject(PublicDetailDataService);
   private readonly campaignId = this.route.snapshot.queryParamMap.get('campaign') || '';
   private readonly routeId = this.route.snapshot.paramMap.get('id') || '';
+  private readonly resolvedTargetId = signal('');
 
   readonly campaign = computed<CampaignRecord | null>(() => {
-    if (!this.campaignId || !this.routeId) return null;
+    if (!this.routeId) return null;
     const expectedTarget = this.targetKind === 'TOUR' ? 'TOUR' : 'VEHICLE';
-    return this.campaigns.publicCampaigns().find((item) =>
-      item.id === this.campaignId &&
+    const aliases = new Set([this.routeId, this.resolvedTargetId()].map((value) => String(value || '').trim()).filter(Boolean));
+    const matches = this.campaigns.publicCampaigns().filter((item) =>
       item.isActive &&
       item.publicationStatus === 'PUBLISHED' &&
       item.targetType === expectedTarget &&
-      String(item.targetId || '') === this.routeId
-    ) || null;
+      aliases.has(String(item.targetId || '').trim())
+    );
+    if (this.campaignId) return matches.find((item) => item.id === this.campaignId) || null;
+    return matches[0] || null;
   });
 
   async ngOnInit(): Promise<void> {
-    if (!this.campaignId) return;
-    await this.campaigns.refreshPublicState(true).catch(() => undefined);
+    if (!this.routeId) return;
+    const kind = this.targetKind === 'TOUR' ? 'TOUR' : 'SALE';
+    await Promise.allSettled([
+      this.campaigns.refreshPublicState(true),
+      this.detailData.load(kind, this.routeId).then((item) => this.resolvedTargetId.set(String(item.cloudId || item.id || ''))),
+    ]);
     const verified = this.campaign();
     if (verified) this.commercialOffer.activateCampaign(verified);
   }

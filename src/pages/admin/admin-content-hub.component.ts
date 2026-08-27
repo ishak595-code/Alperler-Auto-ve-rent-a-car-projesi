@@ -5,14 +5,13 @@ import { AdminCatalogWorkspaceComponent } from './admin-catalog-workspace.compon
 import { AdminCampaignsV167Component } from './admin-campaigns-v167.component';
 import { AdminCommercialBenefitsComponent } from './admin-commercial-benefits.component';
 import { AdminBlogComponent } from './admin-blog.component';
-import { AdminBranchModerationV171Component } from './admin-branch-moderation-v171.component';
 
-type ContentSection='rental'|'sale'|'tour'|'branch-moderation'|'campaigns'|'benefits'|'blog';
+type ContentSection='rental'|'sale'|'tour'|'campaigns'|'benefits'|'blog';
 
 @Component({
   selector:'app-admin-content-hub',
   standalone:true,
-  imports:[CommonModule,AdminCatalogWorkspaceComponent,AdminBranchModerationV171Component,AdminCampaignsV167Component,AdminCommercialBenefitsComponent,AdminBlogComponent],
+  imports:[CommonModule,AdminCatalogWorkspaceComponent,AdminCampaignsV167Component,AdminCommercialBenefitsComponent,AdminBlogComponent],
   template:`
     <div class="workspace">
       <header class="workspace-head">
@@ -23,7 +22,7 @@ type ContentSection='rental'|'sale'|'tour'|'branch-moderation'|'campaigns'|'bene
           <button type="button" [class.active]="active()==='tour'" (click)="select('tour')">Turlar</button>
           <button type="button" [class.active]="active()==='campaigns'" (click)="select('campaigns')">Kampanyalar</button>
           <button type="button" [class.active]="active()==='blog'" (click)="select('blog')">Blog</button>
-          <button type="button" [class.active]="active()==='branch-moderation'" (click)="select('branch-moderation')">Şube İlan Onayları</button>
+          <button type="button" (click)="openBranchModeration()">Şube İlan Onayları</button>
           <button type="button" [class.active]="active()==='benefits'" (click)="select('benefits')">Fiyat & Sadakat</button>
         </nav>
       </header>
@@ -33,7 +32,6 @@ type ContentSection='rental'|'sale'|'tour'|'branch-moderation'|'campaigns'|'bene
           @case('tour'){<app-admin-catalog-workspace mode="TOUR"/>}
           @case('campaigns'){<app-admin-campaigns-v167/>}
           @case('blog'){<app-admin-blog/>}
-          @case('branch-moderation'){<app-admin-branch-moderation-v171/>}
           @case('benefits'){<app-admin-commercial-benefits/>}
           @default{<app-admin-catalog-workspace mode="RENTAL"/>}
         }
@@ -47,43 +45,26 @@ export class AdminContentHubComponent implements OnInit{
   private readonly location=inject(Location);
   readonly active=signal<ContentSection>('rental');
 
-  async ngOnInit():Promise<void>{
-    const path=this.cleanPath(this.router.url);
-    if(path==='/admin/media'||path==='/admin/catalog-editor'){
-      await this.router.navigateByUrl('/admin/cars',{replaceUrl:true});
-      return;
-    }
-    this.active.set(this.resolveSection(path));
-  }
+  ngOnInit():void{this.active.set(this.resolveSection());}
 
   async select(section:ContentSection):Promise<void>{
-    this.active.set(section);
-    const direct:Partial<Record<ContentSection,string>>={rental:'/admin/cars',sale:'/admin/sales',tour:'/admin/tours',campaigns:'/admin/campaigns',blog:'/admin/blog'};
-    const target=direct[section];
-    if(target) await this.router.navigateByUrl(target);
-    else await this.router.navigate(['/admin/content'],{queryParams:{section},replaceUrl:true});
+    const direct:Record<ContentSection,string>={rental:'/admin/cars',sale:'/admin/sales',tour:'/admin/tours',campaigns:'/admin/campaigns',blog:'/admin/blog',benefits:'/admin/benefits'};
+    await this.router.navigateByUrl(direct[section]);
     if(typeof window!=='undefined')window.scrollTo({top:0,behavior:'smooth'});
   }
 
+  async openBranchModeration():Promise<void>{await this.router.navigateByUrl('/admin/branch-moderation');}
   goBack():void{if(typeof window!=='undefined'&&window.history.length>1)this.location.back();else void this.router.navigate(['/admin/dashboard']);}
 
-  private resolveSection(path:string):ContentSection{
+  private resolveSection():ContentSection{
+    const data=String(this.route.snapshot.data['contentSection']||'').toLowerCase();
+    if(data==='sale'||data==='tour'||data==='campaigns'||data==='blog'||data==='benefits'||data==='rental')return data;
+    const path=this.router.url.split('?')[0].replace(/\/$/,'');
     if(path==='/admin/sales')return'sale';
     if(path==='/admin/tours')return'tour';
     if(path==='/admin/campaigns')return'campaigns';
     if(path==='/admin/blog')return'blog';
-    if(path==='/admin/cars')return'rental';
-    const query=this.route.snapshot.queryParamMap.get('section');
-    if(query==='sale'||query==='sale-integrity')return'sale';
-    if(query==='tour'||query==='tour-integrity')return'tour';
-    if(query==='branch-moderation'||query==='campaigns'||query==='benefits'||query==='blog'||query==='rental')return query;
-    const data=String(this.route.snapshot.data['contentSection']||'').toLowerCase();
-    if(data==='campaigns')return'campaigns';
-    if(data==='blog')return'blog';
-    if(data==='branch-moderation')return'branch-moderation';
-    if(data==='benefits')return'benefits';
+    if(path==='/admin/benefits')return'benefits';
     return'rental';
   }
-
-  private cleanPath(url:string):string{return url.split('?')[0].split('#')[0].replace(/\/$/,'')||'/';}
 }

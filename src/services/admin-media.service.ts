@@ -8,6 +8,12 @@ export interface AdminMediaUploadResult {
   publicUrl: string;
 }
 
+export interface AdminMediaCleanupResult {
+  attempted: number;
+  completed: number;
+  pending: number;
+}
+
 const HOMEPAGE_BACKGROUND_MAX_WIDTH = 1920;
 const HOMEPAGE_BACKGROUND_MAX_HEIGHT = 1280;
 const HOMEPAGE_BACKGROUND_TARGET_BYTES = 1_500_000;
@@ -97,6 +103,29 @@ export class AdminMediaService {
     }
 
     return { bucket: this.bucket, objectPath, publicUrl };
+  }
+
+  async drainCleanup(limit = 30): Promise<AdminMediaCleanupResult> {
+    const token = await this.auth.getAccessToken();
+    if (!token) throw new Error('ADMIN_SESSION_REQUIRED');
+    const response = await fetch('/api/partner?op=media-control-admin', {
+      method: 'POST',
+      cache: 'no-store',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+        accept: 'application/json',
+        'x-request-id': crypto.randomUUID(),
+      },
+      body: JSON.stringify({ action: 'DRAIN_MEDIA_CLEANUP', limit: Math.max(1, Math.min(50, Math.trunc(limit))) }),
+    });
+    const payload = await response.json().catch(() => ({})) as { ok?: boolean; code?: string; cleanup?: Partial<AdminMediaCleanupResult> };
+    if (!response.ok || payload.ok !== true) throw new Error(payload.code || `MEDIA_CLEANUP_${response.status}`);
+    return {
+      attempted: Number(payload.cleanup?.attempted || 0),
+      completed: Number(payload.cleanup?.completed || 0),
+      pending: Number(payload.cleanup?.pending || 0),
+    };
   }
 
   private async prepareHomepageBackground(file: File): Promise<File> {

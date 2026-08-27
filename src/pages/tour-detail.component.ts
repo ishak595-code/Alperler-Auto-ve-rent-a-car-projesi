@@ -77,12 +77,12 @@ import { TourDemandV170, TourDemandV170Service } from "../services/tour-demand-v
           <aside class="reserve-panel" aria-labelledby="tour-reserve-title"><p>Rezervasyon Bilgisi</p><h2 id="tour-reserve-title">Hazır olduğunuzda rezervasyon oluşturun</h2><span>Tarih, kişi sayısı ve canlı talep bilgisi yalnız “Bu Turu Rezerve Et” düğmesine bastığınızda açılır. Harita ve tur içeriği rezervasyon akışının dışında kalır.</span><div class="reserve-price"><small>{{ activeCampaign() ? 'Kampanyalı kişi başı' : 'Kişi başı başlangıç' }}</small><strong>{{ displayUnitPrice() | turkishCurrency }}</strong></div><div class="reserve-note"><mat-icon aria-hidden="true">verified_user</mat-icon><span>Kesin fiyat, kampanya ve uygunluk sunucuda tekrar doğrulanır.</span></div></aside>
         </div>
 
-        <nav class="action-bar" aria-label="Tur hızlı işlemleri" [attr.inert]="reservationOpen() ? '' : null" [attr.aria-hidden]="reservationOpen() ? 'true' : null"><div class="action-inner"><button type="button" class="whatsapp" (click)="whatsapp()"><mat-icon aria-hidden="true">chat</mat-icon><span>WhatsApp’tan Sor</span></button><button type="button" class="reserve" (click)="openReservation()"><mat-icon aria-hidden="true">event_available</mat-icon><span>Bu Turu Rezerve Et</span></button></div></nav>
+        <nav class="action-bar" aria-label="Tur hızlı işlemleri" [attr.inert]="reservationOpen() ? '' : null" [attr.aria-hidden]="reservationOpen() ? 'true' : null"><div class="action-inner"><button type="button" class="whatsapp" (click)="whatsapp()" aria-label="WhatsApp üzerinden tur hakkında bilgi al"><mat-icon aria-hidden="true">chat</mat-icon><span>WhatsApp’tan Sor</span></button><button type="button" class="reserve" (click)="openReservation()" aria-label="Bu turu rezerve et"><mat-icon aria-hidden="true">event_available</mat-icon><span>Bu Turu Rezerve Et</span></button></div></nav>
 
         <app-detail-media-lightbox [open]="lightboxOpen()" [items]="mediaItems()" [index]="currentSlide()" [title]="item.title + ' fotoğraf ve video galerisi'" (closed)="lightboxOpen.set(false)" (indexChange)="currentSlide.set($event)" />
 
         @if (reservationOpen()) {
-          <div class="reservation-overlay" role="dialog" aria-modal="true" aria-labelledby="tour-booking-title">
+          <div class="reservation-overlay" role="dialog" aria-modal="true" aria-labelledby="tour-booking-title" tabindex="-1">
             <header><button type="button" (click)="closeReservation()" [disabled]="submitting()" aria-label="Tur rezervasyonunu kapat"><mat-icon aria-hidden="true">close</mat-icon></button><div><span>Adım {{ reservationStep() }} / 3</span><h2 id="tour-booking-title">Tur Rezervasyonu</h2></div></header>
             <div class="reservation-content">
               @if (reservationSuccess()) {
@@ -217,9 +217,10 @@ export class TourDetailComponent implements OnInit {
     const query = String(record.meetingPoint || record.locationName || record.location || "").trim();
     return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : "";
   }
-  openReservation(): void { this.reservationOpen.set(true); this.reservationStep.set(1); this.reservationError.set(""); this.reservationSuccess.set(false); }
-  closeReservation(): void { if (!this.submitting()) this.reservationOpen.set(false); }
-  setReservationStep(step: 1 | 2 | 3): void { this.reservationStep.set(step); this.reservationError.set(""); }
+  private focusAfterRender(selector: string): void { if (typeof window === "undefined") return; window.setTimeout(() => document.querySelector<HTMLElement>(selector)?.focus({ preventScroll: true }), 0); }
+  openReservation(): void { this.reservationOpen.set(true); this.reservationStep.set(1); this.reservationError.set(""); this.reservationSuccess.set(false); this.focusAfterRender(".reservation-overlay > header button"); }
+  closeReservation(): void { if (!this.submitting()) { this.reservationOpen.set(false); this.focusAfterRender(".action-inner .reserve"); } }
+  setReservationStep(step: 1 | 2 | 3): void { this.reservationStep.set(step); this.reservationError.set(""); this.focusAfterRender(`#tour-step-${step}`); }
   increasePerson(): void { if (this.personCount() < 1_000_000_000) this.personCount.update((value) => value + 1); }
   decreasePerson(): void { if (this.personCount() > 1) this.personCount.update((value) => value - 1); }
   setPersonCount(value: unknown): void { const number = Math.trunc(Number(value)); this.personCount.set(Number.isFinite(number) ? Math.min(1_000_000_000, Math.max(1, number)) : 1); }

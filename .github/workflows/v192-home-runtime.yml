@@ -1,0 +1,60 @@
+name: V192 Home Runtime Ownership
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/app.routes.ts"
+      - "src/app.component.ts"
+      - "src/pages/home-v71.component.ts"
+      - "src/components/main-layout.component.ts"
+      - "src/components/dynamic-home-section.component.ts"
+      - "src/services/catalog.service.ts"
+      - "src/services/car.service.ts"
+      - "src/services/campaign.service.ts"
+      - "src/services/branch.service.ts"
+      - "src/services/homepage-layout.service.ts"
+      - "src/services/public-content-refresh-coordinator.service.ts"
+      - "src/services/public-content-realtime.service.ts"
+      - "scripts/check-home-runtime-v192.mjs"
+      - "scripts/check-public-content-orchestration-v187.mjs"
+      - "docs/V192_HOME_RUNTIME_OWNERSHIP.md"
+      - ".github/workflows/v192-home-runtime.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v192-home-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: V192 homepage runtime invariant
+        run: node scripts/check-home-runtime-v192.mjs
+
+      - name: V187 orchestration regression invariant
+        run: node scripts/check-public-content-orchestration-v187.mjs
+
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+
+      - name: Frontend type check
+        run: npm run lint
+
+      - name: Production build
+        run: npm run build

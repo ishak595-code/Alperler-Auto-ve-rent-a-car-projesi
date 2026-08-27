@@ -137,12 +137,16 @@ export class PublicDetailDataService {
       : [];
     const availabilityStatus = row["availability_status"];
     const price = Number(category === "RENTAL" ? row["rental_price_daily"] ?? row["price"] ?? 0 : row["price"] ?? 0);
+    const hourlyPrice = this.numberOrUndefined(row["rental_price_hourly"] ?? metadata["hourlyPrice"]);
+    const minimumRentalHours = this.numberOrUndefined(row["minimum_rental_hours"] ?? metadata["minimumRentalHours"]);
+    const hourlyMileageLimit = this.numberOrUndefined(row["hourly_mileage_limit"] ?? metadata["hourlyMileageLimit"]);
     return {
       ...metadata,
       ...row,
       id: row["id"],
       cloudId: row["id"],
       cloudStockCode: row["stock_code"] || undefined,
+      cloudSlug: row["seo_slug"] || undefined,
       category,
       brand: String(row["brand"] || ""),
       model: String(row["model"] || ""),
@@ -155,6 +159,7 @@ export class PublicDetailDataService {
       color: row["color"] || undefined,
       engineVolume: row["engine"] ?? metadata["engineVolume"] ?? undefined,
       seats: row["seats"] ?? undefined,
+      doors: row["doors"] ?? metadata["doors"] ?? undefined,
       location: row["location"] || undefined,
       description: String(row["description"] || ""),
       features: Array.isArray(row["features"]) ? row["features"] : [],
@@ -166,6 +171,12 @@ export class PublicDetailDataService {
       availability: category === "SALE"
         ? availabilityStatus === "SOLD" ? "Satıldı" : metadata["availability"] || "Satışta"
         : metadata["availability"],
+      hourlyPrice,
+      hourlyRentalEnabled: row["hourly_rental_enabled"] != null
+        ? Boolean(row["hourly_rental_enabled"])
+        : Boolean(metadata["hourlyRentalEnabled"]),
+      minimumRentalHours,
+      hourlyMileageLimit,
       publicationStatus: row["publication_status"] ?? undefined,
       publishedAt: row["published_at"] ?? undefined,
       scheduledAt: row["scheduled_at"] ?? undefined,
@@ -209,6 +220,12 @@ export class PublicDetailDataService {
       createdAt: row["created_at"] || undefined,
       updatedAt: row["updated_at"] || undefined,
     } as Vehicle;
+  }
+
+  private numberOrUndefined(value: unknown): number | undefined {
+    if (value === null || value === undefined || value === "") return undefined;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : undefined;
   }
 
   private prepare(item: Vehicle, kind: DetailKind): Vehicle {

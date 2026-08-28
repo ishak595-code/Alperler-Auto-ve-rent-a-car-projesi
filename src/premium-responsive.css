@@ -94,3 +94,137 @@ app-branches a.bg-white:hover{filter:brightness(1.05)}
 @media (hover:hover) and (prefers-reduced-motion:no-preference){
   :is(app-branches,app-blog-list,app-rental-results,app-sales-results) a[href]{transition-property:transform,border-color,background-color,box-shadow,color;transition-duration:180ms;transition-timing-function:ease}
 }
+
+/* V199 canonical detail contract: the active route shells own the responsive customer experience. */
+html,body{max-width:100%;overflow-x:clip}
+:is(app-rental-detail-shell,app-sale-detail-shell,app-tour-detail-shell) :is(.detail-page,.sale-page,.tour-page){max-width:100%;overflow-x:clip}
+:is(app-rental-detail-shell,app-sale-detail-shell,app-tour-detail-shell) :is(.summary-head h2,.listing-head h2,.hero-copy h2,.description,.summary,.summary-meta){overflow-wrap:anywhere;word-break:normal}
+:is(app-rental-detail-shell,app-sale-detail-shell,app-tour-detail-shell) :is(button,a,input,select,textarea){max-width:100%}
+
+/* The former four-card sale truth block is intentionally a single flat information list. */
+app-sale-detail-shell app-sale-car-detail .sale-page .truth-grid{
+  display:block!important;
+  margin:0 0 16px!important;
+  border-top:1px solid #253149!important;
+  border-bottom:1px solid #253149!important;
+}
+app-sale-detail-shell app-sale-car-detail .sale-page .truth-grid>div{
+  display:flex!important;
+  min-width:0!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:16px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  padding:12px 0!important;
+  box-shadow:none!important;
+}
+app-sale-detail-shell app-sale-car-detail .sale-page .truth-grid>div+div{border-top:1px solid #1e293b!important}
+app-sale-detail-shell app-sale-car-detail .sale-page .truth-grid :is(span,strong){min-width:0!important;overflow-wrap:anywhere}
+app-sale-detail-shell app-sale-car-detail .sale-page .truth-grid strong{max-width:64%;text-align:right!important}
+
+/* Phones: full-width segmented CTAs, safe-area aware, no cramped gaps. */
+@media (max-width:719px){
+  app-rental-detail-shell app-car-detail .detail-page .fixed-actions,
+  app-sale-detail-shell app-sale-car-detail .sale-page .bottom-actions{
+    left:0!important;
+    right:0!important;
+    width:auto!important;
+    transform:none!important;
+    gap:1px!important;
+    border:0!important;
+    border-top:1px solid #334155!important;
+    border-radius:0!important;
+    padding:0 0 env(safe-area-inset-bottom)!important;
+  }
+  app-tour-detail-shell app-tour-detail .tour-page .action-bar{
+    left:0!important;
+    right:0!important;
+    width:auto!important;
+    border:0!important;
+    border-top:1px solid #334155!important;
+    border-radius:0!important;
+    padding:0 0 env(safe-area-inset-bottom)!important;
+  }
+  app-tour-detail-shell app-tour-detail .tour-page .action-inner{width:100%!important;max-width:none!important;gap:1px!important}
+  app-rental-detail-shell app-car-detail .fixed-actions :is(a,button),
+  app-sale-detail-shell app-sale-car-detail .bottom-actions button,
+  app-tour-detail-shell app-tour-detail .action-inner button{
+    min-height:58px!important;
+    border-radius:0!important;
+    padding:8px 6px!important;
+    line-height:1.12!important;
+    white-space:normal!important;
+    text-align:center!important;
+  }
+  app-rental-detail-shell app-car-detail .fixed-actions>*:first-child,
+  app-sale-detail-shell app-sale-car-detail .bottom-actions>*:first-child,
+  app-tour-detail-shell app-tour-detail .action-inner>*:first-child{border-radius:12px 0 0 0!important}
+  app-rental-detail-shell app-car-detail .fixed-actions>*:last-child,
+  app-sale-detail-shell app-sale-car-detail .bottom-actions>*:last-child,
+  app-tour-detail-shell app-tour-detail .action-inner>*:last-child{border-radius:0 12px 0 0!important}
+  app-sale-detail-shell app-sale-car-detail .sale-header h1,
+  app-rental-detail-shell app-car-detail .header-copy h1,
+  app-tour-detail-shell app-tour-detail .topbar h1{max-width:52vw!important;font-size:clamp(15px,4.5vw,18px)!important}
+  app-sale-detail-shell app-sale-car-detail .listing-head,
+  app-rental-detail-shell app-car-detail .detail-layout,
+  app-tour-detail-shell app-tour-detail .detail-layout{width:min(100% - 24px,1180px)!important}
+}
+
+/* Very narrow phones get deliberate single-column facts instead of squeezed cards. */
+@media (max-width:359px){
+  app-rental-detail-shell app-car-detail .facts,
+  app-tour-detail-shell app-tour-detail .facts{grid-template-columns:1fr!important}
+  app-rental-detail-shell app-car-detail .fixed-actions{grid-template-columns:54px minmax(0,1fr) minmax(0,1.08fr)!important}
+  app-sale-detail-shell app-sale-car-detail .bottom-actions{grid-template-columns:54px minmax(0,1.12fr) minmax(0,1fr)!important}
+  app-rental-detail-shell app-car-detail .fixed-actions .phone span:last-child,
+  app-sale-detail-shell app-sale-car-detail .bottom-actions .phone span:last-child{display:none!important}
+  app-rental-detail-shell app-car-detail .fixed-actions :is(a,button),
+  app-sale-detail-shell app-sale-car-detail .bottom-actions button,
+  app-tour-detail-shell app-tour-detail .action-inner button{font-size:10px!important}
+  app-sale-detail-shell app-sale-car-detail .sale-page .truth-grid>div{display:grid!important;gap:5px!important}
+  app-sale-detail-shell app-sale-car-detail .sale-page .truth-grid strong{max-width:none!important;text-align:left!important}
+}
+
+/* Normal phones and small tablets preserve readable action proportions. */
+@media (min-width:360px) and (max-width:719px){
+  app-rental-detail-shell app-car-detail .fixed-actions{grid-template-columns:.72fr 1fr 1.22fr!important}
+  app-sale-detail-shell app-sale-car-detail .bottom-actions{grid-template-columns:.78fr 1.22fr 1fr!important}
+  app-tour-detail-shell app-tour-detail .action-inner{grid-template-columns:1fr 1.18fr!important}
+}
+
+/* Tablets: centered action dock with enough breathing room and no edge collision. */
+@media (min-width:720px) and (max-width:1023px){
+  app-rental-detail-shell app-car-detail .detail-page .fixed-actions,
+  app-sale-detail-shell app-sale-car-detail .sale-page .bottom-actions{
+    left:50%!important;
+    right:auto!important;
+    width:min(840px,calc(100% - 32px))!important;
+    transform:translateX(-50%)!important;
+    gap:6px!important;
+    border:1px solid #334155!important;
+    border-bottom:0!important;
+    border-radius:16px 16px 0 0!important;
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom))!important;
+  }
+  app-tour-detail-shell app-tour-detail .tour-page .action-bar{
+    left:50%!important;
+    right:auto!important;
+    width:min(800px,calc(100% - 32px))!important;
+    transform:translateX(-50%)!important;
+    border:1px solid #334155!important;
+    border-bottom:0!important;
+    border-radius:16px 16px 0 0!important;
+    padding:8px!important;
+  }
+  app-tour-detail-shell app-tour-detail .tour-page .action-inner{width:100%!important}
+}
+
+/* Desktop and wide screens keep content centered and intentionally bounded. */
+@media (min-width:1024px){
+  :is(app-rental-detail-shell,app-sale-detail-shell,app-tour-detail-shell) :is(.gallery-frame,.media-frame){max-height:min(68vh,720px)}
+  app-sale-detail-shell app-sale-car-detail .listing-head,
+  app-rental-detail-shell app-car-detail .detail-layout,
+  app-tour-detail-shell app-tour-detail .detail-layout{margin-left:auto!important;margin-right:auto!important}
+}

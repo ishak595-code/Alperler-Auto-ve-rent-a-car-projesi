@@ -133,7 +133,7 @@ for (const token of ['İLAN BİLGİLERİ','readonly listingRows = computed<Listi
 for (const token of ['class="summary"','summaryMeta(','class="core-facts"']) mustNot(sale, token, 'Sale hero must not duplicate canonical listing facts.');
 const saleActionBlock = sale.match(/<nav class="bottom-actions"[\s\S]*?<\/nav>/)?.[0] || '';
 if ((saleActionBlock.match(/<button\b/g) || []).length !== 3) throw new Error('Sale bottom bar must contain exactly three persistent buttons.');
-for (const token of ['Telefonla ara','Satış talebi gönder','WhatsApp ile bilgi al']) must(saleActionBlock, token);
+for (const token of ['Telefonla ara','Araç için bilgi talebi gönder','WhatsApp ile bilgi al']) must(saleActionBlock, token);
 if (/\[disabled\].*(phone|whatsapp)|(phone|whatsapp).*\[disabled\]/i.test(saleActionBlock)) throw new Error('Phone/WhatsApp actions must not disappear through native disabled state.');
 
 const rental = read('src/pages/car-detail.component.ts');

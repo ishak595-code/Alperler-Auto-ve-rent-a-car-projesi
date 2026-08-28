@@ -94,3 +94,64 @@ app-branches a.bg-white:hover{filter:brightness(1.05)}
 @media (hover:hover) and (prefers-reduced-motion:no-preference){
   :is(app-branches,app-blog-list,app-rental-results,app-sales-results) a[href]{transition-property:transform,border-color,background-color,box-shadow,color;transition-duration:180ms;transition-timing-function:ease}
 }
+
+/* V203 canonical detail action system.
+   Rental, sale and tour keep their own business actions, but their geometry is owned here. */
+:is(app-car-detail .fixed-actions,app-sale-car-detail .bottom-actions,app-tour-detail .action-bar){
+  box-sizing:border-box!important;
+  left:0!important;
+  right:0!important;
+  bottom:0!important;
+  width:auto!important;
+  transform:none!important;
+  display:grid!important;
+  gap:0!important;
+  padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-right))!important;
+  border-top:1px solid color-mix(in srgb,var(--alper-border) 84%,transparent)!important;
+  background:color-mix(in srgb,var(--alper-bg) 95%,transparent)!important;
+  backdrop-filter:blur(18px)!important;
+}
+app-car-detail .fixed-actions{grid-template-columns:minmax(0,.82fr) minmax(0,1fr) minmax(0,1.2fr)!important}
+app-sale-car-detail .bottom-actions{grid-template-columns:minmax(0,.84fr) minmax(0,1.2fr) minmax(0,1fr)!important}
+app-tour-detail .action-bar{grid-template-columns:minmax(0,1fr) minmax(0,1.16fr)!important}
+:is(app-car-detail .fixed-actions,app-sale-car-detail .bottom-actions,app-tour-detail .action-bar) :is(a,button){
+  box-sizing:border-box!important;
+  min-width:0!important;
+  min-height:58px!important;
+  margin:0!important;
+  border-radius:0!important;
+  padding-inline:clamp(5px,2vw,16px)!important;
+  font-size:clamp(9px,2.7vw,13px)!important;
+  white-space:nowrap!important;
+  touch-action:manipulation!important;
+  -webkit-tap-highlight-color:transparent!important;
+  box-shadow:none!important;
+}
+:is(app-car-detail .fixed-actions,app-sale-car-detail .bottom-actions,app-tour-detail .action-bar) :is(a,button):first-child{border-radius:16px 0 0 16px!important}
+:is(app-car-detail .fixed-actions,app-sale-car-detail .bottom-actions,app-tour-detail .action-bar) :is(a,button):last-child{border-radius:0 16px 16px 0!important}
+:is(app-car-detail .fixed-actions,app-sale-car-detail .bottom-actions,app-tour-detail .action-bar) :is(a,button)+:is(a,button){border-left:1px solid rgba(255,255,255,.2)!important}
+:is(app-car-detail .fixed-actions,app-sale-car-detail .bottom-actions,app-tour-detail .action-bar) :is(a,button):active{filter:brightness(.93);transform:translateY(1px)}
+
+/* Detail content breathes consistently above the fixed action system. */
+:is(app-car-detail .detail-page,app-sale-car-detail .sale-page,app-tour-detail .tour-page){padding-bottom:calc(84px + env(safe-area-inset-bottom))!important}
+
+@media (max-width:359px){
+  :is(app-car-detail .fixed-actions,app-sale-car-detail .bottom-actions,app-tour-detail .action-bar){padding-inline:5px!important}
+  :is(app-car-detail .fixed-actions,app-sale-car-detail .bottom-actions,app-tour-detail .action-bar) :is(a,button){min-height:56px!important;padding-inline:4px!important;font-size:9px!important;gap:4px!important}
+  :is(app-car-detail .fixed-actions,app-sale-car-detail .bottom-actions,app-tour-detail .action-bar) mat-icon{width:18px!important;height:18px!important;font-size:18px!important}
+}
+@media (min-width:720px){
+  :is(app-car-detail .fixed-actions,app-sale-car-detail .bottom-actions,app-tour-detail .action-bar){
+    left:50%!important;
+    right:auto!important;
+    width:min(780px,calc(100% - 32px))!important;
+    transform:translateX(-50%)!important;
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom))!important;
+    border:1px solid var(--alper-border)!important;
+    border-bottom:0!important;
+    border-radius:18px 18px 0 0!important;
+  }
+}
+@media (min-width:1180px){
+  :is(app-car-detail .fixed-actions,app-sale-car-detail .bottom-actions,app-tour-detail .action-bar){width:min(840px,calc(100% - 48px))!important}
+}

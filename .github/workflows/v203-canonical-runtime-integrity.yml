@@ -1,0 +1,58 @@
+name: V203 Canonical Runtime Integrity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/check-v203-canonical-runtime-integrity.mjs'
+      - 'docs/CANONICAL_RUNTIME_ARCHITECTURE_V203.md'
+      - '.github/workflows/**'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/check-v203-canonical-runtime-integrity.mjs'
+      - 'docs/CANONICAL_RUNTIME_ARCHITECTURE_V203.md'
+      - '.github/workflows/**'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canonical-runtime-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Canonical runtime and repository contract
+        run: node scripts/check-v203-canonical-runtime-integrity.mjs
+      - name: Dependency high severity gate
+        run: npm audit --audit-level=high
+      - name: Frontend lint
+        run: npm run lint
+      - name: API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Accessibility and PWA contracts
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+          npm run pwa:installability
+          npm run vercel:functions
+      - name: Production Angular build
+        run: npm run build

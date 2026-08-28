@@ -6,14 +6,11 @@ on:
       - 'src/components/detail-media-lightbox.component.ts'
       - 'src/components/dynamic-home-section.component.ts'
       - 'src/components/customer-mobile-dock.component.ts'
-      - 'src/components/catalog-mixed-gallery.component.ts'
-      - 'src/pages/rental-detail-v167.component.ts'
-      - 'src/pages/sale-detail-v1681.component.ts'
-      - 'src/pages/tour-detail-v170.component.ts'
+      - 'src/pages/car-detail.component.ts'
+      - 'src/pages/sale-car-detail.component.ts'
+      - 'src/pages/tour-detail.component.ts'
       - 'src/pages/blog-detail.component.ts'
       - 'src/services/public-catalog-media.service.ts'
-      - 'src/app/components/catalog-mixed-gallery.component.ts'
-      - 'src/app/services/public-catalog-media.service.ts'
       - 'scripts/check-v199-detail-media-contract.mjs'
       - '.github/workflows/v199-detail-media-contract.yml'
   push:
@@ -22,14 +19,11 @@ on:
       - 'src/components/detail-media-lightbox.component.ts'
       - 'src/components/dynamic-home-section.component.ts'
       - 'src/components/customer-mobile-dock.component.ts'
-      - 'src/components/catalog-mixed-gallery.component.ts'
-      - 'src/pages/rental-detail-v167.component.ts'
-      - 'src/pages/sale-detail-v1681.component.ts'
-      - 'src/pages/tour-detail-v170.component.ts'
+      - 'src/pages/car-detail.component.ts'
+      - 'src/pages/sale-car-detail.component.ts'
+      - 'src/pages/tour-detail.component.ts'
       - 'src/pages/blog-detail.component.ts'
       - 'src/services/public-catalog-media.service.ts'
-      - 'src/app/components/catalog-mixed-gallery.component.ts'
-      - 'src/app/services/public-catalog-media.service.ts'
       - 'scripts/check-v199-detail-media-contract.mjs'
       - '.github/workflows/v199-detail-media-contract.yml'
 
@@ -41,8 +35,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm

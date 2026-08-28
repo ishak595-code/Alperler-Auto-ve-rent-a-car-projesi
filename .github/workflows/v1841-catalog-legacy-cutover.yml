@@ -6,7 +6,8 @@ on:
     paths:
       - "supabase/migrations/20260826083000_v1841_catalog_legacy_admin_write_cutover.sql"
       - ".github/workflows/v1841-catalog-legacy-cutover.yml"
-      - "src/pages/admin/admin-catalog-editor.component.ts"
+      - "src/pages/admin/admin-catalog-workspace.component.ts"
+      - "src/pages/admin/admin-content-hub.component.ts"
       - "src/services/catalog-admin-editor.service.ts"
       - "api/partner.ts"
   workflow_dispatch:
@@ -51,10 +52,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq 'CatalogAdminEditorService' src/pages/admin/admin-catalog-editor.component.ts
+          WORKSPACE=src/pages/admin/admin-catalog-workspace.component.ts
+          HUB=src/pages/admin/admin-content-hub.component.ts
+          grep -Fq 'CatalogAdminEditorService' "$WORKSPACE"
+          grep -Fq 'AdminCatalogWorkspaceComponent' "$HUB"
+          grep -Fq 'mode="RENTAL"' "$HUB"
+          grep -Fq 'mode="SALE"' "$HUB"
+          grep -Fq 'mode="TOUR"' "$HUB"
           grep -Fq '/api/partner?op=catalog-admin' src/services/catalog-admin-editor.service.ts
           grep -Fq 'operation === "catalog-admin"' api/partner.ts
           ! grep -Fq '/rest/v1/' src/services/catalog-admin-editor.service.ts
+          test ! -f src/pages/admin/admin-catalog-editor.component.ts
 
       - name: Dependency vulnerability gate
         run: npm audit --audit-level=high

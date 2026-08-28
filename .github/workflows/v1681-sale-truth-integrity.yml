@@ -24,78 +24,40 @@ jobs:
           set -euo pipefail
           FILE=supabase/migrations/20260825183500_v1681_structured_tramer_truth.sql
           test -f "$FILE"
-          grep -Fq "DECLARED_CLEAN" "$FILE"
-          grep -Fq "VERIFIED_RECORD" "$FILE"
-          grep -Fq "SALE_TRAMER_AMOUNT_REQUIRED" "$FILE"
-          grep -Fq "SALE_TRAMER_VERIFICATION_PROVENANCE_REQUIRED" "$FILE"
-          grep -Fq "local_painted" "$FILE"
-          grep -Fq "SALE_DAMAGE_FREE_EXPERTISE_CONFLICT" "$FILE"
-          grep -Fq "expertiseSummary" "$FILE"
-          grep -Fq "13-v_known" "$FILE"
-      - name: Canonical sale upload form contract
+          for token in DECLARED_CLEAN VERIFIED_RECORD SALE_TRAMER_AMOUNT_REQUIRED SALE_TRAMER_VERIFICATION_PROVENANCE_REQUIRED local_painted SALE_DAMAGE_FREE_EXPERTISE_CONFLICT expertiseSummary '13-v_known'; do grep -Fq "$token" "$FILE"; done
+      - name: Canonical Super Admin sale form contract
         shell: bash
         run: |
           set -euo pipefail
-          FILE=src/pages/admin/admin-catalog-editor.component.ts
-          grep -Fq "Toplam tramer tutarı TL" "$FILE"
-          grep -Fq "Lokal Boyalı" "$FILE"
-          grep -Fq "saleParts" "$FILE"
-          grep -Fq "tramerSourceUrl" "$FILE"
-          grep -Fq "saleTruthError" "$FILE"
-          grep -Fq "damageExpertise" "$FILE"
-          grep -Fq "isDamageFree" "$FILE"
-      - name: Sale truth review center contract
+          FILE=src/pages/admin/admin-catalog-workspace.component.ts
+          HUB=src/pages/admin/admin-content-hub.component.ts
+          for token in "Toplam tramer TL" "Lokal boyalı" saleParts tramerSourceUrl tramerSourceName tramerVerifiedAt saleTruthError damageExpertise isDamageFree; do grep -Fq "$token" "$FILE"; done
+          grep -Fq 'mode="SALE"' "$HUB"
+          test ! -f src/pages/admin/admin-catalog-editor.component.ts
+          test ! -f src/pages/admin/admin-sale-integrity-v1681.component.ts
+      - name: Canonical sale truth renderer
         shell: bash
         run: |
           set -euo pipefail
-          FILE=src/pages/admin/admin-sale-integrity-v1681.component.ts
-          grep -Fq "Lokal Boyalı" "$FILE"
-          grep -Fq "Tramer tutarı TL" "$FILE"
-          grep -Fq "tramerAmount" "$FILE"
-          grep -Fq "VERIFIED_CLEAN" "$FILE"
-          grep -Fq "tramerVerifiedAt" "$FILE"
-          grep -Fq "rearBumper" "$FILE"
-      - name: Historical sale truth renderer and current approved detail
-        shell: bash
-        run: |
-          set -euo pipefail
-          HISTORICAL=src/pages/sale-detail-v1681.component.ts
-          CANONICAL=src/pages/sale-car-detail.component.ts
+          DETAIL=src/pages/sale-car-detail.component.ts
           GRAPHIC=src/components/expertise-graphic.component.ts
           CARD=src/components/sale-vehicle-card-v168.component.ts
-          grep -Fq "Beyan ve doğrulama birbirinden ayrı gösterilir" "$HISTORICAL"
-          grep -Fq "local_painted" "$HISTORICAL"
-          grep -Fq "tramerAmountLabel" "$HISTORICAL"
-          grep -Fq "safeSourceUrl" "$HISTORICAL"
-          grep -Fq "İLAN BİLGİLERİ" "$CANONICAL"
-          grep -Fq "AÇIKLAMA" "$CANONICAL"
-          grep -Fq "KONUM" "$CANONICAL"
-          grep -Fq "Ekspertiz Özeti" "$CANONICAL"
-          grep -Fq "app-expertise-graphic" "$CANONICAL"
-          grep -Fq "tramerStatusLabel" "$CANONICAL"
-          grep -Fq "damageExpertise" "$CANONICAL"
-          grep -Fq "readonly listingRows = computed<ListingRow[]>" "$CANONICAL"
-          if grep -Fq 'class="core-facts"' "$CANONICAL"; then
+          for token in "İLAN BİLGİLERİ" "AÇIKLAMA" "KONUM" "Ekspertiz Özeti" "app-expertise-graphic" tramerStatusLabel damageExpertise "readonly listingRows = computed<ListingRow[]>" truth-list; do grep -Fq "$token" "$DETAIL"; done
+          if grep -Fq 'class="core-facts"' "$DETAIL" || grep -Fq 'class="summary"' "$DETAIL" || grep -Fq "summaryMeta(" "$DETAIL"; then
             echo "Canonical sale detail must not duplicate listing facts above İlan Bilgileri"
             exit 1
           fi
-          grep -Fq "local_painted" "$GRAPHIC"
-          grep -Fq "rearBumper" "$GRAPHIC"
-          grep -Fq "Arka tampon" "$GRAPHIC"
-          grep -Fq "Bilgi yok" "$GRAPHIC"
-          grep -Fq "tramerLabel" "$CARD"
-          grep -Fq "Tramer: bilinmiyor" "$CARD"
-          grep -Fq "tramerAmount" "$CARD"
+          for token in local_painted rearBumper "Arka tampon" "Bilgi yok"; do grep -Fq "$token" "$GRAPHIC"; done
+          for token in tramerLabel "Tramer: bilinmiyor" tramerAmount; do grep -Fq "$token" "$CARD"; done
+          test ! -f src/pages/sale-detail-v168.component.ts
+          test ! -f src/pages/sale-detail-v1681.component.ts
       - name: Admin publication preflight mirrors DB
         shell: bash
         run: |
           set -euo pipefail
           FILE=src/services/catalog-admin-editor.service.ts
-          grep -Fq "tramerStatus" "$FILE"
-          grep -Fq "tramerAmount" "$FILE"
-          grep -Fq "local_painted" "$FILE"
-          grep -Fq "tramerSourceUrl" "$FILE"
-      - name: Preserve previous sale and rental integrity without renderer regression
+          for token in tramerStatus tramerAmount local_painted tramerSourceUrl; do grep -Fq "$token" "$FILE"; done
+      - name: Preserve approved public owners
         shell: bash
         run: |
           set -euo pipefail
@@ -103,10 +65,6 @@ jobs:
           grep -Fq "RentalShowcaseV167Component" src/pages/fleet.component.ts
           grep -Fq "CarDetailComponent" src/pages/catalog-detail-shells.component.ts
           grep -Fq "SaleCarDetailComponent" src/pages/catalog-detail-shells.component.ts
-          if grep -Fq "RentalDetailV167Component" src/pages/catalog-detail-shells.component.ts || grep -Fq "SaleDetailV1681Component" src/pages/catalog-detail-shells.component.ts; then
-            echo "V201 approved public detail owners must not be replaced by historical renderer generations"
-            exit 1
-          fi
       - name: Frontend TypeScript
         run: npm run lint
       - name: Vercel API TypeScript

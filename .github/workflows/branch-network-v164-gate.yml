@@ -7,6 +7,7 @@ on:
     branches: [main]
     paths:
       - 'src/pages/branch-partner*'
+      - 'src/app.routes.ts'
       - 'src/services/branch-partner.service.ts'
       - 'src/services/geo-directory.service.ts'
       - 'api/partner.ts'
@@ -31,7 +32,7 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
-      - name: Verify V164 architecture invariants
+      - name: Verify branch network architecture invariants
         shell: bash
         run: |
           set -euo pipefail
@@ -48,7 +49,13 @@ jobs:
           grep -Fq 'BRANCH_OWNER' supabase/functions/branch-partner-v164/index.ts
           grep -Fq 'provision_branch_partner_request' supabase/functions/branch-partner-v164/index.ts
           grep -Fq '/branch-portal/login' supabase/functions/branch-partner-v164/index.ts
-          grep -Fq '81 İLDE' src/pages/branch-partner-v164.component.ts
+          grep -Fq 'BranchPartnerV171Component' src/pages/branch-partner-v171.component.ts
+          grep -Fq 'GeoDirectoryService' src/pages/branch-partner-v171.component.ts
+          grep -Fq 'provinceCode' src/pages/branch-partner-v171.component.ts
+          grep -Fq 'districtCode' src/pages/branch-partner-v171.component.ts
+          grep -Fq './pages/branch-partner-v171.component' src/app.routes.ts
+          test ! -f src/pages/branch-partner-v164.component.ts
+          test ! -f src/pages/branch-partner.component.ts
           dead_domain="$(printf '%s%s%s' 'alper' 'rentacar' '.online')"
           ! grep -RFn "$dead_domain" src api public supabase vercel.json docs
       - name: Frontend type check

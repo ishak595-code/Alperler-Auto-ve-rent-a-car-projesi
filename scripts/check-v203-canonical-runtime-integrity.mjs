@@ -71,6 +71,31 @@ for (const name of workflowFiles) {
   });
 }
 
+// Test and integrity scripts must not read/import deleted runtime owners either.
+// Negative existence guards are allowed, but stale renderers can never become CI fixtures again.
+const scriptDir = 'scripts';
+const scriptFiles = fs.readdirSync(scriptDir).filter((name) => /\.(?:mjs|cjs|js)$/i.test(name));
+const positiveScriptDependency = (line, legacy) => {
+  if (!line.includes(legacy)) return false;
+  return [
+    /\bread\s*\(/,
+    /readFileSync\s*\(/,
+    /\bimport\s+/,
+    /\bfrom\s+['"]/, 
+    /\brequire\s*\(/,
+  ].some((pattern) => pattern.test(line));
+};
+for (const name of scriptFiles) {
+  const lines = read(path.join(scriptDir, name)).split(/\r?\n/);
+  lines.forEach((line, index) => {
+    for (const legacy of removedLegacy) {
+      if (positiveScriptDependency(line, legacy)) {
+        throw new Error(`Integrity script ${name}:${index + 1} still reads/imports removed legacy file: ${legacy}`);
+      }
+    }
+  });
+}
+
 const routes = read('src/app.routes.ts');
 for (const token of [
   "./pages/catalog-detail-shells.component",

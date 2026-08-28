@@ -1,0 +1,39 @@
+name: V207 Database Source Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'api/**'
+      - 'scripts/check-v207-database-source-contract.mjs'
+      - 'supabase/migrations/**'
+      - '.github/workflows/v207-database-source-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'api/**'
+      - 'scripts/check-v207-database-source-contract.mjs'
+      - 'supabase/migrations/**'
+      - '.github/workflows/v207-database-source-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  database-source-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Database source and projection contract
+        run: node scripts/check-v207-database-source-contract.mjs

@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'src/**'
-      - 'scripts/check-v203-canonical-runtime-integrity.mjs'
+      - 'scripts/**'
       - 'docs/CANONICAL_RUNTIME_ARCHITECTURE_V203.md'
       - '.github/workflows/**'
       - 'package.json'
@@ -14,7 +14,7 @@ on:
     branches: [main]
     paths:
       - 'src/**'
-      - 'scripts/check-v203-canonical-runtime-integrity.mjs'
+      - 'scripts/**'
       - 'docs/CANONICAL_RUNTIME_ARCHITECTURE_V203.md'
       - '.github/workflows/**'
       - 'package.json'

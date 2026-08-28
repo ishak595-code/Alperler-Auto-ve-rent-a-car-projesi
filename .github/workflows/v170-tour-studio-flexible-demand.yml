@@ -52,18 +52,19 @@ jobs:
             exit 1
           fi
 
-      - name: Dated reservation technology remains available
+      - name: Dated reservation technology is canonical
         shell: bash
         run: |
           set -euo pipefail
-          FILE=src/pages/tour-detail-v170.component.ts
+          FILE=src/pages/tour-detail.component.ts
           test -f "$FILE"
           grep -Fq "app-accessible-native-date" "$FILE"
-          grep -Fq "startDate:this.tourDate" "$FILE"
-          grep -Fq "formattedDate" "$FILE"
-          grep -Fq "Müşterinin geleceği tarih" "$FILE"
+          grep -Fq "startDate: this.tourDate" "$FILE" || grep -Fq "startDate:this.tourDate" "$FILE"
+          grep -Fq "formattedTourDate" "$FILE"
+          grep -Fq "TourDemandV170Service" "$FILE"
+          grep -Fq "TourBookingV170Service" "$FILE"
           if grep -Fq "remainingSeats" "$FILE"; then
-            echo "V170 technology must not use remaining seats as a hard gate"
+            echo "Canonical tour technology must not use remaining seats as a hard gate"
             exit 1
           fi
 
@@ -79,18 +80,17 @@ jobs:
           grep -Fq "Bu Turu Rezerve Et" "$FILE"
           grep -Fq "action-bar" "$FILE"
           grep -Fq "TourDetailComponent" "$SHELL"
-          if grep -Fq "TourDetailV170Component" "$SHELL"; then
-            echo "V201 approved tour renderer must not be replaced by the always-open V170 presentation"
-            exit 1
-          fi
+          for old in src/pages/tour-detail-v169.component.ts src/pages/tour-detail-v170.component.ts; do
+            if test -f "$old"; then echo "Historical tour detail must stay deleted after V203: $old"; exit 1; fi
+          done
 
       - name: Large group booking technology is capacity independent
         shell: bash
         run: |
           set -euo pipefail
           EDGE=supabase/functions/tour-booking-v170/index.ts
-          CLIENT=src/pages/tour-detail-v170.component.ts
-          test -f "$EDGE"
+          CLIENT=src/pages/tour-detail.component.ts
+          test -f "$EDGE" && test -f "$CLIENT"
           grep -Fq "1_000_000_000" "$EDGE"
           grep -Fq "1_000_000_000" "$CLIENT"
           grep -Fq 'capacity_policy: "FLEXIBLE_DEMAND"' "$EDGE"
@@ -125,7 +125,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          FILE=src/pages/tour-detail-v170.component.ts
+          FILE=src/pages/tour-detail.component.ts
           grep -Fq "mediaItems" "$FILE"
           grep -Fq "<video" "$FILE"
           grep -Fq "poster" "$FILE"
@@ -154,8 +154,8 @@ jobs:
           grep -Fq "tour.itinerary" "$FILE"
           grep -Fq "isCover:image&&!hasCover" "$FILE"
           grep -Fq 'mode="TOUR"' "$HUB"
-          if grep -Fq "app-admin-tour-studio-v170" "$HUB"; then
-            echo "Legacy parallel tour studio must not return to the active content hub"
+          if test -f src/pages/admin/admin-tour-studio-v170.component.ts || test -f src/pages/admin/admin-tour-integrity-v169.component.ts; then
+            echo "Legacy parallel tour admin paths must stay deleted after V203"
             exit 1
           fi
 

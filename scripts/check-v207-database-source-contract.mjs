@@ -49,6 +49,14 @@ if (!detail.includes('isAvailable: row["is_active"] === true')) {
   failures.push("Tour detail availability must not reject RLS-visible scheduled tours.");
 }
 
+const legacyTour = read("src/services/tour-public-data-v170.service.ts");
+if (/tours\?[^`\n]*publication_status=eq\.PUBLISHED/.test(legacyTour)) {
+  failures.push("Legacy tour data service must not override database publication visibility.");
+}
+if (!legacyTour.includes('isAvailable: row["is_active"] === true')) {
+  failures.push("Legacy tour mapping must preserve RLS-visible scheduled tours.");
+}
+
 const campaign = read("src/services/campaign.service.ts");
 if (/campaigns\?[^`\n]*publication_status=eq\.PUBLISHED/.test(campaign)) {
   failures.push("Public campaign visibility must be owned by database RLS, not a PUBLISHED client filter.");
@@ -89,6 +97,20 @@ for (const contract of [
 }
 if (/f[0-9a-f]{7}-[0-9a-f-]{27,}/i.test(placementBackfill)) {
   failures.push("V207 campaign placement backfill must not hardcode campaign identifiers.");
+}
+
+const privilegeHardening = read("supabase/migrations/20260829194500_v207_explicit_data_api_privilege_hardening.sql");
+for (const contract of [
+  "revoke insert, update, delete, truncate, references, trigger on table public.customer_profiles from anon",
+  "revoke insert, update, delete, truncate, references, trigger on table public.customer_experience_preferences from anon",
+  "revoke insert, update, delete, truncate, references, trigger on table public.navigation_items from anon",
+  "revoke insert, update, delete, truncate, references, trigger on table public.vehicle_operations from anon",
+  "grant select on table public.branch_subscription_plans to anon, authenticated",
+  "grant update on table public.branch_subscription_plans to authenticated",
+  "grant select, update on table public.branch_subscriptions to authenticated",
+  "grant select on table public.branch_subscription_invoices to authenticated",
+]) {
+  if (!privilegeHardening.includes(contract)) failures.push(`V207 explicit Data API privilege contract is missing: ${contract}`);
 }
 
 if (failures.length) {

@@ -34,7 +34,7 @@ type ListingRow = { label: string; value: string; important?: boolean };
           @if (activeMedia(); as media) {
             <div class="media-frame">
               @if (media.kind === 'IMAGE') {
-                <button type="button" class="media-open" (click)="openLightbox()" [attr.aria-label]="item.brand + ' ' + item.model + ' görselini büyüt"><img [src]="media.url" [alt]="media.title || (item.brand + ' ' + item.model)" loading="eager" decoding="async" (error)="mediaFailed(media.url)" /></button>
+                <button type="button" class="media-open" (click)="openLightbox()" aria-label="Araç görselini büyüt"><img [src]="media.url" [alt]="media.title || (item.brand + ' ' + item.model)" loading="eager" decoding="async" (error)="mediaFailed(media.url)" /></button>
               } @else {
                 <video [src]="media.url" [poster]="media.posterUrl || item.image || ''" controls playsinline preload="metadata" [attr.aria-label]="media.title || (item.brand + ' ' + item.model + ' videosu')" (error)="mediaFailed(media.url)"></video>
                 <button type="button" class="video-expand" (click)="openLightbox()" aria-label="Videoyu tam ekran aç"><mat-icon aria-hidden="true">fullscreen</mat-icon></button>

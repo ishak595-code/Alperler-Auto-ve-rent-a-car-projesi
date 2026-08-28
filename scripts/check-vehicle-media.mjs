@@ -55,7 +55,7 @@ for (const token of ["İLAN BİLGİLERİ", "AÇIKLAMA", "KONUM", "app-expertise-
 if (saleDetail.includes('class="core-facts"')) failures.push("sale detail reintroduced duplicate top summary cards");
 if (!saleDetail.includes('(click)="callPhone()"') || saleDetail.includes('[href]="phoneHref()"')) failures.push("sale phone CTA is not a persistent action button");
 
-for (const token of ["checkoutStep", "Sürücü Tercihi", "Nereden alınacak?", "Nereye iade edilecek?", "Sonraki Adım", "Rezervasyon Özeti"]) {
+for (const token of ["checkoutStep", "Sürücü Tercihi", "Nereden alınacak?", "Nereye iade edilecek?", "Sonraki Adım", "Rezervasyonu kontrol edin", '<dl class="review">', "<dt>Araç</dt>", "<dt>Zaman</dt>", "<dt>Şoför</dt>", "<dt>Teslim</dt>", "<dt>İade</dt>", "<dt>Toplam</dt>"]) {
   if (!checkout.includes(token)) failures.push(`focused rental checkout is missing: ${token}`);
 }
 if (!checkout.includes('checkoutStep() === 1') || !checkout.includes('checkoutStep() === 2')) failures.push("rental checkout steps are not mutually exclusive views");
@@ -102,4 +102,4 @@ if (publicMedia.includes("/vehicle-media/") || vercel.includes("/vehicle-media/"
 if (!fs.existsSync(campaignMigration)) failures.push("campaign cover synchronization migration missing");
 
 if (failures.length) { console.error(failures.join("\n")); process.exit(1); }
-console.log("Unified catalogue guard passed: canonical admin workspace owns media authoring; rental detail uses one customer-facing disclosure; booking checkout owns reservation summary; sale keeps its dedicated listing UX; campaign proof has one root service owner with shared deduped state; safe-projection detail routing and Storage remain canonical.");
+console.log("Unified catalogue guard passed: canonical admin workspace owns media authoring; rental detail uses one customer-facing disclosure; booking checkout owns the complete reservation review; sale keeps its dedicated listing UX; campaign proof has one root service owner with shared deduped state; safe-projection detail routing and Storage remain canonical.");

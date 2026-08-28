@@ -101,10 +101,11 @@ if (/f[0-9a-f]{7}-[0-9a-f-]{27,}/i.test(placementBackfill)) {
 
 const privilegeHardening = read("supabase/migrations/20260829194500_v207_explicit_data_api_privilege_hardening.sql");
 for (const contract of [
-  "revoke insert, update, delete, truncate, references, trigger on table public.customer_profiles from anon",
-  "revoke insert, update, delete, truncate, references, trigger on table public.customer_experience_preferences from anon",
+  "revoke select, insert, update, delete, truncate, references, trigger on table public.customer_profiles from anon",
+  "revoke select, insert, update, delete, truncate, references, trigger on table public.customer_loyalty_accounts from anon",
+  "revoke select, insert, update, delete, truncate, references, trigger on table public.customer_experience_preferences from anon",
   "revoke insert, update, delete, truncate, references, trigger on table public.navigation_items from anon",
-  "revoke insert, update, delete, truncate, references, trigger on table public.vehicle_operations from anon",
+  "revoke select, insert, update, delete, truncate, references, trigger on table public.vehicle_operations from anon",
   "grant select on table public.branch_subscription_plans to anon, authenticated",
   "grant update on table public.branch_subscription_plans to authenticated",
   "grant select, update on table public.branch_subscriptions to authenticated",

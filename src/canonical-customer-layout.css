@@ -1,0 +1,401 @@
+/*
+ * Canonical customer layout contract.
+ *
+ * This file is intentionally unversioned: it is the single final responsive
+ * override boundary for the approved V201+ customer components. Historical
+ * component-local styles remain implementation defaults; this contract owns
+ * cross-device geometry, safe areas and interaction density.
+ */
+
+:root {
+  --customer-action-height: 58px;
+  --customer-action-divider: rgba(255,255,255,.14);
+  --customer-panel-edge: color-mix(in srgb, var(--alper-border, #27364a) 86%, #fff 14%);
+  --customer-panel-soft: color-mix(in srgb, var(--alper-card, #0e1724) 92%, #fff 8%);
+}
+
+html, body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+:is(app-car-detail, app-sale-car-detail, app-tour-detail) *,
+:is(app-sale-vehicle-card-v168, app-dynamic-home-section) * {
+  box-sizing: border-box;
+}
+
+/* Canonical rental + sale bottom actions. No dead gaps on phones; safe areas
+   remain usable on notched devices. */
+app-car-detail .fixed-actions,
+app-sale-car-detail .bottom-actions {
+  isolation: isolate;
+}
+
+app-car-detail .fixed-actions :is(a,button),
+app-sale-car-detail .bottom-actions button {
+  min-width: 0 !important;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 767px) {
+  app-car-detail .detail-page,
+  app-sale-car-detail .sale-page {
+    padding-bottom: calc(var(--customer-action-height) + env(safe-area-inset-bottom) + 2px) !important;
+  }
+
+  app-car-detail .fixed-actions,
+  app-sale-car-detail .bottom-actions {
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    transform: none !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    overflow: hidden;
+    border: 0 !important;
+    border-top: 1px solid rgba(148,163,184,.32) !important;
+    border-radius: 0 !important;
+    background: rgba(5,10,20,.985) !important;
+    padding: 0 max(env(safe-area-inset-right), 0px) env(safe-area-inset-bottom) max(env(safe-area-inset-left), 0px) !important;
+    box-shadow: 0 -14px 34px rgba(0,0,0,.28) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  app-car-detail .fixed-actions :is(a,button),
+  app-sale-car-detail .bottom-actions button {
+    min-height: var(--customer-action-height) !important;
+    height: var(--customer-action-height);
+    border-radius: 0 !important;
+    padding: 0 clamp(4px, 2.2vw, 10px) !important;
+    gap: clamp(3px, 1.2vw, 6px) !important;
+    box-shadow: none !important;
+    font-size: clamp(10px, 3.15vw, 13px) !important;
+    line-height: 1.12;
+    letter-spacing: -.01em;
+    white-space: nowrap;
+  }
+
+  app-car-detail .fixed-actions :is(a,button) + :is(a,button),
+  app-sale-car-detail .bottom-actions button + button {
+    border-left: 1px solid var(--customer-action-divider) !important;
+  }
+
+  app-car-detail .fixed-actions mat-icon,
+  app-sale-car-detail .bottom-actions mat-icon {
+    width: clamp(17px, 5vw, 21px) !important;
+    height: clamp(17px, 5vw, 21px) !important;
+    flex: 0 0 auto;
+    font-size: clamp(17px, 5vw, 21px) !important;
+  }
+
+  app-car-detail .fixed-actions .phone-symbol,
+  app-sale-car-detail .bottom-actions .phone-symbol {
+    flex: 0 0 auto;
+    font-size: clamp(18px, 5.8vw, 23px) !important;
+  }
+}
+
+@media (max-width: 340px) {
+  app-car-detail .fixed-actions :is(a,button),
+  app-sale-car-detail .bottom-actions button {
+    font-size: 10px !important;
+    padding-inline: 3px !important;
+    gap: 2px !important;
+  }
+
+  app-car-detail .fixed-actions mat-icon,
+  app-sale-car-detail .bottom-actions mat-icon {
+    width: 17px !important;
+    height: 17px !important;
+    font-size: 17px !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  app-car-detail .detail-page,
+  app-sale-car-detail .sale-page {
+    padding-bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+  }
+
+  app-car-detail .fixed-actions,
+  app-sale-car-detail .bottom-actions {
+    left: 50% !important;
+    right: auto !important;
+    width: min(860px, calc(100% - 32px)) !important;
+    transform: translateX(-50%) !important;
+    grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+    gap: 6px !important;
+    border: 1px solid rgba(148,163,184,.34) !important;
+    border-bottom: 0 !important;
+    border-radius: 18px 18px 0 0 !important;
+    padding: 7px 7px calc(7px + env(safe-area-inset-bottom)) !important;
+    box-shadow: 0 -12px 36px rgba(0,0,0,.22) !important;
+  }
+
+  app-car-detail .fixed-actions :is(a,button),
+  app-sale-car-detail .bottom-actions button {
+    min-height: 56px !important;
+    font-size: 13px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  app-car-detail .fixed-actions,
+  app-sale-car-detail .bottom-actions {
+    grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+    gap: 6px !important;
+    padding: 7px 7px max(7px, env(safe-area-inset-bottom)) !important;
+    border-radius: 18px 18px 0 0 !important;
+  }
+
+  app-car-detail .fixed-actions {
+    width: min(780px, calc(100% - 40px)) !important;
+  }
+
+  app-sale-car-detail .bottom-actions {
+    width: min(840px, calc(100% - 40px)) !important;
+  }
+}
+
+@media (hover:hover) and (pointer:fine) {
+  app-car-detail .fixed-actions :is(a,button):not(:disabled),
+  app-sale-car-detail .bottom-actions button:not(:disabled) {
+    transition: filter .16s ease, transform .16s ease, box-shadow .16s ease;
+  }
+
+  app-car-detail .fixed-actions :is(a,button):not(:disabled):hover,
+  app-sale-car-detail .bottom-actions button:not(:disabled):hover {
+    filter: brightness(1.08) saturate(1.04);
+    transform: translateY(-1px);
+  }
+}
+
+app-car-detail .fixed-actions :is(a,button):focus-visible,
+app-sale-car-detail .bottom-actions button:focus-visible {
+  position: relative;
+  z-index: 2;
+  outline: 3px solid #bfdbfe !important;
+  outline-offset: -3px !important;
+}
+
+/* Connected information language: data reads as one premium system rather than
+   a pile of unrelated boxes. Interactive expanders retain an obvious action
+   affordance; read-only data never receives a fake pointer cursor. */
+app-car-detail .all-details-panel,
+app-sale-car-detail .tab-content {
+  border-color: var(--customer-panel-edge) !important;
+  box-shadow: 0 18px 44px rgba(0,0,0,.16) !important;
+}
+
+app-car-detail .all-details-toggle,
+app-sale-car-detail .expand-button {
+  position: relative;
+  overflow: hidden;
+}
+
+app-car-detail .all-details-toggle::after,
+app-sale-car-detail .expand-button::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #315e86, #c6a15b 58%, transparent);
+  opacity: .72;
+}
+
+app-car-detail .detail-list,
+app-sale-car-detail .listing-table {
+  overflow: hidden;
+  border: 1px solid rgba(148,163,184,.16);
+  border-radius: 14px;
+  background: rgba(5,11,24,.42);
+}
+
+app-car-detail .detail-list > div,
+app-sale-car-detail .listing-table > div {
+  min-width: 0;
+  border-top-color: rgba(148,163,184,.14) !important;
+  background: transparent !important;
+  padding-block: clamp(12px, 2vw, 16px) !important;
+}
+
+app-sale-car-detail .listing-table > div:nth-child(even) {
+  background: rgba(15,23,42,.32) !important;
+}
+
+app-car-detail .detail-list dt,
+app-sale-car-detail .listing-table dt,
+app-sale-car-detail .spec-grid dt,
+app-car-detail .tech-grid dt {
+  line-height: 1.35;
+}
+
+app-car-detail .detail-list dd,
+app-sale-car-detail .listing-table dd,
+app-sale-car-detail .spec-grid dd,
+app-car-detail .tech-grid dd {
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+
+/* The old sale expertise 2x2 card cluster becomes one connected truth panel.
+   No information is discarded; only the four-box presentation is removed. */
+app-sale-car-detail .truth-grid {
+  display: block !important;
+  overflow: hidden;
+  border: 1px solid rgba(148,163,184,.2);
+  border-radius: 14px;
+  background: rgba(5,11,24,.46);
+}
+
+app-sale-car-detail .truth-grid > div {
+  display: grid !important;
+  grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr);
+  align-items: center;
+  gap: 14px !important;
+  min-height: 52px;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 11px 14px !important;
+}
+
+app-sale-car-detail .truth-grid > div + div {
+  border-top: 1px solid rgba(148,163,184,.14) !important;
+}
+
+app-sale-car-detail .truth-grid strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Sale showcase cards: remove the crowded chip-box look and use a calm,
+   connected metadata line instead. */
+app-sale-vehicle-card-v168 .facts {
+  align-items: center;
+  gap: 0 !important;
+  row-gap: 6px !important;
+}
+
+app-sale-vehicle-card-v168 .facts span {
+  border: 0 !important;
+  border-right: 1px solid rgba(148,163,184,.24) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 7px !important;
+  color: #b9c5d4 !important;
+  font-size: clamp(9px, 2.5vw, 10px) !important;
+  line-height: 1.3;
+}
+
+app-sale-vehicle-card-v168 .facts span:first-child {
+  padding-left: 0 !important;
+}
+
+app-sale-vehicle-card-v168 .facts span:last-child {
+  border-right: 0 !important;
+}
+
+app-sale-vehicle-card-v168 .cta {
+  min-height: 34px;
+  margin-top: 10px !important;
+  border-top: 1px solid rgba(148,163,184,.14);
+  padding-top: 9px;
+  letter-spacing: .04em;
+  text-transform: none !important;
+}
+
+@media (max-width: 520px) {
+  app-car-detail .facts {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    gap: 7px !important;
+  }
+
+  app-car-detail .facts > div {
+    min-width: 0;
+    padding: 10px !important;
+  }
+
+  app-car-detail .facts dd {
+    overflow-wrap: anywhere;
+    font-size: 12px !important;
+  }
+
+  app-sale-car-detail .listing-table > div,
+  app-sale-car-detail .truth-grid > div {
+    grid-template-columns: minmax(92px,.8fr) minmax(0,1.2fr) !important;
+    gap: 10px !important;
+  }
+
+  app-sale-car-detail .sale-tabs button {
+    min-width: 0;
+    min-height: 58px !important;
+    padding-inline: 4px !important;
+    font-size: clamp(9px, 2.6vw, 10px) !important;
+  }
+
+  app-sale-car-detail .sale-tabs button span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  app-sale-car-detail .listing-head,
+  app-sale-car-detail .sale-tabs,
+  app-sale-car-detail .tab-content,
+  app-car-detail .detail-layout,
+  app-car-detail .campaign-strip {
+    width: calc(100% - 20px) !important;
+  }
+}
+
+/* Homepage / catalog rails must never force horizontal page overflow. Data still
+   comes from HomepageLayoutService + canonical entity services. */
+app-dynamic-home-section .section-inner,
+app-dynamic-home-section .content-rail,
+app-dynamic-home-section .vehicle-shell,
+app-dynamic-home-section .image-card,
+app-dynamic-home-section .campaign-card,
+app-dynamic-home-section .branch-card,
+app-sale-vehicle-card-v168 .card,
+app-sale-vehicle-card-v168 article {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 359px) {
+  app-dynamic-home-section .vehicle-shell,
+  app-dynamic-home-section .image-card,
+  app-dynamic-home-section .branch-card,
+  app-dynamic-home-section .campaign-card {
+    flex-basis: min(86vw, 300px) !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  app-dynamic-home-section .content-rail:not(.grid-layout) > :is(.vehicle-shell,.image-card,.branch-card,.campaign-card) {
+    flex-basis: min(44vw, 330px) !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  app-dynamic-home-section .content-rail:not(.grid-layout) > :is(.vehicle-shell,.image-card,.branch-card,.campaign-card) {
+    flex-basis: min(31vw, 330px) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  app-car-detail .fixed-actions *,
+  app-sale-car-detail .bottom-actions *,
+  app-sale-vehicle-card-v168 * {
+    transition: none !important;
+  }
+}

@@ -225,8 +225,9 @@ export class CatalogService {
 
   private publicRestPath(resource: PublicResource): string {
     switch (resource) {
-      case "vehicles": return `vehicles?is_active=eq.true&publication_status=eq.PUBLISHED&select=${this.publicVehicleSelect}&order=is_featured.desc,updated_at.desc`;
-      case "tours": return `tours?is_active=eq.true&publication_status=eq.PUBLISHED&select=${this.publicTourSelect}&order=is_featured.desc,updated_at.desc`;
+      // Row visibility is intentionally owned by Supabase RLS so scheduled catalogue items become public at the database-defined time.
+      case "vehicles": return `vehicles?is_active=eq.true&select=${this.publicVehicleSelect}&order=is_featured.desc,updated_at.desc`;
+      case "tours": return `tours?is_active=eq.true&select=${this.publicTourSelect}&order=is_featured.desc,updated_at.desc`;
       case "blog": return `blog_posts?status=eq.PUBLISHED&select=${this.publicBlogSelect}&order=published_at.desc`;
       case "faqs": return `faqs?is_active=eq.true&select=${this.publicFaqSelect}&order=sort_order.asc`;
       case "config": return "site_config?key=eq.site_settings&is_public=eq.true&select=value,updated_at&limit=1";

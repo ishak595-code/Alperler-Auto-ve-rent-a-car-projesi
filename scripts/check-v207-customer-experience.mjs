@@ -45,6 +45,9 @@ rejectText(sources.rentalDetail, "Kiralama Özeti", "Rental detail must not cont
 rejectText(sources.rentalDetail, 'class="reservation-panel"', "Rental detail must not restore the duplicate reservation panel.");
 requireText(sources.homeVehicleCard, "@if(variant==='sale' && cardDescription)", "Homepage rental cards must not render the descriptive summary reserved for sale cards.");
 requireText(sources.rentalCard, "Aracı İncele", "Rental cards must use a direct customer CTA.");
+requireText(sources.rentalDetail, "<dt>Kapı</dt>", "Rental detail must surface the canonical door count when available.");
+requireText(sources.rentalDetail, "car.doors", "Rental detail door count must come from the canonical vehicle record.");
+requireText(sources.rentalDetail, "car.luggage", "Rental detail must retain luggage capacity from the canonical vehicle record.");
 
 // Customer-facing list/detail surfaces must use customer language, not implementation language.
 const customerFiles = [
@@ -88,6 +91,8 @@ for (const [label, source] of customerFiles) {
 }
 
 // Raw backend/service errors stay internal. Customer states use stable human language.
+rejectText(sources.rentalDetail, "{{loadError()}}", "Rental detail must not print a raw backend error to customers.");
+rejectText(sources.rentalDetail, "{{ loadError() }}", "Rental detail must not print a raw backend error to customers.");
 rejectText(sources.saleDetail, "{{ loadError() }}", "Sale detail must not print a raw backend error to customers.");
 rejectText(sources.tourDetail, "{{ loadError() }}", "Tour detail must not print a raw backend error to customers.");
 rejectText(sources.blogDetail, "{{error()}}", "Blog detail must not print a raw backend error to customers.");

@@ -1,4 +1,5 @@
-/* Initial paint fallback only. Runtime ThemeService and admin-managed site_settings override these variables after config load. */
+/* Initial paint fallback only. Runtime ThemeService and admin-managed site_settings override these variables after config load.
+   Historical --alper-blue names are compatibility tokens; in the current prestige identity they resolve to the premium red interaction accent. */
 :root {
   --alper-bg: #06080D;
   --alper-list: #090C12;
@@ -12,6 +13,11 @@
   --alper-text: #F8F6F1;
   --alper-muted: #B8B4AA;
   --alper-subtle: #81858A;
+
+  /* Semantic aliases for new code. Keep the legacy tokens above until a controlled migration is justified. */
+  --alper-accent: var(--alper-blue);
+  --alper-accent-light: var(--alper-blue-light);
+  --alper-brand-gold: var(--alper-gold);
 }
 
 /* Repo-owned logo fallback keeps the brand portable when no remote logoUrl is configured. */

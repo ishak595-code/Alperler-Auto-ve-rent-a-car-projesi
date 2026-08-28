@@ -62,38 +62,41 @@ jobs:
           grep -q "SALE_TRAMER_DECLARATION_REQUIRED" "$MIG"
           grep -q "new.category='SALE'" "$MIG"
 
-      - name: Dynamic sale showcase contract
+      - name: Dynamic sale showcase and canonical detail contract
         shell: bash
         run: |
           set -euo pipefail
           SHOW="src/pages/sales-showcase-v168.component.ts"
           CARD="src/components/sale-vehicle-card-v168.component.ts"
-          HISTORICAL_DETAIL="src/pages/sale-detail-v1681.component.ts"
-          CANONICAL_DETAIL="src/pages/sale-car-detail.component.ts"
-          test -f "$SHOW" && test -f "$CARD" && test -f "$HISTORICAL_DETAIL" && test -f "$CANONICAL_DETAIL"
+          DETAIL="src/pages/sale-car-detail.component.ts"
+          test -f "$SHOW" && test -f "$CARD" && test -f "$DETAIL"
           grep -q "priceBounds=computed" "$SHOW"
           grep -q "kmBounds=computed" "$SHOW"
           grep -q "branchLabel(car" "$SHOW"
           grep -q "tramer-unverified" "$SHOW"
           grep -q "cloudStockCode" "$CARD"
           grep -q "branchLabel" "$CARD"
-          grep -q "hasPartExpertise" "$HISTORICAL_DETAIL"
-          grep -q "tramerStatus" "$HISTORICAL_DETAIL"
-          grep -q "VehicleTechnicalSpecs" "$HISTORICAL_DETAIL"
-          grep -q "İLAN BİLGİLERİ" "$CANONICAL_DETAIL"
-          grep -q "AÇIKLAMA" "$CANONICAL_DETAIL"
-          grep -q "KONUM" "$CANONICAL_DETAIL"
-          grep -q "bottom-actions" "$CANONICAL_DETAIL"
+          grep -q "tramerStatusLabel" "$DETAIL"
+          grep -q "technicalRows" "$DETAIL"
+          grep -q "app-expertise-graphic" "$DETAIL"
+          grep -q "İLAN BİLGİLERİ" "$DETAIL"
+          grep -q "AÇIKLAMA" "$DETAIL"
+          grep -q "KONUM" "$DETAIL"
+          grep -q "bottom-actions" "$DETAIL"
+          grep -q "callPhone()" "$DETAIL"
+          if grep -q 'class="summary"' "$DETAIL"; then
+            echo "Sale detail must not duplicate year/km/fuel/transmission/body facts above İlan Bilgileri"
+            exit 1
+          fi
+          for old in src/pages/sale-detail-v168.component.ts src/pages/sale-detail-v1681.component.ts; do
+            if test -f "$old"; then echo "Historical sale detail renderer must stay deleted after V203 canonical cutover: $old"; exit 1; fi
+          done
           if grep -Eq "priceOptions|kmOptions|0-500000|150000\+" "$SHOW"; then
             echo "Sale price/km filters must derive from live numeric bounds"
             exit 1
           fi
-          if grep -q "config().address\|getConfig()().address" "$CARD" "$HISTORICAL_DETAIL"; then
-            echo "Sale showcase/detail successor must not mask vehicle location with global company address"
-            exit 1
-          fi
-          if grep -q "getTechnicalSpecs" "$HISTORICAL_DETAIL"; then
-            echo "Historical V168 detail must use the already loaded canonical vehicle record"
+          if grep -q "config().address\|getConfig()().address" "$CARD" "$DETAIL"; then
+            echo "Sale showcase/detail must not mask vehicle location with global company address"
             exit 1
           fi
           if grep -Eq "isCampaign|discountRate" "$CARD"; then
@@ -102,10 +105,6 @@ jobs:
           fi
           grep -q "SalesShowcaseV168Component" src/pages/sales-results.component.ts
           grep -q "SaleCarDetailComponent" src/pages/catalog-detail-shells.component.ts
-          if grep -q "SaleDetailV1681Component" src/pages/catalog-detail-shells.component.ts; then
-            echo "V201 approved sale detail must remain the public renderer"
-            exit 1
-          fi
 
       - name: Current Super Admin sale workspace contract
         shell: bash

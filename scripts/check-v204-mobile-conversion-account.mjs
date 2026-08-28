@@ -18,6 +18,8 @@ const required = [
   'src/mobile-target-fixes.css',
   'supabase/migrations/20260828114500_v204_campaign_social_proof_attribution.sql',
   'supabase/migrations/20260828115000_v204_mobile_home_conversion_defaults.sql',
+  'playwright.v204.config.ts',
+  'tests/v204/mobile-dock.spec.ts',
 ];
 required.forEach(requireFile);
 
@@ -56,6 +58,11 @@ const mobileFixes = read('src/mobile-target-fixes.css');
 for (const token of ['app-home-v71 > main','app-fleet app-rental-showcase-v167 > main','app-sales-results app-sales-showcase-v168 > main','app-tours app-tour-showcase-v170 > main','app-campaigns > main','app-search > main','app-account-shell app-account-dashboard-v150 > main']) must(mobileFixes, token, `Canonical mobile dock safe-area owner missing: ${token}`);
 mustNot(mobileFixes, 'app-home-v39', 'Deleted V39 homepage selector must not remain in the active CSS chain.');
 mustNot(mobileFixes, 'app-home section[aria-labelledby="campaigns-title"]', 'Deleted V62 homepage campaign selector must not remain in the active CSS chain.');
+
+const runtimeTest = read('tests/v204/mobile-dock.spec.ts');
+for (const token of ['"/fleet"', '"/sales"', '"/search"', '"/campaigns"', 'dock-hidden', 'window.scrollTo', 'page.goBack()', 'aria-hidden']) must(runtimeTest, token, `Android dock regression missing behavior: ${token}`);
+const runtimeConfig = read('playwright.v204.config.ts');
+for (const token of ['SM-S928B','isMobile: true','hasTouch: true','width: 412','height: 915']) must(runtimeConfig, token, `Android runtime profile missing contract: ${token}`);
 
 const account = read('src/pages/account-dashboard-v150.component.ts');
 for (const token of ['profileOpen','profileForm','saveProfile()','routerLink="/account/wallet"','bookingFilter','filteredBookings','expandedBooking','toggleBooking','selectFilter','Cüzdan ve Belgeler','Profil Ayarları']) must(account, token);

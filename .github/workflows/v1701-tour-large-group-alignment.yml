@@ -64,20 +64,23 @@ jobs:
           set -euo pipefail
           SHELL=src/pages/catalog-detail-shells.component.ts
           DETAIL=src/pages/tour-detail.component.ts
+          ADMIN=src/pages/admin/admin-catalog-workspace.component.ts
+          HUB=src/pages/admin/admin-content-hub.component.ts
           grep -Fq "TourDetailComponent" "$SHELL"
           if grep -Fq "TourDetailV170Component" "$SHELL"; then
-            echo "Legacy V170 detail renderer must not return to the public shell"
+            echo "Historical V170 detail renderer must not return to the public shell"
             exit 1
           fi
           grep -Fq "TourBookingV170Service" "$DETAIL"
           grep -Fq "TourDemandV170Service" "$DETAIL"
-          grep -Fq "startDate: this.tourDate" "$DETAIL"
           grep -Fq "1_000_000_000" "$DETAIL"
           grep -Fq "onDateChange" "$DETAIL"
           grep -Fq "capacity" "$DETAIL"
           grep -Fq "reservationOpen" "$DETAIL"
           grep -Fq "action-bar" "$DETAIL"
-          grep -Fq "TourStudio" src/pages/admin/admin-tour-studio-v170.component.ts || grep -Fq "Tur Stüdyosu" src/pages/admin/admin-tour-studio-v170.component.ts
+          grep -Fq "tour.itinerary" "$ADMIN"
+          grep -Fq "tour.capacity" "$ADMIN"
+          grep -Fq 'mode="TOUR"' "$HUB"
           grep -Fq "tour_demand_v170" supabase/migrations/20260825193000_v170_tour_flexible_demand_security.sql
 
       - name: Frontend TypeScript

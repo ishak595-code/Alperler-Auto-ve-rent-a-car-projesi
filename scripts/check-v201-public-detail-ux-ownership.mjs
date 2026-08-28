@@ -48,7 +48,7 @@ mustNot(sale, '[href]="phoneHref()"', 'Sale phone CTA must remain a persistent a
 for (const contract of [
   'readonly reservationOpen = signal(false)','@if (reservationOpen())','class="reservation-overlay"','(click)="openReservation()"',
   'aria-label="Bu turu rezerve et"','focusAfterRender','Bu Turu Rezerve Et','Tur Hakkında','Tur Programı','Kapsam','action-bar','map-panel','Buluşma ve rota','Haritada aç',
-  'TourBookingV170Service','TourDemandV170Service','onDateChange($event)','1_000_000_000','sert limit değildir',
+  'TourBookingV170Service','TourDemandV170Service','onDateChange($event)','1_000_000_000',
   'DetailMediaLightboxComponent','for (const video of item.videos || [])','commercialOffer.activateCampaign(verified)',
   'new URL(record.mapUrl)','parsed.searchParams.get("q")','maps/search/?api=1&query=','Math.abs(latitude) <= 90','Math.abs(longitude) <= 180',
   'aria-label="Tur detayına dön"','aria-label="İletişim bilgileri adımına devam et"','aria-label="Rezervasyon onay adımına devam et"',

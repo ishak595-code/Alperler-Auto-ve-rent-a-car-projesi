@@ -113,7 +113,7 @@ export class CampaignService {
 
   async refreshAdmin(): Promise<void> {
     const token = await this.requiredToken();
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=*&order=sort_order.asc,created_at.desc`, {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=${PUBLIC_CAMPAIGN_SELECT}&order=sort_order.asc,created_at.desc`, {
       headers: this.authHeaders(token),
       cache: "no-store",
     });
@@ -169,8 +169,8 @@ export class CampaignService {
     };
     const isUpdate = Boolean(input.id);
     const url = isUpdate
-      ? `${SUPABASE_PROJECT_URL}/rest/v1/campaigns?id=eq.${encodeURIComponent(input.id!)}&select=*`
-      : `${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=*`;
+      ? `${SUPABASE_PROJECT_URL}/rest/v1/campaigns?id=eq.${encodeURIComponent(input.id!)}&select=${PUBLIC_CAMPAIGN_SELECT}`
+      : `${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=${PUBLIC_CAMPAIGN_SELECT}`;
     const response = await fetch(url, {
       method: isUpdate ? "PATCH" : "POST",
       headers: { ...this.authHeaders(token), Prefer: "return=representation" },

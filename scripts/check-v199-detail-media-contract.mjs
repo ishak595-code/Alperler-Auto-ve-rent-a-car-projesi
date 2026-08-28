@@ -10,13 +10,20 @@ const mustNot = (source, needle, message) => {
 const count = (source, needle) => source.split(needle).length - 1;
 
 const lightboxPath = 'src/components/detail-media-lightbox.component.ts';
-const rentalPath = 'src/pages/rental-detail-v167.component.ts';
-const salePath = 'src/pages/sale-detail-v1681.component.ts';
-const tourPath = 'src/pages/tour-detail-v170.component.ts';
+const rentalPath = 'src/pages/car-detail.component.ts';
+const salePath = 'src/pages/sale-car-detail.component.ts';
+const tourPath = 'src/pages/tour-detail.component.ts';
 const blogPath = 'src/pages/blog-detail.component.ts';
 const canonicalPublicMediaPath = 'src/services/public-catalog-media.service.ts';
 const dynamicHomePath = 'src/components/dynamic-home-section.component.ts';
 const mobileDockPath = 'src/components/customer-mobile-dock.component.ts';
+const removedDetailPaths = [
+  'src/pages/rental-detail-v167.component.ts',
+  'src/pages/sale-detail-v168.component.ts',
+  'src/pages/sale-detail-v1681.component.ts',
+  'src/pages/tour-detail-v169.component.ts',
+  'src/pages/tour-detail-v170.component.ts',
+];
 const duplicatePaths = [
   'src/components/catalog-mixed-gallery.component.ts',
   'src/app/components/catalog-mixed-gallery.component.ts',
@@ -24,10 +31,10 @@ const duplicatePaths = [
 ];
 
 for (const path of [lightboxPath, rentalPath, salePath, tourPath, blogPath, canonicalPublicMediaPath, dynamicHomePath, mobileDockPath]) {
-  if (!fs.existsSync(path)) throw new Error(`Required V199 file missing: ${path}`);
+  if (!fs.existsSync(path)) throw new Error(`Required V199 canonical file missing: ${path}`);
 }
-for (const path of duplicatePaths) {
-  if (fs.existsSync(path)) throw new Error(`Duplicate/legacy public media path must remain deleted: ${path}`);
+for (const path of [...removedDetailPaths, ...duplicatePaths]) {
+  if (fs.existsSync(path)) throw new Error(`Duplicate/legacy public media owner must remain deleted: ${path}`);
 }
 
 const lightbox = read(lightboxPath);
@@ -59,34 +66,43 @@ for (const [name, source] of [['rental', rental], ['sale', sale], ['tour', tour]
   mustNot(source, 'autoplay', `${name} detail must not autoplay media.`);
 }
 
-for (const contract of [
-  "car.videos||[]",
-  "kind:'VIDEO'",
-  '(touchstart)="galleryTouchStart($event)"',
-  '(touchend)="galleryTouchEnd($event)"',
-  '@media(max-width:1023px){.reserve>button{display:none}}',
-  '@media(min-width:1024px)',
-  '.mobile{display:none}',
-]) must(rental, contract, `Rental detail missing mixed-media/CTA contract: ${contract}`);
+for (const [name, source] of [['rental', rental], ['sale', sale], ['tour', tour]]) {
+  for (const contract of [
+    'DetailMediaItem',
+    'mediaItems()',
+    '<video',
+    'controls playsinline preload="metadata"',
+    '(touchstart)="touchStart($event)"',
+    '(touchend)="touchEnd($event)"',
+    'openLightbox()',
+  ]) must(source, contract, `${name} canonical detail missing mixed-media contract: ${contract}`);
+}
 
 for (const contract of [
-  "item.videos||[]",
-  "kind:'VIDEO'",
-  '(touchstart)="touchStart($event)"',
-  '(touchend)="touchEnd($event)"',
-  '<dt>Kapı</dt>',
-  'item.doors',
-]) must(sale, contract, `Sale detail missing public/admin media-field contract: ${contract}`);
+  'class="fixed-actions"',
+  '(click)="whatsapp()"',
+  '(click)="reserve(car)"',
+  'detailData.load("RENTAL"',
+]) must(rental, contract, `Rental detail missing canonical media/CTA contract: ${contract}`);
 
 for (const contract of [
-  'item.videos||[]',
-  'kind:"VIDEO" as const',
-  '(touchstart)="touchStart($event)"',
-  '(touchend)="touchEnd($event)"',
+  'class="bottom-actions"',
+  '(click)="callPhone()"',
+  '(click)="inquire(item)"',
+  '(click)="whatsapp()"',
+  'readonly listingRows = computed<ListingRow[]>',
+  'detailData.load("SALE"',
+]) must(sale, contract, `Sale detail missing canonical media/CTA contract: ${contract}`);
+
+for (const contract of [
+  'class="action-bar"',
+  '(click)="openReservation()"',
+  '(click)="whatsapp()"',
   'item.includedItems',
   'item.excludedItems',
-  'itinerary()',
-]) must(tour, contract, `Tour detail missing mixed-media/content contract: ${contract}`);
+  'itineraryRows()',
+  'detailData.load("TOUR"',
+]) must(tour, contract, `Tour detail missing canonical media/content contract: ${contract}`);
 
 for (const contract of [
   '[items]="article.media"',
@@ -104,7 +120,7 @@ for (const contract of [
   'kind: PublicCatalogMediaKind',
 ]) must(publicMedia, contract, `Canonical public media service missing owner-scoped contract: ${contract}`);
 mustNot(publicMedia, 'from "./catalog-media.service"', 'Public media reads must never import the authenticated admin media service.');
-mustNot(publicMedia, 'from \'./catalog-media.service\'', 'Public media reads must never import the authenticated admin media service.');
+mustNot(publicMedia, "from './catalog-media.service'", 'Public media reads must never import the authenticated admin media service.');
 
 const dynamicHome = read(dynamicHomePath);
 for (const contract of [
@@ -124,5 +140,6 @@ for (const contract of [
 if (count(tour, '(click)="openReservation()"') !== 1) throw new Error('Tour detail must expose exactly one primary reservation action.');
 if (count(tour, '(click)="whatsapp()"') !== 1) throw new Error('Tour detail must expose exactly one WhatsApp action.');
 if (count(sale, '(click)="whatsapp()"') !== 1) throw new Error('Sale detail must expose exactly one WhatsApp action.');
+if (count(sale, '(click)="callPhone()"') !== 1) throw new Error('Sale detail must expose exactly one call action.');
 
-console.log('V199 detail media and CTA ownership contract: PASS');
+console.log('V199 canonical detail media and CTA ownership contract: PASS');

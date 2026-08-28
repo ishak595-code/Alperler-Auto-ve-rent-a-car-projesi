@@ -27,6 +27,7 @@ test("mobile dock survives tab taps and hides only after downward scroll", async
     await expect(dock).toBeVisible();
     await expect(dock).not.toHaveClass(/dock-hidden/);
     await expect(dock).not.toHaveAttribute("aria-hidden", "true");
+    await expect(dock).not.toHaveAttribute("inert", "");
   }
 
   await dock.locator('a[href="/fleet"]').click();
@@ -41,11 +42,12 @@ test("mobile dock survives tab taps and hides only after downward scroll", async
   await page.evaluate((top) => window.scrollTo(0, top), scrollTarget);
   await expect(dock).toHaveClass(/dock-hidden/);
   await expect(dock).toHaveAttribute("aria-hidden", "true");
-  await expect(dock).not.toBeVisible();
+  await expect(dock).toHaveAttribute("inert", "");
 
   await page.evaluate(() => window.scrollBy(0, -90));
   await expect(dock).not.toHaveClass(/dock-hidden/);
   await expect(dock).not.toHaveAttribute("aria-hidden", "true");
+  await expect(dock).not.toHaveAttribute("inert", "");
   await expect(dock).toBeVisible();
 
   const rememberedY = await page.evaluate(() => window.scrollY);
@@ -63,4 +65,5 @@ test("mobile dock survives tab taps and hides only after downward scroll", async
   await expect(dock).toBeVisible();
   await expect(dock).not.toHaveClass(/dock-hidden/);
   await expect(dock).not.toHaveAttribute("aria-hidden", "true");
+  await expect(dock).not.toHaveAttribute("inert", "");
 });

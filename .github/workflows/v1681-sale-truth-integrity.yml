@@ -48,7 +48,7 @@ jobs:
             exit 1
           fi
           for token in local_painted rearBumper "Arka tampon" "Bilgi yok"; do grep -Fq "$token" "$GRAPHIC"; done
-          for token in tramerLabel "Tramer: bilinmiyor" tramerAmount; do grep -Fq "$token" "$CARD"; done
+          for token in tramerLabel "Tramer bilgisi paylaşılmamış" tramerAmount; do grep -Fq "$token" "$CARD"; done
           test ! -f src/pages/sale-detail-v168.component.ts
           test ! -f src/pages/sale-detail-v1681.component.ts
       - name: Admin publication preflight mirrors DB

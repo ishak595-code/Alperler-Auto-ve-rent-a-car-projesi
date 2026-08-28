@@ -26,11 +26,13 @@ const removedRentalPath = 'src/pages/rental-detail-v167.component.ts';
 if (!fs.existsSync(canonicalRentalPath)) fail('canonical rental detail runtime is missing');
 if (fs.existsSync(removedRentalPath)) fail('deleted V167 rental detail renderer must not return');
 const rental = read(canonicalRentalPath);
+if (!rental.includes('<dt>Kapı</dt>') || !rental.includes('car.doors')) fail('canonical rental detail must surface the admin-entered door count');
 if (!rental.includes('car.luggage')) fail('rental detail must surface admin luggage capacity');
 if (!rental.includes('detailedFeatures') || !rental.includes('features = computed')) fail('rental detail must merge flat and categorized admin features');
 if (!rental.includes('car.cylinderCount') || !rental.includes('car.cityFuelConsumption') || !rental.includes('car.highwayFuelConsumption')) fail('rental performance facts must retain extended admin-entered specs');
 if (!rental.includes('Performans ve Tüketim')) fail('rental technical facts must use customer-facing language');
 if (rental.includes('Rezervasyon Özeti') || rental.includes('Kiralama Özeti') || rental.includes('class="reservation-panel"')) fail('booking-owned rental summary must not be duplicated in canonical rental detail');
+if (rental.includes('{{loadError()}}') || rental.includes('{{ loadError() }}')) fail('canonical rental detail must never expose raw backend errors to customers');
 
 const media = read('src/services/public-catalog-media.service.ts');
 if (!media.includes('loadForVehicle(vehicleId: string)')) fail('catalog media owner query missing for vehicles');
@@ -67,5 +69,5 @@ if (!release || Number(release[1]) < 197) fail('PWA cache generation must be V19
 if (!worker.includes('request.mode === \'navigate\'')) fail('PWA navigation must remain network-authoritative');
 
 if (!process.exitCode) {
-  console.log('V197 detail integrity OK: safe single-record projections, canonical rental owner, owner media, one hourly sync, customer-safe rental facts, direct blog load, campaign targets and fresh PWA generation are enforced.');
+  console.log('V197 detail integrity OK: safe single-record projections, canonical rental owner, complete customer facts, owner media, one hourly sync, direct blog load, campaign targets and fresh PWA generation are enforced.');
 }

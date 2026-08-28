@@ -81,7 +81,7 @@ for (const contract of ['campaignIdForItem(itemId)','/functions/v1/tour-booking-
 
 for (const contract of [
   'fuel: row["fuel_type"] ?? undefined','transmission: row["transmission"] || undefined','type: row["body_type"] ?? undefined',
-  'seats: row["seats"] ?? undefined','doors: row["doors"] ?? undefined','year: row["model_year"]','km: row["mileage_km"]','availability_status','loadForVehicle(ownerId)','loadForTour(ownerId)',
+  'seats: row["seats"] ?? undefined','doors: row["doors"] ?? metadata["doors"] ?? undefined','year: row["model_year"]','km: row["mileage_km"]','availability_status','loadForVehicle(ownerId)','loadForTour(ownerId)',
   'locationName: row["location_name"] || undefined','latitude: this.numberOrUndefined(row["latitude"])',
   'longitude: this.numberOrUndefined(row["longitude"])','mapUrl: row["map_url"] || undefined',
 ]) must(detailData, contract, `Public detail DB mapping missing: ${contract}`);

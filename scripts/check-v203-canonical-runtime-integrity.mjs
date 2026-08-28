@@ -8,11 +8,19 @@ const must = (source, token, message) => { if (!source.includes(token)) throw ne
 const mustNot = (source, token, message) => { if (source.includes(token)) throw new Error(message || `V203 forbidden contract: ${token}`); };
 
 const canonical = [
+  'src/app.routes.ts',
   'src/pages/catalog-detail-shells.component.ts',
   'src/pages/car-detail.component.ts',
   'src/pages/sale-car-detail.component.ts',
   'src/pages/tour-detail.component.ts',
   'src/pages/blog-detail.component.ts',
+  'src/pages/fleet.component.ts',
+  'src/pages/sales-results.component.ts',
+  'src/pages/tours.component.ts',
+  'src/pages/list-your-car.component.ts',
+  'src/pages/branch-partner-v171.component.ts',
+  'src/pages/account-shell.component.ts',
+  'src/pages/account-dashboard-v150.component.ts',
   'src/pages/admin/admin-catalog-workspace.component.ts',
   'src/pages/admin/admin-content-hub.component.ts',
   'src/pages/home-v71.component.ts',
@@ -24,6 +32,7 @@ const canonical = [
 canonical.forEach(requireFile);
 
 const removedLegacy = [
+  'src/pages/account-dashboard.component.ts',
   'src/pages/rental-detail-v167.component.ts',
   'src/pages/sale-detail-v168.component.ts',
   'src/pages/sale-detail-v1681.component.ts',
@@ -32,6 +41,13 @@ const removedLegacy = [
   'src/pages/admin/admin-catalog-editor.component.ts',
   'src/pages/admin/admin-sale-integrity-v1681.component.ts',
   'src/pages/admin/admin-tour-studio-v170.component.ts',
+  'src/pages/list-your-car-v2.component.ts',
+  'src/pages/tour-showcase-v169.component.ts',
+  'src/pages/sales-results.component.html',
+  'src/pages/branch-partner.component.ts',
+  'src/pages/branch-partner-v164.component.ts',
+  'src/pages/rental-results.component.ts',
+  'src/pages/tour-results.component.ts',
 ];
 removedLegacy.forEach(requireMissing);
 
@@ -43,6 +59,34 @@ const workflowText = fs.readdirSync(workflowDir)
 for (const legacy of removedLegacy) {
   if (workflowText.includes(legacy)) throw new Error(`Workflow still depends on removed legacy file: ${legacy}`);
 }
+
+const routes = read('src/app.routes.ts');
+for (const token of [
+  "./pages/catalog-detail-shells.component",
+  "./pages/branch-partner-v171.component",
+  "./pages/list-your-car.component",
+  "./pages/fleet.component",
+  "./pages/sales-results.component",
+  "./pages/tours.component",
+]) must(routes, token, `Canonical route missing: ${token}`);
+for (const token of [
+  'branch-partner-v164.component',
+  'rental-results.component',
+  'tour-results.component',
+  'list-your-car-v2.component',
+  'tour-showcase-v169.component',
+]) mustNot(routes, token, `Legacy route returned: ${token}`);
+
+const fleet = read('src/pages/fleet.component.ts');
+const saleResults = read('src/pages/sales-results.component.ts');
+const tours = read('src/pages/tours.component.ts');
+const valuation = read('src/pages/list-your-car.component.ts');
+const accountShell = read('src/pages/account-shell.component.ts');
+for (const token of ['RentalShowcaseV167Component','<app-rental-showcase-v167 />']) must(fleet, token);
+for (const token of ['SalesShowcaseV168Component','<app-sales-showcase-v168 />']) must(saleResults, token);
+for (const token of ['TourShowcaseV170Component','<app-tour-showcase-v170 />']) must(tours, token);
+for (const token of ['ListYourCarV172Component','<app-list-your-car-v172 />']) must(valuation, token);
+for (const token of ['AccountDashboardV150Component','<app-account-dashboard-v150>']) must(accountShell, token);
 
 const shell = read('src/pages/catalog-detail-shells.component.ts');
 for (const token of ['CarDetailComponent','SaleCarDetailComponent','TourDetailComponent']) must(shell, token);

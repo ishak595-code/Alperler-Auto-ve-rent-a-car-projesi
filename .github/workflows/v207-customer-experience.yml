@@ -4,18 +4,8 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'src/components/customer-mobile-dock.component.ts'
-      - 'src/components/rental-vehicle-card-v167.component.ts'
-      - 'src/components/vehicle-list-item.component.ts'
-      - 'src/components/sale-vehicle-card-v168.component.ts'
-      - 'src/pages/rental-showcase-v167.component.ts'
-      - 'src/pages/car-detail.component.ts'
-      - 'src/pages/sales-showcase-v168.component.ts'
-      - 'src/pages/sale-car-detail.component.ts'
-      - 'src/pages/tour-showcase-v170.component.ts'
-      - 'src/pages/tour-detail.component.ts'
-      - 'src/pages/blog-list.component.ts'
-      - 'src/pages/blog-detail.component.ts'
+      - 'src/pages/**'
+      - 'src/components/**'
       - 'scripts/check-v205-responsive-prestige.mjs'
       - 'scripts/check-v207-customer-experience.mjs'
       - 'package.json'
@@ -24,18 +14,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/components/customer-mobile-dock.component.ts'
-      - 'src/components/rental-vehicle-card-v167.component.ts'
-      - 'src/components/vehicle-list-item.component.ts'
-      - 'src/components/sale-vehicle-card-v168.component.ts'
-      - 'src/pages/rental-showcase-v167.component.ts'
-      - 'src/pages/car-detail.component.ts'
-      - 'src/pages/sales-showcase-v168.component.ts'
-      - 'src/pages/sale-car-detail.component.ts'
-      - 'src/pages/tour-showcase-v170.component.ts'
-      - 'src/pages/tour-detail.component.ts'
-      - 'src/pages/blog-list.component.ts'
-      - 'src/pages/blog-detail.component.ts'
+      - 'src/pages/**'
+      - 'src/components/**'
       - 'scripts/check-v205-responsive-prestige.mjs'
       - 'scripts/check-v207-customer-experience.mjs'
       - 'package.json'

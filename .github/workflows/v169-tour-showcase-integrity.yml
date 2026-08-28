@@ -51,37 +51,41 @@ jobs:
           grep -Fq "INCLUDED_ITEMS_REQUIRED" "$MIG"
           grep -Fq "EXCLUDED_ITEMS_REQUIRED" "$MIG"
 
-      - name: Production tour showcase and approved detail ownership
+      - name: Production tour showcase and canonical detail ownership
         shell: bash
         run: |
           set -euo pipefail
-          test -f src/pages/tour-showcase-v170.component.ts
-          test -f src/pages/tour-detail-v170.component.ts
-          test -f src/pages/tour-detail.component.ts
+          SHOW=src/pages/tour-showcase-v170.component.ts
+          DETAIL=src/pages/tour-detail.component.ts
+          test -f "$SHOW" && test -f "$DETAIL"
           grep -Fq "TourShowcaseV170Component" src/pages/tours.component.ts
           grep -Fq "TourDetailComponent" src/pages/catalog-detail-shells.component.ts
-          if grep -Fq "TourDetailV170Component" src/pages/catalog-detail-shells.component.ts; then
-            echo "V201 approved tour detail must remain the public renderer"
-            exit 1
-          fi
-          grep -Fq "bounds" src/pages/tour-showcase-v170.component.ts
-          grep -Fq "readonly reservationOpen = signal(false)" src/pages/tour-detail.component.ts
-          grep -Fq "Bu Turu Rezerve Et" src/pages/tour-detail.component.ts
-          if grep -Eq "0-5000|5000-15000|15000\+|priceRanges[[:space:]]*=" src/pages/tour-showcase-v170.component.ts; then
+          grep -Fq "bounds" "$SHOW"
+          grep -Fq "readonly reservationOpen = signal(false)" "$DETAIL"
+          grep -Fq "Bu Turu Rezerve Et" "$DETAIL"
+          grep -Fq "TourDemandV170Service" "$DETAIL"
+          grep -Fq "TourBookingV170Service" "$DETAIL"
+          grep -Fq "mediaItems" "$DETAIL"
+          grep -Fq "app-detail-media-lightbox" "$DETAIL"
+          for old in src/pages/tour-detail-v169.component.ts src/pages/tour-detail-v170.component.ts; do
+            if test -f "$old"; then echo "Historical tour detail must stay deleted after V203: $old"; exit 1; fi
+          done
+          if grep -Eq "0-5000|5000-15000|15000\+|priceRanges[[:space:]]*=" "$SHOW"; then
             echo "Tour filters must remain live-data derived"
             exit 1
           fi
 
-      - name: V170 flexible demand technology remains available
+      - name: V170 flexible demand technology is canonical
         shell: bash
         run: |
           set -euo pipefail
-          FILE=src/pages/tour-detail-v170.component.ts
+          FILE=src/pages/tour-detail.component.ts
           grep -Fq "TourDemandV170Service" "$FILE"
-          grep -Fq "startDate:this.tourDate" "$FILE"
+          grep -Fq "startDate: this.tourDate" "$FILE" || grep -Fq "startDate:this.tourDate" "$FILE"
           grep -Fq "personCount" "$FILE"
+          grep -Fq "1_000_000_000" "$FILE"
           if grep -Fq "remainingSeats" "$FILE"; then
-            echo "V170 technology must not restore hard remaining-seat gating"
+            echo "Canonical tour technology must not restore hard remaining-seat gating"
             exit 1
           fi
 
@@ -111,8 +115,8 @@ jobs:
           grep -Fq "tour.meetingPoint" "$FILE"
           grep -Fq "Fotoğraf & Video" "$FILE"
           grep -Fq 'mode="TOUR"' "$HUB"
-          if grep -Fq "AdminTourStudioV170Component" "$HUB"; then
-            echo "Legacy parallel tour studio must not return to the active content hub"
+          if test -f src/pages/admin/admin-tour-studio-v170.component.ts || test -f src/pages/admin/admin-tour-integrity-v169.component.ts; then
+            echo "Legacy parallel tour admin paths must stay deleted after V203"
             exit 1
           fi
 

@@ -22,8 +22,11 @@ for (const label of ['Seri / Model', 'Yıl', 'Kilometre', 'Yakıt', 'Vites', 'Ka
 }
 requireText(sale, 'readonly listingRows = computed<ListingRow[]>', 'Sale facts must be rendered from one canonical listingRows contract.');
 requireText(sale, '(click)="callPhone()"', 'Sale phone action must be a persistent button action.');
-requireText(sale, '<span>Satış Talebi</span>', 'Sale inquiry CTA missing.');
+requireText(sale, '(click)="inquire(item)"', 'Sale inquiry CTA must keep the canonical inquiry action.');
+requireText(sale, 'aria-label="Araç için bilgi talebi gönder"', 'Sale inquiry CTA must keep a customer-facing accessible name.');
+requireText(sale, '<span>Bilgi Al</span>', 'Sale inquiry CTA must use the current customer-facing label.');
 requireText(sale, '<span>WhatsApp</span>', 'Sale WhatsApp CTA missing.');
+rejectText(sale, '<span>Satış Talebi</span>', 'Legacy sale CTA wording must not return.');
 rejectText(sale, 'class="core-facts"', 'Duplicate top sale fact cards must not return.');
 rejectText(sale, '[href]="phoneHref()"', 'Sale phone action must not regress to the disappearing anchor implementation.');
 

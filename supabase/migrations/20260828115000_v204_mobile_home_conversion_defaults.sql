@@ -1,5 +1,5 @@
 update public.navigation_settings
-set mobile_dock_auto_hide = false,
+set mobile_dock_auto_hide = true,
     updated_at = now()
 where config_key = 'main';
 

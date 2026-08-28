@@ -1,0 +1,125 @@
+/* V203 — canonical public detail responsive layer.
+   Scope: only the production rental, sale and tour detail components.
+   Purpose: one predictable action-bar contract across phones, tablets and desktop. */
+
+:is(app-car-detail,app-sale-car-detail,app-tour-detail){
+  --detail-action-border:#334155;
+  --detail-action-bg:rgba(5,11,24,.985);
+}
+
+/* Phones: edge-to-edge segmented actions. No visual holes between CTAs. */
+@media (max-width:767px){
+  app-sale-car-detail .bottom-actions,
+  app-car-detail .fixed-actions,
+  app-tour-detail .action-bar{
+    left:0!important;
+    right:0!important;
+    bottom:0!important;
+    width:100%!important;
+    max-width:none!important;
+    transform:none!important;
+    gap:0!important;
+    margin:0!important;
+    padding:0 0 env(safe-area-inset-bottom)!important;
+    border:0!important;
+    border-top:1px solid var(--detail-action-border)!important;
+    border-radius:0!important;
+    overflow:hidden!important;
+    background:var(--detail-action-bg)!important;
+    box-shadow:0 -12px 32px rgba(0,0,0,.28)!important;
+  }
+
+  app-sale-car-detail .bottom-actions{grid-template-columns:minmax(0,.86fr) minmax(0,1.28fr) minmax(0,1fr)!important;}
+  app-car-detail .fixed-actions{grid-template-columns:minmax(0,.82fr) minmax(0,1fr) minmax(0,1.2fr)!important;}
+  app-tour-detail .action-bar{grid-template-columns:minmax(0,1fr) minmax(0,1.16fr)!important;}
+
+  app-sale-car-detail .bottom-actions :is(a,button),
+  app-car-detail .fixed-actions :is(a,button),
+  app-tour-detail .action-bar :is(a,button){
+    min-width:0!important;
+    min-height:62px!important;
+    margin:0!important;
+    border:0!important;
+    border-radius:0!important;
+    padding:8px clamp(5px,2.4vw,12px)!important;
+    gap:clamp(3px,1.4vw,7px)!important;
+    font-size:clamp(10px,3.25vw,13px)!important;
+    line-height:1.12!important;
+    white-space:normal!important;
+    text-align:center!important;
+    text-decoration:none!important;
+    box-shadow:none!important;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;
+  }
+
+  app-sale-car-detail .bottom-actions :is(a,button)+:is(a,button),
+  app-car-detail .fixed-actions :is(a,button)+:is(a,button),
+  app-tour-detail .action-bar :is(a,button)+:is(a,button){
+    border-left:1px solid rgba(255,255,255,.16)!important;
+  }
+
+  app-sale-car-detail .bottom-actions :is(mat-icon,.phone-symbol),
+  app-car-detail .fixed-actions :is(mat-icon,.phone-symbol),
+  app-tour-detail .action-bar mat-icon{
+    flex:0 0 auto!important;
+    width:clamp(18px,5vw,23px)!important;
+    height:clamp(18px,5vw,23px)!important;
+    font-size:clamp(18px,5vw,23px)!important;
+  }
+
+  app-sale-car-detail .sale-page,
+  app-car-detail .detail-page,
+  app-tour-detail .tour-page{
+    padding-bottom:calc(72px + env(safe-area-inset-bottom))!important;
+  }
+}
+
+/* Very narrow devices: keep labels readable rather than clipping. */
+@media (max-width:350px){
+  app-sale-car-detail .bottom-actions :is(a,button),
+  app-car-detail .fixed-actions :is(a,button),
+  app-tour-detail .action-bar :is(a,button){
+    min-height:58px!important;
+    padding-inline:4px!important;
+    font-size:9.5px!important;
+  }
+}
+
+/* Tablets: preserve generous touch targets without stretching across the full viewport. */
+@media (min-width:768px) and (max-width:1199px){
+  app-sale-car-detail .bottom-actions,
+  app-car-detail .fixed-actions,
+  app-tour-detail .action-bar{
+    left:50%!important;
+    right:auto!important;
+    width:min(900px,calc(100% - 32px))!important;
+    transform:translateX(-50%)!important;
+    gap:8px!important;
+    padding:10px!important;
+    border:1px solid var(--detail-action-border)!important;
+    border-bottom:0!important;
+    border-radius:18px 18px 0 0!important;
+  }
+  app-sale-car-detail .bottom-actions :is(a,button),
+  app-car-detail .fixed-actions :is(a,button),
+  app-tour-detail .action-bar :is(a,button){min-height:58px!important;}
+}
+
+/* Desktop: compact premium action dock; content remains airy above it. */
+@media (min-width:1200px){
+  app-sale-car-detail .bottom-actions,
+  app-car-detail .fixed-actions,
+  app-tour-detail .action-bar{
+    left:50%!important;
+    right:auto!important;
+    width:min(860px,calc(100% - 48px))!important;
+    transform:translateX(-50%)!important;
+    gap:10px!important;
+    padding:10px!important;
+    border:1px solid var(--detail-action-border)!important;
+    border-bottom:0!important;
+    border-radius:18px 18px 0 0!important;
+    box-shadow:0 -16px 40px rgba(0,0,0,.22)!important;
+  }
+}

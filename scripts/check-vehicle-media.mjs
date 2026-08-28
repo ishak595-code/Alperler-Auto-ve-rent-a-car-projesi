@@ -2,7 +2,7 @@ import fs from "node:fs";
 
 const failures = [];
 const read = (path) => fs.readFileSync(path, "utf8");
-const admin = read("src/pages/admin/admin-catalog-editor.component.ts");
+const admin = read("src/pages/admin/admin-catalog-workspace.component.ts");
 const mediaService = read("src/services/catalog-media.service.ts");
 const publicMedia = read("src/services/public-catalog-media.service.ts");
 const carService = read("src/services/car.service.ts");
@@ -23,6 +23,7 @@ const campaignMigration = "supabase/migrations/20260819221500_sync_targeted_camp
 const campaignProofMigration = "supabase/migrations/20260820021500_v128_campaign_social_proof.sql";
 
 if (fs.existsSync("src/services/mock-data.ts")) failures.push("legacy mock catalogue must not be reintroduced");
+if (fs.existsSync("src/pages/admin/admin-catalog-editor.component.ts")) failures.push("legacy admin catalogue editor must not be reintroduced");
 if (["fallbackInventory","fallbackBlogPosts","fallbackFaqs","mergeVehicleWithFallback"].some((token) => carService.includes(token))) failures.push("CarService contains a legacy catalogue fallback path");
 for (const key of ["db_cars","db_saleCars","db_tours_v14","db_blog_v12","db_faqs_v12","db_config_v12"]) {
   if (carService.includes(`localStorage.setItem(\"${key}`) || carService.includes(`this.readStorage(\"${key}`)) failures.push(`legacy catalogue storage remains: ${key}`);
@@ -97,4 +98,4 @@ if (publicMedia.includes("/vehicle-media/") || vercel.includes("/vehicle-media/"
 if (!fs.existsSync(campaignMigration)) failures.push("campaign cover synchronization migration missing");
 
 if (failures.length) { console.error(failures.join("\n")); process.exit(1); }
-console.log("Unified catalogue guard passed: sale keeps its dedicated listing UX; rental remains compact; campaign proof has one root service owner with shared deduped state; V197 single-record safe-projection detail routing and Storage remain canonical.");
+console.log("Unified catalogue guard passed: canonical admin workspace owns media authoring; sale keeps its dedicated listing UX; rental remains compact; campaign proof has one root service owner with shared deduped state; safe-projection detail routing and Storage remain canonical.");

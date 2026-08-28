@@ -11,6 +11,7 @@ import { PublicDetailDataService } from "../services/public-detail-data.service"
 import { SeoService } from "../services/seo.service";
 
 type ListingRow = { label: string; value: string; important?: boolean };
+type FactRow = { label: string; value: string };
 
 @Component({
   selector: "app-sale-car-detail",
@@ -53,10 +54,9 @@ type ListingRow = { label: string; value: string; important?: boolean };
         </section>
 
         <section class="listing-head" aria-labelledby="listing-title">
-          <div>
+          <div class="listing-title-block">
             <p class="listing-no">İlan No {{ item.cloudStockCode || item.id }}</p>
             <h2 id="listing-title">{{ item.brand }} @if (item.series) { <span>{{ item.series }}</span> } {{ item.model }}</h2>
-            <p class="summary">{{ summaryMeta(item) || 'İlan bilgileri aşağıdaki canlı katalog kaydından gösteriliyor.' }}</p>
           </div>
           <strong class="listing-price">{{ item.price | turkishCurrency }}</strong>
           @if ((item.viewers || 0) > 0 || (item.favCount || 0) > 0) {
@@ -98,12 +98,9 @@ type ListingRow = { label: string; value: string; important?: boolean };
 
               <section class="expertise" aria-labelledby="expertise-title">
                 <h3 id="expertise-title"><mat-icon aria-hidden="true">verified</mat-icon>Ekspertiz Özeti</h3>
-                <div class="truth-grid">
-                  <div><span>Hasar Durumu</span><strong>{{ item.damageStatus || (item.isDamageFree ? 'Hatasız & Boyasız' : 'Belirtilmedi') }}</strong></div>
-                  <div><span>Tramer Durumu</span><strong>{{ tramerStatusLabel(item) }}</strong></div>
-                  @if (item.tramerAmount != null) { <div><span>Tramer Tutarı</span><strong>{{ item.tramerAmount | turkishCurrency }}</strong></div> }
-                  @if (item.tramerVerifiedAt) { <div><span>Doğrulama Tarihi</span><strong>{{ formatDate(item.tramerVerifiedAt) }}</strong></div> }
-                </div>
+                <dl class="truth-list" aria-label="Hasar ve tramer bilgileri">
+                  @for (row of expertiseRows(item); track row.label) { <div><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div> }
+                </dl>
                 <app-expertise-graphic [data]="item.damageExpertise"></app-expertise-graphic>
                 @if (hasTramerDetail(item)) { <div class="tramer-summary"><div><strong>Tramer kaydı</strong>@if (item.tramerSourceName) { <span>Kaynak: {{ item.tramerSourceName }}</span> }</div><p>{{ tramerDetail(item) }}</p></div> }
               </section>
@@ -120,9 +117,9 @@ type ListingRow = { label: string; value: string; important?: boolean };
         </section>
 
         <nav class="bottom-actions" aria-label="Satılık araç işlemleri">
-          <button type="button" class="phone" (click)="callPhone()" [disabled]="!phoneHref()" aria-label="Telefonla ara"><span class="phone-symbol" aria-hidden="true">☎</span><span>Ara</span></button>
-          <button type="button" class="inquiry" (click)="inquire(item)" [disabled]="item.availability === 'Satıldı'"><mat-icon aria-hidden="true">request_quote</mat-icon><span>Satış Talebi</span></button>
-          <button type="button" class="whatsapp" (click)="whatsapp()" [disabled]="!whatsappPhone()" aria-label="WhatsApp ile bilgi al"><mat-icon aria-hidden="true">chat</mat-icon><span>WhatsApp</span></button>
+          <button type="button" class="phone" (click)="callPhone()" [attr.aria-disabled]="!phoneHref()" aria-label="Telefonla ara"><span class="phone-symbol" aria-hidden="true">☎</span><span>Ara</span></button>
+          <button type="button" class="inquiry" (click)="inquire(item)" [attr.aria-disabled]="item.availability === 'Satıldı'" aria-label="Satış talebi gönder"><mat-icon aria-hidden="true">request_quote</mat-icon><span>Satış Talebi</span></button>
+          <button type="button" class="whatsapp" (click)="whatsapp()" [attr.aria-disabled]="!whatsappPhone()" aria-label="WhatsApp ile bilgi al"><mat-icon aria-hidden="true">chat</mat-icon><span>WhatsApp</span></button>
         </nav>
 
         <app-detail-media-lightbox [open]="lightboxOpen()" [items]="mediaItems()" [index]="currentSlide()" [title]="item.brand + ' ' + item.model + ' fotoğraf ve video galerisi'" (closed)="lightboxOpen.set(false)" (indexChange)="currentSlide.set($event)" />
@@ -135,12 +132,13 @@ type ListingRow = { label: string; value: string; important?: boolean };
   `,
   styles: [`
     :host { display:block; background:#050b18; color:#f8fafc; }
-    .sale-page { min-height:100dvh; padding-bottom:94px; background:#050b18; font-family:Inter,system-ui,sans-serif; }
-    .sale-header { position:sticky; top:0; z-index:70; display:flex; min-height:70px; align-items:center; justify-content:space-between; border-bottom:1px solid #1e293b; background:rgba(5,11,24,.98); padding:0 12px; backdrop-filter:blur(14px); }
-    .header-left,.header-actions { display:flex; align-items:center; gap:8px; }
+    .sale-page { min-height:100dvh; padding-bottom:calc(82px + env(safe-area-inset-bottom)); background:#050b18; font-family:Inter,system-ui,sans-serif; }
+    .sale-header { position:sticky; top:0; z-index:70; display:flex; min-height:70px; align-items:center; justify-content:space-between; border-bottom:1px solid #1e293b; background:rgba(5,11,24,.98); padding:0 clamp(10px,2.5vw,20px); backdrop-filter:blur(14px); }
+    .header-left,.header-actions { display:flex; min-width:0; align-items:center; gap:8px; }
+    .header-left>div { min-width:0; }
     .header-left span { color:#34d399; font-size:9px; font-weight:950; text-transform:uppercase; letter-spacing:.08em; }
-    .sale-header h1 { margin:3px 0 0; max-width:64vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:18px; }
-    .header-button { display:grid; width:46px; height:46px; place-items:center; border:0; border-radius:14px; background:#0d1729; color:#fff; }
+    .sale-header h1 { margin:3px 0 0; max-width:min(58vw,620px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:clamp(17px,3.5vw,22px); }
+    .header-button { display:grid; width:46px; height:46px; flex:none; place-items:center; border:0; border-radius:14px; background:#0d1729; color:#fff; }
     .favorite { color:#fb7185; }
     .media-area { background:#020617; }
     .media-frame { position:relative; width:min(100%,1180px); margin:auto; aspect-ratio:16/10; overflow:hidden; }
@@ -154,26 +152,26 @@ type ListingRow = { label: string; value: string; important?: boolean };
     .media-controls>div { display:flex; gap:7px; }
     .media-controls button { display:grid; width:44px; height:44px; place-items:center; border:0; border-radius:50%; background:rgba(0,0,0,.72); color:#fff; }
     .media-empty { min-height:340px; display:grid; place-content:center; gap:8px; text-align:center; color:#94a3b8; }
-    .listing-head { display:grid; gap:12px; width:min(100% - 24px,1060px); margin:18px auto 0; border:1px solid #253149; border-radius:20px; background:#0b1220; padding:18px; box-shadow:0 14px 34px rgba(0,0,0,.18); }
-    .listing-no { margin:0; color:#34d399; font-size:11px; font-weight:950; text-transform:uppercase; }
-    .listing-head h2 { margin:5px 0 0; font:900 clamp(25px,7vw,42px)/1.08 Georgia,serif; }
+    .listing-head { display:grid; gap:clamp(14px,2vw,20px); width:min(100% - clamp(20px,4vw,48px),1060px); margin:clamp(16px,3vw,28px) auto 0; border:1px solid #253149; border-radius:22px; background:#0b1220; padding:clamp(18px,3.5vw,32px); box-shadow:0 18px 44px rgba(0,0,0,.2); }
+    .listing-title-block { min-width:0; }
+    .listing-no { margin:0; color:#34d399; font-size:11px; font-weight:950; text-transform:uppercase; letter-spacing:.025em; }
+    .listing-head h2 { margin:7px 0 0; overflow-wrap:anywhere; font:900 clamp(27px,6vw,46px)/1.06 Georgia,serif; }
     .listing-head h2 span { color:#94a3b8; }
-    .summary { margin:8px 0 0; color:#94a3b8; line-height:1.5; }
-    .listing-price { color:#f8fafc; font-size:32px; }
+    .listing-price { color:#f8fafc; font-size:clamp(32px,6vw,48px); letter-spacing:-.025em; }
     .social-proof { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:8px; }
     .social-proof span { display:flex; align-items:center; gap:5px; border:1px solid #334155; border-radius:999px; background:#050b18; padding:7px 10px; color:#cbd5e1; font-size:11px; font-weight:850; }
     .social-proof mat-icon { width:16px; height:16px; font-size:16px; color:#34d399; }
-    .sale-tabs { position:sticky; top:70px; z-index:60; display:grid; grid-template-columns:repeat(3,1fr); width:min(100% - 24px,1060px); margin:16px auto 0; overflow:hidden; border:1px solid #253149; border-radius:16px; background:#0b1220; }
-    .sale-tabs button { display:flex; min-height:64px; flex-direction:column; align-items:center; justify-content:center; gap:3px; border:0; background:#0b1220; color:#94a3b8; font-size:10px; font-weight:950; }
+    .sale-tabs { position:sticky; top:70px; z-index:60; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); width:min(100% - clamp(20px,4vw,48px),1060px); margin:16px auto 0; overflow:hidden; border:1px solid #253149; border-radius:17px; background:#0b1220; }
+    .sale-tabs button { display:flex; min-width:0; min-height:64px; flex-direction:column; align-items:center; justify-content:center; gap:3px; border:0; background:#0b1220; color:#94a3b8; font-size:clamp(9px,2.4vw,11px); font-weight:950; }
     .sale-tabs button+button { border-left:1px solid #253149; }
     .sale-tabs button.active { background:#0f766e; color:#fff; }
     .sale-tabs mat-icon { width:20px; height:20px; font-size:20px; }
-    .tab-content { width:min(100% - 24px,1060px); min-height:420px; margin:12px auto 0; overflow:hidden; border:1px solid #253149; border-radius:20px; background:#0b1220; }
+    .tab-content { width:min(100% - clamp(20px,4vw,48px),1060px); min-height:420px; margin:12px auto 0; overflow:hidden; border:1px solid #253149; border-radius:20px; background:#0b1220; }
     .listing-table { margin:0; }
-    .listing-table>div { display:grid; grid-template-columns:minmax(110px,.82fr) minmax(0,1.18fr); align-items:center; gap:18px; min-height:55px; padding:13px 16px; }
+    .listing-table>div { display:grid; grid-template-columns:minmax(104px,.82fr) minmax(0,1.18fr); align-items:center; gap:clamp(12px,3vw,28px); min-height:58px; padding:13px clamp(15px,3vw,24px); }
     .listing-table>div:nth-child(even) { background:#071020; }
-    .listing-table dt { color:#94a3b8; font-size:13px; }
-    .listing-table dd { min-width:0; margin:0; overflow-wrap:anywhere; text-align:right; color:#f8fafc; font-size:13px; font-weight:900; }
+    .listing-table dt { color:#94a3b8; font-size:clamp(12px,2.4vw,14px); }
+    .listing-table dd { min-width:0; margin:0; overflow-wrap:anywhere; text-align:right; color:#f8fafc; font-size:clamp(12px,2.4vw,14px); font-weight:900; }
     .listing-table dd.important { color:#34d399; }
     .expand-section { padding:16px; border-top:1px solid #253149; }
     .expand-button { display:flex; width:100%; min-height:56px; align-items:center; justify-content:space-between; gap:12px; border:0; border-radius:14px; background:#111827; padding:0 15px; color:#fff; font-weight:900; text-align:left; }
@@ -189,16 +187,17 @@ type ListingRow = { label: string; value: string; important?: boolean };
     .expertise { padding:20px 16px; border-top:1px solid #253149; }
     .expertise h3 { display:flex; align-items:center; gap:8px; margin:0 0 14px; }
     .expertise h3 mat-icon { color:#60a5fa; }
-    .truth-grid { display:grid; gap:8px; margin-bottom:16px; }
-    .truth-grid>div { display:flex; justify-content:space-between; gap:12px; border:1px solid #253149; border-radius:12px; background:#050b18; padding:12px; }
-    .truth-grid span { color:#94a3b8; }
-    .truth-grid strong { text-align:right; }
+    .truth-list { margin:0 0 18px; overflow:hidden; border:1px solid #253149; border-radius:14px; background:#071020; }
+    .truth-list>div { display:grid; grid-template-columns:minmax(110px,.9fr) minmax(0,1.1fr); align-items:center; gap:16px; min-height:52px; padding:11px 14px; }
+    .truth-list>div+div { border-top:1px solid #1e293b; }
+    .truth-list dt { color:#94a3b8; }
+    .truth-list dd { min-width:0; margin:0; overflow-wrap:anywhere; text-align:right; font-weight:900; }
     .tramer-summary { display:grid; gap:7px; margin-top:16px; border:1px solid #334155; border-radius:12px; background:#071020; padding:14px; }
     .tramer-summary>div { display:flex; align-items:center; justify-content:space-between; gap:10px; }
     .tramer-summary>div span { color:#94a3b8; font-size:10px; }
     .tramer-summary p { margin:0; color:#cbd5e1; line-height:1.6; }
-    .description-panel,.location-panel { padding:20px 16px; }
-    .description-panel h3 { margin:0; font-size:21px; }
+    .description-panel,.location-panel { padding:clamp(18px,3vw,28px); }
+    .description-panel h3 { margin:0; font-size:clamp(21px,3vw,28px); }
     .description-panel p { white-space:pre-line; color:#cbd5e1; line-height:1.75; }
     .description-panel h4 { margin:22px 0 8px; }
     .description-panel ul { display:grid; gap:7px; color:#cbd5e1; }
@@ -208,20 +207,37 @@ type ListingRow = { label: string; value: string; important?: boolean };
     .dealer-card { display:flex; gap:12px; margin-top:14px; border:1px solid #253149; border-radius:14px; background:#071020; padding:14px; }
     .dealer-icon { display:grid; width:46px; height:46px; flex:none; place-items:center; border-radius:50%; background:#064e3b; color:#6ee7b7; }
     .dealer-card p { margin:5px 0 0; color:#94a3b8; }
-    .bottom-actions { position:fixed; z-index:90; left:0; right:0; bottom:0; display:grid; grid-template-columns:.82fr 1.22fr 1fr; gap:8px; border-top:1px solid #334155; background:rgba(5,11,24,.98); padding:9px 10px calc(9px + env(safe-area-inset-bottom)); backdrop-filter:blur(16px); }
-    .bottom-actions button { display:flex; min-width:0; min-height:56px; align-items:center; justify-content:center; gap:6px; border:0; border-radius:13px; color:#fff; font-size:12px; font-weight:950; white-space:nowrap; box-shadow:0 8px 20px rgba(0,0,0,.2); }
+    .bottom-actions { position:fixed; z-index:90; left:0; right:0; bottom:0; display:grid; grid-template-columns:minmax(0,.84fr) minmax(0,1.22fr) minmax(0,1fr); gap:0; border-top:1px solid #334155; background:rgba(5,11,24,.97); padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-right)); backdrop-filter:blur(18px); }
+    .bottom-actions button { display:flex; min-width:0; min-height:58px; align-items:center; justify-content:center; gap:clamp(4px,1.2vw,8px); border:0; border-radius:0; color:#fff; padding:0 clamp(5px,2vw,16px); font-size:clamp(9px,2.7vw,13px); font-weight:950; white-space:nowrap; box-shadow:none; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+    .bottom-actions button:first-child { border-radius:16px 0 0 16px; }
+    .bottom-actions button:last-child { border-radius:0 16px 16px 0; }
+    .bottom-actions button+button { border-left:1px solid rgba(255,255,255,.2); }
+    .bottom-actions button:active { filter:brightness(.93); transform:translateY(1px); }
+    .bottom-actions button[aria-disabled='true'] { opacity:.52; }
     .bottom-actions .phone { background:#0f766e; }
     .bottom-actions .inquiry { background:#2563eb; }
     .bottom-actions .whatsapp { background:#059669; }
-    .phone-symbol { font-size:22px; line-height:1; }
-    .bottom-actions button:disabled { opacity:.45; box-shadow:none; }
+    .phone-symbol { font-size:21px; line-height:1; }
     .state { min-height:70dvh; display:grid; place-content:center; gap:10px; text-align:center; padding:24px; }
     .state button { min-height:46px; border:0; border-radius:10px; background:#2563eb; color:#fff; padding:0 18px; font-weight:900; }
     .spinner { width:42px; height:42px; margin:auto; border:4px solid #334155; border-top-color:#34d399; border-radius:50%; animation:spin .8s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
-    @media (min-width:720px) { .media-frame { aspect-ratio:16/9; } .listing-head { grid-template-columns:1fr auto; align-items:end; } .spec-grid,.feature-grid,.truth-grid { grid-template-columns:1fr 1fr; } }
-    @media (min-width:1024px) { .media-frame { aspect-ratio:21/9; } .bottom-actions { left:50%; right:auto; width:min(820px,calc(100% - 28px)); transform:translateX(-50%); border:1px solid #334155; border-bottom:0; border-radius:16px 16px 0 0; } }
-    @media (max-width:430px) { .bottom-actions { gap:6px; padding-inline:7px; } .bottom-actions button { min-height:54px; gap:4px; font-size:10px; } .bottom-actions mat-icon { width:19px; height:19px; font-size:19px; } .phone-symbol { font-size:19px; } }
+    @media (min-width:720px) {
+      .media-frame { aspect-ratio:16/9; }
+      .listing-head { grid-template-columns:minmax(0,1fr) auto; align-items:end; }
+      .spec-grid,.feature-grid { grid-template-columns:1fr 1fr; }
+      .bottom-actions { left:50%; right:auto; width:min(760px,calc(100% - 32px)); transform:translateX(-50%); border:1px solid #334155; border-bottom:0; border-radius:18px 18px 0 0; padding:8px 8px calc(8px + env(safe-area-inset-bottom)); }
+    }
+    @media (min-width:1180px) { .media-frame { aspect-ratio:21/9; } .bottom-actions { width:min(820px,calc(100% - 48px)); } }
+    @media (max-width:360px) {
+      .sale-header { padding-inline:8px; }
+      .header-actions { gap:5px; }
+      .header-button { width:42px; height:42px; border-radius:12px; }
+      .bottom-actions { padding-inline:5px; }
+      .bottom-actions button { min-height:56px; font-size:9px; padding-inline:4px; }
+      .bottom-actions mat-icon { width:18px; height:18px; font-size:18px; }
+      .phone-symbol { font-size:18px; }
+    }
     @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto!important; transition:none!important; } }
   `],
 })
@@ -300,7 +316,7 @@ export class SaleCarDetailComponent implements OnInit {
 
   readonly technicalRows = computed(() => {
     const item = this.car();
-    if (!item) return [] as { label: string; value: string }[];
+    if (!item) return [] as FactRow[];
     const specs = item.technicalSpecs;
     const rows: Array<[string, unknown]> = [
       ["Maksimum hız", specs?.maxSpeed || item.maxSpeed],
@@ -347,7 +363,6 @@ export class SaleCarDetailComponent implements OnInit {
   }
 
   display(value: unknown, fallback = "Belirtilmedi"): string { return this.detailData.display(value, fallback); }
-  summaryMeta(item: Car): string { return [item.year, item.km != null ? `${Number(item.km).toLocaleString("tr-TR")} km` : "", item.fuel, item.transmission, item.type].filter(Boolean).join(" · "); }
   listingDate(item: Car): string { return this.formatDate(item.createdAt || item.updatedAt || "") || "Tarih bilgisi yok"; }
   formatDate(value: string): string { const date = new Date(value); return value && !Number.isNaN(date.getTime()) ? new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" }).format(date) : ""; }
   previousMedia(): void { const length = this.mediaItems().length; if (length > 1) this.currentSlide.update((index) => (index - 1 + length) % length); }
@@ -358,6 +373,15 @@ export class SaleCarDetailComponent implements OnInit {
   touchEnd(event: TouchEvent): void { const end = event.changedTouches[0]?.clientX || 0; if (Math.abs(end - this.touchX) < 45) return; end < this.touchX ? this.nextMedia() : this.previousMedia(); }
   toggleFav(id: string | number): void { this.carService.toggleFavorite(id); }
   isFav(id: string | number): boolean { return this.carService.isFavorite(id); }
+  expertiseRows(item: Car): FactRow[] {
+    const rows: FactRow[] = [
+      { label: "Hasar Durumu", value: item.damageStatus || (item.isDamageFree ? "Hatasız & Boyasız" : "Belirtilmedi") },
+      { label: "Tramer Durumu", value: this.tramerStatusLabel(item) },
+    ];
+    if (item.tramerAmount != null) rows.push({ label: "Tramer Tutarı", value: `${Number(item.tramerAmount).toLocaleString("tr-TR")} TL` });
+    if (item.tramerVerifiedAt) rows.push({ label: "Doğrulama Tarihi", value: this.formatDate(item.tramerVerifiedAt) });
+    return rows;
+  }
   tramerStatusLabel(item: Car): string { const map: Record<string, string> = { UNKNOWN: "Bilgi yok", DECLARED_CLEAN: "Beyan: kayıt yok", DECLARED_RECORD: "Beyan: kayıt var", VERIFIED_CLEAN: "Doğrulandı: kayıt yok", VERIFIED_RECORD: "Doğrulandı: kayıt var" }; return map[String(item.tramerStatus || "UNKNOWN")] || "Belirtilmedi"; }
   hasTramerDetail(item: Car): boolean { return String(item.tramerStatus || "UNKNOWN") !== "UNKNOWN" || item.tramerAmount != null || Boolean(item.tramerVerifiedAt || item.tramerSourceName); }
   tramerDetail(item: Car): string { const text = String(item.tramer || "").trim(); if (text && !/^belirtilmedi/i.test(text)) return text; if (item.tramerAmount != null) return `Bildirilen tramer tutarı ${Number(item.tramerAmount).toLocaleString("tr-TR")} TL.`; return this.tramerStatusLabel(item); }
@@ -365,8 +389,22 @@ export class SaleCarDetailComponent implements OnInit {
   inquire(item: Car): void { if (item.availability === "Satıldı") return; this.carService.setBookingRequest({ type: "SALE_INQUIRY", item, itemName: `${item.brand || ""} ${item.model || ""}`.trim(), image: item.image || item.images?.[0], basePrice: Number(item.price || 0) }); void this.router.navigate(["/contact"]); }
   async share(item: Car): Promise<void> { const payload = { title: `${item.brand || ""} ${item.model || ""} | Alperler Auto`.trim(), text: "Bu satılık araç ilanını inceleyin.", url: window.location.href }; try { if (navigator.share) await navigator.share(payload); else await navigator.clipboard?.writeText(window.location.href); } catch { /* kullanıcı paylaşımı iptal etti */ } }
   phoneHref(): string { const phone = String(this.carService.getConfig()().phone || "").replace(/[^+\d]/g, ""); return phone ? `tel:${phone}` : ""; }
-  callPhone(): void { const href = this.phoneHref(); if (href) window.location.href = href; }
+  callPhone(): void { const href = this.phoneHref(); if (href) this.launchExternal(href, false); }
   whatsappPhone(): string { return String(this.carService.getConfig()().whatsapp || this.carService.getConfig()().phone || "").replace(/\D/g, ""); }
-  whatsapp(): void { const item = this.car(); if (!item) return; const phone = this.whatsappPhone(); if (!phone) return; window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Merhaba, ${item.brand || ""} ${item.model || ""} satılık araç ilanı hakkında bilgi almak istiyorum. ${window.location.href}`)}`, "_blank", "noopener,noreferrer"); }
+  whatsapp(): void { const item = this.car(); if (!item) return; const phone = this.whatsappPhone(); if (!phone) return; this.launchExternal(`https://wa.me/${phone}?text=${encodeURIComponent(`Merhaba, ${item.brand || ""} ${item.model || ""} satılık araç ilanı hakkında bilgi almak istiyorum. ${window.location.href}`)}`, true); }
+  private launchExternal(url: string, newTab: boolean): void {
+    if (!url) return;
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    if (newTab) { anchor.target = "_blank"; anchor.rel = "noopener noreferrer"; }
+    anchor.style.position = "fixed";
+    anchor.style.width = "1px";
+    anchor.style.height = "1px";
+    anchor.style.opacity = "0";
+    anchor.setAttribute("aria-hidden", "true");
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  }
   goBack(): void { if (window.history.length > 1) this.location.back(); else void this.router.navigate(["/sales"]); }
 }

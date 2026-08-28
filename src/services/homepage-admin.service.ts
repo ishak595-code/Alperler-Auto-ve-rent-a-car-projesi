@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { AuthService } from './auth.service';
+import { CarService } from './car.service';
 
 export type HomepageSectionType = 'VEHICLES' | 'TOURS' | 'BLOG' | 'CAMPAIGN' | 'CUSTOM';
 export type HomepageEntityType = 'VEHICLE' | 'TOUR' | 'BLOG' | 'CAMPAIGN';
@@ -30,11 +31,23 @@ interface MutationPayload { ok?:boolean; code?:string; section?:any; placement?:
 
 @Injectable({ providedIn: 'root' })
 export class HomepageAdminService {
-  private readonly auth=inject(AuthService);private readonly endpoint='/api/partner?op=site-content-admin';
+  private readonly auth=inject(AuthService);private readonly cars=inject(CarService);private readonly endpoint='/api/partner?op=site-content-admin';
   private readonly _sections=signal<HomepageSectionRecord[]>([]);private readonly _placements=signal<HomepagePlacementRecord[]>([]);private readonly _loading=signal(false);
   readonly sections=this._sections.asReadonly();readonly placements=this._placements.asReadonly();readonly loading=this._loading.asReadonly();
 
-  async refresh():Promise<void>{this._loading.set(true);try{const token=await this.requiredToken();const payload=await this.request<SnapshotPayload>('GET',token);if(payload.ok!==true)throw new Error(payload.code||'HOMEPAGE_ADMIN_LOAD_FAILED');this._sections.set((payload.homepageSections||[]).map(row=>this.sectionFromRow(row)));this._placements.set((payload.homepagePlacements||[]).map(row=>this.placementFromRow(row)));}finally{this._loading.set(false);}}
+  async refresh():Promise<void>{
+    this._loading.set(true);
+    try{
+      const token=await this.requiredToken();
+      const [payload]=await Promise.all([
+        this.request<SnapshotPayload>('GET',token),
+        this.cars.refreshSiteConfig(true),
+      ]);
+      if(payload.ok!==true)throw new Error(payload.code||'HOMEPAGE_ADMIN_LOAD_FAILED');
+      this._sections.set((payload.homepageSections||[]).map(row=>this.sectionFromRow(row)));
+      this._placements.set((payload.homepagePlacements||[]).map(row=>this.placementFromRow(row)));
+    }finally{this._loading.set(false);}
+  }
 
   async createSection(input:{title:string;sectionType:HomepageSectionType;maxItems?:number;settings?:HomepageSectionSettings}):Promise<HomepageSectionRecord>{
     const token=await this.requiredToken();const sectionKey=this.createSectionKey(input.title);const nextSort=this._sections().reduce((max,item)=>Math.max(max,item.sortOrder),0)+10;

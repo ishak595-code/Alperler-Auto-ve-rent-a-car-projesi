@@ -1,7 +1,6 @@
 import { Component, HostListener, inject, signal } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
-import { NavigationEnd, Router, RouterLink } from "@angular/router";
-import { filter } from "rxjs/operators";
+import { NavigationEnd, NavigationStart, Router, RouterLink, Scroll as RouterScroll } from "@angular/router";
 import { NavigationConfigService } from "../services/navigation-config.service";
 import { isDockItemCurrent, shouldRenderMobileDock } from "../services/mobile-dock-route-policy";
 
@@ -61,12 +60,22 @@ export class CustomerMobileDockComponent {
   readonly hidden = signal(false);
   readonly currentUrl = signal(this.router.url);
   private lastScrollY = 0;
+  private navigationScrollSettling = false;
+  private scrollSettleFrame?: number;
 
   constructor() {
     if (typeof window !== "undefined") this.lastScrollY = Math.max(0, window.scrollY || 0);
     this.updateVisibility(this.router.url);
-    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => {
-      this.updateVisibility((event as NavigationEnd).urlAfterRedirects);
+    this.router.events.subscribe((event) => {
+      if (event instanceof NavigationStart) {
+        this.beginRouteNavigation();
+        return;
+      }
+      if (event instanceof NavigationEnd) {
+        this.updateVisibility(event.urlAfterRedirects);
+        return;
+      }
+      if (event instanceof RouterScroll) this.finishRouteNavigationAfterScroll();
     });
   }
 
@@ -75,9 +84,9 @@ export class CustomerMobileDockComponent {
   }
 
   onDockClick(event: MouseEvent, route: string): void {
+    this.navigation.setMobileDockAutoHidden(false);
     if (!this.isCurrent(route)) return;
     event.preventDefault();
-    this.navigation.setMobileDockAutoHidden(false);
     if (typeof window === "undefined") return;
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
     window.scrollTo({ top: 0, left: 0, behavior: reduceMotion ? "auto" : "smooth" });
@@ -87,6 +96,12 @@ export class CustomerMobileDockComponent {
   onWindowScroll(): void {
     if (typeof window === "undefined") return;
     const currentY = Math.max(0, window.scrollY || 0);
+
+    if (this.navigationScrollSettling) {
+      this.navigation.setMobileDockAutoHidden(false);
+      this.lastScrollY = currentY;
+      return;
+    }
 
     if (this.hidden() || !this.navigation.mobileDockEnabled() || !this.navigation.mobileDockAutoHideEnabled()) {
       this.navigation.setMobileDockAutoHidden(false);
@@ -105,6 +120,31 @@ export class CustomerMobileDockComponent {
     if (delta > 0 && currentY > 96) this.navigation.setMobileDockAutoHidden(true);
     if (delta < 0) this.navigation.setMobileDockAutoHidden(false);
     this.lastScrollY = currentY;
+  }
+
+  private beginRouteNavigation(): void {
+    this.navigationScrollSettling = true;
+    this.navigation.setMobileDockAutoHidden(false);
+    if (typeof window === "undefined") return;
+    if (this.scrollSettleFrame !== undefined) window.cancelAnimationFrame(this.scrollSettleFrame);
+    this.scrollSettleFrame = undefined;
+    this.lastScrollY = Math.max(0, window.scrollY || 0);
+  }
+
+  private finishRouteNavigationAfterScroll(): void {
+    if (typeof window === "undefined") {
+      this.navigationScrollSettling = false;
+      return;
+    }
+    if (this.scrollSettleFrame !== undefined) window.cancelAnimationFrame(this.scrollSettleFrame);
+    this.scrollSettleFrame = window.requestAnimationFrame(() => {
+      this.scrollSettleFrame = window.requestAnimationFrame(() => {
+        this.lastScrollY = Math.max(0, window.scrollY || 0);
+        this.navigation.setMobileDockAutoHidden(false);
+        this.navigationScrollSettling = false;
+        this.scrollSettleFrame = undefined;
+      });
+    });
   }
 
   private updateVisibility(rawUrl: string): void {

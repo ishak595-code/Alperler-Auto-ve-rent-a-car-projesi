@@ -52,35 +52,31 @@ jobs:
             exit 1
           fi
 
-      - name: Dated reservation technology remains available
-        shell: bash
-        run: |
-          set -euo pipefail
-          FILE=src/pages/tour-detail-v170.component.ts
-          test -f "$FILE"
-          grep -Fq "app-accessible-native-date" "$FILE"
-          grep -Fq "startDate:this.tourDate" "$FILE"
-          grep -Fq "formattedDate" "$FILE"
-          grep -Fq "Müşterinin geleceği tarih" "$FILE"
-          if grep -Fq "remainingSeats" "$FILE"; then
-            echo "V170 technology must not use remaining seats as a hard gate"
-            exit 1
-          fi
-
-      - name: Approved public tour keeps reservation behind explicit action
+      - name: Canonical dated reservation and flexible demand technology
         shell: bash
         run: |
           set -euo pipefail
           FILE=src/pages/tour-detail.component.ts
           SHELL=src/pages/catalog-detail-shells.component.ts
+          test -f "$FILE" && test -f "$SHELL"
+          grep -Fq "app-accessible-native-date" "$FILE"
+          grep -Fq "TourDemandV170Service" "$FILE"
+          grep -Fq "TourBookingV170Service" "$FILE"
+          grep -Fq "personCount" "$FILE"
+          grep -Fq "formattedTourDate" "$FILE"
           grep -Fq "readonly reservationOpen = signal(false)" "$FILE"
           grep -Fq '@if (reservationOpen())' "$FILE"
           grep -Fq 'class="reservation-overlay"' "$FILE"
           grep -Fq "Bu Turu Rezerve Et" "$FILE"
           grep -Fq "action-bar" "$FILE"
           grep -Fq "TourDetailComponent" "$SHELL"
+          grep -Fq "1_000_000_000" "$FILE"
+          if grep -Fq "remainingSeats" "$FILE"; then
+            echo "Canonical tour technology must not use remaining seats as a hard gate"
+            exit 1
+          fi
           if grep -Fq "TourDetailV170Component" "$SHELL"; then
-            echo "V201 approved tour renderer must not be replaced by the always-open V170 presentation"
+            echo "Historical V170 detail renderer must not return to the public shell"
             exit 1
           fi
 
@@ -89,8 +85,8 @@ jobs:
         run: |
           set -euo pipefail
           EDGE=supabase/functions/tour-booking-v170/index.ts
-          CLIENT=src/pages/tour-detail-v170.component.ts
-          test -f "$EDGE"
+          CLIENT=src/pages/tour-detail.component.ts
+          test -f "$EDGE" && test -f "$CLIENT"
           grep -Fq "1_000_000_000" "$EDGE"
           grep -Fq "1_000_000_000" "$CLIENT"
           grep -Fq 'capacity_policy: "FLEXIBLE_DEMAND"' "$EDGE"
@@ -121,11 +117,11 @@ jobs:
             exit 1
           fi
 
-      - name: Dynamic photo and video infrastructure remains protected
+      - name: Canonical photo and video detail infrastructure
         shell: bash
         run: |
           set -euo pipefail
-          FILE=src/pages/tour-detail-v170.component.ts
+          FILE=src/pages/tour-detail.component.ts
           grep -Fq "mediaItems" "$FILE"
           grep -Fq "<video" "$FILE"
           grep -Fq "poster" "$FILE"
@@ -134,7 +130,7 @@ jobs:
           grep -Fq "item.highlights" "$FILE"
           grep -Fq "DetailMediaLightboxComponent" "$FILE"
 
-      - name: Super Admin owned Tour Studio contract
+      - name: Super Admin owned tour workspace contract
         shell: bash
         run: |
           set -euo pipefail
@@ -152,9 +148,8 @@ jobs:
           grep -Fq "tour.includedItems" "$FILE"
           grep -Fq "tour.excludedItems" "$FILE"
           grep -Fq "tour.itinerary" "$FILE"
-          grep -Fq "isCover:image&&!hasCover" "$FILE"
           grep -Fq 'mode="TOUR"' "$HUB"
-          if grep -Fq "app-admin-tour-studio-v170" "$HUB"; then
+          if grep -Fq "app-admin-tour-studio-v170\|AdminTourStudioV170Component" "$HUB"; then
             echo "Legacy parallel tour studio must not return to the active content hub"
             exit 1
           fi

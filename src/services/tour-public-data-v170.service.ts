@@ -23,10 +23,11 @@ export interface TourV170 extends Tour {
 export class TourPublicDataV170Service {
   private readonly media = inject(PublicCatalogMediaService);
   private readonly uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  private readonly publicTourSelect = "id,title,seo_slug,category,short_description,description,price_per_person,duration,capacity,meeting_point,location_name,latitude,longitude,map_url,itinerary,included_items,excluded_items,images,cover_image,is_featured,is_active,metadata,publication_status,branch_id,listing_origin,created_at,updated_at,source_name,source_url,data_quality_status";
 
   async list(): Promise<TourV170[]> {
     const [rows, media] = await Promise.all([
-      this.fetchRows("tours?is_active=eq.true&publication_status=eq.PUBLISHED&select=*&order=is_featured.desc,updated_at.desc"),
+      this.fetchRows(`tours?is_active=eq.true&select=${this.publicTourSelect}&order=is_featured.desc,updated_at.desc`),
       this.media.loadAll().catch(() => []),
     ]);
     const mapped = rows.map((row) => this.map(row));
@@ -39,7 +40,7 @@ export class TourPublicDataV170Service {
     const filter = this.uuidPattern.test(clean)
       ? `id=eq.${encodeURIComponent(clean)}`
       : `seo_slug=eq.${encodeURIComponent(clean)}`;
-    const rows = await this.fetchRows(`tours?is_active=eq.true&publication_status=eq.PUBLISHED&${filter}&select=*&limit=1`);
+    const rows = await this.fetchRows(`tours?is_active=eq.true&${filter}&select=${this.publicTourSelect}&limit=1`);
     const row = rows[0];
     if (!row) throw new Error("Bu tur bulunamadı veya yayından kaldırılmış olabilir.");
     const mapped = this.map(row);
@@ -96,7 +97,7 @@ export class TourPublicDataV170Service {
       images,
       gallery: images,
       isFeatured: Boolean(row["is_featured"]),
-      isAvailable: row["is_active"] === true && row["publication_status"] === "PUBLISHED",
+      isAvailable: row["is_active"] === true,
       publicationStatus: row["publication_status"],
       branchId: row["branch_id"] || undefined,
       listingOrigin: row["listing_origin"] || undefined,

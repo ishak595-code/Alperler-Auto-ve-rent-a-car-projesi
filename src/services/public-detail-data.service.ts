@@ -41,16 +41,64 @@ export class PublicDetailDataService {
     return this.prepare(item, kind);
   }
 
+  async loadBlogList(): Promise<BlogDetailPost[]> {
+    const rows = await this.fetchRows(`blog_posts?status=eq.PUBLISHED&select=${this.blogSelect}&order=published_at.desc`, "BLOG_LIST_DB");
+    return rows.map((row) => this.mapBlogRow(row, []));
+  }
+
   async loadBlog(routeId: string): Promise<BlogDetailPost> {
     const clean = String(routeId || "").trim();
     if (!clean) throw new Error("Bu blog yazısı bulunamadı veya yayından kaldırılmış olabilir.");
-    const filter = this.uuidPattern.test(clean) ? `id=eq.${encodeURIComponent(clean)}` : `slug=eq.${encodeURIComponent(clean)}`;
-    const rows = await this.fetchRows(`blog_posts?status=eq.PUBLISHED&${filter}&select=${this.blogSelect}&limit=1`, "BLOG_DETAIL_DB");
-    const row = rows[0];
+
+    let row: Record<string, any> | undefined;
+    if (this.uuidPattern.test(clean)) {
+      row = (await this.fetchRows(`blog_posts?status=eq.PUBLISHED&id=eq.${encodeURIComponent(clean)}&select=${this.blogSelect}&limit=1`, "BLOG_DETAIL_DB"))[0];
+    } else if (!/^\d+$/.test(clean)) {
+      row = (await this.fetchRows(`blog_posts?status=eq.PUBLISHED&slug=eq.${encodeURIComponent(clean)}&select=${this.blogSelect}&limit=1`, "BLOG_DETAIL_DB"))[0];
+    }
+
+    if (!row && /^\d+$/.test(clean)) {
+      const legacyRows = await this.fetchRows(`blog_posts?status=eq.PUBLISHED&select=${this.blogSelect}&order=published_at.desc`, "BLOG_LEGACY_ROUTE_DB");
+      const legacyId = Number(clean);
+      row = legacyRows.find((candidate) => this.stableNumericId(candidate["id"]) === legacyId);
+    }
+
     if (!row) throw new Error("Bu blog yazısı bulunamadı veya yayından kaldırılmış olabilir.");
-    const metadata = row["metadata"] && typeof row["metadata"] === "object" ? row["metadata"] as Record<string, unknown> : {};
     const ownerId = String(row["id"] || "");
     const ownerMedia = ownerId ? await this.media.loadForBlog(ownerId).catch(() => []) : [];
+    return this.mapBlogRow(row, ownerMedia);
+  }
+
+  async resolveCampaignTarget(targetType?: string, targetId?: string, ctaUrl?: string): Promise<string> {
+    const cleanTargetId = String(targetId || "").trim();
+    if (targetType === "TOUR" && cleanTargetId) {
+      try { const tour = await this.load("TOUR", cleanTargetId); return `/tour/${encodeURIComponent(String(tour.id))}`; } catch { /* use explicit CTA fallback */ }
+    }
+    if (targetType === "VEHICLE" && cleanTargetId) {
+      for (const category of ["RENTAL", "SALE"] as const) {
+        try { const vehicle = await this.load(category, cleanTargetId); return `${category === "SALE" ? "/sales" : "/fleet"}/${encodeURIComponent(String(vehicle.id))}`; } catch { /* try other vehicle category */ }
+      }
+    }
+    const cta = String(ctaUrl || "").trim();
+    return cta.startsWith("/") ? cta : "/campaigns";
+  }
+
+  mediaUrl(value?: string): string {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    return raw.startsWith(this.storagePrefix) ? `/catalog-media/${raw.slice(this.storagePrefix.length)}` : raw;
+  }
+
+  mediaUrls(item: Vehicle): string[] {
+    const seen = new Set<string>(); const result: string[] = [];
+    for (const value of [item.image, ...(item.images || []), ...(item.gallery || [])]) { const url = this.mediaUrl(value); if (!url || seen.has(url)) continue; seen.add(url); result.push(url); }
+    return result.slice(0, 30);
+  }
+
+  display(value: unknown, fallback = "Belirtilmedi"): string { const text = String(value ?? "").trim(); return text || fallback; }
+
+  private mapBlogRow(row: Record<string, any>, ownerMedia: Awaited<ReturnType<PublicCatalogMediaService["loadForBlog"]>>): BlogDetailPost {
+    const metadata = row["metadata"] && typeof row["metadata"] === "object" ? row["metadata"] as Record<string, unknown> : {};
     const imageMedia = ownerMedia.filter((item) => item.kind === "IMAGE" && item.url);
     const videoMedia = ownerMedia.filter((item) => item.kind === "VIDEO" && item.url);
     const cover = imageMedia.find((item) => item.isCover) || imageMedia[0];
@@ -60,8 +108,9 @@ export class PublicDetailDataService {
       ...videoMedia.map((item) => ({ kind: "VIDEO" as const, url: item.url, posterUrl: item.posterUrl || cover?.url || fallbackCover || undefined, title: item.altText || String(row["title"] || "Blog videosu") })),
     ];
     if (!media.length && fallbackCover) media.push({ kind: "IMAGE", url: fallbackCover, title: String(row["title"] || "Blog görseli") });
+    const ownerId = String(row["id"] || "");
     return {
-      id: String(row["id"] || clean),
+      id: ownerId,
       title: String(row["title"] || ""),
       summary: String(row["excerpt"] || ""),
       content: String(row["content"] || ""),
@@ -77,56 +126,11 @@ export class PublicDetailDataService {
     };
   }
 
-  async resolveCampaignTarget(targetType?: string, targetId?: string, ctaUrl?: string): Promise<string> {
-    const cleanTargetId = String(targetId || "").trim();
-    if (targetType === "TOUR" && cleanTargetId) {
-      try {
-        const tour = await this.load("TOUR", cleanTargetId);
-        return `/tour/${encodeURIComponent(String(tour.id))}`;
-      } catch { /* fall through to the explicit general CTA only if the canonical target disappeared */ }
-    }
-    if (targetType === "VEHICLE" && cleanTargetId) {
-      for (const category of ["RENTAL", "SALE"] as const) {
-        try {
-          const vehicle = await this.load(category, cleanTargetId);
-          return `${category === "SALE" ? "/sales" : "/fleet"}/${encodeURIComponent(String(vehicle.id))}`;
-        } catch { /* try the other vehicle category */ }
-      }
-    }
-    const cta = String(ctaUrl || "").trim();
-    return cta.startsWith("/") ? cta : "/campaigns";
-  }
-
-  mediaUrl(value?: string): string {
-    const raw = String(value || "").trim();
-    if (!raw) return "";
-    return raw.startsWith(this.storagePrefix) ? `/catalog-media/${raw.slice(this.storagePrefix.length)}` : raw;
-  }
-
-  mediaUrls(item: Vehicle): string[] {
-    const seen = new Set<string>();
-    const result: string[] = [];
-    for (const value of [item.image, ...(item.images || []), ...(item.gallery || [])]) {
-      const url = this.mediaUrl(value);
-      if (!url || seen.has(url)) continue;
-      seen.add(url);
-      result.push(url);
-    }
-    return result.slice(0, 30);
-  }
-
-  display(value: unknown, fallback = "Belirtilmedi"): string {
-    const text = String(value ?? "").trim();
-    return text || fallback;
-  }
-
   private async loadVehicleDirect(kind: "RENTAL" | "SALE", routeId: string): Promise<Vehicle | null> {
     const filter = this.uuidPattern.test(routeId) ? `id=eq.${encodeURIComponent(routeId)}` : `stock_code=eq.${encodeURIComponent(routeId)}`;
     const rows = await this.fetchRows(`vehicles?is_active=eq.true&publication_status=eq.PUBLISHED&category=eq.${kind}&${filter}&select=${this.vehicleSelect}&limit=1`, "VEHICLE_DETAIL_DB");
-    const row = rows[0];
-    if (!row) return null;
-    const mapped = this.mapVehicle(row, kind);
-    const ownerId = String(mapped.cloudId || mapped.id || "");
+    const row = rows[0]; if (!row) return null;
+    const mapped = this.mapVehicle(row, kind); const ownerId = String(mapped.cloudId || mapped.id || "");
     const ownerMedia = await this.media.loadForVehicle(ownerId).catch(() => []);
     return (this.media.hydrate([mapped], ownerMedia)[0] || mapped) as Vehicle;
   }
@@ -134,24 +138,16 @@ export class PublicDetailDataService {
   private async loadTourDirect(routeId: string): Promise<Vehicle | null> {
     const filter = this.uuidPattern.test(routeId) ? `id=eq.${encodeURIComponent(routeId)}` : `seo_slug=eq.${encodeURIComponent(routeId)}`;
     const rows = await this.fetchRows(`tours?is_active=eq.true&publication_status=eq.PUBLISHED&${filter}&select=${this.tourSelect}&limit=1`, "TOUR_DETAIL_DB");
-    const row = rows[0];
-    if (!row) return null;
-    const mapped = this.mapTour(row);
-    const ownerId = String(mapped.cloudId || mapped.id || "");
+    const row = rows[0]; if (!row) return null;
+    const mapped = this.mapTour(row); const ownerId = String(mapped.cloudId || mapped.id || "");
     const ownerMedia = await this.media.loadForTour(ownerId).catch(() => []);
     return (this.media.hydrate([mapped], ownerMedia)[0] || mapped) as Vehicle;
   }
 
   private async fetchRows(path: string, code: string): Promise<Record<string, any>[]> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
-      method: "GET",
-      cache: "no-store",
-      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, accept: "application/json", "cache-control": "no-cache" },
-      signal: AbortSignal.timeout(10_000),
-    });
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, { method: "GET", cache: "no-store", headers: { apikey: SUPABASE_PUBLISHABLE_KEY, accept: "application/json", "cache-control": "no-cache" }, signal: AbortSignal.timeout(10_000) });
     if (!response.ok) throw new Error(`${code}_${response.status}`);
-    const payload = await response.json();
-    return Array.isArray(payload) ? payload : [];
+    const payload = await response.json(); return Array.isArray(payload) ? payload : [];
   }
 
   private mapVehicle(row: Record<string, any>, category: "RENTAL" | "SALE"): Vehicle {
@@ -163,45 +159,18 @@ export class PublicDetailDataService {
     const minimumRentalHours = this.numberOrUndefined(row["minimum_rental_hours"] ?? metadata["minimumRentalHours"]);
     const hourlyMileageLimit = this.numberOrUndefined(row["hourly_mileage_limit"] ?? metadata["hourlyMileageLimit"]);
     return {
-      ...metadata,
-      ...row,
-      id: row["id"],
-      cloudId: row["id"],
-      cloudStockCode: row["stock_code"] || undefined,
-      cloudSlug: row["seo_slug"] || undefined,
-      category,
-      brand: String(row["brand"] || ""),
-      model: String(row["model"] || ""),
-      year: row["model_year"] ?? undefined,
-      price: Number.isFinite(price) ? price : 0,
-      km: row["mileage_km"] ?? undefined,
-      fuel: row["fuel_type"] ?? undefined,
-      transmission: row["transmission"] || undefined,
-      type: row["body_type"] ?? undefined,
-      color: row["color"] || undefined,
-      engineVolume: row["engine"] ?? metadata["engineVolume"] ?? undefined,
-      seats: row["seats"] ?? undefined,
-      doors: row["doors"] ?? metadata["doors"] ?? undefined,
-      location: row["location"] || undefined,
-      description: String(row["description"] || ""),
-      features: Array.isArray(row["features"]) ? row["features"] : [],
-      images,
-      gallery: images,
-      image: row["cover_image"] ?? images[0] ?? undefined,
-      isFeatured: Boolean(row["is_featured"]),
-      isAvailable: availabilityStatus ? availabilityStatus === "AVAILABLE" : true,
+      ...metadata, ...row,
+      id: row["id"], cloudId: row["id"], cloudStockCode: row["stock_code"] || undefined, cloudSlug: row["seo_slug"] || undefined, category,
+      brand: String(row["brand"] || ""), model: String(row["model"] || ""), year: row["model_year"] ?? metadata["year"] ?? undefined,
+      price: Number.isFinite(price) ? price : 0, km: row["mileage_km"] ?? metadata["km"] ?? metadata["mileage"] ?? undefined,
+      fuel: row["fuel_type"] ?? undefined, transmission: row["transmission"] || undefined, type: row["body_type"] ?? undefined, color: row["color"] || undefined,
+      engineVolume: row["engine"] ?? metadata["engineVolume"] ?? undefined, seats: row["seats"] ?? undefined, doors: row["doors"] ?? metadata["doors"] ?? undefined,
+      location: row["location"] || undefined, description: String(row["description"] || ""), features: Array.isArray(row["features"]) ? row["features"] : [], images, gallery: images,
+      image: row["cover_image"] ?? images[0] ?? undefined, isFeatured: Boolean(row["is_featured"]), isAvailable: availabilityStatus ? availabilityStatus === "AVAILABLE" : true,
       availability: category === "SALE" ? availabilityStatus === "SOLD" ? "Satıldı" : metadata["availability"] || "Satışta" : metadata["availability"],
-      hourlyPrice,
-      hourlyRentalEnabled: row["hourly_rental_enabled"] != null ? Boolean(row["hourly_rental_enabled"]) : Boolean(metadata["hourlyRentalEnabled"]),
-      minimumRentalHours,
-      hourlyMileageLimit,
-      publicationStatus: row["publication_status"] ?? undefined,
-      publishedAt: row["published_at"] ?? undefined,
-      scheduledAt: row["scheduled_at"] ?? undefined,
-      branchId: row["branch_id"] || undefined,
-      listingOrigin: row["listing_origin"] || undefined,
-      createdAt: row["created_at"] || undefined,
-      updatedAt: row["updated_at"] || undefined,
+      hourlyPrice, hourlyRentalEnabled: row["hourly_rental_enabled"] != null ? Boolean(row["hourly_rental_enabled"]) : Boolean(metadata["hourlyRentalEnabled"]), minimumRentalHours, hourlyMileageLimit,
+      publicationStatus: row["publication_status"] ?? undefined, publishedAt: row["published_at"] ?? undefined, scheduledAt: row["scheduled_at"] ?? undefined,
+      branchId: row["branch_id"] || undefined, listingOrigin: row["listing_origin"] || undefined, createdAt: row["created_at"] || undefined, updatedAt: row["updated_at"] || undefined,
     } as Vehicle;
   }
 
@@ -210,68 +179,21 @@ export class PublicDetailDataService {
     const images = Array.isArray(row["images"]) ? row["images"].filter((value: unknown): value is string => typeof value === "string" && Boolean(value.trim())) : [];
     const published = row["publication_status"] === "PUBLISHED" && row["is_active"] === true;
     return {
-      ...metadata,
-      id: row["id"],
-      category: "TOUR",
-      title: String(row["title"] || ""),
-      description: String(row["description"] || row["short_description"] || ""),
-      price: Number(row["price_per_person"] || 0),
-      duration: row["duration"] || undefined,
-      capacity: Number(row["capacity"] || 0) || undefined,
-      meetingPoint: row["meeting_point"] || undefined,
-      location: row["location_name"] || row["meeting_point"] || undefined,
-      locationName: row["location_name"] || undefined,
-      latitude: this.numberOrUndefined(row["latitude"]),
-      longitude: this.numberOrUndefined(row["longitude"]),
-      mapUrl: row["map_url"] || undefined,
-      itinerary: Array.isArray(row["itinerary"]) ? row["itinerary"] : [],
-      includedItems: Array.isArray(row["included_items"]) ? row["included_items"] : [],
-      excludedItems: Array.isArray(row["excluded_items"]) ? row["excluded_items"] : [],
-      image: row["cover_image"] || images[0] || undefined,
-      images,
-      gallery: images,
-      isFeatured: Boolean(row["is_featured"]),
-      isAvailable: published,
-      cloudId: row["id"],
-      cloudSlug: row["seo_slug"] || undefined,
-      publicationStatus: row["publication_status"],
-      publishedAt: row["published_at"] || undefined,
-      scheduledAt: row["scheduled_at"] || undefined,
-      branchId: row["branch_id"] || undefined,
-      listingOrigin: row["listing_origin"] || undefined,
-      createdAt: row["created_at"] || undefined,
-      updatedAt: row["updated_at"] || undefined,
+      ...metadata, id: row["id"], category: "TOUR", title: String(row["title"] || ""), description: String(row["description"] || row["short_description"] || ""), price: Number(row["price_per_person"] || 0),
+      duration: row["duration"] || undefined, capacity: Number(row["capacity"] || 0) || undefined, meetingPoint: row["meeting_point"] || undefined, location: row["location_name"] || row["meeting_point"] || undefined,
+      locationName: row["location_name"] || undefined, latitude: this.numberOrUndefined(row["latitude"]), longitude: this.numberOrUndefined(row["longitude"]), mapUrl: row["map_url"] || undefined,
+      itinerary: Array.isArray(row["itinerary"]) ? row["itinerary"] : [], includedItems: Array.isArray(row["included_items"]) ? row["included_items"] : [], excludedItems: Array.isArray(row["excluded_items"]) ? row["excluded_items"] : [],
+      image: row["cover_image"] || images[0] || undefined, images, gallery: images, isFeatured: Boolean(row["is_featured"]), isAvailable: published, cloudId: row["id"], cloudSlug: row["seo_slug"] || undefined,
+      publicationStatus: row["publication_status"], publishedAt: row["published_at"] || undefined, scheduledAt: row["scheduled_at"] || undefined, branchId: row["branch_id"] || undefined, listingOrigin: row["listing_origin"] || undefined,
+      createdAt: row["created_at"] || undefined, updatedAt: row["updated_at"] || undefined,
     } as Vehicle;
   }
 
-  private numberOrUndefined(value: unknown): number | undefined {
-    if (value === null || value === undefined || value === "") return undefined;
-    const number = Number(value);
-    return Number.isFinite(number) ? number : undefined;
-  }
-
+  private numberOrUndefined(value: unknown): number | undefined { if (value === null || value === undefined || value === "") return undefined; const number = Number(value); return Number.isFinite(number) ? number : undefined; }
+  private stableNumericId(value: unknown): number { const normalized = String(value || "").trim(); if (/^\d+$/.test(normalized)) return Number(normalized); let hash = 2166136261; for (let index = 0; index < normalized.length; index += 1) { hash ^= normalized.charCodeAt(index); hash = Math.imul(hash, 16777619); } return (hash >>> 0) || 1; }
   private prepare(item: Vehicle, kind: DetailKind): Vehicle {
-    const images = this.mediaUrls(item);
-    const videos = (item.videos || []).map((video) => ({ ...video, url: this.mediaUrl(video.url), posterUrl: this.mediaUrl(video.posterUrl) })).filter((video) => Boolean(video.url));
-    return {
-      ...item,
-      category: kind,
-      price: Number(item.price || 0),
-      image: this.mediaUrl(item.image || images[0]),
-      images,
-      gallery: images,
-      videos,
-      transmission: item.transmission || undefined,
-      fuel: item.fuel || undefined,
-      seats: Number(item.seats || 0) || undefined,
-      km: Number(item.km || 0) || undefined,
-      isAvailable: kind === "SALE" ? item.availability !== "Satıldı" : item.isAvailable !== false,
-    };
+    const images = this.mediaUrls(item); const videos = (item.videos || []).map((video) => ({ ...video, url: this.mediaUrl(video.url), posterUrl: this.mediaUrl(video.posterUrl) })).filter((video) => Boolean(video.url));
+    return { ...item, category: kind, price: Number(item.price || 0), image: this.mediaUrl(item.image || images[0]), images, gallery: images, videos, transmission: item.transmission || undefined, fuel: item.fuel || undefined, seats: Number(item.seats || 0) || undefined, km: item.km == null ? undefined : Number(item.km), isAvailable: kind === "SALE" ? item.availability !== "Satıldı" : item.isAvailable !== false };
   }
-
-  private notFoundMessage(kind: DetailKind): string {
-    if (kind === "SALE") return "Bu satılık araç bulunamadı veya yayından kaldırılmış olabilir.";
-    if (kind === "TOUR") return "Bu tur bulunamadı veya yayından kaldırılmış olabilir.";
-    return "Bu kiralık araç bulunamadı veya şu anda rezervasyona açık olmayabilir.";
-  }
+  private notFoundMessage(kind: DetailKind): string { if (kind === "SALE") return "Bu satılık araç bulunamadı veya yayından kaldırılmış olabilir."; if (kind === "TOUR") return "Bu tur bulunamadı veya yayından kaldırılmış olabilir."; return "Bu kiralık araç bulunamadı veya şu anda rezervasyona açık olmayabilir."; }
 }

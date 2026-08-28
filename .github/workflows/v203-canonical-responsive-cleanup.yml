@@ -1,0 +1,80 @@
+name: V203 Canonical Responsive Cleanup
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/service-worker.js'
+      - 'scripts/check-v203-canonical-responsive-cleanup.mjs'
+      - 'scripts/check-home-runtime-v192.mjs'
+      - 'angular.json'
+      - '.github/workflows/v203-canonical-responsive-cleanup.yml'
+      - '.github/workflows/v167-rental-showcase-integrity.yml'
+      - '.github/workflows/v168-sale-showcase-integrity.yml'
+      - '.github/workflows/v1681-sale-truth-integrity.yml'
+      - '.github/workflows/v169-tour-showcase-integrity.yml'
+      - '.github/workflows/v170-tour-studio-flexible-demand.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/service-worker.js'
+      - 'scripts/check-v203-canonical-responsive-cleanup.mjs'
+      - 'scripts/check-home-runtime-v192.mjs'
+      - 'angular.json'
+      - '.github/workflows/v203-canonical-responsive-cleanup.yml'
+      - 'package.json'
+      - 'package-lock.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v203-canonical-responsive-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  canonical-responsive-cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Canonical component and responsive ownership
+        run: node scripts/check-v203-canonical-responsive-cleanup.mjs
+
+      - name: Homepage live-data ownership
+        run: node scripts/check-home-runtime-v192.mjs
+
+      - name: Dependency high severity gate
+        run: npm audit --audit-level=high
+
+      - name: Frontend TypeScript
+        run: npm run lint
+
+      - name: API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+
+      - name: Accessibility controls
+        run: |
+          npm run a11y:buttons
+          npm run a11y:dates
+
+      - name: PWA installability
+        run: npm run pwa:installability
+
+      - name: Production Angular build
+        run: npm run build

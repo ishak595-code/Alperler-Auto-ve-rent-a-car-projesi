@@ -11,10 +11,24 @@ const failures = [];
 const requireText = (source, needle, message) => {
   if (!source.includes(needle)) failures.push(message);
 };
+const rejectText = (source, needle, message) => {
+  if (source.includes(needle)) failures.push(message);
+};
 
 requireText(dock, "(max-width:639px) and (pointer:coarse)", "Dock must be phone-class in portrait.");
 requireText(dock, "(max-width:950px) and (max-height:500px) and (pointer:coarse)", "Dock must preserve short coarse landscape phones.");
 if (dock.includes("@media (max-width:767px) and (pointer:coarse)")) failures.push("Legacy 767px dock breakpoint must not return.");
+
+requireText(dock, "<nav class=\"customer-command-dock\"", "Customer dock must remain a native navigation landmark.");
+requireText(dock, "[routerLink]=\"item.route\"", "Customer dock actions must remain native router links.");
+requireText(dock, "[attr.aria-current]=\"isCurrent(item.route) ? 'page' : null\"", "Current dock destination must expose aria-current=page.");
+requireText(dock, "track item.id", "Dock items must keep stable DOM identity across route changes.");
+requireText(dock, "[attr.aria-label]=\"item.label\"", "Dock actions must keep stable accessible names.");
+rejectText(dock, "[attr.aria-hidden]", "The dock must never disappear from the accessibility tree because of scroll state.");
+rejectText(dock, "[attr.inert]", "The dock must never become inert because of scroll state.");
+rejectText(dock, "dock-hidden", "Scroll-driven dock hiding must not return.");
+rejectText(dock, "onWindowScroll", "Scroll-driven dock hiding must not return.");
+rejectText(dock, "HostListener", "The mobile dock must not use scroll listeners to hide itself.");
 
 requireText(spacing, "(max-width:639px) and (pointer:coarse)", "Dock content spacing must match phone-class portrait.");
 requireText(spacing, "(max-width:950px) and (max-height:500px) and (pointer:coarse)", "Dock content spacing must match phone landscape.");

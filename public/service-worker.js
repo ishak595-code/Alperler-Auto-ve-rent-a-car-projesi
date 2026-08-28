@@ -1,4 +1,4 @@
-const RELEASE = 'v202-public-detail-contract';
+const RELEASE = 'v203-responsive-canonical-cleanup';
 const CACHE_PREFIX = 'alperler-pwa-';
 const SHELL_CACHE = `${CACHE_PREFIX}${RELEASE}-shell`;
 const STATIC_CACHE = `${CACHE_PREFIX}${RELEASE}-static`;
@@ -81,11 +81,9 @@ self.addEventListener('activate', (event) => {
         .filter((name) => name.startsWith(CACHE_PREFIX) && !ACTIVE_CACHES.has(name))
         .map((name) => caches.delete(name)),
     );
-
-    if (self.registration.navigationPreload) {
+    if ('navigationPreload' in self.registration) {
       await self.registration.navigationPreload.enable().catch(() => undefined);
     }
-
     await self.clients.claim();
   })());
 });
@@ -95,11 +93,6 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-
-  // Customer, booking, payment and catalogue data always remain network-authoritative.
-  // Cross-origin Supabase calls and same-origin API/media proxies are never written to Cache Storage.
-  if (!isSameOrigin(url) || isDynamicBusinessPath(url.pathname)) return;
-
   if (request.mode === 'navigate') {
     event.respondWith(handleNavigation(event));
     return;
@@ -107,17 +100,5 @@ self.addEventListener('fetch', (event) => {
 
   if (isCacheableStaticRequest(request, url)) {
     event.respondWith(handleStaticAsset(event, request));
-  }
-});
-
-self.addEventListener('message', (event) => {
-  const type = typeof event.data === 'string' ? event.data : event.data?.type;
-  if (type === 'SKIP_WAITING') {
-    void self.skipWaiting();
-    return;
-  }
-
-  if (type === 'GET_VERSION' && event.ports?.[0]) {
-    event.ports[0].postMessage({ type: 'VERSION', release: RELEASE });
   }
 });

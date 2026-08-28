@@ -51,13 +51,24 @@ const removedLegacy = [
 ];
 removedLegacy.forEach(requireMissing);
 
+// A workflow may mention a deleted file only to assert that it stays deleted.
+// Positive reads, path triggers, assignments or greps against a deleted file remain forbidden.
 const workflowDir = '.github/workflows';
-const workflowText = fs.readdirSync(workflowDir)
-  .filter((name) => /\.ya?ml$/i.test(name))
-  .map((name) => `${name}\n${read(path.join(workflowDir, name))}`)
-  .join('\n');
-for (const legacy of removedLegacy) {
-  if (workflowText.includes(legacy)) throw new Error(`Workflow still depends on removed legacy file: ${legacy}`);
+const workflowFiles = fs.readdirSync(workflowDir).filter((name) => /\.ya?ml$/i.test(name));
+const isAbsenceAssertion = (line, legacy) => {
+  if (!line.includes(legacy)) return false;
+  const trimmed = line.trim();
+  return /^test\s+!\s+-f\s+/.test(trimmed) || /^!\s*test\s+-f\s+/.test(trimmed);
+};
+for (const name of workflowFiles) {
+  const lines = read(path.join(workflowDir, name)).split(/\r?\n/);
+  lines.forEach((line, index) => {
+    for (const legacy of removedLegacy) {
+      if (line.includes(legacy) && !isAbsenceAssertion(line, legacy)) {
+        throw new Error(`Workflow ${name}:${index + 1} still positively depends on removed legacy file: ${legacy}`);
+      }
+    }
+  });
 }
 
 const routes = read('src/app.routes.ts');

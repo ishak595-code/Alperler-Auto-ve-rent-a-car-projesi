@@ -32,21 +32,29 @@ for (const token of [
   'shouldRenderMobileDock',
   'isDockItemCurrent',
   'aria-current',
+  'NavigationEnd',
+  'updateVisibility',
+  'setMobileDockRouteHidden',
+  'setMobileDockAutoHidden(false)',
+  '[routerLink]="item.route"',
+  '[attr.aria-label]="item.label"',
+  'track item.id',
+]) must(dock, token);
+for (const token of [
   'onDockClick',
   'NavigationStart',
   'Scroll as RouterScroll',
   'navigationScrollSettling',
   'beginRouteNavigation()',
   'finishRouteNavigationAfterScroll()',
-  'if (this.navigationScrollSettling)',
-  'if (!this.isCurrent(route)) return;',
   'event.preventDefault();',
   'window.scrollTo',
   'navigation.mobileDockAutoHideEnabled()',
-  'if (delta > 0 && currentY > 96) this.navigation.setMobileDockAutoHidden(true);',
-  'if (delta < 0) this.navigation.setMobileDockAutoHidden(false);',
-  'this.navigation.setMobileDockAutoHidden(false);',
-]) must(dock, token);
+  'dock-hidden',
+  '[attr.aria-hidden]',
+  '[attr.inert]',
+  'HostListener',
+]) mustNot(dock, token, `Obsolete or inaccessible mobile dock behavior returned: ${token}`);
 mustNot(dock, 'const shouldHide = path !== "/"', 'Mobile dock must not disappear on every non-home route.');
 mustNot(dock, 'RouterLinkActive', 'Dock active state must use one canonical route policy.');
 
@@ -60,7 +68,8 @@ mustNot(mobileFixes, 'app-home-v39', 'Deleted V39 homepage selector must not rem
 mustNot(mobileFixes, 'app-home section[aria-labelledby="campaigns-title"]', 'Deleted V62 homepage campaign selector must not remain in the active CSS chain.');
 
 const runtimeTest = read('tests/v204/mobile-dock.spec.ts');
-for (const token of ['"/fleet"', '"/sales"', '"/search"', '"/campaigns"', 'dock-hidden', 'window.scrollTo', 'page.goBack()', 'aria-hidden']) must(runtimeTest, token, `Android dock regression missing behavior: ${token}`);
+for (const token of ['"/fleet"', '"/sales"', '"/search"', '"/campaigns"', 'window.scrollTo', 'page.goBack()', 'aria-hidden', 'inert', 'aria-current']) must(runtimeTest, token, `Android dock accessibility regression missing behavior: ${token}`);
+mustNot(runtimeTest, 'toHaveClass(/dock-hidden/)', 'Runtime regression must not expect the accessible dock to disappear on scroll.');
 const runtimeConfig = read('playwright.v204.config.ts');
 for (const token of ['SM-S928B','isMobile: true','hasTouch: true','width: 412','height: 915']) must(runtimeConfig, token, `Android runtime profile missing contract: ${token}`);
 
@@ -72,8 +81,7 @@ for (const token of ["ve.event_type = 'page_view'","'[?&]campaign=' || c.id::tex
 mustNot(proofMigration, 've.path = c.cta_url', 'Campaign proof must not depend on nullable CTA URL.');
 
 const defaultsMigration = read('supabase/migrations/20260828115000_v204_mobile_home_conversion_defaults.sql');
-for (const token of ['mobile_dock_auto_hide = true',"when 'fleet' then 'Kiralık'","when 'sales' then 'Satılık'",'["service","duration","date","pickup"]','plannerVariant',"when 'campaigns'",'Kaçırmadan İncele']) must(defaultsMigration, token);
-mustNot(defaultsMigration, 'mobile_dock_auto_hide = false', 'Scroll autohide must stay enabled. Tap visibility is controlled by route and router-scroll semantics.');
+for (const token of ["when 'fleet' then 'Kiralık'","when 'sales' then 'Satılık'",'["service","duration","date","pickup"]','plannerVariant',"when 'campaigns'",'Kaçırmadan İncele']) must(defaultsMigration, token);
 
 const campaigns = read('src/pages/campaigns.component.ts');
 const homeSections = read('src/components/dynamic-home-section.component.ts');

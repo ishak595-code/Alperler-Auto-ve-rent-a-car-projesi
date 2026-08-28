@@ -6,6 +6,10 @@ async function settleFrames(page: import("@playwright/test").Page): Promise<void
   }));
 }
 
+async function scrollRange(page: import("@playwright/test").Page): Promise<number> {
+  return page.evaluate(() => Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
+}
+
 test("mobile dock survives tab taps and hides only after downward scroll", async ({ page }) => {
   await page.goto("/");
 
@@ -27,11 +31,9 @@ test("mobile dock survives tab taps and hides only after downward scroll", async
   await expect(page).toHaveURL(/\/fleet(?:[?#].*)?$/);
   await settleFrames(page);
   await expect(dock).toBeVisible();
+  await expect.poll(() => scrollRange(page)).toBeGreaterThan(200);
 
-  const scrollTarget = await page.evaluate(() => {
-    const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-    return Math.min(520, max);
-  });
+  const scrollTarget = Math.min(520, await scrollRange(page));
   expect(scrollTarget).toBeGreaterThan(120);
 
   await page.evaluate((top) => window.scrollTo(0, top), scrollTarget);

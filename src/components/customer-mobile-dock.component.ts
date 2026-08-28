@@ -1,6 +1,6 @@
 import { Component, HostListener, inject, signal } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
-import { NavigationEnd, NavigationStart, Router, RouterLink, Scroll as RouterScroll } from "@angular/router";
+import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router, RouterLink, Scroll as RouterScroll } from "@angular/router";
 import { NavigationConfigService } from "../services/navigation-config.service";
 import { isDockItemCurrent, shouldRenderMobileDock } from "../services/mobile-dock-route-policy";
 
@@ -75,6 +75,10 @@ export class CustomerMobileDockComponent {
         this.updateVisibility(event.urlAfterRedirects);
         return;
       }
+      if (event instanceof NavigationCancel || event instanceof NavigationError) {
+        this.abortRouteNavigation();
+        return;
+      }
       if (event instanceof RouterScroll) this.finishRouteNavigationAfterScroll();
     });
   }
@@ -129,6 +133,14 @@ export class CustomerMobileDockComponent {
     if (this.scrollSettleFrame !== undefined) window.cancelAnimationFrame(this.scrollSettleFrame);
     this.scrollSettleFrame = undefined;
     this.lastScrollY = Math.max(0, window.scrollY || 0);
+  }
+
+  private abortRouteNavigation(): void {
+    if (typeof window !== "undefined" && this.scrollSettleFrame !== undefined) window.cancelAnimationFrame(this.scrollSettleFrame);
+    this.scrollSettleFrame = undefined;
+    this.navigationScrollSettling = false;
+    this.navigation.setMobileDockAutoHidden(false);
+    if (typeof window !== "undefined") this.lastScrollY = Math.max(0, window.scrollY || 0);
   }
 
   private finishRouteNavigationAfterScroll(): void {

@@ -31,7 +31,7 @@ jobs:
           set -euo pipefail
           FILE=src/pages/admin/admin-catalog-workspace.component.ts
           HUB=src/pages/admin/admin-content-hub.component.ts
-          for token in "Toplam tramer tutarı TL" "Lokal Boyalı" saleParts tramerSourceUrl tramerSourceName tramerVerifiedAt saleTruthError damageExpertise isDamageFree; do grep -Fq "$token" "$FILE"; done
+          for token in "Toplam tramer TL" "Lokal Boyalı" saleParts tramerSourceUrl tramerSourceName tramerVerifiedAt saleTruthError damageExpertise isDamageFree; do grep -Fq "$token" "$FILE"; done
           grep -Fq 'mode="SALE"' "$HUB"
           test ! -f src/pages/admin/admin-catalog-editor.component.ts
           test ! -f src/pages/admin/admin-sale-integrity-v1681.component.ts

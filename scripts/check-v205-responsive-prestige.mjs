@@ -1,0 +1,36 @@
+import fs from "node:fs";
+
+const read = (path) => fs.readFileSync(path, "utf8");
+const dock = read("src/components/customer-mobile-dock.component.ts");
+const spacing = read("src/mobile-target-fixes.css");
+const layout = read("src/components/main-layout.component.ts");
+const device = read("src/device-experience.css");
+const angular = read("angular.json");
+
+const failures = [];
+const requireText = (source, needle, message) => {
+  if (!source.includes(needle)) failures.push(message);
+};
+
+requireText(dock, "(max-width:639px) and (pointer:coarse)", "Dock must be phone-class in portrait.");
+requireText(dock, "(max-width:950px) and (max-height:500px) and (pointer:coarse)", "Dock must preserve short coarse landscape phones.");
+if (dock.includes("@media (max-width:767px) and (pointer:coarse)")) failures.push("Legacy 767px dock breakpoint must not return.");
+
+requireText(spacing, "(max-width:639px) and (pointer:coarse)", "Dock content spacing must match phone-class portrait.");
+requireText(spacing, "(max-width:950px) and (max-height:500px) and (pointer:coarse)", "Dock content spacing must match phone landscape.");
+requireText(layout, "@media(max-width:639px) and (pointer:coarse)", "WhatsApp offset must match the phone dock breakpoint.");
+
+requireText(device, "app-home-v71 .hero-copy-block", "Device contract must own the phone hero hierarchy.");
+requireText(device, "display: contents", "Phone hero copy must expose children for semantic visual reordering.");
+requireText(device, "app-home-v71 .planner { order: 5", "Planner must precede trust proof on phones.");
+requireText(device, "app-home-v71 .trust-row { order: 6", "Trust proof must follow the planner on phones.");
+requireText(device, "app-home-v71 .desktop-search { order: 4; display: none !important; }", "Phone hero search must remain hidden, including landscape phones.");
+requireText(angular, '"src/device-experience.css"', "Canonical device experience stylesheet must be in the production style graph.");
+
+if (failures.length) {
+  console.error("V205 responsive prestige integrity: FAIL");
+  for (const failure of failures) console.error(`- ${failure}`);
+  process.exit(1);
+}
+
+console.log("V205 responsive prestige integrity: PASS");

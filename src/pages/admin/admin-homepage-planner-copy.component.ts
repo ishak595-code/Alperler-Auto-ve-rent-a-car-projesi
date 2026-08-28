@@ -77,7 +77,7 @@ export class AdminHomepagePlannerCopyComponent implements OnInit {
 
   async reload(): Promise<void> {
     try {
-      await this.cars.refreshCloudCatalog(true);
+      await this.cars.refreshSiteConfig(true);
       const home = this.cars.getConfig()().homeContent || {};
       this.form = {
         ...this.defaults(),
@@ -96,7 +96,7 @@ export class AdminHomepagePlannerCopyComponent implements OnInit {
       const homeContent = { ...(current.homeContent || {}) } as Record<string, unknown>;
       for (const [key, value] of Object.entries(this.form)) homeContent[key] = String(value || '').trim();
       await this.cars.updateConfig({ ...current, homeContent: homeContent as typeof current.homeContent });
-      await this.cars.refreshCloudCatalog(true);
+      await this.cars.refreshSiteConfig(true);
       this.toast.show('Planlama metinleri kaydedildi ve ana sayfaya uygulandı.', 'success');
     } catch (error) {
       this.toast.show(error instanceof Error ? error.message : 'Planlama metinleri kaydedilemedi.', 'error');

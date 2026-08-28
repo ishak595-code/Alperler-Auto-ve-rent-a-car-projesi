@@ -1,15 +1,15 @@
 begin;
 
 -- Supabase Data API grants and RLS are separate authorization layers.
--- Keep anonymous roles read-only where public reads are intentional and remove
--- legacy default write privileges that are not part of the application contract.
-revoke insert, update, delete, truncate, references, trigger on table public.customer_profiles from anon;
-revoke insert, update, delete, truncate, references, trigger on table public.customer_loyalty_accounts from anon;
-revoke insert, update, delete, truncate, references, trigger on table public.customer_experience_preferences from anon;
+-- Remove legacy anonymous privileges that are not part of the customer-facing
+-- application contract. Public configuration/catalogue SELECT grants remain intact.
+revoke select, insert, update, delete, truncate, references, trigger on table public.customer_profiles from anon;
+revoke select, insert, update, delete, truncate, references, trigger on table public.customer_loyalty_accounts from anon;
+revoke select, insert, update, delete, truncate, references, trigger on table public.customer_experience_preferences from anon;
 revoke insert, update, delete, truncate, references, trigger on table public.loyalty_program_settings from anon;
 revoke insert, update, delete, truncate, references, trigger on table public.navigation_settings from anon;
 revoke insert, update, delete, truncate, references, trigger on table public.navigation_items from anon;
-revoke insert, update, delete, truncate, references, trigger on table public.vehicle_operations from anon;
+revoke select, insert, update, delete, truncate, references, trigger on table public.vehicle_operations from anon;
 revoke insert, update, delete, truncate, references, trigger on table public.footer_settings from anon;
 
 -- Branch subscription browser reads are intentionally protected by the existing

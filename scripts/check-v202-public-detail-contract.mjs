@@ -43,7 +43,9 @@ for (const mapping of ['year: row["model_year"]', 'km: row["mileage_km"]', 'fuel
 // Previously fixed public regressions remain locked.
 requireText(blog, 'loadBlogList()', 'Blog list must load the published DB list through the direct public detail service.');
 requireText(rental, 'campaignProofLabel', 'Rental campaign social proof must remain wired.');
-requireText(tour, 'fixed-actions', 'Tour must retain one canonical fixed action bar.');
+requireText(tour, 'class="action-bar"', 'Tour must retain one canonical fixed action bar.');
+requireText(tour, '<span>WhatsApp’tan Sor</span>', 'Tour WhatsApp action missing.');
+requireText(tour, '<span>Bu Turu Rezerve Et</span>', 'Tour reservation action missing.');
 rejectText(tour, 'Hazır olduğunuzda', 'Duplicate legacy tour reservation card must not return.');
 
 // Force old static PWA bundles out after this public contract release.

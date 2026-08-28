@@ -32,41 +32,30 @@ jobs:
           grep -Fq "SALE_DAMAGE_FREE_EXPERTISE_CONFLICT" "$FILE"
           grep -Fq "expertiseSummary" "$FILE"
           grep -Fq "13-v_known" "$FILE"
-      - name: Canonical sale upload form contract
+      - name: Canonical sale workspace contract
         shell: bash
         run: |
           set -euo pipefail
-          FILE=src/pages/admin/admin-catalog-editor.component.ts
-          grep -Fq "Toplam tramer tutarı TL" "$FILE"
-          grep -Fq "Lokal Boyalı" "$FILE"
+          FILE=src/pages/admin/admin-catalog-workspace.component.ts
+          HUB=src/pages/admin/admin-content-hub.component.ts
+          grep -Fq "tramerAmount" "$FILE"
+          grep -Fq "local_painted" "$FILE"
           grep -Fq "saleParts" "$FILE"
           grep -Fq "tramerSourceUrl" "$FILE"
           grep -Fq "saleTruthError" "$FILE"
           grep -Fq "damageExpertise" "$FILE"
           grep -Fq "isDamageFree" "$FILE"
-      - name: Sale truth review center contract
+          grep -Fq 'mode="SALE"' "$HUB"
+          for old in src/pages/admin/admin-catalog-editor.component.ts src/pages/admin/admin-sale-integrity-v168.component.ts src/pages/admin/admin-sale-integrity-v1681.component.ts; do
+            if test -f "$old"; then echo "Legacy parallel sale admin path must stay deleted after V203: $old"; exit 1; fi
+          done
+      - name: Canonical sale truth renderer
         shell: bash
         run: |
           set -euo pipefail
-          FILE=src/pages/admin/admin-sale-integrity-v1681.component.ts
-          grep -Fq "Lokal Boyalı" "$FILE"
-          grep -Fq "Tramer tutarı TL" "$FILE"
-          grep -Fq "tramerAmount" "$FILE"
-          grep -Fq "VERIFIED_CLEAN" "$FILE"
-          grep -Fq "tramerVerifiedAt" "$FILE"
-          grep -Fq "rearBumper" "$FILE"
-      - name: Historical sale truth renderer and current approved detail
-        shell: bash
-        run: |
-          set -euo pipefail
-          HISTORICAL=src/pages/sale-detail-v1681.component.ts
           CANONICAL=src/pages/sale-car-detail.component.ts
           GRAPHIC=src/components/expertise-graphic.component.ts
           CARD=src/components/sale-vehicle-card-v168.component.ts
-          grep -Fq "Beyan ve doğrulama birbirinden ayrı gösterilir" "$HISTORICAL"
-          grep -Fq "local_painted" "$HISTORICAL"
-          grep -Fq "tramerAmountLabel" "$HISTORICAL"
-          grep -Fq "safeSourceUrl" "$HISTORICAL"
           grep -Fq "İLAN BİLGİLERİ" "$CANONICAL"
           grep -Fq "AÇIKLAMA" "$CANONICAL"
           grep -Fq "KONUM" "$CANONICAL"
@@ -75,7 +64,8 @@ jobs:
           grep -Fq "tramerStatusLabel" "$CANONICAL"
           grep -Fq "damageExpertise" "$CANONICAL"
           grep -Fq "readonly listingRows = computed<ListingRow[]>" "$CANONICAL"
-          if grep -Fq 'class="core-facts"' "$CANONICAL"; then
+          grep -Fq "callPhone()" "$CANONICAL"
+          if grep -Fq 'class="core-facts"' "$CANONICAL" || grep -Fq 'class="summary"' "$CANONICAL"; then
             echo "Canonical sale detail must not duplicate listing facts above İlan Bilgileri"
             exit 1
           fi
@@ -95,7 +85,7 @@ jobs:
           grep -Fq "tramerAmount" "$FILE"
           grep -Fq "local_painted" "$FILE"
           grep -Fq "tramerSourceUrl" "$FILE"
-      - name: Preserve previous sale and rental integrity without renderer regression
+      - name: Preserve canonical public ownership
         shell: bash
         run: |
           set -euo pipefail
@@ -103,10 +93,9 @@ jobs:
           grep -Fq "RentalShowcaseV167Component" src/pages/fleet.component.ts
           grep -Fq "CarDetailComponent" src/pages/catalog-detail-shells.component.ts
           grep -Fq "SaleCarDetailComponent" src/pages/catalog-detail-shells.component.ts
-          if grep -Fq "RentalDetailV167Component" src/pages/catalog-detail-shells.component.ts || grep -Fq "SaleDetailV1681Component" src/pages/catalog-detail-shells.component.ts; then
-            echo "V201 approved public detail owners must not be replaced by historical renderer generations"
-            exit 1
-          fi
+          for old in src/pages/sale-detail-v168.component.ts src/pages/sale-detail-v1681.component.ts; do
+            if test -f "$old"; then echo "Historical sale detail must stay deleted after V203: $old"; exit 1; fi
+          done
       - name: Frontend TypeScript
         run: npm run lint
       - name: Vercel API TypeScript

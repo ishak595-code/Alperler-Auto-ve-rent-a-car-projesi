@@ -15,14 +15,20 @@ This document is the source-of-truth map for the Alperler Auto customer catalogu
 
 Historical duplicate detail renderers were removed in V203. Their reusable business technology remains in services, migrations and Edge Functions where still required.
 
-## Active catalogue list/showcase components
+## Canonical public list and entry owners
 
-These versioned components are active runtime components and must not be removed merely because their filenames contain a version:
+Stable routes have one active list/entry implementation:
 
-- `RentalShowcaseV167Component` — `/fleet`
-- `SalesShowcaseV168Component` — `/sales`
-- `TourShowcaseV170Component` — `/tours`
-- their active card components and live-data services
+- `/fleet` -> `FleetComponent` -> `RentalShowcaseV167Component`
+- `/sales` -> `SalesResultsComponent` -> `SalesShowcaseV168Component`
+- `/tours` -> `ToursComponent` -> `TourShowcaseV170Component`
+- `/list-your-car` -> `ListYourCarComponent` -> `ListYourCarV172Component`
+- `/branch-partner` -> `BranchPartnerV171Component`
+- `/account` -> `AccountShellComponent` -> `AccountDashboardV150Component`
+
+These versioned components are active runtime components and must not be removed merely because their filenames contain a version. Their active card components and live-data services remain part of production.
+
+V203 removed superseded or route-less list/entry implementations after proving that the canonical route no longer depended on them. This includes the old vehicle valuation V2 page, tour showcase V169, the V164 branch-partner screen/wrapper, route-less rental/tour results screens and the orphaned external sales results template.
 
 Versioned services/Edge Functions/migrations such as V166/V167/V168/V169/V170 remain valid when they implement current business rules.
 
@@ -76,6 +82,18 @@ Map/location belongs to normal tour content. Date/person/contact data is opened 
 - `app-tour-detail .action-bar`
 
 Business colors/actions stay inside their components. Shared geometry, safe-area padding, zero inter-button gaps and phone/tablet/desktop sizing are owned by this one responsive layer.
+
+## Repository collision prevention
+
+`scripts/check-v203-canonical-runtime-integrity.mjs` is a structural guard, not a visual smoke test. It must fail CI if:
+
+- a removed legacy renderer or old entry screen returns;
+- a stable public route points back to a superseded implementation;
+- detail ownership splits into parallel renderers again;
+- public list wrappers stop targeting the active canonical showcase;
+- the customer account shell stops targeting the active V150 dashboard;
+- homepage data falls back to hardcoded catalogue entities;
+- admin rental, sale or tour editing splits away from `AdminCatalogWorkspaceComponent`.
 
 ## Safe cleanup rule
 

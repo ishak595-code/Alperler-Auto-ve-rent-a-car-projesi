@@ -109,7 +109,8 @@ assert(hasHeader(offlineHeaders, 'Cache-Control', 'no-cache'), 'Offline shell or
 assert(hasHeader(offlineHeaders, 'X-Robots-Tag', 'noindex'), 'Offline shell must never enter search indexes.');
 
 assert(mobileDock.includes('.customer-command-dock{display:none}'), 'Mobile dock must default to hidden.');
-assert(mobileDock.includes('@media (max-width:767px) and (pointer:coarse)'), 'Mobile dock must remain limited to real touch phones, not desktop/tablet widths.');
+assert(mobileDock.includes('@media (max-width:639px) and (pointer:coarse)'), 'Mobile dock portrait mode must remain limited to real touch phones.');
+assert(mobileDock.includes('(max-width:950px) and (max-height:500px) and (pointer:coarse)'), 'Mobile dock must preserve short coarse landscape phones without admitting tablets.');
 assert(mobileDock.includes('(display-mode:fullscreen)'), 'Mobile dock must respect fullscreen installed mode safe-area spacing.');
 
 console.log('PWA installability guard passed: standalone installation, versioned static caches, network-authoritative business data, release cleanup, navigation preload, self-contained offline fallback and component-owned safe areas are enforced.');

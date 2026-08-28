@@ -56,7 +56,6 @@ type ListingRow = { label: string; value: string; important?: boolean };
           <div>
             <p class="listing-no">İlan No {{ item.cloudStockCode || item.id }}</p>
             <h2 id="listing-title">{{ item.brand }} @if (item.series) { <span>{{ item.series }}</span> } {{ item.model }}</h2>
-            <p class="summary">{{ summaryMeta(item) || 'İlan bilgileri aşağıdaki canlı katalog kaydından gösteriliyor.' }}</p>
           </div>
           <strong class="listing-price">{{ item.price | turkishCurrency }}</strong>
           @if ((item.viewers || 0) > 0 || (item.favCount || 0) > 0) {
@@ -98,12 +97,12 @@ type ListingRow = { label: string; value: string; important?: boolean };
 
               <section class="expertise" aria-labelledby="expertise-title">
                 <h3 id="expertise-title"><mat-icon aria-hidden="true">verified</mat-icon>Ekspertiz Özeti</h3>
-                <div class="truth-grid">
-                  <div><span>Hasar Durumu</span><strong>{{ item.damageStatus || (item.isDamageFree ? 'Hatasız & Boyasız' : 'Belirtilmedi') }}</strong></div>
-                  <div><span>Tramer Durumu</span><strong>{{ tramerStatusLabel(item) }}</strong></div>
-                  @if (item.tramerAmount != null) { <div><span>Tramer Tutarı</span><strong>{{ item.tramerAmount | turkishCurrency }}</strong></div> }
-                  @if (item.tramerVerifiedAt) { <div><span>Doğrulama Tarihi</span><strong>{{ formatDate(item.tramerVerifiedAt) }}</strong></div> }
-                </div>
+                <dl class="truth-list" aria-label="Ekspertiz ve tramer özeti">
+                  <div><dt>Hasar Durumu</dt><dd>{{ item.damageStatus || (item.isDamageFree ? 'Hatasız & Boyasız' : 'Belirtilmedi') }}</dd></div>
+                  <div><dt>Tramer Durumu</dt><dd>{{ tramerStatusLabel(item) }}</dd></div>
+                  @if (item.tramerAmount != null) { <div><dt>Tramer Tutarı</dt><dd>{{ item.tramerAmount | turkishCurrency }}</dd></div> }
+                  @if (item.tramerVerifiedAt) { <div><dt>Doğrulama Tarihi</dt><dd>{{ formatDate(item.tramerVerifiedAt) }}</dd></div> }
+                </dl>
                 <app-expertise-graphic [data]="item.damageExpertise"></app-expertise-graphic>
                 @if (hasTramerDetail(item)) { <div class="tramer-summary"><div><strong>Tramer kaydı</strong>@if (item.tramerSourceName) { <span>Kaynak: {{ item.tramerSourceName }}</span> }</div><p>{{ tramerDetail(item) }}</p></div> }
               </section>
@@ -120,9 +119,17 @@ type ListingRow = { label: string; value: string; important?: boolean };
         </section>
 
         <nav class="bottom-actions" aria-label="Satılık araç işlemleri">
-          <button type="button" class="phone" (click)="callPhone()" [disabled]="!phoneHref()" aria-label="Telefonla ara"><span class="phone-symbol" aria-hidden="true">☎</span><span>Ara</span></button>
-          <button type="button" class="inquiry" (click)="inquire(item)" [disabled]="item.availability === 'Satıldı'"><mat-icon aria-hidden="true">request_quote</mat-icon><span>Satış Talebi</span></button>
-          <button type="button" class="whatsapp" (click)="whatsapp()" [disabled]="!whatsappPhone()" aria-label="WhatsApp ile bilgi al"><mat-icon aria-hidden="true">chat</mat-icon><span>WhatsApp</span></button>
+          @if (phoneHref()) {
+            <a class="phone" [href]="phoneHref()" aria-label="Telefonla ara"><span class="phone-symbol" aria-hidden="true">☎</span><span>Ara</span></a>
+          } @else {
+            <button type="button" class="phone" disabled aria-label="Telefon numarası tanımlı değil"><span class="phone-symbol" aria-hidden="true">☎</span><span>Ara</span></button>
+          }
+          <button type="button" class="inquiry" (click)="inquire(item)" [disabled]="item.availability === 'Satıldı'" aria-label="Satış talebi oluştur"><mat-icon aria-hidden="true">request_quote</mat-icon><span>Satış Talebi</span></button>
+          @if (whatsappHref(item)) {
+            <a class="whatsapp" [href]="whatsappHref(item)" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp ile bilgi al"><mat-icon aria-hidden="true">chat</mat-icon><span>WhatsApp</span></a>
+          } @else {
+            <button type="button" class="whatsapp" disabled aria-label="WhatsApp numarası tanımlı değil"><mat-icon aria-hidden="true">chat</mat-icon><span>WhatsApp</span></button>
+          }
         </nav>
 
         <app-detail-media-lightbox [open]="lightboxOpen()" [items]="mediaItems()" [index]="currentSlide()" [title]="item.brand + ' ' + item.model + ' fotoğraf ve video galerisi'" (closed)="lightboxOpen.set(false)" (indexChange)="currentSlide.set($event)" />
@@ -158,8 +165,7 @@ type ListingRow = { label: string; value: string; important?: boolean };
     .listing-no { margin:0; color:#34d399; font-size:11px; font-weight:950; text-transform:uppercase; }
     .listing-head h2 { margin:5px 0 0; font:900 clamp(25px,7vw,42px)/1.08 Georgia,serif; }
     .listing-head h2 span { color:#94a3b8; }
-    .summary { margin:8px 0 0; color:#94a3b8; line-height:1.5; }
-    .listing-price { color:#f8fafc; font-size:32px; }
+    .listing-price { color:#f8fafc; font-size:clamp(31px,7vw,46px); letter-spacing:-.03em; }
     .social-proof { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:8px; }
     .social-proof span { display:flex; align-items:center; gap:5px; border:1px solid #334155; border-radius:999px; background:#050b18; padding:7px 10px; color:#cbd5e1; font-size:11px; font-weight:850; }
     .social-proof mat-icon { width:16px; height:16px; font-size:16px; color:#34d399; }
@@ -170,8 +176,9 @@ type ListingRow = { label: string; value: string; important?: boolean };
     .sale-tabs mat-icon { width:20px; height:20px; font-size:20px; }
     .tab-content { width:min(100% - 24px,1060px); min-height:420px; margin:12px auto 0; overflow:hidden; border:1px solid #253149; border-radius:20px; background:#0b1220; }
     .listing-table { margin:0; }
-    .listing-table>div { display:grid; grid-template-columns:minmax(110px,.82fr) minmax(0,1.18fr); align-items:center; gap:18px; min-height:55px; padding:13px 16px; }
+    .listing-table>div { display:grid; grid-template-columns:minmax(110px,.82fr) minmax(0,1.18fr); align-items:center; gap:18px; min-height:55px; padding:13px 16px; border-left:2px solid transparent; transition:background-color .16s ease,border-color .16s ease; }
     .listing-table>div:nth-child(even) { background:#071020; }
+    .listing-table>div:hover { border-left-color:#34d399; background:#0d1729; }
     .listing-table dt { color:#94a3b8; font-size:13px; }
     .listing-table dd { min-width:0; margin:0; overflow-wrap:anywhere; text-align:right; color:#f8fafc; font-size:13px; font-weight:900; }
     .listing-table dd.important { color:#34d399; }
@@ -180,20 +187,20 @@ type ListingRow = { label: string; value: string; important?: boolean };
     .expand-button.blue { background:#075985; }
     .expand-button>span { display:flex; align-items:center; gap:9px; }
     .spec-grid { display:grid; gap:8px; margin:12px 0 0; }
-    .spec-grid>div { display:flex; justify-content:space-between; gap:12px; border:1px solid #253149; border-radius:11px; background:#050b18; padding:11px; }
+    .spec-grid>div { display:flex; justify-content:space-between; gap:12px; border-bottom:1px solid #253149; padding:12px 2px; }
     .spec-grid dt { color:#94a3b8; }
     .spec-grid dd { margin:0; text-align:right; font-weight:850; }
     .feature-grid { list-style:none; display:grid; gap:8px; margin:12px 0 0; padding:0; }
-    .feature-grid li { display:flex; align-items:flex-start; gap:7px; border:1px solid #253149; border-radius:11px; background:#050b18; padding:11px; color:#cbd5e1; }
+    .feature-grid li { display:flex; align-items:flex-start; gap:7px; border-bottom:1px solid #253149; padding:11px 2px; color:#cbd5e1; }
     .feature-grid mat-icon { color:#34d399; }
     .expertise { padding:20px 16px; border-top:1px solid #253149; }
     .expertise h3 { display:flex; align-items:center; gap:8px; margin:0 0 14px; }
     .expertise h3 mat-icon { color:#60a5fa; }
-    .truth-grid { display:grid; gap:8px; margin-bottom:16px; }
-    .truth-grid>div { display:flex; justify-content:space-between; gap:12px; border:1px solid #253149; border-radius:12px; background:#050b18; padding:12px; }
-    .truth-grid span { color:#94a3b8; }
-    .truth-grid strong { text-align:right; }
-    .tramer-summary { display:grid; gap:7px; margin-top:16px; border:1px solid #334155; border-radius:12px; background:#071020; padding:14px; }
+    .truth-list { margin:0 0 16px; border-top:1px solid #253149; }
+    .truth-list>div { display:grid; grid-template-columns:minmax(110px,.9fr) minmax(0,1.1fr); gap:16px; align-items:center; min-height:50px; border-bottom:1px solid #253149; padding:10px 2px; }
+    .truth-list dt { color:#94a3b8; }
+    .truth-list dd { margin:0; text-align:right; font-weight:900; }
+    .tramer-summary { display:grid; gap:7px; margin-top:16px; border-top:1px solid #334155; padding:14px 0 0; }
     .tramer-summary>div { display:flex; align-items:center; justify-content:space-between; gap:10px; }
     .tramer-summary>div span { color:#94a3b8; font-size:10px; }
     .tramer-summary p { margin:0; color:#cbd5e1; line-height:1.6; }
@@ -208,20 +215,23 @@ type ListingRow = { label: string; value: string; important?: boolean };
     .dealer-card { display:flex; gap:12px; margin-top:14px; border:1px solid #253149; border-radius:14px; background:#071020; padding:14px; }
     .dealer-icon { display:grid; width:46px; height:46px; flex:none; place-items:center; border-radius:50%; background:#064e3b; color:#6ee7b7; }
     .dealer-card p { margin:5px 0 0; color:#94a3b8; }
-    .bottom-actions { position:fixed; z-index:90; left:0; right:0; bottom:0; display:grid; grid-template-columns:.82fr 1.22fr 1fr; gap:8px; border-top:1px solid #334155; background:rgba(5,11,24,.98); padding:9px 10px calc(9px + env(safe-area-inset-bottom)); backdrop-filter:blur(16px); }
-    .bottom-actions button { display:flex; min-width:0; min-height:56px; align-items:center; justify-content:center; gap:6px; border:0; border-radius:13px; color:#fff; font-size:12px; font-weight:950; white-space:nowrap; box-shadow:0 8px 20px rgba(0,0,0,.2); }
+    .bottom-actions { position:fixed; z-index:90; left:0; right:0; bottom:0; display:grid; grid-template-columns:.86fr 1.28fr 1fr; gap:0; border-top:1px solid #334155; background:rgba(5,11,24,.98); padding:0 0 env(safe-area-inset-bottom); backdrop-filter:blur(16px); }
+    .bottom-actions :is(a,button) { display:flex; min-width:0; min-height:60px; align-items:center; justify-content:center; gap:6px; border:0; border-radius:0; color:#fff; padding:8px 7px; font-size:12px; font-weight:950; line-height:1.15; text-align:center; text-decoration:none; white-space:normal; box-shadow:none; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+    .bottom-actions :is(a,button)+:is(a,button) { border-left:1px solid rgba(255,255,255,.16); }
     .bottom-actions .phone { background:#0f766e; }
     .bottom-actions .inquiry { background:#2563eb; }
     .bottom-actions .whatsapp { background:#059669; }
+    .bottom-actions a:visited { color:#fff; }
+    .bottom-actions :is(a,button):active { filter:brightness(.92); }
     .phone-symbol { font-size:22px; line-height:1; }
-    .bottom-actions button:disabled { opacity:.45; box-shadow:none; }
+    .bottom-actions button:disabled { opacity:.45; }
     .state { min-height:70dvh; display:grid; place-content:center; gap:10px; text-align:center; padding:24px; }
     .state button { min-height:46px; border:0; border-radius:10px; background:#2563eb; color:#fff; padding:0 18px; font-weight:900; }
     .spinner { width:42px; height:42px; margin:auto; border:4px solid #334155; border-top-color:#34d399; border-radius:50%; animation:spin .8s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
-    @media (min-width:720px) { .media-frame { aspect-ratio:16/9; } .listing-head { grid-template-columns:1fr auto; align-items:end; } .spec-grid,.feature-grid,.truth-grid { grid-template-columns:1fr 1fr; } }
-    @media (min-width:1024px) { .media-frame { aspect-ratio:21/9; } .bottom-actions { left:50%; right:auto; width:min(820px,calc(100% - 28px)); transform:translateX(-50%); border:1px solid #334155; border-bottom:0; border-radius:16px 16px 0 0; } }
-    @media (max-width:430px) { .bottom-actions { gap:6px; padding-inline:7px; } .bottom-actions button { min-height:54px; gap:4px; font-size:10px; } .bottom-actions mat-icon { width:19px; height:19px; font-size:19px; } .phone-symbol { font-size:19px; } }
+    @media (min-width:720px) { .media-frame { aspect-ratio:16/9; } .listing-head { grid-template-columns:1fr auto; align-items:end; } .spec-grid,.feature-grid { grid-template-columns:1fr 1fr; } }
+    @media (min-width:1024px) { .media-frame { aspect-ratio:21/9; } }
+    @media (max-width:430px) { .sale-header { padding-inline:8px; } .header-button { width:44px; height:44px; } .sale-header h1 { max-width:55vw; } .listing-head,.sale-tabs,.tab-content { width:calc(100% - 16px); } .listing-table>div { grid-template-columns:minmax(92px,.76fr) minmax(0,1.24fr); gap:10px; padding-inline:12px; } }
     @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto!important; transition:none!important; } }
   `],
 })
@@ -347,7 +357,6 @@ export class SaleCarDetailComponent implements OnInit {
   }
 
   display(value: unknown, fallback = "Belirtilmedi"): string { return this.detailData.display(value, fallback); }
-  summaryMeta(item: Car): string { return [item.year, item.km != null ? `${Number(item.km).toLocaleString("tr-TR")} km` : "", item.fuel, item.transmission, item.type].filter(Boolean).join(" · "); }
   listingDate(item: Car): string { return this.formatDate(item.createdAt || item.updatedAt || "") || "Tarih bilgisi yok"; }
   formatDate(value: string): string { const date = new Date(value); return value && !Number.isNaN(date.getTime()) ? new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" }).format(date) : ""; }
   previousMedia(): void { const length = this.mediaItems().length; if (length > 1) this.currentSlide.update((index) => (index - 1 + length) % length); }
@@ -365,8 +374,7 @@ export class SaleCarDetailComponent implements OnInit {
   inquire(item: Car): void { if (item.availability === "Satıldı") return; this.carService.setBookingRequest({ type: "SALE_INQUIRY", item, itemName: `${item.brand || ""} ${item.model || ""}`.trim(), image: item.image || item.images?.[0], basePrice: Number(item.price || 0) }); void this.router.navigate(["/contact"]); }
   async share(item: Car): Promise<void> { const payload = { title: `${item.brand || ""} ${item.model || ""} | Alperler Auto`.trim(), text: "Bu satılık araç ilanını inceleyin.", url: window.location.href }; try { if (navigator.share) await navigator.share(payload); else await navigator.clipboard?.writeText(window.location.href); } catch { /* kullanıcı paylaşımı iptal etti */ } }
   phoneHref(): string { const phone = String(this.carService.getConfig()().phone || "").replace(/[^+\d]/g, ""); return phone ? `tel:${phone}` : ""; }
-  callPhone(): void { const href = this.phoneHref(); if (href) window.location.href = href; }
   whatsappPhone(): string { return String(this.carService.getConfig()().whatsapp || this.carService.getConfig()().phone || "").replace(/\D/g, ""); }
-  whatsapp(): void { const item = this.car(); if (!item) return; const phone = this.whatsappPhone(); if (!phone) return; window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Merhaba, ${item.brand || ""} ${item.model || ""} satılık araç ilanı hakkında bilgi almak istiyorum. ${window.location.href}`)}`, "_blank", "noopener,noreferrer"); }
+  whatsappHref(item: Car): string { const phone = this.whatsappPhone(); if (!phone) return ""; return `https://wa.me/${phone}?text=${encodeURIComponent(`Merhaba, ${item.brand || ""} ${item.model || ""} satılık araç ilanı hakkında bilgi almak istiyorum. ${window.location.href}`)}`; }
   goBack(): void { if (window.history.length > 1) this.location.back(); else void this.router.navigate(["/sales"]); }
 }

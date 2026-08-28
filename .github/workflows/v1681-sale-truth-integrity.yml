@@ -70,7 +70,15 @@ jobs:
           grep -Fq "İLAN BİLGİLERİ" "$CANONICAL"
           grep -Fq "AÇIKLAMA" "$CANONICAL"
           grep -Fq "KONUM" "$CANONICAL"
-          grep -Fq "Ekspertiz ve Tramer Durumu" "$CANONICAL"
+          grep -Fq "Ekspertiz Özeti" "$CANONICAL"
+          grep -Fq "app-expertise-graphic" "$CANONICAL"
+          grep -Fq "tramerStatusLabel" "$CANONICAL"
+          grep -Fq "damageExpertise" "$CANONICAL"
+          grep -Fq "readonly listingRows = computed<ListingRow[]>" "$CANONICAL"
+          if grep -Fq 'class="core-facts"' "$CANONICAL"; then
+            echo "Canonical sale detail must not duplicate listing facts above İlan Bilgileri"
+            exit 1
+          fi
           grep -Fq "local_painted" "$GRAPHIC"
           grep -Fq "rearBumper" "$GRAPHIC"
           grep -Fq "Arka tampon" "$GRAPHIC"

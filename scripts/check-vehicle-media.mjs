@@ -42,11 +42,13 @@ for (const [name, source, token] of [
   if (!source.includes(token)) failures.push(`${name} detail is not database-authoritative`);
 }
 if (rentalDetail.includes("getAllVehicles()") || saleDetail.includes("getSaleCar(") || tourDetail.includes("getTours()().find")) failures.push("a detail page can still resolve from stale shared catalogue state");
-if (!rentalDetail.includes("Tüm Özellikler ve Açıklama") || !rentalDetail.includes("detailsOpen")) failures.push("rental detail compact accordion is missing");
+if (!rentalDetail.includes("Özellikler, koşullar ve açıklama") || !rentalDetail.includes("detailsOpen")) failures.push("rental detail compact accordion is missing");
 if (rentalDetail.includes("Tarih, nereden alınacağı, iade noktası")) failures.push("rental detail reintroduced the redundant reservation instruction paragraph");
-for (const token of ["İLAN BİLGİLERİ", "AÇIKLAMA", "KONUM", "app-expertise-graphic", "activeTab"]) {
+for (const token of ["İLAN BİLGİLERİ", "AÇIKLAMA", "KONUM", "app-expertise-graphic", "activeTab", "readonly listingRows = computed<ListingRow[]>"]) {
   if (!saleDetail.includes(token)) failures.push(`sale listing identity is missing: ${token}`);
 }
+if (saleDetail.includes('class="core-facts"')) failures.push("sale detail reintroduced duplicate top summary cards");
+if (!saleDetail.includes('(click)="callPhone()"') || saleDetail.includes('[href]="phoneHref()"')) failures.push("sale phone CTA is not a persistent action button");
 
 for (const token of ["checkoutStep", "Sürücü Tercihi", "Nereden alınacak?", "Nereye iade edilecek?", "Sonraki Adım"]) {
   if (!checkout.includes(token)) failures.push(`focused rental checkout is missing: ${token}`);

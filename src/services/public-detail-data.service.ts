@@ -18,6 +18,7 @@ export class PublicDetailDataService {
   private readonly media = inject(PublicCatalogMediaService);
   private readonly storagePrefix = `${SUPABASE_PROJECT_URL}/storage/v1/object/public/catalog-media/`;
   private readonly uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  private readonly numericPattern = /^\d+$/;
   private readonly vehicleSelect = [
     "id", "stock_code", "category", "brand", "model", "model_year", "price", "currency",
     "rental_price_daily", "rental_price_hourly", "hourly_rental_enabled", "minimum_rental_hours", "hourly_mileage_limit",
@@ -41,56 +42,42 @@ export class PublicDetailDataService {
     return this.prepare(item, kind);
   }
 
+  async loadBlogList(): Promise<BlogDetailPost[]> {
+    const rows = await this.fetchRows(`blog_posts?status=eq.PUBLISHED&select=${this.blogSelect}&order=published_at.desc`, "BLOG_LIST_DB");
+    return rows.map((row) => this.mapBlogRow(row, []));
+  }
+
   async loadBlog(routeId: string): Promise<BlogDetailPost> {
     const clean = String(routeId || "").trim();
     if (!clean) throw new Error("Bu blog yazısı bulunamadı veya yayından kaldırılmış olabilir.");
-    const filter = this.uuidPattern.test(clean) ? `id=eq.${encodeURIComponent(clean)}` : `slug=eq.${encodeURIComponent(clean)}`;
-    const rows = await this.fetchRows(`blog_posts?status=eq.PUBLISHED&${filter}&select=${this.blogSelect}&limit=1`, "BLOG_DETAIL_DB");
-    const row = rows[0];
+
+    let row: Record<string, any> | undefined;
+    if (this.uuidPattern.test(clean)) {
+      row = (await this.fetchRows(`blog_posts?status=eq.PUBLISHED&id=eq.${encodeURIComponent(clean)}&select=${this.blogSelect}&limit=1`, "BLOG_DETAIL_DB"))[0];
+    } else if (!this.numericPattern.test(clean)) {
+      row = (await this.fetchRows(`blog_posts?status=eq.PUBLISHED&slug=eq.${encodeURIComponent(clean)}&select=${this.blogSelect}&limit=1`, "BLOG_DETAIL_DB"))[0];
+    }
+
+    if (!row && this.numericPattern.test(clean)) {
+      const legacyRows = await this.fetchRows(`blog_posts?status=eq.PUBLISHED&select=${this.blogSelect}&order=published_at.desc`, "BLOG_LEGACY_ROUTE_DB");
+      const legacyId = Number(clean);
+      row = legacyRows.find((candidate) => this.stableNumericId(candidate["id"]) === legacyId);
+    }
+
     if (!row) throw new Error("Bu blog yazısı bulunamadı veya yayından kaldırılmış olabilir.");
-    const metadata = row["metadata"] && typeof row["metadata"] === "object" ? row["metadata"] as Record<string, unknown> : {};
     const ownerId = String(row["id"] || "");
     const ownerMedia = ownerId ? await this.media.loadForBlog(ownerId).catch(() => []) : [];
-    const imageMedia = ownerMedia.filter((item) => item.kind === "IMAGE" && item.url);
-    const videoMedia = ownerMedia.filter((item) => item.kind === "VIDEO" && item.url);
-    const cover = imageMedia.find((item) => item.isCover) || imageMedia[0];
-    const fallbackCover = this.mediaUrl(String(row["cover_image"] || ""));
-    const media: BlogDetailMediaItem[] = [
-      ...imageMedia.map((item) => ({ kind: "IMAGE" as const, url: item.url, title: item.altText || String(row["title"] || "Blog görseli") })),
-      ...videoMedia.map((item) => ({ kind: "VIDEO" as const, url: item.url, posterUrl: item.posterUrl || cover?.url || fallbackCover || undefined, title: item.altText || String(row["title"] || "Blog videosu") })),
-    ];
-    if (!media.length && fallbackCover) media.push({ kind: "IMAGE", url: fallbackCover, title: String(row["title"] || "Blog görseli") });
-    return {
-      id: String(row["id"] || clean),
-      title: String(row["title"] || ""),
-      summary: String(row["excerpt"] || ""),
-      content: String(row["content"] || ""),
-      image: cover?.url || fallbackCover,
-      readTime: String(metadata["readTime"] || "4 Dk Okuma"),
-      date: String(metadata["originalDate"] || (row["published_at"] ? new Date(String(row["published_at"])).toLocaleDateString("tr-TR") : "")),
-      cloudId: ownerId || undefined,
-      cloudSlug: String(row["slug"] || "") || undefined,
-      authorName: String(row["author_name"] || "") || undefined,
-      seoTitle: String(row["seo_title"] || "") || undefined,
-      seoDescription: String(row["seo_description"] || "") || undefined,
-      media,
-    };
+    return this.mapBlogRow(row, ownerMedia);
   }
 
   async resolveCampaignTarget(targetType?: string, targetId?: string, ctaUrl?: string): Promise<string> {
     const cleanTargetId = String(targetId || "").trim();
     if (targetType === "TOUR" && cleanTargetId) {
-      try {
-        const tour = await this.load("TOUR", cleanTargetId);
-        return `/tour/${encodeURIComponent(String(tour.id))}`;
-      } catch { /* fall through to the explicit general CTA only if the canonical target disappeared */ }
+      try { const tour = await this.load("TOUR", cleanTargetId); return `/tour/${encodeURIComponent(String(tour.id))}`; } catch { /* use explicit CTA fallback */ }
     }
     if (targetType === "VEHICLE" && cleanTargetId) {
       for (const category of ["RENTAL", "SALE"] as const) {
-        try {
-          const vehicle = await this.load(category, cleanTargetId);
-          return `${category === "SALE" ? "/sales" : "/fleet"}/${encodeURIComponent(String(vehicle.id))}`;
-        } catch { /* try the other vehicle category */ }
+        try { const vehicle = await this.load(category, cleanTargetId); return `${category === "SALE" ? "/sales" : "/fleet"}/${encodeURIComponent(String(vehicle.id))}`; } catch { /* try other vehicle category */ }
       }
     }
     const cta = String(ctaUrl || "").trim();
@@ -120,10 +107,44 @@ export class PublicDetailDataService {
     return text || fallback;
   }
 
+  private mapBlogRow(row: Record<string, any>, ownerMedia: Awaited<ReturnType<PublicCatalogMediaService["loadForBlog"]>>): BlogDetailPost {
+    const metadata = row["metadata"] && typeof row["metadata"] === "object" ? row["metadata"] as Record<string, unknown> : {};
+    const imageMedia = ownerMedia.filter((item) => item.kind === "IMAGE" && item.url);
+    const videoMedia = ownerMedia.filter((item) => item.kind === "VIDEO" && item.url);
+    const cover = imageMedia.find((item) => item.isCover) || imageMedia[0];
+    const fallbackCover = this.mediaUrl(String(row["cover_image"] || ""));
+    const media: BlogDetailMediaItem[] = [
+      ...imageMedia.map((item) => ({ kind: "IMAGE" as const, url: item.url, title: item.altText || String(row["title"] || "Blog görseli") })),
+      ...videoMedia.map((item) => ({ kind: "VIDEO" as const, url: item.url, posterUrl: item.posterUrl || cover?.url || fallbackCover || undefined, title: item.altText || String(row["title"] || "Blog videosu") })),
+    ];
+    if (!media.length && fallbackCover) media.push({ kind: "IMAGE", url: fallbackCover, title: String(row["title"] || "Blog görseli") });
+    const ownerId = String(row["id"] || "");
+    return {
+      id: ownerId,
+      title: String(row["title"] || ""),
+      summary: String(row["excerpt"] || ""),
+      content: String(row["content"] || ""),
+      image: cover?.url || fallbackCover,
+      readTime: String(metadata["readTime"] || "4 Dk Okuma"),
+      date: String(metadata["originalDate"] || (row["published_at"] ? new Date(String(row["published_at"])).toLocaleDateString("tr-TR") : "")),
+      cloudId: ownerId || undefined,
+      cloudSlug: String(row["slug"] || "") || undefined,
+      authorName: String(row["author_name"] || "") || undefined,
+      seoTitle: String(row["seo_title"] || "") || undefined,
+      seoDescription: String(row["seo_description"] || "") || undefined,
+      media,
+    };
+  }
+
   private async loadVehicleDirect(kind: "RENTAL" | "SALE", routeId: string): Promise<Vehicle | null> {
-    const filter = this.uuidPattern.test(routeId) ? `id=eq.${encodeURIComponent(routeId)}` : `stock_code=eq.${encodeURIComponent(routeId)}`;
-    const rows = await this.fetchRows(`vehicles?is_active=eq.true&publication_status=eq.PUBLISHED&category=eq.${kind}&${filter}&select=${this.vehicleSelect}&limit=1`, "VEHICLE_DETAIL_DB");
-    const row = rows[0];
+    let row: Record<string, any> | undefined;
+    if (this.numericPattern.test(routeId)) {
+      const rows = await this.fetchRows(`vehicles?is_active=eq.true&publication_status=eq.PUBLISHED&category=eq.${kind}&select=${this.vehicleSelect}`, "VEHICLE_LEGACY_ROUTE_DB");
+      row = rows.find((candidate) => this.legacyNumericId(candidate) === Number(routeId));
+    } else {
+      const filter = this.uuidPattern.test(routeId) ? `id=eq.${encodeURIComponent(routeId)}` : `stock_code=eq.${encodeURIComponent(routeId)}`;
+      row = (await this.fetchRows(`vehicles?is_active=eq.true&publication_status=eq.PUBLISHED&category=eq.${kind}&${filter}&select=${this.vehicleSelect}&limit=1`, "VEHICLE_DETAIL_DB"))[0];
+    }
     if (!row) return null;
     const mapped = this.mapVehicle(row, kind);
     const ownerId = String(mapped.cloudId || mapped.id || "");
@@ -132,9 +153,14 @@ export class PublicDetailDataService {
   }
 
   private async loadTourDirect(routeId: string): Promise<Vehicle | null> {
-    const filter = this.uuidPattern.test(routeId) ? `id=eq.${encodeURIComponent(routeId)}` : `seo_slug=eq.${encodeURIComponent(routeId)}`;
-    const rows = await this.fetchRows(`tours?is_active=eq.true&publication_status=eq.PUBLISHED&${filter}&select=${this.tourSelect}&limit=1`, "TOUR_DETAIL_DB");
-    const row = rows[0];
+    let row: Record<string, any> | undefined;
+    if (this.numericPattern.test(routeId)) {
+      const rows = await this.fetchRows(`tours?is_active=eq.true&publication_status=eq.PUBLISHED&select=${this.tourSelect}`, "TOUR_LEGACY_ROUTE_DB");
+      row = rows.find((candidate) => this.legacyNumericId(candidate) === Number(routeId) || String(candidate["seo_slug"] || "").startsWith(`legacy-${routeId}-`));
+    } else {
+      const filter = this.uuidPattern.test(routeId) ? `id=eq.${encodeURIComponent(routeId)}` : `seo_slug=eq.${encodeURIComponent(routeId)}`;
+      row = (await this.fetchRows(`tours?is_active=eq.true&publication_status=eq.PUBLISHED&${filter}&select=${this.tourSelect}&limit=1`, "TOUR_DETAIL_DB"))[0];
+    }
     if (!row) return null;
     const mapped = this.mapTour(row);
     const ownerId = String(mapped.cloudId || mapped.id || "");
@@ -172,9 +198,9 @@ export class PublicDetailDataService {
       category,
       brand: String(row["brand"] || ""),
       model: String(row["model"] || ""),
-      year: row["model_year"] ?? undefined,
+      year: row["model_year"] ?? metadata["year"] ?? undefined,
       price: Number.isFinite(price) ? price : 0,
-      km: row["mileage_km"] ?? undefined,
+      km: row["mileage_km"] ?? metadata["km"] ?? metadata["mileage"] ?? undefined,
       fuel: row["fuel_type"] ?? undefined,
       transmission: row["transmission"] || undefined,
       type: row["body_type"] ?? undefined,
@@ -250,6 +276,24 @@ export class PublicDetailDataService {
     return Number.isFinite(number) ? number : undefined;
   }
 
+  private legacyNumericId(row: Record<string, any>): number | undefined {
+    const metadata = row["metadata"] && typeof row["metadata"] === "object" ? row["metadata"] as Record<string, unknown> : {};
+    const value = metadata["legacyId"] ?? metadata["legacy_id"] ?? metadata["id"];
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? number : undefined;
+  }
+
+  private stableNumericId(value: unknown): number {
+    const normalized = String(value || "").trim();
+    if (this.numericPattern.test(normalized)) return Number(normalized);
+    let hash = 2166136261;
+    for (let index = 0; index < normalized.length; index += 1) {
+      hash ^= normalized.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0) || 1;
+  }
+
   private prepare(item: Vehicle, kind: DetailKind): Vehicle {
     const images = this.mediaUrls(item);
     const videos = (item.videos || []).map((video) => ({ ...video, url: this.mediaUrl(video.url), posterUrl: this.mediaUrl(video.posterUrl) })).filter((video) => Boolean(video.url));
@@ -264,7 +308,7 @@ export class PublicDetailDataService {
       transmission: item.transmission || undefined,
       fuel: item.fuel || undefined,
       seats: Number(item.seats || 0) || undefined,
-      km: Number(item.km || 0) || undefined,
+      km: item.km == null ? undefined : Number(item.km),
       isAvailable: kind === "SALE" ? item.availability !== "Satıldı" : item.isAvailable !== false,
     };
   }

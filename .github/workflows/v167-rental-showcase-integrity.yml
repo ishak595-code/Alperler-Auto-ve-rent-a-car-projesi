@@ -83,9 +83,11 @@ jobs:
           grep -q "CommercialOfferContextService" "$HISTORICAL_DETAIL"
           grep -q "required.includes('driver')" "$HISTORICAL_DETAIL"
           grep -q "activeCampaign" "$CANONICAL_DETAIL"
-          grep -q "Tüm Özellikler ve Açıklama" "$CANONICAL_DETAIL"
+          grep -q "Özellikler, koşullar ve açıklama" "$CANONICAL_DETAIL"
+          grep -q "detailsOpen" "$CANONICAL_DETAIL"
           grep -q "fixed-actions" "$CANONICAL_DETAIL"
           grep -q "campaignProofLabel" "$CANONICAL_DETAIL"
+          grep -q 'detailData.load("RENTAL"' "$CANONICAL_DETAIL"
           if grep -q "mobile-actions\|primary-action\|whatsapp-action" "$CANONICAL_DETAIL"; then
             echo "Canonical rental detail must have one fixed CTA owner only"
             exit 1

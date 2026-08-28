@@ -77,6 +77,7 @@ type DriverMode = "with" | "without" | "";
               <div><dt>Vites</dt><dd>{{display(car.transmission)}}</dd></div>
               <div><dt>Yakıt</dt><dd>{{display(car.fuel)}}</dd></div>
               <div><dt>Koltuk</dt><dd>{{car.seats?car.seats+' kişi':'Belirtilmedi'}}</dd></div>
+              @if(car.doors){<div><dt>Kapı</dt><dd>{{car.doors}}</dd></div>}
               <div><dt>Kasa</dt><dd>{{display(car.type)}}</dd></div>
               <div><dt>Müsaitlik</dt><dd [class.available]="selectedPeriodAvailable()" [class.unavailable]="!selectedPeriodAvailable()">{{selectedPeriodAvailable()?'Müsait':'Seçilen zaman aralığında dolu'}}</dd></div>
             </dl>
@@ -105,7 +106,7 @@ type DriverMode = "with" | "without" | "";
       } @else if(loading()){
         <section class="state-panel" role="status"><div class="spinner"></div><strong>Araç bilgileri hazırlanıyor</strong></section>
       } @else {
-        <section class="state-panel error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><strong>Araç bilgilerine şu anda ulaşılamıyor</strong><span>{{loadError()}}</span><button type="button" (click)="reload()">Tekrar Dene</button></section>
+        <section class="state-panel error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><strong>Araç bilgilerine şu anda ulaşılamıyor</strong><span>Lütfen kısa bir süre sonra yeniden deneyin.</span><button type="button" (click)="reload()">Tekrar Dene</button></section>
       }
     </main>
   `,
@@ -187,7 +188,7 @@ export class CarDetailComponent implements OnInit {
       this.vehicle.set(car); this.failedMedia.set([]); this.currentSlide.set(0);
       const config=this.carService.getConfig()();
       this.seo.updateSeoTags({title:`${car.brand||"Araç"} ${car.model||""} Kiralama | ${config.companyName}`,description:`${car.brand||"Araç"} ${car.model||""} günlük/saatlik fiyat, konfor özellikleri ve kiralama koşulları.`,image:car.image||config.seoOgImage});
-    } catch(error){this.vehicle.set(null);this.loadError.set(error instanceof Error?error.message:"Araç bilgileri alınamadı.");}
+    } catch{this.vehicle.set(null);this.loadError.set("RENTAL_DETAIL_UNAVAILABLE");}
     finally{this.loading.set(false);}
   }
 
@@ -204,7 +205,7 @@ export class CarDetailComponent implements OnInit {
   selectedUnitPrice(car:Car):number{return this.presetDuration==="hourly"?this.hourlyDisplayPrice(car):this.dailyDisplayPrice(car);}
   phoneHref():string{const phone=String(this.carService.getConfig()().phone||"").replace(/[^+\d]/g,"");return phone?`tel:${phone}`:"";}
   private unitCampaignPrice(base:number,mode:"daily"|"hourly"):number{const offer=this.activeCampaign();if(!offer||offer.discountScope!=="UNIT")return base;if(mode==="hourly"&&offer.minimumRentalDays)return base;if(mode==="daily"&&offer.minimumRentalHours)return base;if(offer.newPrice!=null&&Number.isFinite(Number(offer.newPrice)))return Math.max(0,Number(offer.newPrice));if(offer.discountMethod==="FIXED_PRICE")return Math.max(0,Number(offer.discountValue||base));if(offer.discountMethod==="PERCENT")return Math.max(0,base-base*Number(offer.discountValue||0)/100);if(offer.discountMethod==="FIXED_AMOUNT")return Math.max(0,base-Number(offer.discountValue||0));return base;}
-  durationLabel():string{return this.presetDuration==="hourly"?"Saatlik":this.presetDuration==="weekly"?"Haftalık":this.presetDuration==="monthly"?"Aylık":this.presetDuration==="longterm"?"Uzun süre":"Günlük";}
+  durationLabel():string{return this.presetDuration==="hourly"?"Saatlik":this.presetDuration==="weekly"?"Haftalık":this.presetDuration==="monthly"?"Aylık":this.presetDuration==="longterm"?"Uzun dönem":"Günlük";}
   formattedPresetDates():string{const format=(v:string)=>{const d=this.parseDate(v);return d?new Intl.DateTimeFormat("tr-TR",{day:"2-digit",month:"long",year:"numeric"}).format(d):v;};return this.presetDuration==="hourly"?`${format(this.presetStartDate)} · ${this.presetStartTime}-${this.presetEndTime}`:`${format(this.presetStartDate)} - ${format(this.presetEndDate)}`;}
   previousMedia():void{const l=this.mediaItems().length;if(l>1)this.currentSlide.update(i=>(i-1+l)%l);}
   nextMedia():void{const l=this.mediaItems().length;if(l>1)this.currentSlide.update(i=>(i+1)%l);}

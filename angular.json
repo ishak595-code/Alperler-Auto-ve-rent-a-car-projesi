@@ -32,7 +32,8 @@
               "src/premium-design-system.css",
               "src/prestige-palette-defaults.css",
               "src/premium-responsive.css",
-              "src/v193-cinematic-3d.css"
+              "src/v193-cinematic-3d.css",
+              "src/device-experience.css"
             ],
             "tsConfig": "tsconfig.json"
           },
@@ -52,7 +53,7 @@
             },
             "development": {
               "optimization": false,
-              "extractLicenses": false,
+              "extractLicenses": true,
               "sourceMap": true
             }
           },

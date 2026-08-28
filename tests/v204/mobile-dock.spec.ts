@@ -13,7 +13,8 @@ async function scrollRange(page: import("@playwright/test").Page): Promise<numbe
 test("mobile dock survives tab taps and hides only after downward scroll", async ({ page }) => {
   await page.goto("/");
 
-  const dock = page.getByRole("navigation", { name: "Hızlı menü" });
+  const dock = page.locator("nav.customer-command-dock");
+  await expect(dock).toHaveCount(1);
   await expect(dock).toBeVisible();
   await expect(dock).not.toHaveClass(/dock-hidden/);
 
@@ -22,6 +23,7 @@ test("mobile dock survives tab taps and hides only after downward scroll", async
     await dock.locator(`a[href="${route}"]`).click();
     await expect(page).toHaveURL(new RegExp(`${route.replace("/", "\\/")}(?:[?#].*)?$`));
     await settleFrames(page);
+    await expect(dock).toHaveCount(1);
     await expect(dock).toBeVisible();
     await expect(dock).not.toHaveClass(/dock-hidden/);
     await expect(dock).not.toHaveAttribute("aria-hidden", "true");
@@ -39,9 +41,11 @@ test("mobile dock survives tab taps and hides only after downward scroll", async
   await page.evaluate((top) => window.scrollTo(0, top), scrollTarget);
   await expect(dock).toHaveClass(/dock-hidden/);
   await expect(dock).toHaveAttribute("aria-hidden", "true");
+  await expect(dock).not.toBeVisible();
 
   await page.evaluate(() => window.scrollBy(0, -90));
   await expect(dock).not.toHaveClass(/dock-hidden/);
+  await expect(dock).not.toHaveAttribute("aria-hidden", "true");
   await expect(dock).toBeVisible();
 
   const rememberedY = await page.evaluate(() => window.scrollY);
@@ -55,6 +59,7 @@ test("mobile dock survives tab taps and hides only after downward scroll", async
   await expect(page).toHaveURL(/\/fleet(?:[?#].*)?$/);
   await settleFrames(page);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(24);
+  await expect(dock).toHaveCount(1);
   await expect(dock).toBeVisible();
   await expect(dock).not.toHaveClass(/dock-hidden/);
   await expect(dock).not.toHaveAttribute("aria-hidden", "true");

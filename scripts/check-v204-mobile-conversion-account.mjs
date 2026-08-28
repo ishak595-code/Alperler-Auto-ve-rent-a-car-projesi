@@ -31,6 +31,12 @@ for (const token of [
   'isDockItemCurrent',
   'aria-current',
   'onDockClick',
+  'NavigationStart',
+  'Scroll as RouterScroll',
+  'navigationScrollSettling',
+  'beginRouteNavigation()',
+  'finishRouteNavigationAfterScroll()',
+  'if (this.navigationScrollSettling)',
   'if (!this.isCurrent(route)) return;',
   'event.preventDefault();',
   'window.scrollTo',
@@ -47,6 +53,7 @@ for (const token of ['V204 canonical mobile home conversion geometry','app-home-
 mustNot(responsive, 'app-list-your-car-v2', 'Deleted V2 valuation selector returned to canonical responsive CSS.');
 
 const mobileFixes = read('src/mobile-target-fixes.css');
+for (const token of ['app-home-v71 > main','app-fleet app-rental-showcase-v167 > main','app-sales-results app-sales-showcase-v168 > main','app-tours app-tour-showcase-v170 > main','app-campaigns > main','app-search > main','app-account-shell app-account-dashboard-v150 > main']) must(mobileFixes, token, `Canonical mobile dock safe-area owner missing: ${token}`);
 mustNot(mobileFixes, 'app-home-v39', 'Deleted V39 homepage selector must not remain in the active CSS chain.');
 mustNot(mobileFixes, 'app-home section[aria-labelledby="campaigns-title"]', 'Deleted V62 homepage campaign selector must not remain in the active CSS chain.');
 
@@ -59,7 +66,7 @@ mustNot(proofMigration, 've.path = c.cta_url', 'Campaign proof must not depend o
 
 const defaultsMigration = read('supabase/migrations/20260828115000_v204_mobile_home_conversion_defaults.sql');
 for (const token of ['mobile_dock_auto_hide = true',"when 'fleet' then 'Kiralık'","when 'sales' then 'Satılık'",'["service","duration","date","pickup"]','plannerVariant',"when 'campaigns'",'Kaçırmadan İncele']) must(defaultsMigration, token);
-mustNot(defaultsMigration, 'mobile_dock_auto_hide = false', 'Scroll autohide must stay enabled. Tap visibility is controlled by route policy, not by disabling scroll behavior.');
+mustNot(defaultsMigration, 'mobile_dock_auto_hide = false', 'Scroll autohide must stay enabled. Tap visibility is controlled by route and router-scroll semantics.');
 
 const campaigns = read('src/pages/campaigns.component.ts');
 const homeSections = read('src/components/dynamic-home-section.component.ts');

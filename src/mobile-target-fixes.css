@@ -1,191 +1,46 @@
-/* Mobile visual parity, accessibility and premium depth system. */
+/* Canonical mobile finishing layer.
+   Homepage geometry belongs to HomeV71 and premium-responsive.css.
+   Historical V39 and V62 homepage selectors are intentionally absent here. */
 
-/* Homepage keeps its compact showcase grid. Fleet and sales result pages must
-   stay full-width list rows with their own filters/sort controls. */
-app-home div:has(> app-vehicle-list-item) {
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 12px !important;
-  overflow: visible !important;
-  border: 0 !important;
-  background: transparent !important;
-  padding: 0 12px 12px !important;
-}
-
-app-fleet app-vehicle-list-item,
-app-sales app-vehicle-list-item,
-app-rental-results app-vehicle-list-item,
-app-sales-results app-vehicle-list-item {
-  display: block;
-  width: 100%;
-  min-width: 0;
-}
-
-/* Top-level customer result pages live outside MainLayout. Reserve safe space
-   for the global mobile customer dock without affecting desktop or admin UI. */
-@media (max-width: 1279px) {
-  app-rental-results > main,
-  app-sales-results > main,
-  app-tour-results > main,
+/* The global customer dock floats above route content on coarse mobile screens.
+   Reserve a predictable final scroll area on customer pages where the dock can
+   render. Detail pages are deliberately excluded because they own fixed CTAs. */
+@media (max-width:767px) and (pointer:coarse) {
+  app-home-v71 > main,
+  app-fleet app-rental-showcase-v167 > main,
+  app-sales-results app-sales-showcase-v168 > main,
+  app-tours app-tour-showcase-v170 > main,
+  app-campaigns > main,
+  app-search > main,
   app-blog-list > main,
   app-branches > main,
+  app-branch-detail > main,
   app-contact-entry > main,
-  app-list-your-car > main {
+  app-contact-entry app-contact > main,
+  app-list-your-car app-list-your-car-v172 > main,
+  app-appointment > main,
+  app-about > main,
+  app-faq > main,
+  app-legal > main,
+  app-branch-marketplace-v171 > main,
+  app-branch-partner-v171 > main,
+  app-branch-plans-v171 > main,
+  app-account-shell app-account-dashboard-v150 > main,
+  app-account-wallet > main {
     padding-bottom: calc(7rem + env(safe-area-inset-bottom)) !important;
   }
 }
 
-@media (min-width: 640px) {
-  app-home div:has(> app-vehicle-list-item) {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 16px !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-  }
-}
-
-@media (min-width: 1024px) {
-  app-home div:has(> app-vehicle-list-item) {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  }
-}
-
-/* Premium 3D language: depth comes from layered light, perspective and shadow,
-   not from exaggerated button extrusion. */
-app-home-v39 main > section:first-of-type {
-  perspective: 1500px;
-  isolation: isolate;
-  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
-}
-
-app-home-v39 main > section:first-of-type::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -8;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 78% 18%, rgba(96, 165, 250, 0.24), transparent 31%),
-    radial-gradient(circle at 18% 74%, rgba(14, 116, 144, 0.16), transparent 34%),
-    radial-gradient(circle at 52% 12%, rgba(255, 255, 255, 0.07), transparent 28%);
-}
-
-/* Subtle perspective floor gives the hero a premium 3D stage without heavy GPU
-   animation or decorative assets that would compete with the real content. */
-app-home-v39 main > section:first-of-type::after {
-  content: "";
-  position: absolute;
-  left: 42%;
-  right: -12%;
-  bottom: -42%;
-  height: 68%;
-  z-index: -7;
-  pointer-events: none;
-  opacity: 0.24;
-  transform: perspective(900px) rotateX(68deg) rotateZ(-4deg);
-  transform-origin: center top;
-  background-image:
-    linear-gradient(rgba(148, 163, 184, 0.16) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.14) 1px, transparent 1px),
-    radial-gradient(circle at center, rgba(59, 130, 246, 0.16), transparent 62%);
-  background-size: 54px 54px, 54px 54px, 100% 100%;
-  mask-image: linear-gradient(to bottom, rgba(0,0,0,.9), transparent 82%);
-}
-
-/* Move the hero's primary task higher. Search should be encountered before the
-   eye settles in the vertical centre of the photograph. */
-app-home-v39 main > section:first-of-type > div.mx-auto {
-  align-items: start !important;
-  min-height: 680px;
-  padding-top: clamp(3.25rem, 7vw, 6rem) !important;
-  padding-bottom: clamp(4.5rem, 8vw, 6.5rem) !important;
-  transform-style: preserve-3d;
-}
-
-app-home-v39 main > section:first-of-type > div.mx-auto > div:first-child {
-  transform: translateZ(18px);
-}
-
-app-home-v39 main > section:first-of-type div.relative:has(input[aria-label="Araç, tur veya blog ara"]) {
-  margin-top: 1.15rem !important;
-}
-
-app-home-v39 main > section:first-of-type div:has(> input[aria-label="Araç, tur veya blog ara"]) {
-  border: 1px solid rgba(255, 255, 255, 0.76);
-  box-shadow:
-    0 28px 68px rgba(2, 6, 23, 0.34),
-    0 6px 18px rgba(15, 23, 42, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
-}
-
-app-home-v39 main > section:first-of-type > div.mx-auto > section {
-  margin-top: -1rem;
-  transform: translateZ(38px);
-  border-color: rgba(255, 255, 255, 0.4) !important;
-  box-shadow:
-    0 38px 88px rgba(2, 6, 23, 0.38),
-    0 10px 26px rgba(15, 23, 42, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
-}
-
-@media (min-width: 1024px) {
-  app-home-v39 main > section:first-of-type > div.mx-auto {
-    padding-top: clamp(4rem, 6vw, 5.5rem) !important;
-  }
-
-  app-home-v39 main > section:first-of-type > div.mx-auto > section {
-    margin-top: -2rem;
-  }
-
-  app-home-v39 main > section:first-of-type div.relative:has(input[aria-label="Araç, tur veya blog ara"]) {
-    margin-top: 1rem !important;
-  }
-}
-
-@media (max-width: 639px) {
-  app-home-v39 main > section:first-of-type > div.mx-auto {
-    min-height: auto;
-    gap: 2.25rem !important;
-    padding-top: 2.75rem !important;
-    padding-bottom: 4.5rem !important;
-  }
-
-  app-home-v39 main > section:first-of-type > div.mx-auto > section {
-    margin-top: -0.5rem;
-  }
-
-  app-home-v39 main > section:first-of-type::after {
-    left: 20%;
-    right: -48%;
-    bottom: -30%;
-    height: 52%;
-    opacity: 0.17;
-    background-size: 42px 42px, 42px 42px, 100% 100%;
-  }
-}
-
-/* Vehicle and campaign surfaces receive restrained physical depth. */
-app-vehicle-list-item article,
-app-home-v39 article {
+/* Shared vehicle cards keep restrained physical depth. Their layout itself is
+   owned by the current renderer, not by a historical homepage selector. */
+app-vehicle-list-item article {
   box-shadow:
     0 12px 30px rgba(15, 23, 42, 0.08),
     0 2px 7px rgba(15, 23, 42, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  app-home-v39 main > section:first-of-type > div.mx-auto > section {
-    transition: transform 280ms ease, box-shadow 280ms ease;
-  }
-
-  app-home-v39 main > section:first-of-type > div.mx-auto > section:hover {
-    transform: translateZ(44px) translateY(-3px) rotateY(-0.6deg);
-    box-shadow:
-      0 46px 100px rgba(2, 6, 23, 0.42),
-      0 14px 32px rgba(15, 23, 42, 0.22),
-      inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
-  }
-
+@media (hover:hover) and (pointer:fine) {
   app-vehicle-list-item article {
     transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
   }
@@ -200,182 +55,13 @@ app-home-v39 article {
   }
 }
 
-/* V62 canonical homepage campaign showroom. Exactly three campaign records are
-   selected by the database. This layer only improves hierarchy and conversion
-   clarity; it never invents scarcity or fake activity. */
-app-home section[aria-labelledby="campaigns-title"] {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 8% 10%, rgba(37, 99, 235, 0.25), transparent 34%),
-    radial-gradient(circle at 92% 90%, rgba(245, 158, 11, 0.18), transparent 34%),
-    linear-gradient(145deg, #020617 0%, #0f172a 48%, #111827 100%) !important;
-  color: #f8fafc !important;
-}
-
-app-home section[aria-labelledby="campaigns-title"]::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.34;
-  background-image:
-    linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
-  background-size: 34px 34px;
-  mask-image: linear-gradient(to bottom, #000 0%, transparent 92%);
-}
-
-app-home section[aria-labelledby="campaigns-title"] p.text-blue-700 {
-  color: #fbbf24 !important;
-}
-
-app-home section[aria-labelledby="campaigns-title"] h2 {
-  color: #fff !important;
-  text-wrap: balance;
-}
-
-app-home section[aria-labelledby="campaigns-title"] h2 + p {
-  color: #cbd5e1 !important;
-  max-width: 760px !important;
-}
-
-app-home section[aria-labelledby="campaigns-title"] .campaign-grid {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) !important;
-  gap: 18px !important;
-}
-
-app-home section[aria-labelledby="campaigns-title"] .campaign-grid > article {
-  position: relative;
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.13) !important;
-  background: linear-gradient(165deg, rgba(255,255,255,.98), rgba(248,250,252,.94)) !important;
-  box-shadow:
-    0 30px 68px rgba(2,6,23,.34),
-    0 8px 22px rgba(2,6,23,.18),
-    inset 0 1px 0 rgba(255,255,255,.95) !important;
-}
-
-app-home section[aria-labelledby="campaigns-title"] .campaign-grid > article::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 4px;
-  z-index: 3;
-  pointer-events: none;
-  background: linear-gradient(90deg, #2563eb, #f59e0b);
-}
-
-app-home section[aria-labelledby="campaigns-title"] .campaign-grid > article:nth-child(2)::before {
-  background: linear-gradient(90deg, #e11d48, #f59e0b);
-}
-
-app-home section[aria-labelledby="campaigns-title"] .campaign-grid > article:nth-child(3)::before {
-  background: linear-gradient(90deg, #0891b2, #2563eb);
-}
-
-app-home section[aria-labelledby="campaigns-title"] .campaign-grid > article > a {
-  display: flex !important;
-  height: 100%;
-  flex-direction: column;
-}
-
-app-home section[aria-labelledby="campaigns-title"] .campaign-grid > article > a > div:first-child {
-  position: relative;
-  aspect-ratio: 16 / 10 !important;
-}
-
-app-home section[aria-labelledby="campaigns-title"] .campaign-grid > article > a > div:first-child::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(to top, rgba(2,6,23,.5), transparent 58%);
-}
-
-app-home section[aria-labelledby="campaigns-title"] .campaign-grid img {
-  transition: transform 420ms cubic-bezier(.2,.8,.2,1), filter 420ms ease;
-}
-
-app-home section[aria-labelledby="campaigns-title"] .campaign-grid article span.absolute {
-  z-index: 2;
-  border: 1px solid rgba(255,255,255,.2);
-  background: rgba(2,6,23,.9) !important;
-  color: #fbbf24 !important;
-  box-shadow: 0 10px 24px rgba(2,6,23,.28);
-  backdrop-filter: blur(10px);
-}
-
-app-home section[aria-labelledby="campaigns-title"] .campaign-grid article h3 {
-  color: #020617 !important;
-  font-size: clamp(1rem, 1.8vw, 1.2rem) !important;
-  line-height: 1.25 !important;
-}
-
-app-home section[aria-labelledby="campaigns-title"] .campaign-grid article h3 + p {
-  color: #475569 !important;
-  min-height: 2.5rem;
-}
-
-app-home section[aria-labelledby="campaigns-title"] .campaign-grid article .line-through {
-  color: #94a3b8 !important;
-}
-
-app-home section[aria-labelledby="campaigns-title"] .campaign-grid article strong.text-blue-700 {
-  color: #b45309 !important;
-  font-size: 1.25rem !important;
-}
-
-app-home section[aria-labelledby="campaigns-title"] .campaign-grid article span.text-blue-700 {
-  display: inline-flex;
-  min-height: 42px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  background: #0f172a;
-  color: #fff !important;
-  padding: 0 14px;
-  box-shadow: 0 9px 20px rgba(15,23,42,.16);
-}
-
-@media (min-width: 768px) {
-  app-home section[aria-labelledby="campaigns-title"] .campaign-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 20px !important;
-  }
-}
-
-@media (hover: hover) and (pointer: fine) {
-  app-home section[aria-labelledby="campaigns-title"] .campaign-grid > article {
-    transition: transform 240ms ease, box-shadow 240ms ease, border-color 240ms ease;
-  }
-
-  app-home section[aria-labelledby="campaigns-title"] .campaign-grid > article:hover {
-    transform: translateY(-7px);
-    border-color: rgba(251,191,36,.42) !important;
-    box-shadow:
-      0 40px 86px rgba(2,6,23,.43),
-      0 12px 28px rgba(2,6,23,.22),
-      inset 0 1px 0 rgba(255,255,255,.98) !important;
-  }
-
-  app-home section[aria-labelledby="campaigns-title"] .campaign-grid > article:hover img {
-    transform: scale(1.045);
-    filter: saturate(1.06) contrast(1.03);
-  }
-}
-
-/* The reference detail page uses a landscape gallery on mobile, not a square one. */
+/* Sale detail gallery stays landscape on mobile. */
 app-sale-car-detail .aspect-square {
   aspect-ratio: 16 / 9 !important;
 }
 
-/* Keep the premium brand subtitle visible on phones, as in the reference UI. */
-@media (max-width: 639px) {
+/* Keep the premium brand subtitle visible on phones. */
+@media (max-width:639px) {
   app-navbar a[aria-label="Alperler Auto ana sayfa"] {
     max-width: 190px !important;
   }
@@ -393,9 +79,8 @@ app-sale-car-detail .aspect-square {
   }
 }
 
-/* Respect users who request less motion. This also prevents unnecessary visual
-   movement while navigating with accessibility tools. */
-@media (prefers-reduced-motion: reduce) {
+/* Accessibility motion contract. */
+@media (prefers-reduced-motion:reduce) {
   *,
   *::before,
   *::after {
@@ -405,10 +90,7 @@ app-sale-car-detail .aspect-square {
     transition-duration: 0.01ms !important;
   }
 
-  app-home-v39 main > section:first-of-type > div.mx-auto > div:first-child,
-  app-home-v39 main > section:first-of-type > div.mx-auto > section,
-  app-vehicle-list-item article,
-  app-home section[aria-labelledby="campaigns-title"] .campaign-grid > article {
+  app-vehicle-list-item article {
     transform: none !important;
   }
 }

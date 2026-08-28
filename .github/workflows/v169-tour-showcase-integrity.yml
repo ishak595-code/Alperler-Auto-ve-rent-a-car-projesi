@@ -23,16 +23,13 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v7
-
       - name: Set up Node.js 22
         uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
-
       - name: Install exact dependency graph
         run: npm ci --no-audit --no-fund
-
       - name: Preserve V169 historical database contract
         shell: bash
         run: |
@@ -50,41 +47,30 @@ jobs:
           grep -Fq "ITINERARY_REQUIRED" "$MIG"
           grep -Fq "INCLUDED_ITEMS_REQUIRED" "$MIG"
           grep -Fq "EXCLUDED_ITEMS_REQUIRED" "$MIG"
-
-      - name: Production tour showcase and approved detail ownership
+      - name: Canonical tour showcase and detail ownership
         shell: bash
         run: |
           set -euo pipefail
-          test -f src/pages/tour-showcase-v170.component.ts
-          test -f src/pages/tour-detail-v170.component.ts
-          test -f src/pages/tour-detail.component.ts
+          SHOW=src/pages/tour-showcase-v170.component.ts
+          DETAIL=src/pages/tour-detail.component.ts
+          test -f "$SHOW" && test -f "$DETAIL"
+          test ! -e src/pages/tour-detail-v169.component.ts
+          test ! -e src/pages/tour-detail-v170.component.ts
           grep -Fq "TourShowcaseV170Component" src/pages/tours.component.ts
           grep -Fq "TourDetailComponent" src/pages/catalog-detail-shells.component.ts
-          if grep -Fq "TourDetailV170Component" src/pages/catalog-detail-shells.component.ts; then
-            echo "V201 approved tour detail must remain the public renderer"
-            exit 1
-          fi
-          grep -Fq "bounds" src/pages/tour-showcase-v170.component.ts
-          grep -Fq "readonly reservationOpen = signal(false)" src/pages/tour-detail.component.ts
-          grep -Fq "Bu Turu Rezerve Et" src/pages/tour-detail.component.ts
-          if grep -Eq "0-5000|5000-15000|15000\+|priceRanges[[:space:]]*=" src/pages/tour-showcase-v170.component.ts; then
+          grep -Fq "bounds" "$SHOW"
+          grep -Fq "readonly reservationOpen = signal(false)" "$DETAIL"
+          grep -Fq "Bu Turu Rezerve Et" "$DETAIL"
+          grep -Fq "TourDemandV170Service" "$DETAIL"
+          grep -Fq "TourBookingV170Service" "$DETAIL"
+          grep -Fq "DetailMediaLightboxComponent" "$DETAIL"
+          grep -Fq "mediaItems" "$DETAIL"
+          grep -Fq "includedItems" "$DETAIL"
+          grep -Fq "excludedItems" "$DETAIL"
+          if grep -Eq "0-5000|5000-15000|15000\+|priceRanges[[:space:]]*=" "$SHOW"; then
             echo "Tour filters must remain live-data derived"
             exit 1
           fi
-
-      - name: V170 flexible demand technology remains available
-        shell: bash
-        run: |
-          set -euo pipefail
-          FILE=src/pages/tour-detail-v170.component.ts
-          grep -Fq "TourDemandV170Service" "$FILE"
-          grep -Fq "startDate:this.tourDate" "$FILE"
-          grep -Fq "personCount" "$FILE"
-          if grep -Fq "remainingSeats" "$FILE"; then
-            echo "V170 technology must not restore hard remaining-seat gating"
-            exit 1
-          fi
-
       - name: Compatibility Edge slug remains protected
         shell: bash
         run: |
@@ -95,7 +81,6 @@ jobs:
           grep -Fq "/api/bookings?mode=tour-availability" src/services/tour-demand-v170.service.ts
           grep -Fq "consume_rate_limit" supabase/functions/tour-availability-v169/index.ts
           grep -Fq "tour_demand_v170" supabase/functions/tour-availability-v169/index.ts
-
       - name: Current Super Admin tour workspace
         shell: bash
         run: |
@@ -111,11 +96,7 @@ jobs:
           grep -Fq "tour.meetingPoint" "$FILE"
           grep -Fq "Fotoğraf & Video" "$FILE"
           grep -Fq 'mode="TOUR"' "$HUB"
-          if grep -Fq "AdminTourStudioV170Component" "$HUB"; then
-            echo "Legacy parallel tour studio must not return to the active content hub"
-            exit 1
-          fi
-
+          test ! -e src/pages/admin/admin-tour-studio-v170.component.ts
       - name: Preserve rental and sale integrity
         shell: bash
         run: |
@@ -124,31 +105,24 @@ jobs:
           grep -Fq "SaleCarDetailComponent" src/pages/catalog-detail-shells.component.ts
           test -f supabase/migrations/20260825183500_v1681_structured_tramer_truth.sql
           test -f supabase/migrations/20260825170000_v167_rental_campaign_integrity.sql
-
       - name: Frontend TypeScript
         run: npm run lint
-
       - name: Vercel API TypeScript
         run: npx tsc --noEmit -p tsconfig.api.json
-
       - name: Accessibility and Vercel function budget guards
         run: |
           npm run a11y:buttons
           npm run a11y:dates
           npm run vercel:functions
-
       - name: Set up Deno 2
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-
       - name: Current tour Edge Functions
         run: |
           deno check --node-modules-dir=auto supabase/functions/tour-availability-v169/index.ts
           deno check --node-modules-dir=auto supabase/functions/tour-booking-v170/index.ts
-
       - name: Preserve booking gateway contract
         run: deno check --node-modules-dir=auto supabase/functions/booking-gateway-v166/index.ts
-
       - name: Production Angular build
         run: npm run build

@@ -8,6 +8,8 @@ on:
       - 'public/service-worker.js'
       - 'scripts/check-v203-canonical-responsive-cleanup.mjs'
       - 'scripts/check-home-runtime-v192.mjs'
+      - 'tests/v203/**'
+      - 'playwright.v203.config.ts'
       - 'angular.json'
       - '.github/workflows/v203-canonical-responsive-cleanup.yml'
       - '.github/workflows/v167-rental-showcase-integrity.yml'
@@ -24,6 +26,8 @@ on:
       - 'public/service-worker.js'
       - 'scripts/check-v203-canonical-responsive-cleanup.mjs'
       - 'scripts/check-home-runtime-v192.mjs'
+      - 'tests/v203/**'
+      - 'playwright.v203.config.ts'
       - 'angular.json'
       - '.github/workflows/v203-canonical-responsive-cleanup.yml'
       - 'package.json'
@@ -39,7 +43,7 @@ concurrency:
 jobs:
   canonical-responsive-cleanup:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - name: Checkout immutable source
         uses: actions/checkout@v7
@@ -78,3 +82,23 @@ jobs:
 
       - name: Production Angular build
         run: npm run build
+
+      - name: Install pinned responsive browser tooling
+        run: npm install --no-save --no-package-lock --no-audit --no-fund @playwright/test@1.55.0
+
+      - name: Install Chromium runtime
+        run: npx playwright install --with-deps chromium
+
+      - name: Phone tablet desktop responsive regression
+        run: npx playwright test --config=playwright.v203.config.ts
+
+      - name: Upload responsive diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: v203-responsive-artifacts
+          path: |
+            test-results/**
+            playwright-report/**
+          if-no-files-found: ignore
+          retention-days: 7

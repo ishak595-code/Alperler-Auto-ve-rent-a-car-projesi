@@ -25,6 +25,7 @@ export interface FleetInspectionInput {
 @Injectable({providedIn:'root'})
 export class FleetOperationsService {
   private readonly auth=inject(AuthService);
+  private readonly operationSelect='vehicle_id,operational_status,odometer_km,fuel_percent,cleanliness_status,last_inspection_at,last_service_at,next_service_at,next_service_km,insurance_expires_at,periodic_inspection_expires_at,damage_notes,internal_notes,gps_provider,gps_device_id,gps_status,gps_last_sync_at,last_known_latitude,last_known_longitude';
   private readonly _vehicles=signal<FleetVehicle[]>([]);
   private readonly _profiles=signal<Record<string,FleetOperationProfile>>({});
   private readonly _loading=signal(false);
@@ -36,7 +37,7 @@ export class FleetOperationsService {
       const token=await this.requiredToken();
       const [vehicleRows,profileRows]=await Promise.all([
         this.rest<any[]>('GET','vehicles?category=eq.RENTAL&select=id,stock_code,brand,model,model_year,cover_image,availability_status,mileage_km&order=brand.asc,model.asc',undefined,token),
-        this.rest<any[]>('GET','vehicle_operations?select=*&order=updated_at.desc',undefined,token),
+        this.rest<any[]>('GET',`vehicle_operations?select=${this.operationSelect}&order=updated_at.desc`,undefined,token),
       ]);
       this._vehicles.set(vehicleRows.map((row)=>({id:String(row.id),stockCode:String(row.stock_code||''),brand:String(row.brand||''),model:String(row.model||''),modelYear:row.model_year==null?undefined:Number(row.model_year),image:row.cover_image||undefined,availabilityStatus:String(row.availability_status||'AVAILABLE'),mileageKm:row.mileage_km==null?undefined:Number(row.mileage_km)})));
       const profiles:Record<string,FleetOperationProfile>={}; for(const row of profileRows){const p=this.fromRow(row);profiles[p.vehicleId]=p;} this._profiles.set(profiles);

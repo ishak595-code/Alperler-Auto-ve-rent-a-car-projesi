@@ -43,7 +43,11 @@ for (const [name, source, token] of [
   if (!source.includes(token)) failures.push(`${name} detail is not database-authoritative`);
 }
 if (rentalDetail.includes("getAllVehicles()") || saleDetail.includes("getSaleCar(") || tourDetail.includes("getTours()().find")) failures.push("a detail page can still resolve from stale shared catalogue state");
-if (!rentalDetail.includes("Özellikler, koşullar ve açıklama") || !rentalDetail.includes("detailsOpen")) failures.push("rental detail compact accordion is missing");
+for (const token of ["all-details-toggle", "all-details-content", "detailsOpen", "Konfor, kiralama koşulları ve araç bilgileri", "Performans ve Tüketim"]) {
+  if (!rentalDetail.includes(token)) failures.push(`rental canonical detail disclosure is missing: ${token}`);
+}
+if (!rentalDetail.includes("<dt>Kapı</dt>") || !rentalDetail.includes("car.doors") || !rentalDetail.includes("car.luggage")) failures.push("rental canonical detail is dropping admin-entered capacity facts");
+if (rentalDetail.includes("Rezervasyon Özeti") || rentalDetail.includes("Kiralama Özeti") || rentalDetail.includes('class="reservation-panel"')) failures.push("rental detail reintroduced booking-owned summary content");
 if (rentalDetail.includes("Tarih, nereden alınacağı, iade noktası")) failures.push("rental detail reintroduced the redundant reservation instruction paragraph");
 for (const token of ["İLAN BİLGİLERİ", "AÇIKLAMA", "KONUM", "app-expertise-graphic", "activeTab", "readonly listingRows = computed<ListingRow[]>"]) {
   if (!saleDetail.includes(token)) failures.push(`sale listing identity is missing: ${token}`);
@@ -51,7 +55,7 @@ for (const token of ["İLAN BİLGİLERİ", "AÇIKLAMA", "KONUM", "app-expertise-
 if (saleDetail.includes('class="core-facts"')) failures.push("sale detail reintroduced duplicate top summary cards");
 if (!saleDetail.includes('(click)="callPhone()"') || saleDetail.includes('[href]="phoneHref()"')) failures.push("sale phone CTA is not a persistent action button");
 
-for (const token of ["checkoutStep", "Sürücü Tercihi", "Nereden alınacak?", "Nereye iade edilecek?", "Sonraki Adım"]) {
+for (const token of ["checkoutStep", "Sürücü Tercihi", "Nereden alınacak?", "Nereye iade edilecek?", "Sonraki Adım", "Rezervasyonu kontrol edin", '<dl class="review">', "<dt>Araç</dt>", "<dt>Zaman</dt>", "<dt>Şoför</dt>", "<dt>Teslim</dt>", "<dt>İade</dt>", "<dt>Toplam</dt>"]) {
   if (!checkout.includes(token)) failures.push(`focused rental checkout is missing: ${token}`);
 }
 if (!checkout.includes('checkoutStep() === 1') || !checkout.includes('checkoutStep() === 2')) failures.push("rental checkout steps are not mutually exclusive views");
@@ -98,4 +102,4 @@ if (publicMedia.includes("/vehicle-media/") || vercel.includes("/vehicle-media/"
 if (!fs.existsSync(campaignMigration)) failures.push("campaign cover synchronization migration missing");
 
 if (failures.length) { console.error(failures.join("\n")); process.exit(1); }
-console.log("Unified catalogue guard passed: canonical admin workspace owns media authoring; sale keeps its dedicated listing UX; rental remains compact; campaign proof has one root service owner with shared deduped state; safe-projection detail routing and Storage remain canonical.");
+console.log("Unified catalogue guard passed: canonical admin workspace owns media authoring; rental detail uses one customer-facing disclosure; booking checkout owns the complete reservation review; sale keeps its dedicated listing UX; campaign proof has one root service owner with shared deduped state; safe-projection detail routing and Storage remain canonical.");

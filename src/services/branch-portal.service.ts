@@ -79,6 +79,22 @@ export interface BranchVehicleDraft {
   coverImage?: string;
 }
 
+const BRANCH_PORTAL_BRANCH_SELECT = [
+  "id", "code", "slug", "name", "city", "district", "address_line", "phone", "whatsapp", "email", "latitude", "longitude",
+  "map_url", "opening_hours", "services", "is_active", "is_pickup_point", "is_return_point", "sort_order", "network_type",
+  "public_status", "territory_label", "public_description", "hero_image", "customer_guarantee_enabled", "central_pricing_required",
+  "listing_requires_approval", "brand_profile", "service_rules",
+].join(",");
+const BRANCH_PORTAL_VEHICLE_SELECT = [
+  "id", "stock_code", "category", "brand", "model", "model_year", "price", "rental_price_daily", "mileage_km", "fuel_type",
+  "transmission", "body_type", "color", "seats", "location", "description", "features", "images", "cover_image", "is_featured",
+  "is_active", "availability_status", "publication_status", "branch_id", "listing_origin", "rejection_reason", "metadata", "updated_at",
+].join(",");
+const BRANCH_PRICING_SELECT = "id,branch_id,category,vehicle_class,min_price,max_price,recommended_price,currency,enforce_min,enforce_max";
+const NETWORK_POLICY_SELECT = "id,rule_key,version,category,title,summary,content,is_required";
+const BRANCH_SETUP_SELECT = "id,checklist_key,label,is_required,completed_at,notes,sort_order";
+const BRANCH_BOOKING_SELECT = "id,booking_type,status,customer_name,customer_phone,customer_email,start_date,end_date,total_price,created_at";
+
 @Injectable({ providedIn: "root" })
 export class BranchPortalService {
   private readonly auth = inject(BranchPortalAuthService);
@@ -117,7 +133,7 @@ export class BranchPortalService {
     for (const membership of Array.isArray(memberships) ? memberships : []) {
       const branchId = String(membership.branch_id || "");
       if (!branchId) continue;
-      const branches = await this.rest<any[]>(`branches?id=eq.${encodeURIComponent(branchId)}&select=*&limit=1`, { method: "GET" }, token);
+      const branches = await this.rest<any[]>(`branches?id=eq.${encodeURIComponent(branchId)}&select=${BRANCH_PORTAL_BRANCH_SELECT}&limit=1`, { method: "GET" }, token);
       const row = Array.isArray(branches) ? branches[0] : null;
       if (!row) continue;
       results.push({ branchId, role: String(membership.role || "BRANCH_EDITOR") as BranchMemberRole, branch: this.mapBranch(row) });
@@ -196,14 +212,14 @@ export class BranchPortalService {
     let rows: any[];
     if (input.cloudId) {
       rows = await this.rest<any[]>(
-        `vehicles?id=eq.${encodeURIComponent(input.cloudId)}&branch_id=eq.${encodeURIComponent(branchId)}&select=*`,
+        `vehicles?id=eq.${encodeURIComponent(input.cloudId)}&branch_id=eq.${encodeURIComponent(branchId)}&select=${BRANCH_PORTAL_VEHICLE_SELECT}`,
         { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(payload) },
         token,
       );
     } else {
       payload["stock_code"] = `BR-${branchId.slice(0, 8).toUpperCase()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
       rows = await this.rest<any[]>(
-        "vehicles?select=*",
+        `vehicles?select=${BRANCH_PORTAL_VEHICLE_SELECT}`,
         { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(payload) },
         token,
       );
@@ -275,15 +291,15 @@ export class BranchPortalService {
 
   private async loadVehicles(branchId: string): Promise<void> {
     const token = await this.requiredToken();
-    const rows = await this.rest<any[]>(`vehicles?branch_id=eq.${encodeURIComponent(branchId)}&select=*&order=updated_at.desc`, { method: "GET" }, token);
+    const rows = await this.rest<any[]>(`vehicles?branch_id=eq.${encodeURIComponent(branchId)}&select=${BRANCH_PORTAL_VEHICLE_SELECT}&order=updated_at.desc`, { method: "GET" }, token);
     this._vehicles.set((Array.isArray(rows) ? rows : []).map((row) => this.mapVehicle(row)));
   }
 
   private async loadPricing(branchId: string): Promise<void> {
     const token = await this.requiredToken();
     const [branchRules, globalRules] = await Promise.all([
-      this.rest<any[]>(`branch_pricing_rules?branch_id=eq.${encodeURIComponent(branchId)}&is_active=eq.true&select=*&order=vehicle_class.asc`, { method: "GET" }, token),
-      this.rest<any[]>("branch_pricing_rules?branch_id=is.null&is_active=eq.true&select=*&order=vehicle_class.asc", { method: "GET" }, token),
+      this.rest<any[]>(`branch_pricing_rules?branch_id=eq.${encodeURIComponent(branchId)}&is_active=eq.true&select=${BRANCH_PRICING_SELECT}&order=vehicle_class.asc`, { method: "GET" }, token),
+      this.rest<any[]>(`branch_pricing_rules?branch_id=is.null&is_active=eq.true&select=${BRANCH_PRICING_SELECT}&order=vehicle_class.asc`, { method: "GET" }, token),
     ]);
     this._pricing.set([...(Array.isArray(branchRules) ? branchRules : []), ...(Array.isArray(globalRules) ? globalRules : [])].map((row) => ({
       id: String(row.id), branchId: row.branch_id ? String(row.branch_id) : undefined, category: String(row.category) as BranchPricingRule["category"], vehicleClass: String(row.vehicle_class || "*"), minPrice: row.min_price === null ? undefined : Number(row.min_price), maxPrice: row.max_price === null ? undefined : Number(row.max_price), recommendedPrice: row.recommended_price === null ? undefined : Number(row.recommended_price), currency: String(row.currency || "TRY"), enforceMin: row.enforce_min !== false, enforceMax: row.enforce_max === true,
@@ -293,7 +309,7 @@ export class BranchPortalService {
   private async loadPolicies(branchId: string): Promise<void> {
     const token = await this.requiredToken();
     const [rules, accepted] = await Promise.all([
-      this.rest<any[]>("network_policy_rules?is_active=eq.true&select=*&order=category.asc,version.desc", { method: "GET" }, token),
+      this.rest<any[]>(`network_policy_rules?is_active=eq.true&select=${NETWORK_POLICY_SELECT}&order=category.asc,version.desc`, { method: "GET" }, token),
       this.rest<any[]>(`branch_policy_acceptances?branch_id=eq.${encodeURIComponent(branchId)}&select=policy_rule_id`, { method: "GET" }, token),
     ]);
     const acceptedIds = new Set((Array.isArray(accepted) ? accepted : []).map((row) => String(row.policy_rule_id)));
@@ -302,14 +318,14 @@ export class BranchPortalService {
 
   private async loadSetup(branchId: string): Promise<void> {
     const token = await this.requiredToken();
-    const rows = await this.rest<any[]>(`branch_setup_checklist?branch_id=eq.${encodeURIComponent(branchId)}&select=*&order=sort_order.asc`, { method: "GET" }, token);
+    const rows = await this.rest<any[]>(`branch_setup_checklist?branch_id=eq.${encodeURIComponent(branchId)}&select=${BRANCH_SETUP_SELECT}&order=sort_order.asc`, { method: "GET" }, token);
     this._setup.set((Array.isArray(rows) ? rows : []).map((row) => ({ id: String(row.id), key: String(row.checklist_key || ""), label: String(row.label || ""), required: row.is_required !== false, completedAt: row.completed_at ? String(row.completed_at) : undefined, notes: row.notes ? String(row.notes) : undefined })));
   }
 
   private async loadBookings(branchId: string): Promise<void> {
     const token = await this.requiredToken();
-    const rows = await this.rest<any[]>(`bookings?fulfillment_branch_id=eq.${encodeURIComponent(branchId)}&select=*&order=created_at.desc&limit=100`, { method: "GET" }, token);
-    this._bookings.set((Array.isArray(rows) ? rows : []).map((row) => ({ id: String(row.id), type: String(row.booking_type || row.type || ""), status: String(row.status || ""), customerName: row.customer_name ? String(row.customer_name) : undefined, customerPhone: row.customer_phone ? String(row.customer_phone) : undefined, customerEmail: row.customer_email ? String(row.customer_email) : undefined, startDate: row.start_date ? String(row.start_date) : undefined, endDate: row.end_date ? String(row.end_date) : undefined, totalPrice: row.total_price === null || row.total_price === undefined ? undefined : Number(row.total_price), createdAt: row.created_at ? String(row.created_at) : undefined })));
+    const rows = await this.rest<any[]>(`bookings?fulfillment_branch_id=eq.${encodeURIComponent(branchId)}&select=${BRANCH_BOOKING_SELECT}&order=created_at.desc&limit=100`, { method: "GET" }, token);
+    this._bookings.set((Array.isArray(rows) ? rows : []).map((row) => ({ id: String(row.id), type: String(row.booking_type || ""), status: String(row.status || ""), customerName: row.customer_name ? String(row.customer_name) : undefined, customerPhone: row.customer_phone ? String(row.customer_phone) : undefined, customerEmail: row.customer_email ? String(row.customer_email) : undefined, startDate: row.start_date ? String(row.start_date) : undefined, endDate: row.end_date ? String(row.end_date) : undefined, totalPrice: row.total_price === null || row.total_price === undefined ? undefined : Number(row.total_price), createdAt: row.created_at ? String(row.created_at) : undefined })));
   }
 
   private mapBranch(row: any): Branch {

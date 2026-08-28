@@ -42,13 +42,13 @@ jobs:
           DETAIL=src/pages/sale-car-detail.component.ts
           GRAPHIC=src/components/expertise-graphic.component.ts
           CARD=src/components/sale-vehicle-card-v168.component.ts
-          for token in "İLAN BİLGİLERİ" "AÇIKLAMA" "KONUM" "Ekspertiz Özeti" "app-expertise-graphic" tramerStatusLabel damageExpertise "readonly listingRows = computed<ListingRow[]>" truth-list; do grep -Fq "$token" "$DETAIL"; done
+          for token in "İLAN BİLGİLERİ" "AÇIKLAMA" "KONUM" "Ekspertiz ve Hasar Geçmişi" "app-expertise-graphic" tramerStatusLabel damageExpertise "readonly listingRows = computed<ListingRow[]>" truth-list; do grep -Fq "$token" "$DETAIL"; done
           if grep -Fq 'class="core-facts"' "$DETAIL" || grep -Fq 'class="summary"' "$DETAIL" || grep -Fq "summaryMeta(" "$DETAIL"; then
             echo "Canonical sale detail must not duplicate listing facts above İlan Bilgileri"
             exit 1
           fi
           for token in local_painted rearBumper "Arka tampon" "Bilgi yok"; do grep -Fq "$token" "$GRAPHIC"; done
-          for token in tramerLabel "Tramer: bilinmiyor" tramerAmount; do grep -Fq "$token" "$CARD"; done
+          for token in tramerLabel "Tramer bilgisi paylaşılmamış" tramerAmount; do grep -Fq "$token" "$CARD"; done
           test ! -f src/pages/sale-detail-v168.component.ts
           test ! -f src/pages/sale-detail-v1681.component.ts
       - name: Admin publication preflight mirrors DB

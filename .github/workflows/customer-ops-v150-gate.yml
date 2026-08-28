@@ -83,20 +83,20 @@ jobs:
           grep -Fq 'AccessibleNativeDateComponent' src/pages/tour-detail.component.ts
           grep -Fq 'app-accessible-native-date' src/pages/tour-detail.component.ts
 
-          # Interactive controls own stable labels. Runtime mutation must not rename
-          # controls while TalkBack has focus.
+          # Interactive controls own stable semantics. Runtime accessibility mutation
+          # must not rewrite focused controls behind the application's components.
           ! grep -Fq 'AccessibilityRuntimeService' src/app.component.ts
           ! grep -Fq 'accessibilityRuntime.start' src/app.component.ts
           grep -Fq 'aria-label="Bu turu rezerve et"' src/pages/tour-detail.component.ts
           grep -Fq '[attr.inert]="reservationOpen()' src/pages/tour-detail.component.ts
           grep -Fq 'focusAfterRender' src/pages/tour-detail.component.ts
 
-          # Quick planner uses the requested order and permanent labels, and remains
-          # configurable from the authenticated admin homepage editor.
+          # Quick planner uses the requested order and admin-configurable visible labels,
+          # with deterministic accessible-name fallbacks for every interactive control.
           grep -Fq 'const defaults:PlannerFieldKey[]=["service","pickup","duration","date"]' src/pages/home-v71.component.ts
-          grep -Fq 'aria-label="Kiralama süresini seç"' src/pages/home-v71.component.ts
-          grep -Fq 'aria-label="Alış saatini seç"' src/pages/home-v71.component.ts
-          grep -Fq 'aria-label="İade saatini seç"' src/pages/home-v71.component.ts
+          grep -Fq "[attr.aria-label]=\"homeContent().plannerDurationLabel || 'Kiralama süresini seç'\"" src/pages/home-v71.component.ts
+          grep -Fq "[attr.aria-label]=\"homeContent().plannerStartTimeLabel || 'Alış saatini seç'\"" src/pages/home-v71.component.ts
+          grep -Fq "[attr.aria-label]=\"homeContent().plannerEndTimeLabel || 'İade saatini seç'\"" src/pages/home-v71.component.ts
           grep -Fq 'plannerFieldOrder' src/pages/admin/admin-homepage.component.ts
           grep -Fq 'plannerEnabled' src/pages/admin/admin-homepage.component.ts
           grep -Fq 'plannerVariant' src/pages/admin/admin-homepage.component.ts

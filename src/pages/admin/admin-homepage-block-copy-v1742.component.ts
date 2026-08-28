@@ -31,6 +31,8 @@ import { ToastService } from '../../services/toast.service';
 
             @if (section.sectionType === 'CAMPAIGN') {
               <div class="grid">
+                <label class="wide toggle"><input type="checkbox" [ngModel]="bool(section,'showDiscount',true)" (ngModelChange)="setBool(section,'showDiscount',$event)" [name]="section.sectionKey+'-showDiscount'" /><span>Kampanya kartlarında indirim bilgisini göster</span></label>
+                <label class="wide toggle"><input type="checkbox" [ngModel]="bool(section,'showCountdown',true)" (ngModelChange)="setBool(section,'showCountdown',$event)" [name]="section.sectionKey+'-showCountdown'" /><span>Kampanya kartlarında süre sayacını göster</span></label>
                 <label><span>Kart üst etiketi</span><input [ngModel]="text(section,'campaignLabel')" (ngModelChange)="setText(section,'campaignLabel',$event)" [name]="section.sectionKey+'-campaignLabel'" maxlength="80" /></label>
                 <label><span>İndirim son eki</span><input [ngModel]="text(section,'campaignDiscountSuffix')" (ngModelChange)="setText(section,'campaignDiscountSuffix',$event)" [name]="section.sectionKey+'-campaignDiscountSuffix'" maxlength="50" /></label>
                 <label class="wide"><span>İçerik açıklaması yoksa gösterilecek metin</span><textarea [ngModel]="text(section,'campaignFallbackDescription')" (ngModelChange)="setText(section,'campaignFallbackDescription',$event)" [name]="section.sectionKey+'-campaignFallbackDescription'" rows="3" maxlength="300"></textarea></label>

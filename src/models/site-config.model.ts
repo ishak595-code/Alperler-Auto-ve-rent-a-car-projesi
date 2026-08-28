@@ -159,10 +159,15 @@ export interface SiteConfig {
     plannerPickupLabel?: string;
     plannerPickupPlaceholder?: string;
     plannerPickupCountSuffix?: string;
+    plannerDurationLabel?: string;
     plannerTourDateLabel?: string;
+    plannerHourlyDateLabel?: string;
     plannerStartDateLabel?: string;
     plannerEndDateLabel?: string;
+    plannerStartTimeLabel?: string;
+    plannerEndTimeLabel?: string;
     plannerButtonRental?: string;
+    plannerButtonHourly?: string;
     plannerButtonDriver?: string;
     plannerButtonWedding?: string;
     plannerButtonTour?: string;
@@ -172,6 +177,10 @@ export interface SiteConfig {
     plannerErrorEndDate?: string;
     plannerErrorDateOrder?: string;
     plannerErrorPickup?: string;
+    plannerErrorTimeOrder?: string;
+    plannerErrorHourlyLimit?: string;
+    sectionPreparingLabel?: string;
+    sectionLoadingLabel?: string;
 
     quickActionLabel?: string;
     quickActionRentTitle?: string;

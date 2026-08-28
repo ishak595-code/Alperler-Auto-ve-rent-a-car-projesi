@@ -23,10 +23,10 @@ type FactRow = { label: string; value: string };
         <header class="sale-header">
           <div class="header-left">
             <button type="button" class="header-button" (click)="goBack()" aria-label="Satılık araçlardan geri dön"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
-            <div><span>SATILIK ARAÇ · CANLI KATALOG</span><h1>{{ item.brand }} {{ item.model }}</h1></div>
+            <div><span>SATILIK ARAÇ</span><h1>{{ item.brand }} {{ item.model }}</h1></div>
           </div>
           <div class="header-actions">
-            <button type="button" class="header-button" (click)="share(item)" aria-label="İlanı paylaş"><mat-icon aria-hidden="true">share</mat-icon></button>
+            <button type="button" class="header-button" (click)="share(item)" aria-label="Aracı paylaş"><mat-icon aria-hidden="true">share</mat-icon></button>
             <button type="button" class="header-button" (click)="toggleFav(item.id)" [attr.aria-label]="isFav(item.id) ? 'Favorilerden çıkar' : 'Favorilere ekle'"><mat-icon aria-hidden="true" [class.favorite]="isFav(item.id)">{{ isFav(item.id) ? 'favorite' : 'favorite_border' }}</mat-icon></button>
           </div>
         </header>
@@ -49,25 +49,25 @@ type FactRow = { label: string; value: string };
               </div>
             </div>
           } @else {
-            <div class="media-empty" role="status"><mat-icon aria-hidden="true">directions_car</mat-icon><strong>Araç medyası yüklenemedi</strong></div>
+            <div class="media-empty" role="status"><mat-icon aria-hidden="true">directions_car</mat-icon><strong>Araç görsellerine şu anda ulaşılamıyor</strong></div>
           }
         </section>
 
         <section class="listing-head" aria-labelledby="listing-title">
           <div class="listing-title-block">
-            <p class="listing-no">İlan No {{ item.cloudStockCode || item.id }}</p>
+            <p class="listing-no">Araç No {{ item.cloudStockCode || item.id }}</p>
             <h2 id="listing-title">{{ item.brand }} @if (item.series) { <span>{{ item.series }}</span> } {{ item.model }}</h2>
           </div>
           <strong class="listing-price">{{ item.price | turkishCurrency }}</strong>
           @if ((item.viewers || 0) > 0 || (item.favCount || 0) > 0) {
-            <div class="social-proof" aria-label="İlan etkileşim bilgileri">
+            <div class="social-proof" aria-label="Araç ilgi bilgileri">
               @if ((item.viewers || 0) > 0) { <span><mat-icon aria-hidden="true">visibility</mat-icon>{{ item.viewers }} görüntülenme</span> }
               @if ((item.favCount || 0) > 0) { <span><mat-icon aria-hidden="true">favorite</mat-icon>{{ item.favCount }} favori</span> }
             </div>
           }
         </section>
 
-        <nav class="sale-tabs" aria-label="İlan detay bölümleri">
+        <nav class="sale-tabs" aria-label="Araç detay bölümleri">
           <button type="button" (click)="activeTab.set('info')" [class.active]="activeTab() === 'info'" [attr.aria-pressed]="activeTab() === 'info'"><mat-icon aria-hidden="true">list_alt</mat-icon><span>İLAN BİLGİLERİ</span></button>
           <button type="button" (click)="activeTab.set('desc')" [class.active]="activeTab() === 'desc'" [attr.aria-pressed]="activeTab() === 'desc'"><mat-icon aria-hidden="true">description</mat-icon><span>AÇIKLAMA</span></button>
           <button type="button" (click)="activeTab.set('loc')" [class.active]="activeTab() === 'loc'" [attr.aria-pressed]="activeTab() === 'loc'"><mat-icon aria-hidden="true">location_on</mat-icon><span>KONUM</span></button>
@@ -76,7 +76,7 @@ type FactRow = { label: string; value: string };
         <section class="tab-content">
           @if (activeTab() === 'info') {
             <div class="info-panel">
-              <dl class="listing-table" aria-label="Satılık araç ilan bilgileri">
+              <dl class="listing-table" aria-label="Satılık araç bilgileri">
                 @for (row of listingRows(); track row.label) {
                   <div><dt>{{ row.label }}</dt><dd [class.important]="row.important">{{ row.value }}</dd></div>
                 }
@@ -84,49 +84,49 @@ type FactRow = { label: string; value: string };
 
               @if (technicalRows().length) {
                 <section class="expand-section">
-                  <button type="button" class="expand-button" (click)="techOpen.update(v => !v)" [attr.aria-expanded]="techOpen()" aria-controls="sale-tech-specs"><span><mat-icon aria-hidden="true">settings_suggest</mat-icon>{{ techOpen() ? 'Teknik Verileri Gizle' : 'Teknik Verileri Gör' }}</span><mat-icon aria-hidden="true">{{ techOpen() ? 'expand_less' : 'expand_more' }}</mat-icon></button>
+                  <button type="button" class="expand-button" (click)="techOpen.update(v => !v)" [attr.aria-expanded]="techOpen()" aria-controls="sale-tech-specs"><span><mat-icon aria-hidden="true">settings_suggest</mat-icon>{{ techOpen() ? 'Performans Bilgilerini Gizle' : 'Performans ve Tüketim Bilgilerini Gör' }}</span><mat-icon aria-hidden="true">{{ techOpen() ? 'expand_less' : 'expand_more' }}</mat-icon></button>
                   @if (techOpen()) { <dl id="sale-tech-specs" class="spec-grid">@for (row of technicalRows(); track row.label) { <div><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div> }</dl> }
                 </section>
               }
 
               @if (features().length) {
                 <section class="expand-section">
-                  <button type="button" class="expand-button blue" (click)="featuresOpen.update(v => !v)" [attr.aria-expanded]="featuresOpen()" aria-controls="sale-features"><span><mat-icon aria-hidden="true">checklist</mat-icon>{{ featuresOpen() ? 'Donanımı Gizle' : 'Donanım ve Özellikleri Gör' }}</span><mat-icon aria-hidden="true">{{ featuresOpen() ? 'expand_less' : 'expand_more' }}</mat-icon></button>
+                  <button type="button" class="expand-button blue" (click)="featuresOpen.update(v => !v)" [attr.aria-expanded]="featuresOpen()" aria-controls="sale-features"><span><mat-icon aria-hidden="true">checklist</mat-icon>{{ featuresOpen() ? 'Donanımı Gizle' : 'Konfor ve Donanımı Gör' }}</span><mat-icon aria-hidden="true">{{ featuresOpen() ? 'expand_less' : 'expand_more' }}</mat-icon></button>
                   @if (featuresOpen()) { <ul id="sale-features" class="feature-grid">@for (feature of features(); track feature) { <li><mat-icon aria-hidden="true">check_circle</mat-icon>{{ feature }}</li> }</ul> }
                 </section>
               }
 
               <section class="expertise" aria-labelledby="expertise-title">
-                <h3 id="expertise-title"><mat-icon aria-hidden="true">verified</mat-icon>Ekspertiz Özeti</h3>
+                <h3 id="expertise-title"><mat-icon aria-hidden="true">verified</mat-icon>Ekspertiz ve Hasar Geçmişi</h3>
                 <dl class="truth-list" aria-label="Hasar ve tramer bilgileri">
                   @for (row of expertiseRows(item); track row.label) { <div><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div> }
                 </dl>
                 <app-expertise-graphic [data]="item.damageExpertise"></app-expertise-graphic>
-                @if (hasTramerDetail(item)) { <div class="tramer-summary"><div><strong>Tramer kaydı</strong>@if (item.tramerSourceName) { <span>Kaynak: {{ item.tramerSourceName }}</span> }</div><p>{{ tramerDetail(item) }}</p></div> }
+                @if (hasTramerDetail(item)) { <div class="tramer-summary"><div><strong>Tramer bilgisi</strong>@if (item.tramerSourceName) { <span>Doğrulama kaynağı: {{ item.tramerSourceName }}</span> }</div><p>{{ tramerDetail(item) }}</p></div> }
               </section>
             </div>
           }
 
           @if (activeTab() === 'desc') {
-            <article class="description-panel"><h3>{{ item.brand }} {{ item.model }} Açıklaması</h3><p>{{ item.description || 'Bu ilan için açıklama henüz girilmedi.' }}</p>@if (features().length) { <h4>Öne çıkan donanımlar</h4><ul>@for (feature of features().slice(0, 12); track feature) { <li>{{ feature }}</li> }</ul> }</article>
+            <article class="description-panel"><h3>{{ item.brand }} {{ item.model }} Hakkında</h3><p>{{ item.description || 'Bu araç için ayrıntılı açıklama henüz paylaşılmamış.' }}</p>@if (features().length) { <h4>Öne çıkan donanımlar</h4><ul>@for (feature of features().slice(0, 12); track feature) { <li>{{ feature }}</li> }</ul> }</article>
           }
 
           @if (activeTab() === 'loc') {
-            <div class="location-panel"><div class="location-map"><mat-icon aria-hidden="true">location_on</mat-icon><strong>{{ display(item.location, 'Konum bilgisi mevcut değil') }}</strong>@if (mapHref(item)) { <a [href]="mapHref(item)" target="_blank" rel="noopener noreferrer"><mat-icon aria-hidden="true">map</mat-icon>Haritada aç</a> }</div><div class="dealer-card"><span class="dealer-icon"><mat-icon aria-hidden="true">storefront</mat-icon></span><div><strong>{{ carService.getConfig()().companyName }}</strong><p>{{ item.location || 'Araç konumu ilan kaydından gösteriliyor.' }}</p></div></div></div>
+            <div class="location-panel"><div class="location-map"><mat-icon aria-hidden="true">location_on</mat-icon><strong>{{ display(item.location, 'Konum bilgisi için bizimle iletişime geçin') }}</strong>@if (mapHref(item)) { <a [href]="mapHref(item)" target="_blank" rel="noopener noreferrer"><mat-icon aria-hidden="true">map</mat-icon>Haritada aç</a> }</div><div class="dealer-card"><span class="dealer-icon"><mat-icon aria-hidden="true">storefront</mat-icon></span><div><strong>{{ carService.getConfig()().companyName }}</strong><p>{{ item.location || 'Araç konumu için ekibimizden bilgi alabilirsiniz.' }}</p></div></div></div>
           }
         </section>
 
         <nav class="bottom-actions" aria-label="Satılık araç işlemleri">
           <button type="button" class="phone" (click)="callPhone()" [attr.aria-disabled]="!phoneHref()" aria-label="Telefonla ara"><span class="phone-symbol" aria-hidden="true">☎</span><span>Ara</span></button>
-          <button type="button" class="inquiry" (click)="inquire(item)" [attr.aria-disabled]="item.availability === 'Satıldı'" aria-label="Satış talebi gönder"><mat-icon aria-hidden="true">request_quote</mat-icon><span>Satış Talebi</span></button>
+          <button type="button" class="inquiry" (click)="inquire(item)" [attr.aria-disabled]="item.availability === 'Satıldı'" aria-label="Araç için bilgi talebi gönder"><mat-icon aria-hidden="true">request_quote</mat-icon><span>Bilgi Al</span></button>
           <button type="button" class="whatsapp" (click)="whatsapp()" [attr.aria-disabled]="!whatsappPhone()" aria-label="WhatsApp ile bilgi al"><mat-icon aria-hidden="true">chat</mat-icon><span>WhatsApp</span></button>
         </nav>
 
         <app-detail-media-lightbox [open]="lightboxOpen()" [items]="mediaItems()" [index]="currentSlide()" [title]="item.brand + ' ' + item.model + ' fotoğraf ve video galerisi'" (closed)="lightboxOpen.set(false)" (indexChange)="currentSlide.set($event)" />
       } @else if (loading()) {
-        <section class="state" role="status"><div class="spinner"></div><strong>Satılık araç bilgileri hazırlanıyor</strong></section>
+        <section class="state" role="status"><div class="spinner"></div><strong>Araç bilgileri hazırlanıyor</strong></section>
       } @else {
-        <section class="state error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><strong>İlan yüklenemedi</strong><span>{{ loadError() }}</span><button type="button" (click)="reload()">Tekrar Dene</button></section>
+        <section class="state error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><strong>Araç bilgilerine şu anda ulaşılamıyor</strong><span>Lütfen kısa bir süre sonra yeniden deneyin.</span><button type="button" (click)="reload()">Tekrar Dene</button></section>
       }
     </main>
   `,
@@ -136,9 +136,10 @@ type FactRow = { label: string; value: string };
     .sale-header { position:sticky; top:0; z-index:70; display:flex; min-height:70px; align-items:center; justify-content:space-between; border-bottom:1px solid #1e293b; background:rgba(5,11,24,.98); padding:0 clamp(10px,2.5vw,20px); backdrop-filter:blur(14px); }
     .header-left,.header-actions { display:flex; min-width:0; align-items:center; gap:8px; }
     .header-left>div { min-width:0; }
-    .header-left span { color:#34d399; font-size:9px; font-weight:950; text-transform:uppercase; letter-spacing:.08em; }
+    .header-left span { color:#e7c777; font-size:9px; font-weight:950; text-transform:uppercase; letter-spacing:.08em; }
     .sale-header h1 { margin:3px 0 0; max-width:min(58vw,620px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:clamp(17px,3.5vw,22px); }
     .header-button { display:grid; width:46px; height:46px; flex:none; place-items:center; border:0; border-radius:14px; background:#0d1729; color:#fff; }
+    .header-button:focus-visible,.media-open:focus-visible,.video-expand:focus-visible,.media-controls button:focus-visible,.sale-tabs button:focus-visible,.expand-button:focus-visible,.bottom-actions button:focus-visible { outline:3px solid #c6a15b; outline-offset:2px; }
     .favorite { color:#fb7185; }
     .media-area { background:#020617; }
     .media-frame { position:relative; width:min(100%,1180px); margin:auto; aspect-ratio:16/10; overflow:hidden; }
@@ -146,7 +147,7 @@ type FactRow = { label: string; value: string };
     .media-open { border:0; background:#020617; padding:0; }
     .media-open img,.media-frame>video { object-fit:cover; }
     .video-expand { position:absolute; z-index:5; right:12px; top:12px; display:grid; width:44px; height:44px; place-items:center; border:1px solid #334155; border-radius:13px; background:rgba(2,6,23,.8); color:#fff; }
-    .listing-badge { position:absolute; left:14px; top:14px; border-radius:999px; background:#10b981; padding:6px 10px; color:#042f2e; font-size:10px; font-weight:950; }
+    .listing-badge { position:absolute; left:14px; top:14px; border-radius:999px; background:#fbbf24; padding:6px 10px; color:#451a03; font-size:10px; font-weight:950; }
     .media-controls { position:absolute; left:14px; right:14px; bottom:13px; display:flex; align-items:center; justify-content:space-between; }
     .media-controls>span { border-radius:999px; background:rgba(0,0,0,.72); padding:7px 11px; font-size:11px; font-weight:900; }
     .media-controls>div { display:flex; gap:7px; }
@@ -154,17 +155,17 @@ type FactRow = { label: string; value: string };
     .media-empty { min-height:340px; display:grid; place-content:center; gap:8px; text-align:center; color:#94a3b8; }
     .listing-head { display:grid; gap:clamp(14px,2vw,20px); width:min(100% - clamp(20px,4vw,48px),1060px); margin:clamp(16px,3vw,28px) auto 0; border:1px solid #253149; border-radius:22px; background:#0b1220; padding:clamp(18px,3.5vw,32px); box-shadow:0 18px 44px rgba(0,0,0,.2); }
     .listing-title-block { min-width:0; }
-    .listing-no { margin:0; color:#34d399; font-size:11px; font-weight:950; text-transform:uppercase; letter-spacing:.025em; }
+    .listing-no { margin:0; color:#e7c777; font-size:11px; font-weight:950; text-transform:uppercase; letter-spacing:.025em; }
     .listing-head h2 { margin:7px 0 0; overflow-wrap:anywhere; font:900 clamp(27px,6vw,46px)/1.06 Georgia,serif; }
     .listing-head h2 span { color:#94a3b8; }
     .listing-price { color:#f8fafc; font-size:clamp(32px,6vw,48px); letter-spacing:-.025em; }
     .social-proof { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:8px; }
     .social-proof span { display:flex; align-items:center; gap:5px; border:1px solid #334155; border-radius:999px; background:#050b18; padding:7px 10px; color:#cbd5e1; font-size:11px; font-weight:850; }
-    .social-proof mat-icon { width:16px; height:16px; font-size:16px; color:#34d399; }
+    .social-proof mat-icon { width:16px; height:16px; font-size:16px; color:#e7c777; }
     .sale-tabs { position:sticky; top:70px; z-index:60; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); width:min(100% - clamp(20px,4vw,48px),1060px); margin:16px auto 0; overflow:hidden; border:1px solid #253149; border-radius:17px; background:#0b1220; }
     .sale-tabs button { display:flex; min-width:0; min-height:64px; flex-direction:column; align-items:center; justify-content:center; gap:3px; border:0; background:#0b1220; color:#94a3b8; font-size:clamp(9px,2.4vw,11px); font-weight:950; }
     .sale-tabs button+button { border-left:1px solid #253149; }
-    .sale-tabs button.active { background:#0f766e; color:#fff; }
+    .sale-tabs button.active { background:#9f1d1d; color:#fff; }
     .sale-tabs mat-icon { width:20px; height:20px; font-size:20px; }
     .tab-content { width:min(100% - clamp(20px,4vw,48px),1060px); min-height:420px; margin:12px auto 0; overflow:hidden; border:1px solid #253149; border-radius:20px; background:#0b1220; }
     .listing-table { margin:0; }
@@ -172,10 +173,10 @@ type FactRow = { label: string; value: string };
     .listing-table>div:nth-child(even) { background:#071020; }
     .listing-table dt { color:#94a3b8; font-size:clamp(12px,2.4vw,14px); }
     .listing-table dd { min-width:0; margin:0; overflow-wrap:anywhere; text-align:right; color:#f8fafc; font-size:clamp(12px,2.4vw,14px); font-weight:900; }
-    .listing-table dd.important { color:#34d399; }
+    .listing-table dd.important { color:#e7c777; }
     .expand-section { padding:16px; border-top:1px solid #253149; }
     .expand-button { display:flex; width:100%; min-height:56px; align-items:center; justify-content:space-between; gap:12px; border:0; border-radius:14px; background:#111827; padding:0 15px; color:#fff; font-weight:900; text-align:left; }
-    .expand-button.blue { background:#075985; }
+    .expand-button.blue { background:#172554; }
     .expand-button>span { display:flex; align-items:center; gap:9px; }
     .spec-grid { display:grid; gap:8px; margin:12px 0 0; }
     .spec-grid>div { display:flex; justify-content:space-between; gap:12px; border:1px solid #253149; border-radius:11px; background:#050b18; padding:11px; }
@@ -186,7 +187,7 @@ type FactRow = { label: string; value: string };
     .feature-grid mat-icon { color:#34d399; }
     .expertise { padding:20px 16px; border-top:1px solid #253149; }
     .expertise h3 { display:flex; align-items:center; gap:8px; margin:0 0 14px; }
-    .expertise h3 mat-icon { color:#60a5fa; }
+    .expertise h3 mat-icon { color:#e7c777; }
     .truth-list { margin:0 0 18px; overflow:hidden; border:1px solid #253149; border-radius:14px; background:#071020; }
     .truth-list>div { display:grid; grid-template-columns:minmax(110px,.9fr) minmax(0,1.1fr); align-items:center; gap:16px; min-height:52px; padding:11px 14px; }
     .truth-list>div+div { border-top:1px solid #1e293b; }
@@ -202,10 +203,10 @@ type FactRow = { label: string; value: string };
     .description-panel h4 { margin:22px 0 8px; }
     .description-panel ul { display:grid; gap:7px; color:#cbd5e1; }
     .location-map { min-height:230px; display:grid; place-content:center; gap:9px; border:1px dashed #334155; border-radius:15px; background:#071020; text-align:center; color:#cbd5e1; padding:18px; }
-    .location-map>mat-icon { margin:auto; width:44px; height:44px; font-size:44px; color:#34d399; }
-    .location-map a { display:flex; min-height:48px; align-items:center; justify-content:center; gap:7px; margin-top:7px; border-radius:12px; background:#2563eb; color:#fff; text-decoration:none; font-weight:900; }
+    .location-map>mat-icon { margin:auto; width:44px; height:44px; font-size:44px; color:#e7c777; }
+    .location-map a { display:flex; min-height:48px; align-items:center; justify-content:center; gap:7px; margin-top:7px; border-radius:12px; background:#9f1d1d; color:#fff; text-decoration:none; font-weight:900; }
     .dealer-card { display:flex; gap:12px; margin-top:14px; border:1px solid #253149; border-radius:14px; background:#071020; padding:14px; }
-    .dealer-icon { display:grid; width:46px; height:46px; flex:none; place-items:center; border-radius:50%; background:#064e3b; color:#6ee7b7; }
+    .dealer-icon { display:grid; width:46px; height:46px; flex:none; place-items:center; border-radius:50%; background:#2d1f0b; color:#e7c777; }
     .dealer-card p { margin:5px 0 0; color:#94a3b8; }
     .bottom-actions { position:fixed; z-index:90; left:0; right:0; bottom:0; display:grid; grid-template-columns:minmax(0,.84fr) minmax(0,1.22fr) minmax(0,1fr); gap:0; border-top:1px solid #334155; background:rgba(5,11,24,.97); padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-right)); backdrop-filter:blur(18px); }
     .bottom-actions button { display:flex; min-width:0; min-height:58px; align-items:center; justify-content:center; gap:clamp(4px,1.2vw,8px); border:0; border-radius:0; color:#fff; padding:0 clamp(5px,2vw,16px); font-size:clamp(9px,2.7vw,13px); font-weight:950; white-space:nowrap; box-shadow:none; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
@@ -215,12 +216,12 @@ type FactRow = { label: string; value: string };
     .bottom-actions button:active { filter:brightness(.93); transform:translateY(1px); }
     .bottom-actions button[aria-disabled='true'] { opacity:.52; }
     .bottom-actions .phone { background:#0f766e; }
-    .bottom-actions .inquiry { background:#2563eb; }
+    .bottom-actions .inquiry { background:#9f1d1d; }
     .bottom-actions .whatsapp { background:#059669; }
     .phone-symbol { font-size:21px; line-height:1; }
     .state { min-height:70dvh; display:grid; place-content:center; gap:10px; text-align:center; padding:24px; }
-    .state button { min-height:46px; border:0; border-radius:10px; background:#2563eb; color:#fff; padding:0 18px; font-weight:900; }
-    .spinner { width:42px; height:42px; margin:auto; border:4px solid #334155; border-top-color:#34d399; border-radius:50%; animation:spin .8s linear infinite; }
+    .state button { min-height:46px; border:0; border-radius:10px; background:#9f1d1d; color:#fff; padding:0 18px; font-weight:900; }
+    .spinner { width:42px; height:42px; margin:auto; border:4px solid #334155; border-top-color:#c6a15b; border-radius:50%; animation:spin .8s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
     @media (min-width:720px) {
       .media-frame { aspect-ratio:16/9; }
@@ -351,19 +352,19 @@ export class SaleCarDetailComponent implements OnInit {
       const config = this.carService.getConfig()();
       this.seo.updateSeoTags({
         title: `${item.brand || "Araç"} ${item.model || ""} Satılık | ${config.companyName}`,
-        description: `${item.year || ""} ${item.brand || ""} ${item.model || ""} satılık araç ilanı. ${item.km != null ? Number(item.km).toLocaleString("tr-TR") + " km." : ""} Fiyat, ekspertiz, açıklama ve konum bilgileri.`,
+        description: `${item.year || ""} ${item.brand || ""} ${item.model || ""} satılık araç. ${item.km != null ? Number(item.km).toLocaleString("tr-TR") + " km." : ""} Fiyat, ekspertiz, açıklama ve konum bilgileri.`,
         image: item.image || config.seoOgImage,
       });
-    } catch (error) {
+    } catch {
       this.car.set(null);
-      this.loadError.set(error instanceof Error ? error.message : "İlan verisi alınamadı.");
+      this.loadError.set("SALE_DETAIL_UNAVAILABLE");
     } finally {
       this.loading.set(false);
     }
   }
 
   display(value: unknown, fallback = "Belirtilmedi"): string { return this.detailData.display(value, fallback); }
-  listingDate(item: Car): string { return this.formatDate(item.createdAt || item.updatedAt || "") || "Tarih bilgisi yok"; }
+  listingDate(item: Car): string { return this.formatDate(item.createdAt || item.updatedAt || "") || "Tarih bilgisi paylaşılmamış"; }
   formatDate(value: string): string { const date = new Date(value); return value && !Number.isNaN(date.getTime()) ? new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" }).format(date) : ""; }
   previousMedia(): void { const length = this.mediaItems().length; if (length > 1) this.currentSlide.update((index) => (index - 1 + length) % length); }
   nextMedia(): void { const length = this.mediaItems().length; if (length > 1) this.currentSlide.update((index) => (index + 1) % length); }
@@ -375,23 +376,23 @@ export class SaleCarDetailComponent implements OnInit {
   isFav(id: string | number): boolean { return this.carService.isFavorite(id); }
   expertiseRows(item: Car): FactRow[] {
     const rows: FactRow[] = [
-      { label: "Hasar Durumu", value: item.damageStatus || (item.isDamageFree ? "Hatasız & Boyasız" : "Belirtilmedi") },
+      { label: "Hasar Durumu", value: item.damageStatus || (item.isDamageFree ? "Hatasız ve Boyasız" : "Belirtilmedi") },
       { label: "Tramer Durumu", value: this.tramerStatusLabel(item) },
     ];
     if (item.tramerAmount != null) rows.push({ label: "Tramer Tutarı", value: `${Number(item.tramerAmount).toLocaleString("tr-TR")} TL` });
     if (item.tramerVerifiedAt) rows.push({ label: "Doğrulama Tarihi", value: this.formatDate(item.tramerVerifiedAt) });
     return rows;
   }
-  tramerStatusLabel(item: Car): string { const map: Record<string, string> = { UNKNOWN: "Bilgi yok", DECLARED_CLEAN: "Beyan: kayıt yok", DECLARED_RECORD: "Beyan: kayıt var", VERIFIED_CLEAN: "Doğrulandı: kayıt yok", VERIFIED_RECORD: "Doğrulandı: kayıt var" }; return map[String(item.tramerStatus || "UNKNOWN")] || "Belirtilmedi"; }
+  tramerStatusLabel(item: Car): string { const map: Record<string, string> = { UNKNOWN: "Bilgi paylaşılmamış", DECLARED_CLEAN: "Beyan: kayıt yok", DECLARED_RECORD: "Beyan: kayıt var", VERIFIED_CLEAN: "Doğrulandı: kayıt yok", VERIFIED_RECORD: "Doğrulandı: kayıt var" }; return map[String(item.tramerStatus || "UNKNOWN")] || "Belirtilmedi"; }
   hasTramerDetail(item: Car): boolean { return String(item.tramerStatus || "UNKNOWN") !== "UNKNOWN" || item.tramerAmount != null || Boolean(item.tramerVerifiedAt || item.tramerSourceName); }
   tramerDetail(item: Car): string { const text = String(item.tramer || "").trim(); if (text && !/^belirtilmedi/i.test(text)) return text; if (item.tramerAmount != null) return `Bildirilen tramer tutarı ${Number(item.tramerAmount).toLocaleString("tr-TR")} TL.`; return this.tramerStatusLabel(item); }
   mapHref(item: Car): string { const record = item as Car & { mapUrl?: string; latitude?: number; longitude?: number }; if (record.mapUrl && /^https:\/\//i.test(record.mapUrl)) return record.mapUrl; if (Number.isFinite(Number(record.latitude)) && Number.isFinite(Number(record.longitude))) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${record.latitude},${record.longitude}`)}`; const query = String(item.location || "").trim(); return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : ""; }
   inquire(item: Car): void { if (item.availability === "Satıldı") return; this.carService.setBookingRequest({ type: "SALE_INQUIRY", item, itemName: `${item.brand || ""} ${item.model || ""}`.trim(), image: item.image || item.images?.[0], basePrice: Number(item.price || 0) }); void this.router.navigate(["/contact"]); }
-  async share(item: Car): Promise<void> { const payload = { title: `${item.brand || ""} ${item.model || ""} | Alperler Auto`.trim(), text: "Bu satılık araç ilanını inceleyin.", url: window.location.href }; try { if (navigator.share) await navigator.share(payload); else await navigator.clipboard?.writeText(window.location.href); } catch { /* kullanıcı paylaşımı iptal etti */ } }
+  async share(item: Car): Promise<void> { const payload = { title: `${item.brand || ""} ${item.model || ""} | Alperler Auto`.trim(), text: "Bu satılık aracı inceleyin.", url: window.location.href }; try { if (navigator.share) await navigator.share(payload); else await navigator.clipboard?.writeText(window.location.href); } catch { /* kullanıcı paylaşımı iptal etti */ } }
   phoneHref(): string { const phone = String(this.carService.getConfig()().phone || "").replace(/[^+\d]/g, ""); return phone ? `tel:${phone}` : ""; }
   callPhone(): void { const href = this.phoneHref(); if (href) this.launchExternal(href, false); }
   whatsappPhone(): string { return String(this.carService.getConfig()().whatsapp || this.carService.getConfig()().phone || "").replace(/\D/g, ""); }
-  whatsapp(): void { const item = this.car(); if (!item) return; const phone = this.whatsappPhone(); if (!phone) return; this.launchExternal(`https://wa.me/${phone}?text=${encodeURIComponent(`Merhaba, ${item.brand || ""} ${item.model || ""} satılık araç ilanı hakkında bilgi almak istiyorum. ${window.location.href}`)}`, true); }
+  whatsapp(): void { const item = this.car(); if (!item) return; const phone = this.whatsappPhone(); if (!phone) return; this.launchExternal(`https://wa.me/${phone}?text=${encodeURIComponent(`Merhaba, ${item.brand || ""} ${item.model || ""} satılık araç hakkında bilgi almak istiyorum. ${window.location.href}`)}`, true); }
   private launchExternal(url: string, newTab: boolean): void {
     if (!url) return;
     const anchor = document.createElement("a");

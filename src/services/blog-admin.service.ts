@@ -24,13 +24,30 @@ export interface BlogAdminRecord {
   updatedAt?: string;
 }
 
+const BLOG_ADMIN_SELECT = [
+  "id",
+  "title",
+  "slug",
+  "excerpt",
+  "content",
+  "cover_image",
+  "author_name",
+  "status",
+  "published_at",
+  "seo_title",
+  "seo_description",
+  "metadata",
+  "created_at",
+  "updated_at",
+].join(",");
+
 @Injectable({ providedIn: "root" })
 export class BlogAdminService {
   private readonly auth = inject(AuthService);
   private readonly media = inject(CatalogMediaService);
 
   async list(): Promise<BlogAdminRecord[]> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/blog_posts?select=*&order=updated_at.desc`, {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/blog_posts?select=${BLOG_ADMIN_SELECT}&order=updated_at.desc`, {
       method: "GET",
       cache: "no-store",
       headers: await this.headers(),
@@ -55,7 +72,7 @@ export class BlogAdminService {
       seo_description: null,
       metadata: { readTime: "4 Dk Okuma", originalDate: new Date().toLocaleDateString("tr-TR") },
     };
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/blog_posts?select=*`, {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/blog_posts?select=${BLOG_ADMIN_SELECT}`, {
       method: "POST",
       headers: { ...(await this.headers()), Prefer: "return=representation" },
       body: JSON.stringify(body),
@@ -84,7 +101,7 @@ export class BlogAdminService {
       },
       updated_at: new Date().toISOString(),
     };
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/blog_posts?id=eq.${encodeURIComponent(record.id)}&select=*`, {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/blog_posts?id=eq.${encodeURIComponent(record.id)}&select=${BLOG_ADMIN_SELECT}`, {
       method: "PATCH",
       headers: { ...(await this.headers()), Prefer: "return=representation" },
       body: JSON.stringify(body),
@@ -118,7 +135,7 @@ export class BlogAdminService {
   }
 
   private async fetchById(id: string): Promise<BlogAdminRecord | null> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/blog_posts?id=eq.${encodeURIComponent(id)}&select=*&limit=1`, {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/blog_posts?id=eq.${encodeURIComponent(id)}&select=${BLOG_ADMIN_SELECT}&limit=1`, {
       method: "GET",
       cache: "no-store",
       headers: await this.headers(),

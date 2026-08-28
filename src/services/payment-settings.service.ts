@@ -31,6 +31,7 @@ const DEFAULTS: PaymentSettings = {
 export class PaymentSettingsService {
   private readonly auth = inject(AuthService);
   private readonly adminEndpoint = '/api/partner?op=admin-core';
+  private readonly publicSettingsSelect = 'config_key,provider,card_enabled,eft_enabled,office_enabled,deposit_mode,deposit_value,currency,bank_name,iban,account_holder,customer_note';
   private readonly _settings = signal<PaymentSettings>({ ...DEFAULTS });
   private readonly _loading = signal(false);
   readonly settings = this._settings.asReadonly();
@@ -39,12 +40,12 @@ export class PaymentSettingsService {
   async refreshPublic(): Promise<void> {
     this._loading.set(true);
     try {
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/payment_settings?config_key=eq.main&select=*`, {
+      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/payment_settings?config_key=eq.main&select=${this.publicSettingsSelect}`, {
         headers: { apikey: SUPABASE_PUBLISHABLE_KEY, accept: 'application/json' }, cache: 'no-store',
       });
       if (!response.ok) return;
       const rows = await response.json() as any[];
-      if (rows[0]) this._settings.set(this.fromRow(rows[0]));
+      if (rows[0]) this._settings.set({ ...this.fromRow(rows[0]), testMode: true });
     } finally { this._loading.set(false); }
   }
 

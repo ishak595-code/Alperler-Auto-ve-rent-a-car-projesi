@@ -14,7 +14,7 @@ import { ToastService } from '../../services/toast.service';
         <div>
           <p>Ana sayfa metinleri</p>
           <h2 id="planner-copy-title">Arama ve Hızlı Planlama Metinleri</h2>
-          <span>Planlama kutusunda müşterinin gördüğü etiket, seçenek, tarih, düğme ve hata metinlerini veritabanından yönetin.</span>
+          <span>Planlama alanında müşterinin gördüğü bütün etiket, seçenek, tarih, saat, düğme, yüklenme ve hata metinlerini doğrudan site_config.homeContent üzerinden yönetin.</span>
         </div>
         <button type="button" (click)="save()" [disabled]="saving()">{{ saving() ? 'Kaydediliyor…' : 'Metinleri Kaydet' }}</button>
       </header>
@@ -31,22 +31,28 @@ import { ToastService } from '../../services/toast.service';
         </fieldset>
 
         <fieldset>
-          <legend>Teslim noktası ve tarihler</legend>
+          <legend>Teslim noktası, süre ve tarihler</legend>
           <label><span>Teslim noktası etiketi</span><input [(ngModel)]="form.plannerPickupLabel" name="plannerPickupLabel" maxlength="100" /></label>
           <label><span>Teslim noktası boş seçeneği</span><input [(ngModel)]="form.plannerPickupPlaceholder" name="plannerPickupPlaceholder" maxlength="180" /></label>
-          <label><span>Teslim noktası sayaç son eki</span><input [(ngModel)]="form.plannerPickupCountSuffix" name="plannerPickupCountSuffix" maxlength="120" /></label>
+          <label><span>Kiralama süresi etiketi</span><input [(ngModel)]="form.plannerDurationLabel" name="plannerDurationLabel" maxlength="100" /></label>
           <label><span>Tur tarihi etiketi</span><input [(ngModel)]="form.plannerTourDateLabel" name="plannerTourDateLabel" maxlength="80" /></label>
+          <label><span>Saatlik kiralama tarihi etiketi</span><input [(ngModel)]="form.plannerHourlyDateLabel" name="plannerHourlyDateLabel" maxlength="80" /></label>
           <label><span>Alış tarihi etiketi</span><input [(ngModel)]="form.plannerStartDateLabel" name="plannerStartDateLabel" maxlength="80" /></label>
           <label><span>İade tarihi etiketi</span><input [(ngModel)]="form.plannerEndDateLabel" name="plannerEndDateLabel" maxlength="80" /></label>
+          <label><span>Alış saati etiketi</span><input [(ngModel)]="form.plannerStartTimeLabel" name="plannerStartTimeLabel" maxlength="80" /></label>
+          <label><span>İade saati etiketi</span><input [(ngModel)]="form.plannerEndTimeLabel" name="plannerEndTimeLabel" maxlength="80" /></label>
         </fieldset>
 
         <fieldset>
-          <legend>Sonuç düğmeleri</legend>
+          <legend>Sonuç ve yüklenme metinleri</legend>
           <label><span>Kiralık araç düğmesi</span><input [(ngModel)]="form.plannerButtonRental" name="plannerButtonRental" maxlength="140" /></label>
+          <label><span>Saatlik kiralama düğmesi</span><input [(ngModel)]="form.plannerButtonHourly" name="plannerButtonHourly" maxlength="140" /></label>
           <label><span>Şoförlü araç düğmesi</span><input [(ngModel)]="form.plannerButtonDriver" name="plannerButtonDriver" maxlength="140" /></label>
           <label><span>Özel gün düğmesi</span><input [(ngModel)]="form.plannerButtonWedding" name="plannerButtonWedding" maxlength="140" /></label>
           <label><span>Tur düğmesi</span><input [(ngModel)]="form.plannerButtonTour" name="plannerButtonTour" maxlength="140" /></label>
-          <label><span>Vitrin yükleme metni</span><input [(ngModel)]="form.plannerLoadingText" name="plannerLoadingText" maxlength="160" /></label>
+          <label><span>İlk vitrin yükleme metni</span><input [(ngModel)]="form.plannerLoadingText" name="plannerLoadingText" maxlength="160" /></label>
+          <label><span>Bölüm hazırlanıyor etiketi</span><input [(ngModel)]="form.sectionPreparingLabel" name="sectionPreparingLabel" maxlength="120" /></label>
+          <label><span>Bölüm yükleniyor metni</span><input [(ngModel)]="form.sectionLoadingLabel" name="sectionLoadingLabel" maxlength="160" /></label>
         </fieldset>
 
         <fieldset>
@@ -56,6 +62,8 @@ import { ToastService } from '../../services/toast.service';
           <label><span>İade tarihi eksik</span><input [(ngModel)]="form.plannerErrorEndDate" name="plannerErrorEndDate" maxlength="180" /></label>
           <label><span>Tarih sırası hatası</span><input [(ngModel)]="form.plannerErrorDateOrder" name="plannerErrorDateOrder" maxlength="180" /></label>
           <label><span>Teslim noktası eksik</span><input [(ngModel)]="form.plannerErrorPickup" name="plannerErrorPickup" maxlength="180" /></label>
+          <label><span>Saat sırası hatası</span><input [(ngModel)]="form.plannerErrorTimeOrder" name="plannerErrorTimeOrder" maxlength="180" /></label>
+          <label><span>Saatlik üst sınır mesajı</span><input [(ngModel)]="form.plannerErrorHourlyLimit" name="plannerErrorHourlyLimit" maxlength="180" /></label>
         </fieldset>
       </div>
     </section>
@@ -77,11 +85,12 @@ export class AdminHomepagePlannerCopyComponent implements OnInit {
 
   async reload(): Promise<void> {
     try {
-      await this.cars.refreshCloudCatalog(true);
+      await this.cars.refreshSiteConfig(true);
       const home = this.cars.getConfig()().homeContent || {};
+      const defaults = this.defaults();
       this.form = {
-        ...this.defaults(),
-        ...Object.fromEntries(Object.keys(this.defaults()).map((key) => [key, String((home as Record<string, unknown>)[key] || (this.defaults() as Record<string, string>)[key])])),
+        ...defaults,
+        ...Object.fromEntries(Object.keys(defaults).map((key) => [key, String((home as Record<string, unknown>)[key] || defaults[key])])),
       };
     } catch {
       this.toast.show('Ana sayfa planlama metinleri yüklenemedi.', 'error');
@@ -96,7 +105,7 @@ export class AdminHomepagePlannerCopyComponent implements OnInit {
       const homeContent = { ...(current.homeContent || {}) } as Record<string, unknown>;
       for (const [key, value] of Object.entries(this.form)) homeContent[key] = String(value || '').trim();
       await this.cars.updateConfig({ ...current, homeContent: homeContent as typeof current.homeContent });
-      await this.cars.refreshCloudCatalog(true);
+      await this.cars.refreshSiteConfig(true);
       this.toast.show('Planlama metinleri kaydedildi ve ana sayfaya uygulandı.', 'success');
     } catch (error) {
       this.toast.show(error instanceof Error ? error.message : 'Planlama metinleri kaydedilemedi.', 'error');
@@ -108,27 +117,35 @@ export class AdminHomepagePlannerCopyComponent implements OnInit {
   private defaults(): Record<string, string> {
     return {
       searchButtonLabel: 'Ara',
-      plannerServiceLabel: 'Ne arıyorsunuz?',
+      plannerServiceLabel: 'Ne için araç veya hizmet arıyorsunuz?',
       plannerServiceIndividual: 'Şoförsüz araç kiralama',
-      plannerServiceDriver: 'Şoförlü transfer',
+      plannerServiceDriver: 'Şoförlü araç / transfer',
       plannerServiceWedding: 'Düğün / özel gün aracı',
-      plannerServiceTour: 'Özel tur',
-      plannerPickupLabel: 'Nereden?',
-      plannerPickupPlaceholder: 'Teslim almak istediğiniz yeri seçin',
-      plannerPickupCountSuffix: 'teslim seçeneği mevcut',
+      plannerServiceTour: 'Tur / gezi planı',
+      plannerPickupLabel: 'Nereden teslim almak istiyorsunuz?',
+      plannerPickupPlaceholder: 'Teslim noktasını seçin',
+      plannerDurationLabel: 'Kiralama Süresi',
       plannerTourDateLabel: 'Tur tarihi',
+      plannerHourlyDateLabel: 'Kiralama tarihi',
       plannerStartDateLabel: 'Alış tarihi',
       plannerEndDateLabel: 'İade tarihi',
-      plannerButtonRental: 'Tarihime Uyan Araçları Göster',
-      plannerButtonDriver: 'Şoförlü Araçları Göster',
+      plannerStartTimeLabel: 'Alış Saati',
+      plannerEndTimeLabel: 'İade Saati',
+      plannerButtonRental: 'Bu Tarihe Uyan Araçları Göster',
+      plannerButtonHourly: 'Bu Saatlere Uyan Araçları Göster',
+      plannerButtonDriver: 'Şoförlü Seçenekleri Göster',
       plannerButtonWedding: 'Özel Gün Araçlarını Göster',
       plannerButtonTour: 'Bu Tarihe Uyan Turları Göster',
-      plannerLoadingText: 'Size uygun vitrin hazırlanıyor...',
-      plannerErrorTourDate: 'Önce tur tarihini seçin.',
-      plannerErrorStartDate: 'Önce alış tarihini seçin.',
-      plannerErrorEndDate: 'İade tarihini de seçin.',
-      plannerErrorDateOrder: 'İade tarihi alış tarihinden önce olamaz.',
-      plannerErrorPickup: 'Nereden teslim almak istediğinizi seçin.',
+      plannerLoadingText: 'Size uygun seçenekler hazırlanıyor...',
+      sectionPreparingLabel: 'İçerik hazırlanıyor',
+      sectionLoadingLabel: 'Güncel içerik yükleniyor',
+      plannerErrorTourDate: 'Tur tarihini seçin.',
+      plannerErrorStartDate: 'Alış tarihini seçin.',
+      plannerErrorEndDate: 'İade tarihini seçin.',
+      plannerErrorDateOrder: 'İade tarihi alış tarihinden sonra olmalıdır.',
+      plannerErrorPickup: 'Teslim alma noktasını seçin.',
+      plannerErrorTimeOrder: 'İade saati alış saatinden sonra olmalıdır.',
+      plannerErrorHourlyLimit: '23 saati aşan kiralamalar için günlük seçeneği kullanın.',
     };
   }
 }

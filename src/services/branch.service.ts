@@ -12,6 +12,13 @@ interface BranchApiResponse {
 }
 
 const PUBLIC_BRANCH_COALESCE_MS = 2_000;
+const PUBLIC_BRANCH_SELECT = [
+  "id", "name", "code", "address_line", "district", "city", "country", "latitude", "longitude", "phone", "whatsapp", "email",
+  "opening_hours", "services", "is_active", "sort_order", "updated_at", "map_url", "is_pickup_point", "is_return_point", "slug",
+  "network_type", "public_status", "territory_label", "public_description", "hero_image", "customer_guarantee_enabled",
+  "central_pricing_required", "listing_requires_approval", "brand_profile", "service_rules", "timezone", "province_code", "district_code",
+  "operator_display_name", "operator_legal_name", "operator_relationship", "platform_disclaimer", "operator_identity_verified_at",
+].join(",");
 
 @Injectable({ providedIn: "root" })
 export class BranchService {
@@ -162,7 +169,7 @@ export class BranchService {
   }
 
   private async fetchPublicDirect(): Promise<Branch[]> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/branches?is_active=eq.true&public_status=eq.ACTIVE&select=*&order=sort_order.asc,name.asc`, {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/branches?is_active=eq.true&public_status=eq.ACTIVE&select=${PUBLIC_BRANCH_SELECT}&order=sort_order.asc,name.asc`, {
       cache: "no-store",
       headers: { apikey: SUPABASE_PUBLISHABLE_KEY, accept: "application/json", "cache-control": "no-cache" },
     });
@@ -216,13 +223,6 @@ export class BranchService {
       listingRequiresApproval: row["listing_requires_approval"] !== false,
       brandProfile: row["brand_profile"] && typeof row["brand_profile"] === "object" ? row["brand_profile"] : {},
       serviceRules: row["service_rules"] && typeof row["service_rules"] === "object" ? row["service_rules"] : {},
-      lifecycleReason: row["lifecycle_reason"] || undefined,
-      statusChangedAt: row["status_changed_at"] || undefined,
-      statusChangedBy: row["status_changed_by"] || undefined,
-      suspendedAt: row["suspended_at"] || undefined,
-      closedAt: row["closed_at"] || undefined,
-      reopenedAt: row["reopened_at"] || undefined,
-      createdAt: row["created_at"] || undefined,
       updatedAt: row["updated_at"] || undefined,
     };
   }

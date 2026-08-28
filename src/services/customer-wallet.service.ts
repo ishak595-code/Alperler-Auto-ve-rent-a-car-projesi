@@ -22,6 +22,7 @@ export interface SpendingCurrencySummary {
 export class CustomerWalletService{
   private readonly auth=inject(CustomerAuthService);
   private readonly documentBucket='customer-documents';
+  private readonly preferenceSelect='user_id,monthly_spend_target,preferred_currency,spend_alert_enabled,spend_alert_threshold_percent,document_expiry_reminder_days,quick_checkout_enabled,preferred_payment_method_id';
   readonly loading=signal(false);
   readonly terms=signal<CustomerVaultTerms|null>(null);
   readonly consent=signal<CustomerVaultConsent|null>(null);
@@ -36,7 +37,7 @@ export class CustomerWalletService{
         this.rows<CustomerVaultTerms>('customer_vault_terms?is_active=eq.true&select=version,title,body,is_active,published_at&limit=1',token),
         this.rows<CustomerVaultConsent>('customer_vault_consents?revoked_at=is.null&select=user_id,terms_version,accepted_at,revoked_at,accepted_via&order=accepted_at.desc&limit=1',token),
         this.rows<CustomerDocument>('customer_documents?select=id,user_id,document_type,storage_path,original_name,mime_type,file_size,expiry_date,verification_status,verified_at,rejection_reason,created_at,updated_at&order=created_at.desc',token),
-        this.rows<CustomerExperiencePreferences>('customer_experience_preferences?select=*&limit=1',token),
+        this.rows<CustomerExperiencePreferences>(`customer_experience_preferences?select=${this.preferenceSelect}&limit=1`,token),
         this.rpc<SpendingCurrencySummary[]>('customer_spending_summary',{},token),
       ]);
       this.terms.set(terms[0]||null);this.consent.set(consents[0]||null);this.documents.set(docs);this.spending.set(Array.isArray(spending)?spending:[]);
@@ -93,7 +94,7 @@ export class CustomerWalletService{
       quick_checkout_enabled:patch.quick_checkout_enabled??current?.quick_checkout_enabled??true,
       preferred_payment_method_id:patch.preferred_payment_method_id===undefined?(current?.preferred_payment_method_id??null):patch.preferred_payment_method_id,
     };
-    const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/customer_experience_preferences?on_conflict=user_id`,{
+    const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/customer_experience_preferences?on_conflict=user_id&select=${this.preferenceSelect}`,{
       method:'POST',headers:this.headers(token,{Prefer:'resolution=merge-duplicates,return=representation'}),body:JSON.stringify(body),
     });
     if(!response.ok)throw new Error('PREFERENCES_SAVE_FAILED');

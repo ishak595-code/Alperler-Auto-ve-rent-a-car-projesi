@@ -49,6 +49,14 @@ export interface CampaignProof {
   lastViewedAt?: string;
 }
 
+const PUBLIC_CAMPAIGN_SELECT = [
+  "id", "title", "slug", "short_description", "description", "badge", "campaign_type", "cover_image", "old_price", "new_price",
+  "discount_percent", "target_type", "target_id", "cta_label", "cta_url", "whatsapp_message", "starts_at", "ends_at",
+  "publication_status", "is_active", "sort_order", "metadata", "created_at", "updated_at", "discount_method", "discount_value",
+  "discount_scope", "visibility_mode", "minimum_order_amount", "minimum_rental_days", "minimum_rental_hours", "max_redemptions",
+  "per_customer_limit", "allow_referral_discount", "allow_loyalty_redemption", "priority", "required_extra_ids",
+].join(",");
+
 @Injectable({ providedIn: "root" })
 export class CampaignService {
   private readonly auth = inject(AuthService);
@@ -82,15 +90,12 @@ export class CampaignService {
   loadPublic(): Promise<CampaignRecord[]> {
     if (this.publicLoadInFlight) return this.publicLoadInFlight;
     const request = (async () => {
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?is_active=eq.true&publication_status=eq.PUBLISHED&select=*&order=sort_order.asc,created_at.desc`, {
+      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?is_active=eq.true&select=${PUBLIC_CAMPAIGN_SELECT}&order=sort_order.asc,created_at.desc`, {
         headers: { ...this.publicHeaders(), "cache-control": "no-cache" },
         cache: "no-store",
       });
       if (!response.ok) throw new Error(`CAMPAIGNS_PUBLIC_${response.status}`);
-      const now = Date.now();
-      const records = ((await response.json()) as any[])
-        .map((row) => this.fromRow(row))
-        .filter((item) => this.inPublicWindow(item, now));
+      const records = ((await response.json()) as any[]).map((row) => this.fromRow(row));
       this._publicCampaigns.set(records);
       return records;
     })();
@@ -108,7 +113,7 @@ export class CampaignService {
 
   async refreshAdmin(): Promise<void> {
     const token = await this.requiredToken();
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=*&order=sort_order.asc,created_at.desc`, {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=${PUBLIC_CAMPAIGN_SELECT}&order=sort_order.asc,created_at.desc`, {
       headers: this.authHeaders(token),
       cache: "no-store",
     });
@@ -164,8 +169,8 @@ export class CampaignService {
     };
     const isUpdate = Boolean(input.id);
     const url = isUpdate
-      ? `${SUPABASE_PROJECT_URL}/rest/v1/campaigns?id=eq.${encodeURIComponent(input.id!)}&select=*`
-      : `${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=*`;
+      ? `${SUPABASE_PROJECT_URL}/rest/v1/campaigns?id=eq.${encodeURIComponent(input.id!)}&select=${PUBLIC_CAMPAIGN_SELECT}`
+      : `${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=${PUBLIC_CAMPAIGN_SELECT}`;
     const response = await fetch(url, {
       method: isUpdate ? "PATCH" : "POST",
       headers: { ...this.authHeaders(token), Prefer: "return=representation" },
@@ -267,7 +272,7 @@ export class CampaignService {
   private async syncHomepageCampaigns(token: string): Promise<void> {
     const now = Date.now();
     const ordered = [...this._campaigns()]
-      .filter((item) => item.isActive && item.publicationStatus === "PUBLISHED" && this.inPublicWindow(item, now))
+      .filter((item) => item.isActive && (item.publicationStatus === "PUBLISHED" || item.publicationStatus === "SCHEDULED"))
       .sort((a, b) => a.sortOrder - b.sortOrder);
     const clearPlacements = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/homepage_placements?section_key=eq.campaigns&entity_type=eq.CAMPAIGN`, {
       method: "DELETE",
@@ -298,7 +303,8 @@ export class CampaignService {
       body: JSON.stringify({ is_enabled: true, max_items: 3, updated_at: new Date().toISOString() }),
     });
     if (!sectionResponse.ok) throw new Error(`CAMPAIGN_SECTION_SAVE_${sectionResponse.status}`);
-    await this.syncHomepageBanner(token, ordered[0]);
+    const currentPrimary = ordered.find((item) => this.inPublicWindow(item, now));
+    await this.syncHomepageBanner(token, currentPrimary);
   }
 
   private async syncHomepageBanner(token: string, primary?: CampaignRecord): Promise<void> {

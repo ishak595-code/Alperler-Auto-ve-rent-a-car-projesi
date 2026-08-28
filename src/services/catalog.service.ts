@@ -48,6 +48,25 @@ const DIRECT_MAX_PAGES = 100;
 @Injectable({ providedIn: "root" })
 export class CatalogService {
   private readonly authService = inject(AuthService);
+  private readonly publicVehicleSelect = [
+    "id", "stock_code", "category", "brand", "model", "model_year", "price", "currency",
+    "rental_price_daily", "rental_price_hourly", "hourly_rental_enabled", "minimum_rental_hours", "hourly_mileage_limit",
+    "mileage_km", "fuel_type", "transmission", "body_type", "color", "engine", "seats", "doors", "location",
+    "description", "features", "images", "cover_image", "is_featured", "is_active", "availability_status", "seo_slug",
+    "metadata", "created_at", "updated_at", "publication_status", "published_at", "scheduled_at", "branch_id", "listing_origin",
+    "spec_source_url", "spec_source_name", "actual_vehicle_verified",
+  ].join(",");
+  private readonly publicTourSelect = [
+    "id", "title", "seo_slug", "category", "short_description", "description", "price_per_person", "currency", "duration",
+    "capacity", "meeting_point", "itinerary", "included_items", "excluded_items", "images", "cover_image", "is_featured",
+    "is_active", "metadata", "created_at", "updated_at", "publication_status", "published_at", "scheduled_at", "location_name",
+    "latitude", "longitude", "map_url", "branch_id", "listing_origin", "source_url", "source_name",
+  ].join(",");
+  private readonly publicBlogSelect = [
+    "id", "title", "slug", "excerpt", "content", "cover_image", "author_name", "status", "published_at",
+    "seo_title", "seo_description", "metadata", "updated_at",
+  ].join(",");
+  private readonly publicFaqSelect = "id,question,answer,category,sort_order,is_active,updated_at";
 
   async loadVehicles(fresh = false): Promise<Vehicle[]> {
     const records = await this.loadList<Record<string, any>>("vehicles", fresh);
@@ -206,10 +225,11 @@ export class CatalogService {
 
   private publicRestPath(resource: PublicResource): string {
     switch (resource) {
-      case "vehicles": return "vehicles?is_active=eq.true&select=*&order=is_featured.desc,updated_at.desc";
-      case "tours": return "tours?is_active=eq.true&select=*&order=is_featured.desc,updated_at.desc";
-      case "blog": return "blog_posts?status=eq.PUBLISHED&select=*&order=published_at.desc";
-      case "faqs": return "faqs?is_active=eq.true&select=*&order=sort_order.asc";
+      // Row visibility is intentionally owned by Supabase RLS so scheduled catalogue items become public at the database-defined time.
+      case "vehicles": return `vehicles?is_active=eq.true&select=${this.publicVehicleSelect}&order=is_featured.desc,updated_at.desc`;
+      case "tours": return `tours?is_active=eq.true&select=${this.publicTourSelect}&order=is_featured.desc,updated_at.desc`;
+      case "blog": return `blog_posts?status=eq.PUBLISHED&select=${this.publicBlogSelect}&order=published_at.desc`;
+      case "faqs": return `faqs?is_active=eq.true&select=${this.publicFaqSelect}&order=sort_order.asc`;
       case "config": return "site_config?key=eq.site_settings&is_public=eq.true&select=value,updated_at&limit=1";
     }
   }
@@ -242,6 +262,10 @@ export class CatalogService {
         publicationStatus: row["publication_status"],
         branchId: row["branch_id"] || undefined,
         listingOrigin: row["listing_origin"] || undefined,
+        locationName: row["location_name"] || undefined,
+        latitude: row["latitude"] === null || row["latitude"] === undefined ? undefined : Number(row["latitude"]),
+        longitude: row["longitude"] === null || row["longitude"] === undefined ? undefined : Number(row["longitude"]),
+        mapUrl: row["map_url"] || undefined,
         updatedAt: row["updated_at"],
       };
     }
@@ -298,6 +322,7 @@ export class CatalogService {
       color: row["color"] || undefined,
       engineVolume: row["engine"] ?? row["engineVolume"] ?? metadata["engineVolume"] ?? undefined,
       seats: row["seats"] ?? undefined,
+      doors: row["doors"] ?? metadata["doors"] ?? undefined,
       location: row["location"] || undefined,
       description: String(row["description"] || ""),
       features: Array.isArray(row["features"]) ? row["features"] : [],

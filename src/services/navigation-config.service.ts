@@ -61,6 +61,8 @@ export class NavigationConfigService {
   private readonly auth = inject(AuthService);
   private readonly realtime = inject(PublicContentRealtimeService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly settingsSelect = 'config_key,mobile_dock_enabled,mobile_menu_enabled,mobile_dock_auto_hide';
+  private readonly itemSelect = 'id,surface,item_key,label,icon,route,sort_order,is_active,archived_at,metadata';
   private readonly _settings = signal<NavigationSettings>({ ...DEFAULT_SETTINGS });
   private readonly _items = signal<NavigationItem[]>([...DEFAULT_DOCK, ...DEFAULT_MENU]);
   private readonly _loading = signal(false);
@@ -115,8 +117,8 @@ export class NavigationConfigService {
     try {
       const publicHeaders={apikey:SUPABASE_PUBLISHABLE_KEY,accept:'application/json'};
       const [settingsResponse,itemsResponse]=await Promise.all([
-        fetch(`${SUPABASE_PROJECT_URL}/rest/v1/navigation_settings?config_key=eq.main&select=*`,{headers:publicHeaders,cache:'no-store'}),
-        fetch(`${SUPABASE_PROJECT_URL}/rest/v1/navigation_items?is_active=eq.true&archived_at=is.null&select=*&order=surface.asc,sort_order.asc`,{headers:publicHeaders,cache:'no-store'}),
+        fetch(`${SUPABASE_PROJECT_URL}/rest/v1/navigation_settings?config_key=eq.main&select=${this.settingsSelect}`,{headers:publicHeaders,cache:'no-store'}),
+        fetch(`${SUPABASE_PROJECT_URL}/rest/v1/navigation_items?is_active=eq.true&archived_at=is.null&select=${this.itemSelect}&order=surface.asc,sort_order.asc`,{headers:publicHeaders,cache:'no-store'}),
       ]);
       if(settingsResponse.ok){const rows=await settingsResponse.json() as any[];if(rows[0])this.applySettingsRow(rows[0]);}
       if(itemsResponse.ok){const rows=await itemsResponse.json() as any[];this._items.set(rows.map((row)=>this.fromRow(row)));}
@@ -127,8 +129,8 @@ export class NavigationConfigService {
     const token=await this.requiredToken();this.adminViewActive=true;this._loading.set(true);
     try{
       const [settingsRows,itemRows]=await Promise.all([
-        this.rest<any[]>('GET','navigation_settings?config_key=eq.main&select=*',undefined,token),
-        this.rest<any[]>('GET','navigation_items?select=*&order=surface.asc,sort_order.asc',undefined,token),
+        this.rest<any[]>('GET',`navigation_settings?config_key=eq.main&select=${this.settingsSelect}`,undefined,token),
+        this.rest<any[]>('GET',`navigation_items?select=${this.itemSelect}&order=surface.asc,sort_order.asc`,undefined,token),
       ]);
       if(settingsRows[0])this.applySettingsRow(settingsRows[0]);else this._settings.set({...DEFAULT_SETTINGS});
       this._items.set(itemRows.map((item)=>this.fromRow(item)));

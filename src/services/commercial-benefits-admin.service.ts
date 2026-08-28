@@ -34,12 +34,13 @@ export interface CommercialBenefitsSettings {
 @Injectable({ providedIn: "root" })
 export class CommercialBenefitsAdminService {
   private readonly auth = inject(AuthService);
+  private readonly settingsSelect = "enabled,points_per_rental_day,minimum_points_per_rental,silver_threshold,gold_threshold,platinum_threshold,redemption_enabled,point_value_try,minimum_redeem_points,max_redeem_percent,referral_checkout_discount_enabled,referral_checkout_discount_mode,referral_rental_invitee_discount,referral_sale_invitee_discount,referral_tour_invitee_discount,allow_campaign_referral_stack,allow_campaign_loyalty_stack,allow_referral_loyalty_stack,referral_rental_inviter_points,referral_rental_invitee_points,referral_sale_inviter_points,referral_sale_invitee_points,referral_tour_inviter_points,referral_tour_invitee_points,tour_points_per_100_try,sale_points_per_1000_try";
   private readonly _settings = signal<CommercialBenefitsSettings | null>(null);
   readonly settings = this._settings.asReadonly();
 
   async refresh(): Promise<CommercialBenefitsSettings> {
     const token = await this.requiredToken();
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/loyalty_program_settings?id=eq.true&select=*&limit=1`, {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/loyalty_program_settings?id=eq.true&select=${this.settingsSelect}&limit=1`, {
       headers: this.headers(token),
       cache: "no-store",
     });
@@ -82,7 +83,7 @@ export class CommercialBenefitsAdminService {
       sale_points_per_1000_try: this.integer(input.salePointsPer1000Try, 0, 100000),
       updated_at: new Date().toISOString(),
     };
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/loyalty_program_settings?id=eq.true&select=*`, {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/loyalty_program_settings?id=eq.true&select=${this.settingsSelect}`, {
       method: "PATCH",
       headers: { ...this.headers(token), Prefer: "return=representation" },
       body: JSON.stringify(body),

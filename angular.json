@@ -41,7 +41,14 @@
               "optimization": true,
               "sourceMap": false,
               "extractLicenses": true,
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "1000kb",
+                  "maximumError": "1100kb"
+                }
+              ]
             },
             "development": {
               "optimization": false,

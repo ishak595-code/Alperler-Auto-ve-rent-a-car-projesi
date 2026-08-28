@@ -53,7 +53,7 @@
             },
             "development": {
               "optimization": false,
-              "extractLicenses": true,
+              "extractLicenses": false,
               "sourceMap": true
             }
           },

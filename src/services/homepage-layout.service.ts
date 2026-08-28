@@ -35,6 +35,8 @@ export class HomepageLayoutService {
   private readonly _loaded = signal(false);
   private readonly _error = signal('');
   private readonly _clock = signal(Date.now());
+  private readonly publicSectionSelect = 'section_key,title,section_type,is_enabled,sort_order,max_items,settings';
+  private readonly publicPlacementSelect = 'id,section_key,entity_type,entity_id,label,sort_order,is_active,starts_at,ends_at,metadata';
   private refreshTimer?: number;
   private inFlight?: Promise<void>;
   private realtimeDirtyWhileLoading = false;
@@ -68,8 +70,8 @@ export class HomepageLayoutService {
       this._error.set('');
       try {
         const [sectionRows, placementRows] = await Promise.all([
-          this.get<any[]>('homepage_sections?is_enabled=eq.true&select=*&order=sort_order.asc'),
-          this.get<any[]>('homepage_placements?is_active=eq.true&select=*&order=section_key.asc,sort_order.asc'),
+          this.get<any[]>(`homepage_sections?is_enabled=eq.true&select=${this.publicSectionSelect}&order=sort_order.asc`),
+          this.get<any[]>(`homepage_placements?is_active=eq.true&select=${this.publicPlacementSelect}&order=section_key.asc,sort_order.asc`),
         ]);
         this._sections.set(sectionRows.map((row) => ({
           sectionKey: String(row.section_key || ''),

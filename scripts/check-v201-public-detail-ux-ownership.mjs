@@ -25,25 +25,25 @@ for (const forbidden of ['RentalDetailV167Component','SaleDetailV1681Component',
 }
 
 for (const contract of [
-  'Özellikler, koşullar ve açıklama','fixed-actions','activeCampaign','campaignProofLabel',
-  'proofByCampaign','car.transmission','car.fuel','car.seats','car.type','selectedPeriodAvailable()',
+  'Konfor, kiralama koşulları ve araç bilgileri','Performans ve Tüketim','fixed-actions','activeCampaign','campaignProofLabel',
+  'proofByCampaign','car.transmission','car.fuel','car.seats','car.doors','car.luggage','car.type','selectedPeriodAvailable()',
   'for (const video of car.videos || [])','DetailMediaLightboxComponent','dailyMileageLimit','hourlyMileageLimit','minimumRentalHours',
   'deposit','minLicenseYears','technicalRows','features()','commercialOffer.activateCampaign(verified)',
 ]) must(rental, contract, `Rental approved UX/data contract missing: ${contract}`);
-mustNot(rental, 'mobile-actions', 'Legacy second rental CTA owner must not return.');
-mustNot(rental, 'class="primary-action"', 'Inline rental reservation button must not duplicate the fixed action bar.');
-mustNot(rental, 'class="whatsapp-action"', 'Inline rental WhatsApp button must not duplicate the fixed action bar.');
+for (const forbidden of ['mobile-actions','class="primary-action"','class="whatsapp-action"','Özellikler, koşullar ve açıklama','Rezervasyon Özeti','Kiralama Özeti','class="reservation-panel"']) {
+  mustNot(rental, forbidden, `Legacy or duplicate rental UX must not return: ${forbidden}`);
+}
 must(rental, 'offer.discountScope!=="UNIT"', 'Order-level campaign package prices must not replace rental unit price.');
 
 for (const contract of [
   'İLAN BİLGİLERİ','AÇIKLAMA','KONUM',"activeTab.set('info')","activeTab.set('desc')","activeTab.set('loc')",
-  'bottom-actions','readonly listingRows = computed<ListingRow[]>','Teknik Verileri Gör','Ekspertiz Özeti','DetailMediaLightboxComponent',
+  'bottom-actions','readonly listingRows = computed<ListingRow[]>','Performans ve Tüketim Bilgilerini Gör','Ekspertiz ve Hasar Geçmişi','DetailMediaLightboxComponent',
   'for (const video of item.videos || [])','technicalRows','damageExpertise','tramerStatusLabel','tramerAmount','mapHref(item)',
-  'item.viewers','item.favCount','Donanım ve Özellikleri Gör','(click)="callPhone()"','<span>Satış Talebi</span>','<span>WhatsApp</span>',
+  'item.viewers','item.favCount','Konfor ve Donanımı Gör','(click)="callPhone()"','<span>Bilgi Al</span>','<span>WhatsApp</span>',
 ]) must(sale, contract, `Sale approved UX/live-schema contract missing: ${contract}`);
-mustNot(sale, 'getTechnicalSpecs', 'Sale detail must use the live canonical record, not static technical lookup data.');
-mustNot(sale, 'class="core-facts"', 'Sale detail must not duplicate listing facts above the canonical information table.');
-mustNot(sale, '[href]="phoneHref()"', 'Sale phone CTA must remain a persistent action button.');
+for (const forbidden of ['getTechnicalSpecs','class="core-facts"','[href]="phoneHref()"','Teknik Verileri Gör','Donanım ve Özellikleri Gör','<span>Satış Talebi</span>']) {
+  mustNot(sale, forbidden, `Legacy sale UX/data contract must not return: ${forbidden}`);
+}
 
 for (const contract of [
   'readonly reservationOpen = signal(false)','@if (reservationOpen())','class="reservation-overlay"','(click)="openReservation()"',
@@ -97,4 +97,4 @@ for (const contract of [
   'revoke all on function public.reserve_booking_commercial_offer',
 ]) must(pricingGuard, contract, `Campaign normal-price reference guard missing: ${contract}`);
 
-console.log('V201.1/V202 canonical detail UX, single CTA, external map, accessibility, live schema and pricing ownership: PASS');
+console.log('V201.1/V207 canonical detail UX, single CTA, external map, accessibility, live schema and pricing ownership: PASS');

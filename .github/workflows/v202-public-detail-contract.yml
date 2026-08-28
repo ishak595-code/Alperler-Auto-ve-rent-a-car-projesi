@@ -1,0 +1,46 @@
+name: V202 Public Detail Contract
+
+on:
+  pull_request:
+    paths:
+      - 'src/pages/sale-car-detail.component.ts'
+      - 'src/pages/car-detail.component.ts'
+      - 'src/pages/tour-detail.component.ts'
+      - 'src/pages/blog-list.component.ts'
+      - 'src/services/public-detail-data.service.ts'
+      - 'src/services/catalog.service.ts'
+      - 'public/service-worker.js'
+      - 'scripts/check-v202-public-detail-contract.mjs'
+      - '.github/workflows/v202-public-detail-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/pages/sale-car-detail.component.ts'
+      - 'src/pages/car-detail.component.ts'
+      - 'src/pages/tour-detail.component.ts'
+      - 'src/pages/blog-list.component.ts'
+      - 'src/services/public-detail-data.service.ts'
+      - 'src/services/catalog.service.ts'
+      - 'public/service-worker.js'
+      - 'scripts/check-v202-public-detail-contract.mjs'
+      - '.github/workflows/v202-public-detail-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-detail-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Public detail contract guard
+        run: node scripts/check-v202-public-detail-contract.mjs
+      - name: Angular production build
+        run: npm run build

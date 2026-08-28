@@ -25,7 +25,7 @@ for (const forbidden of ['RentalDetailV167Component','SaleDetailV1681Component',
 }
 
 for (const contract of [
-  'Tüm Özellikler ve Açıklama','fixed-actions','activeCampaign','queryParamMap.get("campaign")','campaignProofLabel',
+  'Özellikler, koşullar ve açıklama','fixed-actions','activeCampaign','campaignProofLabel',
   'proofByCampaign','car.transmission','car.fuel','car.seats','car.type','selectedPeriodAvailable()',
   'for (const video of car.videos || [])','DetailMediaLightboxComponent','dailyMileageLimit','hourlyMileageLimit','minimumRentalHours',
   'deposit','minLicenseYears','technicalRows','features()','commercialOffer.activateCampaign(verified)',
@@ -37,11 +37,13 @@ must(rental, 'offer.discountScope!=="UNIT"', 'Order-level campaign package price
 
 for (const contract of [
   'İLAN BİLGİLERİ','AÇIKLAMA','KONUM',"activeTab.set('info')","activeTab.set('desc')","activeTab.set('loc')",
-  'bottom-actions','Tüm Teknik Özellikleri İncele','Ekspertiz ve Tramer Durumu','DetailMediaLightboxComponent',
+  'bottom-actions','readonly listingRows = computed<ListingRow[]>','Teknik Verileri Gör','Ekspertiz Özeti','DetailMediaLightboxComponent',
   'for (const video of item.videos || [])','technicalRows','damageExpertise','tramerStatusLabel','tramerAmount','mapHref(item)',
-  'item.viewers','item.favCount','Tüm Donanım ve Özellikleri Göster',
+  'item.viewers','item.favCount','Donanım ve Özellikleri Gör','(click)="callPhone()"','<span>Satış Talebi</span>','<span>WhatsApp</span>',
 ]) must(sale, contract, `Sale approved UX/live-schema contract missing: ${contract}`);
 mustNot(sale, 'getTechnicalSpecs', 'Sale detail must use the live canonical record, not static technical lookup data.');
+mustNot(sale, 'class="core-facts"', 'Sale detail must not duplicate listing facts above the canonical information table.');
+mustNot(sale, '[href]="phoneHref()"', 'Sale phone CTA must remain a persistent action button.');
 
 for (const contract of [
   'readonly reservationOpen = signal(false)','@if (reservationOpen())','class="reservation-overlay"','(click)="openReservation()"',
@@ -63,10 +65,11 @@ const overlayIndex = tour.indexOf('class="reservation-overlay"');
 if (mapIndex < 0 || actionIndex < 0 || overlayIndex < 0 || mapIndex > actionIndex || mapIndex > overlayIndex) throw new Error('Tour map must remain in tour content before the fixed reservation action and reservation overlay.');
 
 for (const contract of [
-  "queryParamMap.get('campaign')","item.targetType === expectedTarget","String(item.targetId || '') === this.routeId",
-  'proofByCampaign','activeViewers15m','recentViewers24h','uniqueViewersTotal','KAMPANYADAN GELDİNİZ','commercialOffer.activateCampaign(verified)',
+  "queryParamMap.get('campaign')",'resolvedTargetId','new Set([this.routeId, this.resolvedTargetId()]','aliases.has(String(item.targetId || \'\').trim())',
+  'this.detailData.load(kind, this.routeId)','proofByCampaign','activeViewers15m','recentViewers24h','uniqueViewersTotal','AKTİF KAMPANYA','commercialOffer.activateCampaign(verified)',
 ]) must(campaignContext, contract, `Campaign target context missing: ${contract}`);
 for (const forbidden of ['openReservation(', 'whatsapp(', 'router.navigate']) mustNot(campaignContext, forbidden, `Campaign context must never become a second CTA owner: ${forbidden}`);
+mustNot(campaignContext, 'KAMPANYADAN GELDİNİZ', 'Legacy query-only campaign presentation must not return.');
 
 for (const contract of ['campaign=${encodeURIComponent(campaign.id)}','activateCampaign(campaign)']) must(campaigns, contract, `Campaign navigation context missing: ${contract}`);
 for (const contract of [
@@ -78,7 +81,7 @@ for (const contract of ['campaignIdForItem(itemId)','/functions/v1/tour-booking-
 
 for (const contract of [
   'fuel: row["fuel_type"] ?? undefined','transmission: row["transmission"] || undefined','type: row["body_type"] ?? undefined',
-  'seats: row["seats"] ?? undefined','availability_status','loadForVehicle(ownerId)','loadForTour(ownerId)',
+  'seats: row["seats"] ?? undefined','doors: row["doors"] ?? undefined','year: row["model_year"]','km: row["mileage_km"]','availability_status','loadForVehicle(ownerId)','loadForTour(ownerId)',
   'locationName: row["location_name"] || undefined','latitude: this.numberOrUndefined(row["latitude"])',
   'longitude: this.numberOrUndefined(row["longitude"])','mapUrl: row["map_url"] || undefined',
 ]) must(detailData, contract, `Public detail DB mapping missing: ${contract}`);
@@ -94,4 +97,4 @@ for (const contract of [
   'revoke all on function public.reserve_booking_commercial_offer',
 ]) must(pricingGuard, contract, `Campaign normal-price reference guard missing: ${contract}`);
 
-console.log('V201.1 canonical detail UX, single CTA, external map, accessibility, live schema and pricing ownership: PASS');
+console.log('V201.1/V202 canonical detail UX, single CTA, external map, accessibility, live schema and pricing ownership: PASS');

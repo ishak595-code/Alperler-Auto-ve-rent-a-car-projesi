@@ -75,6 +75,18 @@ const migration = read("supabase/migrations/20260828203000_v207_campaign_schedul
 if (!migration.includes("publication_status = 'SCHEDULED'")) failures.push("V207 campaign RLS migration must support elapsed scheduled publication.");
 if (!migration.includes("revoke insert, update, delete on table public.vehicles from anon")) failures.push("V207 anonymous DML hardening is missing.");
 
+const placementBackfill = read("supabase/migrations/20260828221500_v207_campaign_placement_window_backfill.sql");
+for (const contract of [
+  "hp.entity_id = c.id",
+  "hp.starts_at is distinct from c.starts_at",
+  "hp.ends_at is distinct from c.ends_at",
+]) {
+  if (!placementBackfill.includes(contract)) failures.push(`V207 campaign placement backfill contract is missing: ${contract}`);
+}
+if (/f[0-9a-f]{7}-[0-9a-f-]{27,}/i.test(placementBackfill)) {
+  failures.push("V207 campaign placement backfill must not hardcode campaign identifiers.");
+}
+
 if (failures.length) {
   console.error("V207 database source contract: FAIL");
   for (const failure of failures) console.error(`- ${failure}`);

@@ -1,8 +1,9 @@
 import fs from 'node:fs';
+import path from 'node:path';
 
-const read = (path) => fs.readFileSync(path, 'utf8');
-const requireFile = (path) => { if (!fs.existsSync(path)) throw new Error(`V203 required file missing: ${path}`); };
-const requireMissing = (path) => { if (fs.existsSync(path)) throw new Error(`V203 legacy duplicate must remain deleted: ${path}`); };
+const read = (file) => fs.readFileSync(file, 'utf8');
+const requireFile = (file) => { if (!fs.existsSync(file)) throw new Error(`V203 required file missing: ${file}`); };
+const requireMissing = (file) => { if (fs.existsSync(file)) throw new Error(`V203 legacy duplicate must remain deleted: ${file}`); };
 const must = (source, token, message) => { if (!source.includes(token)) throw new Error(message || `V203 contract missing: ${token}`); };
 const mustNot = (source, token, message) => { if (source.includes(token)) throw new Error(message || `V203 forbidden contract: ${token}`); };
 
@@ -22,7 +23,7 @@ const canonical = [
 ];
 canonical.forEach(requireFile);
 
-[
+const removedLegacy = [
   'src/pages/rental-detail-v167.component.ts',
   'src/pages/sale-detail-v168.component.ts',
   'src/pages/sale-detail-v1681.component.ts',
@@ -31,7 +32,17 @@ canonical.forEach(requireFile);
   'src/pages/admin/admin-catalog-editor.component.ts',
   'src/pages/admin/admin-sale-integrity-v1681.component.ts',
   'src/pages/admin/admin-tour-studio-v170.component.ts',
-].forEach(requireMissing);
+];
+removedLegacy.forEach(requireMissing);
+
+const workflowDir = '.github/workflows';
+const workflowText = fs.readdirSync(workflowDir)
+  .filter((name) => /\.ya?ml$/i.test(name))
+  .map((name) => `${name}\n${read(path.join(workflowDir, name))}`)
+  .join('\n');
+for (const legacy of removedLegacy) {
+  if (workflowText.includes(legacy)) throw new Error(`Workflow still depends on removed legacy file: ${legacy}`);
+}
 
 const shell = read('src/pages/catalog-detail-shells.component.ts');
 for (const token of ['CarDetailComponent','SaleCarDetailComponent','TourDetailComponent']) must(shell, token);

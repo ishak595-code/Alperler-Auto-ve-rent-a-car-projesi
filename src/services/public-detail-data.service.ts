@@ -139,11 +139,11 @@ export class PublicDetailDataService {
   private async loadVehicleDirect(kind: "RENTAL" | "SALE", routeId: string): Promise<Vehicle | null> {
     let row: Record<string, any> | undefined;
     if (this.numericPattern.test(routeId)) {
-      const rows = await this.fetchRows(`vehicles?is_active=eq.true&publication_status=eq.PUBLISHED&category=eq.${kind}&select=${this.vehicleSelect}`, "VEHICLE_LEGACY_ROUTE_DB");
+      const rows = await this.fetchRows(`vehicles?is_active=eq.true&category=eq.${kind}&select=${this.vehicleSelect}`, "VEHICLE_LEGACY_ROUTE_DB");
       row = rows.find((candidate) => this.legacyNumericId(candidate) === Number(routeId));
     } else {
       const filter = this.uuidPattern.test(routeId) ? `id=eq.${encodeURIComponent(routeId)}` : `stock_code=eq.${encodeURIComponent(routeId)}`;
-      row = (await this.fetchRows(`vehicles?is_active=eq.true&publication_status=eq.PUBLISHED&category=eq.${kind}&${filter}&select=${this.vehicleSelect}&limit=1`, "VEHICLE_DETAIL_DB"))[0];
+      row = (await this.fetchRows(`vehicles?is_active=eq.true&category=eq.${kind}&${filter}&select=${this.vehicleSelect}&limit=1`, "VEHICLE_DETAIL_DB"))[0];
     }
     if (!row) return null;
     const mapped = this.mapVehicle(row, kind);
@@ -155,11 +155,11 @@ export class PublicDetailDataService {
   private async loadTourDirect(routeId: string): Promise<Vehicle | null> {
     let row: Record<string, any> | undefined;
     if (this.numericPattern.test(routeId)) {
-      const rows = await this.fetchRows(`tours?is_active=eq.true&publication_status=eq.PUBLISHED&select=${this.tourSelect}`, "TOUR_LEGACY_ROUTE_DB");
+      const rows = await this.fetchRows(`tours?is_active=eq.true&select=${this.tourSelect}`, "TOUR_LEGACY_ROUTE_DB");
       row = rows.find((candidate) => this.legacyNumericId(candidate) === Number(routeId) || String(candidate["seo_slug"] || "").startsWith(`legacy-${routeId}-`));
     } else {
       const filter = this.uuidPattern.test(routeId) ? `id=eq.${encodeURIComponent(routeId)}` : `seo_slug=eq.${encodeURIComponent(routeId)}`;
-      row = (await this.fetchRows(`tours?is_active=eq.true&publication_status=eq.PUBLISHED&${filter}&select=${this.tourSelect}&limit=1`, "TOUR_DETAIL_DB"))[0];
+      row = (await this.fetchRows(`tours?is_active=eq.true&${filter}&select=${this.tourSelect}&limit=1`, "TOUR_DETAIL_DB"))[0];
     }
     if (!row) return null;
     const mapped = this.mapTour(row);
@@ -234,7 +234,6 @@ export class PublicDetailDataService {
   private mapTour(row: Record<string, any>): Vehicle {
     const metadata = row["metadata"] && typeof row["metadata"] === "object" ? row["metadata"] : {};
     const images = Array.isArray(row["images"]) ? row["images"].filter((value: unknown): value is string => typeof value === "string" && Boolean(value.trim())) : [];
-    const published = row["publication_status"] === "PUBLISHED" && row["is_active"] === true;
     return {
       ...metadata,
       id: row["id"],
@@ -257,7 +256,7 @@ export class PublicDetailDataService {
       images,
       gallery: images,
       isFeatured: Boolean(row["is_featured"]),
-      isAvailable: published,
+      isAvailable: row["is_active"] === true,
       cloudId: row["id"],
       cloudSlug: row["seo_slug"] || undefined,
       publicationStatus: row["publication_status"],

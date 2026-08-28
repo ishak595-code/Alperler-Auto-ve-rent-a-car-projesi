@@ -17,6 +17,7 @@ const blogPath = 'src/pages/blog-detail.component.ts';
 const canonicalPublicMediaPath = 'src/services/public-catalog-media.service.ts';
 const dynamicHomePath = 'src/components/dynamic-home-section.component.ts';
 const mobileDockPath = 'src/components/customer-mobile-dock.component.ts';
+const mobileDockPolicyPath = 'src/services/mobile-dock-route-policy.ts';
 const removedDetailPaths = [
   'src/pages/rental-detail-v167.component.ts',
   'src/pages/sale-detail-v168.component.ts',
@@ -30,7 +31,7 @@ const duplicatePaths = [
   'src/app/services/public-catalog-media.service.ts',
 ];
 
-for (const path of [lightboxPath, rentalPath, salePath, tourPath, blogPath, canonicalPublicMediaPath, dynamicHomePath, mobileDockPath]) {
+for (const path of [lightboxPath, rentalPath, salePath, tourPath, blogPath, canonicalPublicMediaPath, dynamicHomePath, mobileDockPath, mobileDockPolicyPath]) {
   if (!fs.existsSync(path)) throw new Error(`Required V199 canonical file missing: ${path}`);
 }
 for (const path of [...removedDetailPaths, ...duplicatePaths]) {
@@ -132,10 +133,21 @@ if (count(dynamicHome, '(click)="openCampaign(campaign)"') !== 1) throw new Erro
 
 const mobileDock = read(mobileDockPath);
 for (const contract of [
-  'const shouldHide = path !== "/"',
+  'shouldRenderMobileDock(rawUrl)',
   'this.hidden.set(shouldHide)',
   'setMobileDockRouteHidden(shouldHide)',
-]) must(mobileDock, contract, `Global mobile dock must stay hidden on all detail routes: ${contract}`);
+]) must(mobileDock, contract, `Global mobile dock must delegate visibility to the canonical route policy: ${contract}`);
+mustNot(mobileDock, 'const shouldHide = path !== "/"', 'Mobile dock must not be hidden on every non-home customer route.');
+
+const mobileDockPolicy = read(mobileDockPolicyPath);
+for (const contract of [
+  '/^\\/fleet\\/[^/]+$/',
+  '/^\\/sales\\/[^/]+$/',
+  '/^\\/tour\\/[^/]+$/',
+  "'/booking-checkout'",
+  "'/admin'",
+  "'/branch-portal'",
+]) must(mobileDockPolicy, contract, `Detail/transaction route must suppress global dock through policy: ${contract}`);
 
 if (count(tour, '(click)="openReservation()"') !== 1) throw new Error('Tour detail must expose exactly one primary reservation action.');
 if (count(tour, '(click)="whatsapp()"') !== 1) throw new Error('Tour detail must expose exactly one WhatsApp action.');

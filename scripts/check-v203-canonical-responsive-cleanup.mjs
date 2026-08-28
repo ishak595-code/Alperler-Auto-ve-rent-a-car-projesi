@@ -15,6 +15,12 @@ const mustNotExist = (path) => {
 };
 
 const canonical = [
+  'src/pages/home-v71.component.ts',
+  'src/components/dynamic-home-section.component.ts',
+  'src/services/homepage-layout.service.ts',
+  'src/pages/admin/admin-homepage.component.ts',
+  'src/services/homepage-admin.service.ts',
+  'supabase/functions/site-content-admin-gateway-v174/index.ts',
   'src/pages/car-detail.component.ts',
   'src/pages/sale-car-detail.component.ts',
   'src/pages/tour-detail.component.ts',
@@ -27,6 +33,7 @@ const canonical = [
   'src/premium-responsive.css',
   'public/service-worker.js',
   'scripts/check-home-runtime-v192.mjs',
+  'docs/CANONICAL_OWNERSHIP_V203.md',
 ];
 canonical.forEach(mustExist);
 
@@ -56,11 +63,18 @@ const tour = read('src/pages/tour-detail.component.ts');
 const fleet = read('src/pages/fleet.component.ts');
 const sales = read('src/pages/sales-results.component.ts');
 const tours = read('src/pages/tours.component.ts');
+const home = read('src/pages/home-v71.component.ts');
+const homeSection = read('src/components/dynamic-home-section.component.ts');
+const homeLayout = read('src/services/homepage-layout.service.ts');
+const adminHome = read('src/pages/admin/admin-homepage.component.ts');
+const adminHomeService = read('src/services/homepage-admin.service.ts');
+const siteContentGateway = read('supabase/functions/site-content-admin-gateway-v174/index.ts');
 const adminHub = read('src/pages/admin/admin-content-hub.component.ts');
 const adminWorkspace = read('src/pages/admin/admin-catalog-workspace.component.ts');
 const responsive = read('src/premium-responsive.css');
 const angular = read('angular.json');
 const sw = read('public/service-worker.js');
+const ownershipDoc = read('docs/CANONICAL_OWNERSHIP_V203.md');
 
 for (const token of ['CarDetailComponent', 'SaleCarDetailComponent', 'TourDetailComponent']) {
   must(shells, token, `Catalog detail shell lost canonical renderer ${token}`);
@@ -112,6 +126,34 @@ for (const token of [
 must(angular, '"src/premium-responsive.css"', 'Premium responsive layer must remain in the Angular build');
 must(sw, "const RELEASE = 'v203-responsive-canonical-cleanup';", 'PWA cache release must match V203 canonical UI');
 
+for (const token of ['homepageLayout.sections()', '<app-dynamic-home-section', '@defer (on viewport; prefetch on idle)']) {
+  must(home, token, `Homepage lost managed live layout ownership: ${token}`);
+}
+for (const token of [
+  "homepage_sections?is_enabled=eq.true",
+  "homepage_placements?is_active=eq.true",
+  "cache: 'no-store'",
+]) must(homeLayout, token, `Public homepage layout lost live Supabase source: ${token}`);
+for (const token of [
+  'this.cars.getSaleCars()()',
+  'this.cars.getCars()()',
+  'this.cars.getTours()()',
+  'this.cars.getBlogPosts()()',
+  'this.campaignsService.publicCampaigns()',
+  'this.branchesService.branches()',
+]) must(homeSection, token, `Homepage section renderer lost live entity source: ${token}`);
+
+must(adminHome, 'HomepageAdminService', 'Admin homepage must use the canonical homepage admin service');
+must(adminHomeService, "endpoint='/api/partner?op=site-content-admin'", 'Homepage admin must use one authenticated content endpoint');
+for (const token of [
+  'service_upsert_homepage_section_v174',
+  'service_delete_homepage_section_v174',
+  'service_reorder_homepage_sections_v174',
+  'service_upsert_homepage_placement_v174',
+  'service_delete_homepage_placement_v174',
+  'service_reorder_homepage_placements_v174',
+]) must(siteContentGateway, token, `Site content gateway lost canonical homepage RPC: ${token}`);
+
 for (const token of ['AdminCatalogWorkspaceComponent', 'mode="RENTAL"', 'mode="SALE"', 'mode="TOUR"']) {
   must(adminHub, token, `Admin content hub lost canonical workspace ownership: ${token}`);
 }
@@ -120,6 +162,10 @@ for (const token of ['Fotoğraf & Video', 'saveVehicleAs', 'saveTourAs', 'saleTr
 }
 for (const forbidden of ['AdminCatalogEditorComponent', 'AdminSaleIntegrityV1681Component', 'AdminTourStudioV170Component']) {
   mustNot(adminHub, forbidden, `Legacy admin writer returned to active hub: ${forbidden}`);
+}
+
+for (const token of ['one public owner', 'one admin writer', 'one authoritative data path']) {
+  must(ownershipDoc.toLowerCase(), token, `Canonical ownership documentation incomplete: ${token}`);
 }
 
 console.log('V203 canonical responsive cleanup: PASS');

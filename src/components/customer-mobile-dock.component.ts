@@ -35,7 +35,7 @@ import { isDockItemCurrent, shouldRenderMobileDock } from "../services/mobile-do
   `,
   styles: [`
     :host{display:contents}.customer-command-dock{display:none}
-    @media (max-width:767px) and (pointer:coarse){
+    @media (max-width:639px) and (pointer:coarse), (max-width:950px) and (max-height:500px) and (pointer:coarse){
       .customer-command-dock{position:fixed;z-index:88;left:max(.42rem,env(safe-area-inset-left));right:max(.42rem,env(safe-area-inset-right));bottom:max(.42rem,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;min-height:70px;overflow:hidden;padding:4px;border:1px solid color-mix(in srgb,var(--alper-border,#27364a) 82%,transparent);border-radius:min(var(--site-radius,20px),22px);background:linear-gradient(180deg,color-mix(in srgb,var(--alper-surface,#0b1420) 98%,transparent),color-mix(in srgb,var(--alper-bg,#060a12) 99%,transparent));box-shadow:0 16px 40px rgba(2,6,23,.4),inset 0 1px 0 rgba(255,255,255,.055);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);transition:transform .22s ease,opacity .18s ease}
       .customer-command-dock.dock-hidden{transform:translateY(calc(100% + 1.25rem));opacity:0;pointer-events:none}
     }
@@ -50,7 +50,7 @@ import { isDockItemCurrent, shouldRenderMobileDock } from "../services/mobile-do
     .dock-action.dock-active::before{background:var(--alper-blue-light,#93c5fd)}
     .dock-action.dock-active .dock-icon-shell{background:color-mix(in srgb,var(--alper-blue,#315e86) 38%,transparent);transform:translateY(-1px)}
     @media(max-width:350px) and (pointer:coarse){.customer-command-dock{left:3px;right:3px}.dock-action{font-size:8.5px}.dock-icon-shell{width:29px}.dock-action mat-icon{width:20px;height:20px;font-size:20px;line-height:20px}}
-    @media(display-mode:standalone) and (max-width:767px) and (pointer:coarse), (display-mode:fullscreen) and (max-width:767px) and (pointer:coarse){.customer-command-dock{bottom:max(.55rem,env(safe-area-inset-bottom))}}
+    @media(display-mode:standalone) and (pointer:coarse), (display-mode:fullscreen) and (pointer:coarse){.customer-command-dock{bottom:max(.55rem,env(safe-area-inset-bottom))}}
     @media(prefers-reduced-motion:reduce){.customer-command-dock,.dock-action,.dock-icon-shell{transition:none}}
   `],
 })

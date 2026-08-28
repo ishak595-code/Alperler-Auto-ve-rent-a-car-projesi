@@ -1,0 +1,64 @@
+name: V205 Responsive Prestige
+
+on:
+  pull_request:
+    paths:
+      - 'angular.json'
+      - 'src/components/customer-mobile-dock.component.ts'
+      - 'src/components/main-layout.component.ts'
+      - 'src/mobile-target-fixes.css'
+      - 'src/device-experience.css'
+      - 'scripts/check-v205-responsive-prestige.mjs'
+      - 'tests/v205/**'
+      - 'playwright.v205.config.ts'
+      - '.github/workflows/v205-responsive-prestige.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'angular.json'
+      - 'src/components/customer-mobile-dock.component.ts'
+      - 'src/components/main-layout.component.ts'
+      - 'src/mobile-target-fixes.css'
+      - 'src/device-experience.css'
+      - 'scripts/check-v205-responsive-prestige.mjs'
+      - 'tests/v205/**'
+      - 'playwright.v205.config.ts'
+      - '.github/workflows/v205-responsive-prestige.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  responsive-prestige:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install project dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Static V205 contract
+        run: node scripts/check-v205-responsive-prestige.mjs
+      - name: TypeScript
+        run: npm run lint
+      - name: Production build
+        run: npm run build
+      - name: Install pinned browser test tooling
+        run: npm install --no-save --no-package-lock --no-audit --no-fund @playwright/test@1.55.0
+      - name: Install Chromium and WebKit runtimes
+        run: npx playwright install --with-deps chromium webkit
+      - name: Android Apple tablet desktop regression
+        run: npx playwright test --config=playwright.v205.config.ts
+      - name: Upload responsive failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: v205-responsive-prestige-artifacts
+          path: |
+            test-results/**
+            playwright-report/**
+          if-no-files-found: ignore
+          retention-days: 7

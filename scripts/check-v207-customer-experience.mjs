@@ -46,9 +46,13 @@ rejectText(sources.dock, "dock-hidden", "Scroll-driven mobile dock hiding must n
 rejectText(sources.dock, "onWindowScroll", "Scroll-driven mobile dock hiding must not return.");
 rejectText(sources.dock, "HostListener", "Mobile dock must not use a scroll listener to hide itself.");
 
-// Booking owns the reservation summary. Rental cards and details must never duplicate it.
-requireText(sources.bookingCheckout, "Rezervasyon Özeti", "Booking checkout must remain the single canonical owner of the reservation summary.");
-rejectText(sources.rentalDetail, "Rezervasyon Özeti", "Rental detail must not duplicate the booking reservation summary.");
+// Booking checkout owns the complete reservation review. Cards and details must never duplicate it.
+requireText(sources.bookingCheckout, "Rezervasyonu kontrol edin", "Booking checkout must keep the customer-facing reservation review heading.");
+requireText(sources.bookingCheckout, '<dl class="review">', "Booking checkout must remain the single canonical owner of the reservation review data.");
+for (const token of ["<dt>Araç</dt>", "<dt>Zaman</dt>", "<dt>Şoför</dt>", "<dt>Teslim</dt>", "<dt>İade</dt>", "<dt>Toplam</dt>"]) {
+  requireText(sources.bookingCheckout, token, `Booking checkout reservation review is incomplete: ${token}`);
+}
+rejectText(sources.rentalDetail, "Rezervasyon Özeti", "Rental detail must not duplicate the booking reservation review.");
 rejectText(sources.rentalDetail, "Kiralama Özeti", "Rental detail must not contain a duplicate rental summary block.");
 rejectText(sources.rentalDetail, 'class="reservation-panel"', "Rental detail must not restore the duplicate reservation panel.");
 requireText(sources.homeVehicleCard, "@if(variant==='sale' && cardDescription)", "Homepage rental cards must not render the descriptive summary reserved for sale cards.");
@@ -75,7 +79,7 @@ const forbiddenCustomerPhrases = [
   "Tur medyası henüz eklenmedi",
 ];
 
-// Scan every customer page/component so internal implementation language cannot leak through an unlisted surface.
+// Scan every customer/partner page and component so implementation language cannot leak through an unlisted surface.
 const publicSurfaceFiles = [...walk("src/pages"), ...walk("src/components")]
   .filter((file) => !file.startsWith(`src${path.sep}pages${path.sep}admin${path.sep}`))
   .filter((file) => !file.includes(`${path.sep}admin-`));
@@ -86,11 +90,11 @@ for (const file of publicSurfaceFiles) {
   }
 }
 
-// Reservation summary copy is allowed only in canonical booking checkout.
+// Explicit summary labels are forbidden outside the canonical booking review.
 for (const file of publicSurfaceFiles) {
   if (file === paths.bookingCheckout) continue;
   const source = read(file);
-  if (source.includes("Rezervasyon Özeti")) fail(`${file} duplicates the booking-owned reservation summary.`);
+  if (source.includes("Rezervasyon Özeti")) fail(`${file} duplicates the booking-owned reservation review.`);
   if (source.includes("Kiralama Özeti")) fail(`${file} duplicates a rental summary outside booking checkout.`);
 }
 
@@ -118,4 +122,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log(`V207 customer experience integrity: PASS (${publicSurfaceFiles.length} customer files scanned)`);
+console.log(`V207 customer experience integrity: PASS (${publicSurfaceFiles.length} customer and partner files scanned)`);

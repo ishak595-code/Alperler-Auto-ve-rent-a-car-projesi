@@ -1,0 +1,65 @@
+/* Canonical device experience contract.
+   Device class is not inferred from width alone: short coarse landscape screens
+   remain phones, while tablets and desktop keep their own navigation geometry. */
+
+/* Phone experience: portrait phones and short coarse landscape phones.
+   The planner is the primary conversion action, so it follows the concise hero
+   copy immediately. Trust proof moves below the planner instead of pushing the
+   planner and the first dynamic campaign section farther down the page. */
+@media (max-width:639px) and (pointer:coarse),
+       (max-width:950px) and (max-height:500px) and (pointer:coarse) {
+  app-home-v71 .hero-stage {
+    gap: 0 !important;
+    padding-top: .58rem !important;
+    padding-bottom: .82rem !important;
+  }
+
+  app-home-v71 .hero-copy-block {
+    display: contents;
+  }
+
+  app-home-v71 .eyebrow { order: 1; }
+  app-home-v71 .hero h1 { order: 2; }
+  app-home-v71 .hero-copy { order: 3; }
+  app-home-v71 .desktop-search { order: 4; display: none !important; }
+  app-home-v71 .planner { order: 5; margin-top: .56rem; }
+  app-home-v71 .trust-row { order: 6; margin-top: .52rem !important; }
+
+  app-home-v71 .hero-copy {
+    margin-top: .42rem !important;
+    line-height: 1.43 !important;
+  }
+}
+
+/* A rotated phone remains compact even when its CSS viewport crosses the
+   framework's tablet breakpoint. Keep the hero and planner touch-first. */
+@media (min-width:640px) and (max-width:950px) and (max-height:500px) and (pointer:coarse) {
+  app-home-v71 .hero h1 {
+    margin-top: .4rem !important;
+    font-size: clamp(1.85rem, 5.7vw, 2.45rem) !important;
+    line-height: .99 !important;
+  }
+
+  app-home-v71 .hero-copy {
+    max-width: 48rem;
+    font-size: .76rem !important;
+  }
+
+  app-home-v71 .planner {
+    padding: .72rem !important;
+    border-radius: 17px !important;
+  }
+
+  app-home-v71 .planner h2 {
+    font-size: 1.28rem !important;
+  }
+
+  app-home-v71 .planner-head p:not(.planner-kicker) {
+    font-size: .65rem !important;
+  }
+
+  app-home-v71 .field select,
+  app-home-v71 .field input {
+    min-height: 44px !important;
+  }
+}

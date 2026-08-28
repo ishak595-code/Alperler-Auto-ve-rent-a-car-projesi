@@ -62,16 +62,16 @@ jobs:
           grep -q "discount_value=1500" "$MIG"
           grep -q "requiredExtraIds.*driver\|jsonb_build_array('driver')" "$MIG"
 
-      - name: Dynamic rental showcase contract
+      - name: Canonical rental showcase and detail contract
         shell: bash
         run: |
           set -euo pipefail
           SHOW="src/pages/rental-showcase-v167.component.ts"
           CARD="src/components/rental-vehicle-card-v167.component.ts"
-          HISTORICAL_DETAIL="src/pages/rental-detail-v167.component.ts"
-          CANONICAL_DETAIL="src/pages/car-detail.component.ts"
+          DETAIL="src/pages/car-detail.component.ts"
           PRICE="src/services/rental-campaign-pricing.service.ts"
-          test -f "$SHOW" && test -f "$CARD" && test -f "$HISTORICAL_DETAIL" && test -f "$CANONICAL_DETAIL" && test -f "$PRICE"
+          test -f "$SHOW" && test -f "$CARD" && test -f "$DETAIL" && test -f "$PRICE"
+          test ! -e src/pages/rental-detail-v167.component.ts
           grep -q "fuels=computed" "$SHOW"
           grep -q "transmissions=computed" "$SHOW"
           grep -q "priceBounds=computed" "$SHOW"
@@ -80,15 +80,15 @@ jobs:
           grep -q "availability" "$CARD"
           grep -q "discountMethod === 'FIXED_PRICE'" "$PRICE"
           grep -q "discountScope === 'ORDER'" "$PRICE"
-          grep -q "CommercialOfferContextService" "$HISTORICAL_DETAIL"
-          grep -q "required.includes('driver')" "$HISTORICAL_DETAIL"
-          grep -q "activeCampaign" "$CANONICAL_DETAIL"
-          grep -q "Özellikler, koşullar ve açıklama" "$CANONICAL_DETAIL"
-          grep -q "detailsOpen" "$CANONICAL_DETAIL"
-          grep -q "fixed-actions" "$CANONICAL_DETAIL"
-          grep -q "campaignProofLabel" "$CANONICAL_DETAIL"
-          grep -q 'detailData.load("RENTAL"' "$CANONICAL_DETAIL"
-          if grep -q "mobile-actions\|primary-action\|whatsapp-action" "$CANONICAL_DETAIL"; then
+          grep -q "CommercialOfferContextService" "$DETAIL"
+          grep -q "activeCampaign" "$DETAIL"
+          grep -q "Özellikler, koşullar ve açıklama" "$DETAIL"
+          grep -q "detailsOpen" "$DETAIL"
+          grep -q "fixed-actions" "$DETAIL"
+          grep -q "campaignProofLabel" "$DETAIL"
+          grep -q 'detailData.load("RENTAL"' "$DETAIL"
+          grep -q 'class="phone" \[href\]="phoneHref()"' "$DETAIL"
+          if grep -q "mobile-actions\|primary-action\|whatsapp-action" "$DETAIL"; then
             echo "Canonical rental detail must have one fixed CTA owner only"
             exit 1
           fi
@@ -107,7 +107,7 @@ jobs:
           grep -q "RentalShowcaseV167Component" src/pages/fleet.component.ts
           grep -q "CarDetailComponent" src/pages/catalog-detail-shells.component.ts
           if grep -q "RentalDetailV167Component" src/pages/catalog-detail-shells.component.ts; then
-            echo "V201 approved rental detail must remain the public renderer"
+            echo "Historical rental renderer must never return"
             exit 1
           fi
 
@@ -133,7 +133,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -R "status='APPROVED'\|status = 'APPROVED'" -n supabase/migrations | grep -q ""
-          if grep -n "PENDING.*bookedDates\|bookedDates.*PENDING" src/pages/rental-showcase-v167.component.ts src/pages/rental-detail-v167.component.ts; then
+          if grep -n "PENDING.*bookedDates\|bookedDates.*PENDING" src/pages/rental-showcase-v167.component.ts src/pages/car-detail.component.ts; then
             echo "V167 must not treat PENDING as inventory blocking"
             exit 1
           fi

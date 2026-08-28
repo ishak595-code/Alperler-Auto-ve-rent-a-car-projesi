@@ -42,7 +42,7 @@ jobs:
           DETAIL=src/pages/sale-car-detail.component.ts
           GRAPHIC=src/components/expertise-graphic.component.ts
           CARD=src/components/sale-vehicle-card-v168.component.ts
-          for token in "İLAN BİLGİLERİ" "AÇIKLAMA" "KONUM" "Ekspertiz Özeti" "app-expertise-graphic" tramerStatusLabel damageExpertise "readonly listingRows = computed<ListingRow[]>" truth-list; do grep -Fq "$token" "$DETAIL"; done
+          for token in "İLAN BİLGİLERİ" "AÇIKLAMA" "KONUM" "Ekspertiz ve Hasar Geçmişi" "app-expertise-graphic" tramerStatusLabel damageExpertise "readonly listingRows = computed<ListingRow[]>" truth-list; do grep -Fq "$token" "$DETAIL"; done
           if grep -Fq 'class="core-facts"' "$DETAIL" || grep -Fq 'class="summary"' "$DETAIL" || grep -Fq "summaryMeta(" "$DETAIL"; then
             echo "Canonical sale detail must not duplicate listing facts above İlan Bilgileri"
             exit 1

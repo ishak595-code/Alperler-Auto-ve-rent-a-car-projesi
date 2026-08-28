@@ -44,23 +44,23 @@ app-blog-detail .prose { max-width:72ch; color:color-mix(in srgb,var(--alper-tex
 app-blog-detail .prose :is(h1,h2,h3,h4,strong){color:var(--alper-text)!important}
 app-blog-detail .prose a{color:var(--alper-blue-light)!important}
 
-:is(app-contact,app-appointment,app-list-your-car-v2,app-branches,app-branch-detail,app-account-login,app-account-dashboard,app-account-wallet) :is(.bg-white,.bg-slate-50){background-color:var(--alper-surface)!important;color:var(--alper-text)!important}
-:is(app-contact,app-appointment,app-list-your-car-v2,app-branches,app-branch-detail,app-account-login,app-account-dashboard,app-account-wallet) :is(.bg-slate-100,.bg-slate-200){background-color:var(--alper-elevated)!important}
-:is(app-contact,app-appointment,app-list-your-car-v2,app-branches,app-branch-detail,app-account-login,app-account-dashboard,app-account-wallet) :is(.border-slate-100,.border-slate-200,.border-slate-300){border-color:var(--alper-border)!important}
-:is(app-contact,app-appointment,app-list-your-car-v2,app-branches,app-branch-detail,app-account-login,app-account-dashboard,app-account-wallet) :is(.text-slate-950,.text-slate-900,.text-slate-800,.text-slate-700){color:var(--alper-text)!important}
-:is(app-contact,app-appointment,app-list-your-car-v2,app-branches,app-branch-detail,app-account-login,app-account-dashboard,app-account-wallet) :is(.text-slate-600,.text-slate-500,.text-slate-400){color:var(--alper-muted)!important}
+:is(app-contact,app-appointment,app-list-your-car-v172,app-branches,app-branch-detail,app-account-login,app-account-dashboard-v150,app-account-wallet) :is(.bg-white,.bg-slate-50){background-color:var(--alper-surface)!important;color:var(--alper-text)!important}
+:is(app-contact,app-appointment,app-list-your-car-v172,app-branches,app-branch-detail,app-account-login,app-account-dashboard-v150,app-account-wallet) :is(.bg-slate-100,.bg-slate-200){background-color:var(--alper-elevated)!important}
+:is(app-contact,app-appointment,app-list-your-car-v172,app-branches,app-branch-detail,app-account-login,app-account-dashboard-v150,app-account-wallet) :is(.border-slate-100,.border-slate-200,.border-slate-300){border-color:var(--alper-border)!important}
+:is(app-contact,app-appointment,app-list-your-car-v172,app-branches,app-branch-detail,app-account-login,app-account-dashboard-v150,app-account-wallet) :is(.text-slate-950,.text-slate-900,.text-slate-800,.text-slate-700){color:var(--alper-text)!important}
+:is(app-contact,app-appointment,app-list-your-car-v172,app-branches,app-branch-detail,app-account-login,app-account-dashboard-v150,app-account-wallet) :is(.text-slate-600,.text-slate-500,.text-slate-400){color:var(--alper-muted)!important}
 
-:is(app-contact,app-appointment,app-list-your-car-v2,app-account-login,app-account-dashboard,app-account-wallet) :is(input,select,textarea){border-color:var(--alper-border)!important;background:var(--alper-elevated)!important;color:var(--alper-text)!important}
-:is(app-contact,app-appointment,app-list-your-car-v2,app-account-login,app-account-dashboard,app-account-wallet) :is(input,select,textarea)::placeholder{color:var(--alper-subtle)!important}
-:is(app-contact,app-appointment,app-list-your-car-v2,app-account-login,app-account-dashboard,app-account-wallet) :is(input,select,textarea):focus{border-color:var(--alper-blue-light)!important;box-shadow:var(--alper-focus-ring)!important}
+:is(app-contact,app-appointment,app-list-your-car-v172,app-account-login,app-account-dashboard-v150,app-account-wallet) :is(input,select,textarea){border-color:var(--alper-border)!important;background:var(--alper-elevated)!important;color:var(--alper-text)!important}
+:is(app-contact,app-appointment,app-list-your-car-v172,app-account-login,app-account-dashboard-v150,app-account-wallet) :is(input,select,textarea)::placeholder{color:var(--alper-subtle)!important}
+:is(app-contact,app-appointment,app-list-your-car-v172,app-account-login,app-account-dashboard-v150,app-account-wallet) :is(input,select,textarea):focus{border-color:var(--alper-blue-light)!important;box-shadow:var(--alper-focus-ring)!important}
 
 /* Account controls inherit the admin-managed palette rather than hardcoded blues. */
 app-account-login .page,
-app-account-dashboard .page,
+app-account-dashboard-v150 .account-page,
 app-account-wallet .page{background-color:var(--alper-bg)!important;color:var(--alper-text)!important}
 app-account-login :is(.card,.benefits),
-app-account-dashboard :is(.card,.panel,.summary-card),
-app-account-wallet :is(.card,.panel,.wallet-card){border-color:var(--alper-border)!important;background:var(--alper-surface)!important;color:var(--alper-text)!important;box-shadow:0 16px 44px rgba(0,0,0,.18)!important}
+app-account-dashboard-v150 :is(.profile-panel,.overview,.history,.loyalty-details),
+app-account-wallet :is(.card,.panel,.wallet-card){border-color:var(--alper-border)!important;background-color:var(--alper-surface)!important;color:var(--alper-text)!important;box-shadow:0 16px 44px rgba(0,0,0,.18)!important}
 app-account-login .tabs button,
 app-account-login .social button{border-color:var(--alper-border)!important;background:var(--alper-card)!important;color:var(--alper-text)!important}
 app-account-login .tabs button.active{border-color:color-mix(in srgb,var(--alper-border) 45%,var(--alper-text) 55%)!important;background:var(--alper-elevated)!important;color:var(--alper-text)!important}
@@ -68,14 +68,13 @@ app-account-login :is(.provider-note,.divider,small,.benefits span){color:var(--
 app-account-login .divider::before,
 app-account-login .divider::after{background-color:var(--alper-border)!important}
 app-account-login .benefits article{border-color:var(--alper-border)!important;background:transparent!important}
-:is(app-account-login,app-account-dashboard,app-account-wallet) .primary{background:var(--alper-blue)!important;color:#fff!important}
-:is(app-account-login,app-account-dashboard,app-account-wallet) .secondary{border-color:var(--alper-border)!important;background:var(--alper-elevated)!important;color:var(--alper-text)!important}
-:is(app-account-login,app-account-dashboard) :is(.eyebrow,.identity-copy p,.plain-heading p,.section-heading p,.wallet-banner p){color:var(--alper-gold)!important}
-app-account-dashboard :is(.quick-grid a,.summary article,.wallet-banner,.service-rewards article){border-color:var(--alper-border)!important}
-app-account-dashboard :is(.quick-grid a,.summary article,.service-rewards article){background:var(--alper-card)!important}
-app-account-dashboard :is(.quick-grid a:hover,.summary .tier,.service-rewards .invite-summary){background:var(--alper-elevated)!important}
-app-account-dashboard .quick-grid b{color:var(--alper-blue-light)!important}
-app-account-dashboard :is(.summary .tier strong,.points strong,.ref-code,.invite-summary strong){color:var(--alper-gold)!important}
+:is(app-account-login,app-account-dashboard-v150,app-account-wallet) .primary{background:var(--alper-blue)!important;color:#fff!important}
+:is(app-account-login,app-account-dashboard-v150,app-account-wallet) .secondary{border-color:var(--alper-border)!important;background:var(--alper-elevated)!important;color:var(--alper-text)!important}
+:is(app-account-login,app-account-dashboard-v150) .eyebrow{color:var(--alper-gold)!important}
+app-account-dashboard-v150 :is(.account-tools a,.metric-row button,.loyalty-strip article){border-color:var(--alper-border)!important}
+app-account-dashboard-v150 :is(.account-tools a,.metric-row button,.loyalty-strip article){background-color:var(--alper-card)!important}
+app-account-dashboard-v150 .metric-row button.selected{background-color:var(--alper-elevated)!important}
+app-account-dashboard-v150 :is(.loyalty-strip strong,.avatar){color:var(--alper-gold)!important}
 
 app-branches article,
 app-branch-detail :is(.panel,.card){border-color:var(--alper-border)!important;background-color:var(--alper-card)!important}
@@ -83,13 +82,13 @@ app-branches article:hover{border-color:var(--alper-border-hover)!important;back
 app-branches a.bg-white{background:var(--alper-blue)!important;color:#fff!important}
 app-branches a.bg-white:hover{filter:brightness(1.05)}
 
-:is(app-contact,app-appointment,app-list-your-car-v2,app-branches,app-branch-detail,app-account-login,app-account-dashboard,app-account-wallet) :is(button,a):focus-visible{outline-color:var(--alper-blue-light)!important;outline-offset:3px}
+:is(app-contact,app-appointment,app-list-your-car-v172,app-branches,app-branch-detail,app-account-login,app-account-dashboard-v150,app-account-wallet) :is(button,a):focus-visible{outline-color:var(--alper-blue-light)!important;outline-offset:3px}
 
 @media (max-width:767px){
-  :is(app-account-login,app-account-dashboard,app-account-wallet,app-contact,app-appointment,app-list-your-car-v2) main{padding-inline:max(14px,env(safe-area-inset-left))!important;padding-right:max(14px,env(safe-area-inset-right))!important}
+  :is(app-account-login,app-account-dashboard-v150,app-account-wallet,app-contact,app-appointment,app-list-your-car-v172) main{padding-inline:max(14px,env(safe-area-inset-left))!important;padding-right:max(14px,env(safe-area-inset-right))!important}
 }
 @media (min-width:900px){
-  :is(app-account-login,app-account-dashboard,app-account-wallet) main{padding-top:clamp(28px,4vw,58px)!important;padding-bottom:clamp(52px,7vw,96px)!important}
+  :is(app-account-login,app-account-dashboard-v150,app-account-wallet) main{padding-top:clamp(28px,4vw,58px)!important;padding-bottom:clamp(52px,7vw,96px)!important}
 }
 @media (hover:hover) and (prefers-reduced-motion:no-preference){
   :is(app-branches,app-blog-list,app-rental-results,app-sales-results) a[href]{transition-property:transform,border-color,background-color,box-shadow,color;transition-duration:180ms;transition-timing-function:ease}
@@ -154,4 +153,38 @@ app-tour-detail .action-bar{grid-template-columns:minmax(0,1fr) minmax(0,1.16fr)
 }
 @media (min-width:1180px){
   :is(app-car-detail .fixed-actions,app-sale-car-detail .bottom-actions,app-tour-detail .action-bar){width:min(840px,calc(100% - 48px))!important}
+}
+
+/* V204 canonical mobile home conversion geometry.
+   This remains in the same responsive owner as the detail action system. */
+@media (max-width:767px){
+  app-home-v71 .hero-stage{padding:.82rem 0 1rem;gap:.72rem}
+  app-home-v71 .eyebrow{font-size:.57rem;letter-spacing:.12em}
+  app-home-v71 .hero h1{margin:.48rem 0 0;font-size:clamp(2rem,9vw,2.42rem);line-height:.98}
+  app-home-v71 .hero-copy{margin:.55rem 0 0;font-size:.78rem;line-height:1.48}
+  app-home-v71 .trust-row{flex-wrap:nowrap;gap:.35rem;margin-top:.62rem;overflow-x:auto;padding-bottom:2px;overscroll-behavior-inline:contain;scrollbar-width:none}
+  app-home-v71 .trust-row::-webkit-scrollbar{display:none}
+  app-home-v71 .trust-row span{flex:0 0 auto;padding:.34rem .5rem;font-size:.57rem}
+  app-home-v71 .planner{padding:.76rem;border-radius:18px;box-shadow:0 22px 52px rgba(2,6,23,.32)}
+  app-home-v71 .planner-head{gap:.5rem}
+  app-home-v71 .planner-icon{display:none}
+  app-home-v71 .planner h2{font-size:1.32rem;line-height:1.04}
+  app-home-v71 .planner-head p:not(.planner-kicker){margin:.32rem 0 0;font-size:.67rem;line-height:1.4}
+  app-home-v71 .field-grid{gap:.5rem;margin-top:.68rem}
+  app-home-v71 .field{gap:.24rem}
+  app-home-v71 .field>span{font-size:.56rem;letter-spacing:.04em}
+  app-home-v71 .field select,
+  app-home-v71 .field input{min-height:45px;border-radius:10px;padding-inline:.65rem;font-size:.75rem}
+  app-home-v71 .date-grid,
+  app-home-v71 .time-grid{gap:.42rem}
+  app-home-v71 .planner-summary,
+  app-home-v71 .planner-error{margin-top:.5rem;padding:.5rem .6rem;font-size:.62rem}
+  app-home-v71 .planner-action{min-height:48px;margin-top:.62rem;border-radius:10px;font-size:.76rem}
+  app-home-v71 .planner-note{margin:.38rem 0 0;font-size:.56rem;line-height:1.38}
+  app-dynamic-home-section .home-section{padding:1.35rem 0}
+  app-dynamic-home-section .section-head{margin-bottom:.72rem}
+}
+@media (min-width:390px) and (max-width:767px){
+  app-home-v71 .date-grid:not(.single-date),
+  app-home-v71 .time-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }

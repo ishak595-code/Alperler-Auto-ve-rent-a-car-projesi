@@ -2,10 +2,10 @@
    Homepage geometry belongs to HomeV71 and premium-responsive.css.
    Historical V39 and V62 homepage selectors are intentionally absent here. */
 
-/* The global customer dock floats above route content on coarse mobile screens.
-   Reserve a predictable final scroll area on customer pages where the dock can
+/* The global customer dock floats above route content on coarse phone screens.
+   Reserve a predictable final scroll area only when the phone-class dock can
    render. Detail pages are deliberately excluded because they own fixed CTAs. */
-@media (max-width:767px) and (pointer:coarse) {
+@media (max-width:639px) and (pointer:coarse), (max-width:950px) and (max-height:500px) and (pointer:coarse) {
   app-home-v71 > main,
   app-fleet app-rental-showcase-v167 > main,
   app-sales-results app-sales-showcase-v168 > main,

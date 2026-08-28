@@ -35,16 +35,13 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v7
-
       - name: Set up Node.js 22
         uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
-
       - name: Install exact dependency graph
         run: npm ci --no-audit --no-fund
-
       - name: V168 sale publication database contract
         shell: bash
         run: |
@@ -61,39 +58,42 @@ jobs:
           grep -q "SALE_DAMAGE_STATUS_REQUIRED" "$MIG"
           grep -q "SALE_TRAMER_DECLARATION_REQUIRED" "$MIG"
           grep -q "new.category='SALE'" "$MIG"
-
-      - name: Dynamic sale showcase contract
+      - name: Canonical sale showcase and detail contract
         shell: bash
         run: |
           set -euo pipefail
           SHOW="src/pages/sales-showcase-v168.component.ts"
           CARD="src/components/sale-vehicle-card-v168.component.ts"
-          HISTORICAL_DETAIL="src/pages/sale-detail-v1681.component.ts"
-          CANONICAL_DETAIL="src/pages/sale-car-detail.component.ts"
-          test -f "$SHOW" && test -f "$CARD" && test -f "$HISTORICAL_DETAIL" && test -f "$CANONICAL_DETAIL"
+          DETAIL="src/pages/sale-car-detail.component.ts"
+          test -f "$SHOW" && test -f "$CARD" && test -f "$DETAIL"
+          test ! -e src/pages/sale-detail-v168.component.ts
+          test ! -e src/pages/sale-detail-v1681.component.ts
           grep -q "priceBounds=computed" "$SHOW"
           grep -q "kmBounds=computed" "$SHOW"
           grep -q "branchLabel(car" "$SHOW"
           grep -q "tramer-unverified" "$SHOW"
           grep -q "cloudStockCode" "$CARD"
           grep -q "branchLabel" "$CARD"
-          grep -q "hasPartExpertise" "$HISTORICAL_DETAIL"
-          grep -q "tramerStatus" "$HISTORICAL_DETAIL"
-          grep -q "VehicleTechnicalSpecs" "$HISTORICAL_DETAIL"
-          grep -q "İLAN BİLGİLERİ" "$CANONICAL_DETAIL"
-          grep -q "AÇIKLAMA" "$CANONICAL_DETAIL"
-          grep -q "KONUM" "$CANONICAL_DETAIL"
-          grep -q "bottom-actions" "$CANONICAL_DETAIL"
+          grep -q "readonly listingRows = computed<ListingRow[]>" "$DETAIL"
+          grep -q "technicalRows" "$DETAIL"
+          grep -q "tramerStatusLabel" "$DETAIL"
+          grep -q "damageExpertise" "$DETAIL"
+          grep -q "İLAN BİLGİLERİ" "$DETAIL"
+          grep -q "AÇIKLAMA" "$DETAIL"
+          grep -q "KONUM" "$DETAIL"
+          grep -q "bottom-actions" "$DETAIL"
+          grep -q '\[href\]="phoneHref()"' "$DETAIL"
+          grep -q '\[href\]="whatsappHref(item)"' "$DETAIL"
+          if grep -Fq 'class="summary"' "$DETAIL" || grep -Fq 'summaryMeta(' "$DETAIL"; then
+            echo "Sale hero must not duplicate listing facts above İlan Bilgileri"
+            exit 1
+          fi
           if grep -Eq "priceOptions|kmOptions|0-500000|150000\+" "$SHOW"; then
             echo "Sale price/km filters must derive from live numeric bounds"
             exit 1
           fi
-          if grep -q "config().address\|getConfig()().address" "$CARD" "$HISTORICAL_DETAIL"; then
-            echo "Sale showcase/detail successor must not mask vehicle location with global company address"
-            exit 1
-          fi
-          if grep -q "getTechnicalSpecs" "$HISTORICAL_DETAIL"; then
-            echo "Historical V168 detail must use the already loaded canonical vehicle record"
+          if grep -q "config().address\|getConfig()().address" "$CARD" "$DETAIL"; then
+            echo "Sale showcase/detail must not mask vehicle location with global company address"
             exit 1
           fi
           if grep -Eq "isCampaign|discountRate" "$CARD"; then
@@ -102,11 +102,6 @@ jobs:
           fi
           grep -q "SalesShowcaseV168Component" src/pages/sales-results.component.ts
           grep -q "SaleCarDetailComponent" src/pages/catalog-detail-shells.component.ts
-          if grep -q "SaleDetailV1681Component" src/pages/catalog-detail-shells.component.ts; then
-            echo "V201 approved sale detail must remain the public renderer"
-            exit 1
-          fi
-
       - name: Current Super Admin sale workspace contract
         shell: bash
         run: |
@@ -124,11 +119,6 @@ jobs:
           grep -q "rearRightFender" "$ADMIN"
           grep -q "mode=\"SALE\"" "$HUB"
           grep -q "'/admin/sales'" "$HUB"
-          if grep -q "AdminSaleIntegrityV1681Component" "$HUB"; then
-            echo "Legacy parallel sale editor must not return to the active content hub"
-            exit 1
-          fi
-
       - name: Preserve V167 rental commercial integrity
         shell: bash
         run: |
@@ -137,34 +127,27 @@ jobs:
           grep -q "RentalShowcaseV167Component" src/pages/fleet.component.ts
           grep -q "CarDetailComponent" src/pages/catalog-detail-shells.component.ts
           grep -q "campaign_redemptions_required_extras_v167" supabase/migrations/20260825170000_v167_rental_campaign_integrity.sql
-
       - name: Frontend TypeScript check
         run: npm run lint
-
       - name: Vercel API TypeScript check
         run: npx tsc --noEmit -p tsconfig.api.json
-
       - name: Accessibility and installability guards
         run: |
           npm run a11y:buttons
           npm run a11y:dates
           npm run pwa:installability
           npm run vercel:functions
-
       - name: Set up Deno 2
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-
       - name: Booking gateway regression check
         run: deno check --node-modules-dir=auto supabase/functions/booking-gateway-v166/index.ts
-
       - name: Production Angular build
         shell: bash
         run: |
           set -o pipefail
           npm run build 2>&1 | tee v168-angular-build.log
-
       - name: Upload diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v7

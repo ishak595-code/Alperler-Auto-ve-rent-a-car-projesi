@@ -12,9 +12,12 @@ on:
       - 'src/pages/admin/admin-homepage.component.ts'
       - 'src/pages/admin/admin-campaigns-v167.component.ts'
       - 'src/premium-responsive.css'
+      - 'src/mobile-target-fixes.css'
       - 'supabase/migrations/20260828114500_v204_campaign_social_proof_attribution.sql'
       - 'supabase/migrations/20260828115000_v204_mobile_home_conversion_defaults.sql'
       - 'scripts/check-v204-mobile-conversion-account.mjs'
+      - 'tests/v204/**'
+      - 'playwright.v204.config.ts'
       - '.github/workflows/v204-mobile-conversion-account.yml'
   push:
     branches: [main]
@@ -28,9 +31,12 @@ on:
       - 'src/pages/admin/admin-homepage.component.ts'
       - 'src/pages/admin/admin-campaigns-v167.component.ts'
       - 'src/premium-responsive.css'
+      - 'src/mobile-target-fixes.css'
       - 'supabase/migrations/20260828114500_v204_campaign_social_proof_attribution.sql'
       - 'supabase/migrations/20260828115000_v204_mobile_home_conversion_defaults.sql'
       - 'scripts/check-v204-mobile-conversion-account.mjs'
+      - 'tests/v204/**'
+      - 'playwright.v204.config.ts'
       - '.github/workflows/v204-mobile-conversion-account.yml'
 
 permissions:
@@ -39,14 +45,34 @@ permissions:
 jobs:
   v204-integrity:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: node scripts/check-v204-mobile-conversion-account.mjs
-      - run: npm run lint
-      - run: npm run build
+      - name: Install project dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Static V204 contract
+        run: node scripts/check-v204-mobile-conversion-account.mjs
+      - name: TypeScript
+        run: npm run lint
+      - name: Production build
+        run: npm run build
+      - name: Install pinned browser test tooling
+        run: npm install --no-save --no-package-lock --no-audit --no-fund @playwright/test@1.55.0
+      - name: Install Chromium runtime
+        run: npx playwright install --with-deps chromium
+      - name: Android dock interaction regression
+        run: npx playwright test --config=playwright.v204.config.ts
+      - name: Upload dock failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: v204-mobile-dock-artifacts
+          path: |
+            test-results/**
+            playwright-report/**
+          if-no-files-found: ignore
+          retention-days: 7

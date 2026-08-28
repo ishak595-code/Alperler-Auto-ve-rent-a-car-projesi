@@ -1,0 +1,72 @@
+name: V207 Customer Experience Integrity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/components/customer-mobile-dock.component.ts'
+      - 'src/components/rental-vehicle-card-v167.component.ts'
+      - 'src/components/vehicle-list-item.component.ts'
+      - 'src/components/sale-vehicle-card-v168.component.ts'
+      - 'src/pages/rental-showcase-v167.component.ts'
+      - 'src/pages/car-detail.component.ts'
+      - 'src/pages/sales-showcase-v168.component.ts'
+      - 'src/pages/sale-car-detail.component.ts'
+      - 'src/pages/tour-showcase-v170.component.ts'
+      - 'src/pages/tour-detail.component.ts'
+      - 'src/pages/blog-list.component.ts'
+      - 'src/pages/blog-detail.component.ts'
+      - 'scripts/check-v205-responsive-prestige.mjs'
+      - 'scripts/check-v207-customer-experience.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/v207-customer-experience.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/components/customer-mobile-dock.component.ts'
+      - 'src/components/rental-vehicle-card-v167.component.ts'
+      - 'src/components/vehicle-list-item.component.ts'
+      - 'src/components/sale-vehicle-card-v168.component.ts'
+      - 'src/pages/rental-showcase-v167.component.ts'
+      - 'src/pages/car-detail.component.ts'
+      - 'src/pages/sales-showcase-v168.component.ts'
+      - 'src/pages/sale-car-detail.component.ts'
+      - 'src/pages/tour-showcase-v170.component.ts'
+      - 'src/pages/tour-detail.component.ts'
+      - 'src/pages/blog-list.component.ts'
+      - 'src/pages/blog-detail.component.ts'
+      - 'scripts/check-v205-responsive-prestige.mjs'
+      - 'scripts/check-v207-customer-experience.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/v207-customer-experience.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  customer-experience-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Customer copy and TalkBack contract
+        run: npm run customer-experience:v207
+      - name: Responsive mobile dock contract
+        run: node scripts/check-v205-responsive-prestige.mjs
+      - name: TypeScript integrity
+        run: npm run lint
+      - name: Production Angular build
+        run: npm run build

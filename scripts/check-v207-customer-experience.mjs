@@ -1,10 +1,16 @@
 import fs from "node:fs";
+import path from "node:path";
 
-const read = (path) => fs.readFileSync(path, "utf8");
+const read = (file) => fs.readFileSync(file, "utf8");
 const failures = [];
 const fail = (message) => failures.push(message);
 const requireText = (source, needle, message) => { if (!source.includes(needle)) fail(message); };
 const rejectText = (source, needle, message) => { if (source.includes(needle)) fail(message); };
+const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+  const full = path.join(dir, entry.name);
+  if (entry.isDirectory()) return walk(full);
+  return /\.(?:ts|html)$/i.test(entry.name) ? [full] : [];
+});
 
 const paths = {
   dock: "src/components/customer-mobile-dock.component.ts",
@@ -19,13 +25,14 @@ const paths = {
   tourDetail: "src/pages/tour-detail.component.ts",
   blogList: "src/pages/blog-list.component.ts",
   blogDetail: "src/pages/blog-detail.component.ts",
+  bookingCheckout: "src/pages/booking-checkout.component.ts",
 };
 
-for (const path of Object.values(paths)) {
-  if (!fs.existsSync(path)) fail(`Required V207 customer runtime file is missing: ${path}`);
+for (const file of Object.values(paths)) {
+  if (!fs.existsSync(file)) fail(`Required V207 customer runtime file is missing: ${file}`);
 }
 
-const sources = Object.fromEntries(Object.entries(paths).map(([key, path]) => [key, read(path)]));
+const sources = Object.fromEntries(Object.entries(paths).map(([key, file]) => [key, read(file)]));
 
 // TalkBack contract: the persistent customer dock stays in the accessibility tree.
 requireText(sources.dock, '<nav class="customer-command-dock"', "Mobile dock must remain a native nav landmark.");
@@ -39,7 +46,8 @@ rejectText(sources.dock, "dock-hidden", "Scroll-driven mobile dock hiding must n
 rejectText(sources.dock, "onWindowScroll", "Scroll-driven mobile dock hiding must not return.");
 rejectText(sources.dock, "HostListener", "Mobile dock must not use a scroll listener to hide itself.");
 
-// Rental journey: booking already owns the reservation summary. Cards/details must not duplicate it.
+// Booking owns the reservation summary. Rental cards and details must never duplicate it.
+requireText(sources.bookingCheckout, "Rezervasyon Özeti", "Booking checkout must remain the single canonical owner of the reservation summary.");
 rejectText(sources.rentalDetail, "Rezervasyon Özeti", "Rental detail must not duplicate the booking reservation summary.");
 rejectText(sources.rentalDetail, "Kiralama Özeti", "Rental detail must not contain a duplicate rental summary block.");
 rejectText(sources.rentalDetail, 'class="reservation-panel"', "Rental detail must not restore the duplicate reservation panel.");
@@ -48,21 +56,6 @@ requireText(sources.rentalCard, "Aracı İncele", "Rental cards must use a direc
 requireText(sources.rentalDetail, "<dt>Kapı</dt>", "Rental detail must surface the canonical door count when available.");
 requireText(sources.rentalDetail, "car.doors", "Rental detail door count must come from the canonical vehicle record.");
 requireText(sources.rentalDetail, "car.luggage", "Rental detail must retain luggage capacity from the canonical vehicle record.");
-
-// Customer-facing list/detail surfaces must use customer language, not implementation language.
-const customerFiles = [
-  ["rental list", sources.rentalList],
-  ["rental card", sources.rentalCard],
-  ["homepage vehicle card", sources.homeVehicleCard],
-  ["rental detail", sources.rentalDetail],
-  ["sale list", sources.saleList],
-  ["sale card", sources.saleCard],
-  ["sale detail", sources.saleDetail],
-  ["tour list", sources.tourList],
-  ["tour detail", sources.tourDetail],
-  ["blog list", sources.blogList],
-  ["blog detail", sources.blogDetail],
-];
 
 const forbiddenCustomerPhrases = [
   "CANLI KİRALIK ARAÇ ENVANTERİ",
@@ -80,14 +73,25 @@ const forbiddenCustomerPhrases = [
   "Canlı talep bilgisi",
   "Araç medyası yüklenemedi",
   "Tur medyası henüz eklenmedi",
-  "Rezervasyon Özeti",
-  "Kiralama Özeti",
 ];
 
-for (const [label, source] of customerFiles) {
+// Scan every customer page/component so internal implementation language cannot leak through an unlisted surface.
+const publicSurfaceFiles = [...walk("src/pages"), ...walk("src/components")]
+  .filter((file) => !file.startsWith(`src${path.sep}pages${path.sep}admin${path.sep}`))
+  .filter((file) => !file.includes(`${path.sep}admin-`));
+for (const file of publicSurfaceFiles) {
+  const source = read(file);
   for (const phrase of forbiddenCustomerPhrases) {
-    if (source.includes(phrase)) fail(`${label} exposes internal/system copy: ${phrase}`);
+    if (source.includes(phrase)) fail(`${file} exposes internal/system copy: ${phrase}`);
   }
+}
+
+// Reservation summary copy is allowed only in canonical booking checkout.
+for (const file of publicSurfaceFiles) {
+  if (file === paths.bookingCheckout) continue;
+  const source = read(file);
+  if (source.includes("Rezervasyon Özeti")) fail(`${file} duplicates the booking-owned reservation summary.`);
+  if (source.includes("Kiralama Özeti")) fail(`${file} duplicates a rental summary outside booking checkout.`);
 }
 
 // Raw backend/service errors stay internal. Customer states use stable human language.
@@ -114,4 +118,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("V207 customer experience integrity: PASS");
+console.log(`V207 customer experience integrity: PASS (${publicSurfaceFiles.length} customer files scanned)`);

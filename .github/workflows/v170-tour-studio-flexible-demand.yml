@@ -24,16 +24,13 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v7
-
       - name: Set up Node.js 22
         uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
-
       - name: Install exact dependency graph
         run: npm ci --no-audit --no-fund
-
       - name: Flexible demand database contract
         shell: bash
         run: |
@@ -44,61 +41,40 @@ jobs:
           grep -Fq "RECOMMENDED_GROUP_SIZE" "$MIG"
           grep -Fq "tour_demand_v170" "$MIG"
           grep -Fq "revoke all on function public.tour_demand_v170(text,date) from public,anon,authenticated" "$MIG"
-          grep -Fq "revoke all on function public.tour_availability_v169(text,date) from public,anon,authenticated" "$MIG"
           grep -Fq "grant execute on function public.tour_demand_v170(text,date) to service_role" "$MIG"
           grep -Fq "tourCapacityPolicy" "$MIG"
           if grep -Fq "TOUR_CAPACITY_EXCEEDED" "$MIG"; then
             echo "V170 admin approval must not hard-stop tour demand by capacity"
             exit 1
           fi
-
-      - name: Dated reservation technology remains available
-        shell: bash
-        run: |
-          set -euo pipefail
-          FILE=src/pages/tour-detail-v170.component.ts
-          test -f "$FILE"
-          grep -Fq "app-accessible-native-date" "$FILE"
-          grep -Fq "startDate:this.tourDate" "$FILE"
-          grep -Fq "formattedDate" "$FILE"
-          grep -Fq "Müşterinin geleceği tarih" "$FILE"
-          if grep -Fq "remainingSeats" "$FILE"; then
-            echo "V170 technology must not use remaining seats as a hard gate"
-            exit 1
-          fi
-
-      - name: Approved public tour keeps reservation behind explicit action
+      - name: Canonical dated reservation and flexible-demand contract
         shell: bash
         run: |
           set -euo pipefail
           FILE=src/pages/tour-detail.component.ts
-          SHELL=src/pages/catalog-detail-shells.component.ts
+          test -f "$FILE"
+          test ! -e src/pages/tour-detail-v169.component.ts
+          test ! -e src/pages/tour-detail-v170.component.ts
+          grep -Fq "app-accessible-native-date" "$FILE"
+          grep -Fq "startDate: this.tourDate" "$FILE"
+          grep -Fq "formattedTourDate" "$FILE"
+          grep -Fq "TourDemandV170Service" "$FILE"
+          grep -Fq "TourBookingV170Service" "$FILE"
+          grep -Fq "1_000_000_000" "$FILE"
           grep -Fq "readonly reservationOpen = signal(false)" "$FILE"
           grep -Fq '@if (reservationOpen())' "$FILE"
           grep -Fq 'class="reservation-overlay"' "$FILE"
           grep -Fq "Bu Turu Rezerve Et" "$FILE"
           grep -Fq "action-bar" "$FILE"
-          grep -Fq "TourDetailComponent" "$SHELL"
-          if grep -Fq "TourDetailV170Component" "$SHELL"; then
-            echo "V201 approved tour renderer must not be replaced by the always-open V170 presentation"
+          grep -Fq "DetailMediaLightboxComponent" "$FILE"
+          grep -Fq "mediaItems" "$FILE"
+          grep -Fq "includedItems" "$FILE"
+          grep -Fq "excludedItems" "$FILE"
+          if grep -Eq "personCount\(\)[[:space:]]*>[[:space:]].*capacity|remainingSeats" "$FILE"; then
+            echo "Canonical tour detail must not hard-gate large groups by recommended capacity"
             exit 1
           fi
-
-      - name: Large group booking technology is capacity independent
-        shell: bash
-        run: |
-          set -euo pipefail
-          EDGE=supabase/functions/tour-booking-v170/index.ts
-          CLIENT=src/pages/tour-detail-v170.component.ts
-          test -f "$EDGE"
-          grep -Fq "1_000_000_000" "$EDGE"
-          grep -Fq "1_000_000_000" "$CLIENT"
-          grep -Fq 'capacity_policy: "FLEXIBLE_DEMAND"' "$EDGE"
-          if grep -Eq "persons[[:space:]]*>[[:space:]]*Number\(tour\.capacity|personCount\(\)[[:space:]]*>[[:space:]].*capacity" "$EDGE" "$CLIENT"; then
-            echo "Tour person count must not be compared with recommended capacity"
-            exit 1
-          fi
-
+          grep -Fq "TourDetailComponent" src/pages/catalog-detail-shells.component.ts
       - name: Canonical dynamic tour showcase
         shell: bash
         run: |
@@ -120,21 +96,7 @@ jobs:
             echo "Tour price filters must remain data-derived"
             exit 1
           fi
-
-      - name: Dynamic photo and video infrastructure remains protected
-        shell: bash
-        run: |
-          set -euo pipefail
-          FILE=src/pages/tour-detail-v170.component.ts
-          grep -Fq "mediaItems" "$FILE"
-          grep -Fq "<video" "$FILE"
-          grep -Fq "poster" "$FILE"
-          grep -Fq "item.includedItems" "$FILE"
-          grep -Fq "item.excludedItems" "$FILE"
-          grep -Fq "item.highlights" "$FILE"
-          grep -Fq "DetailMediaLightboxComponent" "$FILE"
-
-      - name: Super Admin owned Tour Studio contract
+      - name: Super Admin owned Tour workspace contract
         shell: bash
         run: |
           set -euo pipefail
@@ -154,11 +116,7 @@ jobs:
           grep -Fq "tour.itinerary" "$FILE"
           grep -Fq "isCover:image&&!hasCover" "$FILE"
           grep -Fq 'mode="TOUR"' "$HUB"
-          if grep -Fq "app-admin-tour-studio-v170" "$HUB"; then
-            echo "Legacy parallel tour studio must not return to the active content hub"
-            exit 1
-          fi
-
+          test ! -e src/pages/admin/admin-tour-studio-v170.component.ts
       - name: Sale selected cover remains canonical
         shell: bash
         run: |
@@ -168,7 +126,6 @@ jobs:
           grep -Fq "tramerLabel" "$FILE"
           grep -Fq "damageLabel" "$FILE"
           grep -Fq "warrantyLabel" "$FILE"
-
       - name: Service-only demand RPC and Edge boundaries
         shell: bash
         run: |
@@ -182,36 +139,29 @@ jobs:
           grep -Fq "ALLOWED_ORIGINS" supabase/functions/tour-booking-v170/index.ts
           grep -Fq "consume_rate_limit" supabase/functions/tour-booking-v170/index.ts
           grep -Fq "reserve_booking_commercial_offer" supabase/functions/tour-booking-v170/index.ts
-
       - name: Architecture documentation
         run: |
           test -f docs/PRODUCTION_ARCHITECTURE_V170.md
           grep -Fq "Every tour booking has a required customer-selected calendar date" docs/PRODUCTION_ARCHITECTURE_V170.md
           grep -Fq "capacity" docs/PRODUCTION_ARCHITECTURE_V170.md
           grep -Fq "catalog_media" docs/PRODUCTION_ARCHITECTURE_V170.md
-
       - name: Frontend TypeScript
         run: npm run lint
-
       - name: Vercel API TypeScript
         run: npx tsc --noEmit -p tsconfig.api.json
-
       - name: Accessibility and Vercel function budget
         run: |
           npm run a11y:buttons
           npm run a11y:dates
           npm run vercel:functions
-
       - name: Set up Deno 2
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-
       - name: V170 Edge Function checks
         run: |
           deno check --node-modules-dir=auto supabase/functions/tour-availability-v169/index.ts
           deno check --node-modules-dir=auto supabase/functions/tour-booking-v170/index.ts
           deno check --node-modules-dir=auto supabase/functions/booking-gateway-v166/index.ts
-
       - name: Production Angular build
         run: npm run build

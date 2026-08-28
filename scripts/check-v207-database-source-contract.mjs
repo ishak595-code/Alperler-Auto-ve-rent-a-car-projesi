@@ -68,8 +68,12 @@ if (!campaign.includes('item.publicationStatus === "SCHEDULED"')) {
 }
 
 const layout = read("src/services/homepage-layout.service.ts");
-if (!layout.includes("homepage_sections?select=")) failures.push("Homepage sections must use an explicit projection.");
-if (!layout.includes("homepage_placements?select=")) failures.push("Homepage placements must use an explicit projection.");
+if (!/homepage_sections\?[^`\n]*select=\$\{this\.publicSectionSelect\}/.test(layout)) {
+  failures.push("Homepage sections must use the explicit publicSectionSelect projection regardless of query-parameter order.");
+}
+if (!/homepage_placements\?[^`\n]*select=\$\{this\.publicPlacementSelect\}/.test(layout)) {
+  failures.push("Homepage placements must use the explicit publicPlacementSelect projection regardless of query-parameter order.");
+}
 
 const migration = read("supabase/migrations/20260828203000_v207_campaign_schedule_rls_and_anon_dml_hardening.sql");
 if (!migration.includes("publication_status = 'SCHEDULED'")) failures.push("V207 campaign RLS migration must support elapsed scheduled publication.");

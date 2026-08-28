@@ -51,37 +51,33 @@ jobs:
           grep -Fq "INCLUDED_ITEMS_REQUIRED" "$MIG"
           grep -Fq "EXCLUDED_ITEMS_REQUIRED" "$MIG"
 
-      - name: Production tour showcase and approved detail ownership
+      - name: Production tour showcase and canonical detail ownership
         shell: bash
         run: |
           set -euo pipefail
-          test -f src/pages/tour-showcase-v170.component.ts
-          test -f src/pages/tour-detail-v170.component.ts
-          test -f src/pages/tour-detail.component.ts
+          SHOW=src/pages/tour-showcase-v170.component.ts
+          DETAIL=src/pages/tour-detail.component.ts
+          SHELL=src/pages/catalog-detail-shells.component.ts
+          test -f "$SHOW" && test -f "$DETAIL" && test -f "$SHELL"
           grep -Fq "TourShowcaseV170Component" src/pages/tours.component.ts
-          grep -Fq "TourDetailComponent" src/pages/catalog-detail-shells.component.ts
-          if grep -Fq "TourDetailV170Component" src/pages/catalog-detail-shells.component.ts; then
-            echo "V201 approved tour detail must remain the public renderer"
+          grep -Fq "TourDetailComponent" "$SHELL"
+          if grep -Fq "TourDetailV170Component" "$SHELL" || grep -Fq "TourDetailV169Component" "$SHELL"; then
+            echo "Canonical tour detail ownership was replaced by a historical renderer"
             exit 1
           fi
-          grep -Fq "bounds" src/pages/tour-showcase-v170.component.ts
-          grep -Fq "readonly reservationOpen = signal(false)" src/pages/tour-detail.component.ts
-          grep -Fq "Bu Turu Rezerve Et" src/pages/tour-detail.component.ts
-          if grep -Eq "0-5000|5000-15000|15000\+|priceRanges[[:space:]]*=" src/pages/tour-showcase-v170.component.ts; then
+          grep -Fq "bounds" "$SHOW"
+          grep -Fq "readonly reservationOpen = signal(false)" "$DETAIL"
+          grep -Fq "Bu Turu Rezerve Et" "$DETAIL"
+          grep -Fq "TourDemandV170Service" "$DETAIL"
+          grep -Fq "TourBookingV170Service" "$DETAIL"
+          grep -Fq "startDate: this.tourDate" "$DETAIL"
+          grep -Fq "personCount" "$DETAIL"
+          if grep -Fq "remainingSeats" "$DETAIL"; then
+            echo "Canonical tour technology must not restore hard remaining-seat gating"
+            exit 1
+          fi
+          if grep -Eq "0-5000|5000-15000|15000\+|priceRanges[[:space:]]*=" "$SHOW"; then
             echo "Tour filters must remain live-data derived"
-            exit 1
-          fi
-
-      - name: V170 flexible demand technology remains available
-        shell: bash
-        run: |
-          set -euo pipefail
-          FILE=src/pages/tour-detail-v170.component.ts
-          grep -Fq "TourDemandV170Service" "$FILE"
-          grep -Fq "startDate:this.tourDate" "$FILE"
-          grep -Fq "personCount" "$FILE"
-          if grep -Fq "remainingSeats" "$FILE"; then
-            echo "V170 technology must not restore hard remaining-seat gating"
             exit 1
           fi
 

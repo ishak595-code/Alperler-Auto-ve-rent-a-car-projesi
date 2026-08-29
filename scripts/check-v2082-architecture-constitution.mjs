@@ -21,6 +21,10 @@ function walk(dir) {
   return files;
 }
 
+function stripSqlComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/--.*$/gm, '');
+}
+
 const uiFiles = uiRoots.flatMap((dir) => walk(join(root, dir))).filter((file) => /\.(?:ts|tsx)$/.test(file));
 const forbidden = [
   { code: 'UI_SUPABASE_CONFIG_IMPORT', pattern: /(?:from\s+|import\s*\()['"][^'"]*supabase\.config['"]/ },
@@ -71,7 +75,8 @@ const targetTables = [
 if (!existsSync(migrationPath)) {
   failures.push(`V2082_MIGRATION_MISSING supabase/migrations/${migrationName}`);
 } else {
-  const migration = readFileSync(migrationPath, 'utf8').toLowerCase();
+  const rawMigration = readFileSync(migrationPath, 'utf8');
+  const migration = stripSqlComments(rawMigration).toLowerCase();
   for (const marker of ['revoke insert, update, delete, truncate, references, trigger on table', 'from anon']) {
     if (!migration.includes(marker)) failures.push(`V2082_MIGRATION_MISSING_MARKER ${marker}`);
   }
@@ -88,7 +93,7 @@ const futureMigrations = walk(migrationsDir)
   .sort();
 const anonWritePrivilege = /\bgrant\b[\s\S]*\b(?:insert|update|delete|truncate|references|trigger)\b[\s\S]*\bto\s+(?:role\s+)?anon\b/i;
 for (const file of futureMigrations) {
-  const source = readFileSync(file, 'utf8');
+  const source = stripSqlComments(readFileSync(file, 'utf8'));
   const statements = source.split(';').map((part) => part.trim()).filter(Boolean);
   for (const statement of statements) {
     if (anonWritePrivilege.test(statement)) {

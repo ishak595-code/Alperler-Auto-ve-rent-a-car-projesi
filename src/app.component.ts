@@ -9,11 +9,12 @@ import { RuntimeStatusGateComponent } from './components/runtime-status-gate.com
 import { BookingSuccessOverlayComponent } from './components/booking-success-overlay.component';
 import { CheckoutLoyaltyPanelComponent } from './components/checkout-loyalty-panel.component';
 import { AdminCustomerLifetimePanelComponent } from './components/admin-customer-lifetime-panel.component';
+import { AnalyticsConsentComponent } from './components/analytics-consent.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CustomerMobileDockComponent, RuntimeStatusGateComponent, BookingSuccessOverlayComponent, CheckoutLoyaltyPanelComponent, AdminCustomerLifetimePanelComponent],
+  imports: [RouterOutlet, CustomerMobileDockComponent, RuntimeStatusGateComponent, BookingSuccessOverlayComponent, CheckoutLoyaltyPanelComponent, AdminCustomerLifetimePanelComponent, AnalyticsConsentComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <router-outlet></router-outlet>
@@ -23,6 +24,7 @@ import { AdminCustomerLifetimePanelComponent } from './components/admin-customer
     @if (showCustomerChrome()) {
       <app-customer-mobile-dock></app-customer-mobile-dock>
       <app-runtime-status-gate></app-runtime-status-gate>
+      <app-analytics-consent></app-analytics-consent>
     }
   `,
   styles: [`
@@ -52,9 +54,8 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit() {
-    // SEO and public-content freshness are user-visible startup work. Everything
-    // else is loaded after first paint so the initial customer shell stays small
-    // and responsive on slower mobile CPUs and networks.
+    // SEO, consent and public-content freshness are user-visible startup work.
+    // Observability/enrichment that is not needed to render the shell remains deferred.
     this.seoService.init();
     this.syncPublicContentRefresh(this.initialUrl);
     this.scheduleBackgroundServices();

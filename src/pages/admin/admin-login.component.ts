@@ -4,7 +4,6 @@ import { FormsModule } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
 import { AuthService } from "../../services/auth.service";
 import { CarService } from "../../services/car.service";
-import { SUPABASE_PUBLISHABLE_KEY, supabaseAuthUrl } from "../../supabase.config";
 
 @Component({
   selector: "app-admin-login",
@@ -121,17 +120,10 @@ export class AdminLoginComponent implements OnInit {
     const email = this.resetEmail.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { this.errorMsg.set("Geçerli yönetici e-posta adresini girin."); return; }
     this.isLoading.set(true);
-    try {
-      const redirectTo = `${window.location.origin}/admin/login?recovery=1`;
-      const response = await fetch(`${supabaseAuthUrl("recover")}?redirect_to=${encodeURIComponent(redirectTo)}`, {
-        method: "POST",
-        headers: { apikey: SUPABASE_PUBLISHABLE_KEY, "content-type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (!response.ok) { this.errorMsg.set(response.status === 429 ? "Çok fazla yenileme isteği yapıldı. Birkaç dakika sonra tekrar deneyin." : "Şifre yenileme isteği işlenemedi."); return; }
-      this.successMsg.set("Yenileme isteği e-posta servisine iletildi. Gelen kutusu ve spam klasörünü kontrol edin. Güvenlik nedeniyle hesap varlığı bu ekranda açıklanmaz.");
-    } catch { this.errorMsg.set("Şifre yenileme servisine şu anda ulaşılamıyor."); }
-    finally { this.isLoading.set(false); }
+    const success = await this.authService.resetPassword(email);
+    this.isLoading.set(false);
+    if (!success) { this.syncError("Şifre yenileme isteği işlenemedi."); return; }
+    this.successMsg.set("Yenileme isteği e-posta servisine iletildi. Gelen kutusu ve spam klasörünü kontrol edin. Güvenlik nedeniyle hesap varlığı bu ekranda açıklanmaz.");
   }
 
   private syncError(fallback: string): void { this.errorMsg.set(this.authService.lastErrorMessage() || fallback); }

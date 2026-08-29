@@ -28,6 +28,7 @@ export interface PublicHomepagePlacement {
 }
 
 type HomepageSelectionMode = 'PLACEMENT' | 'LATEST';
+type SectionDomain = Pick<PublicHomepageSection, 'sectionType' | 'settings'>;
 
 @Injectable({ providedIn: 'root' })
 export class HomepageLayoutService {
@@ -80,11 +81,17 @@ export class HomepageLayoutService {
           this.get<any[]>(`homepage_placements?is_active=eq.true&select=${this.publicPlacementSelect}&order=section_key.asc,sort_order.asc`),
         ]);
 
-        // Resolve manual placements against the same canonical catalog owners used by the public pages.
-        // If a source is temporarily empty we do not delete the placement; the renderer will naturally
-        // stay empty. When a source is available, stale/unpublished IDs are excluded so manual sections
-        // never fall back to unrelated content.
         await Promise.allSettled([this.cars.ensureVehicleCloudInventory(), this.campaigns.loadPublic()]);
+
+        const sectionDomains = new Map<string, SectionDomain>();
+        for (const row of sectionRows) {
+          const sectionKey = String(row.section_key || '');
+          if (!sectionKey) continue;
+          sectionDomains.set(sectionKey, {
+            sectionType: row.section_type as PublicHomepageSection['sectionType'],
+            settings: row.settings && typeof row.settings === 'object' ? row.settings as Record<string, unknown> : {},
+          });
+        }
 
         const placements = placementRows.map((row) => ({
           id: String(row.id || ''),
@@ -97,7 +104,11 @@ export class HomepageLayoutService {
           startsAt: row.starts_at || undefined,
           endsAt: row.ends_at || undefined,
           metadata: row.metadata && typeof row.metadata === 'object' ? row.metadata : {},
-        } as PublicHomepagePlacement)).filter((row) => row.id && row.sectionKey && row.entityId && row.isActive && this.placementResolves(row));
+        } as PublicHomepagePlacement)).filter((placement) => {
+          if (!placement.id || !placement.sectionKey || !placement.entityId || !placement.isActive) return false;
+          const domain = sectionDomains.get(placement.sectionKey);
+          return Boolean(domain) && this.placementResolves(placement, domain!);
+        });
 
         this._placements.set(placements);
         const now = this._clock();
@@ -172,11 +183,13 @@ export class HomepageLayoutService {
     return this.selectionMode(section?.settings || {});
   }
 
-  private placementResolves(placement: PublicHomepagePlacement): boolean {
+  private placementResolves(placement: PublicHomepagePlacement, domain: SectionDomain): boolean {
     const target = placement.entityId.trim();
-    if (!target) return false;
+    if (!target || !this.entityTypeMatchesSection(placement.entityType, domain.sectionType)) return false;
+
     if (placement.entityType === 'VEHICLE') {
-      const source = [...this.cars.getCars()(), ...this.cars.getSaleCars()()];
+      const category = String(domain.settings['category'] || 'RENTAL').toUpperCase();
+      const source = category === 'SALE' ? this.cars.getSaleCars()() : this.cars.getCars()();
       return this.matchesKnownSource(source, target, (item) => [item.id, item.cloudId, item.cloudStockCode]);
     }
     if (placement.entityType === 'TOUR') {
@@ -185,8 +198,14 @@ export class HomepageLayoutService {
     if (placement.entityType === 'BLOG') {
       return this.matchesKnownSource(this.cars.getBlogPosts()(), target, (item) => [item.id, item.cloudId, item.cloudSlug]);
     }
-    const source = this.campaigns.publicCampaigns();
-    return this.matchesKnownSource(source, target, (item) => [item.id, item.slug]);
+    return this.matchesKnownSource(this.campaigns.publicCampaigns(), target, (item) => [item.id, item.slug]);
+  }
+
+  private entityTypeMatchesSection(entityType: PublicHomepagePlacement['entityType'], sectionType: PublicHomepageSection['sectionType']): boolean {
+    return (sectionType === 'VEHICLES' && entityType === 'VEHICLE')
+      || (sectionType === 'TOURS' && entityType === 'TOUR')
+      || (sectionType === 'BLOG' && entityType === 'BLOG')
+      || (sectionType === 'CAMPAIGN' && entityType === 'CAMPAIGN');
   }
 
   private matchesKnownSource<T>(source: T[], target: string, keys: (item: T) => unknown[]): boolean {

@@ -1,5 +1,7 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
+import { CampaignService } from './campaign.service';
+import { CarService } from './car.service';
 import { PublicContentRealtimeService } from './public-content-realtime.service';
 
 export interface PublicHomepageSection {
@@ -25,10 +27,15 @@ export interface PublicHomepagePlacement {
   metadata: Record<string, unknown>;
 }
 
+type HomepageSelectionMode = 'PLACEMENT' | 'LATEST';
+type SectionDomain = Pick<PublicHomepageSection, 'sectionType' | 'settings'>;
+
 @Injectable({ providedIn: 'root' })
 export class HomepageLayoutService {
   private readonly destroyRef = inject(DestroyRef);
   private readonly realtime = inject(PublicContentRealtimeService);
+  private readonly cars = inject(CarService);
+  private readonly campaigns = inject(CampaignService);
   private readonly _sections = signal<PublicHomepageSection[]>([]);
   private readonly _placements = signal<PublicHomepagePlacement[]>([]);
   private readonly _loading = signal(false);
@@ -73,16 +80,20 @@ export class HomepageLayoutService {
           this.get<any[]>(`homepage_sections?is_enabled=eq.true&select=${this.publicSectionSelect}&order=sort_order.asc`),
           this.get<any[]>(`homepage_placements?is_active=eq.true&select=${this.publicPlacementSelect}&order=section_key.asc,sort_order.asc`),
         ]);
-        this._sections.set(sectionRows.map((row) => ({
-          sectionKey: String(row.section_key || ''),
-          title: String(row.title || ''),
-          sectionType: row.section_type,
-          isEnabled: row.is_enabled !== false,
-          sortOrder: Number(row.sort_order || 0),
-          maxItems: Math.max(1, Math.floor(Number(row.max_items || 6))),
-          settings: row.settings && typeof row.settings === 'object' ? row.settings : {},
-        })).filter((row) => row.sectionKey && row.isEnabled));
-        this._placements.set(placementRows.map((row) => ({
+
+        await Promise.allSettled([this.cars.ensureVehicleCloudInventory(), this.campaigns.loadPublic()]);
+
+        const sectionDomains = new Map<string, SectionDomain>();
+        for (const row of sectionRows) {
+          const sectionKey = String(row.section_key || '');
+          if (!sectionKey) continue;
+          sectionDomains.set(sectionKey, {
+            sectionType: row.section_type as PublicHomepageSection['sectionType'],
+            settings: row.settings && typeof row.settings === 'object' ? row.settings as Record<string, unknown> : {},
+          });
+        }
+
+        const placements = placementRows.map((row) => ({
           id: String(row.id || ''),
           sectionKey: String(row.section_key || ''),
           entityType: row.entity_type,
@@ -93,7 +104,46 @@ export class HomepageLayoutService {
           startsAt: row.starts_at || undefined,
           endsAt: row.ends_at || undefined,
           metadata: row.metadata && typeof row.metadata === 'object' ? row.metadata : {},
-        })).filter((row) => row.id && row.sectionKey && row.entityId && row.isActive));
+        } as PublicHomepagePlacement)).filter((placement) => {
+          if (!placement.id || !placement.sectionKey || !placement.entityId || !placement.isActive) return false;
+          const domain = sectionDomains.get(placement.sectionKey);
+          return Boolean(domain) && this.placementResolves(placement, domain!);
+        });
+
+        this._placements.set(placements);
+        const now = this._clock();
+        const placementCountBySection = new Map<string, number>();
+        for (const placement of placements) {
+          if (!this.isInsideWindow(placement, now)) continue;
+          placementCountBySection.set(placement.sectionKey, (placementCountBySection.get(placement.sectionKey) || 0) + 1);
+        }
+
+        const sections = sectionRows.map((row) => {
+          const settings = row.settings && typeof row.settings === 'object' ? row.settings as Record<string, unknown> : {};
+          const sectionKey = String(row.section_key || '');
+          const sectionType = row.section_type as PublicHomepageSection['sectionType'];
+          const mode = this.selectionMode(settings);
+          const storedLimit = Math.max(1, Math.floor(Number(row.max_items || 6)));
+          const manualCount = placementCountBySection.get(sectionKey) || 0;
+          const placementDriven = this.supportsPlacements(sectionType) && mode === 'PLACEMENT';
+          return {
+            sectionKey,
+            title: String(row.title || ''),
+            sectionType,
+            isEnabled: row.is_enabled !== false,
+            sortOrder: Number(row.sort_order || 0),
+            maxItems: placementDriven ? Math.max(1, manualCount) : storedLimit,
+            settings,
+            manualCount,
+            placementDriven,
+          };
+        }).filter((row) => {
+          if (!row.sectionKey || !row.isEnabled) return false;
+          if (row.placementDriven && row.manualCount === 0) return false;
+          return true;
+        }).map(({ manualCount: _manualCount, placementDriven: _placementDriven, ...row }) => row as PublicHomepageSection);
+
+        this._sections.set(sections);
         this._loaded.set(true);
       } catch (error) {
         this._error.set(error instanceof Error ? error.message : 'HOMEPAGE_LAYOUT_LOAD_FAILED');
@@ -119,15 +169,56 @@ export class HomepageLayoutService {
 
   placementsFor(sectionKey: string): PublicHomepagePlacement[] {
     const section = this._sections().find((row) => row.sectionKey === sectionKey);
-    const selectionMode = String(section?.settings?.['selectionMode'] || 'PLACEMENT').trim().toUpperCase();
-    // LATEST delegates ordering to the canonical entity source (for blog this is published_at DESC).
-    // Placements stay stored for audit/admin history, but they cannot pin stale content into an automatic section.
-    if (selectionMode === 'LATEST') return [];
+    const mode = this.selectionMode(section?.settings || {});
+    if (mode === 'LATEST') return [];
 
     const now = this._clock();
     return this._placements()
       .filter((row) => row.sectionKey === sectionKey && row.isActive && this.isInsideWindow(row, now))
       .sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
+  selectionModeFor(sectionKey: string): HomepageSelectionMode {
+    const section = this._sections().find((row) => row.sectionKey === sectionKey);
+    return this.selectionMode(section?.settings || {});
+  }
+
+  private placementResolves(placement: PublicHomepagePlacement, domain: SectionDomain): boolean {
+    const target = placement.entityId.trim();
+    if (!target || !this.entityTypeMatchesSection(placement.entityType, domain.sectionType)) return false;
+
+    if (placement.entityType === 'VEHICLE') {
+      const category = String(domain.settings['category'] || 'RENTAL').toUpperCase();
+      const source = category === 'SALE' ? this.cars.getSaleCars()() : this.cars.getCars()();
+      return this.matchesKnownSource(source, target, (item) => [item.id, item.cloudId, item.cloudStockCode]);
+    }
+    if (placement.entityType === 'TOUR') {
+      return this.matchesKnownSource(this.cars.getTours()(), target, (item) => [item.id, item.cloudId]);
+    }
+    if (placement.entityType === 'BLOG') {
+      return this.matchesKnownSource(this.cars.getBlogPosts()(), target, (item) => [item.id, item.cloudId, item.cloudSlug]);
+    }
+    return this.matchesKnownSource(this.campaigns.publicCampaigns(), target, (item) => [item.id, item.slug]);
+  }
+
+  private entityTypeMatchesSection(entityType: PublicHomepagePlacement['entityType'], sectionType: PublicHomepageSection['sectionType']): boolean {
+    return (sectionType === 'VEHICLES' && entityType === 'VEHICLE')
+      || (sectionType === 'TOURS' && entityType === 'TOUR')
+      || (sectionType === 'BLOG' && entityType === 'BLOG')
+      || (sectionType === 'CAMPAIGN' && entityType === 'CAMPAIGN');
+  }
+
+  private matchesKnownSource<T>(source: T[], target: string, keys: (item: T) => unknown[]): boolean {
+    if (!source.length) return true;
+    return source.some((item) => keys(item).some((key) => String(key ?? '').trim() === target));
+  }
+
+  private selectionMode(settings: Record<string, unknown>): HomepageSelectionMode {
+    return String(settings['selectionMode'] || 'PLACEMENT').trim().toUpperCase() === 'LATEST' ? 'LATEST' : 'PLACEMENT';
+  }
+
+  private supportsPlacements(type: PublicHomepageSection['sectionType']): boolean {
+    return type === 'VEHICLES' || type === 'TOURS' || type === 'BLOG' || type === 'CAMPAIGN';
   }
 
   private onRealtimeChange(): void {

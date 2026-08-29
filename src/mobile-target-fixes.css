@@ -31,6 +31,38 @@
   }
 }
 
+/* V213 mobile hierarchy: keep the existing Hero search contract untouched.
+   On phones the value proposition stays first, then Quick Planning appears
+   before secondary trust badges so customers can act sooner without adding a
+   second planner or a second search surface. */
+@media (max-width:767px) {
+  app-home-v71 .hero-stage {
+    padding-top: .85rem !important;
+    gap: .72rem !important;
+  }
+
+  app-home-v71 .hero-copy-block {
+    display: contents;
+  }
+
+  app-home-v71 .hero-copy-block > .eyebrow,
+  app-home-v71 .hero-copy-block > h1,
+  app-home-v71 .hero-copy-block > .hero-copy,
+  app-home-v71 .hero-copy-block > .desktop-search {
+    order: 0;
+  }
+
+  app-home-v71 .planner {
+    order: 1;
+    margin-top: -.08rem;
+  }
+
+  app-home-v71 .trust-row {
+    order: 2;
+    margin-top: .08rem !important;
+  }
+}
+
 /* Shared vehicle cards keep restrained physical depth. Their layout itself is
    owned by the current renderer, not by a historical homepage selector. */
 app-vehicle-list-item article {

@@ -3,7 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { GlobalSearchKind, GlobalSearchResult, GlobalSearchService } from '../services/global-search.service';
+import { GlobalSearchKind, GlobalSearchService } from '../services/global-search.service';
 
 type SearchFilter = 'ALL' | 'VEHICLES' | 'TRAVEL' | 'CONTENT' | 'SERVICES';
 

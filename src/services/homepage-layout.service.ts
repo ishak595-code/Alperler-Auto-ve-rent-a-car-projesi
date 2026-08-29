@@ -1,5 +1,7 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
+import { CampaignService } from './campaign.service';
+import { CarService } from './car.service';
 import { PublicContentRealtimeService } from './public-content-realtime.service';
 
 export interface PublicHomepageSection {
@@ -31,6 +33,8 @@ type HomepageSelectionMode = 'PLACEMENT' | 'LATEST';
 export class HomepageLayoutService {
   private readonly destroyRef = inject(DestroyRef);
   private readonly realtime = inject(PublicContentRealtimeService);
+  private readonly cars = inject(CarService);
+  private readonly campaigns = inject(CampaignService);
   private readonly _sections = signal<PublicHomepageSection[]>([]);
   private readonly _placements = signal<PublicHomepagePlacement[]>([]);
   private readonly _loading = signal(false);
@@ -76,6 +80,12 @@ export class HomepageLayoutService {
           this.get<any[]>(`homepage_placements?is_active=eq.true&select=${this.publicPlacementSelect}&order=section_key.asc,sort_order.asc`),
         ]);
 
+        // Resolve manual placements against the same canonical catalog owners used by the public pages.
+        // If a source is temporarily empty we do not delete the placement; the renderer will naturally
+        // stay empty. When a source is available, stale/unpublished IDs are excluded so manual sections
+        // never fall back to unrelated content.
+        await Promise.allSettled([this.cars.ensureVehicleCloudInventory(), this.campaigns.loadPublic()]);
+
         const placements = placementRows.map((row) => ({
           id: String(row.id || ''),
           sectionKey: String(row.section_key || ''),
@@ -87,7 +97,7 @@ export class HomepageLayoutService {
           startsAt: row.starts_at || undefined,
           endsAt: row.ends_at || undefined,
           metadata: row.metadata && typeof row.metadata === 'object' ? row.metadata : {},
-        } as PublicHomepagePlacement)).filter((row) => row.id && row.sectionKey && row.entityId && row.isActive);
+        } as PublicHomepagePlacement)).filter((row) => row.id && row.sectionKey && row.entityId && row.isActive && this.placementResolves(row));
 
         this._placements.set(placements);
         const now = this._clock();
@@ -118,8 +128,6 @@ export class HomepageLayoutService {
           };
         }).filter((row) => {
           if (!row.sectionKey || !row.isEnabled) return false;
-          // A manually curated content section with no active selections must collapse instead of
-          // silently falling back to unrelated catalog entries. LATEST sections remain automatic.
           if (row.placementDriven && row.manualCount === 0) return false;
           return true;
         }).map(({ manualCount: _manualCount, placementDriven: _placementDriven, ...row }) => row as PublicHomepageSection);
@@ -151,8 +159,6 @@ export class HomepageLayoutService {
   placementsFor(sectionKey: string): PublicHomepagePlacement[] {
     const section = this._sections().find((row) => row.sectionKey === sectionKey);
     const mode = this.selectionMode(section?.settings || {});
-    // LATEST delegates ordering to the canonical entity source. Placements stay stored for
-    // admin history but never pin stale content into an automatic section.
     if (mode === 'LATEST') return [];
 
     const now = this._clock();
@@ -164,6 +170,28 @@ export class HomepageLayoutService {
   selectionModeFor(sectionKey: string): HomepageSelectionMode {
     const section = this._sections().find((row) => row.sectionKey === sectionKey);
     return this.selectionMode(section?.settings || {});
+  }
+
+  private placementResolves(placement: PublicHomepagePlacement): boolean {
+    const target = placement.entityId.trim();
+    if (!target) return false;
+    if (placement.entityType === 'VEHICLE') {
+      const source = [...this.cars.getCars()(), ...this.cars.getSaleCars()()];
+      return this.matchesKnownSource(source, target, (item) => [item.id, item.cloudId, item.cloudStockCode]);
+    }
+    if (placement.entityType === 'TOUR') {
+      return this.matchesKnownSource(this.cars.getTours()(), target, (item) => [item.id, item.cloudId]);
+    }
+    if (placement.entityType === 'BLOG') {
+      return this.matchesKnownSource(this.cars.getBlogPosts()(), target, (item) => [item.id, item.cloudId, item.cloudSlug]);
+    }
+    const source = this.campaigns.publicCampaigns();
+    return this.matchesKnownSource(source, target, (item) => [item.id, item.slug]);
+  }
+
+  private matchesKnownSource<T>(source: T[], target: string, keys: (item: T) => unknown[]): boolean {
+    if (!source.length) return true;
+    return source.some((item) => keys(item).some((key) => String(key ?? '').trim() === target));
   }
 
   private selectionMode(settings: Record<string, unknown>): HomepageSelectionMode {

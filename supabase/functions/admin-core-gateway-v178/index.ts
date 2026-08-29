@@ -34,6 +34,19 @@ function serviceHeaders(): Record<string, string> {
   };
 }
 
+async function serviceGet<T>(path: string): Promise<T> {
+  const response = await fetch(`${SUPABASE_URL}${path}`, {
+    headers: serviceHeaders(),
+    signal: AbortSignal.timeout(15_000),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const code = clean(payload?.message || payload?.code, 180) || `SERVICE_GET_${response.status}`;
+    throw new Error(code);
+  }
+  return payload as T;
+}
+
 async function rpc<T = JsonObject>(name: string, body: JsonObject): Promise<T> {
   const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
     method: "POST",
@@ -62,6 +75,27 @@ async function requireActor(request: Request): Promise<string> {
   const actor = uuid(user?.id);
   if (!actor) throw new Error("UNAUTHORIZED");
   return actor;
+}
+
+async function requireAuditAccess(actor: string): Promise<void> {
+  const rows = await serviceGet<Array<{ role?: unknown; permissions?: unknown }>>(
+    `/rest/v1/admin_users?user_id=eq.${encodeURIComponent(actor)}&is_active=eq.true&select=role,permissions&limit=1`,
+  );
+  const row = Array.isArray(rows) ? rows[0] : undefined;
+  const role = clean(row?.role, 40).toLowerCase();
+  const permissions = row?.permissions && typeof row.permissions === "object" && !Array.isArray(row.permissions)
+    ? row.permissions as Record<string, unknown>
+    : {};
+  if (role === "owner" || role === "admin" || permissions["finance.read"] === true) return;
+  throw new Error("FINANCE_ADMIN_REQUIRED");
+}
+
+async function loadAuditRows(actor: string): Promise<unknown[]> {
+  await requireAuditAccess(actor);
+  const projection = "id,actor_user_id,actor_email,action,entity_type,entity_id,before_data,after_data,created_at";
+  return await serviceGet<unknown[]>(
+    `/rest/v1/audit_logs?select=${projection}&order=created_at.desc,id.desc&limit=300`,
+  );
 }
 
 async function sha256(value: string): Promise<string> {
@@ -147,7 +181,7 @@ Deno.serve(async (request: Request) => {
         return json(await rpc("service_payment_settings_snapshot_v182", { p_actor: actor }));
       }
       if (view === "audit") {
-        return json(await rpc("service_admin_audit_snapshot_v2082", { p_actor: actor, p_limit: 300 }));
+        return json(await loadAuditRows(actor));
       }
       return json({ ok: false, code: "UNKNOWN_VIEW" }, 400);
     }

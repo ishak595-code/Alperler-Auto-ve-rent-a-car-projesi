@@ -40,7 +40,9 @@ New privileged browser-accessible RPCs are not an acceptable shortcut. Sensitive
 
 ## Browser rule
 
-Browser source under `src/` must not name a server-only table or invoke one of the privileged RPCs above. If a customer/admin feature needs that capability, it uses the domain service and same-origin BFF that owns the operation.
+Browser source under `src/` must not directly address a server-only table through PostgREST/Supabase SDK or directly invoke one of the privileged RPCs above. Domain vocabulary such as a route or UI label containing “subscribers” is not database ownership by itself; the prohibited behavior is a direct Data API/SDK path that bypasses the canonical service/BFF owner.
+
+Newsletter has one browser network owner: `NewsletterService`. The old `NewsletterSyncService` bridge, `CarService` subscriber signal/API and `db_subscribers` localStorage truth are retired and must not return. Existing devices remove the obsolete `db_subscribers` cache during startup cleanup.
 
 ## Migration rule
 

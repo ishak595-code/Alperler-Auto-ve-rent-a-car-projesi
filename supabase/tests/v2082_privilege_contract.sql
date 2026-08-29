@@ -24,16 +24,14 @@ BEGIN
     END LOOP;
   END LOOP;
 
-  IF has_function_privilege('anon', 'public.service_admin_audit_snapshot_v2082(uuid,integer)', 'EXECUTE') THEN
-    RAISE EXCEPTION 'V2082 privilege contract failed: anon can execute service_admin_audit_snapshot_v2082';
-  END IF;
-
-  IF has_function_privilege('authenticated', 'public.service_admin_audit_snapshot_v2082(uuid,integer)', 'EXECUTE') THEN
-    RAISE EXCEPTION 'V2082 privilege contract failed: authenticated can execute service_admin_audit_snapshot_v2082 directly';
-  END IF;
-
-  IF NOT has_function_privilege('service_role', 'public.service_admin_audit_snapshot_v2082(uuid,integer)', 'EXECUTE') THEN
-    RAISE EXCEPTION 'V2082 privilege contract failed: service_role cannot execute service_admin_audit_snapshot_v2082';
+  IF EXISTS (
+    SELECT 1
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'service_admin_audit_snapshot_v2082'
+  ) THEN
+    RAISE EXCEPTION 'V2082 privilege contract failed: privileged audit RPC must not exist in exposed public schema';
   END IF;
 END;
 $$;

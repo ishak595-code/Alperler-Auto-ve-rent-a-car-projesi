@@ -118,6 +118,12 @@ export class HomepageLayoutService {
   }
 
   placementsFor(sectionKey: string): PublicHomepagePlacement[] {
+    const section = this._sections().find((row) => row.sectionKey === sectionKey);
+    const selectionMode = String(section?.settings?.['selectionMode'] || 'PLACEMENT').trim().toUpperCase();
+    // LATEST delegates ordering to the canonical entity source (for blog this is published_at DESC).
+    // Placements stay stored for audit/admin history, but they cannot pin stale content into an automatic section.
+    if (selectionMode === 'LATEST') return [];
+
     const now = this._clock();
     return this._placements()
       .filter((row) => row.sectionKey === sectionKey && row.isActive && this.isInsideWindow(row, now))

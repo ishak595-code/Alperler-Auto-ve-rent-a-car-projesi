@@ -1,7 +1,7 @@
 import { Component, inject, signal } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { NavigationEnd, Router, RouterLink } from "@angular/router";
-import { NavigationConfigService } from "../services/navigation-config.service";
+import { NavigationConfigService, NavigationItem } from "../services/navigation-config.service";
 import { isDockItemCurrent, shouldRenderMobileDock } from "../services/mobile-dock-route-policy";
 
 @Component({
@@ -15,6 +15,7 @@ import { isDockItemCurrent, shouldRenderMobileDock } from "../services/mobile-do
           <a
             [routerLink]="item.route"
             class="dock-action"
+            [class.dock-primary]="isPrimary(item)"
             [class.dock-active]="isCurrent(item.route)"
             [attr.aria-current]="isCurrent(item.route) ? 'page' : null"
             [attr.aria-label]="item.label"
@@ -30,11 +31,11 @@ import { isDockItemCurrent, shouldRenderMobileDock } from "../services/mobile-do
   styles: [`
     :host{display:contents}.customer-command-dock{display:none}
     @media (max-width:639px) and (pointer:coarse), (max-width:950px) and (max-height:500px) and (pointer:coarse){
-      .customer-command-dock{position:fixed;z-index:88;left:max(.42rem,env(safe-area-inset-left));right:max(.42rem,env(safe-area-inset-right));bottom:max(.42rem,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;min-height:70px;overflow:hidden;padding:4px;border:1px solid color-mix(in srgb,var(--alper-border,#27364a) 82%,transparent);border-radius:min(var(--site-radius,20px),22px);background:linear-gradient(180deg,color-mix(in srgb,var(--alper-surface,#0b1420) 98%,transparent),color-mix(in srgb,var(--alper-bg,#060a12) 99%,transparent));box-shadow:0 16px 40px rgba(2,6,23,.4),inset 0 1px 0 rgba(255,255,255,.055);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+      .customer-command-dock{position:fixed;z-index:88;left:max(.42rem,env(safe-area-inset-left));right:max(.42rem,env(safe-area-inset-right));bottom:max(.42rem,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;min-height:70px;overflow:visible;padding:4px;border:1px solid color-mix(in srgb,var(--alper-border,#27364a) 82%,transparent);border-radius:min(var(--site-radius,20px),22px);background:linear-gradient(180deg,color-mix(in srgb,var(--alper-surface,#0b1420) 98%,transparent),color-mix(in srgb,var(--alper-bg,#060a12) 99%,transparent));box-shadow:0 16px 40px rgba(2,6,23,.4),inset 0 1px 0 rgba(255,255,255,.055);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
     }
-    .dock-action{position:relative;display:flex;min-width:0;min-height:61px;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:14px;background:transparent;padding:4px 2px;color:color-mix(in srgb,var(--alper-subtle,#94a3b8) 88%,#fff 12%);text-decoration:none;font-size:9.3px;font-weight:900;line-height:1.05;text-align:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background-color .16s ease,color .16s ease,transform .16s ease}
+    .dock-action{position:relative;display:flex;min-width:0;min-height:61px;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:1px solid transparent;border-radius:14px;background:transparent;padding:4px 2px;color:color-mix(in srgb,var(--alper-subtle,#94a3b8) 88%,#fff 12%);text-decoration:none;font-size:9.3px;font-weight:900;line-height:1.05;text-align:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background-color .16s ease,color .16s ease,transform .16s ease,border-color .16s ease,box-shadow .16s ease}
     .dock-action::before{content:"";position:absolute;left:30%;right:30%;top:0;height:3px;border-radius:0 0 999px 999px;background:transparent;transition:background-color .16s ease}
-    .dock-icon-shell{display:grid;width:32px;height:30px;place-items:center;border-radius:10px;background:transparent;transition:background-color .16s ease,transform .16s ease}
+    .dock-icon-shell{display:grid;width:32px;height:30px;place-items:center;border-radius:10px;background:transparent;transition:background-color .16s ease,transform .16s ease,box-shadow .16s ease}
     .dock-action mat-icon{width:22px;height:22px;font-size:22px;line-height:22px}
     .dock-label{display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .dock-action:active{transform:translateY(1px)}
@@ -42,7 +43,12 @@ import { isDockItemCurrent, shouldRenderMobileDock } from "../services/mobile-do
     .dock-action.dock-active{background:color-mix(in srgb,var(--alper-blue,#315e86) 25%,transparent);color:#fff}
     .dock-action.dock-active::before{background:var(--alper-blue-light,#93c5fd)}
     .dock-action.dock-active .dock-icon-shell{background:color-mix(in srgb,var(--alper-blue,#315e86) 38%,transparent);transform:translateY(-1px)}
-    @media(max-width:350px) and (pointer:coarse){.customer-command-dock{left:3px;right:3px}.dock-action{font-size:8.5px}.dock-icon-shell{width:29px}.dock-action mat-icon{width:20px;height:20px;font-size:20px;line-height:20px}}
+    .dock-action.dock-primary{margin:-7px 1px 1px;border-color:color-mix(in srgb,var(--alper-gold,#c6a15b) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--alper-gold,#c6a15b) 18%,var(--alper-surface,#0b1420)),color-mix(in srgb,var(--alper-gold,#c6a15b) 8%,var(--alper-bg,#060a12)));color:#fff;box-shadow:0 12px 28px rgba(2,6,23,.34),0 0 0 1px rgba(198,161,91,.08)}
+    .dock-action.dock-primary::before{background:var(--alper-gold,#c6a15b)}
+    .dock-action.dock-primary .dock-icon-shell{width:38px;height:36px;border-radius:12px;background:var(--alper-gold,#c6a15b);color:#111827;box-shadow:0 8px 20px rgba(198,161,91,.22);transform:translateY(-1px)}
+    .dock-action.dock-primary .dock-label{color:#f7e8c2;letter-spacing:.01em}
+    .dock-action.dock-primary.dock-active{border-color:var(--alper-gold,#c6a15b);background:linear-gradient(180deg,color-mix(in srgb,var(--alper-gold,#c6a15b) 28%,var(--alper-surface,#0b1420)),color-mix(in srgb,var(--alper-gold,#c6a15b) 14%,var(--alper-bg,#060a12)))}
+    @media(max-width:350px) and (pointer:coarse){.customer-command-dock{left:3px;right:3px}.dock-action{font-size:8.5px}.dock-icon-shell{width:29px}.dock-action mat-icon{width:20px;height:20px;font-size:20px;line-height:20px}.dock-action.dock-primary .dock-icon-shell{width:34px;height:33px}}
     @media(display-mode:standalone) and (pointer:coarse), (display-mode:fullscreen) and (pointer:coarse){.customer-command-dock{bottom:max(.55rem,env(safe-area-inset-bottom))}}
     @media(prefers-reduced-motion:reduce){.dock-action,.dock-icon-shell{transition:none}}
   `],
@@ -62,6 +68,10 @@ export class CustomerMobileDockComponent {
 
   isCurrent(route: string): boolean {
     return isDockItemCurrent(this.currentUrl(), route);
+  }
+
+  isPrimary(item: NavigationItem): boolean {
+    return item.itemKey === "appointment" || item.metadata?.["primary"] === true;
   }
 
   private updateVisibility(rawUrl: string): void {

@@ -19,7 +19,7 @@ test("mobile dock stays reachable by touch and TalkBack across navigation and sc
   await expect(dock).not.toHaveAttribute("aria-hidden", "true");
   await expect(dock).not.toHaveAttribute("inert", "");
 
-  const routes = ["/fleet", "/sales", "/search", "/campaigns"];
+  const routes = ["/fleet", "/sales", "/appointment", "/campaigns"];
   for (const route of routes) {
     const link = dock.locator(`a[href="${route}"]`);
     await expect(link).toHaveAttribute("aria-label", /.+/);

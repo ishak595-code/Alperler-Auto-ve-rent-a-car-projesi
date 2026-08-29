@@ -68,7 +68,8 @@ mustNot(mobileFixes, 'app-home-v39', 'Deleted V39 homepage selector must not rem
 mustNot(mobileFixes, 'app-home section[aria-labelledby="campaigns-title"]', 'Deleted V62 homepage campaign selector must not remain in the active CSS chain.');
 
 const runtimeTest = read('tests/v204/mobile-dock.spec.ts');
-for (const token of ['"/fleet"', '"/sales"', '"/search"', '"/campaigns"', 'window.scrollTo', 'page.goBack()', 'aria-hidden', 'inert', 'aria-current']) must(runtimeTest, token, `Android dock accessibility regression missing behavior: ${token}`);
+for (const token of ['"/fleet"', '"/sales"', '"/appointment"', '"/campaigns"', 'window.scrollTo', 'page.goBack()', 'aria-hidden', 'inert', 'aria-current']) must(runtimeTest, token, `Android dock accessibility regression missing behavior: ${token}`);
+mustNot(runtimeTest, '"/search"', 'Runtime regression must follow the canonical reservation CTA instead of the retired dock search slot.');
 mustNot(runtimeTest, 'toHaveClass(/dock-hidden/)', 'Runtime regression must not expect the accessible dock to disappear on scroll.');
 const runtimeConfig = read('playwright.v204.config.ts');
 for (const token of ['SM-S928B','isMobile: true','hasTouch: true','width: 412','height: 915']) must(runtimeConfig, token, `Android runtime profile missing contract: ${token}`);

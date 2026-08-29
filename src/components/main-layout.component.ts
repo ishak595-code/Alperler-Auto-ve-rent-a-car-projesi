@@ -4,6 +4,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { NavigationEnd, Router, RouterOutlet } from "@angular/router";
 import { filter } from "rxjs/operators";
 import { CarService } from "../services/car.service";
+import { CustomerFavoritesSyncService } from "../services/customer-favorites-sync.service";
 import { NavigationConfigService } from "../services/navigation-config.service";
 import { UiService } from "../services/ui.service";
 import { CustomerFooterV70Component } from "./customer-footer-v70.component";
@@ -48,8 +49,8 @@ import { NavbarComponent } from "./navbar.component";
   `],
 })
 export class MainLayoutComponent {
-  uiService=inject(UiService);carService=inject(CarService);navigation=inject(NavigationConfigService);router=inject(Router);location=inject(Location);isHomePage=signal(true);showWhatsapp=signal(false);
-  constructor(){this.router.events.pipe(filter(event=>event instanceof NavigationEnd)).subscribe(()=>this.updatePageState());this.updatePageState();if(typeof window!=="undefined")setTimeout(()=>this.showWhatsapp.set(true),15000);}
+  uiService=inject(UiService);carService=inject(CarService);navigation=inject(NavigationConfigService);router=inject(Router);location=inject(Location);private readonly favoritesSync=inject(CustomerFavoritesSyncService);isHomePage=signal(true);showWhatsapp=signal(false);
+  constructor(){void this.favoritesSync;this.router.events.pipe(filter(event=>event instanceof NavigationEnd)).subscribe(()=>this.updatePageState());this.updatePageState();if(typeof window!=="undefined")setTimeout(()=>this.showWhatsapp.set(true),15000);}
   getWhatsappNumber(){const config=this.carService.getConfig()();return String(config.whatsapp||config.phone||"").replace(/\D/g,"");}
   getWhatsappMessage(){const customMsg=this.carService.getConfig()().whatsappMessage;return customMsg?.trim()||"Merhaba, detaylı bilgi almak istiyorum.";}
   getWhatsappHref(){return`https://wa.me/${this.getWhatsappNumber()}?text=${encodeURIComponent(this.getWhatsappMessage())}`;}

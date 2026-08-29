@@ -6,6 +6,7 @@ import { Router } from "@angular/router";
 import { NotificationDeliveryReport } from "../models/booking.model";
 import { BookingService } from "../services/booking.service";
 import { ToastService } from "../services/toast.service";
+import { VisitorAnalyticsService } from "../services/visitor-analytics.service";
 
 @Component({
   selector: "app-appointment",
@@ -48,7 +49,7 @@ import { ToastService } from "../services/toast.service";
                 <button type="button" (click)="goHome()" class="mt-8 min-h-12 rounded-xl bg-slate-900 px-8 py-3 font-bold text-white transition-colors hover:bg-blue-500 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Ana Sayfaya Dön</button>
               </div>
             } @else {
-              <form [formGroup]="appointmentForm" (ngSubmit)="onSubmit()" class="space-y-6">
+              <form data-analytics-form="booking_conversion" [formGroup]="appointmentForm" (ngSubmit)="onSubmit()" class="space-y-6">
                 <div class="space-y-3">
                   <label class="block text-sm font-bold uppercase tracking-wider text-slate-700">Randevu Konusu *</label>
                   <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -121,6 +122,7 @@ export class AppointmentComponent {
   private readonly fb = inject(FormBuilder);
   private readonly bookingService = inject(BookingService);
   private readonly toastService = inject(ToastService);
+  private readonly analytics = inject(VisitorAnalyticsService);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
 
@@ -191,6 +193,7 @@ export class AppointmentComponent {
       this.deliveryMessage.set(this.describeDelivery(record.notification));
       this.hasFormErrors.set(false);
       this.submitSuccess.set(true);
+      this.analytics.trackFormSuccess("booking_conversion");
       this.toastService.show("Randevu talebiniz kaydedildi.", "success");
     } catch (error) {
       console.error("Appointment submission failed.", error);

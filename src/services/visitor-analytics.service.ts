@@ -1,9 +1,10 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
-import { filter } from 'rxjs';
+import { Subscription, filter } from 'rxjs';
 import { supabaseFunctionUrl } from '../supabase.config';
 
 export type AnalyticsConsent = 'unknown' | 'accepted' | 'rejected';
+export type MarketingConsent = AnalyticsConsent;
 type AnalyticsEventType =
   | 'session_start'
   | 'page_view'
@@ -36,6 +37,12 @@ interface BookingEntryAttribution {
   section: 'mobile_dock' | 'closing_cta' | 'appointment_link';
 }
 
+interface StoredConsentPreferences {
+  version: 2;
+  analytics: AnalyticsConsent;
+  marketing: MarketingConsent;
+}
+
 const CONSENT_KEY = 'alperler.analytics.consent.v1';
 const VISITOR_KEY = 'alperler.analytics.visitor.v1';
 const SESSION_KEY = 'alperler.analytics.session.v1';
@@ -46,12 +53,15 @@ const FLUSH_MS = 5000;
 export class VisitorAnalyticsService {
   private readonly router = inject(Router);
   private readonly endpoint = supabaseFunctionUrl('analytics-ingest');
-  private readonly _consent = signal<AnalyticsConsent>('unknown');
+  private readonly initialPreferences = this.readStoredPreferences();
+  private readonly _consent = signal<AnalyticsConsent>(this.initialPreferences.analytics);
+  private readonly _marketingConsent = signal<MarketingConsent>(this.initialPreferences.marketing);
   private started = false;
   private visitorId = '';
   private sessionId = '';
   private queue: QueuedEvent[] = [];
   private flushTimer: number | undefined;
+  private routerSubscription?: Subscription;
   private currentPath = '/';
   private landingPath = '/';
   private readonly scrollMarks = new Map<string, Set<number>>();
@@ -59,33 +69,46 @@ export class VisitorAnalyticsService {
   private lastClick = { key: '', at: 0, count: 0 };
 
   readonly consent = this._consent.asReadonly();
+  readonly marketingConsent = this._marketingConsent.asReadonly();
+  readonly choiceRequired = computed(() => this._consent() === 'unknown' || this._marketingConsent() === 'unknown');
 
   init(): void {
     if (this.started || typeof window === 'undefined') return;
     this.started = true;
-    const stored = window.localStorage.getItem(CONSENT_KEY);
-    this._consent.set(stored === 'accepted' || stored === 'rejected' ? stored : 'unknown');
-    if (this._consent() === 'accepted') this.startTracking();
+    const stored = this.readStoredPreferences();
+    this._consent.set(stored.analytics);
+    this._marketingConsent.set(stored.marketing);
+    if (stored.analytics === 'accepted') this.startTracking();
   }
 
   accept(): void {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(CONSENT_KEY, 'accepted');
-    this._consent.set('accepted');
-    this.startTracking();
+    this.savePreferences(true, this._marketingConsent() === 'accepted');
+  }
+
+  acceptAllOptional(): void {
+    this.savePreferences(true, true);
   }
 
   reject(): void {
+    this.savePreferences(false, false);
+  }
+
+  savePreferences(analyticsEnabled: boolean, marketingEnabled: boolean): void {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem(CONSENT_KEY, 'rejected');
-    this._consent.set('rejected');
-    this.stopTracking();
+    const analytics: AnalyticsConsent = analyticsEnabled ? 'accepted' : 'rejected';
+    const marketing: MarketingConsent = marketingEnabled ? 'accepted' : 'rejected';
+    this._consent.set(analytics);
+    this._marketingConsent.set(marketing);
+    this.persistPreferences({ version: 2, analytics, marketing });
+    if (analytics === 'accepted') this.startTracking();
+    else this.stopTracking();
   }
 
   resetChoice(): void {
     if (typeof window === 'undefined') return;
     window.localStorage.removeItem(CONSENT_KEY);
     this._consent.set('unknown');
+    this._marketingConsent.set('unknown');
     this.stopTracking();
   }
 
@@ -106,7 +129,8 @@ export class VisitorAnalyticsService {
     this.currentPath = this.safePath(location.pathname + location.search);
     this.landingPath = this.currentPath;
 
-    this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
+    this.routerSubscription?.unsubscribe();
+    this.routerSubscription = this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
       this.abandonActiveForms('navigation');
       this.currentPath = this.safePath(event.urlAfterRedirects || event.url);
       if (this.isTrackingPath()) {
@@ -132,6 +156,8 @@ export class VisitorAnalyticsService {
     if (typeof window === 'undefined') return;
     if (this.flushTimer !== undefined) window.clearInterval(this.flushTimer);
     this.flushTimer = undefined;
+    this.routerSubscription?.unsubscribe();
+    this.routerSubscription = undefined;
     this.queue = [];
     this.activeForms.clear();
     window.removeEventListener('click', this.onClick, true);
@@ -264,7 +290,7 @@ export class VisitorAnalyticsService {
     const parsed = this.parseUserAgent(navigator.userAgent || '');
     return {
       analyticsConsent: true,
-      consentVersion: 'kvkk-v1',
+      consentVersion: 'kvkk-v2',
       landingPath: this.landingPath,
       referrer: document.referrer || '',
       utmSource: params.get('utm_source') || '',
@@ -319,6 +345,34 @@ export class VisitorAnalyticsService {
     if (element.closest('[data-dock-item="appointment"]')) return { step: 'entry_mobile_dock', section: 'mobile_dock' };
     if (element.closest('[aria-labelledby="closing_cta-title"]')) return { step: 'entry_home_closing_cta', section: 'closing_cta' };
     return { step: 'entry_other_appointment_link', section: 'appointment_link' };
+  }
+
+  private readStoredPreferences(): StoredConsentPreferences {
+    if (typeof window === 'undefined') return { version: 2, analytics: 'unknown', marketing: 'unknown' };
+    try {
+      const stored = window.localStorage.getItem(CONSENT_KEY);
+      if (stored === 'accepted') return { version: 2, analytics: 'accepted', marketing: 'unknown' };
+      if (stored === 'rejected') return { version: 2, analytics: 'rejected', marketing: 'rejected' };
+      if (!stored) return { version: 2, analytics: 'unknown', marketing: 'unknown' };
+      const parsed = JSON.parse(stored) as Partial<StoredConsentPreferences>;
+      const analytics = this.validConsent(parsed.analytics) ? parsed.analytics : 'unknown';
+      const marketing = this.validConsent(parsed.marketing) ? parsed.marketing : 'unknown';
+      return { version: 2, analytics, marketing };
+    } catch {
+      return { version: 2, analytics: 'unknown', marketing: 'unknown' };
+    }
+  }
+
+  private persistPreferences(preferences: StoredConsentPreferences): void {
+    try {
+      window.localStorage.setItem(CONSENT_KEY, JSON.stringify(preferences));
+    } catch {
+      // Consent still applies to the current document when storage is unavailable.
+    }
+  }
+
+  private validConsent(value: unknown): value is AnalyticsConsent {
+    return value === 'unknown' || value === 'accepted' || value === 'rejected';
   }
 
   private elementKey(element: HTMLElement): string {

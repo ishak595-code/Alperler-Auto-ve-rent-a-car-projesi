@@ -38,10 +38,16 @@ const media = read('src/services/public-catalog-media.service.ts');
 if (!media.includes('loadForVehicle(vehicleId: string)')) fail('catalog media owner query missing for vehicles');
 if (!media.includes('loadForTour(tourId: string)')) fail('catalog media owner query missing for tours');
 
+// V208: the active V170 showcase keeps its compatibility service, but public tour
+// database ownership is canonicalized in CarService -> CatalogService. Tour detail
+// remains owned by PublicDetailDataService above, where single-record projection and
+// owner-scoped media are already enforced.
 const tours = read('src/services/tour-public-data-v170.service.ts');
-if (tours.includes('const rows = await this.list();')) fail('tour detail must not hydrate via the full tour list');
-if (!tours.includes('limit=1')) fail('tour detail must query one published tour');
-if (!tours.includes('loadForTour(')) fail('tour detail must hydrate only its own media');
+if (!tours.includes('inject(CarService)')) fail('V170 tour showcase adapter must delegate to canonical CarService');
+if (!tours.includes('refreshCloudCatalog(true)') || !tours.includes('getTours()')) fail('V170 tour showcase adapter must consume canonical tour catalogue state');
+for (const forbidden of ['SUPABASE_PROJECT_URL', 'SUPABASE_PUBLISHABLE_KEY', 'fetch(']) {
+  if (tours.includes(forbidden)) fail(`V170 tour showcase adapter must not own a parallel database source: ${forbidden}`);
+}
 
 const blog = read('src/pages/blog-detail.component.ts');
 if (blog.includes('getBlogPosts()')) fail('blog detail must not depend on global catalogue hydration');
@@ -69,5 +75,5 @@ if (!release || Number(release[1]) < 197) fail('PWA cache generation must be V19
 if (!worker.includes('request.mode === \'navigate\'')) fail('PWA navigation must remain network-authoritative');
 
 if (!process.exitCode) {
-  console.log('V197 detail integrity OK: safe single-record projections, canonical rental owner, complete customer facts, owner media, one hourly sync, direct blog load, campaign targets and fresh PWA generation are enforced.');
+  console.log('V197 detail integrity OK: safe single-record projections, canonical rental/tour ownership, complete customer facts, owner media, one hourly sync, direct blog load, campaign targets and fresh PWA generation are enforced.');
 }

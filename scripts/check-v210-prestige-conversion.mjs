@@ -12,7 +12,7 @@ const dock = read('src/components/customer-mobile-dock.component.ts');
 const app = read('src/app.component.ts');
 const adminHomepage = read('src/pages/admin/admin-homepage.component.ts');
 const adminNavigation = read('src/pages/admin/admin-navigation.component.ts');
-const migration = read('supabase/migrations/20260829211500_v210_prestige_conversion.sql');
+const migration = read('supabase/migrations/20260829083507_v210_prestige_conversion.sql');
 const pkg = JSON.parse(read('package.json'));
 
 if (!catalog.includes('order=published_at.desc')) fail('canonical blog source is not newest-first');

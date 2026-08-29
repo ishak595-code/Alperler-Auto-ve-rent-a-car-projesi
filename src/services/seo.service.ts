@@ -10,7 +10,6 @@ type TrackingWindow = Window & {
   dataLayer?: unknown[];
   gtag?: (...args: unknown[]) => void;
   fbq?: (...args: unknown[]) => void;
-  [key: `ga-disable-${string}`]: boolean | undefined;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -210,7 +209,10 @@ export class SeoService {
 
   private applyRevocationState(analyticsId: string, analyticsAllowed: boolean, marketingAllowed: boolean): void {
     const trackingWindow = window as TrackingWindow;
-    if (analyticsId) trackingWindow[`ga-disable-${analyticsId}`] = !analyticsAllowed;
+    if (analyticsId) {
+      const runtimeFlags = trackingWindow as unknown as Record<string, unknown>;
+      runtimeFlags[`ga-disable-${analyticsId}`] = !analyticsAllowed;
+    }
 
     trackingWindow.gtag?.('consent', 'update', {
       analytics_storage: analyticsAllowed ? 'granted' : 'denied',

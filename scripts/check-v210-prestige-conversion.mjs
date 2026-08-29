@@ -5,6 +5,7 @@ const fail = (message) => {
   process.exitCode = 1;
 };
 const read = (path) => fs.readFileSync(path, 'utf8');
+const readOptional = (path) => fs.existsSync(path) ? read(path) : '';
 
 const layout = read('src/services/homepage-layout.service.ts');
 const catalog = read('src/services/catalog.service.ts');
@@ -13,13 +14,25 @@ const app = read('src/app.component.ts');
 const adminHomepage = read('src/pages/admin/admin-homepage.component.ts');
 const adminNavigation = read('src/pages/admin/admin-navigation.component.ts');
 const migration = read('supabase/migrations/20260829083507_v210_prestige_conversion.sql');
+const v213Migration = readOptional('supabase/migrations/20260829210000_v213_prestige_discovery_personalization.sql');
 const pkg = JSON.parse(read('package.json'));
 
 if (!catalog.includes('order=published_at.desc')) fail('canonical blog source is not newest-first');
-if (!layout.includes("selectionMode") || !layout.includes("selectionMode === 'LATEST'") || !layout.includes('return [];')) {
-  fail('homepage layout does not protect automatic LATEST sections from stale manual placements');
+if (!layout.includes('selectionMode') || !layout.includes("mode === 'LATEST'") || !layout.includes('return []')) {
+  fail('homepage layout does not preserve explicit LATEST mode semantics');
 }
-if (!migration.includes("'selectionMode', 'LATEST'") || !/max_items\s*=\s*3/i.test(migration)) fail('blog_featured is not migrated to automatic latest-three mode');
+
+// V210 historically established blog_featured as automatic newest-three. V213 intentionally
+// supersedes the active business rule by making content showcases admin-curated PLACEMENT sections.
+// Preserve the historical V210 migration invariant, and require any V213 supersession to be explicit.
+if (!migration.includes("'selectionMode', 'LATEST'") || !/max_items\s*=\s*3/i.test(migration)) {
+  fail('historical V210 blog_featured newest-three migration contract is missing');
+}
+if (v213Migration) {
+  if (!v213Migration.includes("section_type in ('VEHICLES', 'TOURS', 'BLOG', 'CAMPAIGN')") || !v213Migration.includes("'{selectionMode}', '\"PLACEMENT\"'::jsonb")) {
+    fail('V213 supersession must explicitly migrate active content showcases to PLACEMENT mode');
+  }
+}
 
 if (!app.includes('<app-customer-mobile-dock')) fail('canonical customer mobile dock is not mounted in AppComponent');
 if (!dock.includes('[class.dock-primary]="isPrimary(item)"')) fail('mobile dock has no database-aware primary action style');
@@ -37,4 +50,4 @@ if (!migration.includes('/storage/v1/object/public/catalog-media/')) fail('closi
 if (pkg.scripts?.['prestige-conversion:v210'] !== 'node scripts/check-v210-prestige-conversion.mjs') fail('package script prestige-conversion:v210 is missing');
 if (!String(pkg.scripts?.['verify:handoff'] || '').includes('prestige-conversion:v210')) fail('V210 contract is not wired into verify:handoff');
 
-if (!process.exitCode) console.log('V210 prestige conversion contract passed: newest-three blog selection, canonical primary mobile booking action, and database-managed closing CTA are enforced.');
+if (!process.exitCode) console.log('V210 prestige conversion contract passed: historical newest-three migration remains auditable, explicit LATEST semantics remain supported, and V213 may supersede active showcase selection through an explicit PLACEMENT migration.');

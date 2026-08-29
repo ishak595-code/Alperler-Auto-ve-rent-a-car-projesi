@@ -1,0 +1,39 @@
+name: V208.1 Runtime Ownership Audit
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**/*.ts'
+      - 'scripts/audit-runtime-ownership-v2081.mjs'
+      - '.github/workflows/v2081-runtime-ownership-audit.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**/*.ts'
+      - 'scripts/audit-runtime-ownership-v2081.mjs'
+      - '.github/workflows/v2081-runtime-ownership-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v2081-ownership-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime-ownership-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Audit runtime service ownership
+        run: node scripts/audit-runtime-ownership-v2081.mjs

@@ -7,6 +7,7 @@ const failures = [];
 const migrationName = '20260829203000_v2082_architecture_constitution_privilege_hardening.sql';
 const migrationPath = join(root, 'supabase', 'migrations', migrationName);
 const constitutionPath = join(root, 'docs', 'ARCHITECTURE_CONSTITUTION_V2082.md');
+const adminCorePath = join(root, 'supabase', 'functions', 'admin-core-gateway-v178', 'index.ts');
 
 function walk(dir) {
   if (!existsSync(dir)) return [];
@@ -48,8 +49,7 @@ for (const file of browserFiles) {
   if (secretPattern.test(source)) failures.push(`BROWSER_SECRET_IDENTIFIER ${label}`);
 }
 
-const packageJsonPath = join(root, 'package.json');
-const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const handoff = String(packageJson.scripts?.['verify:handoff'] || '');
 const constitutionScript = String(packageJson.scripts?.['architecture-constitution:v2082'] || '');
 if (!handoff.includes('runtime-ownership:v2081')) failures.push('HANDOFF_MISSING_RUNTIME_OWNERSHIP_GUARD package.json');
@@ -72,19 +72,14 @@ if (!existsSync(migrationPath)) {
   failures.push(`V2082_MIGRATION_MISSING supabase/migrations/${migrationName}`);
 } else {
   const migration = readFileSync(migrationPath, 'utf8').toLowerCase();
-  const requiredMarkers = [
-    'service_admin_audit_snapshot_v2082',
-    'security definer',
-    'grant execute on function public.service_admin_audit_snapshot_v2082',
-    'revoke insert, update, delete, truncate, references, trigger on table',
-    'from anon',
-  ];
-  for (const marker of requiredMarkers) {
+  for (const marker of ['revoke insert, update, delete, truncate, references, trigger on table', 'from anon']) {
     if (!migration.includes(marker)) failures.push(`V2082_MIGRATION_MISSING_MARKER ${marker}`);
   }
   for (const table of targetTables) {
     if (!migration.includes(`public.${table}`)) failures.push(`V2082_MIGRATION_MISSING_TARGET public.${table}`);
   }
+  if (/\bsecurity\s+definer\b/i.test(migration)) failures.push('V2082_EXPOSED_SECURITY_DEFINER_FORBIDDEN migration');
+  if (/\bcreate\s+(?:or\s+replace\s+)?function\s+public\./i.test(migration)) failures.push('V2082_PUBLIC_FUNCTION_FORBIDDEN migration');
 }
 
 const migrationsDir = join(root, 'supabase', 'migrations');
@@ -110,6 +105,25 @@ else {
   if (!source.includes('/api/partner?op=admin-core&view=audit')) failures.push('ADMIN_AUDIT_NOT_USING_BFF src/services/admin-audit.service.ts');
   if (/supabase\.config|\/rest\/v1\//.test(source)) failures.push('ADMIN_AUDIT_SERVICE_DIRECT_DB src/services/admin-audit.service.ts');
 }
+
+if (!existsSync(adminCorePath)) failures.push('ADMIN_CORE_GATEWAY_MISSING supabase/functions/admin-core-gateway-v178/index.ts');
+else {
+  const source = readFileSync(adminCorePath, 'utf8');
+  const required = [
+    'view === "audit"',
+    'requireAuditAccess(actor)',
+    'select=role,permissions',
+    'audit_logs?select=',
+    'id,actor_user_id,actor_email,action,entity_type,entity_id,before_data,after_data,created_at',
+  ];
+  for (const marker of required) {
+    if (!source.includes(marker)) failures.push(`ADMIN_AUDIT_GATEWAY_MISSING_MARKER ${marker}`);
+  }
+  if (source.includes('service_admin_audit_snapshot_v2082')) failures.push('ADMIN_AUDIT_EXPOSED_RPC_FORBIDDEN admin-core-gateway-v178');
+}
+
+const privilegeTestPath = join(root, 'supabase', 'tests', 'v2082_privilege_contract.sql');
+if (!existsSync(privilegeTestPath)) failures.push('V2082_PRIVILEGE_TEST_MISSING supabase/tests/v2082_privilege_contract.sql');
 
 if (failures.length) {
   const unique = [...new Set(failures)].sort();

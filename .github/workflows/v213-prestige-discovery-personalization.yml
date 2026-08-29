@@ -1,0 +1,62 @@
+name: V213 Prestige Discovery Personalization
+
+on:
+  pull_request:
+    paths:
+      - 'src/pages/home-v71.component.ts'
+      - 'src/pages/search.component.ts'
+      - 'src/pages/account-shell.component.ts'
+      - 'src/components/account-favorites-v213.component.ts'
+      - 'src/components/main-layout.component.ts'
+      - 'src/services/global-search.service.ts'
+      - 'src/services/homepage-layout.service.ts'
+      - 'src/services/homepage-admin.service.ts'
+      - 'src/services/customer-favorites-sync.service.ts'
+      - 'src/mobile-target-fixes.css'
+      - 'supabase/migrations/**'
+      - 'supabase/tests/v213_prestige_discovery_contract.sql'
+      - 'scripts/check-v213-prestige-discovery-personalization.mjs'
+      - 'package.json'
+      - '.github/workflows/v213-prestige-discovery-personalization.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/pages/home-v71.component.ts'
+      - 'src/pages/search.component.ts'
+      - 'src/pages/account-shell.component.ts'
+      - 'src/components/account-favorites-v213.component.ts'
+      - 'src/components/main-layout.component.ts'
+      - 'src/services/global-search.service.ts'
+      - 'src/services/homepage-layout.service.ts'
+      - 'src/services/homepage-admin.service.ts'
+      - 'src/services/customer-favorites-sync.service.ts'
+      - 'src/mobile-target-fixes.css'
+      - 'supabase/migrations/**'
+      - 'supabase/tests/v213_prestige_discovery_contract.sql'
+      - 'scripts/check-v213-prestige-discovery-personalization.mjs'
+      - 'package.json'
+      - '.github/workflows/v213-prestige-discovery-personalization.yml'
+
+concurrency:
+  group: v213-prestige-discovery-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci
+      - name: V213 permanent invariant
+        run: npm run prestige-discovery:v213
+      - name: Frontend TypeScript
+        run: npm run lint

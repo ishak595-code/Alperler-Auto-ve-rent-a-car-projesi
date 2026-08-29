@@ -26,7 +26,8 @@
     "architecture-constitution:v2082": "node scripts/check-v2082-architecture-constitution.mjs",
     "server-only-boundaries:v2083": "node scripts/check-v2083-server-only-boundaries.mjs",
     "domain-truth:v209": "node scripts/check-v209-domain-truth.mjs",
-    "verify:handoff": "npm run repository-governance:v208 && npm run runtime-ownership:v2081 && npm run architecture-constitution:v2082 && npm run server-only-boundaries:v2083 && npm run domain-truth:v209 && npm run customer-experience:v207 && npm run database-source:v207 && node scripts/check-v206-handoff.mjs && node scripts/check-portability-v186.mjs && node scripts/check-v203-canonical-runtime-integrity.mjs && node scripts/check-v205-responsive-prestige.mjs && npm run design:premium && npm run pwa:installability && npm run a11y:buttons && npm run a11y:dates && npm run media:vehicles && npm run vercel:functions && npm run security:v165 && npm run lint && npm run typecheck:api && npm run build",
+    "prestige-conversion:v210": "node scripts/check-v210-prestige-conversion.mjs",
+    "verify:handoff": "npm run repository-governance:v208 && npm run runtime-ownership:v2081 && npm run architecture-constitution:v2082 && npm run server-only-boundaries:v2083 && npm run domain-truth:v209 && npm run prestige-conversion:v210 && npm run customer-experience:v207 && npm run database-source:v207 && node scripts/check-v206-handoff.mjs && node scripts/check-portability-v186.mjs && node scripts/check-v203-canonical-runtime-integrity.mjs && node scripts/check-v205-responsive-prestige.mjs && npm run design:premium && npm run pwa:installability && npm run a11y:buttons && npm run a11y:dates && npm run media:vehicles && npm run vercel:functions && npm run security:v165 && npm run lint && npm run typecheck:api && npm run build",
     "preview": "ng serve --configuration=production"
   },
   "dependencies": {

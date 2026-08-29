@@ -1,0 +1,62 @@
+name: V210 Prestige Conversion
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/services/homepage-layout.service.ts'
+      - 'src/components/customer-mobile-dock.component.ts'
+      - 'src/pages/admin/admin-homepage.component.ts'
+      - 'src/pages/admin/admin-navigation.component.ts'
+      - 'src/services/catalog.service.ts'
+      - 'src/app.component.ts'
+      - 'supabase/migrations/**'
+      - 'scripts/check-v210-prestige-conversion.mjs'
+      - '.github/workflows/v210-prestige-conversion.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches: [main]
+    paths:
+      - 'src/services/homepage-layout.service.ts'
+      - 'src/components/customer-mobile-dock.component.ts'
+      - 'src/pages/admin/admin-homepage.component.ts'
+      - 'src/pages/admin/admin-navigation.component.ts'
+      - 'src/services/catalog.service.ts'
+      - 'src/app.component.ts'
+      - 'supabase/migrations/**'
+      - 'scripts/check-v210-prestige-conversion.mjs'
+      - '.github/workflows/v210-prestige-conversion.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v210-prestige-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prestige-conversion:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Enforce V210 conversion ownership
+        run: node scripts/check-v210-prestige-conversion.mjs
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Frontend TypeScript
+        run: npm run lint
+      - name: Production build
+        run: npm run build

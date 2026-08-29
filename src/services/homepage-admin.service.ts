@@ -22,6 +22,7 @@ export interface HomepageSectionSettings {
   branchFranchiseLabel?: string; branchLocationLabel?: string; branchFallbackDescriptionSuffix?: string;
   branchPickupLabel?: string; branchReturnLabel?: string; branchCardCtaLabel?: string;
   blogCardCtaLabel?: string;
+  selectionMode?: 'PLACEMENT' | 'LATEST';
   [key: string]: unknown;
 }
 export interface HomepageSectionRecord { sectionKey:string; title:string; sectionType:HomepageSectionType; isEnabled:boolean; sortOrder:number; maxItems:number; settings:HomepageSectionSettings; }
@@ -44,17 +45,20 @@ export class HomepageAdminService {
         this.cars.refreshSiteConfig(true),
       ]);
       if(payload.ok!==true)throw new Error(payload.code||'HOMEPAGE_ADMIN_LOAD_FAILED');
-      this._sections.set((payload.homepageSections||[]).map(row=>this.sectionFromRow(row)));
-      this._placements.set((payload.homepagePlacements||[]).map(row=>this.placementFromRow(row)));
+      const placements=(payload.homepagePlacements||[]).map(row=>this.placementFromRow(row));
+      const sections=(payload.homepageSections||[]).map(row=>this.sectionFromRow(row));
+      this._placements.set(placements);
+      this._sections.set(this.reconcileManualCounts(sections,placements));
     }finally{this._loading.set(false);}
   }
 
   async createSection(input:{title:string;sectionType:HomepageSectionType;maxItems?:number;settings?:HomepageSectionSettings}):Promise<HomepageSectionRecord>{
     const token=await this.requiredToken();const sectionKey=this.createSectionKey(input.title);const nextSort=this._sections().reduce((max,item)=>Math.max(max,item.sortOrder),0)+10;
-    const section:HomepageSectionRecord={sectionKey,title:input.title.trim(),sectionType:input.sectionType,isEnabled:true,sortOrder:nextSort,maxItems:this.normalizeMaxItems(input.maxItems??4),settings:input.settings||{}};
+    const settings:HomepageSectionSettings={...(input.settings||{})};if(this.supportsPlacements(input.sectionType)&&!settings.selectionMode)settings.selectionMode='PLACEMENT';
+    const section:HomepageSectionRecord={sectionKey,title:input.title.trim(),sectionType:input.sectionType,isEnabled:true,sortOrder:nextSort,maxItems:this.normalizeMaxItems(input.maxItems??1),settings};
     const payload=await this.request<MutationPayload>('PATCH',token,{action:'upsertSection',section});if(payload.ok!==true)throw new Error(payload.code||'HOMEPAGE_SECTION_CREATE_FAILED');await this.refresh();return this._sections().find(item=>item.sectionKey===sectionKey)||section;
   }
-  async updateSection(section:HomepageSectionRecord):Promise<void>{const token=await this.requiredToken();const payload=await this.request<MutationPayload>('PATCH',token,{action:'upsertSection',section:{...section,title:section.title.trim(),maxItems:this.normalizeMaxItems(section.maxItems),settings:section.settings||{}}});if(payload.ok!==true)throw new Error(payload.code||'HOMEPAGE_SECTION_UPDATE_FAILED');await this.refresh();}
+  async updateSection(section:HomepageSectionRecord):Promise<void>{const token=await this.requiredToken();const maxItems=this.isManual(section)?Math.max(1,this._placements().filter(item=>item.sectionKey===section.sectionKey&&item.isActive).length):this.normalizeMaxItems(section.maxItems);const payload=await this.request<MutationPayload>('PATCH',token,{action:'upsertSection',section:{...section,title:section.title.trim(),maxItems,settings:section.settings||{}}});if(payload.ok!==true)throw new Error(payload.code||'HOMEPAGE_SECTION_UPDATE_FAILED');await this.refresh();}
   async deleteSection(sectionKey:string):Promise<void>{const token=await this.requiredToken();const payload=await this.request<MutationPayload>('PATCH',token,{action:'deleteSection',sectionKey});if(payload.ok!==true)throw new Error(payload.code||'HOMEPAGE_SECTION_DELETE_FAILED');await this.refresh();}
   async reorderSections(orderedKeys:string[]):Promise<void>{const token=await this.requiredToken();const payload=await this.request<MutationPayload>('PATCH',token,{action:'reorderSections',keys:orderedKeys});if(payload.ok!==true)throw new Error(payload.code||'HOMEPAGE_SECTION_ORDER_FAILED');await this.refresh();}
   async addPlacement(input:Omit<HomepagePlacementRecord,'id'>):Promise<void>{const token=await this.requiredToken();const payload=await this.request<MutationPayload>('PATCH',token,{action:'upsertPlacement',placement:input});if(payload.ok!==true)throw new Error(payload.code||'HOMEPAGE_PLACEMENT_CREATE_FAILED');await this.refresh();}
@@ -62,6 +66,9 @@ export class HomepageAdminService {
   async removePlacement(id:string):Promise<void>{const token=await this.requiredToken();const payload=await this.request<MutationPayload>('PATCH',token,{action:'deletePlacement',id});if(payload.ok!==true)throw new Error(payload.code||'HOMEPAGE_PLACEMENT_DELETE_FAILED');await this.refresh();}
   async reorderPlacements(orderedIds:string[]):Promise<void>{const token=await this.requiredToken();const payload=await this.request<MutationPayload>('PATCH',token,{action:'reorderPlacements',ids:orderedIds});if(payload.ok!==true)throw new Error(payload.code||'HOMEPAGE_PLACEMENT_ORDER_FAILED');await this.refresh();}
 
+  private reconcileManualCounts(sections:HomepageSectionRecord[],placements:HomepagePlacementRecord[]):HomepageSectionRecord[]{const counts=new Map<string,number>();for(const placement of placements){if(!placement.isActive)continue;counts.set(placement.sectionKey,(counts.get(placement.sectionKey)||0)+1);}return sections.map(section=>this.isManual(section)?{...section,maxItems:Math.max(1,counts.get(section.sectionKey)||0)}:section);}
+  private isManual(section:HomepageSectionRecord):boolean{return this.supportsPlacements(section.sectionType)&&String(section.settings?.selectionMode||'PLACEMENT').toUpperCase()!=='LATEST';}
+  private supportsPlacements(type:HomepageSectionType):boolean{return type==='VEHICLES'||type==='TOURS'||type==='BLOG'||type==='CAMPAIGN';}
   private sectionFromRow(row:any):HomepageSectionRecord{return{sectionKey:String(row.section_key||row.sectionKey||''),title:String(row.title||''),sectionType:(row.section_type||row.sectionType) as HomepageSectionType,isEnabled:(row.is_enabled??row.isEnabled)!==false,sortOrder:Number(row.sort_order??row.sortOrder??0),maxItems:this.normalizeMaxItems(Number(row.max_items??row.maxItems??4)),settings:row.settings&&typeof row.settings==='object'?row.settings:{}};}
   private placementFromRow(row:any):HomepagePlacementRecord{return{id:String(row.id||''),sectionKey:String(row.section_key||row.sectionKey||''),entityType:(row.entity_type||row.entityType) as HomepageEntityType,entityId:String(row.entity_id||row.entityId||''),label:row.label||undefined,sortOrder:Number(row.sort_order??row.sortOrder??0),isActive:(row.is_active??row.isActive)!==false,startsAt:row.starts_at||row.startsAt||undefined,endsAt:row.ends_at||row.endsAt||undefined,metadata:row.metadata&&typeof row.metadata==='object'?row.metadata:{}};}
   private createSectionKey(title:string):string{const base=title.toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,48)||'bolum';return`${base}_${Date.now().toString(36)}`;}

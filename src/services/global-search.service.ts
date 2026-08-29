@@ -59,9 +59,11 @@ export class GlobalSearchService {
     for (const tour of this.cars.getTours()()) results.push(this.vehicleCandidate(tour, 'TOUR'));
     for (const post of this.cars.getBlogPosts()()) results.push(this.blogCandidate(post));
     for (const campaign of this.campaigns.publicCampaigns()) {
-      if (campaign.isActive && campaign.publicationStatus === 'PUBLISHED') results.push(this.campaignCandidate(campaign));
+      if (this.isLiveCampaign(campaign)) results.push(this.campaignCandidate(campaign));
     }
-    for (const branch of this.branches.branches()) results.push(this.branchCandidate(branch));
+    for (const branch of this.branches.branches()) {
+      if (branch.isActive && !/\bdemo\b/i.test(branch.name || '')) results.push(this.branchCandidate(branch));
+    }
     for (const faq of this.cars.getFaqs()()) results.push(this.faqCandidate(faq));
     for (const section of this.homepage.sections()) {
       if (section.isEnabled) results.push(this.sectionCandidate(section));
@@ -203,6 +205,15 @@ export class GlobalSearchService {
       if (!map.has(item.route)) map.set(item.route, item);
     }
     return [...map.values()];
+  }
+
+  private isLiveCampaign(campaign: CampaignRecord): boolean {
+    if (!campaign.isActive || campaign.publicationStatus !== 'PUBLISHED') return false;
+    const now = this.campaigns.clock();
+    const start = campaign.startsAt ? new Date(campaign.startsAt).getTime() : Number.NEGATIVE_INFINITY;
+    const end = campaign.endsAt ? new Date(campaign.endsAt).getTime() : Number.POSITIVE_INFINITY;
+    return (!campaign.startsAt || (Number.isFinite(start) && start <= now))
+      && (!campaign.endsAt || (Number.isFinite(end) && end > now));
   }
 
   private score(candidate: SearchCandidate, query: string): number {

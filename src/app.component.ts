@@ -83,14 +83,12 @@ export class AppComponent implements OnInit {
     if (this.backgroundServicesStarted) return;
     this.backgroundServicesStarted = true;
     try {
-      const [healthModule, newsletterModule, analyticsModule, autofillModule] = await Promise.all([
+      const [healthModule, analyticsModule, autofillModule] = await Promise.all([
         import('./services/system-health.service'),
-        import('./services/newsletter-sync.service'),
         import('./services/visitor-analytics.service'),
         import('./services/customer-profile-autofill.service'),
       ]);
       this.injector.get(healthModule.SystemHealthService).start();
-      void this.injector.get(newsletterModule.NewsletterSyncService);
       this.injector.get(analyticsModule.VisitorAnalyticsService).init();
       this.injector.get(autofillModule.CustomerProfileAutofillService).start();
     } catch (error) {

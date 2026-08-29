@@ -2,20 +2,9 @@ import { CommonModule } from "@angular/common";
 import { Component, OnInit, computed, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
-import { AuthService } from "../../services/auth.service";
-import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../../supabase.config";
+import { AdminAuditRow, AdminAuditService } from "../../services/admin-audit.service";
 
-interface AuditRow {
-  id: number;
-  actor_user_id?: string | null;
-  actor_email?: string | null;
-  action: "INSERT" | "UPDATE" | "DELETE" | string;
-  entity_type: string;
-  entity_id?: string | null;
-  before_data?: Record<string, unknown> | null;
-  after_data?: Record<string, unknown> | null;
-  created_at: string;
-}
+type AuditRow = AdminAuditRow;
 
 @Component({
   selector: "app-admin-audit",
@@ -67,7 +56,7 @@ interface AuditRow {
   `],
 })
 export class AdminAuditComponent implements OnInit {
-  private readonly auth = inject(AuthService);
+  private readonly audit = inject(AdminAuditService);
   readonly rows = signal<AuditRow[]>([]);
   readonly loading = signal(false);
   readonly error = signal("");
@@ -92,15 +81,8 @@ export class AdminAuditComponent implements OnInit {
 
   async refresh(): Promise<void> {
     this.loading.set(true); this.error.set("");
-    try {
-      const token = await this.auth.getAccessToken();
-      if (!token) throw new Error("Yönetici oturumu bulunamadı.");
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/audit_logs?select=id,actor_user_id,actor_email,action,entity_type,entity_id,before_data,after_data,created_at&order=created_at.desc&limit=300`, {
-        headers: { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error(`İşlem geçmişi yüklenemedi (${response.status}).`);
-      this.rows.set((await response.json()) as AuditRow[]);
-    } catch (error) { this.error.set(error instanceof Error ? error.message : "İşlem geçmişi yüklenemedi."); }
+    try { this.rows.set(await this.audit.list(300)); }
+    catch (error) { this.error.set(error instanceof Error ? error.message : "İşlem geçmişi yüklenemedi."); }
     finally { this.loading.set(false); }
   }
 

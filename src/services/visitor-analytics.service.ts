@@ -31,9 +31,15 @@ interface ActiveForm {
   submitted: boolean;
 }
 
+interface BookingEntryAttribution {
+  step: 'entry_mobile_dock' | 'entry_home_closing_cta' | 'entry_other_appointment_link';
+  section: 'mobile_dock' | 'closing_cta' | 'appointment_link';
+}
+
 const CONSENT_KEY = 'alperler.analytics.consent.v1';
 const VISITOR_KEY = 'alperler.analytics.visitor.v1';
 const SESSION_KEY = 'alperler.analytics.session.v1';
+const BOOKING_FUNNEL = 'booking_conversion';
 const FLUSH_MS = 5000;
 
 @Injectable({ providedIn: 'root' })
@@ -147,11 +153,18 @@ export class VisitorAnalyticsService {
     const href = target instanceof HTMLAnchorElement ? this.safeInternalHref(target.href) : '';
     const role = target.getAttribute('role') || target.tagName.toLowerCase();
     const pointerType = typeof PointerEvent !== 'undefined' && event instanceof PointerEvent ? event.pointerType || 'pointer' : 'mouse';
+    const bookingEntry = this.bookingEntryAttribution(target, href);
     const now = Date.now();
     if (this.lastClick.key === key && now - this.lastClick.at < 2000) this.lastClick.count += 1;
     else this.lastClick = { key, at: now, count: 1 };
     this.lastClick.at = now;
-    this.enqueue('click', { elementKey: key, elementLabel: label, elementRole: role, metadata: { href, pointerType } });
+    this.enqueue('click', {
+      elementKey: key,
+      elementLabel: label,
+      elementRole: role,
+      ...(bookingEntry ? { funnelName: BOOKING_FUNNEL, funnelStep: bookingEntry.step } : {}),
+      metadata: this.safeMetadata({ href, pointerType, ...(bookingEntry ? { section: bookingEntry.section } : {}) }),
+    });
     if (this.lastClick.count === 3) this.enqueue('rage_click', { elementKey: key, elementLabel: label, elementRole: role, metadata: { href } });
   };
 
@@ -299,6 +312,13 @@ export class VisitorAnalyticsService {
 
   private formName(form: HTMLFormElement): string {
     return this.clean(form.dataset['analyticsForm'] || form.getAttribute('aria-label') || form.id || form.getAttribute('name') || `${this.currentPath}:form`, 120);
+  }
+
+  private bookingEntryAttribution(element: HTMLElement, href: string): BookingEntryAttribution | null {
+    if (href.split('?')[0] !== '/appointment') return null;
+    if (element.closest('[data-dock-item="appointment"]')) return { step: 'entry_mobile_dock', section: 'mobile_dock' };
+    if (element.closest('[aria-labelledby="closing_cta-title"]')) return { step: 'entry_home_closing_cta', section: 'closing_cta' };
+    return { step: 'entry_other_appointment_link', section: 'appointment_link' };
   }
 
   private elementKey(element: HTMLElement): string {

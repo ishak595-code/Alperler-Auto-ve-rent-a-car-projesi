@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 
@@ -8,6 +9,7 @@ const migrationName = '20260829203000_v2082_architecture_constitution_privilege_
 const migrationPath = join(root, 'supabase', 'migrations', migrationName);
 const constitutionPath = join(root, 'docs', 'ARCHITECTURE_CONSTITUTION_V2082.md');
 const adminCorePath = join(root, 'supabase', 'functions', 'admin-core-gateway-v178', 'index.ts');
+const bookingConversionContractPath = join(root, 'scripts', 'check-v211-booking-conversion-attribution.mjs');
 
 function walk(dir) {
   if (!existsSync(dir)) return [];
@@ -129,6 +131,15 @@ else {
 
 const privilegeTestPath = join(root, 'supabase', 'tests', 'v2082_privilege_contract.sql');
 if (!existsSync(privilegeTestPath)) failures.push('V2082_PRIVILEGE_TEST_MISSING supabase/tests/v2082_privilege_contract.sql');
+
+if (!existsSync(bookingConversionContractPath)) failures.push('V211_BOOKING_CONVERSION_CONTRACT_MISSING scripts/check-v211-booking-conversion-attribution.mjs');
+else {
+  try {
+    execFileSync(process.execPath, [bookingConversionContractPath], { cwd: root, stdio: 'inherit' });
+  } catch {
+    failures.push('V211_BOOKING_CONVERSION_CONTRACT_FAILED scripts/check-v211-booking-conversion-attribution.mjs');
+  }
+}
 
 if (failures.length) {
   const unique = [...new Set(failures)].sort();

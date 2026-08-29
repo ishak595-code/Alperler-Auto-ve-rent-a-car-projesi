@@ -27,8 +27,10 @@ assert(layout.includes('.customer-main{min-width:0;flex:1;padding-top:72px}'), '
 assert(layout.includes('@media(min-width:768px){.customer-main{padding-top:84px}}'), 'tablet customer shell offset is missing');
 assert(layout.includes('@media(min-width:1280px){.customer-main{padding-top:96px}}'), 'desktop customer shell offset is missing');
 
-assert(!app.includes('AnalyticsConsentComponent'), 'first-load analytics consent UI must not be globally mounted');
-assert(!app.includes('<app-analytics-consent>'), 'first-load analytics consent element must be absent');
+assert(app.includes('AnalyticsConsentComponent'), 'customer privacy consent UI must remain owned by the root customer shell');
+assert(app.includes('@if (showCustomerChrome())') && app.includes('<app-analytics-consent></app-analytics-consent>'), 'privacy consent must be mounted only inside the customer chrome condition');
+assert(app.indexOf('<app-analytics-consent></app-analytics-consent>') > app.indexOf('@if (showCustomerChrome())'), 'privacy consent must not escape the customer-only shell');
+assert(app.includes("return !path.startsWith('/admin') && !path.startsWith('/branch-portal')"), 'customer chrome boundary must exclude admin and branch portal surfaces');
 assert(app.includes("typeof idleWindow.requestIdleCallback === 'function'"), 'noncritical startup should feature-detect requestIdleCallback without unsafe narrowing');
 assert(app.includes('globalThis.setTimeout(start, 500)'), 'noncritical startup must retain a bounded timer fallback');
 for (const modulePath of [

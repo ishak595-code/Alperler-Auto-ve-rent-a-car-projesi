@@ -10,6 +10,7 @@ const migrationPath = join(root, 'supabase', 'migrations', migrationName);
 const constitutionPath = join(root, 'docs', 'ARCHITECTURE_CONSTITUTION_V2082.md');
 const adminCorePath = join(root, 'supabase', 'functions', 'admin-core-gateway-v178', 'index.ts');
 const bookingConversionContractPath = join(root, 'scripts', 'check-v211-booking-conversion-attribution.mjs');
+const privacyConsentContractPath = join(root, 'scripts', 'check-v212-third-party-tracking-consent.mjs');
 
 function walk(dir) {
   if (!existsSync(dir)) return [];
@@ -138,6 +139,15 @@ else {
     execFileSync(process.execPath, [bookingConversionContractPath], { cwd: root, stdio: 'inherit' });
   } catch {
     failures.push('V211_BOOKING_CONVERSION_CONTRACT_FAILED scripts/check-v211-booking-conversion-attribution.mjs');
+  }
+}
+
+if (!existsSync(privacyConsentContractPath)) failures.push('V212_PRIVACY_CONSENT_CONTRACT_MISSING scripts/check-v212-third-party-tracking-consent.mjs');
+else {
+  try {
+    execFileSync(process.execPath, [privacyConsentContractPath], { cwd: root, stdio: 'inherit' });
+  } catch {
+    failures.push('V212_PRIVACY_CONSENT_CONTRACT_FAILED scripts/check-v212-third-party-tracking-consent.mjs');
   }
 }
 

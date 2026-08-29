@@ -47,6 +47,10 @@ function stripSqlComments(source) {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/--.*$/gm, '');
 }
 
+function escapes(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 if (!existsSync(docPath)) failures.push('V2083_DOCUMENT_MISSING docs/SERVER_ONLY_BOUNDARIES_V2083.md');
 if (!existsSync(sqlTestPath)) failures.push('V2083_SQL_TEST_MISSING supabase/tests/v2083_server_only_boundary.sql');
 
@@ -54,11 +58,40 @@ const browserFiles = walk(join(root, 'src')).filter((file) => /\.(?:ts|tsx)$/.te
 for (const file of browserFiles) {
   const source = readFileSync(file, 'utf8');
   const label = relative(root, file).replaceAll('\\', '/');
+
   for (const table of tableNames) {
-    if (new RegExp(`\\b${table}\\b`, 'i').test(source)) failures.push(`BROWSER_SERVER_ONLY_TABLE_REFERENCE ${table} ${label}`);
+    const escaped = escapes(table);
+    const directTablePatterns = [
+      new RegExp(`/rest/v1/${escaped}(?:[?/'\"\\s]|$)`, 'i'),
+      new RegExp(`\\.from\\(\\s*['\"]${escaped}['\"]\\s*\\)`, 'i'),
+      new RegExp(`\\btable\\s*[:=]\\s*['\"]${escaped}['\"]`, 'i'),
+    ];
+    if (directTablePatterns.some((pattern) => pattern.test(source))) {
+      failures.push(`BROWSER_SERVER_ONLY_TABLE_ACCESS ${table} ${label}`);
+    }
   }
+
   for (const rpc of privilegedRpcs) {
-    if (new RegExp(`\\b${rpc}\\b`, 'i').test(source)) failures.push(`BROWSER_PRIVILEGED_RPC_REFERENCE ${rpc} ${label}`);
+    const escaped = escapes(rpc);
+    const directRpcPatterns = [
+      new RegExp(`/rest/v1/rpc/${escaped}(?:[?/'\"\\s]|$)`, 'i'),
+      new RegExp(`\\.rpc\\(\\s*['\"]${escaped}['\"]`, 'i'),
+    ];
+    if (directRpcPatterns.some((pattern) => pattern.test(source))) {
+      failures.push(`BROWSER_PRIVILEGED_RPC_ACCESS ${rpc} ${label}`);
+    }
+  }
+
+  const legacyNewsletterTruth = [
+    /\bdb_subscribers\b/,
+    /\bgetSubscribers\s*\(/,
+    /\baddSubscriber\s*\(/,
+    /\bremoveSubscriber\s*\(/,
+    /newsletter-sync\.service/,
+    /\bNewsletterSyncService\b/,
+  ];
+  if (legacyNewsletterTruth.some((pattern) => pattern.test(source))) {
+    failures.push(`LEGACY_NEWSLETTER_BROWSER_TRUTH ${label}`);
   }
 }
 
@@ -76,14 +109,14 @@ for (const file of futureMigrations) {
     if (!grantsClient) continue;
 
     const grantsTablePrivilege = /\b(?:select|insert|update|delete|truncate|references|trigger|all(?:\s+privileges)?)\b/i.test(statement);
-    const grantsAllPublicTables = /\ball\s+tables\s+in\s+schema\s+(?:public|private)\b/i.test(statement);
-    const namesServerTable = tableNames.some((table) => new RegExp(`\\b${table}\\b`, 'i').test(statement));
-    if (grantsTablePrivilege && (grantsAllPublicTables || namesServerTable)) {
+    const grantsAllClientTables = /\ball\s+tables\s+in\s+schema\s+(?:public|private)\b/i.test(statement);
+    const namesServerTable = tableNames.some((table) => new RegExp(`\\b${escapes(table)}\\b`, 'i').test(statement));
+    if (grantsTablePrivilege && (grantsAllClientTables || namesServerTable)) {
       failures.push(`FUTURE_SERVER_ONLY_CLIENT_GRANT ${label}`);
     }
 
     const grantsExecute = /\bgrant\s+execute\b/i.test(statement);
-    const namesPrivilegedRpc = privilegedRpcs.some((rpc) => new RegExp(`\\b${rpc}\\b`, 'i').test(statement));
+    const namesPrivilegedRpc = privilegedRpcs.some((rpc) => new RegExp(`\\b${escapes(rpc)}\\b`, 'i').test(statement));
     if (grantsExecute && namesPrivilegedRpc) failures.push(`FUTURE_PRIVILEGED_RPC_CLIENT_EXECUTE ${label}`);
   }
 }

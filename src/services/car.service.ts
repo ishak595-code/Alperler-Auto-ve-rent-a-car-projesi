@@ -1,7 +1,6 @@
 import { DestroyRef, Injectable, computed, effect, inject, signal } from "@angular/core";
 import { Car, SaleCar, Tour, Vehicle } from "../models/car.model";
 import { SiteConfig } from "../models/site-config.model";
-import { BookingService } from "./booking.service";
 import {
   CatalogBlogPost,
   CatalogFaqItem,
@@ -47,18 +46,6 @@ export interface BookingRequest {
   notes?: string;
 }
 
-export interface PartnerRequest {
-  id: number;
-  name: string;
-  phone: string;
-  email?: string;
-  carBrand: string;
-  modelYear: number;
-  km: number;
-  description: string;
-  date: Date;
-}
-
 export interface FaqItem {
   id: number;
   question: string;
@@ -68,38 +55,23 @@ export interface FaqItem {
   cloudId?: string;
 }
 
-export interface Feedback {
-  id: number;
-  category: "BUG" | "FEATURE" | "GENERAL" | "CONTENT" | "OTHER";
-  rating: number;
-  message: string;
-  date: Date;
-  status: "NEW" | "REVIEWED" | "ARCHIVED";
-}
-
 @Injectable({ providedIn: "root" })
 export class CarService {
   private readonly catalogService = inject(CatalogService);
   private readonly catalogMediaService = inject(PublicCatalogMediaService);
-  private readonly bookingService = inject(BookingService);
   private readonly campaignService = inject(CampaignService);
   private readonly realtime = inject(PublicContentRealtimeService);
   private readonly destroyRef = inject(DestroyRef);
 
+  // Route handoff only. This state is intentionally in-memory and never persisted.
   private readonly _bookingRequest = signal<BookingRequest | null>(null);
+  // Favorites are an intentional device preference until a cross-device account feature owns them.
   private readonly _favoriteCars = signal<(number | string)[]>([]);
-  private readonly _visitCount = signal(0);
-  private readonly _partnerRequests = signal<PartnerRequest[]>([]);
-  private readonly _feedbacks = signal<Feedback[]>([]);
-  private readonly _notifications = signal<
-    { id: number; to: string; message: string; date: Date }[]
-  >([]);
 
   private readonly _config = signal<SiteConfig>({ ...DEFAULT_SITE_CONFIG });
   private readonly _faqs = signal<FaqItem[]>([]);
   private readonly _inventory = signal<Vehicle[]>([]);
   private readonly _blogPosts = signal<BlogPost[]>([]);
-  private readonly _reservations = signal<BookingRequest[]>([]);
   private readonly _tours = signal<Tour[]>([]);
 
   private cloudRefreshTimer?: number;
@@ -110,9 +82,9 @@ export class CarService {
   private configRefreshQueued = false;
 
   constructor() {
-    this.loadFromStorage();
-    this.incrementVisitCount();
-    this.installLocalPersistence();
+    this.purgeObsoleteBusinessCaches();
+    this.loadDevicePreferences();
+    this.installDevicePreferencePersistence();
 
     const unwatchCatalog = this.realtime.watch(
       ["vehicles", "tours", "catalog_media", "media_assets", "blog_posts", "faqs"],
@@ -127,7 +99,7 @@ export class CarService {
 
     if (typeof window !== "undefined") {
       const handleStorage = (event: StorageEvent) => {
-        if (event.key?.startsWith("db_")) this.loadFromStorage();
+        if (event.key === "db_favoriteCars") this.loadDevicePreferences();
       };
       window.addEventListener("storage", handleStorage);
       this.destroyRef.onDestroy(() => {
@@ -217,12 +189,6 @@ export class CarService {
     ]);
   }
 
-  resetStats(): void {
-    this._visitCount.set(0);
-    if (typeof localStorage !== "undefined") localStorage.removeItem("db_visits");
-    if (typeof sessionStorage !== "undefined") sessionStorage.removeItem("session_active");
-  }
-
   getVehicleByAdId(id: number | string): Vehicle | undefined {
     const searchId = String(id);
     return this._inventory().find((vehicle) => String(vehicle.id) === searchId);
@@ -280,89 +246,8 @@ export class CarService {
     return this._blogPosts().find((post) => post.id === id);
   }
 
-  getReservations() {
-    return this._reservations.asReadonly();
-  }
-
-  getPartnerRequests() {
-    return this._partnerRequests.asReadonly();
-  }
-
-  getVisitCount() {
-    return this._visitCount.asReadonly();
-  }
-
   getFaqs() {
     return this._faqs.asReadonly();
-  }
-
-  getFeedbacks() {
-    return this._feedbacks.asReadonly();
-  }
-
-  getNotifications() {
-    return this._notifications.asReadonly();
-  }
-
-  async submitPartnerRequest(
-    request: Omit<PartnerRequest, "id" | "date">,
-  ): Promise<PartnerRequest> {
-    const carParts = request.carBrand.trim().split(/\s+/).filter(Boolean);
-    const brand = carParts.shift() || request.carBrand.trim();
-    const model = carParts.join(" ") || "Belirtilmedi";
-    const response = await fetch("/api/partner-requests", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        idempotencyKey: crypto.randomUUID(),
-        intent: "rent",
-        name: request.name,
-        phone: request.phone,
-        email: request.email,
-        carBrand: brand,
-        carModel: model,
-        modelYear: request.modelYear,
-        km: request.km,
-        withDriver: false,
-        notes: request.description,
-        files: [],
-      }),
-    });
-    const payload = (await response.json().catch(() => ({}))) as {
-      ok?: boolean;
-      code?: string;
-    };
-    if (!response.ok || !payload.ok) {
-      throw new Error(payload.code || "PARTNER_REQUEST_FAILED");
-    }
-
-    const saved: PartnerRequest = { ...request, id: Date.now(), date: new Date() };
-    this._partnerRequests.update((items) => [saved, ...items]);
-    return saved;
-  }
-
-  deletePartnerRequest(id: number): void {
-    this._partnerRequests.update((items) => items.filter((item) => item.id !== id));
-  }
-
-  addFeedback(feedback: Omit<Feedback, "id" | "date" | "status">): void {
-    this._feedbacks.update((items) => [
-      { ...feedback, id: Date.now(), date: new Date(), status: "NEW" },
-      ...items,
-    ]);
-  }
-
-  updateFeedbackStatus(
-    id: number,
-    status: "NEW" | "REVIEWED" | "ARCHIVED",
-  ): void {
-    this._feedbacks.update((items) =>
-      items.map((item) => (item.id === id ? { ...item, status } : item)),
-    );
-  }
-
-  deleteFeedback(id: number): void {
-    this._feedbacks.update((items) => items.filter((item) => item.id !== id));
   }
 
   addFaq(faq: FaqItem): void {
@@ -420,13 +305,6 @@ export class CarService {
       this._tours.set(previous);
       this.syncToursIntoInventory();
     });
-  }
-
-  addPartnerRequest(req: Omit<PartnerRequest, "id" | "date">): void {
-    this._partnerRequests.update((items) => [
-      { ...req, id: Date.now(), date: new Date() },
-      ...items,
-    ]);
   }
 
   async updateConfig(newConfig: SiteConfig): Promise<void> {
@@ -514,81 +392,6 @@ export class CarService {
     });
   }
 
-  async addReservation(req: BookingRequest): Promise<BookingRequest> {
-    const record = await this.bookingService.create({
-      type: req.type,
-      itemId: req.item?.id,
-      itemName: req.itemName || req.item?.brand || "Rezervasyon",
-      image: req.image,
-      customerName: req.customerName || "",
-      customerEmail: req.customerEmail,
-      customerPhone: req.customerPhone || "",
-      basePrice: req.basePrice,
-      totalPrice: req.totalPrice,
-      currency: "TRY",
-      personCount: req.personCount,
-      startDate: req.startDate,
-      endDate: req.endDate,
-      days: req.days,
-      withDriver: req.withDriver,
-      pickupLocation: req.pickupLocation,
-      rentalDuration: req.rentalDuration,
-      notes: req.notes,
-      paymentMethod: "NONE",
-      source: "WEB",
-    });
-
-    const saved: BookingRequest = {
-      ...req,
-      id: record.id,
-      status:
-        record.status === "APPROVED"
-          ? "APPROVED"
-          : record.status === "REJECTED"
-            ? "REJECTED"
-            : "PENDING",
-      dateCreated: record.createdAt,
-    };
-    this._reservations.update((items) => [
-      saved,
-      ...items.filter((item) => item.id !== saved.id),
-    ]);
-    return saved;
-  }
-
-  async updateReservationStatus(
-    id: string,
-    status: "APPROVED" | "REJECTED" | "PENDING",
-  ): Promise<void> {
-    await this.bookingService.updateStatus(id, status);
-    this._reservations.update((items) =>
-      items.map((item) => (item.id === id ? { ...item, status } : item)),
-    );
-
-    if (status === "APPROVED") {
-      const reservation = this._reservations().find((item) => item.id === id);
-      if (reservation?.item && reservation.startDate && reservation.endDate) {
-        this._inventory.update((inventory) =>
-          inventory.map((vehicle) => {
-            if (vehicle.id !== reservation.item!.id) return vehicle;
-            return {
-              ...vehicle,
-              bookedDates: [
-                ...(vehicle.bookedDates || []),
-                { start: reservation.startDate!, end: reservation.endDate! },
-              ],
-            };
-          }),
-        );
-      }
-    }
-  }
-
-  async deleteReservation(id: string): Promise<void> {
-    await this.bookingService.delete(id);
-    this._reservations.update((items) => items.filter((item) => item.id !== id));
-  }
-
   setBookingRequest(request: BookingRequest): void {
     this._bookingRequest.set(request);
   }
@@ -612,46 +415,6 @@ export class CarService {
   }
 
   getFavoriteCount = computed(() => this._favoriteCars().length);
-
-  sendNotification(
-    to: string,
-    message: string,
-    _pdfData?: unknown,
-    subject?: string,
-    htmlMessage?: string,
-  ): void {
-    const notification = { id: Date.now(), to, message, date: new Date() };
-    this._notifications.update((items) => [notification, ...items]);
-
-    const normalizedRecipient = to.trim().toLowerCase();
-    const allowedBusinessRecipients = new Set(
-      [this._config().email, ...(this._config().adminEmails || [])]
-        .filter(Boolean)
-        .map((value) => value.trim().toLowerCase()),
-    );
-    if (!normalizedRecipient.includes("@") || !allowedBusinessRecipients.has(normalizedRecipient)) {
-      return;
-    }
-
-    void fetch("/api/send-email", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        to: normalizedRecipient,
-        subject: subject || "Alperler Rent A Car Bildirim",
-        text: message,
-        html: htmlMessage,
-      }),
-    }).catch((error) => console.error("Business notification failed", error));
-  }
-
-  deleteNotification(id: number): void {
-    this._notifications.update((items) => items.filter((item) => item.id !== id));
-  }
-
-  clearAllNotifications(): void {
-    this._notifications.set([]);
-  }
 
   triggerWebhook(eventName: string, _payload: unknown): void {
     console.info(`External browser webhook disabled for ${eventName}.`);
@@ -753,56 +516,26 @@ export class CarService {
     }, delay);
   }
 
-  private incrementVisitCount(): void {
-    if (typeof sessionStorage === "undefined") return;
-    if (!sessionStorage.getItem("session_active")) {
-      sessionStorage.setItem("session_active", "true");
-      this._visitCount.update((count) => count + 1);
-    }
-  }
-
-  private installLocalPersistence(): void {
+  private installDevicePreferencePersistence(): void {
     if (typeof localStorage === "undefined") return;
-
-    effect(() => localStorage.setItem("db_reservations_v2", JSON.stringify(this._reservations())));
-    effect(() => localStorage.setItem("db_partnerRequests_v2", JSON.stringify(this._partnerRequests())));
-    effect(() => localStorage.setItem("db_visits", String(this._visitCount())));
-    effect(() => localStorage.setItem("db_feedbacks_v2", JSON.stringify(this._feedbacks())));
-    effect(() => localStorage.setItem("db_notifications", JSON.stringify(this._notifications())));
     effect(() => localStorage.setItem("db_favoriteCars", JSON.stringify(this._favoriteCars())));
   }
 
-  private loadFromStorage(): void {
+  private purgeObsoleteBusinessCaches(): void {
     if (typeof localStorage === "undefined") return;
-
-    const obsoleteCloudTruthCacheKey = /^db_(?:cars|rental_?cars?|sale_?cars?|sales?|vehicles?|tours?|inventory|config|faqs?|blog|subscribers)(?:_|$)/i;
+    const obsoleteBusinessCacheKey = /^db_(?:cars|rental_?cars?|sale_?cars?|sales?|vehicles?|tours?|inventory|config|faqs?|blog|subscribers|reservations(?:_v2)?|partnerrequests(?:_v2)?|visits|feedbacks(?:_v2)?|notifications)(?:_|$)/i;
     for (let index = localStorage.length - 1; index >= 0; index -= 1) {
       const key = localStorage.key(index);
-      if (key && obsoleteCloudTruthCacheKey.test(key)) localStorage.removeItem(key);
+      if (key && obsoleteBusinessCacheKey.test(key)) localStorage.removeItem(key);
     }
+    sessionStorage.removeItem("session_active");
+  }
 
-    this.readStorage("db_reservations_v2", (value) => {
-      if (Array.isArray(value)) this._reservations.set(value as BookingRequest[]);
-    });
-    this.readStorage("db_partnerRequests_v2", (value) => {
-      if (Array.isArray(value)) this._partnerRequests.set(value as PartnerRequest[]);
-    });
-    this.readStorage("db_feedbacks_v2", (value) => {
-      if (Array.isArray(value)) this._feedbacks.set(value as Feedback[]);
-    });
-    this.readStorage("db_notifications", (value) => {
-      if (Array.isArray(value)) {
-        this._notifications.set(
-          value.map((item: any) => ({ ...item, date: new Date(item.date) })),
-        );
-      }
-    });
+  private loadDevicePreferences(): void {
+    if (typeof localStorage === "undefined") return;
     this.readStorage("db_favoriteCars", (value) => {
       if (Array.isArray(value)) this._favoriteCars.set(value as (number | string)[]);
     });
-
-    const visits = Number(localStorage.getItem("db_visits") || 0);
-    if (Number.isFinite(visits) && visits >= 0) this._visitCount.set(visits);
   }
 
   private readStorage(key: string, apply: (value: unknown) => void): void {
@@ -811,7 +544,7 @@ export class CarService {
     try {
       apply(JSON.parse(raw));
     } catch (error) {
-      console.warn(`Ignoring invalid local cache: ${key}`, error);
+      console.warn(`Ignoring invalid local preference: ${key}`, error);
       localStorage.removeItem(key);
     }
   }

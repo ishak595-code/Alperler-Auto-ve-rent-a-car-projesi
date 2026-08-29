@@ -28,6 +28,7 @@ on:
       - "src/components/customer-footer-v70.component.ts"
       - "src/components/navbar.component.ts"
       - "src/pages/appointment.component.ts"
+      - "src/pages/booking-checkout.component.ts"
       - "api/catalog.ts"
       - "api/partner.ts"
       - "api/bookings.ts"
@@ -129,9 +130,13 @@ jobs:
           ! grep -R --line-number --fixed-string 'SUPABASE_SERVICE_ROLE_KEY' src
           ! grep -R --line-number --fixed-string 'sb_secret_' src api supabase
 
-          # CarService must remain on the canonical Supabase catalog and booking services.
+          # Catalog remains in CarService; booking business state belongs only to BookingService.
           grep -Fq 'CatalogService' src/services/car.service.ts
-          grep -Fq 'BookingService' src/services/car.service.ts
+          ! grep -Fq 'BookingService' src/services/car.service.ts
+          ! grep -Fq 'addReservation(' src/services/car.service.ts
+          grep -Fq 'BookingService' src/pages/booking-checkout.component.ts
+          grep -Fq 'BookingService' src/pages/appointment.component.ts
+          grep -Fq 'BookingService' src/pages/admin/admin-reservations.component.ts
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v7

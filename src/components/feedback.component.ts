@@ -1,8 +1,9 @@
-import { Component, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { Component, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { CarService, Feedback } from "../services/car.service";
 import { UiService } from "../services/ui.service";
+
+type FeedbackCategory = "BUG" | "FEATURE" | "GENERAL" | "CONTENT" | "OTHER";
 
 interface FeedbackStoreResponse {
   ok?: boolean;
@@ -103,11 +104,10 @@ interface FeedbackStoreResponse {
   `],
 })
 export class FeedbackComponent {
-  readonly carService = inject(CarService);
   readonly uiService = inject(UiService);
   readonly t = this.uiService.translations;
 
-  category: Feedback["category"] = "GENERAL";
+  category: FeedbackCategory = "GENERAL";
   rating = signal(5);
   name = "";
   surname = "";
@@ -153,7 +153,6 @@ export class FeedbackComponent {
       const payload = (await response.json().catch(() => ({}))) as FeedbackStoreResponse;
       if (!response.ok || !payload.ok || !payload.stored) throw new Error(payload.code || "FEEDBACK_STORE_FAILED");
 
-      this.carService.addFeedback({ category: this.category, rating: this.rating(), message: this.message.trim() });
       this.reference.set(payload.reference || "");
       this.isSuccess.set(true);
     } catch (error) {
@@ -184,7 +183,7 @@ export class FeedbackComponent {
     this.submissionKey = crypto.randomUUID();
   }
 
-  private categoryLabel(category: Feedback["category"]): string {
-    return ({ BUG: "Hata", FEATURE: "Özellik Önerisi", GENERAL: "Genel", CONTENT: "İçerik", OTHER: "Diğer" } as Record<Feedback["category"], string>)[category];
+  private categoryLabel(category: FeedbackCategory): string {
+    return ({ BUG: "Hata", FEATURE: "Özellik Önerisi", GENERAL: "Genel", CONTENT: "İçerik", OTHER: "Diğer" } as Record<FeedbackCategory, string>)[category];
   }
 }

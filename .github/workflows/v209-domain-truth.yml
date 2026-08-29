@@ -1,0 +1,29 @@
+name: V209 Domain Truth Ownership
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  domain-truth:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Enforce canonical domain truth ownership
+        run: node scripts/check-v209-domain-truth.mjs
+      - name: Frontend TypeScript
+        run: |
+          npm ci --no-audit --no-fund
+          npm run lint

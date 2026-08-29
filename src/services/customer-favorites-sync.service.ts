@@ -66,7 +66,7 @@ export class CustomerFavoritesSyncService {
       const local = this.readLocal();
 
       if (this.activeUserId !== userId) {
-        const remote = await this.readRemote(token);
+        const remote = await this.readRemote(token, userId);
         const merged = new Set<string>([...remote, ...local]);
         const missingRemote = [...local].filter((id) => !remote.has(id));
         if (missingRemote.length) await this.insertRemote(token, userId, missingRemote);
@@ -79,7 +79,7 @@ export class CustomerFavoritesSyncService {
       const added = [...local].filter((id) => !this.lastLocal.has(id));
       const removed = [...this.lastLocal].filter((id) => !local.has(id));
       if (added.length) await this.insertRemote(token, userId, added);
-      if (removed.length) await this.deleteRemote(token, removed);
+      if (removed.length) await this.deleteRemote(token, userId, removed);
       this.lastLocal = new Set(local);
     } catch (error) {
       console.info('Customer favorites sync deferred.', error);
@@ -92,8 +92,8 @@ export class CustomerFavoritesSyncService {
     }
   }
 
-  private async readRemote(token: string): Promise<Set<string>> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/customer_favorites?entity_type=eq.VEHICLE&select=entity_id&order=created_at.asc`, {
+  private async readRemote(token: string, userId: string): Promise<Set<string>> {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/customer_favorites?user_id=eq.${encodeURIComponent(userId)}&entity_type=eq.VEHICLE&select=entity_id&order=created_at.asc`, {
       headers: this.headers(token),
       cache: 'no-store',
     });
@@ -112,9 +112,9 @@ export class CustomerFavoritesSyncService {
     if (!response.ok) throw new Error(`CUSTOMER_FAVORITES_WRITE_${response.status}`);
   }
 
-  private async deleteRemote(token: string, ids: string[]): Promise<void> {
+  private async deleteRemote(token: string, userId: string, ids: string[]): Promise<void> {
     await Promise.all(ids.map(async (id) => {
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/customer_favorites?entity_type=eq.VEHICLE&entity_id=eq.${encodeURIComponent(id)}`, {
+      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/customer_favorites?user_id=eq.${encodeURIComponent(userId)}&entity_type=eq.VEHICLE&entity_id=eq.${encodeURIComponent(id)}`, {
         method: 'DELETE',
         headers: { ...this.headers(token), Prefer: 'return=minimal' },
       });
@@ -136,9 +136,14 @@ export class CustomerFavoritesSyncService {
   private writeLocal(ids: Set<string>): void {
     if (typeof localStorage === 'undefined') return;
     const values = [...ids].map((id) => /^\d+$/.test(id) ? Number(id) : id);
-    localStorage.setItem(this.storageKey, JSON.stringify(values));
+    const serialized = JSON.stringify(values);
+    localStorage.setItem(this.storageKey, serialized);
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new StorageEvent('storage', { key: this.storageKey, newValue: JSON.stringify(values), storageArea: localStorage }));
+      try {
+        window.dispatchEvent(new StorageEvent('storage', { key: this.storageKey, newValue: serialized, storageArea: localStorage }));
+      } catch {
+        window.dispatchEvent(new Event('storage'));
+      }
     }
   }
 

@@ -7,6 +7,7 @@ const forbidText = (source, needle, message) => { if (source.includes(needle)) f
 
 const home = read('src/pages/home-v71.component.ts');
 const layout = read('src/services/homepage-layout.service.ts');
+const dynamicSection = read('src/components/dynamic-home-section.component.ts');
 const admin = read('src/services/homepage-admin.service.ts');
 const searchPage = read('src/pages/search.component.ts');
 const searchService = read('src/services/global-search.service.ts');
@@ -14,6 +15,7 @@ const favorites = read('src/services/customer-favorites-sync.service.ts');
 const account = read('src/pages/account-shell.component.ts');
 const accountFavorites = read('src/components/account-favorites-v213.component.ts');
 const mainLayout = read('src/components/main-layout.component.ts');
+const consent = read('src/components/analytics-consent.component.ts');
 const mobileCss = read('src/mobile-target-fixes.css');
 const migration = read('supabase/migrations/20260829210000_v213_prestige_discovery_personalization.sql');
 const dbContract = read('supabase/tests/v213_prestige_discovery_contract.sql');
@@ -24,7 +26,7 @@ const heroSearchIds = home.match(/id=\"home-search-v80\"/g) || [];
 if (heroSearchIds.length !== 1) fail(`expected exactly one canonical Hero search input, found ${heroSearchIds.length}`);
 requireText(home, 'this.router.navigate(["/search"],{queryParams:q?{q}:undefined})', 'Hero search must hand off q to /search');
 
-// Global search owns public discovery, rather than a vehicle-only page implementation.
+// Global search owns only live public discovery, rather than a vehicle-only page implementation.
 requireText(searchPage, 'GlobalSearchService', 'search page must use GlobalSearchService');
 requireText(searchPage, "params.get('q')", 'search page must hydrate the Hero q query parameter');
 forbidText(searchPage, 'CarService', 'search page must not regain vehicle-only data ownership');
@@ -34,13 +36,18 @@ for (const kind of ['RENTAL','SALE','TOUR','CAMPAIGN','BLOG','BRANCH','FAQ','SEC
 requireText(searchService, 'this.cars.ensureVehicleCloudInventory()', 'global search must refresh canonical vehicle/tour/blog/FAQ data');
 requireText(searchService, 'this.branches.refresh()', 'global search must refresh canonical branch data');
 requireText(searchService, 'this.homepage.load()', 'global search must include live homepage sections');
+requireText(searchService, 'this.isLiveCampaign(campaign)', 'global search must exclude scheduled, expired and unpublished campaigns');
+requireText(searchService, "branch.isActive && !/\\bdemo\\b/i.test(branch.name || '')", 'global search must exclude inactive/demo branches');
 
-// PLACEMENT sections are manual truth: selection count is the effective count and zero selections collapse.
+// PLACEMENT sections are manual truth: selection count is the effective count and zero/stale selections fail closed.
 requireText(layout, "type HomepageSelectionMode = 'PLACEMENT' | 'LATEST'", 'homepage selection modes must remain explicit');
 requireText(layout, "maxItems: placementDriven ? Math.max(1, manualCount) : storedLimit", 'manual homepage count must derive from valid placements');
 requireText(layout, 'if (row.placementDriven && row.manualCount === 0) return false', 'empty manual showcase must collapse instead of auto-filling');
 requireText(layout, 'entityTypeMatchesSection', 'manual placements must be bound to their section domain');
 requireText(layout, "category === 'SALE' ? this.cars.getSaleCars()() : this.cars.getCars()()", 'rental/sale manual placements must use category-specific sources');
+requireText(dynamicSection, 'if(this.layout.selectionModeFor(this.section.sectionKey)==="LATEST") return source.slice(0,this.limit())', 'automatic LATEST sections must be the only sections allowed to source-fill');
+requireText(dynamicSection, 'if(!ids.length) return []', 'manual showcase with no placements must fail closed at renderer level');
+forbidText(dynamicSection, '(ordered.length?ordered:source)', 'manual showcase must never substitute unrelated source items for stale placements');
 requireText(admin, "settings.selectionMode='PLACEMENT'", 'new content showcases must default to manual placement mode');
 requireText(admin, 'reconcileManualCounts', 'admin showcase count must reconcile from placements');
 
@@ -49,6 +56,11 @@ requireText(mobileCss, 'app-home-v71 .planner', 'mobile hierarchy must explicitl
 requireText(mobileCss, 'order: 1', 'Quick Planning must precede secondary trust badges on mobile');
 requireText(mobileCss, 'app-home-v71 .trust-row', 'mobile hierarchy must retain trust badges after the planner');
 forbidText(mobileCss, 'home-search-v80', 'mobile finishing CSS must not create or own a second Hero search input');
+
+// The privacy choice panel may stay above page content, but it must leave the persistent mobile command dock physically clickable.
+requireText(consent, 'analytics-consent-shell', 'privacy consent must own an explicit dock-safe shell');
+requireText(consent, 'bottom:calc(max(.42rem,env(safe-area-inset-bottom)) + 76px)', 'privacy consent must clear the mobile dock safe area');
+requireText(consent, 'overflow-y:auto', 'privacy consent must remain usable on short mobile viewports');
 
 // Favorites retain guest device behavior while authenticated state is synchronized through RLS.
 requireText(favorites, 'customer_favorites', 'favorites sync must persist to customer_favorites');

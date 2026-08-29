@@ -4,8 +4,8 @@ import { FormsModule } from "@angular/forms";
 import { RouterLink } from "@angular/router";
 import { CarService } from "../services/car.service";
 import { FooterLink, FooterLinkGroup, FooterSettingsService } from "../services/footer-settings.service";
+import { NewsletterService } from "../services/newsletter.service";
 import { UiService } from "../services/ui.service";
-import { SUPABASE_PUBLISHABLE_KEY, supabaseFunctionUrl } from "../supabase.config";
 
 interface SocialPlatform { name:string;url:string;icon:string; }
 
@@ -42,7 +42,7 @@ interface SocialPlatform { name:string;url:string;icon:string; }
   `]
 })
 export class CustomerFooterV70Component{
-  private readonly carService=inject(CarService);private readonly ui=inject(UiService);readonly footer=inject(FooterSettingsService);readonly config=this.carService.getConfig();readonly currentYear=new Date().getFullYear();readonly subscribed=signal(false);readonly submitting=signal(false);readonly subscriptionError=signal('');email='';
+  private readonly carService=inject(CarService);private readonly newsletter=inject(NewsletterService);private readonly ui=inject(UiService);readonly footer=inject(FooterSettingsService);readonly config=this.carService.getConfig();readonly currentYear=new Date().getFullYear();readonly subscribed=signal(false);readonly submitting=signal(false);readonly subscriptionError=signal('');email='';
   groupLinks(group:FooterLinkGroup,secondary?:boolean):FooterLink[]{return this.footer.linksFor(group,secondary).filter(link=>link.actionType!=='FEEDBACK'||this.footer.settings().showFeedback);}
   commercialTermsLink():FooterLink|undefined{return this.footer.links().find(link=>link.isEnabled&&link.actionType==='LEGAL'&&link.queryParams?.['type']==='commercial-communication');}
   cleanTagline(){const raw=String(this.config().tagline||'').trim();return!raw||/premium/i.test(raw)?'Kiralama • Satış • Tur':raw;}
@@ -50,7 +50,7 @@ export class CustomerFooterV70Component{
   whatsappHref(){const digits=String(this.config().whatsapp||this.config().phone||'').replace(/\D/g,'');if(!digits)return'';const message=this.config().whatsappMessage?.trim()||'Merhaba, Alperler Rent A Car hizmetleri hakkında bilgi almak istiyorum.';return`https://wa.me/${digits}?text=${encodeURIComponent(message)}`;}
   socialLinks():SocialPlatform[]{const cfg=this.config();return[{name:'Instagram',url:this.safeSocialUrl(cfg.instagramUrl),icon:'/brand-icons/instagram.svg'},{name:'Facebook',url:this.safeSocialUrl(cfg.facebookUrl),icon:'/brand-icons/facebook.svg'},{name:'TikTok',url:this.safeSocialUrl(cfg.tiktokUrl),icon:'/brand-icons/tiktok.svg'},{name:'YouTube',url:this.safeSocialUrl(cfg.youtubeUrl),icon:'/brand-icons/youtube.svg'},{name:'X',url:this.safeSocialUrl(cfg.twitterUrl),icon:'/brand-icons/x.svg'}].filter(item=>Boolean(item.url));}
   safeExternalUrl(value:string|undefined){const raw=String(value||'').trim();try{const url=new URL(raw);return url.protocol==='https:'?url.toString():'#';}catch{return'#';}}
-  async subscribe(event:Event){event.preventDefault();if(this.submitting())return;const normalized=this.email.trim().toLocaleLowerCase('tr-TR');this.subscribed.set(false);this.subscriptionError.set('');if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalized)||normalized.length>160){this.subscriptionError.set('Geçerli bir e-posta adresi girin.');return;}this.submitting.set(true);try{const response=await fetch(supabaseFunctionUrl('newsletter-gateway'),{method:'POST',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,'content-type':'application/json','x-alperler-client':'alperler-web-v1'},body:JSON.stringify({email:normalized,locale:this.ui.currentLang().toLowerCase()}),signal:AbortSignal.timeout(12_000)});const payload=await response.json().catch(()=>({})) as{ok?:boolean;code?:string};if(!response.ok||!payload.ok)throw new Error(payload.code||`NEWSLETTER_HTTP_${response.status}`);this.email='';this.subscribed.set(true);}catch(error){console.error('Newsletter subscription failed',error);this.subscriptionError.set('Abonelik şu anda kaydedilemedi. Lütfen tekrar deneyin.');}finally{this.submitting.set(false);}}
+  async subscribe(event:Event){event.preventDefault();if(this.submitting())return;const normalized=this.email.trim().toLocaleLowerCase('tr-TR');this.subscribed.set(false);this.subscriptionError.set('');if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalized)||normalized.length>160){this.subscriptionError.set('Geçerli bir e-posta adresi girin.');return;}this.submitting.set(true);try{await this.newsletter.subscribe(normalized);this.email='';this.subscribed.set(true);}catch{this.subscriptionError.set('Abonelik şu anda kaydedilemedi. Lütfen tekrar deneyin.');}finally{this.submitting.set(false);}}
   openFeedback(){this.ui.toggleFeedback(true);}
   private safeSocialUrl(value:string|undefined){return this.safeExternalUrl(value)==='#'?'':this.safeExternalUrl(value);}
 }

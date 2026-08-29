@@ -1,0 +1,32 @@
+name: V208.2 Architecture Constitution
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - v2082-architecture-constitution-audit
+
+concurrency:
+  group: v2082-architecture-constitution-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  architecture-constitution:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          check-latest: false
+      - name: Enforce architecture constitution
+        run: node scripts/check-v2082-architecture-constitution.mjs

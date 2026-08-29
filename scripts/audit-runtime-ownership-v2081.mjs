@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, extname, join, normalize, relative, resolve } from 'node:path';
+import { dirname, join, normalize, relative, resolve } from 'node:path';
 
 const root = process.cwd();
 const srcRoot = join(root, 'src');
@@ -17,20 +17,33 @@ function walk(dir) {
   return result;
 }
 
-const sourceFiles = walk(srcRoot).filter((file) => file.endsWith('.ts'));
+const sourceFiles = walk(srcRoot).filter((file) => /\.(?:ts|tsx|mts|cts)$/.test(file));
 const sourceSet = new Set(sourceFiles.map((file) => normalize(file)));
 const inbound = new Map(sourceFiles.map((file) => [normalize(file), new Set()]));
 
 function resolveSpecifier(importer, specifier) {
   if (!specifier) return null;
+
   let base;
   if (specifier.startsWith('.')) base = resolve(dirname(importer), specifier);
   else if (specifier.startsWith('src/')) base = resolve(root, specifier);
   else return null;
 
-  const candidates = [];
-  if (extname(base)) candidates.push(base);
-  else candidates.push(`${base}.ts`, join(base, 'index.ts'));
+  // TypeScript module specifiers routinely contain semantic dots such as
+  // `car.service`, `home.component` and `booking.model` while omitting the
+  // actual `.ts` extension. path.extname() therefore cannot be used to decide
+  // whether a TypeScript extension is already present.
+  const candidates = [
+    base,
+    `${base}.ts`,
+    `${base}.tsx`,
+    `${base}.mts`,
+    `${base}.cts`,
+    join(base, 'index.ts'),
+    join(base, 'index.tsx'),
+    join(base, 'index.mts'),
+    join(base, 'index.cts'),
+  ];
 
   for (const candidate of candidates) {
     const normalized = normalize(candidate);
@@ -81,8 +94,19 @@ for (const importer of sourceFiles) {
       const specifier = match[1];
       if (!specifier?.startsWith('.')) continue;
       if (resolveSpecifier(importer, specifier)) continue;
+
       const rawBase = resolve(dirname(importer), specifier);
-      if (existsSync(rawBase) || existsSync(`${rawBase}.json`) || existsSync(`${rawBase}.css`) || existsSync(`${rawBase}.html`)) continue;
+      const nonTsCandidates = [
+        rawBase,
+        `${rawBase}.json`,
+        `${rawBase}.css`,
+        `${rawBase}.scss`,
+        `${rawBase}.sass`,
+        `${rawBase}.html`,
+        `${rawBase}.svg`,
+      ];
+      if (nonTsCandidates.some((candidate) => existsSync(candidate))) continue;
+
       unresolvedRelativeImports.push(`${relative(root, importer).replaceAll('\\', '/')} -> ${specifier}`);
     }
   }

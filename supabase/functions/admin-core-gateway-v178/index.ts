@@ -146,6 +146,9 @@ Deno.serve(async (request: Request) => {
       if (view === "payment-settings") {
         return json(await rpc("service_payment_settings_snapshot_v182", { p_actor: actor }));
       }
+      if (view === "audit") {
+        return json(await rpc("service_admin_audit_snapshot_v2082", { p_actor: actor, p_limit: 300 }));
+      }
       return json({ ok: false, code: "UNKNOWN_VIEW" }, 400);
     }
 

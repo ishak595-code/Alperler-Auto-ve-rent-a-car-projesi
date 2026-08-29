@@ -21,7 +21,8 @@
     "security:v165": "node scripts/check-v165-production-hardening.mjs",
     "customer-experience:v207": "node scripts/check-v207-customer-experience.mjs",
     "database-source:v207": "node scripts/check-v207-database-source-contract.mjs",
-    "verify:handoff": "npm run customer-experience:v207 && npm run database-source:v207 && node scripts/check-v206-handoff.mjs && node scripts/check-portability-v186.mjs && node scripts/check-v203-canonical-runtime-integrity.mjs && node scripts/check-v205-responsive-prestige.mjs && npm run design:premium && npm run pwa:installability && npm run a11y:buttons && npm run a11y:dates && npm run media:vehicles && npm run vercel:functions && npm run security:v165 && npm run lint && npm run typecheck:api && npm run build",
+    "repository-governance:v208": "node scripts/check-v208-repository-governance.mjs",
+    "verify:handoff": "npm run repository-governance:v208 && npm run customer-experience:v207 && npm run database-source:v207 && node scripts/check-v206-handoff.mjs && node scripts/check-portability-v186.mjs && node scripts/check-v203-canonical-runtime-integrity.mjs && node scripts/check-v205-responsive-prestige.mjs && npm run design:premium && npm run pwa:installability && npm run a11y:buttons && npm run a11y:dates && npm run media:vehicles && npm run vercel:functions && npm run security:v165 && npm run lint && npm run typecheck:api && npm run build",
     "preview": "ng serve --configuration=production"
   },
   "dependencies": {

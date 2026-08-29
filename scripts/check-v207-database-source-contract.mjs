@@ -37,6 +37,9 @@ const catalog = read("src/services/catalog.service.ts");
 for (const contract of ["publicVehicleSelect", "publicTourSelect", "publicBlogSelect", "publicFaqSelect"]) {
   if (!catalog.includes(contract)) failures.push(`Catalog public projection is missing: ${contract}`);
 }
+if (/case\s+"tours"[^\n]*publication_status=eq\.PUBLISHED/.test(catalog)) {
+  failures.push("Canonical tour list visibility must be owned by database RLS, not a PUBLISHED client filter.");
+}
 
 const detail = read("src/services/public-detail-data.service.ts");
 if (/vehicles\?[^`\n]*publication_status=eq\.PUBLISHED/.test(detail)) {
@@ -50,11 +53,13 @@ if (!detail.includes('isAvailable: row["is_active"] === true')) {
 }
 
 const legacyTour = read("src/services/tour-public-data-v170.service.ts");
-if (/tours\?[^`\n]*publication_status=eq\.PUBLISHED/.test(legacyTour)) {
-  failures.push("Legacy tour data service must not override database publication visibility.");
+for (const forbidden of ["SUPABASE_PROJECT_URL", "SUPABASE_PUBLISHABLE_KEY", "fetch("]) {
+  if (legacyTour.includes(forbidden)) {
+    failures.push(`V170 tour compatibility adapter must not own a parallel database source: ${forbidden}`);
+  }
 }
-if (!legacyTour.includes('isAvailable: row["is_active"] === true')) {
-  failures.push("Legacy tour mapping must preserve RLS-visible scheduled tours.");
+for (const required of ["inject(CarService)", "refreshCloudCatalog(true)", "getTours()"] ) {
+  if (!legacyTour.includes(required)) failures.push(`V170 tour compatibility adapter must delegate to canonical CarService: ${required}`);
 }
 
 const campaign = read("src/services/campaign.service.ts");

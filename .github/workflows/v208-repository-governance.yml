@@ -1,0 +1,68 @@
+name: V208 Repository Governance
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - 'scripts/cancel-stale-pr-workflows.mjs'
+      - 'scripts/check-v208-repository-governance.mjs'
+      - 'scripts/check-v207-database-source-contract.mjs'
+      - 'src/services/tour-public-data-v170.service.ts'
+      - 'package.json'
+      - 'docs/REPOSITORY_GOVERNANCE_V208.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v208-governance-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stale-pr-run-governor:
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Cancel older workflow runs for this pull request
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          CURRENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+        run: node scripts/cancel-stale-pr-workflows.mjs
+
+  repository-governance-contract:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Repository governance contract
+        run: npm run repository-governance:v208

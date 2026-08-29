@@ -17,7 +17,9 @@ function walk(dir) {
   return result;
 }
 
-const sourceFiles = walk(srcRoot).filter((file) => /\.(?:ts|tsx|mts|cts)$/.test(file));
+const isTypeScriptSource = (file) => /\.(?:ts|tsx|mts|cts)$/.test(file);
+const browserEntrypoints = [join(root, 'index.tsx')].filter((file) => existsSync(file));
+const sourceFiles = [...walk(srcRoot).filter(isTypeScriptSource), ...browserEntrypoints];
 const sourceSet = new Set(sourceFiles.map((file) => normalize(file)));
 const inbound = new Map(sourceFiles.map((file) => [normalize(file), new Set()]));
 
@@ -31,8 +33,7 @@ function resolveSpecifier(importer, specifier) {
 
   // TypeScript module specifiers routinely contain semantic dots such as
   // `car.service`, `home.component` and `booking.model` while omitting the
-  // actual `.ts` extension. path.extname() therefore cannot be used to decide
-  // whether a TypeScript extension is already present.
+  // actual `.ts` extension. Never infer the real extension from path.extname().
   const candidates = [
     base,
     `${base}.ts`,
@@ -80,7 +81,7 @@ const zeroInbound = serviceFiles
   .sort();
 
 if (zeroInbound.length) {
-  failures.push(`Runtime service files with zero inbound src imports: ${zeroInbound.length}`);
+  failures.push(`Runtime service files with zero inbound browser-runtime imports: ${zeroInbound.length}`);
   for (const file of zeroInbound) failures.push(`ORPHAN_CANDIDATE ${file}`);
 }
 
@@ -122,4 +123,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log(`V208.1 runtime ownership audit: PASS (${sourceFiles.length} TS files, ${serviceFiles.length} service files, zero orphan services).`);
+console.log(`V208.1 runtime ownership audit: PASS (${sourceFiles.length} browser-runtime TS files, ${serviceFiles.length} service files, zero orphan services).`);

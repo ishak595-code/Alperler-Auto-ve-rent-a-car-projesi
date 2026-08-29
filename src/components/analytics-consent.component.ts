@@ -9,7 +9,7 @@ import { VisitorAnalyticsService } from '../services/visitor-analytics.service';
   imports: [CommonModule, RouterLink],
   template: `
     @if (analytics.choiceRequired()) {
-      <section class="fixed inset-x-0 bottom-0 z-[120] p-3 sm:p-4" aria-label="Çerez, analitik ve pazarlama tercihleri">
+      <section class="analytics-consent-shell fixed inset-x-0 z-[120] p-3 sm:p-4" aria-label="Çerez, analitik ve pazarlama tercihleri">
         <div class="mx-auto max-w-5xl rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6">
           <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div class="max-w-3xl">
@@ -44,6 +44,15 @@ import { VisitorAnalyticsService } from '../services/visitor-analytics.service';
       </section>
     }
   `,
+  styles: [`
+    .analytics-consent-shell{bottom:0;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain}
+    @media (max-width:639px) and (pointer:coarse), (max-width:950px) and (max-height:500px) and (pointer:coarse){
+      .analytics-consent-shell{bottom:calc(max(.42rem,env(safe-area-inset-bottom)) + 76px);max-height:calc(100dvh - max(.42rem,env(safe-area-inset-bottom)) - 82px)}
+    }
+    @media (display-mode:standalone) and (pointer:coarse), (display-mode:fullscreen) and (pointer:coarse){
+      .analytics-consent-shell{bottom:calc(max(.55rem,env(safe-area-inset-bottom)) + 76px);max-height:calc(100dvh - max(.55rem,env(safe-area-inset-bottom)) - 82px)}
+    }
+  `],
 })
 export class AnalyticsConsentComponent {
   readonly analytics = inject(VisitorAnalyticsService);

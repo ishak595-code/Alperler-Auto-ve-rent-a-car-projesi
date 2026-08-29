@@ -91,7 +91,6 @@ export class CarService {
   private readonly _visitCount = signal(0);
   private readonly _partnerRequests = signal<PartnerRequest[]>([]);
   private readonly _feedbacks = signal<Feedback[]>([]);
-  private readonly _subscribers = signal<string[]>([]);
   private readonly _notifications = signal<
     { id: number; to: string; message: string; date: Date }[]
   >([]);
@@ -299,10 +298,6 @@ export class CarService {
 
   getFeedbacks() {
     return this._feedbacks.asReadonly();
-  }
-
-  getSubscribers() {
-    return this._subscribers.asReadonly();
   }
 
   getNotifications() {
@@ -618,17 +613,6 @@ export class CarService {
 
   getFavoriteCount = computed(() => this._favoriteCars().length);
 
-  removeSubscriber(email: string): void {
-    this._subscribers.update((items) => items.filter((item) => item !== email));
-  }
-
-  addSubscriber(email: string): void {
-    const normalized = email.trim().toLowerCase();
-    if (normalized && !this._subscribers().includes(normalized)) {
-      this._subscribers.update((items) => [normalized, ...items]);
-    }
-  }
-
   sendNotification(
     to: string,
     message: string,
@@ -784,7 +768,6 @@ export class CarService {
     effect(() => localStorage.setItem("db_partnerRequests_v2", JSON.stringify(this._partnerRequests())));
     effect(() => localStorage.setItem("db_visits", String(this._visitCount())));
     effect(() => localStorage.setItem("db_feedbacks_v2", JSON.stringify(this._feedbacks())));
-    effect(() => localStorage.setItem("db_subscribers", JSON.stringify(this._subscribers())));
     effect(() => localStorage.setItem("db_notifications", JSON.stringify(this._notifications())));
     effect(() => localStorage.setItem("db_favoriteCars", JSON.stringify(this._favoriteCars())));
   }
@@ -792,10 +775,10 @@ export class CarService {
   private loadFromStorage(): void {
     if (typeof localStorage === "undefined") return;
 
-    const catalogCacheKey = /^db_(?:cars|rental_?cars?|sale_?cars?|sales?|vehicles?|tours?|inventory|config|faqs?|blog)(?:_|$)/i;
+    const obsoleteCloudTruthCacheKey = /^db_(?:cars|rental_?cars?|sale_?cars?|sales?|vehicles?|tours?|inventory|config|faqs?|blog|subscribers)(?:_|$)/i;
     for (let index = localStorage.length - 1; index >= 0; index -= 1) {
       const key = localStorage.key(index);
-      if (key && catalogCacheKey.test(key)) localStorage.removeItem(key);
+      if (key && obsoleteCloudTruthCacheKey.test(key)) localStorage.removeItem(key);
     }
 
     this.readStorage("db_reservations_v2", (value) => {
@@ -806,9 +789,6 @@ export class CarService {
     });
     this.readStorage("db_feedbacks_v2", (value) => {
       if (Array.isArray(value)) this._feedbacks.set(value as Feedback[]);
-    });
-    this.readStorage("db_subscribers", (value) => {
-      if (Array.isArray(value)) this._subscribers.set(value as string[]);
     });
     this.readStorage("db_notifications", (value) => {
       if (Array.isArray(value)) {

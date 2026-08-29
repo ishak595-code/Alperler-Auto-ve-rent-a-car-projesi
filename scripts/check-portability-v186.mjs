@@ -47,13 +47,12 @@ for (const fragment of ['v184_catalog_admin_security_gateway','v1841_catalog_leg
 const analyticsService = read('src/services/admin-analytics.service.ts');
 if (!analyticsService.includes('/api/partner?op=analytics-admin')) fail('analytics admin frontend must use same-origin BFF');
 if (analyticsService.includes('/rest/v1/rpc/') || analyticsService.includes('SUPABASE_PROJECT_URL')) fail('analytics admin frontend still contains direct Supabase admin path');
+
 const newsletterService = read('src/services/newsletter.service.ts');
-const newsletterSync = read('src/services/newsletter-sync.service.ts');
-for (const [name, source] of [['newsletter.service.ts', newsletterService], ['newsletter-sync.service.ts', newsletterSync]]) {
-  if (!source.includes('/api/partner?op=newsletter-public')) fail(`${name} must use same-origin public newsletter gateway`);
-  if (source.includes('supabaseFunctionUrl(') || source.includes('/rest/v1/subscribers') || source.includes('/rest/v1/newsletter_campaigns')) fail(`${name} still contains direct newsletter Supabase path`);
-}
+if (!newsletterService.includes('/api/partner?op=newsletter-public')) fail('newsletter.service.ts must own the same-origin public newsletter gateway');
 if (!newsletterService.includes('op=newsletter-admin-read') || !newsletterService.includes('op=newsletter-admin')) fail('newsletter admin frontend must use same-origin admin gateways');
+if (newsletterService.includes('supabaseFunctionUrl(') || newsletterService.includes('/rest/v1/subscribers') || newsletterService.includes('/rest/v1/newsletter_campaigns')) fail('newsletter.service.ts still contains direct newsletter Supabase path');
+if (fs.existsSync(path.join(root, 'src/services/newsletter-sync.service.ts'))) fail('legacy newsletter sync bridge must remain deleted; NewsletterService is the canonical browser owner');
 
 const envExample = read('.env.example');
 for (const required of ['PUBLIC_APP_URL=','PUBLIC_SITE_URL=','SUPABASE_PROJECT_URL=','SUPABASE_PUBLISHABLE_KEY=','SUPABASE_SERVICE_ROLE_KEY=','PAYMENT_ALLOWED_ORIGINS=']) if (!envExample.includes(required)) fail(`.env.example missing ${required}`);

@@ -33,7 +33,6 @@ assert(app.includes("typeof idleWindow.requestIdleCallback === 'function'"), 'no
 assert(app.includes('globalThis.setTimeout(start, 500)'), 'noncritical startup must retain a bounded timer fallback');
 for (const modulePath of [
   './services/system-health.service',
-  './services/newsletter-sync.service',
   './services/visitor-analytics.service',
   './services/customer-profile-autofill.service',
 ]) {
@@ -41,12 +40,14 @@ for (const modulePath of [
 }
 for (const access of [
   'healthModule.SystemHealthService',
-  'newsletterModule.NewsletterSyncService',
   'analyticsModule.VisitorAnalyticsService',
   'autofillModule.CustomerProfileAutofillService',
 ]) {
   assert(app.includes(`this.injector.get(${access})`), `${access} must start from the deferred background phase`);
 }
+assert(!fs.existsSync('src/services/newsletter-sync.service.ts'), 'retired newsletter sync bridge must not return to the runtime');
+assert(!app.includes('newsletter-sync.service'), 'app bootstrap must not reference the retired newsletter sync bridge');
+assert(!app.includes('NewsletterSyncService'), 'app bootstrap must not instantiate the retired newsletter sync bridge');
 
 assert(tailwind.includes('@import "tailwindcss" source(none);'), 'Tailwind explicit source mode must remain enabled');
 assert(tailwind.includes('@source "./";'), 'Tailwind must scan runtime src files');

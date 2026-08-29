@@ -28,21 +28,21 @@ create policy customer_favorites_select_own
   on public.customer_favorites
   for select
   to authenticated
-  using ((select auth.uid()) = user_id);
+  using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 drop policy if exists customer_favorites_insert_own on public.customer_favorites;
 create policy customer_favorites_insert_own
   on public.customer_favorites
   for insert
   to authenticated
-  with check ((select auth.uid()) = user_id);
+  with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 drop policy if exists customer_favorites_delete_own on public.customer_favorites;
 create policy customer_favorites_delete_own
   on public.customer_favorites
   for delete
   to authenticated
-  using ((select auth.uid()) = user_id);
+  using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 comment on table public.customer_favorites is
   'Authenticated customer favorites. RLS restricts every row to its owning auth user.';

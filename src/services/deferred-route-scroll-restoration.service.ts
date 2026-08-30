@@ -1,6 +1,7 @@
-import { DestroyRef, Injectable, ViewportScroller, inject } from '@angular/core';
-import { Router, Scroll as RouterScroll } from '@angular/router';
+import { ViewportScroller } from '@angular/common';
+import { DestroyRef, Injectable, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Router, Scroll as RouterScroll } from '@angular/router';
 import { filter } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })

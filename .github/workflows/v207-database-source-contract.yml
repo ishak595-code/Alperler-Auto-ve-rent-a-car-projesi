@@ -7,6 +7,7 @@ on:
       - 'src/**'
       - 'api/**'
       - 'scripts/check-v207-database-source-contract.mjs'
+      - 'scripts/check-v216-homepage-admin-ownership.mjs'
       - 'supabase/migrations/**'
       - '.github/workflows/v207-database-source-contract.yml'
   push:
@@ -15,6 +16,7 @@ on:
       - 'src/**'
       - 'api/**'
       - 'scripts/check-v207-database-source-contract.mjs'
+      - 'scripts/check-v216-homepage-admin-ownership.mjs'
       - 'supabase/migrations/**'
       - '.github/workflows/v207-database-source-contract.yml'
   workflow_dispatch:
@@ -41,3 +43,5 @@ jobs:
           node-version: '22'
       - name: Database source and projection contract
         run: node scripts/check-v207-database-source-contract.mjs
+      - name: Homepage admin canonical ownership contract
+        run: node scripts/check-v216-homepage-admin-ownership.mjs

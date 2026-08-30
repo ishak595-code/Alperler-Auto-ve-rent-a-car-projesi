@@ -49,6 +49,16 @@ export class CustomerFavoritesV217Service {
     return String(this.auth.user()?.id || 'guest');
   }
 
+  favoriteCount(type: FavoriteFilterV217 = 'ALL'): number {
+    const keys = new Set(this.state());
+    for (const ref of this.localRefs()) keys.add(this.key(ref.entityType, ref.entityId));
+    if (type === 'ALL') return keys.size;
+    const prefix = `${type}:`;
+    let count = 0;
+    for (const key of keys) if (key.startsWith(prefix)) count += 1;
+    return count;
+  }
+
   isFavorite(type: FavoriteEntityTypeV217, id: string): boolean {
     const entityId = this.cleanId(id);
     return this.state().has(this.key(type, entityId))

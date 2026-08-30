@@ -35,7 +35,7 @@ for (const token of [
   'NavigationEnd',
   'updateVisibility',
   'setMobileDockRouteHidden',
-  'setMobileDockAutoHidden(false)',
+  'this.setAutoHidden(false)',
   '[routerLink]="item.route"',
   '[attr.aria-label]="item.label"',
   'track item.id',

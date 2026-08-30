@@ -4,12 +4,17 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const failures = [];
 const expect = (condition, message) => { if (!condition) failures.push(message); };
 
+const entry = read('index.tsx');
 const app = read('src/app.component.ts');
 const routes = read('src/app.routes.ts');
 const navigation = read('src/services/navigation-config.service.ts');
 const checkoutShell = read('src/pages/booking-checkout-shell-v218.component.ts');
 const adminCustomerShell = read('src/pages/admin/admin-customer-detail-shell-v218.component.ts');
 const angular = JSON.parse(read('angular.json'));
+
+expect(!entry.includes("import { routes } from './src/app.routes'"), 'Bootstrap entry must not statically import the full route graph.');
+expect(entry.includes("await import('./src/app.routes')"), 'Bootstrap entry must dynamically load the route graph.');
+expect(entry.includes('provideRouter('), 'Angular router must still be configured before application bootstrap completes.');
 
 for (const forbidden of [
   'CheckoutLoyaltyPanelComponent',
@@ -87,4 +92,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('V218 initial bundle ownership contract passed: root domains, route guards and admin-only navigation auth are lazy; success overlay is deferred; route-owned panels are isolated; and the 1MB hard ceiling is enforced.');
+console.log('V218 initial bundle ownership contract passed: bootstrap routes, route guards and route-specific domains are split; success overlay is deferred; and the 950/1000 kB ceilings remain enforced.');

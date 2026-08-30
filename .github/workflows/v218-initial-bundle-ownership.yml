@@ -3,8 +3,34 @@ name: V218 Initial Bundle Ownership
 on:
   pull_request:
     branches: [main]
+    paths:
+      - 'index.tsx'
+      - 'src/app.component.ts'
+      - 'src/app.routes.ts'
+      - 'src/pages/booking-checkout-shell-v218.component.ts'
+      - 'src/pages/admin/admin-customer-detail-shell-v218.component.ts'
+      - 'src/components/checkout-loyalty-panel.component.ts'
+      - 'src/components/admin-customer-lifetime-panel.component.ts'
+      - 'src/services/navigation-config.service.ts'
+      - 'angular.json'
+      - 'scripts/check-v218-initial-bundle-ownership.mjs'
+      - 'scripts/report-v218-initial-bundle.mjs'
+      - '.github/workflows/v218-initial-bundle-ownership.yml'
   push:
     branches: [main]
+    paths:
+      - 'index.tsx'
+      - 'src/app.component.ts'
+      - 'src/app.routes.ts'
+      - 'src/pages/booking-checkout-shell-v218.component.ts'
+      - 'src/pages/admin/admin-customer-detail-shell-v218.component.ts'
+      - 'src/components/checkout-loyalty-panel.component.ts'
+      - 'src/components/admin-customer-lifetime-panel.component.ts'
+      - 'src/services/navigation-config.service.ts'
+      - 'angular.json'
+      - 'scripts/check-v218-initial-bundle-ownership.mjs'
+      - 'scripts/report-v218-initial-bundle.mjs'
+      - '.github/workflows/v218-initial-bundle-ownership.yml'
   workflow_dispatch:
 
 permissions:

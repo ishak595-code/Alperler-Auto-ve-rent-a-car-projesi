@@ -5,6 +5,7 @@ import { ThemeService } from './services/theme.service';
 import { SeoService } from './services/seo.service';
 import { PublicContentRefreshCoordinatorService } from './services/public-content-refresh-coordinator.service';
 import { DeferredRouteScrollRestorationService } from './services/deferred-route-scroll-restoration.service';
+import { BookingSuccessExperienceService } from './services/booking-success-experience.service';
 import { CustomerMobileDockComponent } from './components/customer-mobile-dock.component';
 import { RuntimeStatusGateComponent } from './components/runtime-status-gate.component';
 import { BookingSuccessOverlayComponent } from './components/booking-success-overlay.component';
@@ -16,7 +17,9 @@ import { BookingSuccessOverlayComponent } from './components/booking-success-ove
   encapsulation: ViewEncapsulation.None,
   template: `
     <router-outlet></router-outlet>
-    <app-booking-success-overlay></app-booking-success-overlay>
+    @defer (when bookingSuccessExperience.result(); prefetch on idle) {
+      <app-booking-success-overlay></app-booking-success-overlay>
+    }
     @if (showCustomerChrome()) {
       <app-customer-mobile-dock></app-customer-mobile-dock>
       <app-runtime-status-gate></app-runtime-status-gate>
@@ -29,6 +32,7 @@ import { BookingSuccessOverlayComponent } from './components/booking-success-ove
 export class AppComponent implements OnInit {
   themeService = inject(ThemeService);
   seoService = inject(SeoService);
+  readonly bookingSuccessExperience = inject(BookingSuccessExperienceService);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
   private readonly deferredScrollRestoration = inject(DeferredRouteScrollRestorationService);

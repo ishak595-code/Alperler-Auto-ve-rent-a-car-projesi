@@ -1,0 +1,7 @@
+import fs from 'node:fs';
+const service=fs.readFileSync('src/services/footer-settings.service.ts','utf8');const customer=fs.readFileSync('src/components/customer-footer-v70.component.ts','utf8');const admin=fs.readFileSync('src/pages/admin/admin-footer-v174.component.ts','utf8');
+const fields=['homeLabel','contactLabel','phoneLabel','whatsappLabel','defaultTagline','whatsappDefaultMessage','legalMoreLabel','newsletterEmailLabel','newsletterEmailPlaceholder','newsletterFreeNote','newsletterLegalLabel','newsletterSuccessMessage','newsletterInvalidEmailMessage','newsletterErrorMessage','copyrightSuffix'];
+for(const field of fields){if(!service.includes(field))throw new Error(`V217_FOOTER_SERVICE_FIELD_MISSING:${field}`);if(!admin.includes(`form.${field}`))throw new Error(`V217_FOOTER_ADMIN_FIELD_MISSING:${field}`);}
+for(const field of ['phoneLabel','whatsappLabel','defaultTagline','whatsappDefaultMessage','legalMoreLabel','newsletterEmailLabel','newsletterEmailPlaceholder','newsletterFreeNote','newsletterLegalLabel','newsletterSuccessMessage','newsletterInvalidEmailMessage','newsletterErrorMessage','copyrightSuffix'])if(!customer.includes(`footer.settings().${field}`))throw new Error(`V217_FOOTER_CUSTOMER_BINDING_MISSING:${field}`);
+if(admin.includes('refreshCloudCatalog(')||admin.includes('ensureVehicleCloudInventory('))throw new Error('V217_FOOTER_ADMIN_FULL_CATALOG_REGRESSION');
+console.log('V217 footer CMS ownership contract passed.');

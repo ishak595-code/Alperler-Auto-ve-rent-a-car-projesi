@@ -61,10 +61,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "SalesShowcaseV168Component" src/pages/sales-results.component.ts
-          grep -Fq "RentalShowcaseV167Component" src/pages/fleet.component.ts
+          grep -Fq "SaleCatalogV217Component" src/pages/sales-results.component.ts
+          grep -Fq "RentalCatalogV217Component" src/pages/fleet.component.ts
+          grep -Fq "SaleVehicleCardV168Component" src/pages/sale-catalog-v217.component.ts
+          grep -Fq "RentalVehicleCardV167Component" src/pages/rental-catalog-v217.component.ts
           grep -Fq "CarDetailComponent" src/pages/catalog-detail-shells.component.ts
           grep -Fq "SaleCarDetailComponent" src/pages/catalog-detail-shells.component.ts
+          if grep -Fq "getSaleCars()" src/pages/sale-catalog-v217.component.ts || grep -Fq "getCars()" src/pages/rental-catalog-v217.component.ts; then
+            echo "V217 public listing owners must remain bounded"
+            exit 1
+          fi
       - name: Frontend TypeScript
         run: npm run lint
       - name: Vercel API TypeScript

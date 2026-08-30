@@ -11,7 +11,7 @@ import { AccountDashboardV150Component } from './account-dashboard-v150.componen
     <nav class="account-shortcuts" aria-label="Hesap kısa yolları">
       <div>
         <a routerLink="/account">Genel Bakış</a>
-        <a routerLink="/account" fragment="account-favorites">Favorilerim</a>
+        <a routerLink="/fleet" [queryParams]="{favs:true}">Favorilerim</a>
         <a routerLink="/account/wallet">Cüzdan ve Belgeler</a>
       </div>
     </nav>

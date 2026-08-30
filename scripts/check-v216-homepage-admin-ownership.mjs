@@ -14,12 +14,13 @@ const publicHome = read('src/pages/home-v71.component.ts');
 for (const required of [
   "homeContent['plannerServiceOptions']",
   'plannerServiceOptions.map',
-  "value: 'individual'",
-  "value: 'driver'",
-  "value: 'wedding'",
-  "value: 'tour'",
 ]) {
   if (!homepageAdmin.includes(required)) fail(`canonical homepage editor is missing ${required}`);
+}
+
+for (const value of ['individual', 'driver', 'wedding', 'tour']) {
+  const pattern = new RegExp(`value\\s*:\\s*['\"]${value}['\"]`);
+  if (!pattern.test(homepageAdmin)) fail(`canonical homepage editor is missing service option ${value}`);
 }
 
 for (const forbidden of [

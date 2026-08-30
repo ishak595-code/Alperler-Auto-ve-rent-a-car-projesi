@@ -82,15 +82,23 @@ for (const token of expectedStartupOrder) {
 }
 for (const required of [
   "startupOffsets()",
-  "connection?.saveData",
-  'connection?.effectiveType === "2g"',
+  "return { config: 0, homepage: 0, branches: 0, campaigns: 0, catalog: 0 };",
+  "Promise.allSettled(dueTasks.map((task) => task.run()))",
   "refreshSiteConfig(true)",
   "homepageLayout.refreshPublicState()",
   "branchService.refresh()",
   "campaignService.refreshPublicState()",
   "refreshCloudCatalog(true)",
 ]) {
-  if (!coordinator.includes(required)) fail(`progressive startup orchestration missing: ${required}`);
+  if (!coordinator.includes(required)) fail(`immediate startup hydration contract missing: ${required}`);
+}
+for (const forbidden of [
+  "connection?.saveData",
+  'connection?.effectiveType === "2g"',
+  "catalog: 1_100",
+  "catalog: 2_500",
+]) {
+  if (coordinator.includes(forbidden)) fail(`homepage first-load data must not be timer-staggered: ${forbidden}`);
 }
 if (coordinator.includes("setInterval(")) fail("startup/fallback scheduler must not use setInterval");
 
@@ -130,5 +138,5 @@ if (layout.includes("@defer (on viewport")) {
 }
 
 if (!process.exitCode) {
-  console.log("V192 homepage runtime OK: canonical data ownership, staged data hydration, route code-splitting and deterministic full-page rendering are enforced.");
+  console.log("V192 homepage runtime OK: canonical data ownership, immediate parallel first-load hydration, route code-splitting and deterministic full-page rendering are enforced.");
 }

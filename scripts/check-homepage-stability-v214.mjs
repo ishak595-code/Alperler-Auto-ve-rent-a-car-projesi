@@ -7,6 +7,7 @@ const admin = read('src/services/homepage-admin.service.ts');
 const adminPage = read('src/pages/admin/admin-homepage.component.ts');
 const layout = read('src/services/homepage-layout.service.ts');
 const mainLayout = read('src/components/main-layout.component.ts');
+const coordinator = read('src/services/public-content-refresh-coordinator.service.ts');
 
 const failures = [];
 const expect = (condition, message) => { if (!condition) failures.push(message); };
@@ -16,6 +17,9 @@ expect(home.includes('@for (section of managedSections(); track section.sectionK
 expect(!mainLayout.includes('@defer (on viewport'), 'Customer prefooter/footer must not depend on viewport defer.');
 expect(mainLayout.includes('<app-customer-prefooter-v174></app-customer-prefooter-v174>'), 'Customer prefooter must be eagerly present.');
 expect(mainLayout.includes('<app-customer-footer-v70></app-customer-footer-v70>'), 'Customer footer must be eagerly present.');
+expect(coordinator.includes('return { config: 0, homepage: 0, branches: 0, campaigns: 0, catalog: 0 };'), 'All homepage public data owners must begin hydration immediately.');
+expect(coordinator.includes('Promise.allSettled(dueTasks.map((task) => task.run()))'), 'First-load public data owners must hydrate concurrently without one source blocking the rest.');
+expect(!coordinator.includes('catalog: 1_100') && !coordinator.includes('catalog: 2_500'), 'Catalog hydration must not be startup timer-staggered.');
 
 expect(admin.includes("private defaultMaxItems(type:HomepageSectionType):number{return type==='CAMPAIGN'?3:(type==='VEHICLES'||type==='TOURS'||type==='BLOG'?5:1);}"), 'Manual showcase defaults must remain 5 for vehicles/tours/blog and 3 for campaigns.');
 expect(admin.includes('activeCount>0?activeCount'), 'Manual showcase count must follow active admin placements.');
@@ -34,6 +38,7 @@ expect(dock.includes('Math.abs(delta) < 12'), 'Mobile dock auto-hide must use a 
 expect(dock.includes('navigation.mobileDockAutoHideEnabled()'), 'Mobile dock must honor the admin auto-hide setting.');
 expect(dock.includes('dock-auto-hidden'), 'Mobile dock must have a stable animated hidden state.');
 expect(dock.includes('this.setAutoHidden(delta > 0 && currentY > 120)'), 'Mobile dock must hide on downward scrolling and reappear on upward scrolling.');
+expect(!dock.includes('backdrop-filter:blur') && !dock.includes('-webkit-backdrop-filter:blur'), 'Fixed mobile dock must not use scroll-heavy blur compositing.');
 
 expect(home.includes('overflow-x:clip'), 'Homepage must guard against horizontal overflow.');
 expect(home.includes('grid-template-columns:minmax(0,1fr) minmax(0,1fr)'), 'Planner grids must use shrink-safe responsive tracks.');

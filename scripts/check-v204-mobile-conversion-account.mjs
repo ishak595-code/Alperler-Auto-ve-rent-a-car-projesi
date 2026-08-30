@@ -69,7 +69,8 @@ for (const token of ['V204 canonical mobile home conversion geometry','app-home-
 mustNot(responsive, 'app-list-your-car-v2', 'Deleted V2 valuation selector returned to canonical responsive CSS.');
 
 const mobileFixes = read('src/mobile-target-fixes.css');
-for (const token of ['app-home-v71 > main','app-fleet app-rental-showcase-v167 > main','app-sales-results app-sales-showcase-v168 > main','app-tours app-tour-showcase-v170 > main','app-campaigns > main','app-search > main','app-account-shell app-account-dashboard-v150 > main']) must(mobileFixes, token, `Canonical mobile dock safe-area owner missing: ${token}`);
+for (const token of ['app-home-v71 > main','app-fleet app-rental-catalog-v217 > main','app-fleet app-favorites-v217 > main','app-sales-results app-sale-catalog-v217 > main','app-tours app-tour-catalog-v217 > main','app-blog-list app-blog-catalog-v217 > main','app-campaigns > main','app-search > main','app-account-shell app-account-dashboard-v150 > main']) must(mobileFixes, token, `Canonical mobile dock safe-area owner missing: ${token}`);
+for (const token of ['app-fleet app-rental-showcase-v167 > main','app-sales-results app-sales-showcase-v168 > main','app-tours app-tour-showcase-v170 > main']) mustNot(mobileFixes, token, `Retired full-catalog safe-area selector remains active: ${token}`);
 mustNot(mobileFixes, 'app-home-v39', 'Deleted V39 homepage selector must not remain in the active CSS chain.');
 mustNot(mobileFixes, 'app-home section[aria-labelledby="campaigns-title"]', 'Deleted V62 homepage campaign selector must not remain in the active CSS chain.');
 
@@ -92,7 +93,8 @@ for (const token of ["when 'fleet' then 'Kiralık'","when 'sales' then 'Satılı
 const campaigns = read('src/pages/campaigns.component.ts');
 const homeSections = read('src/components/dynamic-home-section.component.ts');
 for (const token of ['proofLabel','countdown','activeViewers15m','recentViewers24h','campaign=']) must(campaigns, token);
-for (const token of ['campaignProofLabel','campaignCountdown','publicCampaigns()','campaign=']) must(homeSections, token);
+for (const token of ['campaignProofLabel','campaignCountdown','this.layout.campaignsFor','this.campaignsService.proofByCampaign','campaign=']) must(homeSections, token);
+mustNot(homeSections, 'publicCampaigns()', 'Homepage campaign renderer must not restore full campaign hydration.');
 
 const campaignAdmin = read('src/pages/admin/admin-campaigns-v167.component.ts');
 for (const token of ['startsAt','endsAt','maxRedemptions','perCustomerLimit','remove(c)','saveAs','targetType','targetId']) must(campaignAdmin, token);

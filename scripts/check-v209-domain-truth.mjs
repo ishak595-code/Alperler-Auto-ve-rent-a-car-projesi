@@ -7,6 +7,7 @@ const fail = (message) => {
 const read = (path) => fs.readFileSync(path, 'utf8');
 
 const car = read('src/services/car.service.ts');
+const favorites = read('src/services/customer-favorites-v217.service.ts');
 const feedback = read('src/components/feedback.component.ts');
 const checkout = read('src/pages/booking-checkout.component.ts');
 const appointment = read('src/pages/appointment.component.ts');
@@ -25,7 +26,13 @@ for (const forbidden of [
   if (car.includes(forbidden)) fail(`CarService still owns legacy business state/capability: ${forbidden}`);
 }
 
-if (!car.includes('db_favoriteCars')) fail('intentional device-local favorites preference was removed');
+if (!car.includes('CustomerFavoritesV217Service')) fail('vehicle favorite compatibility API must delegate to the canonical V217 owner');
+for (const forbidden of ['_favoriteCars', 'db_favoriteCars', 'installDevicePreferencePersistence(', 'loadDevicePreferences(']) {
+  if (car.includes(forbidden)) fail(`CarService still owns legacy favorite state: ${forbidden}`);
+}
+if (!favorites.includes("private readonly legacyVehicleKey = 'db_favoriteCars'")) fail('V217 canonical favorites must retain one-way legacy vehicle preference migration');
+if (fs.existsSync('src/services/customer-favorites-sync.service.ts')) fail('legacy customer favorites sync owner still exists');
+
 for (const fragment of ['reservations(?:_v2)?', 'partnerrequests(?:_v2)?', 'feedbacks(?:_v2)?', 'notifications', 'visits']) {
   if (!car.toLowerCase().includes(fragment)) fail(`legacy cache cleanup regex does not cover ${fragment}`);
 }
@@ -57,4 +64,4 @@ if (!analytics.includes("supabaseFunctionUrl('analytics-ingest')")) fail('visito
 if (!analytics.includes('CONSENT_KEY')) fail('analytics consent boundary is missing');
 if (/db_visits|session_active/i.test(analytics)) fail('canonical analytics service references retired CarService visit counters');
 
-if (!process.exitCode) console.log('V209 domain truth contract passed: CarService no longer persists booking, partner, feedback, notification, or visit business truth; favorites remain intentional device state.');
+if (!process.exitCode) console.log('V209 domain truth contract passed: CarService owns no persisted customer/business truth; vehicle favorites delegate to the canonical V217 account-aware owner.');

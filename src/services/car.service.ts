@@ -1,4 +1,4 @@
-import { DestroyRef, Injectable, computed, effect, inject, signal } from "@angular/core";
+import { DestroyRef, Injectable, computed, inject, signal } from "@angular/core";
 import { Car, SaleCar, Tour, Vehicle } from "../models/car.model";
 import { SiteConfig } from "../models/site-config.model";
 import {
@@ -7,6 +7,7 @@ import {
   CatalogService,
 } from "./catalog.service";
 import { CampaignService } from "./campaign.service";
+import { CustomerFavoritesV217Service } from "./customer-favorites-v217.service";
 import { DEFAULT_SITE_CONFIG } from "./default-site-config";
 import { PublicCatalogMediaService } from "./public-catalog-media.service";
 import { PublicContentRealtimeService } from "./public-content-realtime.service";
@@ -60,13 +61,13 @@ export class CarService {
   private readonly catalogService = inject(CatalogService);
   private readonly catalogMediaService = inject(PublicCatalogMediaService);
   private readonly campaignService = inject(CampaignService);
+  private readonly customerFavorites = inject(CustomerFavoritesV217Service);
   private readonly realtime = inject(PublicContentRealtimeService);
   private readonly destroyRef = inject(DestroyRef);
 
   // Route handoff only. This state is intentionally in-memory and never persisted.
   private readonly _bookingRequest = signal<BookingRequest | null>(null);
-  // Favorites are an intentional device preference until a cross-device account feature owns them.
-  private readonly _favoriteCars = signal<(number | string)[]>([]);
+  private readonly favoriteHydrationKeys = new Set<string>();
 
   private readonly _config = signal<SiteConfig>({ ...DEFAULT_SITE_CONFIG });
   private readonly _faqs = signal<FaqItem[]>([]);
@@ -83,8 +84,6 @@ export class CarService {
 
   constructor() {
     this.purgeObsoleteBusinessCaches();
-    this.loadDevicePreferences();
-    this.installDevicePreferencePersistence();
 
     const unwatchCatalog = this.realtime.watch(
       ["vehicles", "tours", "catalog_media", "media_assets", "blog_posts", "faqs"],
@@ -98,12 +97,7 @@ export class CarService {
     this.destroyRef.onDestroy(unwatchConfig);
 
     if (typeof window !== "undefined") {
-      const handleStorage = (event: StorageEvent) => {
-        if (event.key === "db_favoriteCars") this.loadDevicePreferences();
-      };
-      window.addEventListener("storage", handleStorage);
       this.destroyRef.onDestroy(() => {
-        window.removeEventListener("storage", handleStorage);
         if (this.cloudRefreshTimer !== undefined) window.clearTimeout(this.cloudRefreshTimer);
         if (this.configRefreshTimer !== undefined) window.clearTimeout(this.configRefreshTimer);
       });
@@ -405,16 +399,28 @@ export class CarService {
   }
 
   toggleFavorite(id: number | string): void {
-    this._favoriteCars.update((items) =>
-      items.includes(id) ? items.filter((item) => item !== id) : [...items, id],
-    );
+    const entityId = String(id).trim();
+    if (!entityId) return;
+    void this.customerFavorites.toggle("VEHICLE", entityId).catch((error) => {
+      console.info("Vehicle favorite update deferred.", error);
+    });
   }
 
   isFavorite(id: number | string): boolean {
-    return this._favoriteCars().includes(id);
+    const entityId = String(id).trim();
+    if (!entityId) return false;
+    const hydrationKey = `${this.customerFavorites.contextKey()}:${entityId}`;
+    if (!this.favoriteHydrationKeys.has(hydrationKey)) {
+      this.favoriteHydrationKeys.add(hydrationKey);
+      void this.customerFavorites.hydrateVisible("VEHICLE", [entityId]).catch((error) => {
+        this.favoriteHydrationKeys.delete(hydrationKey);
+        console.info("Vehicle favorite hydration deferred.", error);
+      });
+    }
+    return this.customerFavorites.isFavorite("VEHICLE", entityId);
   }
 
-  getFavoriteCount = computed(() => this._favoriteCars().length);
+  getFavoriteCount = computed(() => this.customerFavorites.favoriteCount("VEHICLE"));
 
   triggerWebhook(eventName: string, _payload: unknown): void {
     console.info(`External browser webhook disabled for ${eventName}.`);
@@ -516,11 +522,6 @@ export class CarService {
     }, delay);
   }
 
-  private installDevicePreferencePersistence(): void {
-    if (typeof localStorage === "undefined") return;
-    effect(() => localStorage.setItem("db_favoriteCars", JSON.stringify(this._favoriteCars())));
-  }
-
   private purgeObsoleteBusinessCaches(): void {
     if (typeof localStorage === "undefined") return;
     const obsoleteBusinessCacheKey = /^db_(?:cars|rental_?cars?|sale_?cars?|sales?|vehicles?|tours?|inventory|config|faqs?|blog|subscribers|reservations(?:_v2)?|partnerrequests(?:_v2)?|visits|feedbacks(?:_v2)?|notifications)(?:_|$)/i;
@@ -529,23 +530,5 @@ export class CarService {
       if (key && obsoleteBusinessCacheKey.test(key)) localStorage.removeItem(key);
     }
     sessionStorage.removeItem("session_active");
-  }
-
-  private loadDevicePreferences(): void {
-    if (typeof localStorage === "undefined") return;
-    this.readStorage("db_favoriteCars", (value) => {
-      if (Array.isArray(value)) this._favoriteCars.set(value as (number | string)[]);
-    });
-  }
-
-  private readStorage(key: string, apply: (value: unknown) => void): void {
-    const raw = localStorage.getItem(key);
-    if (!raw) return;
-    try {
-      apply(JSON.parse(raw));
-    } catch (error) {
-      console.warn(`Ignoring invalid local preference: ${key}`, error);
-      localStorage.removeItem(key);
-    }
   }
 }

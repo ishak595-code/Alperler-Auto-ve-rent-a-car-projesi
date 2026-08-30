@@ -16,10 +16,23 @@ const adminNavigation = read('src/pages/admin/admin-navigation.component.ts');
 const migration = read('supabase/migrations/20260829083507_v210_prestige_conversion.sql');
 const v213Migration = readOptional('supabase/migrations/20260829210000_v213_prestige_discovery_personalization.sql');
 const pkg = JSON.parse(read('package.json'));
+const compactLayout = layout.replace(/\s+/g, '');
 
-if (!catalog.includes('order=published_at.desc')) fail('canonical blog source is not newest-first');
-if (!layout.includes('selectionMode') || !layout.includes("mode === 'LATEST'") || !layout.includes('return []')) {
+if (!catalog.includes('order=published_at.desc')) fail('canonical historical blog source is not newest-first');
+if (!layout.includes('selectionMode') || !compactLayout.includes("mode==='LATEST'")) {
   fail('homepage layout does not preserve explicit LATEST mode semantics');
+}
+// V217 supersedes the old in-memory LATEST branch with bounded server-owned catalogue reads.
+for (const token of [
+  "this.catalog.listVehicles({category,page:0,pageSize:limit",
+  "this.catalog.listTours({page:0,pageSize:limit",
+  "this.catalog.listBlogs({page:0,pageSize:limit",
+  'this.catalog.latestCampaigns(limit)',
+]) {
+  if (!compactLayout.includes(token.replace(/\s+/g, ''))) fail(`LATEST mode is not bounded by the scalable catalogue owner: ${token}`);
+}
+for (const forbidden of ['this.cars.getCars()', 'this.cars.getSaleCars()', 'this.cars.getTours()', 'this.cars.getBlogPosts()']) {
+  if (layout.includes(forbidden)) fail(`homepage layout must not restore full-catalog hydration: ${forbidden}`);
 }
 
 // V210 historically established blog_featured as automatic newest-three. V213 intentionally
@@ -50,4 +63,4 @@ if (!migration.includes('/storage/v1/object/public/catalog-media/')) fail('closi
 if (pkg.scripts?.['prestige-conversion:v210'] !== 'node scripts/check-v210-prestige-conversion.mjs') fail('package script prestige-conversion:v210 is missing');
 if (!String(pkg.scripts?.['verify:handoff'] || '').includes('prestige-conversion:v210')) fail('V210 contract is not wired into verify:handoff');
 
-if (!process.exitCode) console.log('V210 prestige conversion contract passed: historical newest-three migration remains auditable, explicit LATEST semantics remain supported, and V213 may supersede active showcase selection through an explicit PLACEMENT migration.');
+if (!process.exitCode) console.log('V210 prestige conversion contract passed: historical newest-three migration remains auditable, V217 preserves bounded LATEST semantics, and V213 may supersede active showcase selection through an explicit PLACEMENT migration.');

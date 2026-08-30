@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const read = (file) => fs.readFileSync(file, 'utf8');
+const compact = (source) => source.replace(/\s+/g, '');
 const requireFile = (file) => { if (!fs.existsSync(file)) throw new Error(`V203 required file missing: ${file}`); };
 const requireMissing = (file) => { if (fs.existsSync(file)) throw new Error(`V203 legacy duplicate must remain deleted: ${file}`); };
 const must = (source, token, message) => { if (!source.includes(token)) throw new Error(message || `V203 contract missing: ${token}`); };
@@ -15,8 +16,14 @@ const canonical = [
   'src/pages/tour-detail.component.ts',
   'src/pages/blog-detail.component.ts',
   'src/pages/fleet.component.ts',
+  'src/pages/rental-catalog-v217.component.ts',
   'src/pages/sales-results.component.ts',
+  'src/pages/sale-catalog-v217.component.ts',
   'src/pages/tours.component.ts',
+  'src/pages/tour-catalog-v217.component.ts',
+  'src/pages/blog-list.component.ts',
+  'src/pages/blog-catalog-v217.component.ts',
+  'src/services/scalable-public-catalog-v217.service.ts',
   'src/pages/list-your-car.component.ts',
   'src/pages/branch-partner-v171.component.ts',
   'src/pages/account-shell.component.ts',
@@ -52,7 +59,6 @@ const removedLegacy = [
 removedLegacy.forEach(requireMissing);
 
 // A workflow may mention a deleted file only to assert that it stays deleted.
-// Positive reads, path triggers, assignments or greps against a deleted file remain forbidden.
 const workflowDir = '.github/workflows';
 const workflowFiles = fs.readdirSync(workflowDir).filter((name) => /\.ya?ml$/i.test(name));
 const isAbsenceAssertion = (line, legacy) => {
@@ -71,19 +77,11 @@ for (const name of workflowFiles) {
   });
 }
 
-// Test and integrity scripts must not read/import deleted runtime owners either.
-// Negative existence guards are allowed, but stale renderers can never become CI fixtures again.
 const scriptDir = 'scripts';
 const scriptFiles = fs.readdirSync(scriptDir).filter((name) => /\.(?:mjs|cjs|js)$/i.test(name));
 const positiveScriptDependency = (line, legacy) => {
   if (!line.includes(legacy)) return false;
-  return [
-    /\bread\s*\(/,
-    /readFileSync\s*\(/,
-    /\bimport\s+/,
-    /\bfrom\s+['"]/, 
-    /\brequire\s*\(/,
-  ].some((pattern) => pattern.test(line));
+  return [/\bread\s*\(/,/readFileSync\s*\(/,/\bimport\s+/,/\bfrom\s+['"]/,/\brequire\s*\(/].some((pattern) => pattern.test(line));
 };
 for (const name of scriptFiles) {
   const lines = read(path.join(scriptDir, name)).split(/\r?\n/);
@@ -105,22 +103,33 @@ for (const token of [
   "./pages/sales-results.component",
   "./pages/tours.component",
 ]) must(routes, token, `Canonical route missing: ${token}`);
-for (const token of [
-  'branch-partner-v164.component',
-  'rental-results.component',
-  'tour-results.component',
-  'list-your-car-v2.component',
-  'tour-showcase-v169.component',
-]) mustNot(routes, token, `Legacy route returned: ${token}`);
+for (const token of ['branch-partner-v164.component','rental-results.component','tour-results.component','list-your-car-v2.component','tour-showcase-v169.component']) mustNot(routes, token, `Legacy route returned: ${token}`);
 
+// Route shells must delegate to the bounded V217 owners and must not revive historical showcase owners.
 const fleet = read('src/pages/fleet.component.ts');
+const rentalCatalog = read('src/pages/rental-catalog-v217.component.ts');
 const saleResults = read('src/pages/sales-results.component.ts');
+const saleCatalog = read('src/pages/sale-catalog-v217.component.ts');
 const tours = read('src/pages/tours.component.ts');
+const tourCatalog = read('src/pages/tour-catalog-v217.component.ts');
+const blogList = read('src/pages/blog-list.component.ts');
+const blogCatalog = read('src/pages/blog-catalog-v217.component.ts');
+const scalableCatalog = read('src/services/scalable-public-catalog-v217.service.ts');
 const valuation = read('src/pages/list-your-car.component.ts');
 const accountShell = read('src/pages/account-shell.component.ts');
-for (const token of ['RentalShowcaseV167Component','<app-rental-showcase-v167 />']) must(fleet, token);
-for (const token of ['SalesShowcaseV168Component','<app-sales-showcase-v168 />']) must(saleResults, token);
-for (const token of ['TourShowcaseV170Component','<app-tour-showcase-v170 />']) must(tours, token);
+for (const token of ['RentalCatalogV217Component','<app-rental-catalog-v217 />']) must(fleet, token);
+for (const token of ['SaleCatalogV217Component','<app-sale-catalog-v217 />']) must(saleResults, token);
+for (const token of ['TourCatalogV217Component','<app-tour-catalog-v217 />']) must(tours, token);
+for (const token of ['BlogCatalogV217Component','<app-blog-catalog-v217 />']) must(blogList, token);
+for (const [name, source] of [['rental',rentalCatalog],['sale',saleCatalog],['tour',tourCatalog],['blog',blogCatalog]]) {
+  must(source, 'ScalablePublicCatalogV217Service', `${name} route owner must use the scalable catalogue service.`);
+  for (const forbidden of ['getCars()','getSaleCars()','getTours()','getBlogPosts()','refreshCloudCatalog(','ensureVehicleCloudInventory(']) mustNot(source, forbidden, `${name} route owner must remain bounded: ${forbidden}`);
+}
+must(rentalCatalog, 'pageSize:24', 'Rental catalogue must keep bounded 24-item pages.');
+must(saleCatalog, 'pageSize:24', 'Sale catalogue must keep bounded 24-item pages.');
+must(tourCatalog, 'pageSize:24', 'Tour catalogue must keep bounded 24-item pages.');
+must(blogCatalog, 'pageSize:24', 'Blog catalogue must keep bounded 24-item pages.');
+for (const view of ['public_vehicle_catalog_v217','public_tour_catalog_v217','public_blog_catalog_v217']) must(scalableCatalog, view, `Scalable catalogue is missing ${view}.`);
 for (const token of ['ListYourCarV172Component','<app-list-your-car-v172 />']) must(valuation, token);
 for (const token of ['AccountDashboardV150Component','<app-account-dashboard-v150>']) must(accountShell, token);
 
@@ -157,8 +166,10 @@ for (const token of ['Fotoğraf & Video','hourlyMileageLimit','tramerSourceUrl',
 const home = read('src/pages/home-v71.component.ts');
 const section = read('src/components/dynamic-home-section.component.ts');
 const layout = read('src/services/homepage-layout.service.ts');
+const layoutCompact = compact(layout);
 for (const token of ['HomepageLayoutService','DynamicHomeSectionComponent','homepageLayout.sections()']) must(home, token);
-for (const token of ['this.cars.getSaleCars()','this.cars.getCars()','this.cars.getTours()','this.cars.getBlogPosts()','this.campaignsService.publicCampaigns()','this.layout.placementsFor']) must(section, token);
-for (const token of ['homepage_sections?is_enabled=eq.true','homepage_placements?is_active=eq.true','PublicContentRealtimeService','cache: \'no-store\'']) must(layout, token);
+for (const token of ['vehiclesFor(this.section.sectionKey)','toursFor(this.section.sectionKey)','blogsFor(this.section.sectionKey)','campaignsFor(this.section.sectionKey)']) must(section, token, `Dynamic homepage must consume bounded layout state: ${token}`);
+for (const forbidden of ['this.cars.getSaleCars()','this.cars.getCars()','this.cars.getTours()','this.cars.getBlogPosts()','this.campaignsService.publicCampaigns()']) mustNot(section, forbidden, `Dynamic homepage must not restore full-catalog hydration: ${forbidden}`);
+for (const token of ['homepage_sections?is_enabled=eq.true','homepage_placements?is_active=eq.true','PublicContentRealtimeService','cache:\'no-store\'','vehiclesByIdentifiers(','toursByIdentifiers(','blogsByIdentifiers(','campaignsByIdentifiers(']) must(layoutCompact, compact(token), `Homepage bounded ownership contract missing: ${token}`);
 
 console.log('V203 canonical runtime/repository integrity: PASS');

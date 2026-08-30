@@ -4,17 +4,23 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const fail = (message) => { throw new Error(`V213 invariant failed: ${message}`); };
 const requireText = (source, needle, message) => { if (!source.includes(needle)) fail(message); };
 const forbidText = (source, needle, message) => { if (source.includes(needle)) fail(message); };
+const requireOccurrences = (source, needle, minimum, message) => {
+  const count = source.split(needle).length - 1;
+  if (count < minimum) fail(`${message} (found ${count}, expected at least ${minimum})`);
+};
+const compact = (source) => source.replace(/\s+/g, '');
 
 const home = read('src/pages/home-v71.component.ts');
 const layout = read('src/services/homepage-layout.service.ts');
+const layoutCompact = compact(layout);
 const dynamicSection = read('src/components/dynamic-home-section.component.ts');
 const admin = read('src/services/homepage-admin.service.ts');
 const searchPage = read('src/pages/search.component.ts');
 const searchService = read('src/services/global-search.service.ts');
-const favorites = read('src/services/customer-favorites-sync.service.ts');
+const favorites = read('src/services/customer-favorites-v217.service.ts');
+const favoritesCompact = compact(favorites);
 const account = read('src/pages/account-shell.component.ts');
 const accountFavorites = read('src/components/account-favorites-v213.component.ts');
-const mainLayout = read('src/components/main-layout.component.ts');
 const app = read('src/app.component.ts');
 const mobileCss = read('src/mobile-target-fixes.css');
 const migration = read('supabase/migrations/20260829210000_v213_prestige_discovery_personalization.sql');
@@ -26,30 +32,49 @@ const heroSearchIds = home.match(/id=\"home-search-v80\"/g) || [];
 if (heroSearchIds.length !== 1) fail(`expected exactly one canonical Hero search input, found ${heroSearchIds.length}`);
 requireText(home, 'this.router.navigate(["/search"],{queryParams:q?{q}:undefined})', 'Hero search must hand off q to /search');
 
-// Global search owns only live public discovery, rather than a vehicle-only page implementation.
+// V217 keeps V213 discovery semantics but moves execution to one bounded indexed server-side RPC.
 requireText(searchPage, 'GlobalSearchService', 'search page must use GlobalSearchService');
 requireText(searchPage, "params.get('q')", 'search page must hydrate the Hero q query parameter');
-forbidText(searchPage, 'CarService', 'search page must not regain vehicle-only data ownership');
+requireText(searchPage, 'this.search.searchPage(', 'search page must use bounded server-side search pages');
+requireText(searchPage, 'async loadMore()', 'search page must retain explicit incremental loading');
+forbidText(searchPage, 'CarService', 'search page must not regain vehicle-only or full-catalog ownership');
 for (const kind of ['RENTAL','SALE','TOUR','CAMPAIGN','BLOG','BRANCH','FAQ','SECTION','PAGE']) {
   requireText(searchService, `'${kind}'`, `global search must include ${kind}`);
 }
-requireText(searchService, 'this.cars.ensureVehicleCloudInventory()', 'global search must refresh canonical vehicle/tour/blog/FAQ data');
-requireText(searchService, 'this.branches.refresh()', 'global search must refresh canonical branch data');
-requireText(searchService, 'this.homepage.load()', 'global search must include live homepage sections');
-requireText(searchService, 'this.isLiveCampaign(campaign)', 'global search must exclude scheduled, expired and unpublished campaigns');
-requireText(searchService, "branch.isActive && !/\\bdemo\\b/i.test(branch.name || '')", 'global search must exclude inactive/demo branches');
+requireText(searchService, 'public_global_search_v217', 'global search must use the indexed V217 RPC');
+requireText(searchService, 'p_limit: requestSize', 'global search must enforce a bounded page size');
+requireText(searchService, 'p_offset:', 'global search must use server-side pagination');
+requireText(searchService, 'const requestSize = pageSize + 1', 'global search must use one-row lookahead for hasMore');
+requireText(searchService, 'safeInternalRoute', 'global search must reject unsafe result routes');
+for (const forbidden of ['CarService', 'ensureVehicleCloudInventory(', 'refreshCloudCatalog(', 'getCars()', 'getSaleCars()', 'getTours()', 'getBlogPosts()']) {
+  forbidText(searchService, forbidden, `global search must not restore full-catalog hydration: ${forbidden}`);
+}
 
-// PLACEMENT sections are manual truth: selection count is the effective count and zero/stale selections fail closed.
-requireText(layout, "type HomepageSelectionMode = 'PLACEMENT' | 'LATEST'", 'homepage selection modes must remain explicit');
-requireText(layout, "maxItems: placementDriven ? Math.max(1, manualCount) : storedLimit", 'manual homepage count must derive from valid placements');
-requireText(layout, 'if (row.placementDriven && row.manualCount === 0) return false', 'empty manual showcase must collapse instead of auto-filling');
-requireText(layout, 'entityTypeMatchesSection', 'manual placements must be bound to their section domain');
-requireText(layout, "category === 'SALE' ? this.cars.getSaleCars()() : this.cars.getCars()()", 'rental/sale manual placements must use category-specific sources');
-requireText(dynamicSection, 'if(this.layout.selectionModeFor(this.section.sectionKey)==="LATEST") return source.slice(0,this.limit())', 'automatic LATEST sections must be the only sections allowed to source-fill');
-requireText(dynamicSection, 'if(!ids.length) return []', 'manual showcase with no placements must fail closed at renderer level');
-forbidText(dynamicSection, '(ordered.length?ordered:source)', 'manual showcase must never substitute unrelated source items for stale placements');
+// PLACEMENT sections remain manual truth, but V217 resolves only their selected identifiers.
+requireText(layoutCompact, "typeHomepageSelectionMode='PLACEMENT'|'LATEST';", 'homepage selection modes must remain explicit');
+requireText(layoutCompact, "if(mode==='PLACEMENT')", 'manual homepage sections must remain placement-driven');
+for (const token of ['vehiclesByIdentifiers(', 'toursByIdentifiers(', 'blogsByIdentifiers(', 'campaignsByIdentifiers(']) {
+  requireText(layout, token, `manual homepage sections must resolve selected identifiers only: ${token}`);
+}
+requireText(layout, 'validPlacementIds', 'stale manual placements must be excluded from the effective placement set');
+requireText(layoutCompact, 'constvalidPlacements=rawPlacements.filter', 'only resolved placements may remain public');
+requireText(layoutCompact, 'selectionModeFor(key:string):HomepageSelectionMode', 'renderer must retain explicit selection-mode ownership');
+for (const token of [
+  'this.catalog.listVehicles({category,page:0,pageSize:limit',
+  'this.catalog.listTours({page:0,pageSize:limit',
+  'this.catalog.listBlogs({page:0,pageSize:limit',
+  'this.catalog.latestCampaigns(limit)',
+]) {
+  requireText(layoutCompact, token, `LATEST homepage sections must stay bounded: ${token}`);
+}
+for (const token of ['vehiclesFor(this.section.sectionKey)', 'toursFor(this.section.sectionKey)', 'blogsFor(this.section.sectionKey)', 'campaignsFor(this.section.sectionKey)']) {
+  requireText(dynamicSection, token, `renderer must consume the bounded homepage owner: ${token}`);
+}
+for (const forbidden of ['getCars()', 'getSaleCars()', 'getTours()', 'getBlogPosts()', 'publicCampaigns()']) {
+  forbidText(dynamicSection, forbidden, `dynamic homepage must not restore a full-catalog source: ${forbidden}`);
+}
 requireText(admin, "settings.selectionMode='PLACEMENT'", 'new content showcases must default to manual placement mode');
-requireText(admin, 'reconcileManualCounts', 'admin showcase count must reconcile from placements');
+requireText(admin, 'reconcileManualCounts', 'admin showcase count must reconcile from active placements');
 
 // Mobile hierarchy moves the existing planner up but does not create another search surface.
 requireText(mobileCss, 'app-home-v71 .planner', 'mobile hierarchy must explicitly position Quick Planning');
@@ -62,15 +87,25 @@ if (fs.existsSync('src/components/analytics-consent.component.ts')) fail('retire
 forbidText(app, 'AnalyticsConsentComponent', 'root shell must not import the retired custom consent popup');
 forbidText(app, '<app-analytics-consent', 'root shell must not mount the retired custom consent popup');
 
-// Favorites retain guest device behavior while authenticated state is synchronized through RLS.
-requireText(favorites, 'customer_favorites', 'favorites sync must persist to customer_favorites');
-requireText(favorites, 'user_id=eq.', 'favorites reads/deletes must include explicit owner filters');
-requireText(favorites, 'authorization: `Bearer ${token}`', 'favorites sync must use the signed-in customer bearer token');
-forbidText(favorites.toLowerCase(), 'service_role', 'favorites browser sync must never use service_role');
-requireText(mainLayout, 'CustomerFavoritesSyncService', 'customer shell must start favorites synchronization');
+// V217 unifies V213 favorites across vehicles, tours and blog while preserving guest migration and strict RLS ownership.
+requireText(favoritesCompact, "'VEHICLE'|'TOUR'|'BLOG'", 'favorites must remain unified across all customer content domains');
+requireText(favorites, 'customer_favorites', 'favorites must persist to customer_favorites');
+requireOccurrences(favoritesCompact, 'user_id:`eq.${userId}`', 3, 'favorites visible reads, paged reads and deletes must include explicit owner filters');
+requireOccurrences(favoritesCompact, 'entity_type:`eq.${type}`', 2, 'favorites targeted reads and deletes must include entity-type filters');
+requireText(favoritesCompact, 'entity_id:`eq.${entityId}`', 'favorites deletes must include the exact entity-id filter');
+requireText(favorites, 'Authorization: `Bearer ${token}`', 'favorites requests must use the signed-in customer bearer token');
+requireText(favorites, "private readonly legacyVehicleKey = 'db_favoriteCars'", 'legacy guest vehicle favorites must be migrated by the canonical owner');
+requireText(favorites, 'resolution=ignore-duplicates', 'guest migration must not require UPDATE RLS');
+requireText(favorites, "String(this.auth.user()?.id || '') !== userId", 'favorites must reject stale responses after an auth-context change');
+forbidText(favorites.toLowerCase(), 'service_role', 'favorites browser code must never use service_role');
+forbidText(favorites, 'resolution=merge-duplicates', 'favorites must not regain UPDATE-dependent upserts');
 requireText(account, 'app-account-favorites-v213', 'customer profile must render the unified favorites section');
-requireText(accountFavorites, 'this.cars.getCars()', 'profile favorites must include rentals');
-requireText(accountFavorites, 'this.cars.getSaleCars()', 'profile favorites must include sale vehicles');
+requireText(accountFavorites, 'CustomerFavoritesV217Service', 'account favorites must use the unified favorites owner');
+requireText(accountFavorites, 'ScalablePublicCatalogV217Service', 'account favorites must resolve only referenced entities');
+requireText(accountFavorites, "listPage('ALL',0,6)", 'account preview must stay bounded to the latest six favorites');
+for (const forbidden of ['CarService','getCars()','getSaleCars()','getTours()','getBlogPosts()']) {
+  forbidText(accountFavorites, forbidden, `account favorites must not hydrate a full catalog: ${forbidden}`);
+}
 
 // Database contract: manual showcases, mobile search and least-privilege account favorites.
 requireText(migration, "section_type in ('VEHICLES', 'TOURS', 'BLOG', 'CAMPAIGN')", 'migration must canonicalize all content showcase types');
@@ -90,4 +125,4 @@ if (!String(packageJson.scripts?.['verify:handoff'] || '').includes('prestige-di
   fail('verify:handoff must include the V213 permanent invariant');
 }
 
-console.log('V213 prestige discovery + personalization invariant: PASS');
+console.log('V213 prestige discovery + V217 bounded personalization invariant: PASS');

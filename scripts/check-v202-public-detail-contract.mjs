@@ -4,7 +4,9 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const sale = read('src/pages/sale-car-detail.component.ts');
 const rental = read('src/pages/car-detail.component.ts');
 const tour = read('src/pages/tour-detail.component.ts');
-const blog = read('src/pages/blog-list.component.ts');
+const blogShell = read('src/pages/blog-list.component.ts');
+const blogCatalog = read('src/pages/blog-catalog-v217.component.ts');
+const scalableCatalog = read('src/services/scalable-public-catalog-v217.service.ts');
 const detail = read('src/services/public-detail-data.service.ts');
 const catalog = read('src/services/catalog.service.ts');
 const worker = read('public/service-worker.js');
@@ -43,8 +45,18 @@ for (const mapping of ['year: row["model_year"]', 'km: row["mileage_km"]', 'fuel
   requireText(catalog, mapping, `Catalogue list mapper missing ${mapping}.`);
 }
 
+// V217 keeps the public blog route bounded instead of hydrating the complete published table.
+requireText(blogShell, 'BlogCatalogV217Component', 'Blog route must delegate to the bounded V217 catalogue owner.');
+requireText(blogCatalog, 'ScalablePublicCatalogV217Service', 'Blog list must use the scalable public catalogue service.');
+requireText(blogCatalog, 'this.data.listBlogs({page:this.page,pageSize:24', 'Blog list must request explicit 24-item server pages.');
+requireText(blogCatalog, 'async loadMore()', 'Blog list must retain explicit incremental loading.');
+requireText(blogCatalog, "hydrateVisible('BLOG'", 'Blog favorites must hydrate only visible identifiers.');
+requireText(scalableCatalog, 'public_blog_catalog_v217', 'Blog catalogue must be backed by the V217 public view.');
+for (const forbidden of ['loadBlogList()', 'getBlogPosts()', 'refreshCloudCatalog(', 'ensureVehicleCloudInventory(']) {
+  rejectText(blogCatalog, forbidden, `Blog list must not restore full-catalog hydration: ${forbidden}`);
+}
+
 // Previously fixed public regressions remain locked.
-requireText(blog, 'loadBlogList()', 'Blog list must load the published DB list through the direct public detail service.');
 requireText(rental, 'campaignProofLabel', 'Rental campaign social proof must remain wired.');
 requireText(tour, 'class="action-bar"', 'Tour must retain one canonical fixed action bar.');
 requireText(tour, '<span>WhatsApp’tan Sor</span>', 'Tour WhatsApp action missing.');

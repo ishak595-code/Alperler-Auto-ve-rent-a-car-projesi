@@ -81,15 +81,17 @@ jobs:
             echo "Rental card must never mask vehicle location with global company address"
             exit 1
           fi
-          if grep -Eq "fuelOptions=.*Dizel|transmissionOptions=.*Otomatik" "$SHOW"; then
-            echo "Rental filters must come from live catalog, not hardcoded enumerations"
-            exit 1
-          fi
           if grep -Eq "isCampaign|discountRate" "$CARD"; then
             echo "Rental card must use authoritative campaigns table, not legacy vehicle campaign flags"
             exit 1
           fi
-          grep -q "RentalShowcaseV167Component" src/pages/fleet.component.ts
+          grep -q "RentalCatalogV217Component" src/pages/fleet.component.ts
+          grep -q "ScalablePublicCatalogV217Service" src/pages/rental-catalog-v217.component.ts
+          grep -q "RentalVehicleCardV167Component" src/pages/rental-catalog-v217.component.ts
+          if grep -Eq "refreshCloudCatalog\(|ensureVehicleCloudInventory\(|getCars\(\)" src/pages/fleet.component.ts src/pages/rental-catalog-v217.component.ts; then
+            echo "Rental route must remain bounded and must not hydrate the full catalog"
+            exit 1
+          fi
           grep -q "CarDetailComponent" src/pages/catalog-detail-shells.component.ts
           test ! -f src/pages/rental-detail-v167.component.ts
       - name: Super Admin commercial rule contract

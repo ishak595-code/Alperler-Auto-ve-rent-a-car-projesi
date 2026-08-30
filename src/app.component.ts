@@ -4,6 +4,7 @@ import { filter } from 'rxjs';
 import { ThemeService } from './services/theme.service';
 import { SeoService } from './services/seo.service';
 import { PublicContentRefreshCoordinatorService } from './services/public-content-refresh-coordinator.service';
+import { DeferredRouteScrollRestorationService } from './services/deferred-route-scroll-restoration.service';
 import { CustomerMobileDockComponent } from './components/customer-mobile-dock.component';
 import { RuntimeStatusGateComponent } from './components/runtime-status-gate.component';
 import { BookingSuccessOverlayComponent } from './components/booking-success-overlay.component';
@@ -34,6 +35,7 @@ export class AppComponent implements OnInit {
   seoService = inject(SeoService);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
+  private readonly deferredScrollRestoration = inject(DeferredRouteScrollRestorationService);
   private publicContentRefresh?: PublicContentRefreshCoordinatorService;
   private backgroundServicesStarted = false;
   private readonly initialUrl = typeof window !== 'undefined' ? window.location.pathname : this.router.url;
@@ -52,6 +54,9 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit() {
+    // Router-native scroll restoration fires before async catalog pages always recover
+    // their full height. Retry only back/forward positions after late content hydration.
+    this.deferredScrollRestoration.start();
     // SEO and public-content freshness are user-visible startup work.
     // Observability/enrichment that is not needed to render the shell remains deferred.
     this.seoService.init();

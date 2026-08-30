@@ -37,16 +37,24 @@ jobs:
           MIG=supabase/migrations/20260825191000_v169_tour_capacity_publication_integrity.sql
           test -f "$MIG"
           for token in tour_availability_v169 tour_approved_people_v169 bookings_tour_approved_day_v169_idx TOUR_CAPACITY_EXCEEDED pendingBlocksCapacity DURATION_REQUIRED CAPACITY_REQUIRED MEETING_POINT_REQUIRED ITINERARY_REQUIRED INCLUDED_ITEMS_REQUIRED EXCLUDED_ITEMS_REQUIRED; do grep -Fq "$token" "$MIG"; done
-      - name: Production tour showcase and canonical detail ownership
+      - name: Bounded tour catalog and canonical detail ownership
         shell: bash
         run: |
           set -euo pipefail
-          SHOW=src/pages/tour-showcase-v170.component.ts
+          SHOW=src/pages/tour-catalog-v217.component.ts
           DETAIL=src/pages/tour-detail.component.ts
           test -f "$SHOW" && test -f "$DETAIL"
-          grep -Fq "TourShowcaseV170Component" src/pages/tours.component.ts
+          grep -Fq "TourCatalogV217Component" src/pages/tours.component.ts
           grep -Fq "TourDetailComponent" src/pages/catalog-detail-shells.component.ts
-          grep -Fq "bounds" "$SHOW"
+          grep -Fq "tourFacets()" "$SHOW"
+          grep -Fq "facets().priceMin" "$SHOW"
+          grep -Fq "facets().priceMax" "$SHOW"
+          grep -Fq "tour.capacity" "$SHOW"
+          grep -Fq "tour.categoryName" "$SHOW"
+          grep -Fq "tour.images?.length" "$SHOW"
+          grep -Fq "CustomerFavoritesV217Service" "$SHOW"
+          grep -Fq "hydrateVisible('TOUR'" "$SHOW"
+          grep -Fq "pageSize:24" "$SHOW"
           grep -Fq "readonly reservationOpen = signal(false)" "$DETAIL"
           grep -Fq "Bu Turu Rezerve Et" "$DETAIL"
           grep -Fq "action-bar" "$DETAIL"
@@ -54,6 +62,10 @@ jobs:
           grep -Fq "DetailMediaLightboxComponent" "$DETAIL"
           if grep -Eq "0-5000|5000-15000|15000\+|priceRanges[[:space:]]*=" "$SHOW"; then
             echo "Tour filters must remain live-data derived"
+            exit 1
+          fi
+          if grep -Fq "getTours()" "$SHOW" || grep -Fq "loadToursDirect()" "$SHOW"; then
+            echo "Tour listing must not restore full-catalog hydration"
             exit 1
           fi
           test ! -f src/pages/tour-detail-v169.component.ts
@@ -95,6 +107,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          grep -Fq "RentalCatalogV217Component" src/pages/fleet.component.ts
+          grep -Fq "SaleCatalogV217Component" src/pages/sales-results.component.ts
           grep -Fq "CarDetailComponent" src/pages/catalog-detail-shells.component.ts
           grep -Fq "SaleCarDetailComponent" src/pages/catalog-detail-shells.component.ts
           test -f supabase/migrations/20260825183500_v1681_structured_tramer_truth.sql

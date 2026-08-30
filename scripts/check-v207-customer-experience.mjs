@@ -14,16 +14,16 @@ const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entr
 
 const paths = {
   dock: "src/components/customer-mobile-dock.component.ts",
-  rentalList: "src/pages/rental-showcase-v167.component.ts",
+  rentalList: "src/pages/rental-catalog-v217.component.ts",
   rentalCard: "src/components/rental-vehicle-card-v167.component.ts",
   homeVehicleCard: "src/components/vehicle-list-item.component.ts",
   rentalDetail: "src/pages/car-detail.component.ts",
-  saleList: "src/pages/sales-showcase-v168.component.ts",
+  saleList: "src/pages/sale-catalog-v217.component.ts",
   saleCard: "src/components/sale-vehicle-card-v168.component.ts",
   saleDetail: "src/pages/sale-car-detail.component.ts",
-  tourList: "src/pages/tour-showcase-v170.component.ts",
+  tourList: "src/pages/tour-catalog-v217.component.ts",
   tourDetail: "src/pages/tour-detail.component.ts",
-  blogList: "src/pages/blog-list.component.ts",
+  blogList: "src/pages/blog-catalog-v217.component.ts",
   blogDetail: "src/pages/blog-detail.component.ts",
   bookingCheckout: "src/pages/booking-checkout.component.ts",
 };
@@ -31,7 +31,6 @@ const paths = {
 for (const file of Object.values(paths)) {
   if (!fs.existsSync(file)) fail(`Required V207 customer runtime file is missing: ${file}`);
 }
-
 const sources = Object.fromEntries(Object.entries(paths).map(([key, file]) => [key, read(file)]));
 
 // TalkBack contract: the persistent customer dock stays in the accessibility tree.
@@ -40,11 +39,9 @@ requireText(sources.dock, '[routerLink]="item.route"', "Mobile dock destinations
 requireText(sources.dock, '[attr.aria-current]="isCurrent(item.route) ? \'page\' : null"', "Current mobile dock destination must expose aria-current=page.");
 requireText(sources.dock, "track item.id", "Mobile dock items must preserve stable DOM identity.");
 requireText(sources.dock, '[attr.aria-label]="item.label"', "Mobile dock items must preserve stable accessible names.");
-rejectText(sources.dock, '[attr.aria-hidden]', "Mobile dock must not be removed from the accessibility tree by state changes.");
-rejectText(sources.dock, '[attr.inert]', "Mobile dock must not become inert because of scroll state.");
-rejectText(sources.dock, "dock-hidden", "Scroll-driven mobile dock hiding must not return.");
-rejectText(sources.dock, "onWindowScroll", "Scroll-driven mobile dock hiding must not return.");
-rejectText(sources.dock, "HostListener", "Mobile dock must not use a scroll listener to hide itself.");
+for (const token of ['[attr.aria-hidden]','[attr.inert]','dock-hidden','onWindowScroll','HostListener']) {
+  rejectText(sources.dock, token, `Mobile dock must not regain scroll/accessibility hiding: ${token}`);
+}
 
 // Booking checkout owns the complete reservation review. Cards and details must never duplicate it.
 requireText(sources.bookingCheckout, "Rezervasyonu kontrol edin", "Booking checkout must keep the customer-facing reservation review heading.");
@@ -60,6 +57,18 @@ requireText(sources.rentalCard, "Aracı İncele", "Rental cards must use a direc
 requireText(sources.rentalDetail, "<dt>Kapı</dt>", "Rental detail must surface the canonical door count when available.");
 requireText(sources.rentalDetail, "car.doors", "Rental detail door count must come from the canonical vehicle record.");
 requireText(sources.rentalDetail, "car.luggage", "Rental detail must retain luggage capacity from the canonical vehicle record.");
+
+// V217 list owners stay bounded and customer-facing. No full-catalog hydration may return.
+for (const [name, source] of [['rental',sources.rentalList],['sale',sources.saleList],['tour',sources.tourList],['blog',sources.blogList]]) {
+  requireText(source, 'ScalablePublicCatalogV217Service', `${name} catalogue must keep the scalable server-owned source.`);
+  requireText(source, 'pageSize:24', `${name} catalogue must keep bounded 24-item pages.`);
+  requireText(source, 'async loadMore()', `${name} catalogue must retain incremental loading.`);
+  for (const forbidden of ['CarService','getCars()','getSaleCars()','getTours()','getBlogPosts()','refreshCloudCatalog(','ensureVehicleCloudInventory(']) {
+    rejectText(source, forbidden, `${name} catalogue must not restore full-catalog hydration: ${forbidden}`);
+  }
+  rejectText(source, 'e instanceof Error?e.message', `${name} catalogue must not expose raw backend Error.message values.`);
+  rejectText(source, 'e instanceof Error ? e.message', `${name} catalogue must not expose raw backend Error.message values.`);
+}
 
 const forbiddenCustomerPhrases = [
   "CANLI KİRALIK ARAÇ ENVANTERİ",
@@ -90,7 +99,6 @@ for (const file of publicSurfaceFiles) {
   }
 }
 
-// Explicit summary labels are forbidden outside the canonical booking review.
 for (const file of publicSurfaceFiles) {
   if (file === paths.bookingCheckout) continue;
   const source = read(file);
@@ -98,21 +106,20 @@ for (const file of publicSurfaceFiles) {
   if (source.includes("Kiralama Özeti")) fail(`${file} duplicates a rental summary outside booking checkout.`);
 }
 
-// Raw backend/service errors stay internal. Customer states use stable human language.
+// Canonical detail states also must never print raw backend error signals.
 rejectText(sources.rentalDetail, "{{loadError()}}", "Rental detail must not print a raw backend error to customers.");
 rejectText(sources.rentalDetail, "{{ loadError() }}", "Rental detail must not print a raw backend error to customers.");
 rejectText(sources.saleDetail, "{{ loadError() }}", "Sale detail must not print a raw backend error to customers.");
 rejectText(sources.tourDetail, "{{ loadError() }}", "Tour detail must not print a raw backend error to customers.");
 rejectText(sources.blogDetail, "{{error()}}", "Blog detail must not print a raw backend error to customers.");
 rejectText(sources.blogDetail, "{{ error() }}", "Blog detail must not print a raw backend error to customers.");
-rejectText(sources.blogList, "{{error()}}", "Blog list must not print a raw backend error to customers.");
-rejectText(sources.blogList, "{{ error() }}", "Blog list must not print a raw backend error to customers.");
 
-// Canonical customer language markers.
-requireText(sources.rentalList, "ALPERLER KİRALAMA", "Rental list must keep the customer-facing rental hero.");
-requireText(sources.saleList, "ALPERLER İKİNCİ EL", "Sale list must keep the second-hand customer hero.");
-requireText(sources.tourList, "Sana uygun rotalar", "Tour list must keep customer-oriented discovery copy.");
-requireText(sources.blogList, "Alperler Yol Rehberi", "Blog list must keep editorial customer language.");
+// Canonical customer language markers now live on the active V217 route owners.
+requireText(sources.rentalList, "ALPERLER KİRALAMA", "Rental catalogue must keep the customer-facing rental hero.");
+requireText(sources.saleList, "ALPERLER İKİNCİ EL", "Sale catalogue must keep the second-hand customer hero.");
+requireText(sources.tourList, "Rotanı seç, unutulmaz bir gün planla", "Tour catalogue must keep customer-oriented discovery copy.");
+requireText(sources.blogList, "ALPERLER YOL REHBERİ", "Blog catalogue must keep editorial customer language.");
+requireText(sources.blogList, "Daha iyi bir yolculuk için doğru bilgiler", "Blog catalogue must keep a useful editorial introduction.");
 requireText(sources.saleDetail, "Performans ve Tüketim Bilgilerini Gör", "Sale detail must frame specifications as customer-useful performance information.");
 requireText(sources.rentalDetail, "Performans ve Tüketim", "Rental detail must frame specifications as customer-useful performance information.");
 

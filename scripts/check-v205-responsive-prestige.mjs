@@ -26,9 +26,14 @@ requireText(dock, "track item.id", "Dock items must keep stable DOM identity acr
 requireText(dock, "[attr.aria-label]=\"item.label\"", "Dock actions must keep stable accessible names.");
 rejectText(dock, "[attr.aria-hidden]", "The dock must never disappear from the accessibility tree because of scroll state.");
 rejectText(dock, "[attr.inert]", "The dock must never become inert because of scroll state.");
-rejectText(dock, "dock-hidden", "Scroll-driven dock hiding must not return.");
-rejectText(dock, "onWindowScroll", "Scroll-driven dock hiding must not return.");
-rejectText(dock, "HostListener", "The mobile dock must not use scroll listeners to hide itself.");
+rejectText(dock, "HostListener", "The mobile dock must not use an unthrottled HostListener scroll path.");
+requireText(dock, "window.requestAnimationFrame", "Dock scroll behavior must be requestAnimationFrame throttled.");
+requireText(dock, "Math.abs(delta) < 12", "Dock scroll behavior must retain hysteresis to prevent jitter.");
+requireText(dock, "mobileDockAutoHideEnabled()", "Dock must honor the data-driven auto-hide setting.");
+requireText(dock, "dock-auto-hidden", "Dock must expose one stable visual auto-hide state.");
+requireText(dock, "this.setAutoHidden(delta > 0 && currentY > 120)", "Dock must hide on downward scrolling and restore on upward scrolling.");
+rejectText(dock, "backdrop-filter:blur", "Fixed phone dock must not use scroll-heavy backdrop blur compositing.");
+rejectText(dock, "-webkit-backdrop-filter:blur", "Fixed phone dock must not use WebKit backdrop blur compositing.");
 
 requireText(spacing, "(max-width:639px) and (pointer:coarse)", "Dock content spacing must match phone-class portrait.");
 requireText(spacing, "(max-width:950px) and (max-height:500px) and (pointer:coarse)", "Dock content spacing must match phone landscape.");

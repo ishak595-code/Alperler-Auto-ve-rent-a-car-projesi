@@ -40,5 +40,13 @@ jobs:
       - name: TypeScript
         run: npm run lint
 
-      - name: Production build with hard 1MB initial ceiling
-        run: npm run build
+      - name: Production build and initial ownership report
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build -- --stats-json 2>&1 | tee /tmp/v218-build.log
+          node scripts/report-v218-initial-bundle.mjs
+          if grep -Fq "bundle initial exceeded maximum budget" /tmp/v218-build.log; then
+            echo "::error::V218 initial bundle exceeds the 950 kB release target. Reduce startup ownership instead of increasing the budget."
+            exit 1
+          fi

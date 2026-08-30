@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const read = (file) => fs.readFileSync(file, 'utf8');
+const compact = (source) => source.replace(/\s+/g, '');
 const requireFile = (file) => { if (!fs.existsSync(file)) throw new Error(`V203 required file missing: ${file}`); };
 const requireMissing = (file) => { if (fs.existsSync(file)) throw new Error(`V203 legacy duplicate must remain deleted: ${file}`); };
 const must = (source, token, message) => { if (!source.includes(token)) throw new Error(message || `V203 contract missing: ${token}`); };
@@ -165,9 +166,10 @@ for (const token of ['Fotoğraf & Video','hourlyMileageLimit','tramerSourceUrl',
 const home = read('src/pages/home-v71.component.ts');
 const section = read('src/components/dynamic-home-section.component.ts');
 const layout = read('src/services/homepage-layout.service.ts');
+const layoutCompact = compact(layout);
 for (const token of ['HomepageLayoutService','DynamicHomeSectionComponent','homepageLayout.sections()']) must(home, token);
 for (const token of ['vehiclesFor(this.section.sectionKey)','toursFor(this.section.sectionKey)','blogsFor(this.section.sectionKey)','campaignsFor(this.section.sectionKey)']) must(section, token, `Dynamic homepage must consume bounded layout state: ${token}`);
 for (const forbidden of ['this.cars.getSaleCars()','this.cars.getCars()','this.cars.getTours()','this.cars.getBlogPosts()','this.campaignsService.publicCampaigns()']) mustNot(section, forbidden, `Dynamic homepage must not restore full-catalog hydration: ${forbidden}`);
-for (const token of ['homepage_sections?is_enabled=eq.true','homepage_placements?is_active=eq.true','PublicContentRealtimeService',"cache:'no-store'",'vehiclesByIdentifiers(','toursByIdentifiers(','blogsByIdentifiers(','campaignsByIdentifiers(']) must(layout, token, `Homepage bounded ownership contract missing: ${token}`);
+for (const token of ['homepage_sections?is_enabled=eq.true','homepage_placements?is_active=eq.true','PublicContentRealtimeService','cache:\'no-store\'','vehiclesByIdentifiers(','toursByIdentifiers(','blogsByIdentifiers(','campaignsByIdentifiers(']) must(layoutCompact, compact(token), `Homepage bounded ownership contract missing: ${token}`);
 
 console.log('V203 canonical runtime/repository integrity: PASS');

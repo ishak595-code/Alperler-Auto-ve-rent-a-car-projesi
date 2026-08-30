@@ -420,6 +420,8 @@ export class CarService {
     return this.customerFavorites.isFavorite("VEHICLE", entityId);
   }
 
+  getFavoriteCount = computed(() => this.customerFavorites.favoriteCount("VEHICLE"));
+
   triggerWebhook(eventName: string, _payload: unknown): void {
     console.info(`External browser webhook disabled for ${eventName}.`);
   }

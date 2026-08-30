@@ -66,15 +66,22 @@ const campaign = read("src/services/campaign.service.ts");
 if (/campaigns\?[^`\n]*publication_status=eq\.PUBLISHED/.test(campaign)) {
   failures.push("Public campaign visibility must be owned by database RLS, not a PUBLISHED client filter.");
 }
-const loadPublicStart = campaign.indexOf("loadPublic(): Promise<CampaignRecord[]>");
+const loadPublicMatch = /loadPublic\([^)]*\):\s*Promise<CampaignRecord\[]>/.exec(campaign);
+const loadPublicStart = loadPublicMatch?.index ?? -1;
 const refreshPublicStart = campaign.indexOf("async refreshPublicState", loadPublicStart);
 if (loadPublicStart >= 0 && refreshPublicStart > loadPublicStart) {
   const loadPublicBody = campaign.slice(loadPublicStart, refreshPublicStart);
   if (loadPublicBody.includes("inPublicWindow")) {
     failures.push("Campaign public loader must not duplicate DB start/end visibility logic.");
   }
+  if (!loadPublicBody.includes("PUBLIC_CAMPAIGN_LIST_LIMIT")) {
+    failures.push("Campaign public loader must retain an explicit bounded list limit.");
+  }
 } else {
   failures.push("Campaign public loader contract could not be located.");
+}
+if (!campaign.includes("public_campaign_catalog_v217")) {
+  failures.push("Public campaign reads must use the V217 security-invoker projection.");
 }
 for (const forbidden of [
   "syncHomepageCampaigns(",

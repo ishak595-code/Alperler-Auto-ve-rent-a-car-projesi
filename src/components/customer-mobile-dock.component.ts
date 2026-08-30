@@ -9,7 +9,7 @@ import { isDockItemCurrent, shouldRenderMobileDock } from "../services/mobile-do
   standalone: true,
   imports: [MatIconModule, RouterLink],
   template: `
-    @if (!routeHidden() && navigation.mobileDockEnabled()) {
+    @if (!hidden() && navigation.mobileDockEnabled()) {
       <nav class="customer-command-dock" [class.dock-auto-hidden]="autoHidden()" aria-label="Alt hızlı menü">
         @for (item of navigation.itemsFor('MOBILE_DOCK'); track item.id) {
           <a
@@ -58,7 +58,7 @@ export class CustomerMobileDockComponent {
   readonly router = inject(Router);
   readonly navigation = inject(NavigationConfigService);
   private readonly destroyRef = inject(DestroyRef);
-  readonly routeHidden = signal(false);
+  readonly hidden = signal(false);
   readonly autoHidden = signal(false);
   readonly currentUrl = signal(this.router.url);
   private lastScrollY = 0;
@@ -83,7 +83,7 @@ export class CustomerMobileDockComponent {
   private updateVisibility(rawUrl: string): void {
     const shouldHide = !shouldRenderMobileDock(rawUrl);
     this.currentUrl.set(rawUrl);
-    this.routeHidden.set(shouldHide);
+    this.hidden.set(shouldHide);
     this.navigation.setMobileDockRouteHidden(shouldHide);
     this.setAutoHidden(false);
     if (typeof window !== "undefined") this.lastScrollY = Math.max(0, window.scrollY || 0);
@@ -109,7 +109,7 @@ export class CustomerMobileDockComponent {
   private applyScrollAutoHide(): void {
     if (typeof window === "undefined") return;
     const currentY = Math.max(0, window.scrollY || 0);
-    if (this.routeHidden() || !this.navigation.mobileDockAutoHideEnabled()) {
+    if (this.hidden() || !this.navigation.mobileDockAutoHideEnabled()) {
       this.lastScrollY = currentY;
       this.setAutoHidden(false);
       return;

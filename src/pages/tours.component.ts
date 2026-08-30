@@ -1,10 +1,10 @@
-import { Component } from "@angular/core";
-import { TourShowcaseV170Component } from "./tour-showcase-v170.component";
+import { Component } from '@angular/core';
+import { TourCatalogV217Component } from './tour-catalog-v217.component';
 
 @Component({
-  selector: "app-tours",
-  standalone: true,
-  imports: [TourShowcaseV170Component],
-  template: `<app-tour-showcase-v170 />`,
+  selector:'app-tours',
+  standalone:true,
+  imports:[TourCatalogV217Component],
+  template:`<app-tour-catalog-v217 />`,
 })
 export class ToursComponent {}

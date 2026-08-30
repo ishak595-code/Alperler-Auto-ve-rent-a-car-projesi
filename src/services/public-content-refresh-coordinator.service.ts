@@ -1,10 +1,9 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { BranchService } from "./branch.service";
-import { CampaignService } from "./campaign.service";
 import { CarService } from "./car.service";
 import { HomepageLayoutService } from "./homepage-layout.service";
 
-type PublicRefreshTaskKey = "config" | "homepage" | "branches" | "campaigns" | "catalog";
+type PublicRefreshTaskKey = "config" | "homepage" | "branches";
 type PublicRefreshReason = "start" | "timer" | "visible" | "online" | "manual";
 
 interface PublicRefreshTask {
@@ -31,7 +30,6 @@ const MIN_TIMER_DELAY_MS = 80;
 @Injectable({ providedIn: "root" })
 export class PublicContentRefreshCoordinatorService {
   private readonly carService = inject(CarService);
-  private readonly campaignService = inject(CampaignService);
   private readonly branchService = inject(BranchService);
   private readonly homepageLayout = inject(HomepageLayoutService);
 
@@ -50,16 +48,6 @@ export class PublicContentRefreshCoordinatorService {
       key: "branches",
       cadenceMs: BRANCH_DIRECTORY_CADENCE_MS,
       run: () => this.branchService.refresh(),
-    },
-    {
-      key: "campaigns",
-      cadenceMs: ACTIVE_CONTENT_CADENCE_MS,
-      run: () => this.campaignService.refreshPublicState(),
-    },
-    {
-      key: "catalog",
-      cadenceMs: ACTIVE_CONTENT_CADENCE_MS,
-      run: () => this.carService.refreshCloudCatalog(true),
     },
   ];
 
@@ -87,9 +75,7 @@ export class PublicContentRefreshCoordinatorService {
 
     const now = Date.now();
     const startup = this.startupOffsets();
-    for (const task of this.tasks) {
-      this.nextDueAt.set(task.key, now + startup[task.key]);
-    }
+    for (const task of this.tasks) this.nextDueAt.set(task.key, now + startup[task.key]);
     void this.runCycle(false, "start");
   }
 
@@ -137,13 +123,7 @@ export class PublicContentRefreshCoordinatorService {
 
     this.cycleInFlight = true;
     this.clearTimer();
-    this._state.update((value) => ({
-      ...value,
-      running: true,
-      online: true,
-      visible: true,
-      lastReason: reason,
-    }));
+    this._state.update((value) => ({ ...value, running: true, online: true, visible: true, lastReason: reason }));
 
     try {
       const now = Date.now();
@@ -197,11 +177,10 @@ export class PublicContentRefreshCoordinatorService {
   }
 
   private startupOffsets(): Record<PublicRefreshTaskKey, number> {
-    // Every dataset rendered on the homepage is first-paint critical. Starting
-    // all owners together prevents viewport-dependent or timer-dependent gaps
-    // while Promise.allSettled keeps one slow/failing source from blocking the
-    // rest of the page. Recurring refreshes remain independently cadenced.
-    return { config: 0, homepage: 0, branches: 0, campaigns: 0, catalog: 0 };
+    // Only truly global shell datasets are reconciled here. Large catalog and
+    // campaign datasets are owned by bounded route/domain services so opening
+    // any customer page can never hydrate the entire public catalog in the background.
+    return { config: 0, homepage: 0, branches: 0 };
   }
 
   private clearTimer(): void {

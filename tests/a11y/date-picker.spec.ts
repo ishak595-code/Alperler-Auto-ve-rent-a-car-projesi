@@ -27,6 +27,9 @@ test.describe("Alperler accessible calendar", () => {
     await expect(page.getByRole("button", { name: "Önceki ay" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sonraki ay" })).toBeVisible();
 
+    const consentShell = page.locator("app-analytics-consent .analytics-consent-shell");
+    if (await consentShell.count()) await expect(consentShell).toBeHidden();
+
     const dateGroup = dialog.locator('.calendar-grid[role="group"]');
     await expect(dateGroup).toBeVisible();
     await expect(dateGroup).toHaveAttribute("aria-label", /tarihleri/i);
@@ -71,6 +74,10 @@ test.describe("Alperler accessible calendar", () => {
     await trigger.click();
 
     const dialog = page.locator(".calendar-dialog");
+    await expect(dialog).toBeVisible();
+    const consentShell = page.locator("app-analytics-consent .analytics-consent-shell");
+    if (await consentShell.count()) await expect(consentShell).toBeHidden();
+
     const enabledDay = dialog.locator("button.calendar-day:not([disabled])").first();
     const spokenDate = await enabledDay.getAttribute("aria-label");
     expect(spokenDate).toBeTruthy();

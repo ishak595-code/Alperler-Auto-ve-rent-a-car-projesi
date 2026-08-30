@@ -197,14 +197,11 @@ export class PublicContentRefreshCoordinatorService {
   }
 
   private startupOffsets(): Record<PublicRefreshTaskKey, number> {
-    const connection = typeof navigator !== "undefined"
-      ? (navigator as Navigator & { connection?: { effectiveType?: string; saveData?: boolean } }).connection
-      : undefined;
-    const constrained = connection?.saveData === true || connection?.effectiveType === "slow-2g" || connection?.effectiveType === "2g";
-    if (constrained) {
-      return { config: 0, homepage: 220, branches: 650, campaigns: 1_300, catalog: 2_500 };
-    }
-    return { config: 0, homepage: 100, branches: 280, campaigns: 620, catalog: 1_100 };
+    // Every dataset rendered on the homepage is first-paint critical. Starting
+    // all owners together prevents viewport-dependent or timer-dependent gaps
+    // while Promise.allSettled keeps one slow/failing source from blocking the
+    // rest of the page. Recurring refreshes remain independently cadenced.
+    return { config: 0, homepage: 0, branches: 0, campaigns: 0, catalog: 0 };
   }
 
   private clearTimer(): void {

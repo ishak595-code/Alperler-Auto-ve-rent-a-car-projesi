@@ -35,10 +35,15 @@ for (const token of [
   'NavigationEnd',
   'updateVisibility',
   'setMobileDockRouteHidden',
-  'setMobileDockAutoHidden(false)',
+  'this.setAutoHidden(false)',
   '[routerLink]="item.route"',
   '[attr.aria-label]="item.label"',
   'track item.id',
+  'navigation.mobileDockAutoHideEnabled()',
+  'window.requestAnimationFrame',
+  'Math.abs(delta) < 12',
+  'dock-auto-hidden',
+  'this.setAutoHidden(delta > 0 && currentY > 120)',
 ]) must(dock, token);
 for (const token of [
   'onDockClick',
@@ -49,12 +54,13 @@ for (const token of [
   'finishRouteNavigationAfterScroll()',
   'event.preventDefault();',
   'window.scrollTo',
-  'navigation.mobileDockAutoHideEnabled()',
   'dock-hidden',
   '[attr.aria-hidden]',
   '[attr.inert]',
   'HostListener',
-]) mustNot(dock, token, `Obsolete or inaccessible mobile dock behavior returned: ${token}`);
+  'backdrop-filter:blur',
+  '-webkit-backdrop-filter:blur',
+]) mustNot(dock, token, `Obsolete, inaccessible or scroll-heavy mobile dock behavior returned: ${token}`);
 mustNot(dock, 'const shouldHide = path !== "/"', 'Mobile dock must not disappear on every non-home route.');
 mustNot(dock, 'RouterLinkActive', 'Dock active state must use one canonical route policy.');
 
@@ -68,9 +74,8 @@ mustNot(mobileFixes, 'app-home-v39', 'Deleted V39 homepage selector must not rem
 mustNot(mobileFixes, 'app-home section[aria-labelledby="campaigns-title"]', 'Deleted V62 homepage campaign selector must not remain in the active CSS chain.');
 
 const runtimeTest = read('tests/v204/mobile-dock.spec.ts');
-for (const token of ['"/fleet"', '"/sales"', '"/appointment"', '"/campaigns"', 'window.scrollTo', 'page.goBack()', 'aria-hidden', 'inert', 'aria-current']) must(runtimeTest, token, `Android dock accessibility regression missing behavior: ${token}`);
+for (const token of ['"/fleet"', '"/sales"', '"/appointment"', '"/campaigns"', 'window.scrollTo', 'window.scrollBy', 'page.goBack()', 'aria-hidden', 'inert', 'aria-current', 'dock-auto-hidden']) must(runtimeTest, token, `Android dock accessibility/auto-hide regression missing behavior: ${token}`);
 mustNot(runtimeTest, '"/search"', 'Runtime regression must follow the canonical reservation CTA instead of the retired dock search slot.');
-mustNot(runtimeTest, 'toHaveClass(/dock-hidden/)', 'Runtime regression must not expect the accessible dock to disappear on scroll.');
 const runtimeConfig = read('playwright.v204.config.ts');
 for (const token of ['SM-S928B','isMobile: true','hasTouch: true','width: 412','height: 915']) must(runtimeConfig, token, `Android runtime profile missing contract: ${token}`);
 

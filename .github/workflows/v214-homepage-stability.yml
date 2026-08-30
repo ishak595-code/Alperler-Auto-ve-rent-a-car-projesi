@@ -1,0 +1,50 @@
+name: V214 Homepage Stability
+
+on:
+  pull_request:
+    paths:
+      - 'src/pages/home-v71.component.ts'
+      - 'src/components/customer-mobile-dock.component.ts'
+      - 'src/components/main-layout.component.ts'
+      - 'src/pages/admin/admin-homepage.component.ts'
+      - 'src/services/homepage-admin.service.ts'
+      - 'src/services/homepage-layout.service.ts'
+      - 'src/services/public-content-refresh-coordinator.service.ts'
+      - 'scripts/check-home-runtime-v192.mjs'
+      - 'scripts/check-homepage-stability-v214.mjs'
+      - '.github/workflows/v214-homepage-stability.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/pages/home-v71.component.ts'
+      - 'src/components/customer-mobile-dock.component.ts'
+      - 'src/components/main-layout.component.ts'
+      - 'src/pages/admin/admin-homepage.component.ts'
+      - 'src/services/homepage-admin.service.ts'
+      - 'src/services/homepage-layout.service.ts'
+      - 'src/services/public-content-refresh-coordinator.service.ts'
+      - 'scripts/check-home-runtime-v192.mjs'
+      - 'scripts/check-homepage-stability-v214.mjs'
+      - '.github/workflows/v214-homepage-stability.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v214-homepage-stability-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  homepage-stability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/check-homepage-stability-v214.mjs
+      - run: node scripts/check-home-runtime-v192.mjs
+      - run: npm run build

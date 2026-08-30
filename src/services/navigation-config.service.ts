@@ -1,5 +1,4 @@
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
-import { AuthService } from './auth.service';
+import { DestroyRef, Injectable, Injector, computed, inject, signal } from '@angular/core';
 import { PublicContentRealtimeService } from './public-content-realtime.service';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
 
@@ -58,7 +57,7 @@ const NAVIGABLE_ROUTE_ROOTS = new Set([
 
 @Injectable({ providedIn: 'root' })
 export class NavigationConfigService {
-  private readonly auth = inject(AuthService);
+  private readonly injector = inject(Injector);
   private readonly realtime = inject(PublicContentRealtimeService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly settingsSelect = 'config_key,mobile_dock_enabled,mobile_menu_enabled,mobile_dock_auto_hide';
@@ -172,7 +171,7 @@ export class NavigationConfigService {
   private applySettingsRow(row:any):void{const next:NavigationSettings={mobileDockEnabled:row.mobile_dock_enabled!==false,mobileMenuEnabled:row.mobile_menu_enabled!==false,mobileDockAutoHide:row.mobile_dock_auto_hide!==false};this._settings.set(next);if(!next.mobileDockAutoHide)this._mobileDockAutoHidden.set(false);}
   private fromRow(row:any):NavigationItem{return{id:String(row.id||''),surface:row.surface as NavigationSurface,itemKey:String(row.item_key||''),label:String(row.label||''),icon:String(row.icon||'link'),route:String(row.route||'/'),sortOrder:Number(row.sort_order||0),isActive:row.is_active!==false,archivedAt:row.archived_at?String(row.archived_at):null,metadata:row.metadata&&typeof row.metadata==='object'?row.metadata:{}};}
   private safeRoute(value:string):string{const route=String(value||'').trim();if(!/^\/[A-Za-z0-9_./?#=&%-]*$/.test(route))return'';const path=route.split('?')[0].split('#')[0];const root=path.split('/').filter(Boolean)[0]||'';return NAVIGABLE_ROUTE_ROOTS.has(root)?route:'';}
-  private async requiredToken():Promise<string>{const token=await this.auth.getAccessToken();if(!token)throw new Error('ADMIN_SESSION_REQUIRED');return token;}
+  private async requiredToken():Promise<string>{const {AuthService}=await import('./auth.service');const auth=this.injector.get(AuthService);const token=await auth.getAccessToken();if(!token)throw new Error('ADMIN_SESSION_REQUIRED');return token;}
   private async rest<T=unknown>(method:'GET'|'POST'|'PATCH'|'DELETE',path:string,body:unknown,token:string):Promise<T>{
     const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`,{method,headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`,...(method==='GET'?{}:{'content-type':'application/json'}),...(method==='POST'?{Prefer:'return=minimal'}:{})},body:method==='GET'||method==='DELETE'?undefined:JSON.stringify(body),cache:'no-store'});
     if(!response.ok){const payload=await response.json().catch(()=>({})) as {message?:string;code?:string};throw new Error(payload.message||payload.code||`NAVIGATION_${response.status}`);}if(response.status===204)return undefined as T;const text=await response.text();return(text?JSON.parse(text):undefined) as T;

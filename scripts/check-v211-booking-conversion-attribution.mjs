@@ -25,7 +25,7 @@ if (!analytics.includes("...(bookingEntry ? { funnelName: BOOKING_FUNNEL, funnel
 if (analytics.includes("this.trackFunnel(BOOKING_FUNNEL")) fail('booking entry attribution must not emit a second synthetic click event');
 
 if (!dock.includes('[attr.data-dock-item]="item.itemKey"')) fail('canonical mobile dock no longer exposes stable item attribution');
-if (!dynamicHome.includes("[attr.aria-labelledby]=\"section.sectionKey + '-title'\"")) fail('homepage sections no longer expose stable section ownership for attribution');
+if (!/\[attr\.aria-labelledby\]\s*=\s*["']section\.sectionKey\s*\+\s*["']-title["']["']/.test(dynamicHome)) fail('homepage sections no longer expose stable section ownership for attribution');
 
 if (!appointment.includes('data-analytics-form="booking_conversion"')) fail('appointment form is not attached to the booking conversion funnel');
 if (!appointment.includes('inject(VisitorAnalyticsService)')) fail('appointment success cannot reach the canonical analytics owner');

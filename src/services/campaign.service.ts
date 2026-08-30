@@ -145,6 +145,15 @@ export class CampaignService {
   }
 
   async refreshPublicState(forceProof = false): Promise<void> {
+    const routeScope = this.currentRouteTarget();
+    if (routeScope) {
+      const [campaigns] = await Promise.allSettled([
+        this.loadPublicForTarget(routeScope.targetType, [routeScope.targetId], routeScope.campaignId),
+        this.refreshSocialProof(forceProof),
+      ]);
+      if (campaigns.status === "rejected") throw campaigns.reason;
+      return;
+    }
     if (!this.publicScope) {
       await Promise.allSettled([this.refreshSocialProof(forceProof)]);
       return;
@@ -332,6 +341,23 @@ export class CampaignService {
       : this.loadPublicForTarget(scope.targetType, scope.targetIds, scope.campaignId);
     const [campaigns] = await Promise.allSettled([content, this.refreshSocialProof(forceProof)]);
     if (campaigns.status === "rejected") throw campaigns.reason;
+  }
+
+  private currentRouteTarget(): { targetType: "VEHICLE" | "TOUR"; targetId: string; campaignId?: string } | null {
+    if (typeof window === "undefined") return null;
+    const path = window.location.pathname.replace(/\/+$/, "");
+    const match = /^\/(fleet|sales|tour)\/([^/]+)$/i.exec(path);
+    if (!match) return null;
+    let targetId = "";
+    try {
+      targetId = decodeURIComponent(match[2]).trim().toLowerCase();
+    } catch {
+      return null;
+    }
+    if (!this.uuid.test(targetId)) return null;
+    const campaignValue = new URLSearchParams(window.location.search).get("campaign") || "";
+    const campaignId = this.uuid.test(campaignValue) ? campaignValue.toLowerCase() : undefined;
+    return { targetType: match[1].toLowerCase() === "tour" ? "TOUR" : "VEHICLE", targetId, campaignId };
   }
 
   private queuePublicRefresh(delay = 120): void {

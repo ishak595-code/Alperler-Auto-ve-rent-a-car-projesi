@@ -19,8 +19,12 @@ import { AdminCustomerLifetimePanelComponent } from './components/admin-customer
   template: `
     <router-outlet></router-outlet>
     <app-booking-success-overlay></app-booking-success-overlay>
-    @if (showCheckoutLoyalty()) { <app-checkout-loyalty-panel></app-checkout-loyalty-panel> }
-    @if (showAdminCustomer360()) { <app-admin-customer-lifetime-panel></app-admin-customer-lifetime-panel> }
+    @defer (when showCheckoutLoyalty()) {
+      <app-checkout-loyalty-panel></app-checkout-loyalty-panel>
+    }
+    @defer (when showAdminCustomer360()) {
+      <app-admin-customer-lifetime-panel></app-admin-customer-lifetime-panel>
+    }
     @if (showCustomerChrome()) {
       <app-customer-mobile-dock></app-customer-mobile-dock>
       <app-runtime-status-gate></app-runtime-status-gate>

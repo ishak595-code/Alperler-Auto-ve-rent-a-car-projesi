@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 const required=['src/services/customer-favorites-v217.service.ts','src/pages/favorites-v217.component.ts','src/components/account-favorites-v213.component.ts','src/pages/tour-catalog-v217.component.ts','src/pages/blog-catalog-v217.component.ts'];
 for(const file of required){if(!fs.existsSync(file))throw new Error(`V217_FAVORITES_FILE_MISSING:${file}`);}
-const service=fs.readFileSync('src/services/customer-favorites-v217.service.ts','utf8');for(const token of ["'VEHICLE' | 'TOUR' | 'BLOG'",'customer_favorites','listPage(','hydrateVisible(','on_conflict=user_id,entity_type,entity_id','db_favoriteCars'])if(!service.includes(token))throw new Error(`V217_FAVORITES_SERVICE_CONTRACT_MISSING:${token}`);
+const service=fs.readFileSync('src/services/customer-favorites-v217.service.ts','utf8');for(const token of ["'VEHICLE' | 'TOUR' | 'BLOG'",'customer_favorites','listPage(','hydrateVisible(','on_conflict=user_id,entity_type,entity_id','resolution=ignore-duplicates','db_favoriteCars'])if(!service.includes(token))throw new Error(`V217_FAVORITES_SERVICE_CONTRACT_MISSING:${token}`);
+if(service.includes('resolution=merge-duplicates'))throw new Error('V217_FAVORITES_MUST_NOT_REQUIRE_UPDATE_RLS');
 if(!service.includes('Math.min(48'))throw new Error('V217_FAVORITES_PAGE_BOUND_MISSING');
 const page=fs.readFileSync('src/pages/favorites-v217.component.ts','utf8');for(const token of ["label:'Araçlar'","label:'Turlar'","label:'Blog'",'vehiclesByIdentifiers','toursByIdentifiers','blogsByIdentifiers','Daha Fazla Favori Göster'])if(!page.includes(token))throw new Error(`V217_FAVORITES_PAGE_CONTRACT_MISSING:${token}`);
 const account=fs.readFileSync('src/components/account-favorites-v213.component.ts','utf8');for(const forbidden of ['CarService','getCars()','getSaleCars()','getTours()','getBlogPosts()'])if(account.includes(forbidden))throw new Error(`V217_ACCOUNT_FAVORITES_FULL_CATALOG_REGRESSION:${forbidden}`);

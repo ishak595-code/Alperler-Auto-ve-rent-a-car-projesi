@@ -17,9 +17,11 @@ expect(home.includes('@for (section of managedSections(); track section.sectionK
 expect(!mainLayout.includes('@defer (on viewport'), 'Customer prefooter/footer must not depend on viewport defer.');
 expect(mainLayout.includes('<app-customer-prefooter-v174></app-customer-prefooter-v174>'), 'Customer prefooter must be eagerly present.');
 expect(mainLayout.includes('<app-customer-footer-v70></app-customer-footer-v70>'), 'Customer footer must be eagerly present.');
-expect(coordinator.includes('return { config: 0, homepage: 0, branches: 0, campaigns: 0, catalog: 0 };'), 'All homepage public data owners must begin hydration immediately.');
-expect(coordinator.includes('Promise.allSettled(dueTasks.map((task) => task.run()))'), 'First-load public data owners must hydrate concurrently without one source blocking the rest.');
-expect(!coordinator.includes('catalog: 1_100') && !coordinator.includes('catalog: 2_500'), 'Catalog hydration must not be startup timer-staggered.');
+expect(coordinator.includes('return { config: 0, homepage: 0, branches: 0 };'), 'Global shell data owners must begin reconciliation immediately.');
+expect(coordinator.includes('Promise.allSettled(dueTasks.map((task) => task.run()))'), 'First-load global data owners must hydrate concurrently without one source blocking the rest.');
+expect(!coordinator.includes('key: "catalog"') && !coordinator.includes('key: "campaigns"'), 'Heavy catalog and campaign datasets must remain route-owned, not global-shell-owned.');
+expect(!coordinator.includes('refreshCloudCatalog(true)'), 'Homepage shell must not trigger full catalog hydration.');
+expect(!coordinator.includes('catalog: 1_100') && !coordinator.includes('catalog: 2_500'), 'Catalog hydration must not return as a startup timer task.');
 
 expect(admin.includes("private defaultMaxItems(type:HomepageSectionType):number{return type==='CAMPAIGN'?3:(type==='VEHICLES'||type==='TOURS'||type==='BLOG'?5:1);}"), 'Manual showcase defaults must remain 5 for vehicles/tours/blog and 3 for campaigns.');
 expect(admin.includes('activeCount>0?activeCount'), 'Manual showcase count must follow active admin placements.');

@@ -74,8 +74,9 @@ mustNot(campaignContext, 'KAMPANYADAN GELDİNİZ', 'Legacy query-only campaign p
 for (const contract of ['campaign=${encodeURIComponent(campaign.id)}','activateCampaign(campaign)']) must(campaigns, contract, `Campaign navigation context missing: ${contract}`);
 for (const contract of [
   'input.publicationStatus === "PUBLISHED" || input.publicationStatus === "SCHEDULED"',
-  'input.publicationStatus === "ARCHIVED"','is_active: isActive','inPublicWindow(item, now)',
-]) must(campaignService, contract, `Campaign publication lifecycle contract missing: ${contract}`);
+  'input.publicationStatus === "ARCHIVED"','is_active: isActive',
+  'public_campaign_catalog_v217','loadPublicForTarget(','currentRouteTarget()','PUBLIC_CAMPAIGN_TARGET_LIMIT = 12',
+]) must(campaignService, contract, `Campaign publication and bounded target ownership contract missing: ${contract}`);
 for (const contract of ['campaignId:this.optionalUuid(campaignIntent)','campaignIdForItem(itemId)']) must(bookingService, contract, `Rental booking flow must preserve verified campaign intent: ${contract}`);
 for (const contract of ['campaignIdForItem(itemId)','/functions/v1/tour-booking-v170','loyaltyPointsForCheckout()']) must(tourBooking, contract, `Tour booking flow must preserve authoritative commercial intent: ${contract}`);
 
@@ -97,4 +98,4 @@ for (const contract of [
   'revoke all on function public.reserve_booking_commercial_offer',
 ]) must(pricingGuard, contract, `Campaign normal-price reference guard missing: ${contract}`);
 
-console.log('V201.1/V207 canonical detail UX, single CTA, external map, accessibility, live schema and pricing ownership: PASS');
+console.log('V201.1/V217 canonical detail UX, bounded target campaigns, single CTA, external map, accessibility, live schema and pricing ownership: PASS');

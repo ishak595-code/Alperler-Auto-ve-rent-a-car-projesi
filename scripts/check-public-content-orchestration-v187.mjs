@@ -37,8 +37,7 @@ for (const path of domainPaths) {
 
 for (const required of [
   "class PublicContentRefreshCoordinatorService",
-  'key: "catalog"',
-  'key: "campaigns"',
+  'key: "config"',
   'key: "homepage"',
   'key: "branches"',
   "ACTIVE_CONTENT_CADENCE_MS = 60_000",
@@ -59,21 +58,32 @@ for (const required of [
 
 if (coordinator.includes("setInterval(")) fail("coordinator must use recursive setTimeout, not setInterval");
 if ((coordinator.match(/window\.setTimeout\(/g) || []).length !== 1) fail("coordinator must own exactly one scheduling setTimeout");
-for (const forbidden of ["refreshAdmin", "adminRemoteBranches", "branch-portal", "/admin/", "service_role", "SUPABASE_SERVICE_ROLE_KEY"]) {
-  if (coordinator.includes(forbidden)) fail(`global public coordinator crossed a private/admin boundary: ${forbidden}`);
+for (const forbidden of [
+  "refreshAdmin",
+  "adminRemoteBranches",
+  "branch-portal",
+  "/admin/",
+  "service_role",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "CampaignService",
+  'key: "catalog"',
+  'key: "campaigns"',
+  "refreshCloudCatalog(",
+  "ensureVehicleCloudInventory(",
+]) {
+  if (coordinator.includes(forbidden)) fail(`global public coordinator crossed a bounded/private ownership boundary: ${forbidden}`);
 }
 
 for (const required of [
-  "refreshCloudCatalog(true)",
-  "refreshPublicState()",
+  "refreshSiteConfig(true)",
   "homepageLayout.refreshPublicState()",
   "branchService.refresh()",
 ]) {
-  if (!coordinator.includes(required)) fail(`coordinator does not reconcile expected public domain: ${required}`);
+  if (!coordinator.includes(required)) fail(`coordinator does not reconcile expected global domain: ${required}`);
 }
 
 if (!app.includes("injector.get(PublicContentRefreshCoordinatorService)")) fail("AppComponent must lazily instantiate the coordinator");
-if (!app.includes("this.publicContentRefresh.start()")) fail("customer routes must start shared public refresh");
+if (!app.includes("this.publicContentRefresh.start()")) fail("customer routes must start shared global refresh");
 if (!app.includes("this.publicContentRefresh?.stop()")) fail("admin/branch portal routes must stop shared fallback polling");
 
 if (!home.includes("homepageLayout.sections()")) fail("homepage sections must be owned by HomepageLayoutService state");
@@ -91,5 +101,5 @@ if (!realtime.includes("postgres_changes")) fail("event-driven realtime must rem
 if (!realtime.includes("branches")) fail("public realtime table set must retain branch directory updates");
 
 if (!process.exitCode) {
-  console.log("V187 public content orchestration OK: isolated domains, one lifecycle scheduler, DB-owned homepage sections, branch-safe public scope.");
+  console.log("V187 public content orchestration OK: one global lifecycle scheduler, bounded route-owned catalogs, DB-owned homepage sections, branch-safe public scope.");
 }

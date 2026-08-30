@@ -1,0 +1,93 @@
+name: V217 Bounded Public Runtime
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/pages/faq.component.ts'
+      - 'src/pages/campaigns.component.ts'
+      - 'src/services/public-faq-v217.service.ts'
+      - 'src/services/campaign.service.ts'
+      - 'src/services/public-content-refresh-coordinator.service.ts'
+      - 'src/services/scalable-public-catalog-v217.service.ts'
+      - 'src/services/homepage-layout.service.ts'
+      - 'scripts/check-public-content-orchestration-v187.mjs'
+      - 'scripts/check-v217-scalable-public-catalog.mjs'
+      - 'tests/v217-runtime/**'
+      - 'playwright.v217-runtime.config.ts'
+      - '.github/workflows/v217-runtime-bounded-content.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/pages/faq.component.ts'
+      - 'src/pages/campaigns.component.ts'
+      - 'src/services/public-faq-v217.service.ts'
+      - 'src/services/campaign.service.ts'
+      - 'src/services/public-content-refresh-coordinator.service.ts'
+      - 'src/services/scalable-public-catalog-v217.service.ts'
+      - 'src/services/homepage-layout.service.ts'
+      - 'scripts/check-public-content-orchestration-v187.mjs'
+      - 'scripts/check-v217-scalable-public-catalog.mjs'
+      - 'tests/v217-runtime/**'
+      - 'playwright.v217-runtime.config.ts'
+      - '.github/workflows/v217-runtime-bounded-content.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v217-bounded-runtime-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bounded-public-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Public orchestration invariant
+        run: node scripts/check-public-content-orchestration-v187.mjs
+
+      - name: V217 bounded catalog invariant
+        run: node scripts/check-v217-scalable-public-catalog.mjs
+
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+
+      - name: TypeScript
+        run: npm run lint
+
+      - name: Production build
+        run: npm run build
+
+      - name: Install pinned browser test tooling
+        run: npm install --no-save --no-package-lock --no-audit --no-fund @playwright/test@1.55.0
+
+      - name: Install Chromium runtime
+        run: npx playwright install --with-deps chromium
+
+      - name: Bounded public runtime network regression
+        run: npx playwright test --config=playwright.v217-runtime.config.ts
+
+      - name: Upload bounded runtime failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: v217-bounded-public-runtime-artifacts
+          path: |
+            test-results/**
+            playwright-report/**
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,46 +1,59 @@
 import { Routes, CanActivateFn, Router } from '@angular/router';
-import { inject } from '@angular/core';
-import { AuthService } from './services/auth.service';
-import { CustomerAuthService } from './services/customer-auth.service';
-import { BranchPortalAuthService } from './services/branch-portal-auth.service';
-import { BranchSubscriptionV171Service } from './services/branch-subscription-v171.service';
-import { AdminAccessService, AdminArea } from './services/admin-access.service';
-import { CarService } from './services/car.service';
+import { Injector, inject } from '@angular/core';
+import type { AdminArea } from './services/admin-access.service';
 import { HomeV71Component } from './pages/home-v71.component';
 import { MainLayoutComponent } from './components/main-layout.component';
 
 const adminGuard: CanActivateFn = async (_route, state) => {
-  const auth = inject(AuthService); const router = inject(Router); await auth.waitUntilReady();
+  const injector = inject(Injector); const router = inject(Router);
+  const { AuthService } = await import('./services/auth.service');
+  const auth = injector.get(AuthService); await auth.waitUntilReady();
   if (auth.isLoggedIn()) return true;
   return router.createUrlTree(['/account/login'], { queryParams: { returnUrl: state.url || '/admin' } });
 };
 const adminAreaGuard = (area: AdminArea): CanActivateFn => async (_route, state) => {
-  const auth = inject(AuthService); const access = inject(AdminAccessService); const router = inject(Router);
+  const injector = inject(Injector); const router = inject(Router);
+  const [{ AuthService }, { AdminAccessService }] = await Promise.all([
+    import('./services/auth.service'),
+    import('./services/admin-access.service'),
+  ]);
+  const auth = injector.get(AuthService); const access = injector.get(AdminAccessService);
   await auth.waitUntilReady();
   if (!auth.isLoggedIn()) return router.createUrlTree(['/account/login'], { queryParams: { returnUrl: state.url || '/admin' } });
   if (await access.can(area)) return true;
   return router.parseUrl(`/admin/dashboard?denied=${encodeURIComponent(area)}`);
 };
 const customerGuard: CanActivateFn = async (_route, state) => {
-  const auth = inject(CustomerAuthService); const router = inject(Router);
+  const injector = inject(Injector); const router = inject(Router);
+  const { CustomerAuthService } = await import('./services/customer-auth.service');
+  const auth = injector.get(CustomerAuthService);
   await auth.waitUntilReady();
   if (auth.isLoggedIn()) return true;
   return router.createUrlTree(['/account/login'], { queryParams: { returnUrl: state.url } });
 };
 const branchPortalSessionGuard: CanActivateFn = async (_route, state) => {
-  const auth=inject(BranchPortalAuthService);const router=inject(Router);
+  const injector=inject(Injector);const router=inject(Router);
+  const { BranchPortalAuthService }=await import('./services/branch-portal-auth.service');
+  const auth=injector.get(BranchPortalAuthService);
   const token=await auth.getAccessToken();
   return token?true:router.createUrlTree(['/branch-portal/login'],{queryParams:{returnUrl:state.url||'/branch-portal'}});
 };
 const branchPortalOperatingGuard: CanActivateFn = async (_route,state) => {
-  const auth=inject(BranchPortalAuthService);const subscription=inject(BranchSubscriptionV171Service);const router=inject(Router);
+  const injector=inject(Injector);const router=inject(Router);
+  const [{ BranchPortalAuthService }, { BranchSubscriptionV171Service }]=await Promise.all([
+    import('./services/branch-portal-auth.service'),
+    import('./services/branch-subscription-v171.service'),
+  ]);
+  const auth=injector.get(BranchPortalAuthService);const subscription=injector.get(BranchSubscriptionV171Service);
   const token=await auth.getAccessToken();
   if(!token)return router.createUrlTree(['/branch-portal/login'],{queryParams:{returnUrl:state.url||'/branch-portal'}});
   try{return await subscription.canOpenPortal()?true:router.parseUrl('/branch-portal/subscription');}
   catch{return router.parseUrl('/branch-portal/subscription');}
 };
-const checkoutGuard: CanActivateFn = () => {
-  const carService = inject(CarService); const router = inject(Router);
+const checkoutGuard: CanActivateFn = async () => {
+  const injector = inject(Injector); const router = inject(Router);
+  const { CarService } = await import('./services/car.service');
+  const carService = injector.get(CarService);
   return carService.getBookingRequest() ? true : router.parseUrl('/');
 };
 
@@ -78,7 +91,7 @@ export const routes: Routes = [
   { path: 'blog', loadComponent: () => import('./pages/blog-list.component').then(m => m.BlogListComponent) },
   { path: 'blog/:id', loadComponent: () => import('./pages/blog-detail.component').then(m => m.BlogDetailComponent) },
   { path: 'about', loadComponent: () => import('./pages/about.component').then(m => m.AboutComponent) },
-  { path: 'booking-checkout', canActivate: [checkoutGuard], loadComponent: () => import('./pages/booking-checkout.component').then(m => m.BookingCheckoutComponent) },
+  { path: 'booking-checkout', canActivate: [checkoutGuard], loadComponent: () => import('./pages/booking-checkout-shell-v218.component').then(m => m.BookingCheckoutShellV218Component) },
   { path: 'contact', loadComponent: () => import('./pages/contact-entry.component').then(m => m.ContactEntryComponent) },
   { path: 'faq', loadComponent: () => import('./pages/faq.component').then(m => m.FaqComponent) },
   { path: 'legal', loadComponent: () => import('./pages/legal.component').then(m => m.LegalComponent) },
@@ -115,7 +128,7 @@ export const routes: Routes = [
       { path: 'operations', loadComponent: loadAdminOperationsHub, data: { operationsSection: 'reservations' } },
       { path: 'reservations', loadComponent: loadAdminOperationsHub, data: { operationsSection: 'reservations' }, canActivate: [adminAreaGuard('operations')] },
       { path: 'customers', canActivate: [adminAreaGuard('operations')], loadComponent: () => import('./pages/admin/admin-customers.component').then(m => m.AdminCustomersComponent) },
-      { path: 'customers/:userId', canActivate: [adminAreaGuard('operations')], loadComponent: () => import('./pages/admin/admin-customer-detail.component').then(m => m.AdminCustomerDetailComponent) },
+      { path: 'customers/:userId', canActivate: [adminAreaGuard('operations')], loadComponent: () => import('./pages/admin/admin-customer-detail-shell-v218.component').then(m => m.AdminCustomerDetailShellV218Component) },
       { path: 'partner-requests', loadComponent: loadAdminOperationsHub, data: { operationsSection: 'vehicles' }, canActivate: [adminAreaGuard('operations')] },
       { path: 'branch-partner-requests', loadComponent: loadAdminOperationsHub, data: { operationsSection: 'branches-requests' }, canActivate: [adminAreaGuard('operations')] },
       { path: 'feedback', loadComponent: loadAdminOperationsHub, data: { operationsSection: 'messages' }, canActivate: [adminAreaGuard('operations')] },

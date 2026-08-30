@@ -107,8 +107,12 @@ jobs:
           grep -q 'loyaltyPointsToRedeem' src/models/booking.model.ts
           grep -q 'CommercialOfferContextService' src/services/booking.service.ts
           grep -q 'Fiyat & Sadakat' src/pages/admin/admin-content-hub.component.ts
-          grep -q 'CheckoutLoyaltyPanelComponent' src/app.component.ts
-          grep -q 'AdminCustomerLifetimePanelComponent' src/app.component.ts
+          grep -q 'CheckoutLoyaltyPanelComponent' src/pages/booking-checkout-shell-v218.component.ts
+          grep -q 'AdminCustomerLifetimePanelComponent' src/pages/admin/admin-customer-detail-shell-v218.component.ts
+          if grep -q 'CheckoutLoyaltyPanelComponent\|AdminCustomerLifetimePanelComponent' src/app.component.ts; then
+            echo "Commercial route-specific panels must not return to the root initial graph"
+            exit 1
+          fi
           grep -q 'customer_lifetime_summary' src/services/customer-account.service.ts
           grep -q 'customer_lifetime_summary' src/services/customer-lifetime-admin.service.ts
           grep -q 'CAMPAIGN_ONLY' src/services/car.service.ts

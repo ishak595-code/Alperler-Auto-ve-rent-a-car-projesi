@@ -1,0 +1,78 @@
+name: V218 Initial Bundle Ownership
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'index.tsx'
+      - 'src/app.component.ts'
+      - 'src/app.routes.ts'
+      - 'src/pages/booking-checkout-shell-v218.component.ts'
+      - 'src/pages/admin/admin-customer-detail-shell-v218.component.ts'
+      - 'src/components/checkout-loyalty-panel.component.ts'
+      - 'src/components/admin-customer-lifetime-panel.component.ts'
+      - 'src/services/navigation-config.service.ts'
+      - 'angular.json'
+      - 'scripts/check-v218-initial-bundle-ownership.mjs'
+      - 'scripts/report-v218-initial-bundle.mjs'
+      - '.github/workflows/v218-initial-bundle-ownership.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'index.tsx'
+      - 'src/app.component.ts'
+      - 'src/app.routes.ts'
+      - 'src/pages/booking-checkout-shell-v218.component.ts'
+      - 'src/pages/admin/admin-customer-detail-shell-v218.component.ts'
+      - 'src/components/checkout-loyalty-panel.component.ts'
+      - 'src/components/admin-customer-lifetime-panel.component.ts'
+      - 'src/services/navigation-config.service.ts'
+      - 'angular.json'
+      - 'scripts/check-v218-initial-bundle-ownership.mjs'
+      - 'scripts/report-v218-initial-bundle.mjs'
+      - '.github/workflows/v218-initial-bundle-ownership.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v218-initial-bundle-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  initial-bundle-ownership:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: V218 initial bundle ownership invariant
+        run: node scripts/check-v218-initial-bundle-ownership.mjs
+
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+
+      - name: TypeScript
+        run: npm run lint
+
+      - name: Production build and initial ownership report
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build -- --stats-json 2>&1 | tee /tmp/v218-build.log
+          node scripts/report-v218-initial-bundle.mjs
+          if grep -Fq "bundle initial exceeded maximum budget" /tmp/v218-build.log; then
+            echo "::error::V218 initial bundle exceeds the 950 kB release target. Reduce startup ownership instead of increasing the budget."
+            exit 1
+          fi

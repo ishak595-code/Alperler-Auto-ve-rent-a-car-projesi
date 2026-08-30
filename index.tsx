@@ -4,7 +4,6 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { AppComponent } from './src/app.component';
-import { routes } from './src/app.routes';
 import { provideLegacyWebhookSafety } from './src/providers/legacy-webhook-safety.provider';
 import { bookingSuccessInterceptor } from './src/services/booking-success.interceptor';
 import { GlobalErrorHandler } from './src/services/global-error-handler';
@@ -52,16 +51,25 @@ if (window.self !== window.top) {
   window.location.hash = '';
 }
 
-bootstrapApplication(AppComponent, {
-  providers: [
-    provideZonelessChangeDetection(),
-    provideHttpClient(withInterceptors([bookingSuccessInterceptor])),
-    provideLegacyWebhookSafety(),
-    { provide: ErrorHandler, useClass: GlobalErrorHandler },
-    { provide: APP_BASE_HREF, useValue: '/' },
-    provideRouter(
-      routes,
-      withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' })
-    )
-  ]
-}).catch(err => console.error(err));
+async function bootstrap(): Promise<void> {
+  // Route configuration is intentionally split from the bootstrap core. This keeps
+  // route-only customer/admin domains out of the static initial graph while still
+  // preserving Angular's canonical router ownership before the app starts.
+  const { routes } = await import('./src/app.routes');
+
+  await bootstrapApplication(AppComponent, {
+    providers: [
+      provideZonelessChangeDetection(),
+      provideHttpClient(withInterceptors([bookingSuccessInterceptor])),
+      provideLegacyWebhookSafety(),
+      { provide: ErrorHandler, useClass: GlobalErrorHandler },
+      { provide: APP_BASE_HREF, useValue: '/' },
+      provideRouter(
+        routes,
+        withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' })
+      )
+    ]
+  });
+}
+
+void bootstrap().catch(err => console.error(err));

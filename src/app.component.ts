@@ -5,22 +5,21 @@ import { ThemeService } from './services/theme.service';
 import { SeoService } from './services/seo.service';
 import { PublicContentRefreshCoordinatorService } from './services/public-content-refresh-coordinator.service';
 import { DeferredRouteScrollRestorationService } from './services/deferred-route-scroll-restoration.service';
+import { BookingSuccessExperienceService } from './services/booking-success-experience.service';
 import { CustomerMobileDockComponent } from './components/customer-mobile-dock.component';
 import { RuntimeStatusGateComponent } from './components/runtime-status-gate.component';
 import { BookingSuccessOverlayComponent } from './components/booking-success-overlay.component';
-import { CheckoutLoyaltyPanelComponent } from './components/checkout-loyalty-panel.component';
-import { AdminCustomerLifetimePanelComponent } from './components/admin-customer-lifetime-panel.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CustomerMobileDockComponent, RuntimeStatusGateComponent, BookingSuccessOverlayComponent, CheckoutLoyaltyPanelComponent, AdminCustomerLifetimePanelComponent],
+  imports: [RouterOutlet, CustomerMobileDockComponent, RuntimeStatusGateComponent, BookingSuccessOverlayComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <router-outlet></router-outlet>
-    <app-booking-success-overlay></app-booking-success-overlay>
-    @if (showCheckoutLoyalty()) { <app-checkout-loyalty-panel></app-checkout-loyalty-panel> }
-    @if (showAdminCustomer360()) { <app-admin-customer-lifetime-panel></app-admin-customer-lifetime-panel> }
+    @defer (when bookingSuccessExperience.result(); prefetch on idle) {
+      <app-booking-success-overlay></app-booking-success-overlay>
+    }
     @if (showCustomerChrome()) {
       <app-customer-mobile-dock></app-customer-mobile-dock>
       <app-runtime-status-gate></app-runtime-status-gate>
@@ -33,6 +32,7 @@ import { AdminCustomerLifetimePanelComponent } from './components/admin-customer
 export class AppComponent implements OnInit {
   themeService = inject(ThemeService);
   seoService = inject(SeoService);
+  readonly bookingSuccessExperience = inject(BookingSuccessExperienceService);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
   private readonly deferredScrollRestoration = inject(DeferredRouteScrollRestorationService);
@@ -40,15 +40,11 @@ export class AppComponent implements OnInit {
   private backgroundServicesStarted = false;
   private readonly initialUrl = typeof window !== 'undefined' ? window.location.pathname : this.router.url;
   readonly showCustomerChrome = signal(this.isCustomerRoute(this.initialUrl));
-  readonly showCheckoutLoyalty = signal(this.isCheckoutRoute(this.initialUrl));
-  readonly showAdminCustomer360 = signal(this.isAdminCustomerDetail(this.initialUrl));
 
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => {
       const url=(event as NavigationEnd).urlAfterRedirects;
       this.showCustomerChrome.set(this.isCustomerRoute(url));
-      this.showCheckoutLoyalty.set(this.isCheckoutRoute(url));
-      this.showAdminCustomer360.set(this.isAdminCustomerDetail(url));
       this.syncPublicContentRefresh(url);
     });
   }
@@ -115,6 +111,4 @@ export class AppComponent implements OnInit {
     const path = this.cleanPath(url);
     return !path.startsWith('/admin') && !path.startsWith('/branch-portal');
   }
-  private isCheckoutRoute(url:string):boolean{return this.cleanPath(url)==='/booking-checkout';}
-  private isAdminCustomerDetail(url:string):boolean{return /^\/admin\/customers\/[0-9a-f-]{36}$/i.test(this.cleanPath(url));}
 }

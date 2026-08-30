@@ -49,7 +49,11 @@ export interface CampaignProof {
   lastViewedAt?: string;
 }
 
-const PUBLIC_CAMPAIGN_SELECT = [
+type PublicCampaignScope =
+  | { kind: "list"; limit: number }
+  | { kind: "target"; targetType: "VEHICLE" | "TOUR"; targetIds: string[]; campaignId?: string };
+
+const ADMIN_CAMPAIGN_SELECT = [
   "id", "title", "slug", "short_description", "description", "badge", "campaign_type", "cover_image", "old_price", "new_price",
   "discount_percent", "target_type", "target_id", "cta_label", "cta_url", "whatsapp_message", "starts_at", "ends_at",
   "publication_status", "is_active", "sort_order", "metadata", "created_at", "updated_at", "discount_method", "discount_value",
@@ -57,17 +61,31 @@ const PUBLIC_CAMPAIGN_SELECT = [
   "per_customer_limit", "allow_referral_discount", "allow_loyalty_redemption", "priority", "required_extra_ids",
 ].join(",");
 
+const PUBLIC_CAMPAIGN_VIEW_SELECT = [
+  "id", "title", "slug", "short_description", "description", "badge", "campaign_type", "cover_image", "old_price", "new_price",
+  "discount_percent", "target_type", "target_id", "cta_label", "cta_url", "whatsapp_message", "starts_at", "ends_at",
+  "publication_status", "is_active", "sort_order", "metadata", "discount_method", "discount_value", "discount_scope", "visibility_mode",
+  "minimum_order_amount", "minimum_rental_days", "minimum_rental_hours", "max_redemptions", "per_customer_limit",
+  "allow_referral_discount", "allow_loyalty_redemption", "priority",
+].join(",");
+
+const PUBLIC_CAMPAIGN_LIST_LIMIT = 48;
+const PUBLIC_CAMPAIGN_TARGET_LIMIT = 12;
+
 @Injectable({ providedIn: "root" })
 export class CampaignService {
   private readonly auth = inject(AuthService);
   private readonly realtime = inject(PublicContentRealtimeService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   private readonly _campaigns = signal<CampaignRecord[]>([]);
   private readonly _publicCampaigns = signal<CampaignRecord[]>([]);
   private readonly _proofByCampaign = signal<Record<string, CampaignProof>>({});
   private readonly _clock = signal(Date.now());
   private publicRefreshTimer?: number;
-  private publicLoadInFlight?: Promise<CampaignRecord[]>;
+  private readonly publicLoads = new Map<string, Promise<CampaignRecord[]>>();
+  private publicScope?: PublicCampaignScope;
+  private publicScopeKey = "";
   private socialProofInFlight?: Promise<Record<string, CampaignProof>>;
   private socialProofLastLoadedAt = 0;
 
@@ -87,33 +105,56 @@ export class CampaignService {
     }
   }
 
-  loadPublic(): Promise<CampaignRecord[]> {
-    if (this.publicLoadInFlight) return this.publicLoadInFlight;
-    const request = (async () => {
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?is_active=eq.true&select=${PUBLIC_CAMPAIGN_SELECT}&order=sort_order.asc,created_at.desc`, {
-        headers: { ...this.publicHeaders(), "cache-control": "no-cache" },
-        cache: "no-store",
-      });
-      if (!response.ok) throw new Error(`CAMPAIGNS_PUBLIC_${response.status}`);
-      const records = ((await response.json()) as any[]).map((row) => this.fromRow(row));
-      this._publicCampaigns.set(records);
-      return records;
-    })();
-    this.publicLoadInFlight = request;
-    return request.finally(() => {
-      if (this.publicLoadInFlight === request) this.publicLoadInFlight = undefined;
+  loadPublic(limit = PUBLIC_CAMPAIGN_LIST_LIMIT): Promise<CampaignRecord[]> {
+    const safeLimit = this.integer(limit, 1, PUBLIC_CAMPAIGN_LIST_LIMIT, PUBLIC_CAMPAIGN_LIST_LIMIT);
+    const scope: PublicCampaignScope = { kind: "list", limit: safeLimit };
+    const params = new URLSearchParams({
+      select: PUBLIC_CAMPAIGN_VIEW_SELECT,
+      order: "sort_order.asc,priority.asc,id.asc",
+      limit: String(safeLimit),
     });
+    return this.loadPublicScope(scope, params);
+  }
+
+  loadPublicForTarget(
+    targetType: "VEHICLE" | "TOUR",
+    targetIds: Array<string | number | null | undefined>,
+    campaignId?: string | null,
+  ): Promise<CampaignRecord[]> {
+    const ids = [...new Set(targetIds.map((value) => String(value ?? "").trim().toLowerCase()).filter((value) => this.uuid.test(value)))].slice(0, 8);
+    const cleanCampaignId = String(campaignId || "").trim().toLowerCase();
+    const validCampaignId = this.uuid.test(cleanCampaignId) ? cleanCampaignId : undefined;
+    if (!ids.length && !validCampaignId) {
+      this.publicScope = { kind: "target", targetType, targetIds: [] };
+      this.publicScopeKey = `target:${targetType}:empty`;
+      this._publicCampaigns.set([]);
+      return Promise.resolve([]);
+    }
+
+    const scope: PublicCampaignScope = { kind: "target", targetType, targetIds: ids, campaignId: validCampaignId };
+    const params = new URLSearchParams({
+      select: PUBLIC_CAMPAIGN_VIEW_SELECT,
+      target_type: `eq.${targetType}`,
+      order: "sort_order.asc,priority.asc,id.asc",
+      limit: String(PUBLIC_CAMPAIGN_TARGET_LIMIT),
+    });
+    if (validCampaignId && ids.length) params.set("or", `(id.eq.${validCampaignId},target_id.in.(${ids.join(",")}))`);
+    else if (validCampaignId) params.set("id", `eq.${validCampaignId}`);
+    else params.set("target_id", `in.(${ids.join(",")})`);
+    return this.loadPublicScope(scope, params);
   }
 
   async refreshPublicState(forceProof = false): Promise<void> {
-    this._clock.set(Date.now());
-    const [campaigns] = await Promise.allSettled([this.loadPublic(), this.refreshSocialProof(forceProof)]);
-    if (campaigns.status === "rejected") throw campaigns.reason;
+    if (!this.publicScope) {
+      await Promise.allSettled([this.refreshSocialProof(forceProof)]);
+      return;
+    }
+    await this.refreshCurrentPublicScope(forceProof);
   }
 
   async refreshAdmin(): Promise<void> {
     const token = await this.requiredToken();
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=${PUBLIC_CAMPAIGN_SELECT}&order=sort_order.asc,created_at.desc`, {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=${ADMIN_CAMPAIGN_SELECT}&order=sort_order.asc,created_at.desc`, {
       headers: this.authHeaders(token),
       cache: "no-store",
     });
@@ -169,8 +210,8 @@ export class CampaignService {
     };
     const isUpdate = Boolean(input.id);
     const url = isUpdate
-      ? `${SUPABASE_PROJECT_URL}/rest/v1/campaigns?id=eq.${encodeURIComponent(input.id!)}&select=${PUBLIC_CAMPAIGN_SELECT}`
-      : `${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=${PUBLIC_CAMPAIGN_SELECT}`;
+      ? `${SUPABASE_PROJECT_URL}/rest/v1/campaigns?id=eq.${encodeURIComponent(input.id!)}&select=${ADMIN_CAMPAIGN_SELECT}`
+      : `${SUPABASE_PROJECT_URL}/rest/v1/campaigns?select=${ADMIN_CAMPAIGN_SELECT}`;
     const response = await fetch(url, {
       method: isUpdate ? "PATCH" : "POST",
       headers: { ...this.authHeaders(token), Prefer: "return=representation" },
@@ -182,7 +223,7 @@ export class CampaignService {
     }
     const saved = this.fromRow(((await response.json()) as any[])[0]);
     await this.refreshAdmin();
-    await this.loadPublic();
+    if (this.publicScope) await this.refreshCurrentPublicScope(false);
     return saved;
   }
 
@@ -194,7 +235,7 @@ export class CampaignService {
     });
     if (!response.ok) throw new Error(`CAMPAIGN_DELETE_${response.status}`);
     await this.refreshAdmin();
-    await this.loadPublic();
+    if (this.publicScope) await this.refreshCurrentPublicScope(false);
   }
 
   async reorder(ids: string[]): Promise<void> {
@@ -207,7 +248,7 @@ export class CampaignService {
       if (!response.ok) throw new Error(`CAMPAIGN_REORDER_${response.status}`);
     })));
     await this.refreshAdmin();
-    await this.loadPublic();
+    if (this.publicScope) await this.refreshCurrentPublicScope(false);
   }
 
   async refreshSocialProof(force = false): Promise<Record<string, CampaignProof>> {
@@ -250,19 +291,59 @@ export class CampaignService {
       }
     })();
     this.socialProofInFlight = request;
-    try { return await request; }
-    finally { if (this.socialProofInFlight === request) this.socialProofInFlight = undefined; }
+    try {
+      return await request;
+    } finally {
+      if (this.socialProofInFlight === request) this.socialProofInFlight = undefined;
+    }
+  }
+
+  private loadPublicScope(scope: PublicCampaignScope, params: URLSearchParams): Promise<CampaignRecord[]> {
+    const key = scope.kind === "list"
+      ? `list:${scope.limit}`
+      : `target:${scope.targetType}:${scope.targetIds.join(",")}:${scope.campaignId || ""}`;
+    this.publicScope = scope;
+    this.publicScopeKey = key;
+    const active = this.publicLoads.get(key);
+    if (active) return active;
+
+    const request = (async () => {
+      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/public_campaign_catalog_v217?${params.toString()}`, {
+        headers: { ...this.publicHeaders(), "cache-control": "no-cache" },
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(`CAMPAIGNS_PUBLIC_V217_${response.status}`);
+      const records = ((await response.json()) as any[]).map((row) => this.fromRow(row));
+      if (this.publicScopeKey === key) this._publicCampaigns.set(records);
+      this._clock.set(Date.now());
+      return records;
+    })();
+    this.publicLoads.set(key, request);
+    return request.finally(() => {
+      if (this.publicLoads.get(key) === request) this.publicLoads.delete(key);
+    });
+  }
+
+  private async refreshCurrentPublicScope(forceProof: boolean): Promise<void> {
+    const scope = this.publicScope;
+    if (!scope) return;
+    const content = scope.kind === "list"
+      ? this.loadPublic(scope.limit)
+      : this.loadPublicForTarget(scope.targetType, scope.targetIds, scope.campaignId);
+    const [campaigns] = await Promise.allSettled([content, this.refreshSocialProof(forceProof)]);
+    if (campaigns.status === "rejected") throw campaigns.reason;
   }
 
   private queuePublicRefresh(delay = 120): void {
+    if (!this.publicScope) return;
     if (typeof window === "undefined") {
-      void this.refreshPublicState().catch(() => undefined);
+      void this.refreshCurrentPublicScope(false).catch(() => undefined);
       return;
     }
     if (this.publicRefreshTimer !== undefined) window.clearTimeout(this.publicRefreshTimer);
     this.publicRefreshTimer = window.setTimeout(() => {
       this.publicRefreshTimer = undefined;
-      void this.refreshPublicState().catch((error) => console.info("Campaign realtime refresh deferred.", error));
+      void this.refreshCurrentPublicScope(false).catch((error) => console.info("Campaign realtime refresh deferred.", error));
     }, delay);
   }
 
@@ -306,7 +387,7 @@ export class CampaignService {
   }
 
   private slugify(value: string): string {
-    return value.toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g,"i").replace(/ğ/g,"g").replace(/ü/g,"u").replace(/ş/g,"s").replace(/ö/g,"o").replace(/ç/g,"c").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,100) || `kampanya-${Date.now()}`;
+    return value.toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g, "i").replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ş/g, "s").replace(/ö/g, "o").replace(/ç/g, "c").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 100) || `kampanya-${Date.now()}`;
   }
 
   private nonNegative(value: number, max: number): number {
@@ -322,11 +403,17 @@ export class CampaignService {
     return parsed;
   }
 
-  private publicHeaders(): Record<string,string> {
+  private integer(value: unknown, min: number, max: number, fallback: number): number {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.max(min, Math.min(max, Math.floor(parsed)));
+  }
+
+  private publicHeaders(): Record<string, string> {
     return { apikey: SUPABASE_PUBLISHABLE_KEY, accept: "application/json" };
   }
 
-  private authHeaders(token: string): Record<string,string> {
+  private authHeaders(token: string): Record<string, string> {
     return { apikey: SUPABASE_PUBLISHABLE_KEY, authorization: `Bearer ${token}`, "content-type": "application/json" };
   }
 

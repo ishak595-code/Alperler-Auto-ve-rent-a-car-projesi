@@ -6,6 +6,7 @@ const expect = (condition, message) => { if (!condition) failures.push(message);
 
 const app = read('src/app.component.ts');
 const routes = read('src/app.routes.ts');
+const navigation = read('src/services/navigation-config.service.ts');
 const checkoutShell = read('src/pages/booking-checkout-shell-v218.component.ts');
 const adminCustomerShell = read('src/pages/admin/admin-customer-detail-shell-v218.component.ts');
 const angular = JSON.parse(read('angular.json'));
@@ -54,6 +55,11 @@ for (const marker of [
   expect(routes.includes(marker), `Dynamic route guard dependency missing: ${marker}`);
 }
 
+expect(!navigation.includes("import { AuthService } from './auth.service'"), 'Public navigation service must not eagerly import admin AuthService.');
+expect(!navigation.includes('private readonly auth = inject(AuthService)'), 'Public navigation service must not eagerly instantiate admin AuthService.');
+expect(navigation.includes("await import('./auth.service')"), 'Admin navigation writes must dynamically load AuthService only when a token is required.');
+expect(navigation.includes('this.injector.get(AuthService)'), 'Dynamic navigation auth must resolve through the existing Angular injector.');
+
 expect(
   routes.includes("{ path: 'booking-checkout', canActivate: [checkoutGuard], loadComponent: () => import('./pages/booking-checkout-shell-v218.component').then(m => m.BookingCheckoutShellV218Component) }"),
   'Booking checkout must be owned by the lazy V218 route shell.',
@@ -81,4 +87,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('V218 initial bundle ownership contract passed: root domains and guards are lazy, success overlay is deferred, route-owned panels are isolated, and the 1MB hard ceiling is enforced.');
+console.log('V218 initial bundle ownership contract passed: root domains, route guards and admin-only navigation auth are lazy; success overlay is deferred; route-owned panels are isolated; and the 1MB hard ceiling is enforced.');

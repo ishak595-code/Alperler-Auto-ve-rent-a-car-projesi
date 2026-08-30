@@ -1,263 +1,44 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
+import { Vehicle } from '../models/car.model';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
-import { CampaignService } from './campaign.service';
-import { CarService } from './car.service';
+import { CampaignRecord } from './campaign.service';
+import { BlogCardV217, BranchCardV217, ScalablePublicCatalogV217Service, TourCardV217 } from './scalable-public-catalog-v217.service';
 import { PublicContentRealtimeService } from './public-content-realtime.service';
 
-export interface PublicHomepageSection {
-  sectionKey: string;
-  title: string;
-  sectionType: 'VEHICLES' | 'TOURS' | 'BLOG' | 'CAMPAIGN' | 'CUSTOM';
-  isEnabled: boolean;
-  sortOrder: number;
-  maxItems: number;
-  settings: Record<string, unknown>;
-}
+export interface PublicHomepageSection {sectionKey:string;title:string;sectionType:'VEHICLES'|'TOURS'|'BLOG'|'CAMPAIGN'|'CUSTOM';isEnabled:boolean;sortOrder:number;maxItems:number;settings:Record<string,unknown>;}
+export interface PublicHomepagePlacement {id:string;sectionKey:string;entityType:'VEHICLE'|'TOUR'|'BLOG'|'CAMPAIGN';entityId:string;label?:string;sortOrder:number;isActive:boolean;startsAt?:string;endsAt?:string;metadata:Record<string,unknown>;}
+type HomepageSelectionMode='PLACEMENT'|'LATEST';
 
-export interface PublicHomepagePlacement {
-  id: string;
-  sectionKey: string;
-  entityType: 'VEHICLE' | 'TOUR' | 'BLOG' | 'CAMPAIGN';
-  entityId: string;
-  label?: string;
-  sortOrder: number;
-  isActive: boolean;
-  startsAt?: string;
-  endsAt?: string;
-  metadata: Record<string, unknown>;
-}
-
-type HomepageSelectionMode = 'PLACEMENT' | 'LATEST';
-type SectionDomain = Pick<PublicHomepageSection, 'sectionType' | 'settings'>;
-
-@Injectable({ providedIn: 'root' })
+@Injectable({providedIn:'root'})
 export class HomepageLayoutService {
-  private readonly destroyRef = inject(DestroyRef);
-  private readonly realtime = inject(PublicContentRealtimeService);
-  private readonly cars = inject(CarService);
-  private readonly campaigns = inject(CampaignService);
-  private readonly _sections = signal<PublicHomepageSection[]>([]);
-  private readonly _placements = signal<PublicHomepagePlacement[]>([]);
-  private readonly _loading = signal(false);
-  private readonly _loaded = signal(false);
-  private readonly _error = signal('');
-  private readonly _clock = signal(Date.now());
-  private readonly publicSectionSelect = 'section_key,title,section_type,is_enabled,sort_order,max_items,settings';
-  private readonly publicPlacementSelect = 'id,section_key,entity_type,entity_id,label,sort_order,is_active,starts_at,ends_at,metadata';
-  private refreshTimer?: number;
-  private inFlight?: Promise<void>;
-  private realtimeDirtyWhileLoading = false;
+  private readonly destroyRef=inject(DestroyRef);private readonly realtime=inject(PublicContentRealtimeService);private readonly catalog=inject(ScalablePublicCatalogV217Service);
+  private readonly _sections=signal<PublicHomepageSection[]>([]);private readonly _placements=signal<PublicHomepagePlacement[]>([]);private readonly _loading=signal(false);private readonly _loaded=signal(false);private readonly _error=signal('');private readonly _clock=signal(Date.now());
+  private readonly _vehicles=signal<Record<string,Vehicle[]>>({});private readonly _tours=signal<Record<string,TourCardV217[]>>({});private readonly _blogs=signal<Record<string,BlogCardV217[]>>({});private readonly _campaigns=signal<Record<string,CampaignRecord[]>>({});private readonly _branches=signal<Record<string,BranchCardV217[]>>({});
+  private readonly sectionSelect='section_key,title,section_type,is_enabled,sort_order,max_items,settings';private readonly placementSelect='id,section_key,entity_type,entity_id,label,sort_order,is_active,starts_at,ends_at,metadata';private refreshTimer?:number;private inFlight?:Promise<void>;private dirty=false;
+  readonly sections=this._sections.asReadonly();readonly placements=this._placements.asReadonly();readonly loading=this._loading.asReadonly();readonly loaded=this._loaded.asReadonly();readonly error=this._error.asReadonly();readonly realtimeState=this.realtime.state;
+  constructor(){const unwatch=this.realtime.watch(['homepage_sections','homepage_placements','vehicles','tours','blog_posts','campaigns','branches'],()=>this.onRealtime());this.destroyRef.onDestroy(unwatch);this.destroyRef.onDestroy(()=>{if(this.refreshTimer!==undefined&&typeof window!=='undefined')window.clearTimeout(this.refreshTimer);});}
 
-  readonly sections = this._sections.asReadonly();
-  readonly placements = this._placements.asReadonly();
-  readonly loading = this._loading.asReadonly();
-  readonly loaded = this._loaded.asReadonly();
-  readonly error = this._error.asReadonly();
-  readonly realtimeState = this.realtime.state;
-
-  constructor() {
-    const unwatch = this.realtime.watch(
-      ['homepage_sections', 'homepage_placements'],
-      () => this.onRealtimeChange(),
-    );
-    this.destroyRef.onDestroy(unwatch);
-
-    if (typeof window !== 'undefined') {
-      this.destroyRef.onDestroy(() => {
-        if (this.refreshTimer !== undefined) window.clearTimeout(this.refreshTimer);
-      });
-    }
-  }
-
-  load(): Promise<void> {
-    if (this.inFlight) return this.inFlight;
-
-    const run = async () => {
-      this._loading.set(true);
-      this._error.set('');
-      try {
-        const [sectionRows, placementRows] = await Promise.all([
-          this.get<any[]>(`homepage_sections?is_enabled=eq.true&select=${this.publicSectionSelect}&order=sort_order.asc`),
-          this.get<any[]>(`homepage_placements?is_active=eq.true&select=${this.publicPlacementSelect}&order=section_key.asc,sort_order.asc`),
-        ]);
-
-        await Promise.allSettled([this.cars.ensureVehicleCloudInventory(), this.campaigns.loadPublic()]);
-
-        const sectionDomains = new Map<string, SectionDomain>();
-        for (const row of sectionRows) {
-          const sectionKey = String(row.section_key || '');
-          if (!sectionKey) continue;
-          sectionDomains.set(sectionKey, {
-            sectionType: row.section_type as PublicHomepageSection['sectionType'],
-            settings: row.settings && typeof row.settings === 'object' ? row.settings as Record<string, unknown> : {},
-          });
-        }
-
-        const placements = placementRows.map((row) => ({
-          id: String(row.id || ''),
-          sectionKey: String(row.section_key || ''),
-          entityType: row.entity_type,
-          entityId: String(row.entity_id || ''),
-          label: row.label || undefined,
-          sortOrder: Number(row.sort_order || 0),
-          isActive: row.is_active !== false,
-          startsAt: row.starts_at || undefined,
-          endsAt: row.ends_at || undefined,
-          metadata: row.metadata && typeof row.metadata === 'object' ? row.metadata : {},
-        } as PublicHomepagePlacement)).filter((placement) => {
-          if (!placement.id || !placement.sectionKey || !placement.entityId || !placement.isActive) return false;
-          const domain = sectionDomains.get(placement.sectionKey);
-          return Boolean(domain) && this.placementResolves(placement, domain!);
-        });
-
-        this._placements.set(placements);
-        const now = this._clock();
-        const placementCountBySection = new Map<string, number>();
-        for (const placement of placements) {
-          if (!this.isInsideWindow(placement, now)) continue;
-          placementCountBySection.set(placement.sectionKey, (placementCountBySection.get(placement.sectionKey) || 0) + 1);
-        }
-
-        const sections = sectionRows.map((row) => {
-          const settings = row.settings && typeof row.settings === 'object' ? row.settings as Record<string, unknown> : {};
-          const sectionKey = String(row.section_key || '');
-          const sectionType = row.section_type as PublicHomepageSection['sectionType'];
-          const mode = this.selectionMode(settings);
-          const storedLimit = Math.max(1, Math.floor(Number(row.max_items || 6)));
-          const manualCount = placementCountBySection.get(sectionKey) || 0;
-          const placementDriven = this.supportsPlacements(sectionType) && mode === 'PLACEMENT';
-          return {
-            sectionKey,
-            title: String(row.title || ''),
-            sectionType,
-            isEnabled: row.is_enabled !== false,
-            sortOrder: Number(row.sort_order || 0),
-            maxItems: placementDriven ? Math.max(1, manualCount) : storedLimit,
-            settings,
-            manualCount,
-            placementDriven,
-          };
-        }).filter((row) => {
-          if (!row.sectionKey || !row.isEnabled) return false;
-          if (row.placementDriven && row.manualCount === 0) return false;
-          return true;
-        }).map(({ manualCount: _manualCount, placementDriven: _placementDriven, ...row }) => row as PublicHomepageSection);
-
-        this._sections.set(sections);
-        this._loaded.set(true);
-      } catch (error) {
-        this._error.set(error instanceof Error ? error.message : 'HOMEPAGE_LAYOUT_LOAD_FAILED');
-        this._loaded.set(true);
-      } finally {
-        this._loading.set(false);
-        this.inFlight = undefined;
-        if (this.realtimeDirtyWhileLoading) {
-          this.realtimeDirtyWhileLoading = false;
-          this.queueRealtimeRefresh(50);
-        }
-      }
-    };
-
-    this.inFlight = run();
-    return this.inFlight;
-  }
-
-  async refreshPublicState(): Promise<void> {
-    this._clock.set(Date.now());
-    await this.load();
-  }
-
-  placementsFor(sectionKey: string): PublicHomepagePlacement[] {
-    const section = this._sections().find((row) => row.sectionKey === sectionKey);
-    const mode = this.selectionMode(section?.settings || {});
-    if (mode === 'LATEST') return [];
-
-    const now = this._clock();
-    return this._placements()
-      .filter((row) => row.sectionKey === sectionKey && row.isActive && this.isInsideWindow(row, now))
-      .sort((a, b) => a.sortOrder - b.sortOrder);
-  }
-
-  selectionModeFor(sectionKey: string): HomepageSelectionMode {
-    const section = this._sections().find((row) => row.sectionKey === sectionKey);
-    return this.selectionMode(section?.settings || {});
-  }
-
-  private placementResolves(placement: PublicHomepagePlacement, domain: SectionDomain): boolean {
-    const target = placement.entityId.trim();
-    if (!target || !this.entityTypeMatchesSection(placement.entityType, domain.sectionType)) return false;
-
-    if (placement.entityType === 'VEHICLE') {
-      const category = String(domain.settings['category'] || 'RENTAL').toUpperCase();
-      const source = category === 'SALE' ? this.cars.getSaleCars()() : this.cars.getCars()();
-      return this.matchesKnownSource(source, target, (item) => [item.id, item.cloudId, item.cloudStockCode]);
-    }
-    if (placement.entityType === 'TOUR') {
-      return this.matchesKnownSource(this.cars.getTours()(), target, (item) => [item.id, item.cloudId]);
-    }
-    if (placement.entityType === 'BLOG') {
-      return this.matchesKnownSource(this.cars.getBlogPosts()(), target, (item) => [item.id, item.cloudId, item.cloudSlug]);
-    }
-    return this.matchesKnownSource(this.campaigns.publicCampaigns(), target, (item) => [item.id, item.slug]);
-  }
-
-  private entityTypeMatchesSection(entityType: PublicHomepagePlacement['entityType'], sectionType: PublicHomepageSection['sectionType']): boolean {
-    return (sectionType === 'VEHICLES' && entityType === 'VEHICLE')
-      || (sectionType === 'TOURS' && entityType === 'TOUR')
-      || (sectionType === 'BLOG' && entityType === 'BLOG')
-      || (sectionType === 'CAMPAIGN' && entityType === 'CAMPAIGN');
-  }
-
-  private matchesKnownSource<T>(source: T[], target: string, keys: (item: T) => unknown[]): boolean {
-    if (!source.length) return true;
-    return source.some((item) => keys(item).some((key) => String(key ?? '').trim() === target));
-  }
-
-  private selectionMode(settings: Record<string, unknown>): HomepageSelectionMode {
-    return String(settings['selectionMode'] || 'PLACEMENT').trim().toUpperCase() === 'LATEST' ? 'LATEST' : 'PLACEMENT';
-  }
-
-  private supportsPlacements(type: PublicHomepageSection['sectionType']): boolean {
-    return type === 'VEHICLES' || type === 'TOURS' || type === 'BLOG' || type === 'CAMPAIGN';
-  }
-
-  private onRealtimeChange(): void {
-    if (this.inFlight) {
-      this.realtimeDirtyWhileLoading = true;
-      return;
-    }
-    this.queueRealtimeRefresh();
-  }
-
-  private queueRealtimeRefresh(delay = 140): void {
-    if (typeof window === 'undefined') {
-      void this.refreshPublicState();
-      return;
-    }
-    if (this.refreshTimer !== undefined) window.clearTimeout(this.refreshTimer);
-    this.refreshTimer = window.setTimeout(() => {
-      this.refreshTimer = undefined;
-      void this.refreshPublicState();
-    }, delay);
-  }
-
-  private isInsideWindow(row: PublicHomepagePlacement, now: number): boolean {
-    const startsAt = row.startsAt ? new Date(row.startsAt).getTime() : Number.NEGATIVE_INFINITY;
-    const endsAt = row.endsAt ? new Date(row.endsAt).getTime() : Number.POSITIVE_INFINITY;
-    if (!Number.isFinite(startsAt) && row.startsAt) return false;
-    if (!Number.isFinite(endsAt) && row.endsAt) return false;
-    return now >= startsAt && now < endsAt;
-  }
-
-  private async get<T>(path: string): Promise<T> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
-      headers: {
-        apikey: SUPABASE_PUBLISHABLE_KEY,
-        accept: 'application/json',
-      },
-      cache: 'no-store',
-    });
-    if (!response.ok) throw new Error(`HOMEPAGE_LAYOUT_${response.status}`);
-    return await response.json() as T;
-  }
+  load():Promise<void>{if(this.inFlight)return this.inFlight;const run=async()=>{this._loading.set(true);this._error.set('');try{const [sectionRows,placementRows]=await Promise.all([this.get<any[]>(`homepage_sections?is_enabled=eq.true&select=${this.sectionSelect}&order=sort_order.asc`),this.get<any[]>(`homepage_placements?is_active=eq.true&select=${this.placementSelect}&order=section_key.asc,sort_order.asc`)]);const now=this._clock();const rawPlacements=placementRows.map(row=>this.placement(row)).filter(p=>p.id&&p.sectionKey&&p.entityId&&p.isActive&&this.inside(p,now));const sections=sectionRows.map(row=>this.section(row)).filter(s=>s.sectionKey&&s.isEnabled).sort((a,b)=>a.sortOrder-b.sortOrder);const vehicleMap:Record<string,Vehicle[]>={},tourMap:Record<string,TourCardV217[]>={},blogMap:Record<string,BlogCardV217[]>={},campaignMap:Record<string,CampaignRecord[]>={},branchMap:Record<string,BranchCardV217[]>={};const validPlacementIds=new Set<string>();
+    await Promise.all(sections.map(async section=>{const placements=rawPlacements.filter(p=>p.sectionKey===section.sectionKey&&this.typeMatches(p.entityType,section.sectionType)).sort((a,b)=>a.sortOrder-b.sortOrder);const mode=this.mode(section.settings);const limit=this.limit(section.maxItems,1,48);try{
+      if(this.renderer(section)==='BRANCHES'){branchMap[section.sectionKey]=await this.catalog.listBranches(limit);return;}
+      if(section.sectionType==='VEHICLES'){const category=String(section.settings['category']||'RENTAL').toUpperCase()==='SALE'?'SALE':'RENTAL';let rows:Vehicle[]=[];if(mode==='PLACEMENT'){rows=await this.catalog.vehiclesByIdentifiers(placements.map(p=>p.entityId),category);this.markResolved(placements,rows,item=>[String(item.id),String(item.cloudId||''),String(item.cloudStockCode||''),String(item.cloudSlug||'')],validPlacementIds);}else rows=(await this.catalog.listVehicles({category,page:0,pageSize:limit,sortBy:'recommended'})).items;vehicleMap[section.sectionKey]=rows.slice(0,mode==='PLACEMENT'?placements.length:limit);return;}
+      if(section.sectionType==='TOURS'){let rows:TourCardV217[]=[];if(mode==='PLACEMENT'){rows=await this.catalog.toursByIdentifiers(placements.map(p=>p.entityId));this.markResolved(placements,rows,item=>[String(item.id),String(item.cloudId||''),String(item.cloudSlug||'')],validPlacementIds);}else rows=(await this.catalog.listTours({page:0,pageSize:limit,sortBy:'featured'})).items;tourMap[section.sectionKey]=rows.slice(0,mode==='PLACEMENT'?placements.length:limit);return;}
+      if(section.sectionType==='BLOG'){let rows:BlogCardV217[]=[];if(mode==='PLACEMENT'){rows=await this.catalog.blogsByIdentifiers(placements.map(p=>p.entityId));this.markResolved(placements,rows,item=>[item.id,item.cloudId,String(item.cloudSlug||'')],validPlacementIds);}else rows=(await this.catalog.listBlogs({page:0,pageSize:limit})).items;blogMap[section.sectionKey]=rows.slice(0,mode==='PLACEMENT'?placements.length:limit);return;}
+      if(section.sectionType==='CAMPAIGN'){let rows:CampaignRecord[]=[];if(mode==='PLACEMENT'){rows=await this.catalog.campaignsByIdentifiers(placements.map(p=>p.entityId));this.markResolved(placements,rows,item=>[item.id,item.slug],validPlacementIds);}else rows=await this.catalog.latestCampaigns(limit);campaignMap[section.sectionKey]=rows.slice(0,mode==='PLACEMENT'?placements.length:limit);}
+    }catch(error){console.error('Homepage section load failed',section.sectionKey,error);vehicleMap[section.sectionKey]=[];tourMap[section.sectionKey]=[];blogMap[section.sectionKey]=[];campaignMap[section.sectionKey]=[];branchMap[section.sectionKey]=[];}}));
+    const validPlacements=rawPlacements.filter(p=>validPlacementIds.has(p.id));const visibleSections=sections.filter(section=>{if(this.renderer(section)==='PARTNER'||this.renderer(section)==='PROMO')return true;if(this.renderer(section)==='BRANCHES')return(branchMap[section.sectionKey]||[]).length>0;if(section.sectionType==='VEHICLES')return(vehicleMap[section.sectionKey]||[]).length>0;if(section.sectionType==='TOURS')return(tourMap[section.sectionKey]||[]).length>0;if(section.sectionType==='BLOG')return(blogMap[section.sectionKey]||[]).length>0;if(section.sectionType==='CAMPAIGN')return(campaignMap[section.sectionKey]||[]).length>0;return false;});this._vehicles.set(vehicleMap);this._tours.set(tourMap);this._blogs.set(blogMap);this._campaigns.set(campaignMap);this._branches.set(branchMap);this._placements.set(validPlacements);this._sections.set(visibleSections);this._loaded.set(true);
+  }catch(error){this._error.set(error instanceof Error?error.message:'HOMEPAGE_LAYOUT_LOAD_FAILED');this._loaded.set(true);}finally{this._loading.set(false);this.inFlight=undefined;if(this.dirty){this.dirty=false;this.queue(60);}}};this.inFlight=run();return this.inFlight;}
+  async refreshPublicState(){this._clock.set(Date.now());await this.load();}
+  vehiclesFor(key:string){return this._vehicles()[key]||[];}toursFor(key:string){return this._tours()[key]||[];}blogsFor(key:string){return this._blogs()[key]||[];}campaignsFor(key:string){return this._campaigns()[key]||[];}branchesFor(key:string){return this._branches()[key]||[];}
+  placementsFor(key:string){return this._placements().filter(p=>p.sectionKey===key).sort((a,b)=>a.sortOrder-b.sortOrder);}selectionModeFor(key:string):HomepageSelectionMode{const s=this._sections().find(row=>row.sectionKey===key);return this.mode(s?.settings||{});}
+  private section(row:any):PublicHomepageSection{return{sectionKey:String(row.section_key||''),title:String(row.title||''),sectionType:row.section_type,isEnabled:row.is_enabled!==false,sortOrder:Number(row.sort_order||0),maxItems:this.limit(Number(row.max_items||6),1,48),settings:row.settings&&typeof row.settings==='object'?row.settings:{}};}
+  private placement(row:any):PublicHomepagePlacement{return{id:String(row.id||''),sectionKey:String(row.section_key||''),entityType:row.entity_type,entityId:String(row.entity_id||''),label:row.label||undefined,sortOrder:Number(row.sort_order||0),isActive:row.is_active!==false,startsAt:row.starts_at||undefined,endsAt:row.ends_at||undefined,metadata:row.metadata&&typeof row.metadata==='object'?row.metadata:{}};}
+  private markResolved<T>(placements:PublicHomepagePlacement[],rows:T[],keys:(item:T)=>string[],target:Set<string>){for(const p of placements){if(rows.some(row=>keys(row).some(k=>k&&k===p.entityId)))target.add(p.id);}}
+  private typeMatches(entity:PublicHomepagePlacement['entityType'],section:PublicHomepageSection['sectionType']){return(section==='VEHICLES'&&entity==='VEHICLE')||(section==='TOURS'&&entity==='TOUR')||(section==='BLOG'&&entity==='BLOG')||(section==='CAMPAIGN'&&entity==='CAMPAIGN');}
+  private renderer(section:PublicHomepageSection){const value=String(section.settings['renderer']||'').toUpperCase();if(['BRANCHES','PARTNER','PROMO'].includes(value))return value;if(section.sectionKey==='branches')return'BRANCHES';if(section.sectionKey==='partner')return'PARTNER';return section.sectionType==='CUSTOM'?'PROMO':'DEFAULT';}
+  private mode(settings:Record<string,unknown>):HomepageSelectionMode{return String(settings['selectionMode']||'PLACEMENT').toUpperCase()==='LATEST'?'LATEST':'PLACEMENT';}
+  private inside(row:PublicHomepagePlacement,now:number){const start=row.startsAt?new Date(row.startsAt).getTime():-Infinity,end=row.endsAt?new Date(row.endsAt).getTime():Infinity;if(row.startsAt&&!Number.isFinite(start))return false;if(row.endsAt&&!Number.isFinite(end))return false;return now>=start&&now<end;}
+  private onRealtime(){if(this.inFlight){this.dirty=true;return;}this.queue();}private queue(delay=160){if(typeof window==='undefined'){void this.refreshPublicState();return;}if(this.refreshTimer!==undefined)window.clearTimeout(this.refreshTimer);this.refreshTimer=window.setTimeout(()=>{this.refreshTimer=undefined;void this.refreshPublicState();},delay);}
+  private limit(value:number,min:number,max:number){return Math.max(min,Math.min(max,Math.floor(value)||min));}
+  private async get<T>(path:string):Promise<T>{const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,accept:'application/json'},cache:'no-store',signal:AbortSignal.timeout(12000)});if(!response.ok)throw new Error(`HOMEPAGE_LAYOUT_${response.status}`);return await response.json() as T;}
 }

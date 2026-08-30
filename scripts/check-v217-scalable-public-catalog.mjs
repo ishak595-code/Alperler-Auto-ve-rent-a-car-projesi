@@ -51,7 +51,15 @@ if(!faqPage.includes('PublicFaqV217Service'))throw new Error('V217_FAQ_OWNER_MIS
 for(const token of ['CarService','addFaq(','saveFaq(']){if(faqPage.includes(token))throw new Error(`V217_FAQ_MUTATION_REGRESSION:${token}`);}
 if(!faqPage.includes('openIds = signal'))throw new Error('V217_FAQ_LOCAL_UI_STATE_MISSING');
 
+const systemHealth=fs.readFileSync('src/services/system-health.service.ts','utf8');
+for(const token of ['SUPABASE_PROJECT_URL','storefrontProbes','checkPublicStorefront','/rest/v1/vehicles','/rest/v1/tours','/rest/v1/campaigns','/rest/v1/homepage_sections','/rest/v1/homepage_placements','/rest/v1/branches']){
+  if(systemHealth.includes(token))throw new Error(`V217_CUSTOMER_SYNTHETIC_HEALTH_REGRESSION:${token}`);
+}
+for(const token of ['supabaseFunctionUrl("system-event")','unhandledrejection','RESOURCE_${resource.toUpperCase()}_FAILED']){
+  if(!systemHealth.includes(token))throw new Error(`V217_CLIENT_OBSERVABILITY_MISSING:${token}`);
+}
+
 const migration=fs.readFileSync('supabase/migrations/20260830124500_v217_scalable_public_catalog_views.sql','utf8');
 if((migration.match(/security_invoker = true/g)||[]).length<5)throw new Error('V217_SECURITY_INVOKER_VIEWS_MISSING');
 
-console.log('V217 scalable public catalog contract passed with bounded runtime ownership, targeted campaigns and read-only FAQ.');
+console.log('V217 scalable public catalog contract passed with bounded runtime ownership, targeted campaigns, read-only FAQ and client-safe observability.');

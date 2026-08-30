@@ -10,6 +10,7 @@ const branchPublic = fs.readFileSync('src/services/branch-public-v171.service.ts
 const carService = fs.readFileSync('src/services/car.service.ts', 'utf8');
 const coordinator = fs.readFileSync('src/services/public-content-refresh-coordinator.service.ts', 'utf8');
 const campaignsPage = fs.readFileSync('src/pages/campaigns.component.ts', 'utf8');
+const campaignService = fs.readFileSync('src/services/campaign.service.ts', 'utf8');
 const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
 
 if (branchService.includes('void this.refreshPublic();')) fail('BranchService must not self-fetch public branches in its constructor');
@@ -21,7 +22,10 @@ if (branchPublic.includes('/api/branches')) fail('BranchPublicV171Service must n
 if (!branchPublic.includes('private readonly branchService:BranchService')) fail('BranchPublicV171Service must depend on shared BranchService');
 if (!branchPublic.includes('await this.branchService.refresh()')) fail('BranchPublicV171Service must reuse the shared branch refresh path');
 
-if (campaignsPage.includes('campaignService.loadPublic()')) fail('Campaigns page must not start a duplicate public campaign fetch');
+if (!campaignsPage.includes('campaignService.loadPublic(48)')) fail('Campaigns page must explicitly own its bounded public campaign load');
+if (!campaignService.includes('public_campaign_catalog_v217')) fail('Public campaign reads must use the bounded V217 projection');
+if (!campaignService.includes('PUBLIC_CAMPAIGN_LIST_LIMIT = 48')) fail('Public campaign list bound is missing');
+if (!campaignService.includes('PUBLIC_CAMPAIGN_TARGET_LIMIT = 12')) fail('Public campaign target bound is missing');
 
 const constructorStart = carService.indexOf('constructor() {');
 const refreshConfigStart = carService.indexOf('refreshSiteConfig(', constructorStart);
@@ -30,13 +34,17 @@ const constructorBody = constructorStart >= 0 && refreshConfigStart > constructo
   : '';
 if (!constructorBody) fail('CarService constructor ownership boundary could not be verified');
 if (constructorBody.includes('refreshCloudCatalog(')) fail('CarService constructor must not own heavy initial catalog hydration');
-if (!coordinator.includes('startupOffsets()')) fail('Coordinator must own staged initial public hydration');
-for (const token of ['key: "config"', 'key: "homepage"', 'key: "branches"', 'key: "campaigns"', 'key: "catalog"']) {
-  if (!coordinator.includes(token)) fail(`Coordinator staged startup task missing ${token}`);
+if (!coordinator.includes('startupOffsets()')) fail('Coordinator must own lightweight global reconciliation');
+for (const token of ['key: "config"', 'key: "homepage"', 'key: "branches"']) {
+  if (!coordinator.includes(token)) fail(`Coordinator global startup task missing ${token}`);
+}
+for (const forbidden of ['key: "campaigns"', 'key: "catalog"', 'refreshCloudCatalog(true)', 'CampaignService']) {
+  if (coordinator.includes(forbidden)) fail(`Coordinator must not regain heavy route-owned hydration: ${forbidden}`);
 }
 if (!coordinator.includes('void this.runCycle(false, "start")')) fail('Coordinator startup must honor per-domain due times instead of force-refreshing every domain');
-if (!coordinator.includes('run: () => this.carService.refreshCloudCatalog(true)')) fail('Scheduled/reconnect catalog reconciliation must still force a fresh catalog cycle');
-if (!coordinator.includes('run: () => this.carService.refreshSiteConfig(true)')) fail('Lightweight site config must be refreshed independently before heavy catalog hydration');
+if (!coordinator.includes('run: () => this.carService.refreshSiteConfig(true)')) fail('Lightweight site config must be refreshed independently');
+if (!coordinator.includes('run: () => this.homepageLayout.refreshPublicState()')) fail('Homepage layout must remain a global shell-owned bounded dataset');
+if (!coordinator.includes('run: () => this.branchService.refresh()')) fail('Public branch directory reconciliation must remain global and coalesced');
 
 const ignoreCommand = String(vercel.ignoreCommand || '');
 if (!ignoreCommand.includes('VERCEL_GIT_PREVIOUS_SHA')) fail('Vercel build gating must fail safe when previous SHA is unavailable');
@@ -45,4 +53,4 @@ for (const token of ['supabase/', 'docs/', '\\.github/', 'scripts/']) {
 }
 if (!ignoreCommand.includes('exit 1') || !ignoreCommand.includes('exit 0')) fail('Vercel ignoreCommand must explicitly distinguish build and skip exits');
 
-if (!process.exitCode) console.log('Production completion invariants passed: staged public refresh ownership, request deduplication and Vercel build gating are protected.');
+if (!process.exitCode) console.log('Production completion invariants passed: lightweight global refresh ownership, bounded route-owned catalogs, request deduplication and Vercel build gating are protected.');

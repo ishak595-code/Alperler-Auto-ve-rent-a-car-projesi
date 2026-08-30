@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 const root = process.cwd();
 const failures = [];
+const compact = (value) => value.replace(/\s+/g, '');
 const files = {
   routes: 'src/app.routes.ts',
   hub: 'src/pages/admin/admin-content-hub.component.ts',
@@ -11,6 +12,7 @@ const files = {
   homepageAdmin: 'src/services/homepage-admin.service.ts',
   homepageRuntime: 'src/services/homepage-layout.service.ts',
   dynamicHome: 'src/components/dynamic-home-section.component.ts',
+  scalableCatalog: 'src/services/scalable-public-catalog-v217.service.ts',
   detailData: 'src/services/public-detail-data.service.ts',
   tourUi: 'src/pages/tour-detail.component.ts',
 };
@@ -30,7 +32,9 @@ const catalogAdmin = source(files.catalogAdmin);
 const campaign = source(files.campaign);
 const homepageAdmin = source(files.homepageAdmin);
 const homepageRuntime = source(files.homepageRuntime);
+const homepageRuntimeCompact = compact(homepageRuntime);
 const dynamicHome = source(files.dynamicHome);
+const scalableCatalog = source(files.scalableCatalog);
 const detailData = source(files.detailData);
 const tourUi = source(files.tourUi);
 
@@ -65,12 +69,40 @@ for (const marker of [
 
 for (const marker of [
   'homepage_sections', 'homepage_placements', 'selectionModeFor(', 'placementsFor(',
+  'placementsForSection(', 'sectionLimit(', 'validPlacementIds',
 ]) if (!homepageRuntime.includes(marker)) failures.push(`HOMEPAGE_RUNTIME_FLOW_MISSING ${marker}`);
 
+// V217 keeps LATEST and PLACEMENT as distinct bounded flows. LATEST never consumes
+// manual placement rows, while PLACEMENT resolves only the identifiers selected by admin.
 for (const marker of [
-  'orderedEntities(', 'selectionModeFor(this.section.sectionKey)==="LATEST"',
-  'this.cars.getSaleCars()', 'this.cars.getCars()', 'this.cars.getTours()', 'this.campaignsService.publicCampaigns()',
-]) if (!dynamicHome.includes(marker)) failures.push(`DYNAMIC_HOME_FLOW_MISSING ${marker}`);
+  "typeHomepageSelectionMode='PLACEMENT'|'LATEST';",
+  "if(mode==='LATEST')return[];",
+  "constplacementDriven=mode==='PLACEMENT';",
+  'returnplacementDriven?Math.max(1,manualCount):storedLimit;',
+]) if (!homepageRuntimeCompact.includes(marker)) failures.push(`HOMEPAGE_SELECTION_SEMANTICS_MISSING ${marker}`);
+
+for (const marker of [
+  'vehiclesByIdentifiers(', 'toursByIdentifiers(', 'blogsByIdentifiers(', 'campaignsByIdentifiers(',
+  'this.catalog.listVehicles({', 'this.catalog.listTours({', 'this.catalog.listBlogs({', 'this.catalog.latestCampaigns(limit)',
+]) if (!homepageRuntime.includes(marker)) failures.push(`BOUNDED_HOMEPAGE_SOURCE_MISSING ${marker}`);
+
+for (const marker of [
+  'vehiclesFor(this.section.sectionKey)',
+  'toursFor(this.section.sectionKey)',
+  'blogsFor(this.section.sectionKey)',
+  'campaignsFor(this.section.sectionKey)',
+  'branchesFor(this.section.sectionKey)',
+]) if (!dynamicHome.includes(marker)) failures.push(`DYNAMIC_HOME_BOUNDED_FLOW_MISSING ${marker}`);
+
+for (const forbidden of [
+  'this.cars.getSaleCars()', 'this.cars.getCars()', 'this.cars.getTours()',
+  'this.cars.getBlogPosts()', 'this.campaignsService.publicCampaigns()',
+]) if (dynamicHome.includes(forbidden)) failures.push(`DYNAMIC_HOME_FULL_CATALOG_REGRESSION ${forbidden}`);
+
+for (const marker of [
+  'public_vehicle_catalog_v217', 'public_tour_catalog_v217', 'public_blog_catalog_v217',
+  'vehiclesByIdentifiers(', 'toursByIdentifiers(', 'blogsByIdentifiers(', 'campaignsByIdentifiers(',
+]) if (!scalableCatalog.includes(marker)) failures.push(`SCALABLE_PUBLIC_CATALOG_MISSING ${marker}`);
 
 for (const marker of [
   'meetingPoint: row["meeting_point"]',

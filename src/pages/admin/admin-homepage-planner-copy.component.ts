@@ -14,7 +14,7 @@ import { ToastService } from '../../services/toast.service';
         <div>
           <p>Ana sayfa metinleri</p>
           <h2 id="planner-copy-title">Arama ve Hızlı Planlama Metinleri</h2>
-          <span>Planlama alanında müşterinin gördüğü bütün etiket, seçenek, tarih, saat, düğme, yüklenme ve hata metinlerini doğrudan site_config.homeContent üzerinden yönetin.</span>
+          <span>Planlama alanındaki etiket, tarih, saat, düğme, yüklenme ve hata metinlerini doğrudan site_config.homeContent üzerinden yönetin. Hizmet seçeneklerinin adı, sırası ve aktifliği Ana Sayfa Üst Alanı bölümünün tek sorumluluğundadır.</span>
         </div>
         <button type="button" (click)="save()" [disabled]="saving()">{{ saving() ? 'Kaydediliyor…' : 'Metinleri Kaydet' }}</button>
       </header>
@@ -24,10 +24,7 @@ import { ToastService } from '../../services/toast.service';
           <legend>Arama ve hizmet seçimi</legend>
           <label><span>Arama düğmesi</span><input [(ngModel)]="form.searchButtonLabel" name="searchButtonLabel" maxlength="60" /></label>
           <label><span>Hizmet alanı etiketi</span><input [(ngModel)]="form.plannerServiceLabel" name="plannerServiceLabel" maxlength="100" /></label>
-          <label><span>Şoförsüz kiralama seçeneği</span><input [(ngModel)]="form.plannerServiceIndividual" name="plannerServiceIndividual" maxlength="120" /></label>
-          <label><span>Şoförlü transfer seçeneği</span><input [(ngModel)]="form.plannerServiceDriver" name="plannerServiceDriver" maxlength="120" /></label>
-          <label><span>Özel gün seçeneği</span><input [(ngModel)]="form.plannerServiceWedding" name="plannerServiceWedding" maxlength="120" /></label>
-          <label><span>Tur seçeneği</span><input [(ngModel)]="form.plannerServiceTour" name="plannerServiceTour" maxlength="120" /></label>
+          <p class="hint">Şoförsüz kiralama, şoförlü transfer, özel gün ve tur seçeneklerinin adları, sırası ve görünürlüğü üstteki Ana Sayfa Üst Alanı editöründen yönetilir.</p>
         </fieldset>
 
         <fieldset>
@@ -69,7 +66,7 @@ import { ToastService } from '../../services/toast.service';
     </section>
   `,
   styles: [`
-    :host{display:block}.copy-card{width:min(100% - 2rem,1180px);margin:1rem auto;border:1px solid #dbe4ef;border-radius:20px;background:#fff;padding:1rem;color:#0f172a;box-shadow:0 8px 24px rgba(15,23,42,.05)}header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;border-bottom:1px solid #e2e8f0;padding-bottom:.9rem}header p{margin:0;color:#2563eb;font-size:.62rem;font-weight:950;letter-spacing:.12em;text-transform:uppercase}header h2{margin:.2rem 0 0;font-size:1rem;font-weight:950}header span{display:block;margin-top:.3rem;max-width:760px;color:#64748b;font-size:.7rem;line-height:1.5}button{min-height:44px;flex:none;border:0;border-radius:12px;background:#0f172a;padding:0 1rem;color:#fff;font-size:.7rem;font-weight:950}button:disabled{opacity:.5}.grid{display:grid;gap:.75rem;margin-top:.9rem}fieldset{min-width:0;border:1px solid #e2e8f0;border-radius:16px;padding:.8rem}legend{padding:0 .25rem;color:#334155;font-size:.68rem;font-weight:950}label{display:grid;gap:.3rem;margin-top:.58rem}label span{color:#64748b;font-size:.58rem;font-weight:900;letter-spacing:.04em;text-transform:uppercase}input{width:100%;min-height:43px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;padding:0 .7rem;color:#0f172a;font-size:.72rem;outline:none}input:focus,button:focus-visible{outline:3px solid rgba(37,99,235,.25);outline-offset:2px;border-color:#2563eb}@media(min-width:760px){.copy-card{padding:1.1rem}.grid{grid-template-columns:1fr 1fr}}@media(max-width:620px){header{flex-direction:column}button{width:100%}}
+    :host{display:block}.copy-card{width:min(100% - 2rem,1180px);margin:1rem auto;border:1px solid #dbe4ef;border-radius:20px;background:#fff;padding:1rem;color:#0f172a;box-shadow:0 8px 24px rgba(15,23,42,.05)}header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;border-bottom:1px solid #e2e8f0;padding-bottom:.9rem}header p{margin:0;color:#2563eb;font-size:.62rem;font-weight:950;letter-spacing:.12em;text-transform:uppercase}header h2{margin:.2rem 0 0;font-size:1rem;font-weight:950}header span{display:block;margin-top:.3rem;max-width:760px;color:#64748b;font-size:.7rem;line-height:1.5}button{min-height:44px;flex:none;border:0;border-radius:12px;background:#0f172a;padding:0 1rem;color:#fff;font-size:.7rem;font-weight:950}button:disabled{opacity:.5}.grid{display:grid;gap:.75rem;margin-top:.9rem}fieldset{min-width:0;border:1px solid #e2e8f0;border-radius:16px;padding:.8rem}legend{padding:0 .25rem;color:#334155;font-size:.68rem;font-weight:950}label{display:grid;gap:.3rem;margin-top:.58rem}label span{color:#64748b;font-size:.58rem;font-weight:900;letter-spacing:.04em;text-transform:uppercase}input{width:100%;min-height:43px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;padding:0 .7rem;color:#0f172a;font-size:.72rem;outline:none}.hint{margin:.7rem 0 0;color:#64748b;font-size:.64rem;line-height:1.5}input:focus,button:focus-visible{outline:3px solid rgba(37,99,235,.25);outline-offset:2px;border-color:#2563eb}@media(min-width:760px){.copy-card{padding:1.1rem}.grid{grid-template-columns:1fr 1fr}}@media(max-width:620px){header{flex-direction:column}button{width:100%}}
   `],
 })
 export class AdminHomepagePlannerCopyComponent implements OnInit {
@@ -118,10 +115,6 @@ export class AdminHomepagePlannerCopyComponent implements OnInit {
     return {
       searchButtonLabel: 'Ara',
       plannerServiceLabel: 'Ne için araç veya hizmet arıyorsunuz?',
-      plannerServiceIndividual: 'Şoförsüz araç kiralama',
-      plannerServiceDriver: 'Şoförlü araç / transfer',
-      plannerServiceWedding: 'Düğün / özel gün aracı',
-      plannerServiceTour: 'Tur / gezi planı',
       plannerPickupLabel: 'Nereden teslim almak istiyorsunuz?',
       plannerPickupPlaceholder: 'Teslim noktasını seçin',
       plannerDurationLabel: 'Kiralama Süresi',

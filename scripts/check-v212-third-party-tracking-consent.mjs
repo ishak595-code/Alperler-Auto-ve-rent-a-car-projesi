@@ -22,20 +22,22 @@ function source(path) {
 
 const analytics = source(files.analytics);
 const seo = source(files.seo);
-const consent = source(files.consent);
 const app = source(files.app);
 const legal = source(files.legal);
+
+if (existsSync(join(root, files.consent))) {
+  failures.push('CUSTOMER_CONSENT_BANNER_MUST_BE_REMOVED');
+}
 
 const requiredAnalytics = [
   "marketing: 'unknown'",
   'marketingConsent = this._marketingConsent.asReadonly()',
-  'choiceRequired = computed',
   'savePreferences(analyticsEnabled: boolean, marketingEnabled: boolean)',
-  'acceptAllOptional()',
-  "if (stored === 'accepted') return { version: 2, analytics: 'accepted', marketing: 'unknown' }",
+  "if (stored.analytics === 'accepted') this.startTracking()",
+  "if (this._consent() !== 'accepted' || !this.sessionId || !this.visitorId || !this.isTrackingPath()) return",
   'this.routerSubscription?.unsubscribe()',
 ];
-for (const marker of requiredAnalytics) if (!analytics.includes(marker)) failures.push(`ANALYTICS_CONSENT_MARKER ${marker}`);
+for (const marker of requiredAnalytics) if (!analytics.includes(marker)) failures.push(`ANALYTICS_EXPLICIT_OPT_IN_MARKER ${marker}`);
 
 const requiredSeo = [
   "import { VisitorAnalyticsService } from './visitor-analytics.service'",
@@ -57,23 +59,24 @@ if (/if\s*\(pixelId\)/.test(seo) && !seo.includes("const pixelId = marketingAllo
   failures.push('META_PIXEL_NOT_MARKETING_GATED');
 }
 
-for (const marker of [
-  'analytics.choiceRequired()',
-  'analytics.savePreferences(true, false)',
-  'analytics.acceptAllOptional()',
-  'analytics.savePreferences(this.analyticsOn(), this.marketingOn())',
-  'Pazarlama',
-]) if (!consent.includes(marker)) failures.push(`CONSENT_UI_MARKER ${marker}`);
-
-for (const marker of [
+for (const forbidden of [
   "import { AnalyticsConsentComponent } from './components/analytics-consent.component'",
-  '<app-analytics-consent></app-analytics-consent>',
-  '@if (showCustomerChrome())',
-]) if (!app.includes(marker)) failures.push(`ROOT_CONSENT_MARKER ${marker}`);
+  '<app-analytics-consent',
+  'analytics.choiceRequired()',
+]) if (app.includes(forbidden)) failures.push(`ROOT_CUSTOM_CONSENT_UI_FORBIDDEN ${forbidden}`);
 
-for (const marker of ['marketingConsentLabel()', 'Gizlilik tercihlerini yeniden seç', 'Pazarlama:']) {
-  if (!legal.includes(marker)) failures.push(`LEGAL_CONSENT_MARKER ${marker}`);
-}
+for (const forbidden of [
+  'analytics.resetChoice()',
+  'analyticsConsentLabel()',
+  'marketingConsentLabel()',
+  'Gizlilik tercihlerini yeniden seç',
+]) if (legal.includes(forbidden)) failures.push(`LEGAL_INLINE_CONSENT_UI_FORBIDDEN ${forbidden}`);
+
+for (const marker of [
+  'KVKK Aydınlatma Metni',
+  'Gizlilik Politikası',
+  'Çerez Politikası',
+]) if (!legal.includes(marker)) failures.push(`LEGAL_DOCUMENT_MUST_REMAIN_ACCESSIBLE ${marker}`);
 
 const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const handoff = String(packageJson.scripts?.['verify:handoff'] || '');
@@ -83,9 +86,9 @@ if (!String(packageJson.scripts?.['privacy-consent:v212'] || '').includes('check
 if (!handoff.includes('privacy-consent:v212')) failures.push('HANDOFF_MISSING_V212_CONSENT_GUARD');
 
 if (failures.length) {
-  console.error(`V212 third-party tracking consent: FAIL (${failures.length})`);
+  console.error(`V212 third-party tracking privacy boundary: FAIL (${failures.length})`);
   for (const failure of [...new Set(failures)].sort()) console.error(`- ${failure}`);
   process.exit(1);
 }
 
-console.log('V212 third-party tracking consent: PASS');
+console.log('V212 third-party tracking privacy boundary: PASS. No custom customer consent banner, legal documents remain accessible, and optional tracking stays explicitly gated.');

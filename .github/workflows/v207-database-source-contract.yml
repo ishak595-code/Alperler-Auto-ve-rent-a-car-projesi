@@ -10,6 +10,7 @@ on:
       - 'scripts/check-v216-homepage-admin-ownership.mjs'
       - 'scripts/check-v217-scalable-public-catalog.mjs'
       - 'scripts/check-v217-footer-cms-ownership.mjs'
+      - 'scripts/check-v217-unified-favorites.mjs'
       - 'supabase/migrations/**'
       - '.github/workflows/v207-database-source-contract.yml'
   push:
@@ -21,6 +22,7 @@ on:
       - 'scripts/check-v216-homepage-admin-ownership.mjs'
       - 'scripts/check-v217-scalable-public-catalog.mjs'
       - 'scripts/check-v217-footer-cms-ownership.mjs'
+      - 'scripts/check-v217-unified-favorites.mjs'
       - 'supabase/migrations/**'
       - '.github/workflows/v207-database-source-contract.yml'
   workflow_dispatch:
@@ -53,3 +55,5 @@ jobs:
         run: node scripts/check-v217-scalable-public-catalog.mjs
       - name: Footer CMS ownership contract
         run: node scripts/check-v217-footer-cms-ownership.mjs
+      - name: Unified customer favorites contract
+        run: node scripts/check-v217-unified-favorites.mjs

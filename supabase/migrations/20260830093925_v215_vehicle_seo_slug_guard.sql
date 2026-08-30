@@ -44,10 +44,6 @@ $$;
 
 revoke all on function private.ensure_vehicle_seo_slug_v215() from public, anon, authenticated;
 
-update public.vehicles
-set seo_slug = null
-where nullif(btrim(seo_slug), '') is null;
-
 create unique index if not exists vehicles_seo_slug_key
   on public.vehicles using btree (seo_slug);
 
@@ -57,3 +53,8 @@ before insert or update of seo_slug, category, brand, model, model_year, stock_c
 on public.vehicles
 for each row
 execute function private.ensure_vehicle_seo_slug_v215();
+
+-- Fire the invariant for legacy rows that predate V215.
+update public.vehicles
+set seo_slug = null
+where nullif(btrim(seo_slug), '') is null;

@@ -76,17 +76,19 @@ jobs:
           grep -Fq "1_000_000_000" "$DETAIL"
           grep -Fq 'capacity_policy: "FLEXIBLE_DEMAND"' "$EDGE"
           if grep -Eq "persons[[:space:]]*>[[:space:]]*Number\(tour\.capacity|personCount\(\)[[:space:]]*>[[:space:]].*capacity" "$EDGE" "$DETAIL"; then echo "Tour person count must not be compared with recommended capacity"; exit 1; fi
-      - name: Canonical dynamic tour showcase
+      - name: Canonical bounded tour showcase
         shell: bash
         run: |
           set -euo pipefail
-          FILE=src/pages/tour-showcase-v170.component.ts
-          DATA=src/services/tour-public-data-v170.service.ts
+          FILE=src/pages/tour-catalog-v217.component.ts
+          DATA=src/services/scalable-public-catalog-v217.service.ts
           test -f "$FILE" && test -f "$DATA"
-          for token in TourPublicDataV170Service bounds durations categories locations tour.badge tour.videos tour.capacity; do grep -Fq "$token" "$FILE"; done
+          for token in ScalablePublicCatalogV217Service "tourFacets()" "facets().priceMin" "facets().priceMax" "tour.badge" "tour.capacity" "tour.categoryName" "tour.images?.length" "pageSize:24"; do grep -Fq "$token" "$FILE"; done
+          for token in "listTours(" "tourFacets(" "public_tour_catalog_v217"; do grep -Fq "$token" "$DATA"; done
           grep -Fq "catalog_media" src/services/public-catalog-media.service.ts
-          grep -Fq "TourShowcaseV170Component" src/pages/tours.component.ts
+          grep -Fq "TourCatalogV217Component" src/pages/tours.component.ts
           if grep -Eq "0-5000|5000-15000|15000\+|priceRanges[[:space:]]*=" "$FILE"; then echo "Tour price filters must remain data-derived"; exit 1; fi
+          if grep -Fq "getTours()" "$FILE" || grep -Fq "TourPublicDataV170Service" "$FILE"; then echo "Active tour listing must not restore full-catalog hydration"; exit 1; fi
       - name: Super Admin owned Tour workspace contract
         shell: bash
         run: |

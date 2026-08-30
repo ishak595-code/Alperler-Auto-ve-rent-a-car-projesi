@@ -34,14 +34,14 @@ for (const marker of eagerGuardImports) {
 }
 
 for (const marker of [
-  "await import('./services/auth.service')",
-  "await import('./services/customer-auth.service')",
-  "await import('./services/branch-portal-auth.service')",
-  "await import('./services/branch-subscription-v171.service')",
-  "await import('./services/admin-access.service')",
-  "await import('./services/car.service')",
+  "import('./services/auth.service')",
+  "import('./services/customer-auth.service')",
+  "import('./services/branch-portal-auth.service')",
+  "import('./services/branch-subscription-v171.service')",
+  "import('./services/admin-access.service')",
+  "import('./services/car.service')",
 ]) {
-  expect(routes.includes(marker), `Lazy route guard dependency missing: ${marker}`);
+  expect(routes.includes(marker), `Dynamic route guard dependency missing: ${marker}`);
 }
 
 expect(

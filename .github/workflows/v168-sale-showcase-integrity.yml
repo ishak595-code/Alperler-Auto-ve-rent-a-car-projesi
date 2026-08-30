@@ -40,18 +40,22 @@ jobs:
           test -f "$MIG"
           for token in SALE_MILEAGE_REQUIRED SALE_FUEL_REQUIRED SALE_TRANSMISSION_REQUIRED SALE_BODY_TYPE_REQUIRED SALE_COLOR_REQUIRED SALE_ENGINE_REQUIRED SALE_LOCATION_REQUIRED SALE_DAMAGE_STATUS_REQUIRED SALE_TRAMER_DECLARATION_REQUIRED; do grep -q "$token" "$MIG"; done
           grep -q "new.category='SALE'" "$MIG"
-      - name: Dynamic sale showcase and canonical detail
+      - name: Bounded sale catalog and canonical detail contract
         shell: bash
         run: |
           set -euo pipefail
-          SHOW="src/pages/sales-showcase-v168.component.ts"
+          SHOW="src/pages/sale-catalog-v217.component.ts"
           CARD="src/components/sale-vehicle-card-v168.component.ts"
           DETAIL="src/pages/sale-car-detail.component.ts"
           test -f "$SHOW" && test -f "$CARD" && test -f "$DETAIL"
-          grep -q "priceBounds=computed" "$SHOW"
-          grep -q "kmBounds=computed" "$SHOW"
+          grep -q "vehicleFacets('SALE')" "$SHOW"
+          grep -q "minPrice" "$SHOW"
+          grep -q "maxPrice" "$SHOW"
+          grep -q "minKm" "$SHOW"
+          grep -q "maxKm" "$SHOW"
           grep -q "branchLabel(car" "$SHOW"
           grep -q "tramer-unverified" "$SHOW"
+          grep -q "SaleVehicleCardV168Component" "$SHOW"
           grep -q "cloudStockCode" "$CARD"
           grep -q "branchLabel" "$CARD"
           grep -q "İLAN BİLGİLERİ" "$DETAIL"
@@ -79,7 +83,7 @@ jobs:
             echo "Sale card must not use legacy campaign shadow flags"
             exit 1
           fi
-          grep -q "SalesShowcaseV168Component" src/pages/sales-results.component.ts
+          grep -q "SaleCatalogV217Component" src/pages/sales-results.component.ts
           grep -q "SaleCarDetailComponent" src/pages/catalog-detail-shells.component.ts
           test ! -f src/pages/sale-detail-v168.component.ts
           test ! -f src/pages/sale-detail-v1681.component.ts
@@ -101,8 +105,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          RENTAL="src/pages/rental-catalog-v217.component.ts"
           test -f supabase/migrations/20260825170000_v167_rental_campaign_integrity.sql
-          grep -q "RentalShowcaseV167Component" src/pages/fleet.component.ts
+          grep -q "RentalCatalogV217Component" src/pages/fleet.component.ts
+          grep -q "RentalVehicleCardV167Component" "$RENTAL"
+          grep -q "VisibleCampaignsV217Service" "$RENTAL"
           grep -q "CarDetailComponent" src/pages/catalog-detail-shells.component.ts
           grep -q "campaign_redemptions_required_extras_v167" supabase/migrations/20260825170000_v167_rental_campaign_integrity.sql
       - name: Frontend TypeScript check

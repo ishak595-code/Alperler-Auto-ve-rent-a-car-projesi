@@ -11,7 +11,8 @@ const files = {
   homepageAdmin: 'src/services/homepage-admin.service.ts',
   homepageRuntime: 'src/services/homepage-layout.service.ts',
   dynamicHome: 'src/components/dynamic-home-section.component.ts',
-  tourDetail: 'src/services/public-detail-data.service.ts',
+  detailData: 'src/services/public-detail-data.service.ts',
+  tourUi: 'src/pages/tour-detail.component.ts',
 };
 
 function source(path) {
@@ -30,12 +31,13 @@ const campaign = source(files.campaign);
 const homepageAdmin = source(files.homepageAdmin);
 const homepageRuntime = source(files.homepageRuntime);
 const dynamicHome = source(files.dynamicHome);
-const tourDetail = source(files.tourDetail);
+const detailData = source(files.detailData);
+const tourUi = source(files.tourUi);
 
 for (const marker of [
-  'path: "fleet"', 'path: "fleet/:id"', 'path: "sales"', 'path: "sales/:id"',
-  'path: "tours"', 'path: "tour/:id"', 'path: "campaigns"', 'path: "blog"', 'path: "blog/:id"',
-  'path: "cars"', 'path: "homepage"',
+  "path: 'fleet'", "path: 'fleet/:id'", "path: 'sales'", "path: 'sales/:id'",
+  "path: 'tours'", "path: 'tour/:id'", "path: 'campaigns'", "path: 'blog'", "path: 'blog/:id'",
+  "path: 'cars'", "path: 'homepage'",
 ]) if (!routes.includes(marker)) failures.push(`ROUTE_MISSING ${marker}`);
 
 for (const marker of [
@@ -76,7 +78,11 @@ for (const marker of [
   'latitude: this.numberOrUndefined(row["latitude"])',
   'longitude: this.numberOrUndefined(row["longitude"])',
   'mapUrl: row["map_url"]',
-]) if (!tourDetail.includes(marker)) failures.push(`TOUR_MAP_FLOW_MISSING ${marker}`);
+]) if (!detailData.includes(marker)) failures.push(`TOUR_MAP_DATA_FLOW_MISSING ${marker}`);
+
+for (const marker of ['mapHref(item)', 'Haritada aç']) {
+  if (!tourUi.includes(marker)) failures.push(`TOUR_MAP_UI_MISSING ${marker}`);
+}
 
 const migration = join(root, 'supabase', 'migrations', '20260830093925_v215_vehicle_seo_slug_guard.sql');
 if (!existsSync(migration)) failures.push('V215_VEHICLE_SLUG_MIGRATION_MISSING');
@@ -85,6 +91,7 @@ else {
   for (const marker of ['seo_slug', 'before insert or update', 'public.vehicles', 'unique']) {
     if (!sql.includes(marker)) failures.push(`V215_VEHICLE_SLUG_MIGRATION_MARKER ${marker}`);
   }
+  if (sql.indexOf('create trigger vehicles_seo_slug_guard_v215') > sql.indexOf('update public.vehicles')) failures.push('V215_SLUG_TRIGGER_MUST_PRECEDE_BACKFILL');
 }
 
 const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));

@@ -182,7 +182,6 @@ export class CampaignService {
     }
     const saved = this.fromRow(((await response.json()) as any[])[0]);
     await this.refreshAdmin();
-    await this.syncHomepageCampaigns(token);
     await this.loadPublic();
     return saved;
   }
@@ -195,7 +194,6 @@ export class CampaignService {
     });
     if (!response.ok) throw new Error(`CAMPAIGN_DELETE_${response.status}`);
     await this.refreshAdmin();
-    await this.syncHomepageCampaigns(token);
     await this.loadPublic();
   }
 
@@ -209,7 +207,6 @@ export class CampaignService {
       if (!response.ok) throw new Error(`CAMPAIGN_REORDER_${response.status}`);
     })));
     await this.refreshAdmin();
-    await this.syncHomepageCampaigns(token);
     await this.loadPublic();
   }
 
@@ -267,80 +264,6 @@ export class CampaignService {
       this.publicRefreshTimer = undefined;
       void this.refreshPublicState().catch((error) => console.info("Campaign realtime refresh deferred.", error));
     }, delay);
-  }
-
-  private async syncHomepageCampaigns(token: string): Promise<void> {
-    const now = Date.now();
-    const ordered = [...this._campaigns()]
-      .filter((item) => item.isActive && (item.publicationStatus === "PUBLISHED" || item.publicationStatus === "SCHEDULED"))
-      .sort((a, b) => a.sortOrder - b.sortOrder);
-    const clearPlacements = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/homepage_placements?section_key=eq.campaigns&entity_type=eq.CAMPAIGN`, {
-      method: "DELETE",
-      headers: this.authHeaders(token),
-    });
-    if (!clearPlacements.ok) throw new Error(`CAMPAIGN_PLACEMENTS_CLEAR_${clearPlacements.status}`);
-    if (ordered.length) {
-      const placementResponse = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/homepage_placements`, {
-        method: "POST",
-        headers: { ...this.authHeaders(token), Prefer: "return=minimal" },
-        body: JSON.stringify(ordered.map((item, index) => ({
-          section_key: "campaigns",
-          entity_type: "CAMPAIGN",
-          entity_id: item.id,
-          label: item.badge || item.title,
-          sort_order: index + 1,
-          is_active: true,
-          starts_at: item.startsAt || null,
-          ends_at: item.endsAt || null,
-          metadata: { managedBy: "admin_campaigns", visibilityMode: item.visibilityMode, pricingVersion: "V166" },
-        }))),
-      });
-      if (!placementResponse.ok) throw new Error(`CAMPAIGN_PLACEMENTS_SAVE_${placementResponse.status}`);
-    }
-    const sectionResponse = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/homepage_sections?section_key=eq.campaigns`, {
-      method: "PATCH",
-      headers: this.authHeaders(token),
-      body: JSON.stringify({ is_enabled: true, max_items: 3, updated_at: new Date().toISOString() }),
-    });
-    if (!sectionResponse.ok) throw new Error(`CAMPAIGN_SECTION_SAVE_${sectionResponse.status}`);
-    const currentPrimary = ordered.find((item) => this.inPublicWindow(item, now));
-    await this.syncHomepageBanner(token, currentPrimary);
-  }
-
-  private async syncHomepageBanner(token: string, primary?: CampaignRecord): Promise<void> {
-    const currentResponse = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/site_config?key=eq.site_settings&select=value&limit=1`, { headers: this.authHeaders(token) });
-    if (!currentResponse.ok) throw new Error(`SITE_CONFIG_CAMPAIGN_READ_${currentResponse.status}`);
-    const currentRows = (await currentResponse.json()) as Array<{ value?: Record<string, unknown> }>;
-    const current = currentRows[0]?.value && typeof currentRows[0].value === "object" ? currentRows[0].value : {};
-    const currentHome = current["homeContent"] && typeof current["homeContent"] === "object" ? current["homeContent"] as Record<string, unknown> : {};
-    const value = {
-      ...current,
-      homeContent: {
-        ...currentHome,
-        campaignBannerBadge: "Seçili Fırsatlar",
-        campaignBannerTitle: "Planınızı Avantaja Çevirin",
-        campaignBannerSubtitle: "Ne kazanacağınızı ilk bakışta görün. Tarihinizi seçin ve size uyan fırsatı planınıza ekleyin.",
-        campaignBannerButtonText: primary?.ctaLabel || "Kampanyayı İncele",
-        campaignBannerImage: primary?.coverImage || "",
-        campaignBannerUrl: primary?.ctaUrl || "",
-        campaignBannerWhatsappMessage: primary?.whatsappMessage || "",
-        campaignId: primary?.id || "",
-      },
-    };
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/site_config?on_conflict=key`, {
-      method: "POST",
-      headers: { ...this.authHeaders(token), Prefer: "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify({ key: "site_settings", value, is_public: true, updated_at: new Date().toISOString() }),
-    });
-    if (!response.ok) throw new Error(`SITE_CONFIG_CAMPAIGN_SAVE_${response.status}`);
-  }
-
-  private inPublicWindow(item: CampaignRecord, now = Date.now()): boolean {
-    const start = item.startsAt ? new Date(item.startsAt).getTime() : Number.NEGATIVE_INFINITY;
-    const end = item.endsAt ? new Date(item.endsAt).getTime() : Number.POSITIVE_INFINITY;
-    return Number.isFinite(start) || start === Number.NEGATIVE_INFINITY
-      ? (start <= now && (Number.isFinite(end) ? end > now : end === Number.POSITIVE_INFINITY))
-      : false;
   }
 
   private fromRow(row: any): CampaignRecord {

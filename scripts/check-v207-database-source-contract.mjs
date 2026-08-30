@@ -76,8 +76,14 @@ if (loadPublicStart >= 0 && refreshPublicStart > loadPublicStart) {
 } else {
   failures.push("Campaign public loader contract could not be located.");
 }
-if (!campaign.includes('item.publicationStatus === "SCHEDULED"')) {
-  failures.push("Homepage campaign placement sync must retain scheduled campaigns before their start time.");
+for (const forbidden of [
+  "syncHomepageCampaigns(",
+  "syncHomepageBanner(",
+  "/rest/v1/homepage_placements",
+  "/rest/v1/homepage_sections",
+  "/rest/v1/site_config?key=eq.site_settings",
+]) {
+  if (campaign.includes(forbidden)) failures.push(`CampaignService must not own homepage state: ${forbidden}`);
 }
 
 const layout = read("src/services/homepage-layout.service.ts");
@@ -86,6 +92,18 @@ if (!/homepage_sections\?[^`\n]*select=\$\{this\.publicSectionSelect\}/.test(lay
 }
 if (!/homepage_placements\?[^`\n]*select=\$\{this\.publicPlacementSelect\}/.test(layout)) {
   failures.push("Homepage placements must use the explicit publicPlacementSelect projection regardless of query-parameter order.");
+}
+
+const homepageAdmin = read("src/services/homepage-admin.service.ts");
+for (const required of [
+  "/api/partner?op=site-content-admin",
+  "settings.selectionMode='PLACEMENT'",
+  "addPlacement(",
+  "updatePlacement(",
+  "removePlacement(",
+  "reorderPlacements(",
+]) {
+  if (!homepageAdmin.includes(required)) failures.push(`Homepage state must remain owned by HomepageAdminService: ${required}`);
 }
 
 const migration = read("supabase/migrations/20260828203000_v207_campaign_schedule_rls_and_anon_dml_hardening.sql");

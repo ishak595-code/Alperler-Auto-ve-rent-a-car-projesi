@@ -15,7 +15,7 @@ const favorites = read('src/services/customer-favorites-sync.service.ts');
 const account = read('src/pages/account-shell.component.ts');
 const accountFavorites = read('src/components/account-favorites-v213.component.ts');
 const mainLayout = read('src/components/main-layout.component.ts');
-const consent = read('src/components/analytics-consent.component.ts');
+const app = read('src/app.component.ts');
 const mobileCss = read('src/mobile-target-fixes.css');
 const migration = read('supabase/migrations/20260829210000_v213_prestige_discovery_personalization.sql');
 const dbContract = read('supabase/tests/v213_prestige_discovery_contract.sql');
@@ -57,10 +57,10 @@ requireText(mobileCss, 'order: 1', 'Quick Planning must precede secondary trust 
 requireText(mobileCss, 'app-home-v71 .trust-row', 'mobile hierarchy must retain trust badges after the planner');
 forbidText(mobileCss, 'home-search-v80', 'mobile finishing CSS must not create or own a second Hero search input');
 
-// The privacy choice panel may stay above page content, but it must leave the persistent mobile command dock physically clickable.
-requireText(consent, 'analytics-consent-shell', 'privacy consent must own an explicit dock-safe shell');
-requireText(consent, 'bottom:calc(max(.42rem,env(safe-area-inset-bottom)) + 76px)', 'privacy consent must clear the mobile dock safe area');
-requireText(consent, 'overflow-y:auto', 'privacy consent must remain usable on short mobile viewports');
+// V215 retires the custom customer consent popup. It must not reappear over the persistent mobile command dock.
+if (fs.existsSync('src/components/analytics-consent.component.ts')) fail('retired custom analytics consent component must not return');
+forbidText(app, 'AnalyticsConsentComponent', 'root shell must not import the retired custom consent popup');
+forbidText(app, '<app-analytics-consent', 'root shell must not mount the retired custom consent popup');
 
 // Favorites retain guest device behavior while authenticated state is synchronized through RLS.
 requireText(favorites, 'customer_favorites', 'favorites sync must persist to customer_favorites');

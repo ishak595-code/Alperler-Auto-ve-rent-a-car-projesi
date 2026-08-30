@@ -21,22 +21,48 @@ function observeRequests(page: Page): ObservedRequest[] {
       const url = new URL(request.url());
       requests.push({ method: request.method(), path: url.pathname, url: request.url() });
     } catch {
-      // Browser request URLs are normally absolute. Ignore non-standard URLs
-      // such as data/blob payloads because they cannot be Supabase REST calls.
+      // Ignore data/blob and other non-HTTP browser URLs.
     }
   });
   return requests;
 }
 
-async function settle(page: Page, path: string): Promise<void> {
-  await page.goto(path, { waitUntil: "domcontentloaded" });
-  await page.waitForLoadState("networkidle").catch(() => undefined);
-  await page.waitForTimeout(1800);
+async function openRoute(page: Page, path: string): Promise<void> {
+  await page.goto(path, { waitUntil: "domcontentloaded", timeout: 25_000 });
+}
+
+async function waitForRequest(
+  requests: ObservedRequest[],
+  predicate: (request: ObservedRequest) => boolean,
+  message: string,
+): Promise<void> {
+  await expect.poll(
+    () => requests.some(predicate),
+    { timeout: 12_000, intervals: [100, 200, 350, 500, 750], message },
+  ).toBeTruthy();
+}
+
+async function observeLateStartup(page: Page): Promise<void> {
+  // Realtime keeps an intentional long-lived connection open, so networkidle is
+  // the wrong readiness primitive. A short post-owner window still catches the
+  // global coordinator's immediate startup work without waiting on WebSockets.
+  await page.waitForTimeout(2_000);
 }
 
 test("customer homepage never hydrates legacy full catalog endpoints", async ({ page }) => {
   const requests = observeRequests(page);
-  await settle(page, "/");
+  await openRoute(page, "/");
+  await waitForRequest(
+    requests,
+    (request) => request.method === "GET" && [
+      "/rest/v1/public_vehicle_catalog_v217",
+      "/rest/v1/public_tour_catalog_v217",
+      "/rest/v1/public_blog_catalog_v217",
+      "/rest/v1/public_campaign_catalog_v217",
+    ].includes(request.path),
+    "Homepage did not reach a bounded V217 content owner",
+  );
+  await observeLateStartup(page);
 
   const regressions = requests.filter((request) => LEGACY_FULL_CATALOG_PATHS.has(request.path));
   expect(
@@ -58,7 +84,13 @@ test("customer homepage never hydrates legacy full catalog endpoints", async ({ 
 
 test("campaign route reads bounded V217 campaign view, never public base table", async ({ page }) => {
   const requests = observeRequests(page);
-  await settle(page, "/campaigns");
+  await openRoute(page, "/campaigns");
+  await waitForRequest(
+    requests,
+    (request) => request.method === "GET" && request.path === "/rest/v1/public_campaign_catalog_v217",
+    "Campaign page did not call the bounded V217 campaign view",
+  );
+  await observeLateStartup(page);
 
   const publicViewGets = requests.filter((request) => request.method === "GET" && request.path === "/rest/v1/public_campaign_catalog_v217");
   expect(publicViewGets.length, "Campaign page did not call the bounded V217 campaign view").toBeGreaterThan(0);
@@ -75,12 +107,16 @@ test("campaign route reads bounded V217 campaign view, never public base table",
 
 test("FAQ route is bounded read-only and accordion state never writes", async ({ page }) => {
   const requests = observeRequests(page);
-  await settle(page, "/faq");
+  await openRoute(page, "/faq");
+  await waitForRequest(
+    requests,
+    (request) => request.method === "GET" && request.path === "/rest/v1/faqs",
+    "FAQ page did not issue its bounded public read",
+  );
 
   await expect(page.getByRole("heading", { name: "Sıkça Sorulan Sorular" })).toBeVisible();
 
   const faqGets = requests.filter((request) => request.method === "GET" && request.path === "/rest/v1/faqs");
-  expect(faqGets.length, "FAQ page did not issue its bounded public read").toBeGreaterThan(0);
   expect(
     faqGets.some((request) => new URL(request.url).searchParams.get("limit") === "100"),
     "FAQ public read must enforce limit=100",

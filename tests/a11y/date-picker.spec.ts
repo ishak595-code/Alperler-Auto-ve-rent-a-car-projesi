@@ -19,10 +19,12 @@ test.describe("Alperler accessible calendar", () => {
     await expect(trigger).toBeFocused();
     await trigger.press("Enter");
 
-    const dialog = page.locator(".calendar-dialog");
+    const dialog = page.locator("dialog.calendar-dialog");
     await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveAttribute("open", "");
     await expect(dialog).toHaveAttribute("role", "dialog");
     await expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(await dialog.evaluate((node) => node instanceof HTMLDialogElement && node.open)).toBe(true);
     await expect(page.getByRole("button", { name: "Takvimi kapat" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Önceki ay" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sonraki ay" })).toBeVisible();
@@ -73,8 +75,9 @@ test.describe("Alperler accessible calendar", () => {
     const trigger = component.locator("button.date-surface");
     await trigger.click();
 
-    const dialog = page.locator(".calendar-dialog");
+    const dialog = page.locator("dialog.calendar-dialog");
     await expect(dialog).toBeVisible();
+    expect(await dialog.evaluate((node) => node instanceof HTMLDialogElement && node.open)).toBe(true);
     const consentShell = page.locator("app-analytics-consent .analytics-consent-shell");
     if (await consentShell.count()) await expect(consentShell).toBeHidden();
 

@@ -4,6 +4,7 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const home = read('src/pages/home-v71.component.ts');
 const dock = read('src/components/customer-mobile-dock.component.ts');
 const admin = read('src/services/homepage-admin.service.ts');
+const adminPage = read('src/pages/admin/admin-homepage.component.ts');
 const layout = read('src/services/homepage-layout.service.ts');
 const mainLayout = read('src/components/main-layout.component.ts');
 
@@ -18,6 +19,12 @@ expect(mainLayout.includes('<app-customer-footer-v70></app-customer-footer-v70>'
 
 expect(admin.includes("private defaultMaxItems(type:HomepageSectionType):number{return type==='CAMPAIGN'?3:(type==='VEHICLES'||type==='TOURS'||type==='BLOG'?5:1);}"), 'Manual showcase defaults must remain 5 for vehicles/tours/blog and 3 for campaigns.');
 expect(admin.includes('activeCount>0?activeCount'), 'Manual showcase count must follow active admin placements.');
+expect(adminPage.includes('async addSelected(section: HomepageSectionRecord)'), 'Admin must keep an explicit add-to-showcase action.');
+expect(adminPage.includes('await this.homepage.addPlacement({ sectionKey: section.sectionKey'), 'Admin add action must persist a real homepage placement.');
+expect(adminPage.includes("candidatesFor(section: HomepageSectionRecord): Candidate[]"), 'Admin must expose selectable candidates for manual showcases.');
+expect(!adminPage.includes('candidatesFor(section: HomepageSectionRecord): Candidate[] { return this.allCandidates(section).slice('), 'Admin candidate list must not impose a fixed five-item cap.');
+expect(adminPage.includes('(change)="savePlacement(placement)"'), 'Admin must let operators activate and deactivate existing showcase placements without deleting them.');
+expect(adminPage.includes('(click)="movePlacement(section.sectionKey,p,-1)"'), 'Admin must preserve manual showcase ordering controls.');
 expect(layout.includes("type HomepageSelectionMode = 'PLACEMENT' | 'LATEST';"), 'Homepage selection mode contract is missing.');
 expect(layout.includes("if (mode === 'LATEST') return [];"), 'LATEST must stay separate from manual placements.');
 expect(layout.includes("placementDriven ? Math.max(1, manualCount) : storedLimit"), 'Public manual section size must remain placement-driven.');

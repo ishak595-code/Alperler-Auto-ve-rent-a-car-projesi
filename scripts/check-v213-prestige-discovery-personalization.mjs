@@ -4,6 +4,10 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const fail = (message) => { throw new Error(`V213 invariant failed: ${message}`); };
 const requireText = (source, needle, message) => { if (!source.includes(needle)) fail(message); };
 const forbidText = (source, needle, message) => { if (source.includes(needle)) fail(message); };
+const requireOccurrences = (source, needle, minimum, message) => {
+  const count = source.split(needle).length - 1;
+  if (count < minimum) fail(`${message} (found ${count}, expected at least ${minimum})`);
+};
 const compact = (source) => source.replace(/\s+/g, '');
 
 const home = read('src/pages/home-v71.component.ts');
@@ -14,6 +18,7 @@ const admin = read('src/services/homepage-admin.service.ts');
 const searchPage = read('src/pages/search.component.ts');
 const searchService = read('src/services/global-search.service.ts');
 const favorites = read('src/services/customer-favorites-v217.service.ts');
+const favoritesCompact = compact(favorites);
 const account = read('src/pages/account-shell.component.ts');
 const accountFavorites = read('src/components/account-favorites-v213.component.ts');
 const app = read('src/app.component.ts');
@@ -83,12 +88,15 @@ forbidText(app, 'AnalyticsConsentComponent', 'root shell must not import the ret
 forbidText(app, '<app-analytics-consent', 'root shell must not mount the retired custom consent popup');
 
 // V217 unifies V213 favorites across vehicles, tours and blog while preserving guest migration and strict RLS ownership.
-requireText(favorites, "'VEHICLE' | 'TOUR' | 'BLOG'", 'favorites must remain unified across all customer content domains');
+requireText(favoritesCompact, "'VEHICLE'|'TOUR'|'BLOG'", 'favorites must remain unified across all customer content domains');
 requireText(favorites, 'customer_favorites', 'favorites must persist to customer_favorites');
-requireText(favorites, 'user_id:`eq.${userId}`', 'favorites reads/deletes must include explicit owner filters');
-requireText(favorites, 'Authorization:`Bearer ${token}`', 'favorites requests must use the signed-in customer bearer token');
-requireText(favorites, "legacyVehicleKey='db_favoriteCars'", 'legacy guest vehicle favorites must be migrated');
+requireOccurrences(favoritesCompact, 'user_id:`eq.${userId}`', 3, 'favorites visible reads, paged reads and deletes must include explicit owner filters');
+requireOccurrences(favoritesCompact, 'entity_type:`eq.${type}`', 2, 'favorites targeted reads and deletes must include entity-type filters');
+requireText(favoritesCompact, 'entity_id:`eq.${entityId}`', 'favorites deletes must include the exact entity-id filter');
+requireText(favorites, 'Authorization: `Bearer ${token}`', 'favorites requests must use the signed-in customer bearer token');
+requireText(favorites, "private readonly legacyVehicleKey = 'db_favoriteCars'", 'legacy guest vehicle favorites must be migrated by the canonical owner');
 requireText(favorites, 'resolution=ignore-duplicates', 'guest migration must not require UPDATE RLS');
+requireText(favorites, "String(this.auth.user()?.id || '') !== userId", 'favorites must reject stale responses after an auth-context change');
 forbidText(favorites.toLowerCase(), 'service_role', 'favorites browser code must never use service_role');
 forbidText(favorites, 'resolution=merge-duplicates', 'favorites must not regain UPDATE-dependent upserts');
 requireText(account, 'app-account-favorites-v213', 'customer profile must render the unified favorites section');

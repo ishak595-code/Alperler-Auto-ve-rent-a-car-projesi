@@ -4,9 +4,11 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const fail = (message) => { throw new Error(`V213 invariant failed: ${message}`); };
 const requireText = (source, needle, message) => { if (!source.includes(needle)) fail(message); };
 const forbidText = (source, needle, message) => { if (source.includes(needle)) fail(message); };
+const compact = (source) => source.replace(/\s+/g, '');
 
 const home = read('src/pages/home-v71.component.ts');
 const layout = read('src/services/homepage-layout.service.ts');
+const layoutCompact = compact(layout);
 const dynamicSection = read('src/components/dynamic-home-section.component.ts');
 const admin = read('src/services/homepage-admin.service.ts');
 const searchPage = read('src/pages/search.component.ts');
@@ -44,16 +46,21 @@ for (const forbidden of ['CarService', 'ensureVehicleCloudInventory(', 'refreshC
 }
 
 // PLACEMENT sections remain manual truth, but V217 resolves only their selected identifiers.
-requireText(layout, "type HomepageSelectionMode='PLACEMENT'|'LATEST'", 'homepage selection modes must remain explicit');
-requireText(layout, "if(mode==='PLACEMENT')", 'manual homepage sections must remain placement-driven');
+requireText(layoutCompact, "typeHomepageSelectionMode='PLACEMENT'|'LATEST';", 'homepage selection modes must remain explicit');
+requireText(layoutCompact, "if(mode==='PLACEMENT')", 'manual homepage sections must remain placement-driven');
 for (const token of ['vehiclesByIdentifiers(', 'toursByIdentifiers(', 'blogsByIdentifiers(', 'campaignsByIdentifiers(']) {
   requireText(layout, token, `manual homepage sections must resolve selected identifiers only: ${token}`);
 }
 requireText(layout, 'validPlacementIds', 'stale manual placements must be excluded from the effective placement set');
-requireText(layout, 'const validPlacements=rawPlacements.filter', 'only resolved placements may remain public');
-requireText(layout, "selectionModeFor(key:string):HomepageSelectionMode", 'renderer must retain explicit selection-mode ownership');
-for (const token of ['this.catalog.listVehicles({category,page:0,pageSize:limit', 'this.catalog.listTours({page:0,pageSize:limit', 'this.catalog.listBlogs({page:0,pageSize:limit', 'this.catalog.latestCampaigns(limit)']) {
-  requireText(layout, token, `LATEST homepage sections must stay bounded: ${token}`);
+requireText(layoutCompact, 'constvalidPlacements=rawPlacements.filter', 'only resolved placements may remain public');
+requireText(layoutCompact, 'selectionModeFor(key:string):HomepageSelectionMode', 'renderer must retain explicit selection-mode ownership');
+for (const token of [
+  'this.catalog.listVehicles({category,page:0,pageSize:limit',
+  'this.catalog.listTours({page:0,pageSize:limit',
+  'this.catalog.listBlogs({page:0,pageSize:limit',
+  'this.catalog.latestCampaigns(limit)',
+]) {
+  requireText(layoutCompact, token, `LATEST homepage sections must stay bounded: ${token}`);
 }
 for (const token of ['vehiclesFor(this.section.sectionKey)', 'toursFor(this.section.sectionKey)', 'blogsFor(this.section.sectionKey)', 'campaignsFor(this.section.sectionKey)']) {
   requireText(dynamicSection, token, `renderer must consume the bounded homepage owner: ${token}`);

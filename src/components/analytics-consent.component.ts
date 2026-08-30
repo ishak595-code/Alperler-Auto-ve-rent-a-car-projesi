@@ -46,7 +46,7 @@ import { VisitorAnalyticsService } from '../services/visitor-analytics.service';
   `,
   styles: [`
     .analytics-consent-shell{bottom:0;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain}
-    :host-context(body:has(.calendar-backdrop)){display:none!important}
+    :host-context(body:has(dialog.calendar-dialog[open])){display:none!important}
     @media (max-width:639px) and (pointer:coarse), (max-width:950px) and (max-height:500px) and (pointer:coarse){
       .analytics-consent-shell{bottom:calc(max(.42rem,env(safe-area-inset-bottom)) + 76px);max-height:calc(100dvh - max(.42rem,env(safe-area-inset-bottom)) - 82px)}
     }

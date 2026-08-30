@@ -10,7 +10,7 @@ async function scrollRange(page: import("@playwright/test").Page): Promise<numbe
   return page.evaluate(() => Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
 }
 
-test("mobile dock stays reachable by touch and TalkBack across navigation and scroll", async ({ page }) => {
+test("mobile dock stays accessible and recovers after scroll auto hide across navigation", async ({ page }) => {
   await page.goto("/");
 
   const dock = page.locator("nav.customer-command-dock");
@@ -27,7 +27,6 @@ test("mobile dock stays reachable by touch and TalkBack across navigation and sc
     await expect(page).toHaveURL(new RegExp(`${route.replace("/", "\\/")}(?:[?#].*)?$`));
     await settleFrames(page);
     await expect(dock).toHaveCount(1);
-    await expect(dock).toBeVisible();
     await expect(dock).not.toHaveAttribute("aria-hidden", "true");
     await expect(dock).not.toHaveAttribute("inert", "");
     await expect(dock.locator(`a[href="${route}"]`)).toHaveAttribute("aria-current", "page");
@@ -43,7 +42,7 @@ test("mobile dock stays reachable by touch and TalkBack across navigation and sc
 
   await page.evaluate((top) => window.scrollTo(0, top), scrollTarget);
   await settleFrames(page);
-  await expect(dock).toBeVisible();
+  await expect.poll(async () => (await dock.getAttribute("class")) || "").toContain("dock-auto-hidden");
   await expect(dock).not.toHaveAttribute("aria-hidden", "true");
   await expect(dock).not.toHaveAttribute("inert", "");
   await expect(dock.locator('a[href="/fleet"]')).toHaveAttribute("aria-current", "page");
@@ -51,9 +50,13 @@ test("mobile dock stays reachable by touch and TalkBack across navigation and sc
   const rememberedY = await page.evaluate(() => window.scrollY);
   expect(rememberedY).toBeGreaterThan(24);
 
+  await page.evaluate(() => window.scrollBy(0, -260));
+  await settleFrames(page);
+  await expect.poll(async () => (await dock.getAttribute("class")) || "").not.toContain("dock-auto-hidden");
+  await expect(dock).toBeVisible();
+
   await dock.locator('a[href="/campaigns"]').click();
   await expect(page).toHaveURL(/\/campaigns(?:[?#].*)?$/);
-  await expect(dock).toBeVisible();
   await expect(dock.locator('a[href="/campaigns"]')).toHaveAttribute("aria-current", "page");
 
   await page.goBack();
@@ -61,8 +64,12 @@ test("mobile dock stays reachable by touch and TalkBack across navigation and sc
   await settleFrames(page);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(24);
   await expect(dock).toHaveCount(1);
-  await expect(dock).toBeVisible();
   await expect(dock).not.toHaveAttribute("aria-hidden", "true");
   await expect(dock).not.toHaveAttribute("inert", "");
   await expect(dock.locator('a[href="/fleet"]')).toHaveAttribute("aria-current", "page");
+
+  await page.evaluate(() => window.scrollBy(0, -260));
+  await settleFrames(page);
+  await expect.poll(async () => (await dock.getAttribute("class")) || "").not.toContain("dock-auto-hidden");
+  await expect(dock).toBeVisible();
 });

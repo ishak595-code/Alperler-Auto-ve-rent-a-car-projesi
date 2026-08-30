@@ -60,8 +60,8 @@ for (const token of ["checkoutStep", "Sürücü Tercihi", "Nereden alınacak?", 
 }
 if (!checkout.includes('checkoutStep() === 1') || !checkout.includes('checkoutStep() === 2')) failures.push("rental checkout steps are not mutually exclusive views");
 
-if (dynamicHome.includes('[href]="campaignHref(campaign)"') || dynamicHome.includes("campaignHref(campaign")) failures.push("homepage campaign can still use raw href navigation");
-if (!dynamicHome.includes('(click)="openCampaign(campaign)"') || !dynamicHome.includes("resolveCampaignTarget")) failures.push("homepage campaign does not use internal target resolution");
+if (/\[href\]\s*=\s*["']campaignHref\(/.test(dynamicHome) || /campaignHref\s*\(/.test(dynamicHome)) failures.push("homepage campaign can still use raw href navigation");
+if (!/\(click\)=["']openCampaign\([^)]*\)["']/.test(dynamicHome) || !/resolveCampaignTarget\s*\(/.test(dynamicHome)) failures.push("homepage campaign does not use internal target resolution");
 if (!campaigns.includes("resolveCampaignTarget") || !campaigns.includes("navigateByUrl")) failures.push("campaign listing does not use internal target routing");
 for (const source of [dynamicHome, campaigns]) {
   if (!source.includes("countdown") && !source.includes("Countdown")) failures.push("campaign UI lacks real deadline countdown");

@@ -9,6 +9,7 @@ on:
       - 'scripts/check-v207-database-source-contract.mjs'
       - 'scripts/check-v216-homepage-admin-ownership.mjs'
       - 'scripts/check-v217-scalable-public-catalog.mjs'
+      - 'scripts/check-v217-footer-cms-ownership.mjs'
       - 'supabase/migrations/**'
       - '.github/workflows/v207-database-source-contract.yml'
   push:
@@ -19,6 +20,7 @@ on:
       - 'scripts/check-v207-database-source-contract.mjs'
       - 'scripts/check-v216-homepage-admin-ownership.mjs'
       - 'scripts/check-v217-scalable-public-catalog.mjs'
+      - 'scripts/check-v217-footer-cms-ownership.mjs'
       - 'supabase/migrations/**'
       - '.github/workflows/v207-database-source-contract.yml'
   workflow_dispatch:
@@ -49,3 +51,5 @@ jobs:
         run: node scripts/check-v216-homepage-admin-ownership.mjs
       - name: Scalable public catalog contract
         run: node scripts/check-v217-scalable-public-catalog.mjs
+      - name: Footer CMS ownership contract
+        run: node scripts/check-v217-footer-cms-ownership.mjs

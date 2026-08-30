@@ -47,6 +47,24 @@ test("device class keeps the intended navigation and conversion hierarchy", asyn
   }
 });
 
+test("phone dock hides on downward scroll and returns on upward scroll without leaving the accessibility tree", async ({ page }, testInfo) => {
+  test.skip(!phoneProjects.has(testInfo.project.name), "Phone-class behavior only.");
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const dock = page.locator("nav.customer-command-dock");
+  await expect(dock).toBeVisible();
+  await expect(dock).not.toHaveClass(/dock-auto-hidden/);
+
+  await page.evaluate(() => window.scrollTo({ top: Math.max(700, window.innerHeight * 1.2), behavior: "instant" }));
+  await expect.poll(async () => (await dock.getAttribute("class")) || "", { timeout: 3_000 }).toContain("dock-auto-hidden");
+  await expect(dock).toHaveAttribute("aria-label", "Alt hızlı menü");
+  await expect(dock.locator("a.dock-action")).toHaveCount(5);
+
+  await page.evaluate(() => window.scrollBy({ top: -260, behavior: "instant" }));
+  await expect.poll(async () => (await dock.getAttribute("class")) || "", { timeout: 3_000 }).not.toContain("dock-auto-hidden");
+  await expect.poll(() => noHorizontalOverflow(page)).toBe(true);
+});
+
 test("public navigation targets resolve without the not-found shell", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "android-phone", "One canonical route smoke pass is sufficient.");
 

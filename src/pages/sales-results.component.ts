@@ -1,8 +1,10 @@
 import { Component } from '@angular/core';
-import { SalesShowcaseV168Component } from './sales-showcase-v168.component';
+import { SaleCatalogV217Component } from './sale-catalog-v217.component';
 
 @Component({
-  selector:'app-sales-results',standalone:true,imports:[SalesShowcaseV168Component],
-  template:`<app-sales-showcase-v168 />`,
+  selector:'app-sales-results',
+  standalone:true,
+  imports:[SaleCatalogV217Component],
+  template:`<app-sale-catalog-v217 />`,
 })
-export class SalesResultsComponent{}
+export class SalesResultsComponent {}

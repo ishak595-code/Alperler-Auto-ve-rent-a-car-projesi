@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+const mustExist=['src/services/scalable-public-catalog-v217.service.ts','src/pages/rental-catalog-v217.component.ts','src/pages/sale-catalog-v217.component.ts','src/pages/tour-catalog-v217.component.ts','src/pages/blog-catalog-v217.component.ts','supabase/migrations/20260830124500_v217_scalable_public_catalog_views.sql','supabase/migrations/20260830125500_v217_public_catalog_facets.sql'];
+for(const file of mustExist){if(!fs.existsSync(file))throw new Error(`V217_REQUIRED_FILE_MISSING:${file}`);}
+const bounded=['src/pages/fleet.component.ts','src/pages/sales-results.component.ts','src/pages/tours.component.ts','src/pages/blog-list.component.ts','src/services/homepage-layout.service.ts','src/components/dynamic-home-section.component.ts','src/pages/rental-catalog-v217.component.ts','src/pages/sale-catalog-v217.component.ts','src/pages/tour-catalog-v217.component.ts','src/pages/blog-catalog-v217.component.ts'];
+const forbidden=['refreshCloudCatalog(','ensureVehicleCloudInventory(','getCars()','getSaleCars()','getTours()','getBlogPosts()'];
+for(const file of bounded){const text=fs.readFileSync(file,'utf8');for(const token of forbidden){if(text.includes(token))throw new Error(`V217_FULL_CATALOG_REGRESSION:${file}:${token}`);}}
+const service=fs.readFileSync('src/services/scalable-public-catalog-v217.service.ts','utf8');for(const token of ["pageSize:24","public_vehicle_catalog_v217","public_tour_catalog_v217","public_blog_catalog_v217","public_vehicle_facets_v217","public_tour_facets_v217"]){if(!service.includes(token)&&token!=='pageSize:24')throw new Error(`V217_SERVICE_CONTRACT_MISSING:${token}`);}
+if(!/pageSize\(value:unknown\).*48/.test(service))throw new Error('V217_PAGE_SIZE_BOUND_MISSING');
+const homepage=fs.readFileSync('src/services/homepage-layout.service.ts','utf8');if(!homepage.includes('vehiclesByIdentifiers')||!homepage.includes('blogsByIdentifiers')||!homepage.includes('toursByIdentifiers'))throw new Error('V217_HOMEPAGE_TARGETED_FETCH_MISSING');
+const migration=fs.readFileSync('supabase/migrations/20260830124500_v217_scalable_public_catalog_views.sql','utf8');if((migration.match(/security_invoker = true/g)||[]).length<5)throw new Error('V217_SECURITY_INVOKER_VIEWS_MISSING');
+console.log('V217 scalable public catalog contract passed.');

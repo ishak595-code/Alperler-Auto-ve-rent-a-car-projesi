@@ -23,6 +23,7 @@ for (const token of [
   'listPage(',
   'hydrateVisible(',
   'contextKey()',
+  'favoriteCount(',
   'on_conflict=user_id,entity_type,entity_id',
   'resolution=ignore-duplicates',
   'db_favoriteCars',
@@ -41,6 +42,7 @@ for (const token of [
   'this.customerFavorites.toggle("VEHICLE"',
   'this.customerFavorites.hydrateVisible("VEHICLE"',
   'this.customerFavorites.isFavorite("VEHICLE"',
+  'getFavoriteCount = computed(() => this.customerFavorites.favoriteCount("VEHICLE"))',
 ]) {
   if (!car.includes(token)) throw new Error(`V217_VEHICLE_FAVORITE_ADAPTER_MISSING:${token}`);
 }
@@ -86,4 +88,4 @@ if (!fleet.includes('FavoritesV217Component') || !fleet.includes('favs')) {
   throw new Error('V217_UNIFIED_FAVORITES_ROUTE_MISSING');
 }
 
-console.log('V217 unified favorites contract passed: one canonical account-aware owner covers vehicle, tour and blog favorites with bounded hydration and legacy migration only.');
+console.log('V217 unified favorites contract passed: one canonical account-aware owner covers vehicle, tour and blog favorites, including navbar count compatibility, with bounded hydration and legacy migration only.');

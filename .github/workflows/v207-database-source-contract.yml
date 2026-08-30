@@ -8,6 +8,7 @@ on:
       - 'api/**'
       - 'scripts/check-v207-database-source-contract.mjs'
       - 'scripts/check-v216-homepage-admin-ownership.mjs'
+      - 'scripts/check-v217-scalable-public-catalog.mjs'
       - 'supabase/migrations/**'
       - '.github/workflows/v207-database-source-contract.yml'
   push:
@@ -17,6 +18,7 @@ on:
       - 'api/**'
       - 'scripts/check-v207-database-source-contract.mjs'
       - 'scripts/check-v216-homepage-admin-ownership.mjs'
+      - 'scripts/check-v217-scalable-public-catalog.mjs'
       - 'supabase/migrations/**'
       - '.github/workflows/v207-database-source-contract.yml'
   workflow_dispatch:
@@ -45,3 +47,5 @@ jobs:
         run: node scripts/check-v207-database-source-contract.mjs
       - name: Homepage admin canonical ownership contract
         run: node scripts/check-v216-homepage-admin-ownership.mjs
+      - name: Scalable public catalog contract
+        run: node scripts/check-v217-scalable-public-catalog.mjs

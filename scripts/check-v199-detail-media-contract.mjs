@@ -7,7 +7,6 @@ const must = (source, needle, message) => {
 const mustNot = (source, needle, message) => {
   if (source.includes(needle)) throw new Error(message || `Forbidden contract: ${needle}`);
 };
-const count = (source, needle) => source.split(needle).length - 1;
 
 const lightboxPath = 'src/components/detail-media-lightbox.component.ts';
 const rentalPath = 'src/pages/car-detail.component.ts';
@@ -123,13 +122,14 @@ for (const contract of [
 mustNot(publicMedia, 'from "./catalog-media.service"', 'Public media reads must never import the authenticated admin media service.');
 mustNot(publicMedia, "from './catalog-media.service'", 'Public media reads must never import the authenticated admin media service.');
 
+// Homepage campaign media and routing must be semantic, not tied to whitespace or loop-variable names.
 const dynamicHome = read(dynamicHomePath);
-for (const contract of [
-  "section.sectionType === 'CAMPAIGN'",
-  '(click)="openCampaign(campaign)"',
-  'resolveCampaignTarget(item.targetType,item.targetId,item.ctaUrl)',
-]) must(dynamicHome, contract, `Homepage campaign routing contract missing: ${contract}`);
-if (count(dynamicHome, '(click)="openCampaign(campaign)"') !== 1) throw new Error('Homepage campaign card must expose exactly one campaign action surface.');
+const compactHome = dynamicHome.replace(/\s+/g, '');
+if (!compactHome.includes("section.sectionType==='CAMPAIGN'")) throw new Error('Homepage campaign section ownership is missing.');
+const campaignClickMatches = [...dynamicHome.matchAll(/\(click\)="openCampaign\(([A-Za-z_$][\w$]*)\)"/g)];
+if (campaignClickMatches.length !== 1) throw new Error(`Homepage campaign card must expose exactly one campaign action surface, found ${campaignClickMatches.length}.`);
+must(dynamicHome, 'resolveCampaignTarget(item.targetType,item.targetId,item.ctaUrl)', 'Homepage campaign route must resolve through the canonical target resolver.');
+must(dynamicHome, 'campaign=${encodeURIComponent(item.id)}', 'Homepage campaign navigation must preserve campaign attribution.');
 
 const mobileDock = read(mobileDockPath);
 for (const contract of [
@@ -149,9 +149,9 @@ for (const contract of [
   "'/branch-portal'",
 ]) must(mobileDockPolicy, contract, `Detail/transaction route must suppress global dock through policy: ${contract}`);
 
-if (count(tour, '(click)="openReservation()"') !== 1) throw new Error('Tour detail must expose exactly one primary reservation action.');
-if (count(tour, '(click)="whatsapp()"') !== 1) throw new Error('Tour detail must expose exactly one WhatsApp action.');
-if (count(sale, '(click)="whatsapp()"') !== 1) throw new Error('Sale detail must expose exactly one WhatsApp action.');
-if (count(sale, '(click)="callPhone()"') !== 1) throw new Error('Sale detail must expose exactly one call action.');
+if ((tour.match(/\(click\)="openReservation\(\)"/g) || []).length !== 1) throw new Error('Tour detail must expose exactly one primary reservation action.');
+if ((tour.match(/\(click\)="whatsapp\(\)"/g) || []).length !== 1) throw new Error('Tour detail must expose exactly one WhatsApp action.');
+if ((sale.match(/\(click\)="whatsapp\(\)"/g) || []).length !== 1) throw new Error('Sale detail must expose exactly one WhatsApp action.');
+if ((sale.match(/\(click\)="callPhone\(\)"/g) || []).length !== 1) throw new Error('Sale detail must expose exactly one call action.');
 
 console.log('V199 canonical detail media and CTA ownership contract: PASS');

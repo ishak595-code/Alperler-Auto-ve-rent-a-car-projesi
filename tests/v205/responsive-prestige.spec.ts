@@ -7,6 +7,10 @@ async function noHorizontalOverflow(page: import("@playwright/test").Page): Prom
   return page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2);
 }
 
+async function scrollRange(page: import("@playwright/test").Page): Promise<number> {
+  return page.evaluate(() => Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
+}
+
 test("device class keeps the intended navigation and conversion hierarchy", async ({ page }, testInfo) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
@@ -55,13 +59,21 @@ test("phone dock hides on downward scroll and returns on upward scroll without l
   await expect(dock).toBeVisible();
   await expect(dock).not.toHaveClass(/dock-auto-hidden/);
 
-  await page.evaluate(() => window.scrollTo({ top: Math.max(700, window.innerHeight * 1.2), behavior: "instant" }));
+  await expect.poll(() => scrollRange(page), { timeout: 10_000 }).toBeGreaterThan(180);
+  const target = await page.evaluate(() => {
+    const range = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    return Math.min(range, Math.max(240, window.innerHeight * 0.8));
+  });
+  expect(target).toBeGreaterThan(120);
+
+  await page.evaluate((top) => window.scrollTo({ top, behavior: "instant" }), target);
   await expect.poll(async () => (await dock.getAttribute("class")) || "", { timeout: 3_000 }).toContain("dock-auto-hidden");
   await expect(dock).toHaveAttribute("aria-label", "Alt hızlı menü");
   await expect(dock.locator("a.dock-action")).toHaveCount(5);
 
-  await page.evaluate(() => window.scrollBy({ top: -260, behavior: "instant" }));
+  await page.evaluate((distance) => window.scrollBy({ top: -distance, behavior: "instant" }), Math.min(260, target));
   await expect.poll(async () => (await dock.getAttribute("class")) || "", { timeout: 3_000 }).not.toContain("dock-auto-hidden");
+  await expect(dock).toBeVisible();
   await expect.poll(() => noHorizontalOverflow(page)).toBe(true);
 });
 

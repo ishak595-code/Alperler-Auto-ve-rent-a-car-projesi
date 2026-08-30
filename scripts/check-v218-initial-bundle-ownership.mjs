@@ -21,6 +21,16 @@ for (const forbidden of [
   expect(!app.includes(forbidden), `Root shell must not own route-specific domain: ${forbidden}`);
 }
 
+expect(app.includes('BookingSuccessExperienceService'), 'Root must retain the lightweight booking-success signal owner.');
+expect(
+  app.includes('@defer (when bookingSuccessExperience.result(); prefetch on idle)'),
+  'Booking success overlay must remain deferred until a success result exists, with idle prefetch.',
+);
+expect(
+  (app.match(/<app-booking-success-overlay/g) || []).length === 1,
+  'Booking success overlay must have exactly one root render site inside its deferred block.',
+);
+
 const eagerGuardImports = [
   "import { AuthService } from './services/auth.service'",
   "import { CustomerAuthService } from './services/customer-auth.service'",
@@ -71,4 +81,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('V218 initial bundle ownership contract passed: root domains and guards are lazy, route-owned panels are isolated, and the 1MB hard ceiling is enforced.');
+console.log('V218 initial bundle ownership contract passed: root domains and guards are lazy, success overlay is deferred, route-owned panels are isolated, and the 1MB hard ceiling is enforced.');

@@ -1,4 +1,4 @@
-import { normalizeHttpsOrigin, vercelDeploymentOrigin, vercelProductionOrigin } from './public-origin';
+import { configuredPublicOrigin, normalizeHttpsOrigin, vercelDeploymentOrigin, vercelProductionOrigin } from './public-origin';
 
 export type PaymentProvider = "none" | "paytr" | "iyzico";
 
@@ -32,8 +32,7 @@ function asBoolean(value: string | undefined, fallback: boolean): boolean {
 }
 function normalizeOrigin(value: string): string | null { return normalizeHttpsOrigin(value); }
 export function getAppUrl(): string | null {
-  const explicit = normalizeHttpsOrigin(process.env.PUBLIC_APP_URL);
-  return explicit || vercelProductionOrigin() || vercelDeploymentOrigin();
+  return configuredPublicOrigin() || vercelProductionOrigin() || vercelDeploymentOrigin();
 }
 function credentialSet(apiKey: string | undefined, secretKey: string | undefined, baseUrl: string): IyzicoCredentialSet {
   const cleanApiKey = apiKey?.trim() || null;

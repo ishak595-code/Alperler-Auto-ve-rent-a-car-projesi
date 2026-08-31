@@ -48,9 +48,12 @@ if (v213Migration) {
 }
 
 if (!app.includes('<app-customer-mobile-dock')) fail('canonical customer mobile dock is not mounted in AppComponent');
-if (!dock.includes('[class.dock-primary]="isPrimary(item)"')) fail('mobile dock has no database-aware primary action style');
-if (!dock.includes('item.itemKey === "appointment"') || !dock.includes('item.metadata?.["primary"] === true')) fail('appointment/primary metadata cannot select the dock conversion action');
-if (!migration.includes("item_key = 'appointment'") || !migration.includes("route = '/appointment'") || !migration.includes("'{\"primary\":true}'::jsonb")) fail('production dock migration does not establish the primary appointment action');
+if (!dock.includes('[class.dock-primary]="isPrimary(item)"')) fail('mobile dock has no canonical primary action style');
+// The V210 migration remains historical evidence. The active dock contract now intentionally supersedes
+// appointment ownership: Search is the fixed primary action and mutable metadata cannot replace it.
+if (!dock.includes('return item.itemKey === "search";')) fail('Search is not the canonical mobile dock primary action');
+if (dock.includes('item.itemKey === "appointment"') || dock.includes('item.metadata?.["primary"] === true')) fail('appointment/metadata must not regain mobile dock primary ownership');
+if (!migration.includes("item_key = 'appointment'") || !migration.includes("route = '/appointment'") || !migration.includes("'{\"primary\":true}'::jsonb")) fail('historical V210 production dock migration is no longer auditable');
 if (/INSERT\s+INTO\s+public\.navigation_settings/i.test(migration)) fail('V210 must not create a parallel navigation settings owner');
 
 for (const capability of ['coverImage', 'backgroundImage', 'ctaLabel', 'ctaUrl']) {
@@ -63,4 +66,4 @@ if (!migration.includes('/storage/v1/object/public/catalog-media/')) fail('closi
 if (pkg.scripts?.['prestige-conversion:v210'] !== 'node scripts/check-v210-prestige-conversion.mjs') fail('package script prestige-conversion:v210 is missing');
 if (!String(pkg.scripts?.['verify:handoff'] || '').includes('prestige-conversion:v210')) fail('V210 contract is not wired into verify:handoff');
 
-if (!process.exitCode) console.log('V210 prestige conversion contract passed: historical newest-three migration remains auditable, V217 preserves bounded LATEST semantics, and V213 may supersede active showcase selection through an explicit PLACEMENT migration.');
+if (!process.exitCode) console.log('V210 prestige conversion contract passed: historical migration remains auditable while the active customer dock keeps Search as its fixed primary action.');

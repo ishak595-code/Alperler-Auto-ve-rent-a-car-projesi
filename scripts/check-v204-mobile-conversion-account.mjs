@@ -20,7 +20,7 @@ const required = [
   'supabase/migrations/20260828114500_v204_campaign_social_proof_attribution.sql',
   'supabase/migrations/20260828115000_v204_mobile_home_conversion_defaults.sql',
   'supabase/migrations/20260831150041_v220_mobile_dock_canonical.sql',
-  'supabase/migrations/20260831180700_v221_mobile_dock_profile_canonical.sql',
+  'supabase/migrations/20260831161135_v221_mobile_dock_profile_canonical.sql',
   'playwright.v204.config.ts',
   'tests/v204/mobile-dock.spec.ts',
 ];
@@ -111,7 +111,7 @@ mustNot(proofMigration, 've.path = c.cta_url', 'Campaign proof must not depend o
 const defaultsMigration = read('supabase/migrations/20260828115000_v204_mobile_home_conversion_defaults.sql');
 for (const token of ["when 'fleet' then 'Kiralık'","when 'sales' then 'Satılık'",'["service","duration","date","pickup"]','plannerVariant',"when 'campaigns'",'Kaçırmadan İncele']) must(defaultsMigration, token);
 
-const dockMigration = read('supabase/migrations/20260831180700_v221_mobile_dock_profile_canonical.sql');
+const dockMigration = read('supabase/migrations/20260831161135_v221_mobile_dock_profile_canonical.sql');
 for (const token of [
   "'fleet'::text,'Kiralık'::text",
   "'sales','Satılık'",

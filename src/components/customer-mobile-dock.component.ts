@@ -106,9 +106,15 @@ export class CustomerMobileDockComponent {
         this.applyScrollAutoHide();
       });
     };
+    const onViewportChange = () => {
+      this.lastScrollY = Math.max(0, window.scrollY || 0);
+      if (!this.isPhoneDockViewport()) this.setAutoHidden(false);
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onViewportChange, { passive: true });
     this.destroyRef.onDestroy(() => {
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onViewportChange);
       if (this.scrollFrame !== null) window.cancelAnimationFrame(this.scrollFrame);
     });
   }
@@ -116,7 +122,7 @@ export class CustomerMobileDockComponent {
   private applyScrollAutoHide(): void {
     if (typeof window === "undefined") return;
     const currentY = Math.max(0, window.scrollY || 0);
-    if (this.hidden() || !this.navigation.mobileDockAutoHideEnabled()) {
+    if (this.hidden() || !this.navigation.mobileDockAutoHideEnabled() || !this.isPhoneDockViewport()) {
       this.lastScrollY = currentY;
       this.setAutoHidden(false);
       return;
@@ -130,6 +136,11 @@ export class CustomerMobileDockComponent {
     if (Math.abs(delta) < 12) return;
     this.lastScrollY = currentY;
     this.setAutoHidden(delta > 0 && currentY > 120);
+  }
+
+  private isPhoneDockViewport(): boolean {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+    return window.matchMedia("(max-width:639px) and (pointer:coarse), (max-width:950px) and (max-height:500px) and (pointer:coarse)").matches;
   }
 
   private setAutoHidden(hidden: boolean): void {

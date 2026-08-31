@@ -14,6 +14,8 @@ const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entr
 
 const paths = {
   dock: "src/components/customer-mobile-dock.component.ts",
+  dockPolicy: "src/services/mobile-dock-route-policy.ts",
+  mainLayout: "src/components/main-layout.component.ts",
   rentalList: "src/pages/rental-catalog-v217.component.ts",
   rentalCard: "src/components/rental-vehicle-card-v167.component.ts",
   homeVehicleCard: "src/components/vehicle-list-item.component.ts",
@@ -33,15 +35,24 @@ for (const file of Object.values(paths)) {
 }
 const sources = Object.fromEntries(Object.entries(paths).map(([key, file]) => [key, read(file)]));
 
-// TalkBack contract: the persistent customer dock stays in the accessibility tree.
-requireText(sources.dock, '<nav class="customer-command-dock"', "Mobile dock must remain a native nav landmark.");
+// TalkBack contract: the home command dock is accessible only while it is actually visible and actionable.
+requireText(sources.dock, '<nav', "Mobile dock must remain a native nav landmark.");
+requireText(sources.dock, 'class="customer-command-dock"', "Mobile dock must preserve the canonical navigation landmark class.");
 requireText(sources.dock, '[routerLink]="item.route"', "Mobile dock destinations must remain native router links.");
 requireText(sources.dock, '[attr.aria-current]="isCurrent(item.route) ? \'page\' : null"', "Current mobile dock destination must expose aria-current=page.");
 requireText(sources.dock, "track item.id", "Mobile dock items must preserve stable DOM identity.");
 requireText(sources.dock, '[attr.aria-label]="item.label"', "Mobile dock items must preserve stable accessible names.");
-for (const token of ['[attr.aria-hidden]','[attr.inert]','dock-hidden','onWindowScroll','HostListener']) {
-  rejectText(sources.dock, token, `Mobile dock must not regain scroll/accessibility hiding: ${token}`);
+requireText(sources.dock, '[attr.aria-hidden]="autoHidden() ? \'true\' : null"', "Auto-hidden dock must leave the TalkBack accessibility tree.");
+requireText(sources.dock, '[attr.inert]="autoHidden() ? \'\' : null"', "Auto-hidden dock descendants must not remain focusable or actionable.");
+requireText(sources.dock, 'visibility:hidden', "Auto-hidden dock must leave the visible hit-test surface.");
+requireText(sources.dock, 'releaseDockFocus()', "Dock must release focus before becoming inert.");
+requireText(sources.dock, 'isPhoneDockViewport()', "Dock scroll ownership must remain phone-class only.");
+for (const token of ['dock-hidden','onWindowScroll','HostListener']) {
+  rejectText(sources.dock, token, `Obsolete mobile dock behavior must not return: ${token}`);
 }
+requireText(sources.dockPolicy, "return cleanCustomerPath(rawUrl) === '/'", "Mobile dock must render only on the homepage.");
+requireText(sources.mainLayout, 'isHomePage() && navigation.mobileDockAutoHidden() && getWhatsappNumber()', "Homepage floating WhatsApp must replace the dock only while the home dock is auto-hidden.");
+rejectText(sources.mainLayout, 'dock-offset', "Homepage floating WhatsApp must not stack above the dock.");
 
 // Booking checkout owns the complete reservation review. Cards and details must never duplicate it.
 requireText(sources.bookingCheckout, "Rezervasyonu kontrol edin", "Booking checkout must keep the customer-facing reservation review heading.");
@@ -88,7 +99,6 @@ const forbiddenCustomerPhrases = [
   "Tur medyası henüz eklenmedi",
 ];
 
-// Scan every customer/partner page and component so implementation language cannot leak through an unlisted surface.
 const publicSurfaceFiles = [...walk("src/pages"), ...walk("src/components")]
   .filter((file) => !file.startsWith(`src${path.sep}pages${path.sep}admin${path.sep}`))
   .filter((file) => !file.includes(`${path.sep}admin-`));
@@ -106,7 +116,6 @@ for (const file of publicSurfaceFiles) {
   if (source.includes("Kiralama Özeti")) fail(`${file} duplicates a rental summary outside booking checkout.`);
 }
 
-// Canonical detail states also must never print raw backend error signals.
 rejectText(sources.rentalDetail, "{{loadError()}}", "Rental detail must not print a raw backend error to customers.");
 rejectText(sources.rentalDetail, "{{ loadError() }}", "Rental detail must not print a raw backend error to customers.");
 rejectText(sources.saleDetail, "{{ loadError() }}", "Sale detail must not print a raw backend error to customers.");
@@ -114,7 +123,6 @@ rejectText(sources.tourDetail, "{{ loadError() }}", "Tour detail must not print 
 rejectText(sources.blogDetail, "{{error()}}", "Blog detail must not print a raw backend error to customers.");
 rejectText(sources.blogDetail, "{{ error() }}", "Blog detail must not print a raw backend error to customers.");
 
-// Canonical customer language markers now live on the active V217 route owners.
 requireText(sources.rentalList, "ALPERLER KİRALAMA", "Rental catalogue must keep the customer-facing rental hero.");
 requireText(sources.saleList, "ALPERLER İKİNCİ EL", "Sale catalogue must keep the second-hand customer hero.");
 requireText(sources.tourList, "Rotanı seç, unutulmaz bir gün planla", "Tour catalogue must keep customer-oriented discovery copy.");

@@ -11,7 +11,7 @@ const navigation = read('src/services/navigation-config.service.ts');
 const dockDefaults = navigation.split('const DEFAULT_MENU')[0];
 for (const token of ["['fleet', 'Kiralık', 'key', '/fleet']","['sales', 'Satılık', 'directions_car', '/sales']","['search', 'Ara', 'search', '/search']","['campaigns', 'Fırsatlar', 'local_offer', '/campaigns']","['account', 'Profil', 'account_circle', '/account']"]) must(dockDefaults, token, `Canonical customer dock missing ${token}`);
 reject(dockDefaults, "['appointment', 'Randevu'", 'Randevu must remain outside the five-item bottom dock.');
-const dockMigration = read('supabase/migrations/20260831180700_v221_mobile_dock_profile_canonical.sql');
+const dockMigration = read('supabase/migrations/20260831161135_v221_mobile_dock_profile_canonical.sql');
 must(dockMigration, "item_key not in ('fleet','sales','search','campaigns','account')", 'Dock migration must archive every non-canonical bottom action.');
 
 const shell = read('src/services/default-site-config.ts');
@@ -32,8 +32,8 @@ const paymentAdmin = read('src/pages/admin/admin-payment-settings.component.ts')
 const paymentVaultAdmin = read('src/services/payment-provider-secrets.service.ts');
 const paymentDialog = read('src/components/iyzico-buyer-details-dialog.component.ts');
 const paymentEdge = read('supabase/functions/admin-core-gateway-v178/index.ts');
-const paymentMigration = read('supabase/migrations/20260831194000_v221_dual_payment_providers.sql');
-const paymentVaultMigration = read('supabase/migrations/20260831203000_v221_payment_provider_vault_credentials.sql');
+const paymentMigration = read('supabase/migrations/20260831174820_v221_dual_payment_providers.sql');
+const paymentVaultMigration = read('supabase/migrations/20260831182726_v221_payment_provider_vault_credentials.sql');
 const paymentApi = read('api/payments.ts');
 const credentialResolver = read('api/_lib/payment-provider-credentials.ts');
 const integration = read('api/_lib/integration-config.ts');

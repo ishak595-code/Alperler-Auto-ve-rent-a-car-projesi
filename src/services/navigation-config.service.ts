@@ -30,9 +30,9 @@ const DEFAULT_SETTINGS: NavigationSettings = { mobileDockEnabled: true, mobileMe
 const DEFAULT_DOCK: NavigationItem[] = [
   ['fleet', 'Kiralık', 'key', '/fleet'],
   ['sales', 'Satılık', 'directions_car', '/sales'],
-  ['search', 'Ara', 'search', '/search'],
+  ['search', 'İlan Ara', 'search', '/search'],
   ['campaigns', 'Fırsatlar', 'local_offer', '/campaigns'],
-  ['appointment', 'Randevu', 'event_available', '/appointment'],
+  ['account', 'Profil', 'account_circle', '/account'],
 ].map((item, index) => ({ id:`dock-${item[0]}`, surface:'MOBILE_DOCK' as const, itemKey:item[0], label:item[1], icon:item[2], route:item[3], sortOrder:(index+1)*10, isActive:true, archivedAt:null, metadata:{} }));
 
 const DEFAULT_MENU: NavigationItem[] = [
@@ -83,7 +83,7 @@ export class NavigationConfigService {
     { key:'home', label:'Ana Sayfa', icon:'home', route:'/' },
     { key:'fleet', label:'Kiralık Araçlar', icon:'key', route:'/fleet' },
     { key:'sales', label:'Satılık Araçlar', icon:'directions_car', route:'/sales' },
-    { key:'search', label:'Ara', icon:'search', route:'/search' },
+    { key:'search', label:'İlan Ara', icon:'search', route:'/search' },
     { key:'campaigns', label:'Kampanyalar', icon:'local_offer', route:'/campaigns' },
     { key:'account', label:'Profil', icon:'account_circle', route:'/account' },
     { key:'appointment', label:'Randevu', icon:'event_available', route:'/appointment' },

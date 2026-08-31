@@ -16,8 +16,8 @@ export class PaymentService {
   readonly paymentStatus = computed<PaymentIntegrationStatus>(() => {
     const integration = this.integrationStatus()?.payment ?? FALLBACK_PAYMENT_STATUS;
     const settings = this.settingsService.settings();
-    const configuredProvider = settings.provider === 'PAYTR' ? 'paytr' : settings.provider === 'GENERIC_HOSTED' ? 'generic_hosted' : 'none';
-    const providerMatches = configuredProvider === integration.provider && configuredProvider !== 'none';
+    const configuredProvider = settings.provider === 'PAYTR' ? 'paytr' : 'none';
+    const providerMatches = configuredProvider === integration.provider && configuredProvider === 'paytr';
     return {
       provider: integration.provider,
       configured: integration.configured && providerMatches,

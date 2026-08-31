@@ -44,7 +44,7 @@ reject(operationsUi,'data.revenue | currency','Operations dashboard must not dis
 for(const token of ['totalsByCurrency','Doviz Bazli Finans Ozeti','Farkli para birimleri birbirine cevrilmeden','money(r.net_amount,r.currency)'])must(report,token,`Currency-safe PDF report missing ${token}`);
 reject(report,'let income=0,expense=0,discount=0','PDF must not restore one mixed-currency aggregate.');
 
-for(const token of ['Admin > Muhasebe & Tahsilat','E-posta ve SMS Bağlantıları','Resend','Twilio','Supabase Vault','Ödeme ofiste','ödeme makbuzu','payment_transactions','finance_transactions','notification_deliveries','Messaging Service','Sender Pool'])must(operatorDocs,token,`Notification operator documentation missing ${token}`);
+for(const token of ['Admin > Muhasebe & Tahsilat','E-posta ve SMS Bağlantıları','Resend','Twilio','Supabase Vault','Ofiste ödeme','ödeme makbuzu','payment_transactions','finance_transactions','notification_deliveries','Messaging Service','Sender Pool'])must(operatorDocs,token,`Notification operator documentation missing ${token}`);
 
 if(failures.length){console.error('V221.2 finance/notifications: FAIL');for(const failure of failures)console.error(`- ${failure}`);process.exit(1);}
 console.log('V221.2 finance/notifications: PASS');

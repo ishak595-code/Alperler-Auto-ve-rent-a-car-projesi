@@ -8,21 +8,23 @@ The preferred credential store is **Supabase Vault**, which is integrated into t
 
 Environment variables remain supported as a server-only compatibility/fallback option. Vault credentials take precedence when a complete Vault set exists.
 
+Normal future activation does not require a deployment or a developer. The database-backed **Kart** switch in Admin is the activation authority. The payment API still fails closed unless the selected provider has a complete credential set.
+
 ## Safety rules
 
 - Never put provider secret keys in Angular/browser source, normal Supabase tables, screenshots, issue comments, chat logs, or Git history.
 - Never prefill or echo saved secret values back to the admin browser. The admin screen shows only configured/not-configured status.
-- Keep customer card collection disabled until the provider account is approved and sandbox/test verification passes.
+- Keep customer card collection disabled in Admin until the provider account is approved and sandbox/test verification passes.
 - Do not automatically retry a failed charge through the second provider. Manual/admin provider switching avoids double-charge ambiguity.
 - Card details are entered only on PayTR/iyzico hosted payment surfaces; they do not enter this application.
 - iyzico buyer identity/address fields required for Checkout Form are transmitted only to iyzico and are not copied into `payment_transactions.request_snapshot`.
 
-## One-time server safety switches
+## Emergency server controls
 
-These variables are server-only. `PAYMENT_CARD_ENABLED` is an emergency/global kill switch in addition to the database-backed Admin card toggle.
+Everyday provider setup and card activation are owned by Admin. The optional server variable below is deliberately **kill-only**. It is not part of normal activation.
 
 ```text
-PAYMENT_CARD_ENABLED=false
+PAYMENT_CARD_KILL_SWITCH=false
 PAYMENT_EFT_ENABLED=true
 PAYMENT_OFFICE_ENABLED=true
 PAYMENT_ALLOWED_ORIGINS=https://YOUR_DOMAIN
@@ -31,7 +33,10 @@ PUBLIC_APP_URL=https://YOUR_DOMAIN
 SITE_URL=https://YOUR_DOMAIN
 ```
 
-Keep `PAYMENT_CARD_ENABLED=false` during initial setup. Change it to `true` only after provider sandbox/test validation is complete. After that, everyday provider selection, test/live selection, and Card on/off are managed from Admin.
+- `PAYMENT_CARD_KILL_SWITCH=false`: Admin may activate a fully configured provider.
+- `PAYMENT_CARD_KILL_SWITCH=true`: all new card-session creation is blocked immediately, regardless of the Admin Card setting. Use only for incident response/emergency maintenance.
+
+This design means receiving new PayTR/iyzico credentials later does not require changing a Vercel environment variable merely to start accepting cards.
 
 While no custom domain is connected, leave the custom-origin variables empty and use Vercel's derived production/deployment origin. Never configure an unowned domain.
 
@@ -121,6 +126,8 @@ The application signs requests with IYZWSv2 HMAC SHA-256, verifies initialize/re
 
 A `fraudStatus=0` result is **not** marked paid. It remains pending/authorized and the booking stays pending until iyzico completes the fraud review.
 
+If an already authorized/reviewing transaction is later rejected by iyzico with `fraudStatus=-1`, the application records the provider outcome as **REFUNDED**, matching iyzico's post-review fraud lifecycle instead of misclassifying it as an ordinary payment failure.
+
 ### iyzico Instant Fraud Notification (IFN)
 
 In the iyzico Merchant Panel, configure the fraud-review Callback / IFN URL as:
@@ -141,10 +148,9 @@ The IFN payload itself is used only as a reconciliation trigger. Before changing
 6. For iyzico, add the IFN URL in the iyzico Merchant Panel.
 7. Confirm the Admin screen reports the intended provider mode as ready.
 8. Run controlled sandbox/test payments and confirm callback settlement.
-9. Set the one-time server safety switch `PAYMENT_CARD_ENABLED=true` and deploy.
-10. In Admin, select the desired active provider, keep test mode for a final check, enable **Kart**, and save.
-11. When live credentials and merchant approval are confirmed, turn off **Test / sandbox modu** and save.
-12. Run one low-value controlled real booking and verify the booking plus `payment_transactions` terminal status before normal customer use.
+9. In Admin, select the desired active provider and enable **Kart**. No deployment is required for this activation.
+10. When live credentials and merchant approval are confirmed, turn off **Test / sandbox modu** and save.
+11. Run one low-value controlled real booking and verify the booking plus `payment_transactions` terminal status before normal customer use.
 
 ## Provider roles
 
@@ -154,7 +160,8 @@ The IFN payload itself is used only as a reconciliation trigger. Before changing
 
 ## Operational recovery
 
-- If a provider has an incident, disable **Kart** or select **Online kart kapalı** in Admin before changing anything else.
+- If a provider has an incident, first disable **Kart** or select **Online kart kapalı** in Admin.
+- For a platform-wide incident where Admin must not be able to reopen card collection, set `PAYMENT_CARD_KILL_SWITCH=true` as an emergency server override.
 - Do not delete historical payment rows or provider references when switching providers.
 - Rotating a provider secret is done by entering the full replacement set in the matching Admin secure form; old values are overwritten in Vault.
 - Removing Vault credentials does not erase environment fallback credentials. If environment credentials exist, the server may still report the provider as configured.

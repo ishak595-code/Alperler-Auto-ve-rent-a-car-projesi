@@ -14,6 +14,7 @@ const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entr
 
 const paths = {
   dock: "src/components/customer-mobile-dock.component.ts",
+  navigation: "src/services/navigation-config.service.ts",
   rentalList: "src/pages/rental-catalog-v217.component.ts",
   rentalCard: "src/components/rental-vehicle-card-v167.component.ts",
   homeVehicleCard: "src/components/vehicle-list-item.component.ts",
@@ -42,6 +43,15 @@ requireText(sources.dock, '[attr.aria-label]="item.label"', "Mobile dock items m
 for (const token of ['[attr.aria-hidden]','[attr.inert]','dock-hidden','onWindowScroll','HostListener']) {
   rejectText(sources.dock, token, `Mobile dock must not regain scroll/accessibility hiding: ${token}`);
 }
+
+// Mobile dock ownership contract: Search is permanently the primary center action and Profile is not a dock destination.
+requireText(sources.dock, 'return item.itemKey === "search";', "Mobile dock primary action must stay Search.");
+rejectText(sources.dock, 'item.itemKey === "appointment"', "Appointment must not regain primary mobile dock ownership.");
+const defaultDock = sources.navigation.match(/const DEFAULT_DOCK:[\s\S]*?\]\.map/)?.[0] || "";
+if (!defaultDock) fail("Default mobile dock configuration could not be resolved.");
+requireText(defaultDock, "['search', 'Ara', 'search', '/search']", "Default mobile dock must keep Search in the center slot.");
+requireText(defaultDock, "['appointment', 'Randevu', 'event_available', '/appointment']", "Default mobile dock must keep Randevu as the fifth fallback slot.");
+rejectText(defaultDock, "['account', 'Profil', 'account_circle', '/account']", "Profile must not return to the default mobile dock.");
 
 // Booking checkout owns the complete reservation review. Cards and details must never duplicate it.
 requireText(sources.bookingCheckout, "Rezervasyonu kontrol edin", "Booking checkout must keep the customer-facing reservation review heading.");

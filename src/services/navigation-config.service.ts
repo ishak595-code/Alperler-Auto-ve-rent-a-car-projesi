@@ -32,7 +32,7 @@ const DEFAULT_DOCK: NavigationItem[] = [
   ['sales', 'Satılık', 'directions_car', '/sales'],
   ['search', 'Ara', 'search', '/search'],
   ['campaigns', 'Fırsatlar', 'local_offer', '/campaigns'],
-  ['account', 'Profil', 'account_circle', '/account'],
+  ['appointment', 'Randevu', 'event_available', '/appointment'],
 ].map((item, index) => ({ id:`dock-${item[0]}`, surface:'MOBILE_DOCK' as const, itemKey:item[0], label:item[1], icon:item[2], route:item[3], sortOrder:(index+1)*10, isActive:true, archivedAt:null, metadata:{} }));
 
 const DEFAULT_MENU: NavigationItem[] = [

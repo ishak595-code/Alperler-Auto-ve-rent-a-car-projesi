@@ -15,7 +15,7 @@ const operationsUi=read('src/pages/admin/admin-operations-dashboard.component.ts
 const report=read('api/finance/report.ts');
 const bookingGateway=read('supabase/functions/booking-gateway-v166/index.ts');
 
-for(const token of ['create table if not exists public.notification_templates','alter table public.notification_templates enable row level security','revoke all on table public.notification_templates from anon, authenticated','service_save_notification_template_v221','service_record_offline_payment_v221','for update','PAYMENT_ALREADY_SETTLED','PAYMENT_EXCEEDS_OUTSTANDING','payment_status=case','on conflict do nothing','IYZICO','todayBookings','todayStarts','todayEnds','officePaymentsDue','eftPaymentsDue',"interval '7 days'"])must(migration,token,`V221.2 database contract missing ${token}`);
+for(const token of ['create table if not exists public.notification_templates','alter table public.notification_templates enable row level security','revoke all on table public.notification_templates from anon, authenticated','service_save_notification_template_v221','service_record_offline_payment_v221','for update','PAYMENT_ALREADY_SETTLED','PAYMENT_EXCEEDS_OUTSTANDING','payment_status=case','on conflict do nothing','IYZICO','recordedByActor','todayBookings','todayStarts','todayEnds','officePaymentsDue','eftPaymentsDue',"interval '7 days'"])must(migration,token,`V221.2 database contract missing ${token}`);
 for(const token of ['booking_created','booking_pending','booking_approved','booking_rejected','booking_completed','booking_cancelled','payment_received'])must(migration,token,`Notification event seed missing ${token}`);
 for(const token of ['paymentMethod==="NONE"?"NOT_REQUIRED":"PENDING"','payment_method:paymentMethod','payment_status:paymentStatus','await notify(saved.id)'])must(bookingGateway,token,`Booking gateway must keep unpaid reservation truth: ${token}`);
 
@@ -23,7 +23,7 @@ for(const token of ['payment_received','notification_templates?event_key=eq.','p
 must(notifier,'Ödeme ofiste yapılacaktır. Bu e-posta rezervasyon kaydınızı doğrular; ödeme makbuzu değildir.','Office-payment confirmation must never impersonate a receipt.');
 for(const forbidden of ['innerHTML','bypassSecurityTrustHtml','eval('])reject(notifier,forbidden,`Notification renderer must not execute administrator content: ${forbidden}`);
 
-for(const token of ['service_record_offline_payment_v221','byCurrency','receivablesByCurrency','pendingReceivablesCount','save_message_template','sendPaymentNotification','recordedByActor'])must(financeEdge,token,`Finance edge contract missing ${token}`);
+for(const token of ['service_record_offline_payment_v221','p_actor:admin.id','byCurrency','receivablesByCurrency','pendingReceivablesCount','save_message_template','sendPaymentNotification'])must(financeEdge,token,`Finance edge contract missing ${token}`);
 reject(financeEdge,"db('payment_transactions?select=*',{method:'POST'",'Offline payment must use the atomic database RPC, not direct multi-step writes.');
 for(const token of ['FinanceCurrencySummary','byCurrency','receivablesByCurrency','messageTemplates','saveMessageTemplate'])must(financeService,token,`Finance client contract missing ${token}`);
 for(const token of ['Dövizler birbirine karıştırılmaz','Açık Alacaklar','Otomatik Müşteri Mesajları','Kullanılabilir değişkenler','payment_received','saveTemplate(template)','money(tx.net_amount,tx.currency)','entry.currency'])must(financeAdmin,token,`Finance admin UI contract missing ${token}`);

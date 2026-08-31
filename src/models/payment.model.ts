@@ -1,6 +1,18 @@
 export type PaymentMethod = "CARD" | "EFT" | "OFFICE";
 export type PaymentProvider = "none" | "paytr" | "iyzico";
 
+export interface PaymentProviderDetails {
+  globalCardGate: boolean;
+  paytr: {
+    configured: boolean;
+    forceTestMode: boolean;
+  };
+  iyzico: {
+    sandboxConfigured: boolean;
+    liveConfigured: boolean;
+  };
+}
+
 export interface PaymentIntegrationStatus {
   provider: PaymentProvider;
   configured: boolean;
@@ -8,6 +20,7 @@ export interface PaymentIntegrationStatus {
   eftEnabled: boolean;
   officeEnabled: boolean;
   availableProviders?: { paytr: boolean; iyzico: boolean };
+  providerDetails?: PaymentProviderDetails;
 }
 export interface EmailIntegrationStatus { configured: boolean; }
 export interface SmsIntegrationStatus { provider: "none" | "twilio"; configured: boolean; }

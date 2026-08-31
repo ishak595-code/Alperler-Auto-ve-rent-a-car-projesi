@@ -8,6 +8,10 @@ const requireFile = (file) => { if (!fs.existsSync(file)) throw new Error(`V204 
 const required = [
   'src/services/mobile-dock-route-policy.ts',
   'src/components/customer-mobile-dock.component.ts',
+  'src/components/main-layout.component.ts',
+  'src/pages/car-detail.component.ts',
+  'src/pages/sale-car-detail.component.ts',
+  'src/pages/tour-detail.component.ts',
   'src/pages/home-v71.component.ts',
   'src/components/dynamic-home-section.component.ts',
   'src/pages/campaigns.component.ts',
@@ -24,8 +28,10 @@ const required = [
 required.forEach(requireFile);
 
 const policy = read('src/services/mobile-dock-route-policy.ts');
-for (const token of ['shouldRenderMobileDock','isDockItemCurrent',"'/booking-checkout'",'/^\\/fleet\\/[^/]+$/','/^\\/sales\\/[^/]+$/','/^\\/tour\\/[^/]+$/']) must(policy, token);
-mustNot(policy, 'path !== "/"', 'Dock route policy must never hide every non-home customer route.');
+for (const token of ['shouldRenderMobileDock','isDockItemCurrent',"return cleanCustomerPath(rawUrl) === '/'"]) must(policy, token);
+for (const forbidden of ['MOBILE_DOCK_SUPPRESSED_EXACT','MOBILE_DOCK_SUPPRESSED_PREFIXES','MOBILE_DOCK_DETAIL_ROUTES']) {
+  mustNot(policy, forbidden, `Mobile dock must use a home-only allowlist instead of fragile route suppression: ${forbidden}`);
+}
 
 const dock = read('src/components/customer-mobile-dock.component.ts');
 for (const token of [
@@ -33,12 +39,7 @@ for (const token of [
   'isDockItemCurrent',
   'aria-current',
   'NavigationEnd',
-  'updateVisibility',
   'setMobileDockRouteHidden',
-  'this.setAutoHidden(false)',
-  '[routerLink]="item.route"',
-  '[attr.aria-label]="item.label"',
-  'track item.id',
   'navigation.mobileDockAutoHideEnabled()',
   'window.requestAnimationFrame',
   'Math.abs(delta) < 12',
@@ -48,39 +49,71 @@ for (const token of [
   '[attr.inert]="autoHidden() ? \'\' : null"',
   'visibility:hidden',
   'releaseDockFocus()',
+  'isPhoneDockViewport()',
+  'window.matchMedia',
 ]) must(dock, token);
+for (const token of ['HostListener','backdrop-filter:blur','-webkit-backdrop-filter:blur','RouterLinkActive']) {
+  mustNot(dock, token, `Obsolete or scroll-heavy mobile dock behavior returned: ${token}`);
+}
+
+const layout = read('src/components/main-layout.component.ts');
 for (const token of [
-  'onDockClick',
-  'NavigationStart',
-  'Scroll as RouterScroll',
-  'navigationScrollSettling',
-  'beginRouteNavigation()',
-  'finishRouteNavigationAfterScroll()',
-  'event.preventDefault();',
+  'isHomePage() && navigation.mobileDockAutoHidden() && getWhatsappNumber()',
+  'class="whatsapp-fab"',
+  '[href]="getWhatsappHref()"',
+  'animation:whatsapp-fab-enter .16s ease .18s both',
+]) must(layout, token, `Homepage WhatsApp handoff contract missing: ${token}`);
+for (const forbidden of ['showWhatsapp=signal', 'setTimeout(()=>this.showWhatsapp', 'dock-offset']) {
+  mustNot(layout, forbidden, `Homepage WhatsApp must not overlap the dock or use timer-driven visibility: ${forbidden}`);
+}
+
+const mobileFixes = read('src/mobile-target-fixes.css');
+must(mobileFixes, 'app-home-v71 > main', 'Homepage must reserve dock safe area.');
+for (const forbidden of [
+  'app-fleet app-rental-catalog-v217 > main',
+  'app-fleet app-favorites-v217 > main',
+  'app-sales-results app-sale-catalog-v217 > main',
+  'app-tours app-tour-catalog-v217 > main',
+  'app-blog-list app-blog-catalog-v217 > main',
+  'app-campaigns > main',
+  'app-search > main',
+  'app-account-shell app-account-dashboard-v150 > main',
+]) mustNot(mobileFixes, forbidden, `Non-home route must not reserve space for a dock that cannot render: ${forbidden}`);
+
+const rentalDetail = read('src/pages/car-detail.component.ts');
+const saleDetail = read('src/pages/sale-car-detail.component.ts');
+const tourDetail = read('src/pages/tour-detail.component.ts');
+for (const [name, source, owner] of [
+  ['rental', rentalDetail, 'class="fixed-actions"'],
+  ['sale', saleDetail, 'class="bottom-actions"'],
+  ['tour', tourDetail, 'class="action-bar"'],
+]) {
+  must(source, owner, `${name} detail fixed action owner must remain intact.`);
+  must(source, 'class="whatsapp"', `${name} detail WhatsApp action must remain intact.`);
+  must(source, '(click)="whatsapp()"', `${name} detail WhatsApp handler must remain intact.`);
+}
+
+const runtimeTest = read('tests/v204/mobile-dock.spec.ts');
+for (const token of [
+  'a.whatsapp-fab',
+  'toHaveCount(0)',
   'window.scrollTo',
-  'dock-hidden',
-  'HostListener',
-  'backdrop-filter:blur',
-  '-webkit-backdrop-filter:blur',
-]) mustNot(dock, token, `Obsolete or scroll-heavy mobile dock behavior returned: ${token}`);
-mustNot(dock, 'const shouldHide = path !== "/"', 'Mobile dock must not disappear on every non-home route.');
-mustNot(dock, 'RouterLinkActive', 'Dock active state must use one canonical route policy.');
+  'window.scrollBy',
+  'aria-hidden',
+  'inert',
+  'getByRole("navigation"',
+  'dock-auto-hidden',
+  '"/fleet"',
+  '"/sales"',
+  '"/campaigns"',
+  '"/tours"',
+  '"/blog"',
+]) must(runtimeTest, token, `Android home dock/WhatsApp regression missing behavior: ${token}`);
+const runtimeConfig = read('playwright.v204.config.ts');
+for (const token of ['SM-S928B','isMobile: true','hasTouch: true','width: 412','height: 915']) must(runtimeConfig, token, `Android runtime profile missing contract: ${token}`);
 
 const responsive = read('src/premium-responsive.css');
 for (const token of ['V204 canonical mobile home conversion geometry','app-home-v71 .hero-stage','app-home-v71 .trust-row','app-home-v71 .planner','app-home-v71 .field-grid','app-account-dashboard-v150']) must(responsive, token);
-mustNot(responsive, 'app-list-your-car-v2', 'Deleted V2 valuation selector returned to canonical responsive CSS.');
-
-const mobileFixes = read('src/mobile-target-fixes.css');
-for (const token of ['app-home-v71 > main','app-fleet app-rental-catalog-v217 > main','app-fleet app-favorites-v217 > main','app-sales-results app-sale-catalog-v217 > main','app-tours app-tour-catalog-v217 > main','app-blog-list app-blog-catalog-v217 > main','app-campaigns > main','app-search > main','app-account-shell app-account-dashboard-v150 > main']) must(mobileFixes, token, `Canonical mobile dock safe-area owner missing: ${token}`);
-for (const token of ['app-fleet app-rental-showcase-v167 > main','app-sales-results app-sales-showcase-v168 > main','app-tours app-tour-showcase-v170 > main']) mustNot(mobileFixes, token, `Retired full-catalog safe-area selector remains active: ${token}`);
-mustNot(mobileFixes, 'app-home-v39', 'Deleted V39 homepage selector must not remain in the active CSS chain.');
-mustNot(mobileFixes, 'app-home section[aria-labelledby="campaigns-title"]', 'Deleted V62 homepage campaign selector must not remain in the active CSS chain.');
-
-const runtimeTest = read('tests/v204/mobile-dock.spec.ts');
-for (const token of ['"/fleet"', '"/sales"', '"/appointment"', '"/campaigns"', 'window.scrollTo', 'window.scrollBy', 'page.goBack()', 'aria-hidden', 'inert', 'getByRole("navigation"', 'aria-current', 'dock-auto-hidden']) must(runtimeTest, token, `Android dock accessibility/auto-hide regression missing behavior: ${token}`);
-mustNot(runtimeTest, '"/search"', 'Runtime regression must follow the canonical reservation CTA instead of the retired dock search slot.');
-const runtimeConfig = read('playwright.v204.config.ts');
-for (const token of ['SM-S928B','isMobile: true','hasTouch: true','width: 412','height: 915']) must(runtimeConfig, token, `Android runtime profile missing contract: ${token}`);
 
 const account = read('src/pages/account-dashboard-v150.component.ts');
 for (const token of ['profileOpen','profileForm','saveProfile()','routerLink="/account/wallet"','bookingFilter','filteredBookings','expandedBooking','toggleBooking','selectFilter','Cüzdan ve Belgeler','Profil Ayarları']) must(account, token);

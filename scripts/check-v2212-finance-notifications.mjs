@@ -6,7 +6,7 @@ const must=(source,token,message)=>{if(!source.includes(token))failures.push(mes
 const reject=(source,token,message)=>{if(source.includes(token))failures.push(message||`Forbidden: ${token}`);};
 
 const migration=read('supabase/migrations/20260831202105_v2212_transactional_finance_notifications.sql');
-const providerMigration=read('supabase/migrations/20260831213000_v2213_notification_provider_vault.sql');
+const providerMigration=read('supabase/migrations/20260831212332_v2213_notification_provider_vault.sql');
 const notifier=read('supabase/functions/booking-notify/index.ts');
 const financeEdge=read('supabase/functions/finance-admin/index.ts');
 const financeService=read('src/services/finance.service.ts');

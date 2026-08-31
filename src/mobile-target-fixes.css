@@ -30,6 +30,12 @@
   app-account-wallet > main {
     padding-bottom: calc(7rem + env(safe-area-inset-bottom)) !important;
   }
+
+  /* Footer is outside the route-owned main element. It needs its own dock-safe
+     closing space so the final footer links never sit underneath the fixed dock. */
+  app-customer-footer-v70 .customer-footer {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom)) !important;
+  }
 }
 
 /* V213 mobile hierarchy: keep the existing Hero search contract untouched.

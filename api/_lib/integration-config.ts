@@ -48,7 +48,8 @@ export function getPaymentConfig(): ServerPaymentConfig {
     merchantId: paytrMerchantId,
     merchantKey: paytrMerchantKey,
     merchantSalt: paytrMerchantSalt,
-    testMode: asBoolean(process.env.PAYTR_TEST_MODE, true),
+    // true is an emergency force-test override. With it unset/false, Admin > Test / sandbox controls the mode.
+    testMode: asBoolean(process.env.PAYTR_TEST_MODE, false),
   };
   const iyzico = {
     sandbox: credentialSet(process.env.IYZICO_SANDBOX_API_KEY, process.env.IYZICO_SANDBOX_SECRET_KEY, "https://sandbox-api.iyzipay.com"),

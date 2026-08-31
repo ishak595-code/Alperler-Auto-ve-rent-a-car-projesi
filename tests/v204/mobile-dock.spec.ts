@@ -10,81 +10,48 @@ async function scrollRange(page: import("@playwright/test").Page): Promise<numbe
   return page.evaluate(() => Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
 }
 
-test("mobile dock leaves the accessibility tree while auto hidden and recovers on upward scroll", async ({ page }) => {
+test("home-only mobile dock disappears for TalkBack on downward scroll and hands off to home WhatsApp", async ({ page }) => {
   await page.goto("/");
 
   const dock = page.locator("nav.customer-command-dock");
   const accessibleDock = page.getByRole("navigation", { name: "Alt hızlı menü" });
-  await expect(dock).toHaveCount(1);
+  const homeWhatsapp = page.locator("a.whatsapp-fab");
+
   await expect(dock).toBeVisible();
   await expect(accessibleDock).toHaveCount(1);
-  await expect(dock).not.toHaveAttribute("aria-hidden", "true");
-  await expect(dock).not.toHaveAttribute("inert", "");
-
-  const routes = ["/fleet", "/sales", "/appointment", "/campaigns"];
-  for (const route of routes) {
-    const link = dock.locator(`a[href="${route}"]`);
-    await expect(link).toHaveAttribute("aria-label", /.+/);
-    await link.click();
-    await expect(page).toHaveURL(new RegExp(`${route.replace("/", "\\/")}(?:[?#].*)?$`));
-    await settleFrames(page);
-    await expect(dock).toHaveCount(1);
-    await expect(accessibleDock).toHaveCount(1);
-    await expect(dock).not.toHaveAttribute("aria-hidden", "true");
-    await expect(dock).not.toHaveAttribute("inert", "");
-    await expect(dock.locator(`a[href="${route}"]`)).toHaveAttribute("aria-current", "page");
-  }
-
-  await dock.locator('a[href="/fleet"]').click();
-  await expect(page).toHaveURL(/\/fleet(?:[?#].*)?$/);
-  await settleFrames(page);
+  await expect(homeWhatsapp).toHaveCount(0);
   await expect.poll(() => scrollRange(page)).toBeGreaterThan(200);
 
-  const scrollTarget = Math.min(520, await scrollRange(page));
-  expect(scrollTarget).toBeGreaterThan(120);
+  const focusTarget = dock.locator("a.dock-action").first();
+  await focusTarget.focus();
+  await expect(focusTarget).toBeFocused();
 
-  const activeDockLink = dock.locator('a[href="/fleet"]');
-  await activeDockLink.focus();
-  await expect(activeDockLink).toBeFocused();
-
-  await page.evaluate((top) => window.scrollTo(0, top), scrollTarget);
+  const target = Math.min(520, await scrollRange(page));
+  await page.evaluate((top) => window.scrollTo(0, top), target);
   await settleFrames(page);
+
   await expect.poll(async () => (await dock.getAttribute("class")) || "").toContain("dock-auto-hidden");
   await expect(dock).toHaveAttribute("aria-hidden", "true");
   await expect(dock).toHaveAttribute("inert", "");
   await expect(dock).toBeHidden();
   await expect(accessibleDock).toHaveCount(0);
-  await expect(activeDockLink).not.toBeFocused();
-  await expect(dock.locator('a[href="/fleet"]')).toHaveAttribute("aria-current", "page");
+  await expect(focusTarget).not.toBeFocused();
+  await expect(homeWhatsapp).toBeVisible();
+  await expect(homeWhatsapp).toHaveAttribute("href", /wa\.me\//);
 
-  const rememberedY = await page.evaluate(() => window.scrollY);
-  expect(rememberedY).toBeGreaterThan(24);
-
-  await page.evaluate(() => window.scrollBy(0, -260));
+  await page.evaluate(() => window.scrollBy(0, -280));
   await settleFrames(page);
-  await expect.poll(async () => (await dock.getAttribute("class")) || "").not.toContain("dock-auto-hidden");
-  await expect(dock).not.toHaveAttribute("aria-hidden", "true");
-  await expect(dock).not.toHaveAttribute("inert", "");
-  await expect(dock).toBeVisible();
-  await expect(accessibleDock).toHaveCount(1);
 
-  await dock.locator('a[href="/campaigns"]').click();
-  await expect(page).toHaveURL(/\/campaigns(?:[?#].*)?$/);
-  await expect(dock.locator('a[href="/campaigns"]')).toHaveAttribute("aria-current", "page");
-
-  await page.goBack();
-  await expect(page).toHaveURL(/\/fleet(?:[?#].*)?$/);
-  await settleFrames(page);
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(24);
-  await expect(dock).toHaveCount(1);
-  await expect(dock).not.toHaveAttribute("aria-hidden", "true");
-  await expect(dock).not.toHaveAttribute("inert", "");
-  await expect(accessibleDock).toHaveCount(1);
-  await expect(dock.locator('a[href="/fleet"]')).toHaveAttribute("aria-current", "page");
-
-  await page.evaluate(() => window.scrollBy(0, -260));
-  await settleFrames(page);
   await expect.poll(async () => (await dock.getAttribute("class")) || "").not.toContain("dock-auto-hidden");
   await expect(dock).toBeVisible();
   await expect(accessibleDock).toHaveCount(1);
+  await expect(dock).not.toHaveAttribute("aria-hidden", "true");
+  await expect(dock).not.toHaveAttribute("inert", "");
+  await expect(homeWhatsapp).toHaveCount(0);
+
+  for (const route of ["/fleet", "/sales", "/campaigns", "/tours", "/blog", "/contact"]) {
+    await page.goto(route, { waitUntil: "domcontentloaded" });
+    await expect(dock).toHaveCount(0);
+    await expect(page.locator("a.whatsapp-fab")).toHaveCount(0);
+  }
 });

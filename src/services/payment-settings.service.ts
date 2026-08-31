@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { AuthService } from './auth.service';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
 
-export type PaymentProviderSetting = 'PAYTR' | 'NONE';
+export type PaymentProviderSetting = 'PAYTR' | 'IYZICO' | 'NONE';
 export type DepositMode = 'NONE' | 'FIXED' | 'PERCENT';
 
 export interface PaymentSettings {
@@ -23,7 +23,7 @@ export interface PaymentSettings {
 const DEFAULTS: PaymentSettings = {
   provider: 'PAYTR', cardEnabled: false, eftEnabled: true, officeEnabled: true,
   depositMode: 'NONE', depositValue: 0, currency: 'TRY', bankName: '', iban: '', accountHolder: '',
-  customerNote: 'Kartla online ödeme, sağlayıcı hesabı doğrulandıktan sonra aktif edilir. Havale/EFT ve teslimde ödeme seçenekleri işletme tercihine göre kullanılabilir.',
+  customerNote: 'Kartla online ödeme, seçili sağlayıcının sunucu anahtarları doğrulandıktan sonra aktif edilir. Havale/EFT ve teslimde ödeme seçenekleri işletme tercihine göre kullanılabilir.',
   testMode: true,
 };
 
@@ -62,7 +62,7 @@ export class PaymentSettingsService {
     const value = Number(settings.depositValue || 0);
     if (!Number.isFinite(value) || value < 0) throw new Error('Depozito değeri geçerli değil.');
     if (settings.depositMode === 'PERCENT' && value > 100) throw new Error('Yüzde depozito 100 değerini geçemez.');
-    if (settings.provider === 'NONE' && settings.cardEnabled) throw new Error('Kartla ödeme için PayTR sağlayıcısını seçin.');
+    if (settings.provider === 'NONE' && settings.cardEnabled) throw new Error('Kartla ödeme için PayTR veya iyzico sağlayıcısını seçin.');
     if (settings.provider === 'PAYTR' && settings.cardEnabled && settings.currency !== 'TRY') {
       throw new Error('PayTR kart tahsilatı bu entegrasyonda TRY ile çalışır. Kart açıkken para birimini TRY seçin.');
     }
@@ -93,7 +93,7 @@ export class PaymentSettingsService {
 
   private fromRow(row: any): PaymentSettings {
     return {
-      provider: ['PAYTR','NONE'].includes(row.provider) ? row.provider : 'PAYTR',
+      provider: ['PAYTR','IYZICO','NONE'].includes(row.provider) ? row.provider : 'PAYTR',
       cardEnabled: row.card_enabled === true,
       eftEnabled: row.eft_enabled !== false,
       officeEnabled: row.office_enabled !== false,

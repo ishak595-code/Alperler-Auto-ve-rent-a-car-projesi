@@ -20,6 +20,15 @@ export interface PaymentSettings {
   testMode: boolean;
 }
 
+interface ProviderStatusPayload {
+  payment?: {
+    providerDetails?: {
+      paytr?: { configured?: boolean };
+      iyzico?: { sandboxConfigured?: boolean; liveConfigured?: boolean };
+    };
+  };
+}
+
 const DEFAULTS: PaymentSettings = {
   provider: 'PAYTR', cardEnabled: false, eftEnabled: true, officeEnabled: true,
   depositMode: 'NONE', depositValue: 0, currency: 'TRY', bankName: '', iban: '', accountHolder: '',
@@ -31,6 +40,7 @@ const DEFAULTS: PaymentSettings = {
 export class PaymentSettingsService {
   private readonly auth = inject(AuthService);
   private readonly adminEndpoint = '/api/partner?op=admin-core';
+  private readonly providerStatusEndpoint = '/api/payments?op=provider-status';
   private readonly publicSettingsSelect = 'config_key,provider,card_enabled,eft_enabled,office_enabled,deposit_mode,deposit_value,currency,bank_name,iban,account_holder,customer_note';
   private readonly _settings = signal<PaymentSettings>({ ...DEFAULTS });
   private readonly _loading = signal(false);
@@ -66,6 +76,7 @@ export class PaymentSettingsService {
     if (settings.provider === 'PAYTR' && settings.cardEnabled && settings.currency !== 'TRY') {
       throw new Error('PayTR kart tahsilatı bu entegrasyonda TRY ile çalışır. Kart açıkken para birimini TRY seçin.');
     }
+    await this.assertCardProviderReady(settings);
     const response = await fetch(this.adminEndpoint, {
       method: 'PATCH',
       headers: this.adminHeaders(token),
@@ -89,6 +100,26 @@ export class PaymentSettingsService {
     const row = await response.json().catch(() => ({})) as Record<string, unknown> & { code?: string };
     if (!response.ok) throw new Error(String(row.code || `PAYMENT_SETTINGS_${response.status}`));
     this._settings.set(row['config_key'] ? this.fromRow(row) : { ...settings });
+  }
+
+  private async assertCardProviderReady(settings: PaymentSettings): Promise<void> {
+    if (!settings.cardEnabled || settings.provider === 'NONE') return;
+    const response = await fetch(this.providerStatusEndpoint, {
+      headers: { accept: 'application/json' },
+      cache: 'no-store',
+    });
+    const payload = await response.json().catch(() => ({})) as ProviderStatusPayload;
+    if (!response.ok) throw new Error('Ödeme sağlayıcısı durumu doğrulanamadı. Kartı açmadan önce bağlantıyı yeniden kontrol edin.');
+    const details = payload.payment?.providerDetails;
+    if (settings.provider === 'PAYTR' && details?.paytr?.configured !== true) {
+      throw new Error('PayTR anahtarlarını önce Ödeme ve Depozito ekranındaki güvenli kasaya kaydedin.');
+    }
+    if (settings.provider === 'IYZICO' && settings.testMode && details?.iyzico?.sandboxConfigured !== true) {
+      throw new Error('iyzico Sandbox anahtarlarını önce Ödeme ve Depozito ekranındaki güvenli kasaya kaydedin.');
+    }
+    if (settings.provider === 'IYZICO' && !settings.testMode && details?.iyzico?.liveConfigured !== true) {
+      throw new Error('iyzico Canlı anahtarlarını önce Ödeme ve Depozito ekranındaki güvenli kasaya kaydedin.');
+    }
   }
 
   private fromRow(row: any): PaymentSettings {

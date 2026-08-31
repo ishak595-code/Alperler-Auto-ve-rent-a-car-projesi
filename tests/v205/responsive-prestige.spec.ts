@@ -18,9 +18,11 @@ test("device class keeps the intended navigation and conversion hierarchy", asyn
   const planner = page.locator("app-home-v71 .planner");
   const trust = page.locator("app-home-v71 .trust-row");
   const desktopSearch = page.locator("app-home-v71 .desktop-search");
+  const homeWhatsapp = page.locator("a.whatsapp-fab");
 
   await expect(planner).toBeVisible();
   await expect.poll(() => noHorizontalOverflow(page)).toBe(true);
+  await expect(homeWhatsapp).toHaveCount(0);
 
   if (phoneProjects.has(testInfo.project.name)) {
     await expect(dock).toBeVisible();
@@ -48,17 +50,21 @@ test("device class keeps the intended navigation and conversion hierarchy", asyn
   if (testInfo.project.name === "desktop-chromium") {
     await expect(desktopSearch).toBeVisible();
     await expect(dock).toBeHidden();
+    await expect(homeWhatsapp).toHaveCount(0);
   }
 });
 
-test("phone dock fully leaves visual and accessibility surfaces on downward scroll and returns upward", async ({ page }, testInfo) => {
+test("phone home dock leaves visual and accessibility surfaces downward, then WhatsApp replaces it until upward scroll", async ({ page }, testInfo) => {
   test.skip(!phoneProjects.has(testInfo.project.name), "Phone-class behavior only.");
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   const dock = page.locator("nav.customer-command-dock");
   const accessibleDock = page.getByRole("navigation", { name: "Alt hızlı menü" });
+  const homeWhatsapp = page.locator("a.whatsapp-fab");
+
   await expect(dock).toBeVisible();
   await expect(accessibleDock).toHaveCount(1);
+  await expect(homeWhatsapp).toHaveCount(0);
   await expect(dock).not.toHaveClass(/dock-auto-hidden/);
   await expect(dock).not.toHaveAttribute("aria-hidden", "true");
   await expect(dock).not.toHaveAttribute("inert", "");
@@ -78,6 +84,8 @@ test("phone dock fully leaves visual and accessibility surfaces on downward scro
   await expect(dock).toBeHidden();
   await expect(accessibleDock).toHaveCount(0);
   await expect(dock.locator("a.dock-action")).toHaveCount(5);
+  await expect(homeWhatsapp).toBeVisible();
+  await expect(homeWhatsapp).toHaveAttribute("href", /wa\.me\//);
 
   await page.evaluate((distance) => window.scrollBy({ top: -distance, behavior: "instant" }), Math.min(260, target));
   await expect.poll(async () => (await dock.getAttribute("class")) || "", { timeout: 3_000 }).not.toContain("dock-auto-hidden");
@@ -85,14 +93,14 @@ test("phone dock fully leaves visual and accessibility surfaces on downward scro
   await expect(dock).not.toHaveAttribute("inert", "");
   await expect(dock).toBeVisible();
   await expect(accessibleDock).toHaveCount(1);
+  await expect(homeWhatsapp).toHaveCount(0);
   await expect.poll(() => noHorizontalOverflow(page)).toBe(true);
 });
 
-test("public navigation targets resolve without the not-found shell", async ({ page }, testInfo) => {
+test("public routes stay overflow-safe and never render the home dock or home floating WhatsApp outside home", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "android-phone", "One canonical route smoke pass is sufficient.");
 
   const routes = [
-    "/",
     "/fleet",
     "/sales",
     "/search",
@@ -109,6 +117,8 @@ test("public navigation targets resolve without the not-found shell", async ({ p
   for (const route of routes) {
     await page.goto(route, { waitUntil: "domcontentloaded" });
     await expect(page.locator("app-not-found")).toHaveCount(0);
+    await expect(page.locator("nav.customer-command-dock")).toHaveCount(0);
+    await expect(page.locator("a.whatsapp-fab")).toHaveCount(0);
     await expect.poll(() => noHorizontalOverflow(page)).toBe(true);
   }
 });

@@ -20,35 +20,45 @@ for (const token of ['rentalFuelPricePerLiter:','rentalAverageConsumptionPer100K
 const catalog = read('src/services/catalog.service.ts');
 must(catalog, 'site_config?key=eq.site_settings&is_public=eq.true', 'Public site configuration must come from Supabase site_config.');
 const refresh = read('src/services/public-content-refresh-coordinator.service.ts');
-must(refresh, "this.realtime.watch(['site_config']", 'Site configuration must stay realtime-refreshable from the database.');
+for (const token of ['key: "config"','run: () => this.carService.refreshSiteConfig(true)','window.addEventListener("online"','document.addEventListener("visibilitychange"','refreshNow("online")','refreshNow("visible")']) must(refresh, token, `Database-backed site configuration refresh ownership missing ${token}`);
 
 const paymentSettings = read('src/services/payment-settings.service.ts');
 const paymentService = read('src/services/payment.service.ts');
 const paymentModel = read('src/models/payment.model.ts');
 const paymentAdmin = read('src/pages/admin/admin-payment-settings.component.ts');
+const paymentVaultAdmin = read('src/services/payment-provider-secrets.service.ts');
 const paymentDialog = read('src/components/iyzico-buyer-details-dialog.component.ts');
 const paymentEdge = read('supabase/functions/admin-core-gateway-v178/index.ts');
 const paymentMigration = read('supabase/migrations/20260831194000_v221_dual_payment_providers.sql');
+const paymentVaultMigration = read('supabase/migrations/20260831203000_v221_payment_provider_vault_credentials.sql');
 const paymentApi = read('api/payments.ts');
+const credentialResolver = read('api/_lib/payment-provider-credentials.ts');
 const integration = read('api/_lib/integration-config.ts');
 const publicOrigin = read('api/_lib/public-origin.ts');
+const paymentDocs = read('docs/payment-provider-setup.md');
 
-for (const source of [paymentSettings,paymentService,paymentModel,paymentAdmin,paymentEdge,paymentMigration,paymentApi,integration]) reject(source,'GENERIC_HOSTED','Retired generic hosted provider must not return.');
+for (const source of [paymentSettings,paymentService,paymentModel,paymentAdmin,paymentEdge,paymentMigration,paymentVaultMigration,paymentApi,credentialResolver,integration]) reject(source,'GENERIC_HOSTED','Retired generic hosted provider must not return.');
 for (const token of ["'PAYTR' | 'IYZICO' | 'NONE'",'PAYTR_CARD_REQUIRES_TRY','CARD_PROVIDER_REQUIRED']) must(`${paymentSettings}\n${paymentEdge}\n${paymentMigration}`,token,`Dual payment provider invariant missing ${token}`);
-for (const token of ['<option value="PAYTR">PayTR</option>','<option value="IYZICO">iyzico</option>','<option value="NONE">Online kart kapalı</option>']) must(paymentAdmin,token,`Admin provider option missing ${token}`);
+for (const token of ['<option value="PAYTR">PayTR</option>','<option value="IYZICO">iyzico</option>','<option value="NONE">Online kart kapalı</option>','PayTR Güvenli Bağlantı','iyzico Sandbox Bağlantısı','iyzico Canlı Bağlantısı','autocomplete="new-password"']) must(paymentAdmin,token,`Admin no-code provider setup missing ${token}`);
 must(paymentAdmin,"form.provider==='PAYTR'&&form.cardEnabled",'PayTR currency lock must remain scoped to PayTR.');
-for (const token of ['PAYTR_MERCHANT_ID','PAYTR_MERCHANT_KEY','PAYTR_MERCHANT_SALT','IYZICO_API_KEY','IYZICO_SECRET_KEY','IYZICO_SANDBOX_API_KEY','IYZICO_SANDBOX_SECRET_KEY']) must(integration,token,`Server payment secret contract missing ${token}`);
-for (const token of ['createPaytr(','createIyzico(','iyzicoCallback(','paytrCallback(','providerStatus()','IYZWSv2','IYZICO_RESULT_SIGNATURE_INVALID','payment_transactions?provider=eq.iyzico']) must(paymentApi,token,`Payment gateway implementation missing ${token}`);
+for (const token of ['payment-provider-secrets','SAVE_PAYMENT_PROVIDER_SECRETS','CLEAR_PAYMENT_PROVIDER_SECRETS','service_payment_provider_secret_status_v221','service_set_payment_provider_secrets_v221','service_clear_payment_provider_secrets_v221']) must(`${paymentVaultAdmin}\n${paymentEdge}`,token,`Admin encrypted secret bridge missing ${token}`);
+for (const token of ['vault.create_secret','vault.update_secret','vault.decrypted_secrets','service_payment_provider_credentials_v221','revoke all on function public.service_payment_provider_credentials_v221(text,boolean) from public, anon, authenticated','grant execute on function public.service_payment_provider_credentials_v221(text,boolean) to service_role','secret_values_logged',"'payment_provider_secret'"]) must(paymentVaultMigration,token,`Payment Vault boundary missing ${token}`);
+for (const token of ['resolvePaytrCredentials','resolveIyzicoCredentials','service_payment_provider_credentials_v221','SUPABASE_SERVICE_ROLE_KEY']) must(credentialResolver,token,`Server Vault credential resolver missing ${token}`);
+for (const token of ['PAYTR_MERCHANT_ID','PAYTR_MERCHANT_KEY','PAYTR_MERCHANT_SALT','IYZICO_API_KEY','IYZICO_SECRET_KEY','IYZICO_SANDBOX_API_KEY','IYZICO_SANDBOX_SECRET_KEY']) must(integration,token,`Server payment environment fallback contract missing ${token}`);
+for (const token of ['createPaytr(','createIyzico(','iyzicoCallback(','iyzicoFraudNotification(','paytrCallback(','providerStatus()','IYZWSv2','IYZICO_RESULT_SIGNATURE_INVALID','IYZICO_FRAUD_RESULT_SIGNATURE_INVALID','payment_transactions?provider=eq.iyzico','payment_amount','total_amount','fraudStatus===0','"AUTHORIZED"','/payment/detail','iyzico-fraud-notification']) must(paymentApi,token,`Payment gateway implementation missing ${token}`);
 for (const token of ['MatDialog','IyzicoBuyerDetailsDialogComponent','status.provider === \'iyzico\'']) must(paymentService,token,`iyzico customer preflight missing ${token}`);
 for (const token of ['Kimlik / pasaport numarası','Fatura adresi','Uygulamanın ödeme işlem geçmişine kimlik veya açık adres kopyası yazılmaz']) must(paymentDialog,token,`iyzico privacy/accessibility contract missing ${token}`);
 const snapshots = paymentApi.match(/requestSnapshot:\{[^}]*\}/g) || [];
 for (const snapshot of snapshots) for (const sensitive of ['identityNumber','billingAddress','zipCode']) reject(snapshot,sensitive,`Sensitive iyzico field must not be persisted in transaction request snapshot: ${sensitive}`);
 for (const token of ['APP_PUBLIC_ORIGIN','PUBLIC_APP_URL','SITE_URL','VERCEL_PROJECT_PRODUCTION_URL','VERCEL_URL']) must(publicOrigin,token,`Portable public-origin source missing ${token}`);
 for (const token of ['allowedOrigins','safeReturnUrl','/api/payments?op=iyzico-callback']) must(paymentApi,token,`Portable payment callback/origin contract missing ${token}`);
+for (const token of ['https://YOUR_DOMAIN/api/payments?op=paytr-callback','https://YOUR_DOMAIN/api/payments?op=iyzico-callback','https://YOUR_DOMAIN/api/payments?op=iyzico-fraud-notification','Supabase Vault','payment_amount','fraudStatus=0']) must(paymentDocs,token,`Payment operator guide missing ${token}`);
+reject(paymentDocs,'/api/payments/paytr-callback','Operator guide must not publish the retired PayTR callback path.');
 
 for (const file of walk('src').filter((file) => /\.(?:ts|html|css)$/.test(file))) {
   const source = read(file);
-  for (const secret of ['PAYTR_MERCHANT_KEY','PAYTR_MERCHANT_SALT','IYZICO_SECRET_KEY','IYZICO_SANDBOX_SECRET_KEY','SUPABASE_SERVICE_ROLE_KEY']) if (source.includes(secret)) failures.push(`${file} must not reference server-only secret ${secret}`);
+  for (const secret of ['PAYTR_MERCHANT_KEY','PAYTR_MERCHANT_SALT','IYZICO_SECRET_KEY','IYZICO_SANDBOX_SECRET_KEY','SUPABASE_SERVICE_ROLE_KEY']) if (source.includes(secret)) failures.push(`${file} must not reference server-only environment secret ${secret}`);
+  if (source.includes('service_payment_provider_credentials_v221')) failures.push(`${file} must not read decrypted Vault credentials from browser code.`);
 }
 
 const deviceConfig = read('playwright.v205.config.ts');

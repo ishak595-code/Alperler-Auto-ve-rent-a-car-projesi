@@ -28,6 +28,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Release ownership invariant
         run: node scripts/check-v221-release-readiness.mjs
+      - name: Finance and notification invariant
+        run: node scripts/check-v2212-finance-notifications.mjs
       - name: Dependency vulnerability gate
         run: npm audit --audit-level=high
       - name: Frontend TypeScript
@@ -36,6 +38,10 @@ jobs:
         run: npx tsc --noEmit -p tsconfig.api.json
       - name: Admin core Edge Function TypeScript
         run: npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/admin-core-gateway-v178/index.ts
+      - name: Booking notification Edge Function TypeScript
+        run: npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/booking-notify/index.ts
+      - name: Finance Edge Function TypeScript
+        run: npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/finance-admin/index.ts
       - name: Production build
         run: npm run build
       - name: Vercel function budget

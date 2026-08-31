@@ -1,10 +1,10 @@
 import { HttpClient } from "@angular/common/http";
 import { Injectable, computed, inject, signal } from "@angular/core";
 import { firstValueFrom } from "rxjs";
-import { IntegrationStatusResponse, PaymentIntegrationStatus, PaymentSessionRequest, PaymentSessionResponse } from "../models/payment.model";
+import { IntegrationStatusResponse, PaymentIntegrationStatus, PaymentProvider, PaymentSessionRequest, PaymentSessionResponse } from "../models/payment.model";
 import { PaymentSettingsService } from "./payment-settings.service";
 
-const FALLBACK_PAYMENT_STATUS: PaymentIntegrationStatus = { provider:"none", configured:false, cardEnabled:false, eftEnabled:true, officeEnabled:true };
+const FALLBACK_PAYMENT_STATUS: PaymentIntegrationStatus = { provider:"none", configured:false, cardEnabled:false, eftEnabled:true, officeEnabled:true, availableProviders:{paytr:false,iyzico:false} };
 
 @Injectable({ providedIn: "root" })
 export class PaymentService {
@@ -16,14 +16,16 @@ export class PaymentService {
   readonly paymentStatus = computed<PaymentIntegrationStatus>(() => {
     const integration = this.integrationStatus()?.payment ?? FALLBACK_PAYMENT_STATUS;
     const settings = this.settingsService.settings();
-    const configuredProvider = settings.provider === 'PAYTR' ? 'paytr' : 'none';
-    const providerMatches = configuredProvider === integration.provider && configuredProvider === 'paytr';
+    const selected: PaymentProvider = settings.provider === 'PAYTR' ? 'paytr' : settings.provider === 'IYZICO' ? 'iyzico' : 'none';
+    const availability = integration.availableProviders ?? { paytr: integration.provider === 'paytr' && integration.configured, iyzico: integration.provider === 'iyzico' && integration.configured };
+    const configured = selected === 'paytr' ? availability.paytr : selected === 'iyzico' ? availability.iyzico : false;
     return {
-      provider: integration.provider,
-      configured: integration.configured && providerMatches,
-      cardEnabled: settings.cardEnabled && integration.cardEnabled && integration.configured && providerMatches,
+      provider: selected,
+      configured,
+      cardEnabled: settings.cardEnabled && configured && integration.cardEnabled,
       eftEnabled: settings.eftEnabled,
       officeEnabled: settings.officeEnabled,
+      availableProviders: availability,
     };
   });
   readonly cardReady = computed(() => this.paymentStatus().cardEnabled);
@@ -50,7 +52,7 @@ export class PaymentService {
   async ensureStatusLoaded(): Promise<void> { if (!this.statusLoaded()) await this.refreshIntegrationStatus(); }
   async createCardSession(request: PaymentSessionRequest): Promise<PaymentSessionResponse> {
     await this.ensureStatusLoaded();
-    if (!this.cardReady()) return { ok:false,status:"not_configured",provider:this.paymentStatus().provider,message:"Online kart ödeme altyapısı henüz aktif değil. Havale/EFT veya teslimde ödeme seçebilirsiniz." };
+    if (!this.cardReady()) return { ok:false,status:"not_configured",provider:this.paymentStatus().provider,message:"Seçili kart ödeme sağlayıcısı henüz aktif değil. Havale/EFT veya teslimde ödeme seçebilirsiniz." };
     try { return await firstValueFrom(this.http.post<PaymentSessionResponse>("/api/payments/create-session", request)); }
     catch (error) { console.error("Payment session creation failed.", error); return {ok:false,status:"error",provider:this.paymentStatus().provider,message:"Ödeme oturumu başlatılamadı. Rezervasyon kaydınız korunuyor."}; }
   }

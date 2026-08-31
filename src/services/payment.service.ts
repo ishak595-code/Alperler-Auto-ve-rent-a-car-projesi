@@ -1,6 +1,8 @@
 import { HttpClient } from "@angular/common/http";
 import { Injectable, computed, inject, signal } from "@angular/core";
+import { MatDialog } from "@angular/material/dialog";
 import { firstValueFrom } from "rxjs";
+import { IyzicoBuyerDetails, IyzicoBuyerDetailsDialogComponent } from "../components/iyzico-buyer-details-dialog.component";
 import { IntegrationStatusResponse, PaymentIntegrationStatus, PaymentProvider, PaymentSessionRequest, PaymentSessionResponse } from "../models/payment.model";
 import { PaymentSettingsService } from "./payment-settings.service";
 
@@ -9,6 +11,7 @@ const FALLBACK_PAYMENT_STATUS: PaymentIntegrationStatus = { provider:"none", con
 @Injectable({ providedIn: "root" })
 export class PaymentService {
   private readonly http = inject(HttpClient);
+  private readonly dialog = inject(MatDialog);
   private readonly settingsService = inject(PaymentSettingsService);
   private readonly integrationStatus = signal<IntegrationStatusResponse | null>(null);
   private readonly gatewayPaymentStatus = signal<PaymentIntegrationStatus | null>(null);
@@ -45,8 +48,28 @@ export class PaymentService {
   async ensureStatusLoaded(): Promise<void> { if (!this.statusLoaded()) await this.refreshIntegrationStatus(); }
   async createCardSession(request: PaymentSessionRequest): Promise<PaymentSessionResponse> {
     await this.ensureStatusLoaded();
-    if (!this.cardReady()) return { ok:false,status:"not_configured",provider:this.paymentStatus().provider,message:"Seçili kart ödeme sağlayıcısı henüz aktif değil. Havale/EFT veya teslimde ödeme seçebilirsiniz." };
-    try { return await firstValueFrom(this.http.post<PaymentSessionResponse>("/api/payments/create-session", request)); }
-    catch (error) { console.error("Payment session creation failed.", error); return {ok:false,status:"error",provider:this.paymentStatus().provider,message:"Ödeme oturumu başlatılamadı. Rezervasyon kaydınız korunuyor."}; }
+    const status = this.paymentStatus();
+    if (!this.cardReady()) return { ok:false,status:"not_configured",provider:status.provider,message:"Seçili kart ödeme sağlayıcısı henüz aktif değil. Havale/EFT veya teslimde ödeme seçebilirsiniz." };
+    let payload = request;
+    if (status.provider === 'iyzico') {
+      const details = await this.collectIyzicoBuyerDetails(request);
+      if (!details) return { ok:false,status:"rejected",provider:'iyzico',message:'iyzico ödeme bilgileri tamamlanmadığı için kart işlemi başlatılmadı.' };
+      payload = { ...request, customer: { ...request.customer, ...details } };
+    }
+    try { return await firstValueFrom(this.http.post<PaymentSessionResponse>("/api/payments/create-session", payload)); }
+    catch (error) { console.error("Payment session creation failed.", error); return {ok:false,status:"error",provider:status.provider,message:"Ödeme oturumu başlatılamadı. Rezervasyon kaydınız korunuyor."}; }
+  }
+
+  private async collectIyzicoBuyerDetails(request: PaymentSessionRequest): Promise<IyzicoBuyerDetails | null> {
+    const customer = request.customer;
+    if (customer.identityNumber && customer.billingAddress && customer.city && customer.country && customer.zipCode) {
+      return { identityNumber:customer.identityNumber, billingAddress:customer.billingAddress, city:customer.city, country:customer.country, zipCode:customer.zipCode };
+    }
+    const ref = this.dialog.open<IyzicoBuyerDetailsDialogComponent, Partial<IyzicoBuyerDetails>, IyzicoBuyerDetails | null>(IyzicoBuyerDetailsDialogComponent, {
+      width: 'min(560px, 94vw)', maxWidth: '94vw', disableClose: true, autoFocus: 'first-tabbable', restoreFocus: true,
+      data: { identityNumber:customer.identityNumber, billingAddress:customer.billingAddress, city:customer.city, country:customer.country || 'Türkiye', zipCode:customer.zipCode },
+      ariaLabel: 'iyzico ödeme için kimlik ve fatura bilgileri',
+    });
+    return await firstValueFrom(ref.afterClosed()) ?? null;
   }
 }

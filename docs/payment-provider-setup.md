@@ -68,7 +68,7 @@ In the PayTR Merchant Panel, configure the production **Bildirim URL / Callback 
 https://YOUR_DOMAIN/api/payments?op=paytr-callback
 ```
 
-Do not use `/api/payments/paytr-callback`; this project uses the `op=paytr-callback` router operation.
+This project routes payment callbacks through the `op=paytr-callback` operation shown above.
 
 The application:
 

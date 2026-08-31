@@ -77,7 +77,7 @@ export class CustomerMobileDockComponent {
   }
 
   isPrimary(item: NavigationItem): boolean {
-    return item.itemKey === "appointment" || item.metadata?.["primary"] === true;
+    return item.itemKey === "search";
   }
 
   private updateVisibility(rawUrl: string): void {

@@ -137,17 +137,16 @@ for (const contract of [
   'this.hidden.set(shouldHide)',
   'setMobileDockRouteHidden(shouldHide)',
 ]) must(mobileDock, contract, `Global mobile dock must delegate visibility to the canonical route policy: ${contract}`);
-mustNot(mobileDock, 'const shouldHide = path !== "/"', 'Mobile dock must not be hidden on every non-home customer route.');
 
 const mobileDockPolicy = read(mobileDockPolicyPath);
-for (const contract of [
-  '/^\\/fleet\\/[^/]+$/',
-  '/^\\/sales\\/[^/]+$/',
-  '/^\\/tour\\/[^/]+$/',
-  "'/booking-checkout'",
-  "'/admin'",
-  "'/branch-portal'",
-]) must(mobileDockPolicy, contract, `Detail/transaction route must suppress global dock through policy: ${contract}`);
+must(
+  mobileDockPolicy,
+  "return cleanCustomerPath(rawUrl) === '/'",
+  'Global mobile dock must use a homepage-only allowlist so every detail, transaction, admin and future non-home route is suppressed by default.',
+);
+for (const legacy of ['MOBILE_DOCK_SUPPRESSED_EXACT', 'MOBILE_DOCK_SUPPRESSED_PREFIXES', 'MOBILE_DOCK_DETAIL_ROUTES']) {
+  mustNot(mobileDockPolicy, legacy, `Legacy dock route blacklist must not return: ${legacy}`);
+}
 
 if ((tour.match(/\(click\)="openReservation\(\)"/g) || []).length !== 1) throw new Error('Tour detail must expose exactly one primary reservation action.');
 if ((tour.match(/\(click\)="whatsapp\(\)"/g) || []).length !== 1) throw new Error('Tour detail must expose exactly one WhatsApp action.');

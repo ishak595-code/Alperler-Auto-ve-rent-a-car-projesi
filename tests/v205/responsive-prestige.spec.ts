@@ -24,6 +24,10 @@ test("device class keeps the intended navigation and conversion hierarchy", asyn
 
   if (phoneProjects.has(testInfo.project.name)) {
     await expect(dock).toBeVisible();
+    await expect(dock.locator("a.dock-action")).toHaveCount(5);
+    await expect(dock.locator('a[href="/search"]')).toHaveAttribute("aria-label", "İlan Ara");
+    await expect(dock.locator('a[href="/account"]')).toHaveAttribute("aria-label", "Profil");
+    await expect(dock.locator('a[href="/appointment"]')).toHaveCount(0);
     await expect(desktopSearch).toBeHidden();
     await expect(trust).toBeVisible();
 
@@ -51,13 +55,15 @@ test("device class keeps the intended navigation and conversion hierarchy", asyn
   }
 });
 
-test("phone dock hides on downward scroll and returns on upward scroll without leaving the accessibility tree", async ({ page }, testInfo) => {
+test("phone dock leaves the accessibility tree on downward scroll and returns on upward scroll", async ({ page }, testInfo) => {
   test.skip(!phoneProjects.has(testInfo.project.name), "Phone-class behavior only.");
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   const dock = page.locator("nav.customer-command-dock");
   await expect(dock).toBeVisible();
   await expect(dock).not.toHaveClass(/dock-auto-hidden/);
+  await expect(dock).not.toHaveAttribute("aria-hidden", "true");
+  await expect(dock).not.toHaveAttribute("inert", "");
 
   await expect.poll(() => scrollRange(page), { timeout: 10_000 }).toBeGreaterThan(180);
   const target = await page.evaluate(() => {
@@ -66,14 +72,22 @@ test("phone dock hides on downward scroll and returns on upward scroll without l
   });
   expect(target).toBeGreaterThan(120);
 
+  const focusedLink = dock.locator('a[href="/search"]');
+  await focusedLink.focus();
+  await expect(focusedLink).toBeFocused();
+
   await page.evaluate((top) => window.scrollTo({ top, behavior: "instant" }), target);
   await expect.poll(async () => (await dock.getAttribute("class")) || "", { timeout: 3_000 }).toContain("dock-auto-hidden");
-  await expect(dock).toHaveAttribute("aria-label", "Alt hızlı menü");
-  await expect(dock.locator("a.dock-action")).toHaveCount(5);
+  await expect(dock).toHaveAttribute("aria-hidden", "true");
+  await expect(dock).toHaveAttribute("inert", "");
+  await expect(dock).toBeHidden();
+  await expect(focusedLink).not.toBeFocused();
 
   await page.evaluate((distance) => window.scrollBy({ top: -distance, behavior: "instant" }), Math.min(260, target));
   await expect.poll(async () => (await dock.getAttribute("class")) || "", { timeout: 3_000 }).not.toContain("dock-auto-hidden");
   await expect(dock).toBeVisible();
+  await expect(dock).not.toHaveAttribute("aria-hidden", "true");
+  await expect(dock).not.toHaveAttribute("inert", "");
   await expect.poll(() => noHorizontalOverflow(page)).toBe(true);
 });
 

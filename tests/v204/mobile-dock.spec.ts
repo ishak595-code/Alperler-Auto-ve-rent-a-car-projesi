@@ -14,8 +14,10 @@ test("mobile dock leaves the TalkBack tree while auto-hidden and restores cleanl
   await page.goto("/");
 
   const dock = page.locator("nav.customer-command-dock");
+  const accessibleDock = page.getByRole("navigation", { name: "Alt hızlı menü" });
   await expect(dock).toHaveCount(1);
   await expect(dock).toBeVisible();
+  await expect(accessibleDock).toHaveCount(1);
   await expect(dock).not.toHaveAttribute("aria-hidden", "true");
   await expect(dock).not.toHaveAttribute("inert", "");
   await expect(dock.locator('a[href="/fleet"]')).toHaveAttribute("aria-label", "Kiralık");
@@ -33,6 +35,7 @@ test("mobile dock leaves the TalkBack tree while auto-hidden and restores cleanl
     await expect(page).toHaveURL(new RegExp(`${route.replace("/", "\\/")}(?:[?#].*)?$`));
     await settleFrames(page);
     await expect(dock).toHaveCount(1);
+    await expect(accessibleDock).toHaveCount(1);
     await expect(dock).not.toHaveAttribute("aria-hidden", "true");
     await expect(dock).not.toHaveAttribute("inert", "");
     await expect(dock.locator(`a[href="${route}"]`)).toHaveAttribute("aria-current", "page");
@@ -56,6 +59,7 @@ test("mobile dock leaves the TalkBack tree while auto-hidden and restores cleanl
   await expect(dock).toHaveAttribute("aria-hidden", "true");
   await expect(dock).toHaveAttribute("inert", "");
   await expect(dock).toBeHidden();
+  await expect(accessibleDock).toHaveCount(0);
   await expect(focusedLink).not.toBeFocused();
   await expect(dock.locator('a[href="/fleet"]')).toHaveAttribute("aria-current", "page");
 
@@ -66,6 +70,7 @@ test("mobile dock leaves the TalkBack tree while auto-hidden and restores cleanl
   await settleFrames(page);
   await expect.poll(async () => (await dock.getAttribute("class")) || "").not.toContain("dock-auto-hidden");
   await expect(dock).toBeVisible();
+  await expect(accessibleDock).toHaveCount(1);
   await expect(dock).not.toHaveAttribute("aria-hidden", "true");
   await expect(dock).not.toHaveAttribute("inert", "");
 
@@ -84,6 +89,7 @@ test("mobile dock leaves the TalkBack tree while auto-hidden and restores cleanl
   await settleFrames(page);
   await expect.poll(async () => (await dock.getAttribute("class")) || "").not.toContain("dock-auto-hidden");
   await expect(dock).toBeVisible();
+  await expect(accessibleDock).toHaveCount(1);
   await expect(dock).not.toHaveAttribute("aria-hidden", "true");
   await expect(dock).not.toHaveAttribute("inert", "");
 });

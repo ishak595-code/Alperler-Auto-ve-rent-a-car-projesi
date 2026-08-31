@@ -63,7 +63,8 @@ for (const token of [
   'vehiclesByIdentifiers',
   'toursByIdentifiers',
   'blogsByIdentifiers',
-  'Daha Fazla Favori Göster',
+  'loadMore()',
+  'hasMore()',
 ]) {
   if (!page.includes(token)) throw new Error(`V217_FAVORITES_PAGE_CONTRACT_MISSING:${token}`);
 }

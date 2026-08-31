@@ -10,7 +10,7 @@ async function scrollRange(page: import("@playwright/test").Page): Promise<numbe
   return page.evaluate(() => Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
 }
 
-test("mobile dock leaves the TalkBack tree while auto-hidden and restores cleanly", async ({ page }) => {
+test("mobile dock keeps the latest five-item contract and leaves the TalkBack tree while auto-hidden", async ({ page }) => {
   await page.goto("/");
 
   const dock = page.locator("nav.customer-command-dock");
@@ -20,14 +20,16 @@ test("mobile dock leaves the TalkBack tree while auto-hidden and restores cleanl
   await expect(accessibleDock).toHaveCount(1);
   await expect(dock).not.toHaveAttribute("aria-hidden", "true");
   await expect(dock).not.toHaveAttribute("inert", "");
+  await expect(dock.locator("a.dock-action")).toHaveCount(5);
   await expect(dock.locator('a[href="/fleet"]')).toHaveAttribute("aria-label", "Kiralık");
   await expect(dock.locator('a[href="/sales"]')).toHaveAttribute("aria-label", "Satılık");
-  await expect(dock.locator('a[href="/search"]')).toHaveAttribute("aria-label", "İlan Ara");
+  await expect(dock.locator('a[href="/search"]')).toHaveAttribute("aria-label", "Ara");
   await expect(dock.locator('a[href="/campaigns"]')).toHaveAttribute("aria-label", "Fırsatlar");
-  await expect(dock.locator('a[href="/account"]')).toHaveAttribute("aria-label", "Profil");
-  await expect(dock.locator('a[href="/appointment"]')).toHaveCount(0);
+  await expect(dock.locator('a[href="/appointment"]')).toHaveAttribute("aria-label", "Randevu");
+  await expect(dock.locator('a[href="/account"]')).toHaveCount(0);
+  await expect(dock.locator('a[href="/search"]')).toHaveClass(/dock-primary/);
 
-  const routes = ["/fleet", "/sales", "/search", "/campaigns"];
+  const routes = ["/fleet", "/sales", "/search", "/campaigns", "/appointment"];
   for (const route of routes) {
     const link = dock.locator(`a[href="${route}"]`);
     await expect(link).toHaveAttribute("aria-label", /.+/);

@@ -19,6 +19,10 @@ export class PublicDetailDataService {
   private readonly storagePrefix = `${SUPABASE_PROJECT_URL}/storage/v1/object/public/catalog-media/`;
   private readonly uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   private readonly numericPattern = /^\d+$/;
+  private readonly transientStatuses = new Set([408, 425, 429, 500, 502, 503, 504]);
+  private readonly detailCache = new Map<string, { value: Vehicle; expiresAt: number }>();
+  private readonly detailInFlight = new Map<string, Promise<Vehicle>>();
+  private readonly detailCacheTtlMs = 20_000;
   private readonly vehicleSelect = [
     "id", "stock_code", "category", "brand", "model", "model_year", "price", "currency",
     "rental_price_daily", "rental_price_hourly", "hourly_rental_enabled", "minimum_rental_hours", "hourly_mileage_limit",
@@ -37,9 +41,27 @@ export class PublicDetailDataService {
   async load(kind: DetailKind, routeId: string): Promise<Vehicle> {
     const clean = String(routeId || "").trim();
     if (!clean) throw new Error(this.notFoundMessage(kind));
-    const item = kind === "TOUR" ? await this.loadTourDirect(clean) : await this.loadVehicleDirect(kind, clean);
-    if (!item) throw new Error(this.notFoundMessage(kind));
-    return this.prepare(item, kind);
+
+    const cacheKey = `${kind}:${clean}`;
+    const cached = this.detailCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.value;
+    if (cached) this.detailCache.delete(cacheKey);
+
+    const existing = this.detailInFlight.get(cacheKey);
+    if (existing) return existing;
+
+    const request = (async () => {
+      const item = kind === "TOUR" ? await this.loadTourDirect(clean) : await this.loadVehicleDirect(kind, clean);
+      if (!item) throw new Error(this.notFoundMessage(kind));
+      const prepared = this.prepare(item, kind);
+      this.detailCache.set(cacheKey, { value: prepared, expiresAt: Date.now() + this.detailCacheTtlMs });
+      return prepared;
+    })().finally(() => {
+      if (this.detailInFlight.get(cacheKey) === request) this.detailInFlight.delete(cacheKey);
+    });
+
+    this.detailInFlight.set(cacheKey, request);
+    return request;
   }
 
   async loadBlogList(): Promise<BlogDetailPost[]> {
@@ -169,15 +191,37 @@ export class PublicDetailDataService {
   }
 
   private async fetchRows(path: string, code: string): Promise<Record<string, any>[]> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
-      method: "GET",
-      cache: "no-store",
-      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, accept: "application/json", "cache-control": "no-cache" },
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!response.ok) throw new Error(`${code}_${response.status}`);
-    const payload = await response.json();
-    return Array.isArray(payload) ? payload : [];
+    const maxAttempts = 2;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      let response: Response;
+      try {
+        response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
+          method: "GET",
+          cache: "no-store",
+          headers: { apikey: SUPABASE_PUBLISHABLE_KEY, accept: "application/json", "cache-control": "no-cache" },
+          signal: AbortSignal.timeout(8_000),
+        });
+      } catch (error) {
+        if (attempt >= maxAttempts) throw new Error(`${code}_NETWORK`, { cause: error });
+        await this.wait(220 * attempt);
+        continue;
+      }
+
+      if (response.ok) {
+        const payload = await response.json();
+        return Array.isArray(payload) ? payload : [];
+      }
+
+      if (!this.transientStatuses.has(response.status) || attempt >= maxAttempts) {
+        throw new Error(`${code}_${response.status}`);
+      }
+      await this.wait(220 * attempt);
+    }
+    throw new Error(`${code}_NETWORK`);
+  }
+
+  private wait(milliseconds: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
   }
 
   private mapVehicle(row: Record<string, any>, category: "RENTAL" | "SALE"): Vehicle {

@@ -19,13 +19,17 @@ requireText(dock, "(max-width:639px) and (pointer:coarse)", "Dock must be phone-
 requireText(dock, "(max-width:950px) and (max-height:500px) and (pointer:coarse)", "Dock must preserve short coarse landscape phones.");
 if (dock.includes("@media (max-width:767px) and (pointer:coarse)")) failures.push("Legacy 767px dock breakpoint must not return.");
 
-requireText(dock, "<nav class=\"customer-command-dock\"", "Customer dock must remain a native navigation landmark.");
+requireText(dock, "class=\"customer-command-dock\"", "Customer dock must remain a native navigation landmark.");
 requireText(dock, "[routerLink]=\"item.route\"", "Customer dock actions must remain native router links.");
 requireText(dock, "[attr.aria-current]=\"isCurrent(item.route) ? 'page' : null\"", "Current dock destination must expose aria-current=page.");
 requireText(dock, "track item.id", "Dock items must keep stable DOM identity across route changes.");
 requireText(dock, "[attr.aria-label]=\"item.label\"", "Dock actions must keep stable accessible names.");
-rejectText(dock, "[attr.aria-hidden]", "The dock must never disappear from the accessibility tree because of scroll state.");
-rejectText(dock, "[attr.inert]", "The dock must never become inert because of scroll state.");
+requireText(dock, "[attr.aria-hidden]=\"autoHidden() ? 'true' : null\"", "Auto-hidden dock must leave the accessibility tree.");
+requireText(dock, "[attr.inert]=\"autoHidden() ? '' : null\"", "Auto-hidden dock must leave sequential focus navigation.");
+requireText(dock, "visibility:hidden", "Auto-hidden dock must not remain visually or accessibility-visible.");
+requireText(dock, "releaseDockFocus()", "Dock must release focus before becoming inert.");
+requireText(dock, "isPhoneDockViewport()", "Dock auto-hide state must be limited to actual phone-class viewports.");
+requireText(dock, "window.matchMedia", "Dock viewport ownership must match the CSS media contract.");
 rejectText(dock, "HostListener", "The mobile dock must not use an unthrottled HostListener scroll path.");
 requireText(dock, "window.requestAnimationFrame", "Dock scroll behavior must be requestAnimationFrame throttled.");
 requireText(dock, "Math.abs(delta) < 12", "Dock scroll behavior must retain hysteresis to prevent jitter.");
@@ -37,6 +41,7 @@ rejectText(dock, "-webkit-backdrop-filter:blur", "Fixed phone dock must not use 
 
 requireText(spacing, "(max-width:639px) and (pointer:coarse)", "Dock content spacing must match phone-class portrait.");
 requireText(spacing, "(max-width:950px) and (max-height:500px) and (pointer:coarse)", "Dock content spacing must match phone landscape.");
+requireText(spacing, "app-customer-footer-v70 .customer-footer", "Footer must reserve its own fixed-dock safe area.");
 requireText(layout, "@media(max-width:639px) and (pointer:coarse)", "WhatsApp offset must match the phone dock breakpoint.");
 
 requireText(device, "app-home-v71 .hero-copy-block", "Device contract must own the phone hero hierarchy.");

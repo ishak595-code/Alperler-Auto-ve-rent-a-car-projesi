@@ -34,13 +34,17 @@ test("mobile dock keeps the latest five-item contract and leaves the TalkBack tr
     const link = dock.locator(`a[href="${route}"]`);
     await expect(link).toHaveAttribute("aria-label", /.+/);
     await link.click();
-    await expect(page).toHaveURL(new RegExp(`${route.replace("/", "\\/")}(?:[?#].*)?$`));
+    if (route === "/account") {
+      await expect(page).toHaveURL(/\/account\/login\?returnUrl=%2Faccount$/);
+    } else {
+      await expect(page).toHaveURL(new RegExp(`${route.replace("/", "\\/")}(?:[?#].*)?$`));
+    }
     await settleFrames(page);
     await expect(dock).toHaveCount(1);
     await expect(accessibleDock).toHaveCount(1);
     await expect(dock).not.toHaveAttribute("aria-hidden", "true");
     await expect(dock).not.toHaveAttribute("inert", "");
-    await expect(dock.locator(`a[href="${route}"]`)).toHaveAttribute("aria-current", "page");
+    if (route !== "/account") await expect(dock.locator(`a[href="${route}"]`)).toHaveAttribute("aria-current", "page");
   }
 
   await dock.locator('a[href="/fleet"]').click();

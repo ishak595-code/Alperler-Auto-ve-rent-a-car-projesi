@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal } from "@angular/core";
+import { Component, DestroyRef, ElementRef, inject, signal } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { NavigationEnd, Router, RouterLink } from "@angular/router";
 import { NavigationConfigService, NavigationItem } from "../services/navigation-config.service";
@@ -10,7 +10,13 @@ import { isDockItemCurrent, shouldRenderMobileDock } from "../services/mobile-do
   imports: [MatIconModule, RouterLink],
   template: `
     @if (!hidden() && navigation.mobileDockEnabled()) {
-      <nav class="customer-command-dock" [class.dock-auto-hidden]="autoHidden()" aria-label="Alt hızlı menü">
+      <nav
+        class="customer-command-dock"
+        [class.dock-auto-hidden]="autoHidden()"
+        [attr.aria-hidden]="autoHidden() ? 'true' : null"
+        [attr.inert]="autoHidden() ? '' : null"
+        aria-label="Alt hızlı menü"
+      >
         @for (item of navigation.itemsFor('MOBILE_DOCK'); track item.id) {
           <a
             [routerLink]="item.route"
@@ -31,8 +37,8 @@ import { isDockItemCurrent, shouldRenderMobileDock } from "../services/mobile-do
   styles: [`
     :host{display:contents}.customer-command-dock{display:none}
     @media (max-width:639px) and (pointer:coarse), (max-width:950px) and (max-height:500px) and (pointer:coarse){
-      .customer-command-dock{position:fixed;z-index:88;left:max(.42rem,env(safe-area-inset-left));right:max(.42rem,env(safe-area-inset-right));bottom:max(.42rem,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;min-height:70px;overflow:visible;padding:4px;border:1px solid color-mix(in srgb,var(--alper-border,#27364a) 82%,transparent);border-radius:min(var(--site-radius,20px),22px);background:linear-gradient(180deg,var(--alper-surface,#0b1420),var(--alper-bg,#060a12));box-shadow:0 16px 40px rgba(2,6,23,.4),inset 0 1px 0 rgba(255,255,255,.055);transform:translate3d(0,0,0);opacity:1;will-change:transform;transition:transform .22s ease,opacity .16s ease}
-      .customer-command-dock.dock-auto-hidden{transform:translate3d(0,calc(100% + 1.4rem + env(safe-area-inset-bottom)),0);opacity:0;pointer-events:none}
+      .customer-command-dock{position:fixed;z-index:88;left:max(.42rem,env(safe-area-inset-left));right:max(.42rem,env(safe-area-inset-right));bottom:max(.42rem,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;min-height:70px;overflow:visible;padding:4px;border:1px solid color-mix(in srgb,var(--alper-border,#27364a) 82%,transparent);border-radius:min(var(--site-radius,20px),22px);background:linear-gradient(180deg,var(--alper-surface,#0b1420),var(--alper-bg,#060a12));box-shadow:0 16px 40px rgba(2,6,23,.4),inset 0 1px 0 rgba(255,255,255,.055);transform:translate3d(0,0,0);opacity:1;visibility:visible;will-change:transform;transition:transform .22s ease,opacity .16s ease,visibility 0s linear 0s}
+      .customer-command-dock.dock-auto-hidden{transform:translate3d(0,calc(100% + 1.4rem + env(safe-area-inset-bottom)),0);opacity:0;visibility:hidden;pointer-events:none;transition:transform .22s ease,opacity .16s ease,visibility 0s linear .16s}
     }
     .dock-action{position:relative;display:flex;min-width:0;min-height:61px;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:1px solid transparent;border-radius:14px;background:transparent;padding:4px 2px;color:color-mix(in srgb,var(--alper-subtle,#94a3b8) 88%,#fff 12%);text-decoration:none;font-size:9.3px;font-weight:900;line-height:1.05;text-align:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background-color .16s ease,color .16s ease,transform .16s ease,border-color .16s ease,box-shadow .16s ease}
     .dock-action::before{content:"";position:absolute;left:30%;right:30%;top:0;height:3px;border-radius:0 0 999px 999px;background:transparent;transition:background-color .16s ease}
@@ -58,6 +64,7 @@ export class CustomerMobileDockComponent {
   readonly router = inject(Router);
   readonly navigation = inject(NavigationConfigService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly host = inject(ElementRef<HTMLElement>);
   readonly hidden = signal(false);
   readonly autoHidden = signal(false);
   readonly currentUrl = signal(this.router.url);
@@ -127,7 +134,14 @@ export class CustomerMobileDockComponent {
 
   private setAutoHidden(hidden: boolean): void {
     if (this.autoHidden() === hidden) return;
+    if (hidden) this.releaseDockFocus();
     this.autoHidden.set(hidden);
     this.navigation.setMobileDockAutoHidden(hidden);
+  }
+
+  private releaseDockFocus(): void {
+    if (typeof document === "undefined") return;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && this.host.nativeElement.contains(active)) active.blur();
   }
 }

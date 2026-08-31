@@ -20,14 +20,7 @@ export class PaymentService {
     const selected: PaymentProvider = settings.provider === 'PAYTR' ? 'paytr' : settings.provider === 'IYZICO' ? 'iyzico' : 'none';
     const availability = integration.availableProviders ?? { paytr: integration.provider === 'paytr' && integration.configured, iyzico: integration.provider === 'iyzico' && integration.configured };
     const configured = selected === 'paytr' ? availability.paytr : selected === 'iyzico' ? availability.iyzico : false;
-    return {
-      provider: selected,
-      configured,
-      cardEnabled: settings.cardEnabled && configured && integration.cardEnabled,
-      eftEnabled: settings.eftEnabled,
-      officeEnabled: settings.officeEnabled,
-      availableProviders: availability,
-    };
+    return { provider:selected, configured, cardEnabled:settings.cardEnabled&&configured&&integration.cardEnabled, eftEnabled:settings.eftEnabled, officeEnabled:settings.officeEnabled, availableProviders:availability };
   });
   readonly cardReady = computed(() => this.paymentStatus().cardEnabled);
   readonly eftReady = computed(() => this.paymentStatus().eftEnabled);
@@ -39,18 +32,14 @@ export class PaymentService {
     try {
       const [status, providerStatus] = await Promise.all([
         firstValueFrom(this.http.get<IntegrationStatusResponse>("/api/integrations/status")),
-        firstValueFrom(this.http.get<{ payment: PaymentIntegrationStatus }>("/api/payments/provider-status")),
+        firstValueFrom(this.http.get<{ payment: PaymentIntegrationStatus }>("/api/payments?op=provider-status")),
         this.settingsService.refreshPublic(),
       ]);
-      this.integrationStatus.set(status);
-      this.gatewayPaymentStatus.set(providerStatus.payment);
+      this.integrationStatus.set(status); this.gatewayPaymentStatus.set(providerStatus.payment);
       return { ...status, payment: providerStatus.payment };
     } catch (error) {
-      console.warn("Integration status endpoint is unavailable.", error);
-      this.integrationStatus.set(null);
-      this.gatewayPaymentStatus.set(null);
-      await this.settingsService.refreshPublic().catch(() => undefined);
-      return null;
+      console.warn("Integration status endpoint is unavailable.", error); this.integrationStatus.set(null); this.gatewayPaymentStatus.set(null);
+      await this.settingsService.refreshPublic().catch(() => undefined); return null;
     } finally { this.statusLoaded.set(true); }
   }
   async ensureStatusLoaded(): Promise<void> { if (!this.statusLoaded()) await this.refreshIntegrationStatus(); }

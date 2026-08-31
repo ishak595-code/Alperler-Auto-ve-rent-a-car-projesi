@@ -25,11 +25,11 @@ test("mobile dock keeps the latest five-item contract and leaves the TalkBack tr
   await expect(dock.locator('a[href="/sales"]')).toHaveAttribute("aria-label", "Satılık");
   await expect(dock.locator('a[href="/search"]')).toHaveAttribute("aria-label", "Ara");
   await expect(dock.locator('a[href="/campaigns"]')).toHaveAttribute("aria-label", "Fırsatlar");
-  await expect(dock.locator('a[href="/appointment"]')).toHaveAttribute("aria-label", "Randevu");
-  await expect(dock.locator('a[href="/account"]')).toHaveCount(0);
+  await expect(dock.locator('a[href="/account"]')).toHaveAttribute("aria-label", "Profil");
+  await expect(dock.locator('a[href="/appointment"]')).toHaveCount(0);
   await expect(dock.locator('a[href="/search"]')).toHaveClass(/dock-primary/);
 
-  const routes = ["/fleet", "/sales", "/search", "/campaigns", "/appointment"];
+  const routes = ["/fleet", "/sales", "/search", "/campaigns", "/account"];
   for (const route of routes) {
     const link = dock.locator(`a[href="${route}"]`);
     await expect(link).toHaveAttribute("aria-label", /.+/);

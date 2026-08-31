@@ -287,14 +287,17 @@ Deno.serve(async (request: Request) => {
       const depositMode = clean(input.depositMode, 20).toUpperCase();
       const currency = clean(input.currency, 8).toUpperCase();
       const depositValue = numberValue(input.depositValue, 0);
-      if (!["PAYTR", "GENERIC_HOSTED", "NONE"].includes(provider)) return json({ ok: false, code: "INVALID_PAYMENT_PROVIDER" }, 400);
+      const cardEnabled = bool(input.cardEnabled, false);
+      if (!["PAYTR", "NONE"].includes(provider)) return json({ ok: false, code: "INVALID_PAYMENT_PROVIDER" }, 400);
       if (!["NONE", "FIXED", "PERCENT"].includes(depositMode)) return json({ ok: false, code: "INVALID_DEPOSIT_MODE" }, 400);
       if (depositValue < 0 || (depositMode === "PERCENT" && depositValue > 100)) return json({ ok: false, code: "INVALID_DEPOSIT_VALUE" }, 400);
       if (!["TRY", "EUR", "USD", "CHF"].includes(currency)) return json({ ok: false, code: "INVALID_PAYMENT_CURRENCY" }, 400);
+      if (provider === "PAYTR" && cardEnabled && currency !== "TRY") return json({ ok: false, code: "PAYTR_CARD_REQUIRES_TRY" }, 400);
+      if (provider === "NONE" && cardEnabled) return json({ ok: false, code: "CARD_PROVIDER_REQUIRED" }, 400);
       return json(await rpc("service_save_payment_settings_v182", {
         p_actor: actor,
         p_provider: provider,
-        p_card_enabled: bool(input.cardEnabled, false),
+        p_card_enabled: cardEnabled,
         p_eft_enabled: bool(input.eftEnabled, true),
         p_office_enabled: bool(input.officeEnabled, true),
         p_deposit_mode: depositMode,

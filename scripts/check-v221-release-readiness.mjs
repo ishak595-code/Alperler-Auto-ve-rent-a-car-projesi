@@ -22,6 +22,9 @@ must(catalog, 'site_config?key=eq.site_settings&is_public=eq.true', 'Public site
 const refresh = read('src/services/public-content-refresh-coordinator.service.ts');
 for (const token of ['key: "config"','run: () => this.carService.refreshSiteConfig(true)','window.addEventListener("online"','document.addEventListener("visibilitychange"','refreshNow("online")','refreshNow("visible")']) must(refresh, token, `Database-backed site configuration refresh ownership missing ${token}`);
 
+const appRoutes = read('src/app.routes.ts');
+const adminLayout = read('src/pages/admin/admin-layout.component.ts');
+const adminFinance = read('src/pages/admin/admin-finance.component.ts');
 const paymentSettings = read('src/services/payment-settings.service.ts');
 const paymentService = read('src/services/payment.service.ts');
 const paymentModel = read('src/models/payment.model.ts');
@@ -40,6 +43,10 @@ const envExample = read('.env.example');
 
 for (const source of [paymentSettings,paymentService,paymentModel,paymentAdmin,paymentEdge,paymentMigration,paymentVaultMigration,paymentApi,credentialResolver,integration]) reject(source,'GENERIC_HOSTED','Retired generic hosted provider must not return.');
 for (const token of ["'PAYTR' | 'IYZICO' | 'NONE'",'PAYTR_CARD_REQUIRES_TRY','CARD_PROVIDER_REQUIRED']) must(`${paymentSettings}\n${paymentEdge}\n${paymentMigration}`,token,`Dual payment provider invariant missing ${token}`);
+for (const token of ["path: 'payments'","adminAreaGuard('finance')",'AdminPaymentSettingsComponent']) must(appRoutes,token,`Admin payment route missing ${token}`);
+for (const token of ["routerLink=\"/admin/payments\"",'Ödeme ve Depozito','Şube Abonelikleri']) must(adminFinance,token,`Finance hub payment discoverability missing ${token}`);
+for (const token of ["'/admin/payments'","'/admin/branch-subscriptions'",'ödeme sağlayıcıları','depozito']) must(adminLayout,token,`Finance module ownership missing ${token}`);
+for (const token of ['provider-status','assertCardProviderReady','sandboxConfigured','liveConfigured','paytr?.configured','PayTR anahtarlarını önce Ödeme ve Depozito','iyzico Sandbox anahtarlarını önce Ödeme ve Depozito','iyzico Canlı anahtarlarını önce Ödeme ve Depozito']) must(paymentSettings,token,`Provider readiness save guard missing ${token}`);
 for (const token of ['<option value="PAYTR">PayTR</option>','<option value="IYZICO">iyzico</option>','<option value="NONE">Online kart kapalı</option>','PayTR Güvenli Bağlantı','iyzico Sandbox Bağlantısı','iyzico Canlı Bağlantısı','iyzico Fraud Bildirim / IFN URL','iyzicoFraudNotificationUrl()','autocomplete="new-password"','deployment gerekmez','Acil kart durdurma kilidi']) must(paymentAdmin,token,`Admin no-code provider setup missing ${token}`);
 must(paymentAdmin,"form.provider==='PAYTR'&&form.cardEnabled",'PayTR currency lock must remain scoped to PayTR.');
 for (const token of ['payment-provider-secrets','SAVE_PAYMENT_PROVIDER_SECRETS','CLEAR_PAYMENT_PROVIDER_SECRETS','service_payment_provider_secret_status_v221','service_set_payment_provider_secrets_v221','service_clear_payment_provider_secrets_v221']) must(`${paymentVaultAdmin}\n${paymentEdge}`,token,`Admin encrypted secret bridge missing ${token}`);
@@ -56,7 +63,7 @@ const snapshots = paymentApi.match(/requestSnapshot:\{[^}]*\}/g) || [];
 for (const snapshot of snapshots) for (const sensitive of ['identityNumber','billingAddress','zipCode']) reject(snapshot,sensitive,`Sensitive iyzico field must not be persisted in transaction request snapshot: ${sensitive}`);
 for (const token of ['APP_PUBLIC_ORIGIN','PUBLIC_APP_URL','SITE_URL','VERCEL_PROJECT_PRODUCTION_URL','VERCEL_URL']) must(publicOrigin,token,`Portable public-origin source missing ${token}`);
 for (const token of ['allowedOrigins','safeReturnUrl','/api/payments?op=iyzico-callback']) must(paymentApi,token,`Portable payment callback/origin contract missing ${token}`);
-for (const token of ['https://YOUR_DOMAIN/api/payments?op=paytr-callback','https://YOUR_DOMAIN/api/payments?op=iyzico-callback','https://YOUR_DOMAIN/api/payments?op=iyzico-fraud-notification','Supabase Vault','payment_amount','fraudStatus=0','PAYMENT_CARD_KILL_SWITCH=false','No deployment is required for this activation']) must(paymentDocs,token,`Payment operator guide missing ${token}`);
+for (const token of ['Admin > Muhasebe & Tahsilat > Ödeme ve Depozito','/admin/payments','https://YOUR_DOMAIN/api/payments?op=paytr-callback','https://YOUR_DOMAIN/api/payments?op=iyzico-callback','https://YOUR_DOMAIN/api/payments?op=iyzico-fraud-notification','Supabase Vault','payment_amount','fraudStatus=0','PAYMENT_CARD_KILL_SWITCH=false','No deployment is required for this activation','What remains outside the Admin panel']) must(paymentDocs,token,`Payment operator guide missing ${token}`);
 reject(paymentDocs,'/api/payments/paytr-callback','Operator guide must not publish the retired PayTR callback path.');
 reject(paymentDocs,'PAYMENT_CARD_ENABLED','Operator guide must not require the retired deployment-time card activation switch.');
 

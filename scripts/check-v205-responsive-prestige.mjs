@@ -2,6 +2,7 @@ import fs from "node:fs";
 
 const read = (path) => fs.readFileSync(path, "utf8");
 const dock = read("src/components/customer-mobile-dock.component.ts");
+const policy = read("src/services/mobile-dock-route-policy.ts");
 const spacing = read("src/mobile-target-fixes.css");
 const layout = read("src/components/main-layout.component.ts");
 const device = read("src/device-experience.css");
@@ -16,28 +17,43 @@ const rejectText = (source, needle, message) => {
   if (source.includes(needle)) failures.push(message);
 };
 
+requireText(policy, "return cleanCustomerPath(rawUrl) === '/'", "Customer dock must be home-only by allowlist.");
 requireText(dock, "(max-width:639px) and (pointer:coarse)", "Dock must be phone-class in portrait.");
 requireText(dock, "(max-width:950px) and (max-height:500px) and (pointer:coarse)", "Dock must preserve short coarse landscape phones.");
-if (dock.includes("@media (max-width:767px) and (pointer:coarse)")) failures.push("Legacy 767px dock breakpoint must not return.");
+requireText(dock, "isPhoneDockViewport()", "Dock auto-hide state must be limited to actual phone-class viewports.");
+requireText(dock, "window.matchMedia", "Dock viewport ownership must match the CSS media contract.");
 
-requireText(dock, "<nav", "Customer dock must remain a native navigation landmark.");
-requireText(dock, "class=\"customer-command-dock\"", "Customer dock must preserve its canonical landmark class.");
-requireText(dock, "[routerLink]=\"item.route\"", "Customer dock actions must remain native router links.");
-requireText(dock, "[attr.aria-current]=\"isCurrent(item.route) ? 'page' : null\"", "Current dock destination must expose aria-current=page.");
-requireText(dock, "track item.id", "Dock items must keep stable DOM identity across route changes.");
-requireText(dock, "[attr.aria-label]=\"item.label\"", "Dock actions must keep stable accessible names.");
-requireText(dock, "[attr.aria-hidden]=\"autoHidden() ? 'true' : null\"", "Auto-hidden dock must leave the accessibility tree while it is visually unavailable.");
-requireText(dock, "[attr.inert]=\"autoHidden() ? '' : null\"", "Auto-hidden dock descendants must not remain focusable or actionable.");
-requireText(dock, "visibility:hidden", "Auto-hidden dock must leave visual and hit-test surfaces, not only become transparent.");
-requireText(dock, "releaseDockFocus()", "Dock must release active DOM focus before becoming inert.");
-rejectText(dock, "HostListener", "The mobile dock must not use an unthrottled HostListener scroll path.");
-requireText(dock, "window.requestAnimationFrame", "Dock scroll behavior must be requestAnimationFrame throttled.");
-requireText(dock, "Math.abs(delta) < 12", "Dock scroll behavior must retain hysteresis to prevent jitter.");
-requireText(dock, "mobileDockAutoHideEnabled()", "Dock must honor the data-driven auto-hide setting.");
-requireText(dock, "dock-auto-hidden", "Dock must expose one stable visual auto-hide state.");
-requireText(dock, "this.setAutoHidden(delta > 0 && currentY > 120)", "Dock must hide on downward scrolling and restore on upward scrolling.");
-rejectText(dock, "backdrop-filter:blur", "Fixed phone dock must not use scroll-heavy backdrop blur compositing.");
-rejectText(dock, "-webkit-backdrop-filter:blur", "Fixed phone dock must not use WebKit backdrop blur compositing.");
+for (const token of [
+  "<nav",
+  "class=\"customer-command-dock\"",
+  "[routerLink]=\"item.route\"",
+  "[attr.aria-current]=\"isCurrent(item.route) ? 'page' : null\"",
+  "track item.id",
+  "[attr.aria-label]=\"item.label\"",
+  "[attr.aria-hidden]=\"autoHidden() ? 'true' : null\"",
+  "[attr.inert]=\"autoHidden() ? '' : null\"",
+  "visibility:hidden",
+  "releaseDockFocus()",
+  "window.requestAnimationFrame",
+  "Math.abs(delta) < 12",
+  "mobileDockAutoHideEnabled()",
+  "dock-auto-hidden",
+  "this.setAutoHidden(delta > 0 && currentY > 120)",
+]) requireText(dock, token, `Responsive dock contract missing: ${token}`);
+for (const token of ["HostListener","backdrop-filter:blur","-webkit-backdrop-filter:blur"]) rejectText(dock, token, `Responsive dock regression returned: ${token}`);
+
+requireText(spacing, "app-home-v71 > main", "Only home should reserve mobile dock safe area.");
+for (const forbidden of ["app-fleet app-rental-catalog-v217 > main","app-sales-results app-sale-catalog-v217 > main","app-tours app-tour-catalog-v217 > main","app-campaigns > main","app-account-shell app-account-dashboard-v150 > main"]) {
+  rejectText(spacing, forbidden, `Non-home route still reserves dock space: ${forbidden}`);
+}
+
+for (const token of [
+  "isHomePage() && navigation.mobileDockAutoHidden() && getWhatsappNumber()",
+  "class=\"whatsapp-fab\"",
+  "animation:whatsapp-fab-enter .16s ease .18s both",
+]) requireText(layout, token, `Homepage WhatsApp handoff missing: ${token}`);
+rejectText(layout, "dock-offset", "Homepage WhatsApp must never be stacked above the dock.");
+rejectText(layout, "showWhatsapp=signal", "Homepage WhatsApp must not be timer-driven.");
 
 for (const token of [
   'toHaveAttribute("aria-hidden", "true")',
@@ -45,13 +61,8 @@ for (const token of [
   'getByRole("navigation", { name: "Alt hızlı menü" })',
   'toHaveCount(0)',
   'not.toHaveAttribute("aria-hidden", "true")',
-]) {
-  requireText(runtime, token, `Responsive device regression must verify TalkBack-safe dock hiding and recovery: ${token}`);
-}
-
-requireText(spacing, "(max-width:639px) and (pointer:coarse)", "Dock content spacing must match phone-class portrait.");
-requireText(spacing, "(max-width:950px) and (max-height:500px) and (pointer:coarse)", "Dock content spacing must match phone landscape.");
-requireText(layout, "@media(max-width:639px) and (pointer:coarse)", "WhatsApp offset must match the phone dock breakpoint.");
+  'a.whatsapp-fab',
+]) requireText(runtime, token, `Responsive device regression must verify dock/WhatsApp handoff: ${token}`);
 
 requireText(device, "app-home-v71 .hero-copy-block", "Device contract must own the phone hero hierarchy.");
 requireText(device, "display: contents", "Phone hero copy must expose children for semantic visual reordering.");

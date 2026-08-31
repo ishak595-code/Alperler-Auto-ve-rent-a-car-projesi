@@ -23,7 +23,7 @@ import { AuthService } from '../services/auth.service';
         <button type="button" class="recovery" (click)="resetPassword()" [disabled]="working()">Parolamı unuttum</button>
         @if(error()){<p class="error" role="alert">{{error()}}</p>}
         @if(message()){<p class="success" role="status">{{message()}}</p>}
-        <p class="security">Parola e-posta ile gönderilmez. Yenileme isterseniz tek kullanımlık güvenli bağlantı e-posta adresinize gönderilir.</p>
+        <p class="security">Parola e-posta ile gönderilmez. Yenileme isterseniz Supabase Auth tek kullanımlık güvenli bağlantıyı e-posta adresinize gönderir.</p>
       </section>
     </main>
   `,
@@ -32,14 +32,10 @@ import { AuthService } from '../services/auth.service';
   `],
 })
 export class AdminLoginV218Component implements OnInit {
-  readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
-  readonly working = signal(false);
-  readonly error = signal<string | null>(null);
-  readonly message = signal<string | null>(null);
-  email = '';
-  password = '';
-  async ngOnInit(): Promise<void> { await this.auth.waitUntilReady(); if (this.auth.isLoggedIn()) await this.router.navigateByUrl('/admin', { replaceUrl: true }); }
-  async login(): Promise<void> { if (this.working()) return; this.error.set(null); this.message.set(null); const email=this.email.trim().toLowerCase(); if(!email||!this.password){this.error.set('E-posta ve parola alanlarını doldurun.');return;} this.working.set(true); try{if(!await this.auth.login(email,this.password)){this.error.set(this.auth.lastErrorMessage()||'Yönetici hesabı doğrulanamadı.');return;} await this.router.navigateByUrl('/admin',{replaceUrl:true});} finally{this.working.set(false);} }
-  async resetPassword(): Promise<void> { if(this.working())return; this.error.set(null);this.message.set(null);const email=this.email.trim().toLowerCase();if(!email){this.error.set('Önce yönetici e-posta adresinizi girin.');return;}this.working.set(true);try{if(!await this.auth.resetPassword(email)){this.error.set(this.auth.lastErrorMessage()||'Parola yenileme isteği işlenemedi.');return;}this.message.set('Güvenli parola yenileme bağlantısı e-posta adresinize gönderildi.');}finally{this.working.set(false);} }
+  readonly auth = inject(AuthService); private readonly router = inject(Router);
+  readonly working=signal(false); readonly error=signal<string|null>(null); readonly message=signal<string|null>(null);
+  email='';password='';
+  async ngOnInit():Promise<void>{await this.auth.waitUntilReady();if(this.auth.isLoggedIn())await this.router.navigateByUrl('/admin',{replaceUrl:true});}
+  async login():Promise<void>{if(this.working())return;this.error.set(null);this.message.set(null);const email=this.email.trim().toLowerCase();if(!email||!this.password){this.error.set('E-posta ve parola alanlarını doldurun.');return;}this.working.set(true);try{if(!await this.auth.login(email,this.password)){this.error.set(this.auth.lastErrorMessage()||'Yönetici hesabı doğrulanamadı.');return;}await this.router.navigateByUrl('/admin',{replaceUrl:true});}finally{this.working.set(false);}}
+  async resetPassword():Promise<void>{if(this.working())return;this.error.set(null);this.message.set(null);const email=this.email.trim().toLowerCase();if(!email){this.error.set('Önce yönetici e-posta adresinizi girin.');return;}this.working.set(true);try{if(!await this.auth.resetPassword(email)){this.error.set(this.auth.lastErrorMessage()||'Parola yenileme isteği işlenemedi.');return;}this.message.set('Güvenli parola yenileme bağlantısı e-posta adresinize gönderildi. En yeni bağlantıyı aynı cihaz ve tarayıcıda açın.');}finally{this.working.set(false);}}
 }

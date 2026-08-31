@@ -35,15 +35,33 @@ function amount(v:unknown,max=100_000_000){const n=Number(v);if(!Number.isFinite
 function nonNegative(v:unknown,max=100_000_000){const n=Number(v||0);if(!Number.isFinite(n)||n<0||n>max)throw new Error('INVALID_AMOUNT');return Math.round(n*100)/100;}
 function iso(v:unknown){const raw=clean(v,64);if(!raw)return new Date().toISOString();const d=new Date(raw);if(Number.isNaN(d.getTime()))throw new Error('INVALID_DATE');return d.toISOString();}
 function currency(v:unknown){const value=(clean(v,10)||'TRY').toUpperCase();if(!['TRY','EUR','USD','CHF'].includes(value))throw new Error('INVALID_CURRENCY');return value;}
+function objectValue(v:unknown):Record<string,unknown>{return v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{};}
+
+function environmentNotificationStatus(){
+  const emailProvider=clean(Deno.env.get('EMAIL_PROVIDER'),30).toLowerCase();
+  const resendConfigured=emailProvider==='resend'&&Boolean(clean(Deno.env.get('RESEND_API_KEY'),500))&&Boolean(clean(Deno.env.get('MAIL_FROM'),240));
+  const smsProvider=clean(Deno.env.get('SMS_PROVIDER'),30).toLowerCase();
+  const twilioConfigured=smsProvider==='twilio'&&Boolean(clean(Deno.env.get('TWILIO_ACCOUNT_SID'),200))&&Boolean(clean(Deno.env.get('TWILIO_AUTH_TOKEN'),300))&&Boolean(clean(Deno.env.get('TWILIO_FROM'),60)||clean(Deno.env.get('TWILIO_MESSAGING_SERVICE_SID'),200));
+  return{resendConfigured,twilioConfigured};
+}
+function notificationStatus(vaultStatus:any){
+  const env=environmentNotificationStatus();
+  const resendVault=vaultStatus?.resend?.configured===true,twilioVault=vaultStatus?.twilio?.configured===true;
+  return{
+    resend:{configured:resendVault||env.resendConfigured,vaultConfigured:resendVault,environmentConfigured:env.resendConfigured,source:resendVault?'vault':env.resendConfigured?'environment':'none',updatedAt:vaultStatus?.resend?.updatedAt||null},
+    twilio:{configured:twilioVault||env.twilioConfigured,vaultConfigured:twilioVault,environmentConfigured:env.twilioConfigured,source:twilioVault?'vault':env.twilioConfigured?'environment':'none',updatedAt:vaultStatus?.twilio?.updatedAt||null},
+  };
+}
 
 async function listFinance(request:Request){
-  await requireFinance(request,false);
+  const admin=await requireFinance(request,false);
   const url=new URL(request.url); const from=clean(url.searchParams.get('from'),40); const to=clean(url.searchParams.get('to'),40);
   const filters=[from?`occurred_at=gte.${encodeURIComponent(iso(from))}`:'',to?`occurred_at=lt.${encodeURIComponent(iso(to))}`:''].filter(Boolean).join('&');
-  const [financeRes,bookingRes,templateRes]=await Promise.all([
+  const [financeRes,bookingRes,templateRes,vaultStatus]=await Promise.all([
     db(`finance_transactions?status=neq.VOID&select=*&order=occurred_at.desc&limit=5000${filters?'&'+filters:''}`),
     db('bookings?deleted_at=is.null&select=id,reference,status,total_price,amount_paid,currency,payment_method,payment_status&limit=5000'),
     db('notification_templates?audience=eq.CUSTOMER&select=id,event_key,audience,locale,subject_template,intro_template,next_step_template,is_active,updated_at&order=locale.asc,event_key.asc'),
+    rpc('service_notification_provider_secret_status_v2213',{p_actor:admin.id}).catch(()=>({resend:{configured:false},twilio:{configured:false}})),
   ]);
   if(!financeRes.ok)throw new Error(`FINANCE_READ_${financeRes.status}`);if(!bookingRes.ok)throw new Error(`RECEIVABLES_READ_${bookingRes.status}`);if(!templateRes.ok)throw new Error(`NOTIFICATION_TEMPLATE_READ_${templateRes.status}`);
   const rows=await financeRes.json();const bookings=await bookingRes.json();const templates=await templateRes.json();
@@ -52,7 +70,7 @@ async function listFinance(request:Request){
   const receivablesByCurrency:Record<string,number>={};let pendingReceivablesCount=0;
   for(const booking of Array.isArray(bookings)?bookings:[]){if(['REJECTED','CANCELLED'].includes(String(booking.status)))continue;const due=Math.max(0,Number(booking.total_price||0)-Number(booking.amount_paid||0));if(due<=0.009)continue;const cur=String(booking.currency||'TRY').toUpperCase();receivablesByCurrency[cur]=(receivablesByCurrency[cur]||0)+due;pendingReceivablesCount+=1;}
   const legacy=byCurrency.TRY||{income:0,expense:0,net:0,discount:0};
-  return json({ok:true,transactions:rows,messageTemplates:Array.isArray(templates)?templates:[],summary:{...legacy,count:Array.isArray(rows)?rows.length:0,byCategory,byPaymentMethod,byCurrency,receivablesByCurrency,pendingReceivablesCount}});
+  return json({ok:true,transactions:rows,messageTemplates:Array.isArray(templates)?templates:[],notificationProviders:notificationStatus(vaultStatus),summary:{...legacy,count:Array.isArray(rows)?rows.length:0,byCategory,byPaymentMethod,byCurrency,receivablesByCurrency,pendingReceivablesCount}});
 }
 
 async function sendPaymentNotification(bookingId:string,payment:any,method:string){
@@ -67,11 +85,20 @@ async function recordPayment(request:Request,body:any,admin:Admin){
   const payment=(result as any)?.payment;const bookingId=clean((result as any)?.booking?.id,80);const notification=await sendPaymentNotification(bookingId,payment,method);
   return json({...result,notification},(result as any)?.duplicate?200:201);
 }
-
 async function saveTemplate(body:any,admin:Admin){
   const id=clean(body?.id,80)||null;const eventKey=clean(body?.eventKey,60).toLowerCase();const locale=clean(body?.locale,10).toLowerCase();
   const result=await rpc('service_save_notification_template_v221',{p_actor:admin.id,p_id:id,p_event_key:eventKey,p_locale:locale,p_subject:clean(body?.subjectTemplate,240),p_intro:clean(body?.introTemplate,3000),p_next_step:clean(body?.nextStepTemplate,3000),p_is_active:body?.isActive!==false});
   return json(result);
+}
+async function saveNotificationProvider(body:any,admin:Admin){
+  const provider=clean(body?.provider,20).toUpperCase();if(!['RESEND','TWILIO'].includes(provider))throw new Error('INVALID_NOTIFICATION_PROVIDER');
+  const result=await rpc('service_set_notification_provider_secrets_v2213',{p_actor:admin.id,p_provider:provider,p_payload:objectValue(body?.credentials)});
+  return json({ok:true,notificationProviders:notificationStatus(result)});
+}
+async function clearNotificationProvider(body:any,admin:Admin){
+  const provider=clean(body?.provider,20).toUpperCase();if(!['RESEND','TWILIO'].includes(provider))throw new Error('INVALID_NOTIFICATION_PROVIDER');
+  const result=await rpc('service_clear_notification_provider_secrets_v2213',{p_actor:admin.id,p_provider:provider});
+  return json({ok:true,notificationProviders:notificationStatus(result)});
 }
 
 async function createTransaction(body:any,admin:Admin){
@@ -83,7 +110,7 @@ async function createTransaction(body:any,admin:Admin){
 }
 async function voidTransaction(body:any,admin:Admin){const id=clean(body?.id,80);if(!id)throw new Error('ID_REQUIRED');const current=await db(`finance_transactions?id=eq.${encodeURIComponent(id)}&select=id,status,metadata&limit=1`);if(!current.ok)throw new Error('FINANCE_READ_FAILED');const rows=await current.json();const row=rows?.[0];if(!row)throw new Error('FINANCE_TRANSACTION_NOT_FOUND');if(row.status==='VOID')return json({ok:true,duplicate:true});const metadata=row.metadata&&typeof row.metadata==='object'?row.metadata:{};const res=await db(`finance_transactions?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'VOID',metadata:{...metadata,voidedBy:admin.email,voidedAt:new Date().toISOString(),voidReason:clean(body?.reason,500)}})});if(!res.ok)throw new Error('VOID_FAILED');return json({ok:true});}
 
-function statusFor(code:string){if(code==='UNAUTHORIZED')return 401;if(code==='FORBIDDEN'||code==='FINANCE_ADMIN_REQUIRED')return 403;if(code.includes('NOT_FOUND'))return 404;if(code.includes('ALREADY_SETTLED')||code.includes('IDEMPOTENCY_CONFLICT'))return 409;if(code.startsWith('INVALID_')||code.endsWith('_REQUIRED')||code==='PAYMENT_EXCEEDS_OUTSTANDING'||code==='BOOKING_NOT_PAYABLE'||code==='BOOKING_TOTAL_REQUIRED')return 400;return 500;}
+function statusFor(code:string){if(code==='UNAUTHORIZED')return 401;if(code==='FORBIDDEN'||code==='FINANCE_ADMIN_REQUIRED')return 403;if(code.includes('NOT_FOUND'))return 404;if(code.includes('ALREADY_SETTLED')||code.includes('IDEMPOTENCY_CONFLICT'))return 409;if(code.startsWith('INVALID_')||code.endsWith('_REQUIRED')||code.includes('_INCOMPLETE')||code==='PAYMENT_EXCEEDS_OUTSTANDING'||code==='BOOKING_NOT_PAYABLE'||code==='BOOKING_TOTAL_REQUIRED')return 400;return 500;}
 Deno.serve(async(request)=>{
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});if(!SUPABASE_URL||!SERVICE)return json({ok:false,code:'SERVER_CONFIG_MISSING'},503);
   try{
@@ -91,6 +118,8 @@ Deno.serve(async(request)=>{
     const admin=await requireFinance(request,true);let body:any;try{body=await request.json();}catch{return json({ok:false,code:'INVALID_JSON'},400);}const action=clean(body?.action,50);
     if(action==='record_payment')return await recordPayment(request,body,admin);
     if(action==='save_message_template')return await saveTemplate(body,admin);
+    if(action==='save_notification_provider')return await saveNotificationProvider(body,admin);
+    if(action==='clear_notification_provider')return await clearNotificationProvider(body,admin);
     if(action==='create_transaction')return await createTransaction(body,admin);
     if(action==='void_transaction')return await voidTransaction(body,admin);
     return json({ok:false,code:'UNKNOWN_ACTION'},400);

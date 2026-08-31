@@ -8,6 +8,7 @@ const profile=read('src/services/branch-portal-profile.service.ts');
 const branchDetail=read('src/pages/branch-detail-v171.component.ts');
 const routes=read('src/app.routes.ts');
 const adminLogin=read('src/pages/admin-login-v218.component.ts');
+const adminRecovery=read('src/services/admin-password-recovery-v220.service.ts');
 const migration=read('supabase/migrations/20260831090000_v218_branch_fulfillment_hardening.sql');
 for(const [token,message] of [
  ['branch_memberships?user_id=eq.${encodeURIComponent(userId)}&is_active=eq.true','portal membership read must be scoped to the signed-in user'],
@@ -36,7 +37,12 @@ forbidText(migration.toLowerCase(),'if new.fulfillment_branch_id is not null the
 requireText(routes,"path: 'admin/login', loadComponent: () => import('./pages/admin-login-v218.component')",'admin/login must use dedicated admin-only surface');
 requireText(routes,"router.createUrlTree(['/admin/login']",'admin guards must redirect to dedicated admin login');
 requireText(adminLogin,'this.auth.login(email','admin login must use role-verified AuthService login');
-requireText(adminLogin,'this.auth.resetPassword(email)','admin login must expose secure email recovery');
+requireText(adminLogin,'AdminPasswordRecoveryV220Service','admin login must use the isolated admin recovery owner');
+requireText(adminLogin,'this.recovery.request(email)','admin login must request recovery through the isolated admin recovery owner');
+requireText(adminLogin,'this.auth.changeCurrentPassword(this.password)','admin recovery must save the password through role-verified AuthService');
+requireText(adminLogin,"queryParamMap.get('recovery')==='1'",'admin login must recognize verified recovery sessions');
+requireText(adminRecovery,"/admin/login?recovery=1",'admin recovery email must return to the dedicated admin surface');
+forbidText(adminRecovery,'/account/login','admin recovery must never route through customer account recovery');
 requireText(adminLogin,'Yeni yönetici kaydı bu ekrandan açılamaz.','admin UI must remain login-only');
 for(const forbidden of ['registerPrimaryAdmin','signup','Kayıt Ol','signInWithProvider','loginWithGoogle'])forbidText(adminLogin,forbidden,`admin login must not expose bootstrap/registration/social path: ${forbidden}`);
 console.log('V218 branch/admin invariant passed.');

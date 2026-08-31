@@ -1,5 +1,6 @@
 import { Component } from "@angular/core";
 import { CatalogCampaignContextComponent } from "../components/catalog-campaign-context.component";
+import { TourFavoriteButtonV220Component } from "../components/tour-favorite-button-v220.component";
 import { CarDetailComponent } from "./car-detail.component";
 import { SaleCarDetailComponent } from "./sale-car-detail.component";
 import { TourDetailComponent } from "./tour-detail.component";
@@ -32,7 +33,7 @@ export class SaleDetailShellComponent {}
 @Component({
   selector: "app-tour-detail-shell",
   standalone: true,
-  imports: [CatalogCampaignContextComponent, TourDetailComponent],
-  template: `<app-catalog-campaign-context targetKind="TOUR" /><app-tour-detail />`,
+  imports: [CatalogCampaignContextComponent, TourDetailComponent, TourFavoriteButtonV220Component],
+  template: `<app-catalog-campaign-context targetKind="TOUR" /><app-tour-favorite-button-v220 /><app-tour-detail />`,
 })
 export class TourDetailShellComponent {}

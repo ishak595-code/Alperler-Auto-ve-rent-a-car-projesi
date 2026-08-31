@@ -53,19 +53,19 @@ for (const token of ['dock-hidden','onWindowScroll','HostListener','backdrop-fil
   rejectText(sources.dock, token, `Mobile dock must not regain obsolete or scroll-heavy behavior: ${token}`);
 }
 
-// Mobile dock ownership contract: Search is the center action and Profile is the fifth destination.
+// Mobile dock ownership contract: Search is the center primary action. Profile belongs to the upper account area.
 requireText(sources.dock, 'return item.itemKey === "search";', "Mobile dock primary action must stay Search.");
-rejectText(sources.dock, 'item.itemKey === "appointment"', "Appointment must not regain primary mobile dock ownership.");
+rejectText(sources.dock, 'item.itemKey === "appointment"', "Appointment must not take primary mobile dock ownership from Search.");
 const defaultDock = sources.navigation.match(/const DEFAULT_DOCK:[\s\S]*?\]\.map/)?.[0] || "";
 if (!defaultDock) fail("Default mobile dock configuration could not be resolved.");
 for (const token of [
   "['fleet', 'Kiralık', 'key', '/fleet']",
   "['sales', 'Satılık', 'directions_car', '/sales']",
-  "['search', 'İlan Ara', 'search', '/search']",
+  "['search', 'Ara', 'search', '/search']",
   "['campaigns', 'Fırsatlar', 'local_offer', '/campaigns']",
-  "['account', 'Profil', 'account_circle', '/account']",
+  "['appointment', 'Randevu', 'event_available', '/appointment']",
 ]) requireText(defaultDock, token, `Canonical mobile dock destination missing: ${token}`);
-rejectText(defaultDock, "['appointment', 'Randevu', 'event_available', '/appointment']", "Randevu must not replace Profile in the mobile dock.");
+rejectText(defaultDock, "['account', 'Profil', 'account_circle', '/account']", "Profile must not return to the mobile dock.");
 
 // Booking checkout owns the complete reservation review. Cards and details must never duplicate it.
 requireText(sources.bookingCheckout, "Rezervasyonu kontrol edin", "Booking checkout must keep the customer-facing reservation review heading.");

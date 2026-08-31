@@ -7,13 +7,19 @@ on:
       - 'index.tsx'
       - 'src/app.component.ts'
       - 'src/app.routes.ts'
+      - 'src/pages/admin-login-v218.component.ts'
       - 'src/pages/booking-checkout-shell-v218.component.ts'
       - 'src/pages/admin/admin-customer-detail-shell-v218.component.ts'
+      - 'src/pages/branch-detail-v171.component.ts'
       - 'src/components/checkout-loyalty-panel.component.ts'
       - 'src/components/admin-customer-lifetime-panel.component.ts'
+      - 'src/services/branch-portal.service.ts'
+      - 'src/services/branch-portal-profile.service.ts'
       - 'src/services/navigation-config.service.ts'
+      - 'supabase/migrations/20260831090000_v218_branch_fulfillment_hardening.sql'
       - 'angular.json'
       - 'scripts/check-v218-initial-bundle-ownership.mjs'
+      - 'scripts/check-v218-branch-ownership-admin-access.mjs'
       - 'scripts/report-v218-initial-bundle.mjs'
       - '.github/workflows/v218-initial-bundle-ownership.yml'
   push:
@@ -22,13 +28,19 @@ on:
       - 'index.tsx'
       - 'src/app.component.ts'
       - 'src/app.routes.ts'
+      - 'src/pages/admin-login-v218.component.ts'
       - 'src/pages/booking-checkout-shell-v218.component.ts'
       - 'src/pages/admin/admin-customer-detail-shell-v218.component.ts'
+      - 'src/pages/branch-detail-v171.component.ts'
       - 'src/components/checkout-loyalty-panel.component.ts'
       - 'src/components/admin-customer-lifetime-panel.component.ts'
+      - 'src/services/branch-portal.service.ts'
+      - 'src/services/branch-portal-profile.service.ts'
       - 'src/services/navigation-config.service.ts'
+      - 'supabase/migrations/20260831090000_v218_branch_fulfillment_hardening.sql'
       - 'angular.json'
       - 'scripts/check-v218-initial-bundle-ownership.mjs'
+      - 'scripts/check-v218-branch-ownership-admin-access.mjs'
       - 'scripts/report-v218-initial-bundle.mjs'
       - '.github/workflows/v218-initial-bundle-ownership.yml'
   workflow_dispatch:
@@ -47,25 +59,21 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v7
-
       - name: Set up Node.js 22
         uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-
       - name: Install exact dependency graph
         run: npm ci --no-audit --no-fund
-
       - name: V218 initial bundle ownership invariant
         run: node scripts/check-v218-initial-bundle-ownership.mjs
-
+      - name: V218 branch ownership and admin access invariant
+        run: node scripts/check-v218-branch-ownership-admin-access.mjs
       - name: Dependency vulnerability gate
         run: npm audit --audit-level=high
-
       - name: TypeScript
         run: npm run lint
-
       - name: Production build and initial ownership report
         shell: bash
         run: |

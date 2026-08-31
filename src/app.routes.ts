@@ -9,7 +9,7 @@ const adminGuard: CanActivateFn = async (_route, state) => {
   const { AuthService } = await import('./services/auth.service');
   const auth = injector.get(AuthService); await auth.waitUntilReady();
   if (auth.isLoggedIn()) return true;
-  return router.createUrlTree(['/account/login'], { queryParams: { returnUrl: state.url || '/admin' } });
+  return router.createUrlTree(['/admin/login'], { queryParams: { returnUrl: state.url || '/admin' } });
 };
 const adminAreaGuard = (area: AdminArea): CanActivateFn => async (_route, state) => {
   const injector = inject(Injector); const router = inject(Router);
@@ -19,7 +19,7 @@ const adminAreaGuard = (area: AdminArea): CanActivateFn => async (_route, state)
   ]);
   const auth = injector.get(AuthService); const access = injector.get(AdminAccessService);
   await auth.waitUntilReady();
-  if (!auth.isLoggedIn()) return router.createUrlTree(['/account/login'], { queryParams: { returnUrl: state.url || '/admin' } });
+  if (!auth.isLoggedIn()) return router.createUrlTree(['/admin/login'], { queryParams: { returnUrl: state.url || '/admin' } });
   if (await access.can(area)) return true;
   return router.parseUrl(`/admin/dashboard?denied=${encodeURIComponent(area)}`);
 };
@@ -64,7 +64,7 @@ const loadAdminOperationsHub = () => import('./pages/admin/admin-operations-hub.
 const loadAdminTeamHub = () => import('./pages/admin/admin-team-hub.component').then(m => m.AdminTeamHubComponent);
 
 export const routes: Routes = [
-  { path: 'admin/login', loadComponent: () => import('./pages/account-login.component').then(m => m.AccountLoginComponent) },
+  { path: 'admin/login', loadComponent: () => import('./pages/admin-login-v218.component').then(m => m.AdminLoginV218Component) },
   { path: 'account/login', loadComponent: () => import('./pages/account-login.component').then(m => m.AccountLoginComponent) },
   { path: 'account/callback', loadComponent: () => import('./pages/account-callback.component').then(m => m.AccountCallbackComponent) },
   { path: 'account', canActivate: [customerGuard], loadComponent: () => import('./pages/account-shell.component').then(m => m.AccountShellComponent) },

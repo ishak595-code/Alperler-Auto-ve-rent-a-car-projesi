@@ -41,7 +41,8 @@ for (const token of ['PAYTR_MERCHANT_ID','PAYTR_MERCHANT_KEY','PAYTR_MERCHANT_SA
 for (const token of ['createPaytr(','createIyzico(','iyzicoCallback(','paytrCallback(','providerStatus()','IYZWSv2','IYZICO_RESULT_SIGNATURE_INVALID','payment_transactions?provider=eq.iyzico']) must(paymentApi,token,`Payment gateway implementation missing ${token}`);
 for (const token of ['MatDialog','IyzicoBuyerDetailsDialogComponent','status.provider === \'iyzico\'']) must(paymentService,token,`iyzico customer preflight missing ${token}`);
 for (const token of ['Kimlik / pasaport numarası','Fatura adresi','Uygulamanın ödeme işlem geçmişine kimlik veya açık adres kopyası yazılmaz']) must(paymentDialog,token,`iyzico privacy/accessibility contract missing ${token}`);
-reject(paymentApi,'identityNumber:', 'Sensitive iyzico identity data must not be copied into transaction snapshots as a named snapshot field.');
+const snapshots = paymentApi.match(/requestSnapshot:\{[^}]*\}/g) || [];
+for (const snapshot of snapshots) for (const sensitive of ['identityNumber','billingAddress','zipCode']) reject(snapshot,sensitive,`Sensitive iyzico field must not be persisted in transaction request snapshot: ${sensitive}`);
 for (const token of ['APP_PUBLIC_ORIGIN','PUBLIC_APP_URL','SITE_URL','VERCEL_PROJECT_PRODUCTION_URL','VERCEL_URL']) must(publicOrigin,token,`Portable public-origin source missing ${token}`);
 for (const token of ['allowedOrigins','safeReturnUrl','/api/payments?op=iyzico-callback']) must(paymentApi,token,`Portable payment callback/origin contract missing ${token}`);
 

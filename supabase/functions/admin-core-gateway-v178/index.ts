@@ -91,6 +91,7 @@ Deno.serve(async (request: Request) => {
       if (view === "staff-branches") { const staffId = uuid(url.searchParams.get("staffId")); if (!staffId) return json({ ok: false, code: "INVALID_STAFF_ID" }, 400); return json(await rpc("service_admin_staff_branches_v178", { p_actor: actor, p_staff_id: staffId })); }
       if (view === "assignments") return json(await rpc("service_assignment_snapshot_v182", { p_actor: actor }));
       if (view === "payment-settings") return json(await rpc("service_payment_settings_snapshot_v182", { p_actor: actor }));
+      if (view === "payment-provider-secrets") return json(await rpc("service_payment_provider_secret_status_v221", { p_actor: actor }));
       if (view === "audit") return json(await loadAuditRows(actor));
       return json({ ok: false, code: "UNKNOWN_VIEW" }, 400);
     }
@@ -114,6 +115,19 @@ Deno.serve(async (request: Request) => {
     if (action === "UNASSIGN_STAFF_VEHICLE") { const staffId = uuid(input.staffId); const vehicleId = uuid(input.vehicleId); const responsibility = clean(input.responsibility, 32).toUpperCase(); if (!staffId || !vehicleId || !responsibility) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400); return json(await rpc("service_unassign_staff_vehicle_v182", { p_actor: actor, p_vehicle_id: vehicleId, p_staff_id: staffId, p_responsibility: responsibility })); }
     if (action === "ASSIGN_STAFF_TOUR") { const staffId = uuid(input.staffId); const tourId = uuid(input.tourId); if (!staffId || !tourId) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400); return json(await rpc("service_assign_staff_tour_v178", { p_actor: actor, p_tour_id: tourId, p_staff_id: staffId, p_responsibility: clean(input.responsibility, 32).toUpperCase() })); }
     if (action === "UNASSIGN_STAFF_TOUR") { const staffId = uuid(input.staffId); const tourId = uuid(input.tourId); const responsibility = clean(input.responsibility, 32).toUpperCase(); if (!staffId || !tourId || !responsibility) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400); return json(await rpc("service_unassign_staff_tour_v182", { p_actor: actor, p_tour_id: tourId, p_staff_id: staffId, p_responsibility: responsibility })); }
+    if (action === "SAVE_PAYMENT_PROVIDER_SECRETS") {
+      const provider = clean(input.provider, 20).toUpperCase();
+      const scope = clean(input.scope, 20).toLowerCase();
+      if (!["PAYTR", "IYZICO"].includes(provider)) return json({ ok: false, code: "INVALID_PAYMENT_PROVIDER" }, 400);
+      if (provider === "IYZICO" && !["sandbox", "live"].includes(scope)) return json({ ok: false, code: "IYZICO_SECRET_SCOPE_REQUIRED" }, 400);
+      return json(await rpc("service_set_payment_provider_secrets_v221", { p_actor: actor, p_provider: provider, p_scope: scope || "default", p_payload: metadata(input.credentials) }));
+    }
+    if (action === "CLEAR_PAYMENT_PROVIDER_SECRETS") {
+      const provider = clean(input.provider, 20).toUpperCase();
+      const scope = clean(input.scope, 20).toLowerCase();
+      if (!["PAYTR", "IYZICO"].includes(provider)) return json({ ok: false, code: "INVALID_PAYMENT_PROVIDER" }, 400);
+      return json(await rpc("service_clear_payment_provider_secrets_v221", { p_actor: actor, p_provider: provider, p_scope: scope || "default" }));
+    }
     if (action === "SAVE_PAYMENT_SETTINGS") {
       const provider = clean(input.provider, 40).toUpperCase();
       const depositMode = clean(input.depositMode, 20).toUpperCase();

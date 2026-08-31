@@ -6,7 +6,15 @@ import { IyzicoBuyerDetails, IyzicoBuyerDetailsDialogComponent } from "../compon
 import { IntegrationStatusResponse, PaymentIntegrationStatus, PaymentProvider, PaymentSessionRequest, PaymentSessionResponse } from "../models/payment.model";
 import { PaymentSettingsService } from "./payment-settings.service";
 
-const FALLBACK_PAYMENT_STATUS: PaymentIntegrationStatus = { provider:"none", configured:false, cardEnabled:false, eftEnabled:true, officeEnabled:true, availableProviders:{paytr:false,iyzico:false} };
+const FALLBACK_PAYMENT_STATUS: PaymentIntegrationStatus = {
+  provider:"none",
+  configured:false,
+  cardEnabled:false,
+  eftEnabled:true,
+  officeEnabled:true,
+  availableProviders:{paytr:false,iyzico:false},
+  providerDetails:{globalCardGate:false,paytr:{configured:false,forceTestMode:false},iyzico:{sandboxConfigured:false,liveConfigured:false}},
+};
 
 @Injectable({ providedIn: "root" })
 export class PaymentService {
@@ -23,7 +31,15 @@ export class PaymentService {
     const selected: PaymentProvider = settings.provider === 'PAYTR' ? 'paytr' : settings.provider === 'IYZICO' ? 'iyzico' : 'none';
     const availability = integration.availableProviders ?? { paytr: integration.provider === 'paytr' && integration.configured, iyzico: integration.provider === 'iyzico' && integration.configured };
     const configured = selected === 'paytr' ? availability.paytr : selected === 'iyzico' ? availability.iyzico : false;
-    return { provider:selected, configured, cardEnabled:settings.cardEnabled&&configured&&integration.cardEnabled, eftEnabled:settings.eftEnabled, officeEnabled:settings.officeEnabled, availableProviders:availability };
+    return {
+      provider:selected,
+      configured,
+      cardEnabled:settings.cardEnabled&&configured&&integration.cardEnabled,
+      eftEnabled:settings.eftEnabled,
+      officeEnabled:settings.officeEnabled,
+      availableProviders:availability,
+      providerDetails:integration.providerDetails,
+    };
   });
   readonly cardReady = computed(() => this.paymentStatus().cardEnabled);
   readonly eftReady = computed(() => this.paymentStatus().eftEnabled);

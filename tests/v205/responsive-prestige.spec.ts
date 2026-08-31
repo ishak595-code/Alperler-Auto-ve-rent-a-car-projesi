@@ -51,13 +51,17 @@ test("device class keeps the intended navigation and conversion hierarchy", asyn
   }
 });
 
-test("phone dock hides on downward scroll and returns on upward scroll without leaving the accessibility tree", async ({ page }, testInfo) => {
+test("phone dock fully leaves visual and accessibility surfaces on downward scroll and returns upward", async ({ page }, testInfo) => {
   test.skip(!phoneProjects.has(testInfo.project.name), "Phone-class behavior only.");
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   const dock = page.locator("nav.customer-command-dock");
+  const accessibleDock = page.getByRole("navigation", { name: "Alt hızlı menü" });
   await expect(dock).toBeVisible();
+  await expect(accessibleDock).toHaveCount(1);
   await expect(dock).not.toHaveClass(/dock-auto-hidden/);
+  await expect(dock).not.toHaveAttribute("aria-hidden", "true");
+  await expect(dock).not.toHaveAttribute("inert", "");
 
   await expect.poll(() => scrollRange(page), { timeout: 10_000 }).toBeGreaterThan(180);
   const target = await page.evaluate(() => {
@@ -69,11 +73,18 @@ test("phone dock hides on downward scroll and returns on upward scroll without l
   await page.evaluate((top) => window.scrollTo({ top, behavior: "instant" }), target);
   await expect.poll(async () => (await dock.getAttribute("class")) || "", { timeout: 3_000 }).toContain("dock-auto-hidden");
   await expect(dock).toHaveAttribute("aria-label", "Alt hızlı menü");
+  await expect(dock).toHaveAttribute("aria-hidden", "true");
+  await expect(dock).toHaveAttribute("inert", "");
+  await expect(dock).toBeHidden();
+  await expect(accessibleDock).toHaveCount(0);
   await expect(dock.locator("a.dock-action")).toHaveCount(5);
 
   await page.evaluate((distance) => window.scrollBy({ top: -distance, behavior: "instant" }), Math.min(260, target));
   await expect.poll(async () => (await dock.getAttribute("class")) || "", { timeout: 3_000 }).not.toContain("dock-auto-hidden");
+  await expect(dock).not.toHaveAttribute("aria-hidden", "true");
+  await expect(dock).not.toHaveAttribute("inert", "");
   await expect(dock).toBeVisible();
+  await expect(accessibleDock).toHaveCount(1);
   await expect.poll(() => noHorizontalOverflow(page)).toBe(true);
 });
 

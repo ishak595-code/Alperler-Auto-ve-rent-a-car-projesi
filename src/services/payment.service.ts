@@ -11,10 +11,11 @@ export class PaymentService {
   private readonly http = inject(HttpClient);
   private readonly settingsService = inject(PaymentSettingsService);
   private readonly integrationStatus = signal<IntegrationStatusResponse | null>(null);
+  private readonly gatewayPaymentStatus = signal<PaymentIntegrationStatus | null>(null);
   private readonly statusLoaded = signal(false);
 
   readonly paymentStatus = computed<PaymentIntegrationStatus>(() => {
-    const integration = this.integrationStatus()?.payment ?? FALLBACK_PAYMENT_STATUS;
+    const integration = this.gatewayPaymentStatus() ?? this.integrationStatus()?.payment ?? FALLBACK_PAYMENT_STATUS;
     const settings = this.settingsService.settings();
     const selected: PaymentProvider = settings.provider === 'PAYTR' ? 'paytr' : settings.provider === 'IYZICO' ? 'iyzico' : 'none';
     const availability = integration.availableProviders ?? { paytr: integration.provider === 'paytr' && integration.configured, iyzico: integration.provider === 'iyzico' && integration.configured };
@@ -36,15 +37,18 @@ export class PaymentService {
 
   async refreshIntegrationStatus(): Promise<IntegrationStatusResponse | null> {
     try {
-      const [status] = await Promise.all([
+      const [status, providerStatus] = await Promise.all([
         firstValueFrom(this.http.get<IntegrationStatusResponse>("/api/integrations/status")),
+        firstValueFrom(this.http.get<{ payment: PaymentIntegrationStatus }>("/api/payments/provider-status")),
         this.settingsService.refreshPublic(),
       ]);
       this.integrationStatus.set(status);
-      return status;
+      this.gatewayPaymentStatus.set(providerStatus.payment);
+      return { ...status, payment: providerStatus.payment };
     } catch (error) {
       console.warn("Integration status endpoint is unavailable.", error);
       this.integrationStatus.set(null);
+      this.gatewayPaymentStatus.set(null);
       await this.settingsService.refreshPublic().catch(() => undefined);
       return null;
     } finally { this.statusLoaded.set(true); }

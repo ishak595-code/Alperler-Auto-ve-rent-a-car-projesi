@@ -20,8 +20,8 @@ on:
       - 'tests/v205/**'
       - 'playwright.v204.config.ts'
       - 'playwright.v205.config.ts'
-      - 'supabase/migrations/20260831180700_v221_mobile_dock_profile_canonical.sql'
-      - 'supabase/migrations/20260831182300_v221_payment_provider_contract.sql'
+      - 'supabase/migrations/20260831161135_v221_mobile_dock_profile_canonical.sql'
+      - 'supabase/migrations/20260831162158_v221_payment_provider_contract.sql'
       - '.github/workflows/v205-responsive-prestige.yml'
   push:
     branches: [main]
@@ -43,8 +43,8 @@ on:
       - 'tests/v205/**'
       - 'playwright.v204.config.ts'
       - 'playwright.v205.config.ts'
-      - 'supabase/migrations/20260831180700_v221_mobile_dock_profile_canonical.sql'
-      - 'supabase/migrations/20260831182300_v221_payment_provider_contract.sql'
+      - 'supabase/migrations/20260831161135_v221_mobile_dock_profile_canonical.sql'
+      - 'supabase/migrations/20260831162158_v221_payment_provider_contract.sql'
       - '.github/workflows/v205-responsive-prestige.yml'
 
 permissions:

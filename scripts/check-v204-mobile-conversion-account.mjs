@@ -80,7 +80,7 @@ mustNot(mobileFixes, 'app-home section[aria-labelledby="campaigns-title"]', 'Del
 
 const runtimeTest = read('tests/v204/mobile-dock.spec.ts');
 for (const token of ['"/fleet"', '"/sales"', '"/search"', '"/campaigns"', '"/account"', 'window.scrollTo', 'window.scrollBy', 'page.goBack()', 'aria-hidden', 'inert', 'aria-current', 'dock-auto-hidden', 'not.toBeFocused()']) must(runtimeTest, token, `Android dock accessibility/auto-hide regression missing behavior: ${token}`);
-mustNot(runtimeTest, '"/appointment"', 'Runtime regression must not restore Randevu as a customer dock slot.');
+must(runtimeTest, "await expect(dock.locator('a[href=\"/appointment\"]')).toHaveCount(0);", 'Runtime regression must explicitly prove that Randevu is absent from the customer dock.');
 const runtimeConfig = read('playwright.v204.config.ts');
 for (const token of ['SM-S928B','isMobile: true','hasTouch: true','width: 412','height: 915']) must(runtimeConfig, token, `Android runtime profile missing contract: ${token}`);
 

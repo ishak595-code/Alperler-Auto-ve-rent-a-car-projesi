@@ -1,5 +1,5 @@
 export type PaymentMethod = "CARD" | "EFT" | "OFFICE";
-export type PaymentProvider = "none" | "generic_hosted" | "paytr";
+export type PaymentProvider = "none" | "paytr";
 
 export interface PaymentIntegrationStatus {
   provider: PaymentProvider;

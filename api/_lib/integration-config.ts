@@ -18,6 +18,8 @@ export interface IyzicoCredentialSet {
 export interface ServerPaymentConfig {
   paytr: PaytrServerConfig;
   iyzico: { sandbox: IyzicoCredentialSet; live: IyzicoCredentialSet };
+  provider: PaymentProvider;
+  configured: boolean;
   cardEnabled: boolean;
   eftEnabled: boolean;
   officeEnabled: boolean;
@@ -42,6 +44,20 @@ export function getPaymentConfig(): ServerPaymentConfig {
   const paytrMerchantId = process.env.PAYTR_MERCHANT_ID?.trim() || null;
   const paytrMerchantKey = process.env.PAYTR_MERCHANT_KEY?.trim() || null;
   const paytrMerchantSalt = process.env.PAYTR_MERCHANT_SALT?.trim() || null;
+  const paytr: PaytrServerConfig = {
+    configured: Boolean(paytrMerchantId && paytrMerchantKey && paytrMerchantSalt),
+    merchantId: paytrMerchantId,
+    merchantKey: paytrMerchantKey,
+    merchantSalt: paytrMerchantSalt,
+    testMode: asBoolean(process.env.PAYTR_TEST_MODE, true),
+  };
+  const iyzico = {
+    sandbox: credentialSet(process.env.IYZICO_SANDBOX_API_KEY, process.env.IYZICO_SANDBOX_SECRET_KEY, "https://sandbox-api.iyzipay.com"),
+    live: credentialSet(process.env.IYZICO_API_KEY, process.env.IYZICO_SECRET_KEY, "https://api.iyzipay.com"),
+  };
+  const preferred = process.env.PAYMENT_PROVIDER?.trim().toLowerCase();
+  const provider: PaymentProvider = preferred === 'iyzico' ? 'iyzico' : preferred === 'paytr' ? 'paytr' : paytr.configured ? 'paytr' : (iyzico.sandbox.configured || iyzico.live.configured) ? 'iyzico' : 'none';
+  const configured = provider === 'paytr' ? paytr.configured : provider === 'iyzico' ? (iyzico.sandbox.configured || iyzico.live.configured) : false;
   const explicitOrigins = (process.env.PAYMENT_ALLOWED_ORIGINS || "")
     .split(",")
     .map((origin) => origin.trim())
@@ -58,17 +74,10 @@ export function getPaymentConfig(): ServerPaymentConfig {
     ...explicitOrigins,
   ]));
   return {
-    paytr: {
-      configured: Boolean(paytrMerchantId && paytrMerchantKey && paytrMerchantSalt),
-      merchantId: paytrMerchantId,
-      merchantKey: paytrMerchantKey,
-      merchantSalt: paytrMerchantSalt,
-      testMode: asBoolean(process.env.PAYTR_TEST_MODE, true),
-    },
-    iyzico: {
-      sandbox: credentialSet(process.env.IYZICO_SANDBOX_API_KEY, process.env.IYZICO_SANDBOX_SECRET_KEY, "https://sandbox-api.iyzipay.com"),
-      live: credentialSet(process.env.IYZICO_API_KEY, process.env.IYZICO_SECRET_KEY, "https://api.iyzipay.com"),
-    },
+    paytr,
+    iyzico,
+    provider,
+    configured,
     cardEnabled: asBoolean(process.env.PAYMENT_CARD_ENABLED, false),
     eftEnabled: asBoolean(process.env.PAYMENT_EFT_ENABLED, true),
     officeEnabled: asBoolean(process.env.PAYMENT_OFFICE_ENABLED, true),

@@ -10,12 +10,14 @@ async function scrollRange(page: import("@playwright/test").Page): Promise<numbe
   return page.evaluate(() => Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
 }
 
-test("mobile dock stays accessible and recovers after scroll auto hide across navigation", async ({ page }) => {
+test("mobile dock leaves the accessibility tree while auto hidden and recovers on upward scroll", async ({ page }) => {
   await page.goto("/");
 
   const dock = page.locator("nav.customer-command-dock");
+  const accessibleDock = page.getByRole("navigation", { name: "Alt hızlı menü" });
   await expect(dock).toHaveCount(1);
   await expect(dock).toBeVisible();
+  await expect(accessibleDock).toHaveCount(1);
   await expect(dock).not.toHaveAttribute("aria-hidden", "true");
   await expect(dock).not.toHaveAttribute("inert", "");
 
@@ -27,6 +29,7 @@ test("mobile dock stays accessible and recovers after scroll auto hide across na
     await expect(page).toHaveURL(new RegExp(`${route.replace("/", "\\/")}(?:[?#].*)?$`));
     await settleFrames(page);
     await expect(dock).toHaveCount(1);
+    await expect(accessibleDock).toHaveCount(1);
     await expect(dock).not.toHaveAttribute("aria-hidden", "true");
     await expect(dock).not.toHaveAttribute("inert", "");
     await expect(dock.locator(`a[href="${route}"]`)).toHaveAttribute("aria-current", "page");
@@ -40,11 +43,18 @@ test("mobile dock stays accessible and recovers after scroll auto hide across na
   const scrollTarget = Math.min(520, await scrollRange(page));
   expect(scrollTarget).toBeGreaterThan(120);
 
+  const activeDockLink = dock.locator('a[href="/fleet"]');
+  await activeDockLink.focus();
+  await expect(activeDockLink).toBeFocused();
+
   await page.evaluate((top) => window.scrollTo(0, top), scrollTarget);
   await settleFrames(page);
   await expect.poll(async () => (await dock.getAttribute("class")) || "").toContain("dock-auto-hidden");
-  await expect(dock).not.toHaveAttribute("aria-hidden", "true");
-  await expect(dock).not.toHaveAttribute("inert", "");
+  await expect(dock).toHaveAttribute("aria-hidden", "true");
+  await expect(dock).toHaveAttribute("inert", "");
+  await expect(dock).toBeHidden();
+  await expect(accessibleDock).toHaveCount(0);
+  await expect(activeDockLink).not.toBeFocused();
   await expect(dock.locator('a[href="/fleet"]')).toHaveAttribute("aria-current", "page");
 
   const rememberedY = await page.evaluate(() => window.scrollY);
@@ -53,7 +63,10 @@ test("mobile dock stays accessible and recovers after scroll auto hide across na
   await page.evaluate(() => window.scrollBy(0, -260));
   await settleFrames(page);
   await expect.poll(async () => (await dock.getAttribute("class")) || "").not.toContain("dock-auto-hidden");
+  await expect(dock).not.toHaveAttribute("aria-hidden", "true");
+  await expect(dock).not.toHaveAttribute("inert", "");
   await expect(dock).toBeVisible();
+  await expect(accessibleDock).toHaveCount(1);
 
   await dock.locator('a[href="/campaigns"]').click();
   await expect(page).toHaveURL(/\/campaigns(?:[?#].*)?$/);
@@ -66,10 +79,12 @@ test("mobile dock stays accessible and recovers after scroll auto hide across na
   await expect(dock).toHaveCount(1);
   await expect(dock).not.toHaveAttribute("aria-hidden", "true");
   await expect(dock).not.toHaveAttribute("inert", "");
+  await expect(accessibleDock).toHaveCount(1);
   await expect(dock.locator('a[href="/fleet"]')).toHaveAttribute("aria-current", "page");
 
   await page.evaluate(() => window.scrollBy(0, -260));
   await settleFrames(page);
   await expect.poll(async () => (await dock.getAttribute("class")) || "").not.toContain("dock-auto-hidden");
   await expect(dock).toBeVisible();
+  await expect(accessibleDock).toHaveCount(1);
 });

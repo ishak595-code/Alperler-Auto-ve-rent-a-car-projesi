@@ -44,6 +44,12 @@ for (const token of [
   'Math.abs(delta) < 12',
   'dock-auto-hidden',
   'this.setAutoHidden(delta > 0 && currentY > 120)',
+  '[attr.aria-hidden]="autoHidden() ? \'true\' : null"',
+  '[attr.inert]="autoHidden() ? \'\' : null"',
+  'visibility:hidden',
+  'releaseDockFocus()',
+  'isPhoneDockViewport()',
+  'window.matchMedia',
 ]) must(dock, token);
 for (const token of [
   'onDockClick',
@@ -55,8 +61,6 @@ for (const token of [
   'event.preventDefault();',
   'window.scrollTo',
   'dock-hidden',
-  '[attr.aria-hidden]',
-  '[attr.inert]',
   'HostListener',
   'backdrop-filter:blur',
   '-webkit-backdrop-filter:blur',
@@ -69,14 +73,14 @@ for (const token of ['V204 canonical mobile home conversion geometry','app-home-
 mustNot(responsive, 'app-list-your-car-v2', 'Deleted V2 valuation selector returned to canonical responsive CSS.');
 
 const mobileFixes = read('src/mobile-target-fixes.css');
-for (const token of ['app-home-v71 > main','app-fleet app-rental-catalog-v217 > main','app-fleet app-favorites-v217 > main','app-sales-results app-sale-catalog-v217 > main','app-tours app-tour-catalog-v217 > main','app-blog-list app-blog-catalog-v217 > main','app-campaigns > main','app-search > main','app-account-shell app-account-dashboard-v150 > main']) must(mobileFixes, token, `Canonical mobile dock safe-area owner missing: ${token}`);
+for (const token of ['app-home-v71 > main','app-fleet app-rental-catalog-v217 > main','app-fleet app-favorites-v217 > main','app-sales-results app-sale-catalog-v217 > main','app-tours app-tour-catalog-v217 > main','app-blog-list app-blog-catalog-v217 > main','app-campaigns > main','app-search > main','app-account-shell app-account-dashboard-v150 > main','app-customer-footer-v70 .customer-footer']) must(mobileFixes, token, `Canonical mobile dock safe-area owner missing: ${token}`);
 for (const token of ['app-fleet app-rental-showcase-v167 > main','app-sales-results app-sales-showcase-v168 > main','app-tours app-tour-showcase-v170 > main']) mustNot(mobileFixes, token, `Retired full-catalog safe-area selector remains active: ${token}`);
 mustNot(mobileFixes, 'app-home-v39', 'Deleted V39 homepage selector must not remain in the active CSS chain.');
 mustNot(mobileFixes, 'app-home section[aria-labelledby="campaigns-title"]', 'Deleted V62 homepage campaign selector must not remain in the active CSS chain.');
 
 const runtimeTest = read('tests/v204/mobile-dock.spec.ts');
-for (const token of ['"/fleet"', '"/sales"', '"/appointment"', '"/campaigns"', 'window.scrollTo', 'window.scrollBy', 'page.goBack()', 'aria-hidden', 'inert', 'aria-current', 'dock-auto-hidden']) must(runtimeTest, token, `Android dock accessibility/auto-hide regression missing behavior: ${token}`);
-mustNot(runtimeTest, '"/search"', 'Runtime regression must follow the canonical reservation CTA instead of the retired dock search slot.');
+for (const token of ['"/fleet"', '"/sales"', '"/search"', '"/campaigns"', '"/account"', 'window.scrollTo', 'window.scrollBy', 'page.goBack()', 'aria-hidden', 'inert', 'aria-current', 'dock-auto-hidden', 'not.toBeFocused()']) must(runtimeTest, token, `Android dock accessibility/auto-hide regression missing behavior: ${token}`);
+must(runtimeTest, "await expect(dock.locator('a[href=\"/appointment\"]')).toHaveCount(0);", 'Runtime regression must explicitly prove that Randevu is absent from the customer dock.');
 const runtimeConfig = read('playwright.v204.config.ts');
 for (const token of ['SM-S928B','isMobile: true','hasTouch: true','width: 412','height: 915']) must(runtimeConfig, token, `Android runtime profile missing contract: ${token}`);
 

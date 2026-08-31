@@ -34,24 +34,38 @@ for (const file of Object.values(paths)) {
 }
 const sources = Object.fromEntries(Object.entries(paths).map(([key, file]) => [key, read(file)]));
 
-// TalkBack contract: the persistent customer dock stays in the accessibility tree.
-requireText(sources.dock, '<nav class="customer-command-dock"', "Mobile dock must remain a native nav landmark.");
+// TalkBack contract: while visible the dock is a native navigation landmark. When scroll auto-hide
+// removes it visually, the same state must also remove it from focus and the accessibility tree.
+requireText(sources.dock, 'class="customer-command-dock"', "Mobile dock must remain a native nav landmark.");
 requireText(sources.dock, '[routerLink]="item.route"', "Mobile dock destinations must remain native router links.");
 requireText(sources.dock, '[attr.aria-current]="isCurrent(item.route) ? \'page\' : null"', "Current mobile dock destination must expose aria-current=page.");
 requireText(sources.dock, "track item.id", "Mobile dock items must preserve stable DOM identity.");
 requireText(sources.dock, '[attr.aria-label]="item.label"', "Mobile dock items must preserve stable accessible names.");
-for (const token of ['[attr.aria-hidden]','[attr.inert]','dock-hidden','onWindowScroll','HostListener']) {
-  rejectText(sources.dock, token, `Mobile dock must not regain scroll/accessibility hiding: ${token}`);
+for (const token of [
+  "[attr.aria-hidden]=\"autoHidden() ? 'true' : null\"",
+  "[attr.inert]=\"autoHidden() ? '' : null\"",
+  'visibility:hidden',
+  'releaseDockFocus()',
+  'isPhoneDockViewport()',
+  'window.matchMedia',
+]) requireText(sources.dock, token, `TalkBack-safe auto-hide contract missing: ${token}`);
+for (const token of ['dock-hidden','onWindowScroll','HostListener','backdrop-filter:blur','-webkit-backdrop-filter:blur']) {
+  rejectText(sources.dock, token, `Mobile dock must not regain obsolete or scroll-heavy behavior: ${token}`);
 }
 
-// Mobile dock ownership contract: Search is permanently the primary center action and Profile is not a dock destination.
+// Mobile dock ownership contract: Search is the center action and Profile is the fifth destination.
 requireText(sources.dock, 'return item.itemKey === "search";', "Mobile dock primary action must stay Search.");
 rejectText(sources.dock, 'item.itemKey === "appointment"', "Appointment must not regain primary mobile dock ownership.");
 const defaultDock = sources.navigation.match(/const DEFAULT_DOCK:[\s\S]*?\]\.map/)?.[0] || "";
 if (!defaultDock) fail("Default mobile dock configuration could not be resolved.");
-requireText(defaultDock, "['search', 'Ara', 'search', '/search']", "Default mobile dock must keep Search in the center slot.");
-requireText(defaultDock, "['appointment', 'Randevu', 'event_available', '/appointment']", "Default mobile dock must keep Randevu as the fifth fallback slot.");
-rejectText(defaultDock, "['account', 'Profil', 'account_circle', '/account']", "Profile must not return to the default mobile dock.");
+for (const token of [
+  "['fleet', 'Kiralık', 'key', '/fleet']",
+  "['sales', 'Satılık', 'directions_car', '/sales']",
+  "['search', 'İlan Ara', 'search', '/search']",
+  "['campaigns', 'Fırsatlar', 'local_offer', '/campaigns']",
+  "['account', 'Profil', 'account_circle', '/account']",
+]) requireText(defaultDock, token, `Canonical mobile dock destination missing: ${token}`);
+rejectText(defaultDock, "['appointment', 'Randevu', 'event_available', '/appointment']", "Randevu must not replace Profile in the mobile dock.");
 
 // Booking checkout owns the complete reservation review. Cards and details must never duplicate it.
 requireText(sources.bookingCheckout, "Rezervasyonu kontrol edin", "Booking checkout must keep the customer-facing reservation review heading.");

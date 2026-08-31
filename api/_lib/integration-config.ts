@@ -78,7 +78,9 @@ export function getPaymentConfig(): ServerPaymentConfig {
     iyzico,
     provider,
     configured,
-    cardEnabled: asBoolean(process.env.PAYMENT_CARD_ENABLED, false),
+    // Customer card activation is database/Admin owned. This server variable is
+    // deliberately kill-only so a future provider activation never requires a deploy.
+    cardEnabled: !asBoolean(process.env.PAYMENT_CARD_KILL_SWITCH, false),
     eftEnabled: asBoolean(process.env.PAYMENT_EFT_ENABLED, true),
     officeEnabled: asBoolean(process.env.PAYMENT_OFFICE_ENABLED, true),
     allowedOrigins,

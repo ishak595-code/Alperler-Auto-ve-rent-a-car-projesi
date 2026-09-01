@@ -1,0 +1,46 @@
+name: V223 Customer Profile Security
+
+on:
+  pull_request:
+    paths:
+      - 'src/pages/account-shell.component.ts'
+      - 'src/components/account-security-v223.component.ts'
+      - 'src/services/customer-auth.service.ts'
+      - 'scripts/check-v223-customer-profile-security.mjs'
+      - '.github/workflows/v223-customer-profile-security.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/pages/account-shell.component.ts'
+      - 'src/components/account-security-v223.component.ts'
+      - 'src/services/customer-auth.service.ts'
+      - 'scripts/check-v223-customer-profile-security.mjs'
+      - '.github/workflows/v223-customer-profile-security.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v223-customer-profile-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  customer-profile-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Customer profile security invariant
+        run: node scripts/check-v223-customer-profile-security.mjs
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+      - name: TypeScript
+        run: npm run lint
+      - name: Production build
+        run: npm run build

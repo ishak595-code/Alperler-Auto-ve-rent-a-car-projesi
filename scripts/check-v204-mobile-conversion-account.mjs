@@ -20,6 +20,7 @@ const required = [
   'supabase/migrations/20260828114500_v204_campaign_social_proof_attribution.sql',
   'supabase/migrations/20260828115000_v204_mobile_home_conversion_defaults.sql',
   'supabase/migrations/20260831150041_v220_mobile_dock_canonical.sql',
+  'supabase/migrations/20260831161135_v221_mobile_dock_profile_canonical.sql',
   'playwright.v204.config.ts',
   'tests/v204/mobile-dock.spec.ts',
 ];
@@ -36,9 +37,9 @@ for (const token of [
   "['sales', 'Satılık', 'directions_car', '/sales']",
   "['search', 'Ara', 'search', '/search']",
   "['campaigns', 'Fırsatlar', 'local_offer', '/campaigns']",
-  "['appointment', 'Randevu', 'event_available', '/appointment']",
+  "['account', 'Profil', 'account_circle', '/account']",
 ]) must(dockDefaults, token, `Latest canonical dock fallback missing: ${token}`);
-mustNot(dockDefaults, "['account', 'Profil'", 'Profile must not return to the canonical bottom dock fallback.');
+mustNot(dockDefaults, "['appointment', 'Randevu'", 'Appointment must not replace Profile in the canonical bottom dock fallback.');
 
 const dock = read('src/components/customer-mobile-dock.component.ts');
 for (const token of [
@@ -92,9 +93,9 @@ mustNot(mobileFixes, 'app-home-v39', 'Deleted V39 homepage selector must not rem
 mustNot(mobileFixes, 'app-home section[aria-labelledby="campaigns-title"]', 'Deleted V62 homepage campaign selector must not remain in the active CSS chain.');
 
 const runtimeTest = read('tests/v204/mobile-dock.spec.ts');
-for (const token of ['"/fleet"', '"/sales"', '"/search"', '"/campaigns"', '"/appointment"', 'window.scrollTo', 'window.scrollBy', 'page.goBack()', 'aria-hidden', 'inert', 'aria-current', 'dock-auto-hidden', 'not.toBeFocused()']) must(runtimeTest, token, `Android dock accessibility/auto-hide regression missing behavior: ${token}`);
-must(runtimeTest, "await expect(dock.locator('a[href=\"/account\"]')).toHaveCount(0);", 'Runtime regression must explicitly prove that Profil is absent from the customer dock.');
-must(runtimeTest, "await expect(dock.locator('a[href=\"/appointment\"]')).toHaveAttribute(\"aria-label\", \"Randevu\");", 'Runtime regression must prove that Randevu occupies the fifth dock slot.');
+for (const token of ['"/fleet"', '"/sales"', '"/search"', '"/campaigns"', '"/account"', 'window.scrollTo', 'window.scrollBy', 'page.goBack()', 'aria-hidden', 'inert', 'aria-current', 'dock-auto-hidden', 'not.toBeFocused()']) must(runtimeTest, token, `Android dock accessibility/auto-hide regression missing behavior: ${token}`);
+must(runtimeTest, "await expect(dock.locator('a[href=\"/account\"]')).toHaveAttribute(\"aria-label\", \"Profil\");", 'Runtime regression must explicitly prove that Profil remains the fifth customer dock action.');
+must(runtimeTest, "await expect(dock.locator('a[href=\"/appointment\"]')).toHaveCount(0);", 'Runtime regression must prove that Randevu does not replace Profil in the dock.');
 must(runtimeTest, "await expect(dock.locator('a[href=\"/search\"]')).toHaveAttribute(\"aria-label\", \"Ara\");", 'Runtime regression must preserve the requested Ara action.');
 must(runtimeTest, 'toHaveClass(/dock-primary/)', 'Runtime regression must preserve Ara as the primary center action.');
 const runtimeConfig = read('playwright.v204.config.ts');
@@ -110,16 +111,16 @@ mustNot(proofMigration, 've.path = c.cta_url', 'Campaign proof must not depend o
 const defaultsMigration = read('supabase/migrations/20260828115000_v204_mobile_home_conversion_defaults.sql');
 for (const token of ["when 'fleet' then 'Kiralık'","when 'sales' then 'Satılık'",'["service","duration","date","pickup"]','plannerVariant',"when 'campaigns'",'Kaçırmadan İncele']) must(defaultsMigration, token);
 
-const dockMigration = read('supabase/migrations/20260831150041_v220_mobile_dock_canonical.sql');
+const dockMigration = read('supabase/migrations/20260831161135_v221_mobile_dock_profile_canonical.sql');
 for (const token of [
   "'fleet'::text,'Kiralık'::text",
   "'sales','Satılık'",
   "'search','Ara'",
   "'campaigns','Fırsatlar'",
-  "'appointment','Randevu'",
-  "item_key not in ('fleet','sales','search','campaigns','appointment')",
+  "'account','Profil'",
+  "item_key not in ('fleet','sales','search','campaigns','account')",
 ]) must(dockMigration, token, `Canonical dock migration contract missing: ${token}`);
-mustNot(dockMigration, "'account','Profil'", 'Canonical dock migration must never reactivate Profil.');
+mustNot(dockMigration, "'appointment','Randevu'", 'Canonical dock migration must not reactivate Randevu as a dock item.');
 
 const campaigns = read('src/pages/campaigns.component.ts');
 const homeSections = read('src/components/dynamic-home-section.component.ts');

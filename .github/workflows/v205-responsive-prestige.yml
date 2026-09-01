@@ -6,11 +6,22 @@ on:
       - 'angular.json'
       - 'src/components/customer-mobile-dock.component.ts'
       - 'src/components/main-layout.component.ts'
+      - 'src/services/navigation-config.service.ts'
+      - 'src/services/default-site-config.ts'
+      - 'src/services/theme.service.ts'
+      - 'src/services/payment-settings.service.ts'
+      - 'src/pages/admin/admin-payment-settings.component.ts'
       - 'src/mobile-target-fixes.css'
       - 'src/device-experience.css'
+      - 'scripts/check-v204-mobile-conversion-account.mjs'
       - 'scripts/check-v205-responsive-prestige.mjs'
+      - 'scripts/check-v207-customer-experience.mjs'
+      - 'tests/v204/**'
       - 'tests/v205/**'
+      - 'playwright.v204.config.ts'
       - 'playwright.v205.config.ts'
+      - 'supabase/migrations/20260831161135_v221_mobile_dock_profile_canonical.sql'
+      - 'supabase/migrations/20260831162158_v221_payment_provider_contract.sql'
       - '.github/workflows/v205-responsive-prestige.yml'
   push:
     branches: [main]
@@ -18,11 +29,22 @@ on:
       - 'angular.json'
       - 'src/components/customer-mobile-dock.component.ts'
       - 'src/components/main-layout.component.ts'
+      - 'src/services/navigation-config.service.ts'
+      - 'src/services/default-site-config.ts'
+      - 'src/services/theme.service.ts'
+      - 'src/services/payment-settings.service.ts'
+      - 'src/pages/admin/admin-payment-settings.component.ts'
       - 'src/mobile-target-fixes.css'
       - 'src/device-experience.css'
+      - 'scripts/check-v204-mobile-conversion-account.mjs'
       - 'scripts/check-v205-responsive-prestige.mjs'
+      - 'scripts/check-v207-customer-experience.mjs'
+      - 'tests/v204/**'
       - 'tests/v205/**'
+      - 'playwright.v204.config.ts'
       - 'playwright.v205.config.ts'
+      - 'supabase/migrations/20260831161135_v221_mobile_dock_profile_canonical.sql'
+      - 'supabase/migrations/20260831162158_v221_payment_provider_contract.sql'
       - '.github/workflows/v205-responsive-prestige.yml'
 
 permissions:
@@ -35,7 +57,7 @@ concurrency:
 jobs:
   responsive-prestige:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -44,8 +66,12 @@ jobs:
           cache: npm
       - name: Install project dependencies
         run: npm ci --no-audit --no-fund
+      - name: Static V204 mobile contract
+        run: node scripts/check-v204-mobile-conversion-account.mjs
       - name: Static V205 contract
         run: node scripts/check-v205-responsive-prestige.mjs
+      - name: Static V207 customer contract
+        run: node scripts/check-v207-customer-experience.mjs
       - name: TypeScript
         run: npm run lint
       - name: Production build

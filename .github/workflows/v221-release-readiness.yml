@@ -1,0 +1,79 @@
+name: V221 Release Readiness
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v221-release-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+      - name: Release ownership invariant
+        run: node scripts/check-v221-release-readiness.mjs
+      - name: Finance and notification invariant
+        run: node scripts/check-v2212-finance-notifications.mjs
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+      - name: Frontend TypeScript
+        run: npm run lint
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Admin core Edge Function TypeScript
+        run: npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/admin-core-gateway-v178/index.ts
+      - name: Booking notification Edge Function TypeScript
+        run: npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/booking-notify/index.ts
+      - name: Finance Edge Function TypeScript
+        run: npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/finance-admin/index.ts
+      - name: Production build
+        run: npm run build
+      - name: Vercel function budget
+        run: npm run vercel:functions
+
+  release-devices:
+    needs: release-static
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+      - name: Production build
+        run: npm run build
+      - name: Install pinned browser tooling
+        run: npm install --no-save --no-package-lock --no-audit --no-fund @playwright/test@1.55.0
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
+      - name: Android iPhone landscape tablet desktop release matrix
+        run: npx playwright test --config=playwright.v205.config.ts
+      - name: Upload release failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: v221-release-readiness-artifacts
+          path: |
+            test-results/**
+            playwright-report/**
+          if-no-files-found: ignore
+          retention-days: 7

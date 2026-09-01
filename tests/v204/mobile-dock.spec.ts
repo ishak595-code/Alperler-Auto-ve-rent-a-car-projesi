@@ -25,12 +25,12 @@ test("mobile dock keeps the latest five-item contract and leaves the TalkBack tr
   await expect(dock.locator('a[href="/sales"]')).toHaveAttribute("aria-label", "Satılık");
   await expect(dock.locator('a[href="/search"]')).toHaveAttribute("aria-label", "Ara");
   await expect(dock.locator('a[href="/campaigns"]')).toHaveAttribute("aria-label", "Fırsatlar");
-  await expect(dock.locator('a[href="/appointment"]')).toHaveAttribute("aria-label", "Randevu");
-  await expect(dock.locator('a[href="/account"]')).toHaveCount(0);
+  await expect(dock.locator('a[href="/account"]')).toHaveAttribute("aria-label", "Profil");
+  await expect(dock.locator('a[href="/appointment"]')).toHaveCount(0);
   await expect(dock.locator('a[href="/search"]')).toHaveClass(/dock-primary/);
 
-  const routes = ["/fleet", "/sales", "/search", "/campaigns", "/appointment"];
-  for (const route of routes) {
+  const publicRoutes = ["/fleet", "/sales", "/search", "/campaigns"];
+  for (const route of publicRoutes) {
     const link = dock.locator(`a[href="${route}"]`);
     await expect(link).toHaveAttribute("aria-label", /.+/);
     await link.click();
@@ -43,9 +43,22 @@ test("mobile dock keeps the latest five-item contract and leaves the TalkBack tr
     await expect(dock.locator(`a[href="${route}"]`)).toHaveAttribute("aria-current", "page");
   }
 
-  await dock.locator('a[href="/fleet"]').click();
+  const profileLink = dock.locator('a[href="/account"]');
+  await expect(profileLink).toHaveAttribute("aria-label", "Profil");
+  await profileLink.click();
+  await expect(page).toHaveURL(/\/account\/login\?returnUrl=%2Faccount$/);
+  await settleFrames(page);
+  // Authentication/recovery pages intentionally suppress customer chrome so the
+  // login form is the only TalkBack navigation target. The Profil dock action is
+  // verified above; once authenticated the account route owns the same /account URL.
+  await expect(dock).toHaveCount(0);
+  await expect(accessibleDock).toHaveCount(0);
+
+  await page.goto("/fleet");
   await expect(page).toHaveURL(/\/fleet(?:[?#].*)?$/);
   await settleFrames(page);
+  await expect(dock).toHaveCount(1);
+  await expect(accessibleDock).toHaveCount(1);
   await expect.poll(() => scrollRange(page)).toBeGreaterThan(200);
 
   const scrollTarget = Math.min(520, await scrollRange(page));

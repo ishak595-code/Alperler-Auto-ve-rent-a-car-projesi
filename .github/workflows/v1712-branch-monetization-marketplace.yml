@@ -135,7 +135,9 @@ jobs:
           grep -Fq 'BRINV' api/payments.ts
           grep -Fq 'branch_memberships?branch_id=' api/payments.ts
           grep -Fq 'finalize_branch_subscription_payment_v1714' api/payments.ts
-          grep -Fq 'sameHash(hashValue, expected)' api/payments.ts
+          grep -Eq 'sameHash\(hashValue,[[:space:]]*expected\)' api/payments.ts
+          grep -Fq 'payment_amount' api/payments.ts
+          grep -Fq 'total_amount' api/payments.ts
           grep -Fq 'checkoutInvoice' src/services/branch-subscription-v171.service.ts
           grep -Fq 'BranchPortalAuthService' src/services/branch-subscription-v171.service.ts
 

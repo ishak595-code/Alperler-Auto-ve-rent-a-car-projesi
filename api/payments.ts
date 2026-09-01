@@ -1,262 +1,68 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { getPaymentConfig, isAllowedRequestOrigin } from "./_lib/integration-config";
+import { paymentCredentialAvailability, resolveIyzicoCredentials, resolvePaytrCredentials } from "./_lib/payment-provider-credentials";
 
 interface CreateSessionBody {
-  bookingReference?: unknown;
-  amount?: unknown;
-  currency?: unknown;
-  method?: unknown;
-  customer?: { name?: unknown; email?: unknown; phone?: unknown };
-  returnUrl?: unknown;
-  cancelUrl?: unknown;
-  description?: unknown;
-  metadata?: unknown;
+  bookingReference?: unknown; amount?: unknown; currency?: unknown; method?: unknown;
+  customer?: { name?: unknown; email?: unknown; phone?: unknown; identityNumber?: unknown; billingAddress?: unknown; city?: unknown; country?: unknown; zipCode?: unknown };
+  returnUrl?: unknown; cancelUrl?: unknown; description?: unknown; metadata?: unknown;
 }
 interface BranchSessionBody { invoiceId?: unknown; returnUrl?: unknown; cancelUrl?: unknown; }
-interface BookingRow {
-  id: string; reference: string; item_name: string; customer_name: string; customer_email: string | null;
-  customer_phone: string; total_price: number | null; currency: string; payment_method: string; payment_status: string;
-  pickup_location: string | null;
-}
-interface PaymentSettingsRow {
-  provider: string; card_enabled: boolean; deposit_mode: string; deposit_value: number; currency: string; test_mode: boolean;
-}
-interface TransactionRow { id: string; booking_id: string; amount: number; currency: string; status: string; provider_reference: string | null }
+interface BookingRow { id:string; reference:string; item_name:string; customer_name:string; customer_email:string|null; customer_phone:string; total_price:number|null; currency:string; payment_method:string; payment_status:string; pickup_location:string|null; }
+interface PaymentSettingsRow { provider:string; card_enabled:boolean; deposit_mode:string; deposit_value:number; currency:string; test_mode:boolean; }
+interface TransactionRow { id:string; booking_id:string; amount:number; currency:string; status:string; provider_reference:string|null; request_snapshot?:Record<string,unknown>; response_snapshot?:Record<string,unknown>; }
 interface BranchContact { id:string; name:string; operator_display_name:string|null; email:string|null; phone:string|null; address_line:string|null; }
 interface BranchInvoiceRow { id:string; invoice_number:string; branch_id:string; subscription_id:string; status:string; amount:number; currency:string; period_start:string; period_end:string; due_at:string; branch:BranchContact|null; }
 interface BranchPaymentRow { id:string; invoice_id:string; branch_id:string; amount:number; currency:string; status:string; provider_reference:string|null; }
 interface AuthUser { id:string; email?:string|null; email_confirmed_at?:string|null; }
 
-function json(body: unknown, status = 200): Response {
-  return Response.json(body, { status, headers: { "cache-control": "no-store", "content-type": "application/json; charset=utf-8" } });
-}
-function plain(value: string, status: number): Response {
-  return new Response(value, { status, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
-}
-function text(value: unknown, max: number): string | null {
-  if (typeof value !== "string") return null;
-  const v = value.trim();
-  return v && v.length <= max ? v : null;
-}
-function safeReturnUrl(value: unknown, allowedOrigins: string[]): string | null {
-  const raw = text(value, 2048);
-  if (!raw) return null;
-  try {
-    const url = new URL(raw);
-    return url.protocol === "https:" && allowedOrigins.includes(url.origin) ? url.toString() : null;
-  } catch {
-    return null;
-  }
-}
-function serviceConfig() {
-  const url = process.env.SUPABASE_PROJECT_URL?.trim() || process.env.SUPABASE_URL?.trim() || "";
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || "";
-  return { url, key, configured: Boolean(url && key) };
-}
-async function db<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const cfg = serviceConfig();
-  if (!cfg.configured) throw new Error("PAYMENT_DATABASE_NOT_CONFIGURED");
-  const response = await fetch(`${cfg.url}/rest/v1/${path}`, {
-    ...init,
-    headers: { apikey: cfg.key, authorization: `Bearer ${cfg.key}`, accept: "application/json", ...(init.headers || {}) },
-    signal: AbortSignal.timeout(9000),
-  });
-  if (!response.ok) throw new Error(`PAYMENT_DATABASE_${response.status}`);
-  if (response.status === 204) return undefined as T;
-  return await response.json() as T;
-}
-async function authenticatedUser(request:Request):Promise<AuthUser>{
-  const authorization=request.headers.get("authorization")||"";
-  if(!/^Bearer\s+\S+/i.test(authorization))throw new Error("UNAUTHORIZED");
-  const cfg=serviceConfig();
-  if(!cfg.configured)throw new Error("PAYMENT_DATABASE_NOT_CONFIGURED");
-  const response=await fetch(`${cfg.url}/auth/v1/user`,{headers:{apikey:cfg.key,authorization},signal:AbortSignal.timeout(8000)});
-  const user=await response.json().catch(()=>({})) as AuthUser;
-  if(!response.ok||!user.id||!user.email_confirmed_at)throw new Error("UNAUTHORIZED");
-  return user;
-}
-function clientIp(request: Request): string {
-  return (request.headers.get("x-vercel-forwarded-for") || request.headers.get("x-forwarded-for") || "127.0.0.1").split(",")[0].trim().slice(0, 64);
-}
-function base64(value: string): string { return Buffer.from(value, "utf8").toString("base64"); }
-function hmacBase64(value: string, key: string): string { return createHmac("sha256", key).update(value, "utf8").digest("base64"); }
-function sameHash(a: string, b: string): boolean {
-  const aa = Buffer.from(a);
-  const bb = Buffer.from(b);
-  return aa.length === bb.length && timingSafeEqual(aa, bb);
-}
-function merchantOid(bookingId: string): string { return bookingId.replace(/[^A-Za-z0-9]/g, "").slice(0, 64); }
-function branchMerchantOid(invoiceId:string):string{return `BRINV${invoiceId.replace(/[^A-Za-z0-9]/g,"")}`.slice(0,64);}
-function calculateCharge(total: number, settings: PaymentSettingsRow): number {
-  if (!Number.isFinite(total) || total <= 0) throw new Error("INVALID_BOOKING_TOTAL");
-  const mode = String(settings.deposit_mode || "NONE");
-  const value = Number(settings.deposit_value || 0);
-  if (mode === "PERCENT" && value > 0) return Math.max(1, Math.round(total * Math.min(100, value) / 100 * 100) / 100);
-  if (mode === "FIXED" && value > 0) return Math.max(1, Math.min(total, Math.round(value * 100) / 100));
-  return Math.round(total * 100) / 100;
-}
-async function booking(reference: string): Promise<BookingRow> {
-  const rows = await db<BookingRow[]>(`bookings?reference=eq.${encodeURIComponent(reference)}&deleted_at=is.null&select=id,reference,item_name,customer_name,customer_email,customer_phone,total_price,currency,payment_method,payment_status,pickup_location&limit=1`);
-  if (!rows[0]) throw new Error("BOOKING_NOT_FOUND");
-  return rows[0];
-}
-async function paymentSettings(): Promise<PaymentSettingsRow> {
-  const rows = await db<PaymentSettingsRow[]>("payment_settings?config_key=eq.main&select=provider,card_enabled,deposit_mode,deposit_value,currency,test_mode&limit=1");
-  return rows[0] || { provider: "NONE", card_enabled: false, deposit_mode: "NONE", deposit_value: 0, currency: "TRY", test_mode: true };
-}
-async function recordTransaction(input: { bookingId: string; provider: string; providerReference: string; amount: number; currency: string; requestSnapshot: Record<string, unknown>; responseSnapshot?: Record<string, unknown> }): Promise<void> {
-  await db("payment_transactions?on_conflict=idempotency_key", {
-    method: "POST",
-    headers: { "content-type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" },
-    body: JSON.stringify({ booking_id: input.bookingId, provider: input.provider, provider_reference: input.providerReference, idempotency_key: `${input.provider}:${input.providerReference}`, amount: input.amount, currency: input.currency, status: "PENDING", request_snapshot: input.requestSnapshot, response_snapshot: input.responseSnapshot || {} }),
-  });
-}
+type Json = Record<string,unknown>;
+type PaymentRedirectState = "success"|"failed"|"pending";
 
-async function createPaytr(request: Request, body: CreateSessionBody, bookingRow: BookingRow, settings: PaymentSettingsRow, returnUrl: string, cancelUrl: string): Promise<Response> {
-  const config = getPaymentConfig();
-  if (!config.merchantId || !config.merchantKey || !config.merchantSalt) throw new Error("PAYTR_NOT_CONFIGURED");
-  const email = bookingRow.customer_email || text(body.customer?.email, 160);
-  if (!email || !email.includes("@")) throw new Error("PAYMENT_EMAIL_REQUIRED");
-  const amount = calculateCharge(Number(bookingRow.total_price), settings);
-  const paymentAmount = Math.round(amount * 100);
-  const oid = merchantOid(bookingRow.id);
-  if (!oid) throw new Error("INVALID_MERCHANT_OID");
-  const basket = base64(JSON.stringify([[bookingRow.item_name, amount.toFixed(2), 1]]));
-  const noInstallment = "0";
-  const maxInstallment = "0";
-  const currency = (bookingRow.currency || settings.currency || "TRY").toUpperCase();
-  if (currency !== "TRY") throw new Error("PAYTR_TRY_REQUIRED");
-  const testMode = (settings.test_mode || config.testMode) ? "1" : "0";
-  const ip = clientIp(request);
-  const hashString = `${config.merchantId}${ip}${oid}${email}${paymentAmount}${basket}${noInstallment}${maxInstallment}${currency}${testMode}`;
-  const paytrToken = hmacBase64(`${hashString}${config.merchantSalt}`, config.merchantKey);
-  const form = new URLSearchParams({ merchant_id: config.merchantId, user_ip: ip, merchant_oid: oid, email, payment_amount: String(paymentAmount), paytr_token: paytrToken, user_basket: basket, debug_on: testMode, no_installment: noInstallment, max_installment: maxInstallment, user_name: bookingRow.customer_name, user_address: bookingRow.pickup_location || "Yüksekova, Hakkari", user_phone: bookingRow.customer_phone, merchant_ok_url: returnUrl, merchant_fail_url: cancelUrl, timeout_limit: "30", currency, test_mode: testMode, lang: "tr" });
-  const upstream = await fetch("https://www.paytr.com/odeme/api/get-token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: form, signal: AbortSignal.timeout(12000) });
-  const result = await upstream.json().catch(() => ({})) as Record<string, unknown>;
-  if (!upstream.ok || result.status !== "success" || typeof result.token !== "string") throw new Error(`PAYTR_TOKEN_${String(result.reason || upstream.status)}`);
-  await recordTransaction({ bookingId: bookingRow.id, provider: "paytr", providerReference: oid, amount, currency, requestSnapshot: { bookingReference: bookingRow.reference, depositMode: settings.deposit_mode, depositValue: settings.deposit_value, testMode: testMode === "1" }, responseSnapshot: { tokenIssued: true } });
-  return json({ ok: true, status: "ready", provider: "paytr", checkoutUrl: `https://www.paytr.com/odeme/guvenli/${encodeURIComponent(result.token)}`, externalReference: oid });
-}
+function json(body:unknown,status=200):Response{return Response.json(body,{status,headers:{"cache-control":"no-store","content-type":"application/json; charset=utf-8"}})}
+function plain(value:string,status:number):Response{return new Response(value,{status,headers:{"content-type":"text/plain; charset=utf-8","cache-control":"no-store"}})}
+function text(value:unknown,max:number):string|null{if(typeof value!=="string")return null;const v=value.trim();return v&&v.length<=max?v:null;}
+function safeReturnUrl(value:unknown,allowedOrigins:string[]):string|null{const raw=text(value,2048);if(!raw)return null;try{const url=new URL(raw);return url.protocol==="https:"&&allowedOrigins.includes(url.origin)?url.toString():null}catch{return null}}
+function serviceConfig(){const url=process.env.SUPABASE_PROJECT_URL?.trim()||process.env.SUPABASE_URL?.trim()||"";const key=process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";return{url,key,configured:Boolean(url&&key)}}
+async function db<T>(path:string,init:RequestInit={}):Promise<T>{const cfg=serviceConfig();if(!cfg.configured)throw new Error("PAYMENT_DATABASE_NOT_CONFIGURED");const response=await fetch(`${cfg.url}/rest/v1/${path}`,{...init,headers:{apikey:cfg.key,authorization:`Bearer ${cfg.key}`,accept:"application/json",...(init.headers||{})},signal:AbortSignal.timeout(9000)});if(!response.ok)throw new Error(`PAYMENT_DATABASE_${response.status}`);if(response.status===204)return undefined as T;return await response.json() as T;}
+async function authenticatedUser(request:Request):Promise<AuthUser>{const authorization=request.headers.get("authorization")||"";if(!/^Bearer\s+\S+/i.test(authorization))throw new Error("UNAUTHORIZED");const cfg=serviceConfig();if(!cfg.configured)throw new Error("PAYMENT_DATABASE_NOT_CONFIGURED");const response=await fetch(`${cfg.url}/auth/v1/user`,{headers:{apikey:cfg.key,authorization},signal:AbortSignal.timeout(8000)});const user=await response.json().catch(()=>({})) as AuthUser;if(!response.ok||!user.id||!user.email_confirmed_at)throw new Error("UNAUTHORIZED");return user;}
+function clientIp(request:Request):string{return(request.headers.get("x-vercel-forwarded-for")||request.headers.get("x-forwarded-for")||"127.0.0.1").split(",")[0].trim().slice(0,64)}
+function base64(value:string):string{return Buffer.from(value,"utf8").toString("base64")}
+function hmacBase64(value:string,key:string):string{return createHmac("sha256",key).update(value,"utf8").digest("base64")}
+function hmacHex(value:string,key:string):string{return createHmac("sha256",key).update(value,"utf8").digest("hex")}
+function sameHash(a:string,b:string):boolean{const aa=Buffer.from(a);const bb=Buffer.from(b);return aa.length===bb.length&&timingSafeEqual(aa,bb)}
+function merchantOid(bookingId:string):string{return bookingId.replace(/[^A-Za-z0-9]/g,"").slice(0,64)}
+function branchMerchantOid(invoiceId:string):string{return`BRINV${invoiceId.replace(/[^A-Za-z0-9]/g,"")}`.slice(0,64)}
+function calculateCharge(total:number,settings:PaymentSettingsRow):number{if(!Number.isFinite(total)||total<=0)throw new Error("INVALID_BOOKING_TOTAL");const mode=String(settings.deposit_mode||"NONE");const value=Number(settings.deposit_value||0);if(mode==="PERCENT"&&value>0)return Math.max(1,Math.round(total*Math.min(100,value)/100*100)/100);if(mode==="FIXED"&&value>0)return Math.max(1,Math.min(total,Math.round(value*100)/100));return Math.round(total*100)/100;}
+function splitName(full:string):{name:string;surname:string}{const parts=full.trim().split(/\s+/).filter(Boolean);if(parts.length<2)throw new Error("PAYMENT_SURNAME_REQUIRED");return{name:parts.slice(0,-1).join(" ").slice(0,80),surname:parts.at(-1)!.slice(0,80)}}
+async function booking(reference:string):Promise<BookingRow>{const rows=await db<BookingRow[]>(`bookings?reference=eq.${encodeURIComponent(reference)}&deleted_at=is.null&select=id,reference,item_name,customer_name,customer_email,customer_phone,total_price,currency,payment_method,payment_status,pickup_location&limit=1`);if(!rows[0])throw new Error("BOOKING_NOT_FOUND");return rows[0]}
+async function paymentSettings():Promise<PaymentSettingsRow>{const rows=await db<PaymentSettingsRow[]>("payment_settings?config_key=eq.main&select=provider,card_enabled,deposit_mode,deposit_value,currency,test_mode&limit=1");return rows[0]||{provider:"NONE",card_enabled:false,deposit_mode:"NONE",deposit_value:0,currency:"TRY",test_mode:true}}
+async function recordTransaction(input:{bookingId:string;provider:string;providerReference:string;amount:number;currency:string;requestSnapshot:Record<string,unknown>;responseSnapshot?:Record<string,unknown>}):Promise<void>{await db("payment_transactions?on_conflict=idempotency_key",{method:"POST",headers:{"content-type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({booking_id:input.bookingId,provider:input.provider,provider_reference:input.providerReference,idempotency_key:`${input.provider}:${input.providerReference}`,amount:input.amount,currency:input.currency,status:"PENDING",request_snapshot:input.requestSnapshot,response_snapshot:input.responseSnapshot||{}})})}
+function withPaymentState(raw:string,state:PaymentRedirectState,provider:string,reference:string):string{try{const url=new URL(raw);url.searchParams.set("payment",state);url.searchParams.set("provider",provider);url.searchParams.set("reference",reference);return url.toString()}catch{return raw}}
 
-async function createGeneric(body: CreateSessionBody, bookingRow: BookingRow, settings: PaymentSettingsRow, returnUrl: string, cancelUrl: string): Promise<Response> {
-  const config = getPaymentConfig();
-  if (!config.createSessionUrl || !config.secretKey) throw new Error("GENERIC_PAYMENT_NOT_CONFIGURED");
-  const amount = calculateCharge(Number(bookingRow.total_price), settings);
-  const payload = { version: 2, bookingReference: bookingRow.reference, amount, currency: bookingRow.currency, method: "CARD", customer: { name: bookingRow.customer_name, email: bookingRow.customer_email || text(body.customer?.email, 160), phone: bookingRow.customer_phone }, returnUrl, cancelUrl, description: bookingRow.item_name, merchantId: config.merchantId || undefined };
-  const upstream = await fetch(config.createSessionUrl, { method: "POST", headers: { authorization: `Bearer ${config.secretKey}`, "content-type": "application/json", "x-alperler-contract-version": "2", ...(config.merchantId ? { "x-merchant-id": config.merchantId } : {}) }, body: JSON.stringify(payload), signal: AbortSignal.timeout(12000) });
-  if (!upstream.ok) throw new Error(`GENERIC_PAYMENT_${upstream.status}`);
-  const result = await upstream.json() as Record<string, unknown>;
-  const checkoutUrl = typeof result.checkoutUrl === "string" ? result.checkoutUrl : typeof result.url === "string" ? result.url : null;
-  if (!checkoutUrl || !checkoutUrl.startsWith("https://")) throw new Error("INVALID_GATEWAY_RESPONSE");
-  const externalReference = typeof result.externalReference === "string" ? result.externalReference : typeof result.reference === "string" ? result.reference : crypto.randomUUID();
-  await recordTransaction({ bookingId: bookingRow.id, provider: "generic_hosted", providerReference: externalReference, amount, currency: bookingRow.currency, requestSnapshot: { bookingReference: bookingRow.reference }, responseSnapshot: { checkoutUrlIssued: true } });
-  return json({ ok: true, status: "ready", provider: "generic_hosted", checkoutUrl, externalReference });
-}
+function iyzicoAuthorization(path:string,bodyText:string,apiKey:string,secretKey:string):{authorization:string;randomKey:string}{const randomKey=`${Date.now()}${crypto.randomUUID().replace(/-/g,"").slice(0,12)}`;const signature=hmacHex(`${randomKey}${path}${bodyText}`,secretKey);const encoded=base64(`apiKey:${apiKey}&randomKey:${randomKey}&signature:${signature}`);return{authorization:`IYZWSv2 ${encoded}`,randomKey}}
+async function iyzicoPost(path:string,payload:Json,testMode:boolean):Promise<Json>{const credentials=await resolveIyzicoCredentials(testMode);if(!credentials.configured||!credentials.apiKey||!credentials.secretKey)throw new Error(testMode?"IYZICO_SANDBOX_NOT_CONFIGURED":"IYZICO_LIVE_NOT_CONFIGURED");const body=JSON.stringify(payload);const auth=iyzicoAuthorization(path,body,credentials.apiKey,credentials.secretKey);const response=await fetch(`${credentials.baseUrl}${path}`,{method:"POST",headers:{authorization:auth.authorization,"x-iyzi-rnd":auth.randomKey,"content-type":"application/json"},body,signal:AbortSignal.timeout(15000)});const result=await response.json().catch(()=>({})) as Json;if(!response.ok)throw new Error(`IYZICO_HTTP_${response.status}`);return result;}
+function iyzicoSignatureValue(field:string,value:unknown):string{const raw=String(value??"");if((field==="price"||field==="paidPrice")&&/^-?\d+(?:\.\d+)?$/.test(raw)){const[int,decimal=""]=raw.split(".");const trimmed=decimal.replace(/0+$/,"");return trimmed?`${int}.${trimmed}`:int}return raw}
+function verifyIyzicoSignature(result:Json,secretKey:string,fields:string[]):boolean{const signature=text(result.signature,256);if(!signature)return false;const values=fields.map(field=>iyzicoSignatureValue(field,result[field]));const expected=hmacHex(values.join(":"),secretKey);return sameHash(expected.toLowerCase(),signature.toLowerCase())}
 
-async function createSession(request: Request): Promise<Response> {
-  if (request.method !== "POST") return json({ ok: false, code: "METHOD_NOT_ALLOWED" }, 405);
-  if (!isAllowedRequestOrigin(request)) return json({ ok: false, code: "ORIGIN_NOT_ALLOWED" }, 403);
-  const config = getPaymentConfig();
-  if (!config.cardEnabled || !config.configured) return json({ ok: false, status: "not_configured", provider: config.provider, code: "PAYMENT_PROVIDER_NOT_CONFIGURED", message: "Online kart ödeme altyapısı henüz aktif değil. Havale/EFT veya teslimde ödeme seçebilirsiniz." }, 503);
-  let body: CreateSessionBody;
-  try { body = await request.json() as CreateSessionBody; } catch { return json({ ok: false, code: "INVALID_JSON" }, 400); }
-  const reference = text(body.bookingReference, 128);
-  const returnUrl = safeReturnUrl(body.returnUrl, config.allowedOrigins);
-  const cancelUrl = safeReturnUrl(body.cancelUrl, config.allowedOrigins);
-  if (!reference || body.method !== "CARD" || !returnUrl || !cancelUrl) return json({ ok: false, code: "INVALID_PAYMENT_REQUEST" }, 400);
-  try {
-    const [bookingRow, settings] = await Promise.all([booking(reference), paymentSettings()]);
-    if (!settings.card_enabled || settings.provider === "NONE") return json({ ok: false, status: "not_configured", provider: config.provider, code: "CARD_DISABLED_BY_ADMIN" }, 409);
-    if (bookingRow.payment_status === "PAID") return json({ ok: false, status: "rejected", provider: config.provider, code: "BOOKING_ALREADY_PAID" }, 409);
-    if (settings.provider === "PAYTR" && config.provider !== "paytr") return json({ ok: false, status: "not_configured", provider: config.provider, code: "PAYMENT_PROVIDER_MISMATCH" }, 503);
-    if (settings.provider === "GENERIC_HOSTED" && config.provider !== "generic_hosted") return json({ ok: false, status: "not_configured", provider: config.provider, code: "PAYMENT_PROVIDER_MISMATCH" }, 503);
-    return config.provider === "paytr" ? await createPaytr(request, body, bookingRow, settings, returnUrl, cancelUrl) : await createGeneric(body, bookingRow, settings, returnUrl, cancelUrl);
-  } catch (error) {
-    console.error("Payment session failed", error);
-    const code = error instanceof Error ? error.message : "PAYMENT_GATEWAY_UNAVAILABLE";
-    return json({ ok: false, status: code === "BOOKING_NOT_FOUND" ? "rejected" : "error", provider: config.provider, code, message: "Ödeme oturumu başlatılamadı. Rezervasyon kaydınız korunuyor." }, code === "BOOKING_NOT_FOUND" ? 404 : 502);
-  }
-}
+async function createPaytr(request:Request,body:CreateSessionBody,bookingRow:BookingRow,settings:PaymentSettingsRow,returnUrl:string,cancelUrl:string):Promise<Response>{const config=await resolvePaytrCredentials();if(!config.merchantId||!config.merchantKey||!config.merchantSalt)throw new Error("PAYTR_NOT_CONFIGURED");const email=bookingRow.customer_email||text(body.customer?.email,160);if(!email||!email.includes("@"))throw new Error("PAYMENT_EMAIL_REQUIRED");const amount=calculateCharge(Number(bookingRow.total_price),settings);const paymentAmount=Math.round(amount*100);const oid=merchantOid(bookingRow.id);if(!oid)throw new Error("INVALID_MERCHANT_OID");const basket=base64(JSON.stringify([[bookingRow.item_name,amount.toFixed(2),1]]));const noInstallment="0",maxInstallment="0";const currency=(bookingRow.currency||settings.currency||"TRY").toUpperCase();if(currency!=="TRY")throw new Error("PAYTR_TRY_REQUIRED");const testMode=(settings.test_mode||config.testMode)?"1":"0";const ip=clientIp(request);const hashString=`${config.merchantId}${ip}${oid}${email}${paymentAmount}${basket}${noInstallment}${maxInstallment}${currency}${testMode}`;const paytrToken=hmacBase64(`${hashString}${config.merchantSalt}`,config.merchantKey);const form=new URLSearchParams({merchant_id:config.merchantId,user_ip:ip,merchant_oid:oid,email,payment_amount:String(paymentAmount),paytr_token:paytrToken,user_basket:basket,debug_on:testMode,no_installment:noInstallment,max_installment:maxInstallment,user_name:bookingRow.customer_name,user_address:bookingRow.pickup_location||"Yüksekova, Hakkari",user_phone:bookingRow.customer_phone,merchant_ok_url:returnUrl,merchant_fail_url:cancelUrl,timeout_limit:"30",currency,test_mode:testMode,lang:"tr"});const upstream=await fetch("https://www.paytr.com/odeme/api/get-token",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:form,signal:AbortSignal.timeout(12000)});const result=await upstream.json().catch(()=>({})) as Json;if(!upstream.ok||result.status!=="success"||typeof result.token!=="string")throw new Error(`PAYTR_TOKEN_${String(result.reason||upstream.status)}`);await recordTransaction({bookingId:bookingRow.id,provider:"paytr",providerReference:oid,amount,currency,requestSnapshot:{bookingReference:bookingRow.reference,depositMode:settings.deposit_mode,depositValue:settings.deposit_value,testMode:testMode==="1"},responseSnapshot:{tokenIssued:true}});return json({ok:true,status:"ready",provider:"paytr",checkoutUrl:`https://www.paytr.com/odeme/guvenli/${encodeURIComponent(result.token)}`,externalReference:oid})}
 
-async function createBranchSubscriptionSession(request:Request):Promise<Response>{
-  if(request.method!=="POST")return json({ok:false,code:"METHOD_NOT_ALLOWED"},405);
-  if(!isAllowedRequestOrigin(request))return json({ok:false,code:"ORIGIN_NOT_ALLOWED"},403);
-  const config=getPaymentConfig();
-  if(!config.cardEnabled||!config.configured||config.provider!=="paytr"||!config.merchantId||!config.merchantKey||!config.merchantSalt)return json({ok:false,code:"BRANCH_PAYTR_NOT_CONFIGURED",message:"Şube abonelik kart ödemesi henüz aktif değil."},503);
-  let body:BranchSessionBody;try{body=await request.json() as BranchSessionBody;}catch{return json({ok:false,code:"INVALID_JSON"},400);}
-  const invoiceId=text(body.invoiceId,80);const returnUrl=safeReturnUrl(body.returnUrl,config.allowedOrigins);const cancelUrl=safeReturnUrl(body.cancelUrl,config.allowedOrigins);
-  if(!invoiceId||!returnUrl||!cancelUrl)return json({ok:false,code:"INVALID_BRANCH_PAYMENT_REQUEST"},400);
-  try{
-    const user=await authenticatedUser(request);
-    const invoices=await db<BranchInvoiceRow[]>(`branch_subscription_invoices?id=eq.${encodeURIComponent(invoiceId)}&select=id,invoice_number,branch_id,subscription_id,status,amount,currency,period_start,period_end,due_at,branch:branches(id,name,operator_display_name,email,phone,address_line)&limit=1`);
-    const invoice=invoices[0];if(!invoice)return json({ok:false,code:"BRANCH_INVOICE_NOT_FOUND"},404);
-    const memberships=await db<Array<{id:string}>>(`branch_memberships?branch_id=eq.${encodeURIComponent(invoice.branch_id)}&user_id=eq.${encodeURIComponent(user.id)}&is_active=eq.true&select=id&limit=1`);
-    if(!memberships[0])return json({ok:false,code:"BRANCH_INVOICE_ACCESS_DENIED"},403);
-    if(invoice.status==="PAID")return json({ok:false,code:"BRANCH_INVOICE_ALREADY_PAID"},409);
-    if(!["OPEN","OVERDUE"].includes(invoice.status))return json({ok:false,code:"BRANCH_INVOICE_NOT_PAYABLE"},409);
-    const amount=Math.round(Number(invoice.amount)*100)/100;if(!Number.isFinite(amount)||amount<=0)return json({ok:false,code:"BRANCH_INVOICE_ZERO_AMOUNT"},409);
-    if(String(invoice.currency||"TRY").toUpperCase()!=="TRY")return json({ok:false,code:"PAYTR_TRY_REQUIRED"},409);
-    const branch=invoice.branch;const email=branch?.email||user.email||"";const phone=branch?.phone||"";const name=branch?.operator_display_name||branch?.name||"";
-    if(!email.includes("@")||phone.replace(/\D/g,"").length<7||!name)return json({ok:false,code:"BRANCH_CONTACT_REQUIRED"},409);
-    const oid=branchMerchantOid(invoice.id);const paymentAmount=Math.round(amount*100);const basket=base64(JSON.stringify([[`Şube aboneliği ${invoice.invoice_number}`,amount.toFixed(2),1]]));const noInstallment="0",maxInstallment="0",currency="TRY";const settings=await paymentSettings();const testMode=(settings.test_mode||config.testMode)?"1":"0";const ip=clientIp(request);const hashString=`${config.merchantId}${ip}${oid}${email}${paymentAmount}${basket}${noInstallment}${maxInstallment}${currency}${testMode}`;const paytrToken=hmacBase64(`${hashString}${config.merchantSalt}`,config.merchantKey);
-    const form=new URLSearchParams({merchant_id:config.merchantId,user_ip:ip,merchant_oid:oid,email,payment_amount:String(paymentAmount),paytr_token:paytrToken,user_basket:basket,debug_on:testMode,no_installment:noInstallment,max_installment:maxInstallment,user_name:name,user_address:branch?.address_line||"Türkiye",user_phone:phone,merchant_ok_url:returnUrl,merchant_fail_url:cancelUrl,timeout_limit:"30",currency,test_mode:testMode,lang:"tr"});
-    const upstream=await fetch("https://www.paytr.com/odeme/api/get-token",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:form,signal:AbortSignal.timeout(12000)});const result=await upstream.json().catch(()=>({})) as Record<string,unknown>;if(!upstream.ok||result.status!=="success"||typeof result.token!=="string")throw new Error(`PAYTR_TOKEN_${String(result.reason||upstream.status)}`);
-    const existing=await db<BranchPaymentRow[]>(`branch_subscription_payments?provider=eq.paytr&provider_reference=eq.${encodeURIComponent(oid)}&select=id,invoice_id,branch_id,amount,currency,status,provider_reference&limit=1`);
-    if(!existing[0])await db("branch_subscription_payments",{method:"POST",headers:{"content-type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({invoice_id:invoice.id,branch_id:invoice.branch_id,provider:"paytr",provider_reference:oid,status:"PENDING",amount,currency,metadata:{userId:user.id,invoiceNumber:invoice.invoice_number,tokenIssuedAt:new Date().toISOString()}})});
-    return json({ok:true,status:"ready",provider:"paytr",checkoutUrl:`https://www.paytr.com/odeme/guvenli/${encodeURIComponent(result.token)}`,externalReference:oid});
-  }catch(error){console.error("Branch subscription session failed",error);const code=error instanceof Error?error.message:"BRANCH_PAYMENT_GATEWAY_UNAVAILABLE";return json({ok:false,code,message:"Şube abonelik ödeme oturumu başlatılamadı."},code==="UNAUTHORIZED"?401:502);}
-}
+async function createIyzico(request:Request,body:CreateSessionBody,bookingRow:BookingRow,settings:PaymentSettingsRow,returnUrl:string,cancelUrl:string):Promise<Response>{const credentials=await resolveIyzicoCredentials(settings.test_mode);if(!credentials.configured||!credentials.secretKey)throw new Error(settings.test_mode?"IYZICO_SANDBOX_NOT_CONFIGURED":"IYZICO_LIVE_NOT_CONFIGURED");const amount=calculateCharge(Number(bookingRow.total_price),settings);const currency=(settings.currency||bookingRow.currency||"TRY").toUpperCase();if(!["TRY","EUR","USD","CHF"].includes(currency))throw new Error("IYZICO_CURRENCY_UNSUPPORTED");const email=bookingRow.customer_email||text(body.customer?.email,100);const phone=bookingRow.customer_phone||text(body.customer?.phone,40);const identityNumber=text(body.customer?.identityNumber,50);const billingAddress=text(body.customer?.billingAddress,500);const city=text(body.customer?.city,100);const country=text(body.customer?.country,100);const zipCode=text(body.customer?.zipCode,20)||"00000";if(!email||!email.includes("@"))throw new Error("PAYMENT_EMAIL_REQUIRED");if(!phone)throw new Error("PAYMENT_PHONE_REQUIRED");if(!identityNumber||identityNumber.length<5)throw new Error("IYZICO_IDENTITY_REQUIRED");if(!billingAddress||billingAddress.length<5||!city||!country)throw new Error("IYZICO_BILLING_ADDRESS_REQUIRED");const names=splitName(bookingRow.customer_name||String(body.customer?.name||""));const conversationId=`booking-${bookingRow.id}`;const callbackUrl=new URL("/api/payments?op=iyzico-callback",returnUrl).toString();const payload:Json={locale:"tr",conversationId,price:amount,paidPrice:amount,currency,basketId:bookingRow.reference,paymentGroup:"PRODUCT",callbackUrl,buyer:{id:bookingRow.id,name:names.name,surname:names.surname,identityNumber,email,gsmNumber:phone,registrationAddress:billingAddress,city,country,zipCode,ip:clientIp(request)},billingAddress:{address:billingAddress,zipCode,contactName:bookingRow.customer_name,city,country},basketItems:[{id:bookingRow.id,price:amount,name:bookingRow.item_name,category1:"Araç Kiralama",itemType:"VIRTUAL"}]};const result=await iyzicoPost("/payment/iyzipos/checkoutform/initialize/auth/ecom",payload,settings.test_mode);if(result.status!=="success"||typeof result.token!=="string"||typeof result.paymentPageUrl!=="string")throw new Error(`IYZICO_INIT_${String(result.errorCode||result.errorMessage||"FAILED")}`);if(!verifyIyzicoSignature(result,credentials.secretKey,["conversationId","token"]))throw new Error("IYZICO_INIT_SIGNATURE_INVALID");const token=String(result.token);const checkoutUrl=String(result.paymentPageUrl);if(!checkoutUrl.startsWith("https://"))throw new Error("IYZICO_INVALID_PAYMENT_URL");await recordTransaction({bookingId:bookingRow.id,provider:"iyzico",providerReference:token,amount,currency,requestSnapshot:{bookingReference:bookingRow.reference,conversationId,returnUrl,cancelUrl,testMode:settings.test_mode},responseSnapshot:{tokenIssued:true}});return json({ok:true,status:"ready",provider:"iyzico",checkoutUrl,externalReference:token})}
 
-async function settleBranchPaytrCallback(merchantOidValue:string,status:string,totalAmount:string,failedReasonCode:string,failedReasonMsg:string):Promise<Response>{
-  try{
-    const rows=await db<BranchPaymentRow[]>(`branch_subscription_payments?provider=eq.paytr&provider_reference=eq.${encodeURIComponent(merchantOidValue)}&select=id,invoice_id,branch_id,amount,currency,status,provider_reference&limit=1`);const pay=rows[0];if(!pay)return plain("TRANSACTION_NOT_FOUND",404);if(["SUCCEEDED","FAILED","CANCELED","REFUNDED"].includes(pay.status))return plain("OK",200);const expectedMinor=Math.round(Number(pay.amount)*100);const receivedMinor=Number(totalAmount);const amountValid=Number.isFinite(receivedMinor)&&receivedMinor===expectedMinor;const success=status==="success"&&amountValid;
-    if(success){await db("rpc/finalize_branch_subscription_payment_v1714",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({p_provider:"paytr",p_provider_reference:merchantOidValue,p_received_amount:Number(pay.amount)})});}
-    else{await db(`branch_subscription_payments?id=eq.${encodeURIComponent(pay.id)}`,{method:"PATCH",headers:{"content-type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({status:"FAILED",metadata:{paytrStatus:status,totalAmount:receivedMinor,amountValid,failedReasonCode:failedReasonCode||null,failedReasonMsg:failedReasonMsg.slice(0,300)||null}})});}
-    return plain("OK",200);
-  }catch(error){console.error("Branch PayTR callback persistence failed",error);return plain("CALLBACK_PERSISTENCE_FAILED",500);}
-}
+async function providerStatus():Promise<Response>{try{const config=getPaymentConfig();const settings=await paymentSettings();const availability=await paymentCredentialAvailability();const selected=settings.provider==="PAYTR"?"paytr":settings.provider==="IYZICO"?"iyzico":"none";const selectedIyzico=settings.test_mode?availability.iyzicoSandbox:availability.iyzicoLive;const availableProviders={paytr:availability.paytr,iyzico:selectedIyzico};const configured=selected==="paytr"?availableProviders.paytr:selected==="iyzico"?availableProviders.iyzico:false;return json({payment:{provider:selected,configured,cardEnabled:config.cardEnabled,eftEnabled:config.eftEnabled,officeEnabled:config.officeEnabled,availableProviders,providerDetails:{globalCardGate:config.cardEnabled,paytr:{configured:availability.paytr,forceTestMode:config.paytr.testMode},iyzico:{sandboxConfigured:availability.iyzicoSandbox,liveConfigured:availability.iyzicoLive}}}})}catch(error){console.error("Payment provider status failed",error);return json({payment:{provider:"none",configured:false,cardEnabled:false,eftEnabled:true,officeEnabled:true,availableProviders:{paytr:false,iyzico:false},providerDetails:{globalCardGate:false,paytr:{configured:false,forceTestMode:false},iyzico:{sandboxConfigured:false,liveConfigured:false}}}},503)}}
 
-async function paytrCallback(request: Request): Promise<Response> {
-  if (request.method !== "POST") return plain("METHOD_NOT_ALLOWED", 405);
-  const config = getPaymentConfig();
-  if (config.provider !== "paytr" || !config.merchantKey || !config.merchantSalt) return plain("PAYTR_NOT_CONFIGURED", 503);
-  let form: URLSearchParams;
-  try { form = new URLSearchParams(await request.text()); } catch { return plain("INVALID_CALLBACK", 400); }
-  const merchantOidValue = (form.get("merchant_oid") || "").trim();
-  const status = (form.get("status") || "").trim();
-  const totalAmount = (form.get("total_amount") || "").trim();
-  const hashValue = (form.get("hash") || "").trim();
-  const failedReasonCode = (form.get("failed_reason_code") || "").trim();
-  const failedReasonMsg = (form.get("failed_reason_msg") || "").trim();
-  if (!merchantOidValue || !status || !totalAmount || !hashValue) return plain("INVALID_CALLBACK", 400);
-  const expected = hmacBase64(`${merchantOidValue}${config.merchantSalt}${status}${totalAmount}`, config.merchantKey);
-  if (!sameHash(hashValue, expected)) return plain("INVALID_HASH", 400);
-  if(merchantOidValue.startsWith("BRINV"))return settleBranchPaytrCallback(merchantOidValue,status,totalAmount,failedReasonCode,failedReasonMsg);
-  try {
-    const rows = await db<TransactionRow[]>(`payment_transactions?provider=eq.paytr&provider_reference=eq.${encodeURIComponent(merchantOidValue)}&select=id,booking_id,amount,currency,status,provider_reference&limit=1`);
-    const tx = rows[0];
-    if (!tx) return plain("TRANSACTION_NOT_FOUND", 404);
-    if (["PAID", "FAILED", "CANCELLED", "REFUNDED", "PARTIALLY_REFUNDED"].includes(tx.status)) return plain("OK", 200);
-    const expectedMinor = Math.round(Number(tx.amount) * 100);
-    const receivedMinor = Number(totalAmount);
-    const amountValid = Number.isFinite(receivedMinor) && receivedMinor === expectedMinor;
-    const success = status === "success" && amountValid;
-    const txStatus = success ? "PAID" : "FAILED";
-    await db(`payment_transactions?id=eq.${encodeURIComponent(tx.id)}`, { method: "PATCH", headers: { "content-type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ status: txStatus, response_snapshot: { paytrStatus: status, totalAmount: receivedMinor, amountValid, failedReasonCode: failedReasonCode || null, failedReasonMsg: failedReasonMsg.slice(0, 300) || null }, updated_at: new Date().toISOString() }) });
-    await db(`bookings?id=eq.${encodeURIComponent(tx.booking_id)}`, { method: "PATCH", headers: { "content-type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ payment_status: txStatus, external_payment_reference: merchantOidValue, updated_at: new Date().toISOString() }) });
-    return plain("OK", 200);
-  } catch (error) {
-    console.error("PayTR callback persistence failed", error);
-    return plain("CALLBACK_PERSISTENCE_FAILED", 500);
-  }
-}
+async function createSession(request:Request):Promise<Response>{if(request.method!=="POST")return json({ok:false,code:"METHOD_NOT_ALLOWED"},405);if(!isAllowedRequestOrigin(request))return json({ok:false,code:"ORIGIN_NOT_ALLOWED"},403);const config=getPaymentConfig();if(!config.cardEnabled)return json({ok:false,status:"not_configured",provider:"none",code:"PAYMENT_CARD_GATE_DISABLED",message:"Online kart ödeme altyapısı henüz aktif değil. Havale/EFT veya teslimde ödeme seçebilirsiniz."},503);let body:CreateSessionBody;try{body=await request.json() as CreateSessionBody}catch{return json({ok:false,code:"INVALID_JSON"},400)}const reference=text(body.bookingReference,128);const returnUrl=safeReturnUrl(body.returnUrl,config.allowedOrigins);const cancelUrl=safeReturnUrl(body.cancelUrl,config.allowedOrigins);if(!reference||body.method!=="CARD"||!returnUrl||!cancelUrl)return json({ok:false,code:"INVALID_PAYMENT_REQUEST"},400);try{const[bookingRow,settings]=await Promise.all([booking(reference),paymentSettings()]);const provider=settings.provider==="PAYTR"?"paytr":settings.provider==="IYZICO"?"iyzico":"none";if(!settings.card_enabled||provider==="none")return json({ok:false,status:"not_configured",provider,code:"CARD_DISABLED_BY_ADMIN"},409);if(bookingRow.payment_status==="PAID")return json({ok:false,status:"rejected",provider,code:"BOOKING_ALREADY_PAID"},409);if(provider==="paytr"){const paytr=await resolvePaytrCredentials();if(!paytr.configured)return json({ok:false,status:"not_configured",provider,code:"PAYTR_NOT_CONFIGURED"},503);return await createPaytr(request,body,bookingRow,settings,returnUrl,cancelUrl)}const iyzico=await resolveIyzicoCredentials(settings.test_mode);if(!iyzico.configured)return json({ok:false,status:"not_configured",provider,code:settings.test_mode?"IYZICO_SANDBOX_NOT_CONFIGURED":"IYZICO_LIVE_NOT_CONFIGURED"},503);return await createIyzico(request,body,bookingRow,settings,returnUrl,cancelUrl)}catch(error){console.error("Payment session failed",error);const code=error instanceof Error?error.message:"PAYMENT_GATEWAY_UNAVAILABLE";return json({ok:false,status:code==="BOOKING_NOT_FOUND"?"rejected":"error",provider:"none",code,message:"Ödeme oturumu başlatılamadı. Rezervasyon kaydınız korunuyor."},code==="BOOKING_NOT_FOUND"?404:502)}}
 
-export default {
-  async fetch(request: Request): Promise<Response> {
-    const operation = new URL(request.url).searchParams.get("op") || "create-session";
-    if (operation === "create-session") return createSession(request);
-    if (operation === "branch-subscription-session") return createBranchSubscriptionSession(request);
-    if (operation === "paytr-callback") return paytrCallback(request);
-    return json({ ok: false, code: "UNKNOWN_PAYMENT_OPERATION" }, 404);
-  },
-};
+async function persistIyzicoResult(tx:TransactionRow,result:Json,signatureValid:boolean):Promise<{state:PaymentRedirectState;reference:string}>{const receivedAmount=Number(result.paidPrice);const amountValid=Number.isFinite(receivedAmount)&&Math.round(receivedAmount*100)===Math.round(Number(tx.amount)*100);const currencyValid=String(result.currency||"").toUpperCase()===String(tx.currency||"").toUpperCase();const fraudStatus=Number(result.fraudStatus);const providerSuccess=result.status==="success"&&result.paymentStatus==="SUCCESS"&&amountValid&&currencyValid;const approved=providerSuccess&&(fraudStatus===1||fraudStatus===2);const pending=providerSuccess&&fraudStatus===0;const rejectedAfterReview=tx.status==="AUTHORIZED"&&fraudStatus===-1;const txStatus=approved?"PAID":pending?"AUTHORIZED":rejectedAfterReview?"REFUNDED":"FAILED";const bookingStatus=approved?"PAID":pending?"PENDING":rejectedAfterReview?"REFUNDED":"FAILED";const reference=String(result.paymentId||tx.provider_reference||"");await db(`payment_transactions?id=eq.${encodeURIComponent(tx.id)}`,{method:"PATCH",headers:{"content-type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({status:txStatus,response_snapshot:{...(tx.response_snapshot||{}),paymentStatus:result.paymentStatus||null,paymentId:result.paymentId||null,paidPrice:receivedAmount,currency:result.currency||null,fraudStatus:Number.isFinite(fraudStatus)?fraudStatus:null,fraudApproved:approved,fraudRejectedAfterReview:rejectedAfterReview,amountValid,currencyValid,signatureValid},updated_at:new Date().toISOString()})});await db(`bookings?id=eq.${encodeURIComponent(tx.booking_id)}`,{method:"PATCH",headers:{"content-type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({payment_status:bookingStatus,external_payment_reference:reference,updated_at:new Date().toISOString()})});return{state:approved?"success":pending?"pending":"failed",reference}}
+
+async function iyzicoCallback(request:Request):Promise<Response>{if(request.method!=="POST")return plain("METHOD_NOT_ALLOWED",405);let token="";try{const contentType=request.headers.get("content-type")||"";if(contentType.includes("application/json")){const body=await request.json() as Json;token=text(body.token,200)||""}else{const form=new URLSearchParams(await request.text());token=(form.get("token")||"").trim()}}catch{return plain("INVALID_CALLBACK",400)}if(!token)return plain("INVALID_CALLBACK",400);try{const rows=await db<TransactionRow[]>(`payment_transactions?provider=eq.iyzico&provider_reference=eq.${encodeURIComponent(token)}&select=id,booking_id,amount,currency,status,provider_reference,request_snapshot,response_snapshot&limit=1`);const tx=rows[0];if(!tx)return plain("TRANSACTION_NOT_FOUND",404);const snapshot=tx.request_snapshot||{};const returnUrl=typeof snapshot.returnUrl==="string"?snapshot.returnUrl:"";const cancelUrl=typeof snapshot.cancelUrl==="string"?snapshot.cancelUrl:returnUrl;const testMode=snapshot.testMode===true;const conversationId=typeof snapshot.conversationId==="string"?snapshot.conversationId:`booking-${tx.booking_id}`;if(["PAID","REFUNDED","PARTIALLY_REFUNDED"].includes(tx.status))return Response.redirect(withPaymentState(returnUrl,"success","iyzico",token),303);if(["FAILED","CANCELLED"].includes(tx.status))return Response.redirect(withPaymentState(cancelUrl,"failed","iyzico",token),303);const credentials=await resolveIyzicoCredentials(testMode);if(!credentials.configured||!credentials.secretKey)return plain("IYZICO_NOT_CONFIGURED",503);const result=await iyzicoPost("/payment/iyzipos/checkoutform/auth/ecom/detail",{locale:"tr",conversationId,token},testMode);const signatureValid=verifyIyzicoSignature(result,credentials.secretKey,["paymentStatus","paymentId","currency","basketId","conversationId","paidPrice","price","token"]);if(!signatureValid)throw new Error("IYZICO_RESULT_SIGNATURE_INVALID");const settled=await persistIyzicoResult(tx,result,signatureValid);const destination=settled.state==="failed"?cancelUrl:returnUrl;return Response.redirect(withPaymentState(destination,settled.state,"iyzico",settled.reference||token),303)}catch(error){console.error("iyzico callback persistence failed",error);return plain("CALLBACK_PERSISTENCE_FAILED",500)}}
+
+async function iyzicoFraudNotification(request:Request):Promise<Response>{if(request.method!=="POST")return plain("METHOD_NOT_ALLOWED",405);let body:Json;try{body=await request.json() as Json}catch{return plain("INVALID_NOTIFICATION",400)}const paymentId=text(String(body.paymentId??""),120);const notifiedFraudStatus=Number(body.fraudStatus);if(!paymentId||![2,-1].includes(notifiedFraudStatus))return plain("INVALID_NOTIFICATION",400);try{const rows=await db<TransactionRow[]>(`payment_transactions?provider=eq.iyzico&status=eq.AUTHORIZED&response_snapshot->>paymentId=eq.${encodeURIComponent(paymentId)}&select=id,booking_id,amount,currency,status,provider_reference,request_snapshot,response_snapshot&limit=1`);const tx=rows[0];if(!tx)return plain("OK",200);const snapshot=tx.request_snapshot||{};const testMode=snapshot.testMode===true;const paymentConversationId=typeof snapshot.conversationId==="string"?snapshot.conversationId:`booking-${tx.booking_id}`;const credentials=await resolveIyzicoCredentials(testMode);if(!credentials.configured||!credentials.secretKey)return plain("IYZICO_NOT_CONFIGURED",503);const result=await iyzicoPost("/payment/detail",{locale:"tr",paymentId,paymentConversationId},testMode);const signatureValid=verifyIyzicoSignature(result,credentials.secretKey,["paymentId","currency","basketId","conversationId","paidPrice","price"]);if(!signatureValid)throw new Error("IYZICO_FRAUD_RESULT_SIGNATURE_INVALID");await persistIyzicoResult(tx,result,signatureValid);return plain("OK",200)}catch(error){console.error("iyzico fraud notification reconciliation failed",error);return plain("NOTIFICATION_RECONCILIATION_FAILED",500)}}
+
+async function createBranchSubscriptionSession(request:Request):Promise<Response>{if(request.method!=="POST")return json({ok:false,code:"METHOD_NOT_ALLOWED"},405);if(!isAllowedRequestOrigin(request))return json({ok:false,code:"ORIGIN_NOT_ALLOWED"},403);const config=getPaymentConfig();const paytr=await resolvePaytrCredentials();if(!config.cardEnabled||!paytr.configured||!paytr.merchantId||!paytr.merchantKey||!paytr.merchantSalt)return json({ok:false,code:"BRANCH_PAYTR_NOT_CONFIGURED",message:"Şube abonelik kart ödemesi henüz aktif değil."},503);let body:BranchSessionBody;try{body=await request.json() as BranchSessionBody}catch{return json({ok:false,code:"INVALID_JSON"},400)}const invoiceId=text(body.invoiceId,80);const returnUrl=safeReturnUrl(body.returnUrl,config.allowedOrigins);const cancelUrl=safeReturnUrl(body.cancelUrl,config.allowedOrigins);if(!invoiceId||!returnUrl||!cancelUrl)return json({ok:false,code:"INVALID_BRANCH_PAYMENT_REQUEST"},400);try{const user=await authenticatedUser(request);const invoices=await db<BranchInvoiceRow[]>(`branch_subscription_invoices?id=eq.${encodeURIComponent(invoiceId)}&select=id,invoice_number,branch_id,subscription_id,status,amount,currency,period_start,period_end,due_at,branch:branches(id,name,operator_display_name,email,phone,address_line)&limit=1`);const invoice=invoices[0];if(!invoice)return json({ok:false,code:"BRANCH_INVOICE_NOT_FOUND"},404);const memberships=await db<Array<{id:string}>>(`branch_memberships?branch_id=eq.${encodeURIComponent(invoice.branch_id)}&user_id=eq.${encodeURIComponent(user.id)}&is_active=eq.true&select=id&limit=1`);if(!memberships[0])return json({ok:false,code:"BRANCH_INVOICE_ACCESS_DENIED"},403);if(invoice.status==="PAID")return json({ok:false,code:"BRANCH_INVOICE_ALREADY_PAID"},409);if(!["OPEN","OVERDUE"].includes(invoice.status))return json({ok:false,code:"BRANCH_INVOICE_NOT_PAYABLE"},409);const amount=Math.round(Number(invoice.amount)*100)/100;if(!Number.isFinite(amount)||amount<=0)return json({ok:false,code:"BRANCH_INVOICE_ZERO_AMOUNT"},409);if(String(invoice.currency||"TRY").toUpperCase()!=="TRY")return json({ok:false,code:"PAYTR_TRY_REQUIRED"},409);const branch=invoice.branch;const email=branch?.email||user.email||"",phone=branch?.phone||"",name=branch?.operator_display_name||branch?.name||"";if(!email.includes("@")||phone.replace(/\D/g,"").length<7||!name)return json({ok:false,code:"BRANCH_CONTACT_REQUIRED"},409);const oid=branchMerchantOid(invoice.id),paymentAmount=Math.round(amount*100),basket=base64(JSON.stringify([[`Şube aboneliği ${invoice.invoice_number}`,amount.toFixed(2),1]])),noInstallment="0",maxInstallment="0",currency="TRY";const settings=await paymentSettings();const testMode=(settings.test_mode||paytr.testMode)?"1":"0",ip=clientIp(request),hashString=`${paytr.merchantId}${ip}${oid}${email}${paymentAmount}${basket}${noInstallment}${maxInstallment}${currency}${testMode}`,paytrToken=hmacBase64(`${hashString}${paytr.merchantSalt}`,paytr.merchantKey);const form=new URLSearchParams({merchant_id:paytr.merchantId,user_ip:ip,merchant_oid:oid,email,payment_amount:String(paymentAmount),paytr_token:paytrToken,user_basket:basket,debug_on:testMode,no_installment:noInstallment,max_installment:maxInstallment,user_name:name,user_address:branch?.address_line||"Türkiye",user_phone:phone,merchant_ok_url:returnUrl,merchant_fail_url:cancelUrl,timeout_limit:"30",currency,test_mode:testMode,lang:"tr"});const upstream=await fetch("https://www.paytr.com/odeme/api/get-token",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:form,signal:AbortSignal.timeout(12000)});const result=await upstream.json().catch(()=>({})) as Json;if(!upstream.ok||result.status!=="success"||typeof result.token!=="string")throw new Error(`PAYTR_TOKEN_${String(result.reason||upstream.status)}`);const existing=await db<BranchPaymentRow[]>(`branch_subscription_payments?provider=eq.paytr&provider_reference=eq.${encodeURIComponent(oid)}&select=id,invoice_id,branch_id,amount,currency,status,provider_reference&limit=1`);if(!existing[0])await db("branch_subscription_payments",{method:"POST",headers:{"content-type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({invoice_id:invoice.id,branch_id:invoice.branch_id,provider:"paytr",provider_reference:oid,status:"PENDING",amount,currency,metadata:{userId:user.id,invoiceNumber:invoice.invoice_number,tokenIssuedAt:new Date().toISOString()}})});return json({ok:true,status:"ready",provider:"paytr",checkoutUrl:`https://www.paytr.com/odeme/guvenli/${encodeURIComponent(result.token)}`,externalReference:oid})}catch(error){console.error("Branch subscription session failed",error);const code=error instanceof Error?error.message:"BRANCH_PAYMENT_GATEWAY_UNAVAILABLE";return json({ok:false,code,message:"Şube abonelik ödeme oturumu başlatılamadı."},code==="UNAUTHORIZED"?401:502)}}
+
+async function settleBranchPaytrCallback(merchantOidValue:string,status:string,totalAmount:string,paymentAmount:string,failedReasonCode:string,failedReasonMsg:string):Promise<Response>{try{const rows=await db<BranchPaymentRow[]>(`branch_subscription_payments?provider=eq.paytr&provider_reference=eq.${encodeURIComponent(merchantOidValue)}&select=id,invoice_id,branch_id,amount,currency,status,provider_reference&limit=1`);const pay=rows[0];if(!pay)return plain("TRANSACTION_NOT_FOUND",404);if(["SUCCEEDED","FAILED","CANCELED","REFUNDED"].includes(pay.status))return plain("OK",200);const expectedMinor=Math.round(Number(pay.amount)*100),paymentMinor=Number(paymentAmount),collectedMinor=Number(totalAmount),amountValid=status==="success"&&Number.isFinite(paymentMinor)&&paymentMinor===expectedMinor,success=status==="success"&&amountValid;if(success)await db("rpc/finalize_branch_subscription_payment_v1714",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({p_provider:"paytr",p_provider_reference:merchantOidValue,p_received_amount:Number(pay.amount)})});else await db(`branch_subscription_payments?id=eq.${encodeURIComponent(pay.id)}`,{method:"PATCH",headers:{"content-type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({status:"FAILED",metadata:{paytrStatus:status,paymentAmount:paymentMinor,totalAmount:collectedMinor,amountValid,failedReasonCode:failedReasonCode||null,failedReasonMsg:failedReasonMsg.slice(0,300)||null}})});return plain("OK",200)}catch(error){console.error("Branch PayTR callback persistence failed",error);return plain("CALLBACK_PERSISTENCE_FAILED",500)}}
+
+async function paytrCallback(request:Request):Promise<Response>{if(request.method!=="POST")return plain("METHOD_NOT_ALLOWED",405);const paytr=await resolvePaytrCredentials();if(!paytr.configured||!paytr.merchantKey||!paytr.merchantSalt)return plain("PAYTR_NOT_CONFIGURED",503);let form:URLSearchParams;try{form=new URLSearchParams(await request.text())}catch{return plain("INVALID_CALLBACK",400)}const merchantOidValue=(form.get("merchant_oid")||"").trim(),status=(form.get("status")||"").trim(),totalAmount=(form.get("total_amount")||"").trim(),paymentAmount=(form.get("payment_amount")||"").trim(),hashValue=(form.get("hash")||"").trim(),failedReasonCode=(form.get("failed_reason_code")||"").trim(),failedReasonMsg=(form.get("failed_reason_msg")||"").trim();if(!merchantOidValue||!status||!totalAmount||!hashValue||(status==="success"&&!paymentAmount))return plain("INVALID_CALLBACK",400);const expected=hmacBase64(`${merchantOidValue}${paytr.merchantSalt}${status}${totalAmount}`,paytr.merchantKey);if(!sameHash(hashValue,expected))return plain("INVALID_HASH",400);if(merchantOidValue.startsWith("BRINV"))return settleBranchPaytrCallback(merchantOidValue,status,totalAmount,paymentAmount,failedReasonCode,failedReasonMsg);try{const rows=await db<TransactionRow[]>(`payment_transactions?provider=eq.paytr&provider_reference=eq.${encodeURIComponent(merchantOidValue)}&select=id,booking_id,amount,currency,status,provider_reference&limit=1`);const tx=rows[0];if(!tx)return plain("TRANSACTION_NOT_FOUND",404);if(["PAID","FAILED","CANCELLED","REFUNDED","PARTIALLY_REFUNDED"].includes(tx.status))return plain("OK",200);const expectedMinor=Math.round(Number(tx.amount)*100),paymentMinor=Number(paymentAmount),collectedMinor=Number(totalAmount),amountValid=status==="success"&&Number.isFinite(paymentMinor)&&paymentMinor===expectedMinor,success=status==="success"&&amountValid,txStatus=success?"PAID":"FAILED";await db(`payment_transactions?id=eq.${encodeURIComponent(tx.id)}`,{method:"PATCH",headers:{"content-type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({status:txStatus,response_snapshot:{paytrStatus:status,paymentAmount:paymentMinor,totalAmount:collectedMinor,amountValid,failedReasonCode:failedReasonCode||null,failedReasonMsg:failedReasonMsg.slice(0,300)||null},updated_at:new Date().toISOString()})});await db(`bookings?id=eq.${encodeURIComponent(tx.booking_id)}`,{method:"PATCH",headers:{"content-type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({payment_status:txStatus,external_payment_reference:merchantOidValue,updated_at:new Date().toISOString()})});return plain("OK",200)}catch(error){console.error("PayTR callback persistence failed",error);return plain("CALLBACK_PERSISTENCE_FAILED",500)}}
+
+export default{async fetch(request:Request):Promise<Response>{const operation=new URL(request.url).searchParams.get("op")||"create-session";if(operation==="provider-status")return providerStatus();if(operation==="create-session")return createSession(request);if(operation==="branch-subscription-session")return createBranchSubscriptionSession(request);if(operation==="paytr-callback")return paytrCallback(request);if(operation==="iyzico-callback")return iyzicoCallback(request);if(operation==="iyzico-fraud-notification")return iyzicoFraudNotification(request);return json({ok:false,code:"UNKNOWN_PAYMENT_OPERATION"},404)}};

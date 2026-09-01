@@ -16,136 +16,61 @@ function json(body: unknown, status = 200): Response {
     },
   });
 }
-
-function clean(value: unknown, max: number): string {
-  return typeof value === "string" ? value.trim().slice(0, max) : "";
-}
-
-function uuid(value: unknown): string {
-  const text = clean(value, 80);
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text) ? text : "";
-}
-
-function serviceHeaders(): Record<string, string> {
-  return {
-    apikey: SERVICE_KEY,
-    authorization: `Bearer ${SERVICE_KEY}`,
-    "content-type": "application/json",
-  };
-}
-
+function clean(value: unknown, max: number): string { return typeof value === "string" ? value.trim().slice(0, max) : ""; }
+function uuid(value: unknown): string { const text = clean(value, 80); return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text) ? text : ""; }
+function serviceHeaders(): Record<string, string> { return { apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}`, "content-type": "application/json" }; }
 async function serviceGet<T>(path: string): Promise<T> {
-  const response = await fetch(`${SUPABASE_URL}${path}`, {
-    headers: serviceHeaders(),
-    signal: AbortSignal.timeout(15_000),
-  });
+  const response = await fetch(`${SUPABASE_URL}${path}`, { headers: serviceHeaders(), signal: AbortSignal.timeout(15_000) });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const code = clean(payload?.message || payload?.code, 180) || `SERVICE_GET_${response.status}`;
-    throw new Error(code);
-  }
+  if (!response.ok) { const code = clean(payload?.message || payload?.code, 180) || `SERVICE_GET_${response.status}`; throw new Error(code); }
   return payload as T;
 }
-
 async function rpc<T = JsonObject>(name: string, body: JsonObject): Promise<T> {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
-    method: "POST",
-    headers: serviceHeaders(),
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(15_000),
-  });
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, { method: "POST", headers: serviceHeaders(), body: JSON.stringify(body), signal: AbortSignal.timeout(15_000) });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const code = clean(payload?.message || payload?.code, 180) || `${name.toUpperCase()}_${response.status}`;
-    throw new Error(code);
-  }
+  if (!response.ok) { const code = clean(payload?.message || payload?.code, 180) || `${name.toUpperCase()}_${response.status}`; throw new Error(code); }
   return payload as T;
 }
-
 async function requireActor(request: Request): Promise<string> {
   const authorization = request.headers.get("authorization") || "";
   if (!/^Bearer\s+\S+/i.test(authorization)) throw new Error("UNAUTHORIZED");
-
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: { apikey: SERVICE_KEY, authorization },
-    signal: AbortSignal.timeout(8_000),
-  });
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: SERVICE_KEY, authorization }, signal: AbortSignal.timeout(8_000) });
   if (!response.ok) throw new Error("UNAUTHORIZED");
   const user = await response.json().catch(() => ({}));
   const actor = uuid(user?.id);
   if (!actor) throw new Error("UNAUTHORIZED");
   return actor;
 }
-
 async function requireAuditAccess(actor: string): Promise<void> {
-  const rows = await serviceGet<Array<{ role?: unknown; permissions?: unknown }>>(
-    `/rest/v1/admin_users?user_id=eq.${encodeURIComponent(actor)}&is_active=eq.true&select=role,permissions&limit=1`,
-  );
+  const rows = await serviceGet<Array<{ role?: unknown; permissions?: unknown }>>(`/rest/v1/admin_users?user_id=eq.${encodeURIComponent(actor)}&is_active=eq.true&select=role,permissions&limit=1`);
   const row = Array.isArray(rows) ? rows[0] : undefined;
   const role = clean(row?.role, 40).toLowerCase();
-  const permissions = row?.permissions && typeof row.permissions === "object" && !Array.isArray(row.permissions)
-    ? row.permissions as Record<string, unknown>
-    : {};
+  const permissions = row?.permissions && typeof row.permissions === "object" && !Array.isArray(row.permissions) ? row.permissions as Record<string, unknown> : {};
   if (role === "owner" || role === "admin" || permissions["finance.read"] === true) return;
   throw new Error("FINANCE_ADMIN_REQUIRED");
 }
-
 async function loadAuditRows(actor: string): Promise<unknown[]> {
   await requireAuditAccess(actor);
   const projection = "id,actor_user_id,actor_email,action,entity_type,entity_id,before_data,after_data,created_at";
-  return await serviceGet<unknown[]>(
-    `/rest/v1/audit_logs?select=${projection}&order=created_at.desc,id.desc&limit=300`,
-  );
+  return await serviceGet<unknown[]>(`/rest/v1/audit_logs?select=${projection}&order=created_at.desc,id.desc&limit=300`);
 }
-
 async function sha256(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
-
 async function enforceRateLimit(actor: string, scope: string, limit: number): Promise<void> {
-  const allowed = await rpc<boolean>("consume_rate_limit", {
-    p_key_hash: await sha256(`${scope}:${actor}`),
-    p_scope: scope,
-    p_window_seconds: 60,
-    p_limit: limit,
-  });
+  const allowed = await rpc<boolean>("consume_rate_limit", { p_key_hash: await sha256(`${scope}:${actor}`), p_scope: scope, p_window_seconds: 60, p_limit: limit });
   if (allowed !== true) throw new Error("RATE_LIMITED");
 }
-
-function optionalUuid(value: unknown, code: string): string | null {
-  const raw = clean(value, 80);
-  if (!raw) return null;
-  const id = uuid(raw);
-  if (!id) throw new Error(code);
-  return id;
-}
-
-function bool(value: unknown, fallback: boolean): boolean {
-  return typeof value === "boolean" ? value : fallback;
-}
-
-function integer(value: unknown, fallback = 0, min = 0, max = 1_000_000): number {
-  const number = Number(value);
-  return Number.isFinite(number) ? Math.max(min, Math.min(Math.trunc(number), max)) : fallback;
-}
-
-function numberValue(value: unknown, fallback = 0): number {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
-}
-
-function metadata(value: unknown): JsonObject {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {};
-}
-
+function optionalUuid(value: unknown, code: string): string | null { const raw = clean(value, 80); if (!raw) return null; const id = uuid(raw); if (!id) throw new Error(code); return id; }
+function bool(value: unknown, fallback: boolean): boolean { return typeof value === "boolean" ? value : fallback; }
+function integer(value: unknown, fallback = 0, min = 0, max = 1_000_000): number { const number = Number(value); return Number.isFinite(number) ? Math.max(min, Math.min(Math.trunc(number), max)) : fallback; }
+function numberValue(value: unknown, fallback = 0): number { const number = Number(value); return Number.isFinite(number) ? number : fallback; }
+function metadata(value: unknown): JsonObject { return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {}; }
 function statusFor(code: string): number {
   if (code === "UNAUTHORIZED") return 401;
   if (code === "RATE_LIMITED") return 429;
-  if (code.includes("REQUIRED") || code.includes("INVALID")) {
-    if (code.includes("ADMIN_") || code.includes("PERMISSION_REQUIRED") || code.endsWith("_ADMIN_REQUIRED")) return 403;
-    return 400;
-  }
+  if (code.includes("REQUIRED") || code.includes("INVALID")) { if (code.includes("ADMIN_") || code.includes("PERMISSION_REQUIRED") || code.endsWith("_ADMIN_REQUIRED")) return 403; return 400; }
   if (code.includes("NOT_FOUND")) return 404;
   if (code.includes("duplicate key") || code.includes("unique constraint")) return 409;
   return 500;
@@ -155,37 +80,21 @@ Deno.serve(async (request: Request) => {
   if (!SUPABASE_URL || !SERVICE_KEY) return json({ ok: false, code: "SERVER_CONFIG_MISSING" }, 503);
   if (request.method === "OPTIONS") return new Response(null, { status: 204 });
   if (!["GET", "PATCH"].includes(request.method)) return json({ ok: false, code: "METHOD_NOT_ALLOWED" }, 405);
-
   try {
     const actor = await requireActor(request);
-
     if (request.method === "GET") {
       await enforceRateLimit(actor, "admin-core-read-v182", 120);
       const url = new URL(request.url);
       const view = clean(url.searchParams.get("view"), 40).toLowerCase() || "operations";
-      if (view === "operations") {
-        return json(await rpc("service_admin_operations_snapshot_v178", { p_actor: actor }));
-      }
-      if (view === "management") {
-        return json(await rpc("service_admin_management_snapshot_v178", { p_actor: actor }));
-      }
-      if (view === "staff-branches") {
-        const staffId = uuid(url.searchParams.get("staffId"));
-        if (!staffId) return json({ ok: false, code: "INVALID_STAFF_ID" }, 400);
-        return json(await rpc("service_admin_staff_branches_v178", { p_actor: actor, p_staff_id: staffId }));
-      }
-      if (view === "assignments") {
-        return json(await rpc("service_assignment_snapshot_v182", { p_actor: actor }));
-      }
-      if (view === "payment-settings") {
-        return json(await rpc("service_payment_settings_snapshot_v182", { p_actor: actor }));
-      }
-      if (view === "audit") {
-        return json(await loadAuditRows(actor));
-      }
+      if (view === "operations") return json(await rpc("service_admin_operations_snapshot_v178", { p_actor: actor }));
+      if (view === "management") return json(await rpc("service_admin_management_snapshot_v178", { p_actor: actor }));
+      if (view === "staff-branches") { const staffId = uuid(url.searchParams.get("staffId")); if (!staffId) return json({ ok: false, code: "INVALID_STAFF_ID" }, 400); return json(await rpc("service_admin_staff_branches_v178", { p_actor: actor, p_staff_id: staffId })); }
+      if (view === "assignments") return json(await rpc("service_assignment_snapshot_v182", { p_actor: actor }));
+      if (view === "payment-settings") return json(await rpc("service_payment_settings_snapshot_v182", { p_actor: actor }));
+      if (view === "payment-provider-secrets") return json(await rpc("service_payment_provider_secret_status_v221", { p_actor: actor }));
+      if (view === "audit") return json(await loadAuditRows(actor));
       return json({ ok: false, code: "UNKNOWN_VIEW" }, 400);
     }
-
     await enforceRateLimit(actor, "admin-core-write-v182", 40);
     const declaredLength = Number(request.headers.get("content-length") || 0);
     if (declaredLength > MAX_BODY_BYTES) return json({ ok: false, code: "PAYLOAD_TOO_LARGE" }, 413);
@@ -193,138 +102,50 @@ Deno.serve(async (request: Request) => {
     if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) return json({ ok: false, code: "PAYLOAD_TOO_LARGE" }, 413);
     const input = JSON.parse(rawBody || "null") as JsonObject | null;
     if (!input || typeof input !== "object" || Array.isArray(input)) return json({ ok: false, code: "INVALID_JSON" }, 400);
-
     const action = clean(input.action, 60).toUpperCase();
-
     if (action === "SAVE_STAFF") {
       const department = clean(input.department, 40).toUpperCase();
       if (!clean(input.displayName, 160)) return json({ ok: false, code: "STAFF_NAME_REQUIRED" }, 400);
-      return json(await rpc("service_save_staff_v178", {
-        p_actor: actor,
-        p_staff_id: optionalUuid(input.id, "INVALID_STAFF_ID"),
-        p_display_name: clean(input.displayName, 160),
-        p_email: clean(input.email, 160) || null,
-        p_phone: clean(input.phone, 40) || null,
-        p_job_title: clean(input.jobTitle, 120) || null,
-        p_department: department || "GENERAL",
-        p_is_active: bool(input.isActive, true),
-        p_metadata: metadata(input.metadata),
-      }));
+      return json(await rpc("service_save_staff_v178", { p_actor: actor, p_staff_id: optionalUuid(input.id, "INVALID_STAFF_ID"), p_display_name: clean(input.displayName, 160), p_email: clean(input.email, 160) || null, p_phone: clean(input.phone, 40) || null, p_job_title: clean(input.jobTitle, 120) || null, p_department: department || "GENERAL", p_is_active: bool(input.isActive, true), p_metadata: metadata(input.metadata) }));
     }
-
-    if (action === "SET_STAFF_ACTIVE") {
-      const staffId = uuid(input.staffId);
-      if (!staffId) return json({ ok: false, code: "INVALID_STAFF_ID" }, 400);
-      return json(await rpc("service_set_staff_active_v178", { p_actor: actor, p_staff_id: staffId, p_active: bool(input.active, false) }));
+    if (action === "SET_STAFF_ACTIVE") { const staffId = uuid(input.staffId); if (!staffId) return json({ ok: false, code: "INVALID_STAFF_ID" }, 400); return json(await rpc("service_set_staff_active_v178", { p_actor: actor, p_staff_id: staffId, p_active: bool(input.active, false) })); }
+    if (action === "ASSIGN_STAFF_BRANCH") { const staffId = uuid(input.staffId); const branchId = uuid(input.branchId); if (!staffId || !branchId) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400); return json(await rpc("service_assign_staff_branch_v178", { p_actor: actor, p_staff_id: staffId, p_branch_id: branchId, p_primary: bool(input.primary, false) })); }
+    if (action === "UNASSIGN_STAFF_BRANCH") { const staffId = uuid(input.staffId); const branchId = uuid(input.branchId); if (!staffId || !branchId) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400); return json(await rpc("service_unassign_staff_branch_v178", { p_actor: actor, p_staff_id: staffId, p_branch_id: branchId })); }
+    if (action === "ASSIGN_STAFF_VEHICLE") { const staffId = uuid(input.staffId); const vehicleId = uuid(input.vehicleId); if (!staffId || !vehicleId) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400); return json(await rpc("service_assign_staff_vehicle_v178", { p_actor: actor, p_vehicle_id: vehicleId, p_staff_id: staffId, p_responsibility: clean(input.responsibility, 32).toUpperCase() })); }
+    if (action === "UNASSIGN_STAFF_VEHICLE") { const staffId = uuid(input.staffId); const vehicleId = uuid(input.vehicleId); const responsibility = clean(input.responsibility, 32).toUpperCase(); if (!staffId || !vehicleId || !responsibility) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400); return json(await rpc("service_unassign_staff_vehicle_v182", { p_actor: actor, p_vehicle_id: vehicleId, p_staff_id: staffId, p_responsibility: responsibility })); }
+    if (action === "ASSIGN_STAFF_TOUR") { const staffId = uuid(input.staffId); const tourId = uuid(input.tourId); if (!staffId || !tourId) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400); return json(await rpc("service_assign_staff_tour_v178", { p_actor: actor, p_tour_id: tourId, p_staff_id: staffId, p_responsibility: clean(input.responsibility, 32).toUpperCase() })); }
+    if (action === "UNASSIGN_STAFF_TOUR") { const staffId = uuid(input.staffId); const tourId = uuid(input.tourId); const responsibility = clean(input.responsibility, 32).toUpperCase(); if (!staffId || !tourId || !responsibility) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400); return json(await rpc("service_unassign_staff_tour_v182", { p_actor: actor, p_tour_id: tourId, p_staff_id: staffId, p_responsibility: responsibility })); }
+    if (action === "SAVE_PAYMENT_PROVIDER_SECRETS") {
+      const provider = clean(input.provider, 20).toUpperCase();
+      const scope = clean(input.scope, 20).toLowerCase();
+      if (!["PAYTR", "IYZICO"].includes(provider)) return json({ ok: false, code: "INVALID_PAYMENT_PROVIDER" }, 400);
+      if (provider === "IYZICO" && !["sandbox", "live"].includes(scope)) return json({ ok: false, code: "IYZICO_SECRET_SCOPE_REQUIRED" }, 400);
+      return json(await rpc("service_set_payment_provider_secrets_v221", { p_actor: actor, p_provider: provider, p_scope: scope || "default", p_payload: metadata(input.credentials) }));
     }
-
-    if (action === "ASSIGN_STAFF_BRANCH") {
-      const staffId = uuid(input.staffId);
-      const branchId = uuid(input.branchId);
-      if (!staffId || !branchId) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400);
-      return json(await rpc("service_assign_staff_branch_v178", { p_actor: actor, p_staff_id: staffId, p_branch_id: branchId, p_primary: bool(input.primary, false) }));
+    if (action === "CLEAR_PAYMENT_PROVIDER_SECRETS") {
+      const provider = clean(input.provider, 20).toUpperCase();
+      const scope = clean(input.scope, 20).toLowerCase();
+      if (!["PAYTR", "IYZICO"].includes(provider)) return json({ ok: false, code: "INVALID_PAYMENT_PROVIDER" }, 400);
+      return json(await rpc("service_clear_payment_provider_secrets_v221", { p_actor: actor, p_provider: provider, p_scope: scope || "default" }));
     }
-
-    if (action === "UNASSIGN_STAFF_BRANCH") {
-      const staffId = uuid(input.staffId);
-      const branchId = uuid(input.branchId);
-      if (!staffId || !branchId) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400);
-      return json(await rpc("service_unassign_staff_branch_v178", { p_actor: actor, p_staff_id: staffId, p_branch_id: branchId }));
-    }
-
-    if (action === "ASSIGN_STAFF_VEHICLE") {
-      const staffId = uuid(input.staffId);
-      const vehicleId = uuid(input.vehicleId);
-      if (!staffId || !vehicleId) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400);
-      return json(await rpc("service_assign_staff_vehicle_v178", {
-        p_actor: actor,
-        p_vehicle_id: vehicleId,
-        p_staff_id: staffId,
-        p_responsibility: clean(input.responsibility, 32).toUpperCase(),
-      }));
-    }
-
-    if (action === "UNASSIGN_STAFF_VEHICLE") {
-      const staffId = uuid(input.staffId);
-      const vehicleId = uuid(input.vehicleId);
-      const responsibility = clean(input.responsibility, 32).toUpperCase();
-      if (!staffId || !vehicleId || !responsibility) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400);
-      return json(await rpc("service_unassign_staff_vehicle_v182", {
-        p_actor: actor,
-        p_vehicle_id: vehicleId,
-        p_staff_id: staffId,
-        p_responsibility: responsibility,
-      }));
-    }
-
-    if (action === "ASSIGN_STAFF_TOUR") {
-      const staffId = uuid(input.staffId);
-      const tourId = uuid(input.tourId);
-      if (!staffId || !tourId) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400);
-      return json(await rpc("service_assign_staff_tour_v178", {
-        p_actor: actor,
-        p_tour_id: tourId,
-        p_staff_id: staffId,
-        p_responsibility: clean(input.responsibility, 32).toUpperCase(),
-      }));
-    }
-
-    if (action === "UNASSIGN_STAFF_TOUR") {
-      const staffId = uuid(input.staffId);
-      const tourId = uuid(input.tourId);
-      const responsibility = clean(input.responsibility, 32).toUpperCase();
-      if (!staffId || !tourId || !responsibility) return json({ ok: false, code: "INVALID_ASSIGNMENT_ID" }, 400);
-      return json(await rpc("service_unassign_staff_tour_v182", {
-        p_actor: actor,
-        p_tour_id: tourId,
-        p_staff_id: staffId,
-        p_responsibility: responsibility,
-      }));
-    }
-
     if (action === "SAVE_PAYMENT_SETTINGS") {
       const provider = clean(input.provider, 40).toUpperCase();
       const depositMode = clean(input.depositMode, 20).toUpperCase();
       const currency = clean(input.currency, 8).toUpperCase();
       const depositValue = numberValue(input.depositValue, 0);
-      if (!["PAYTR", "GENERIC_HOSTED", "NONE"].includes(provider)) return json({ ok: false, code: "INVALID_PAYMENT_PROVIDER" }, 400);
+      const cardEnabled = bool(input.cardEnabled, false);
+      if (!["PAYTR", "IYZICO", "NONE"].includes(provider)) return json({ ok: false, code: "INVALID_PAYMENT_PROVIDER" }, 400);
       if (!["NONE", "FIXED", "PERCENT"].includes(depositMode)) return json({ ok: false, code: "INVALID_DEPOSIT_MODE" }, 400);
       if (depositValue < 0 || (depositMode === "PERCENT" && depositValue > 100)) return json({ ok: false, code: "INVALID_DEPOSIT_VALUE" }, 400);
       if (!["TRY", "EUR", "USD", "CHF"].includes(currency)) return json({ ok: false, code: "INVALID_PAYMENT_CURRENCY" }, 400);
-      return json(await rpc("service_save_payment_settings_v182", {
-        p_actor: actor,
-        p_provider: provider,
-        p_card_enabled: bool(input.cardEnabled, false),
-        p_eft_enabled: bool(input.eftEnabled, true),
-        p_office_enabled: bool(input.officeEnabled, true),
-        p_deposit_mode: depositMode,
-        p_deposit_value: depositValue,
-        p_currency: currency,
-        p_bank_name: clean(input.bankName, 160) || null,
-        p_iban: clean(input.iban, 80).replace(/\s+/g, "").toUpperCase() || null,
-        p_account_holder: clean(input.accountHolder, 180) || null,
-        p_customer_note: clean(input.customerNote, 1000) || null,
-        p_test_mode: bool(input.testMode, true),
-      }));
+      if (provider === "PAYTR" && cardEnabled && currency !== "TRY") return json({ ok: false, code: "PAYTR_CARD_REQUIRES_TRY" }, 400);
+      if (provider === "NONE" && cardEnabled) return json({ ok: false, code: "CARD_PROVIDER_REQUIRED" }, 400);
+      return json(await rpc("service_save_payment_settings_v182", { p_actor: actor, p_provider: provider, p_card_enabled: cardEnabled, p_eft_enabled: bool(input.eftEnabled, true), p_office_enabled: bool(input.officeEnabled, true), p_deposit_mode: depositMode, p_deposit_value: depositValue, p_currency: currency, p_bank_name: clean(input.bankName, 160) || null, p_iban: clean(input.iban, 80).replace(/\s+/g, "").toUpperCase() || null, p_account_holder: clean(input.accountHolder, 180) || null, p_customer_note: clean(input.customerNote, 1000) || null, p_test_mode: bool(input.testMode, true) }));
     }
-
     if (action === "SAVE_BRANCH") {
       if (!clean(input.name, 160) || !clean(input.city, 120)) return json({ ok: false, code: "BRANCH_NAME_CITY_REQUIRED" }, 400);
-      return json(await rpc("service_save_branch_basic_v178", {
-        p_actor: actor,
-        p_branch_id: optionalUuid(input.id, "INVALID_BRANCH_ID"),
-        p_code: clean(input.code, 40) || null,
-        p_name: clean(input.name, 160),
-        p_city: clean(input.city, 120),
-        p_district: clean(input.district, 120) || null,
-        p_address: clean(input.address, 500) || null,
-        p_phone: clean(input.phone, 40) || null,
-        p_email: clean(input.email, 160) || null,
-        p_is_active: bool(input.isActive, true),
-        p_sort_order: integer(input.sortOrder),
-      }));
+      return json(await rpc("service_save_branch_basic_v178", { p_actor: actor, p_branch_id: optionalUuid(input.id, "INVALID_BRANCH_ID"), p_code: clean(input.code, 40) || null, p_name: clean(input.name, 160), p_city: clean(input.city, 120), p_district: clean(input.district, 120) || null, p_address: clean(input.address, 500) || null, p_phone: clean(input.phone, 40) || null, p_email: clean(input.email, 160) || null, p_is_active: bool(input.isActive, true), p_sort_order: integer(input.sortOrder) }));
     }
-
     return json({ ok: false, code: "UNKNOWN_ACTION" }, 400);
   } catch (error) {
     const code = error instanceof SyntaxError ? "INVALID_JSON" : error instanceof Error ? error.message : "ADMIN_CORE_GATEWAY_FAILED";

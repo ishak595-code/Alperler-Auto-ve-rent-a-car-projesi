@@ -138,6 +138,7 @@ export const routes: Routes = [
       { path: 'branch-identities', canActivate:[adminAreaGuard('settings')], loadComponent:()=>import('./pages/admin/admin-branch-identities-v171.component').then(m=>m.AdminBranchIdentitiesV171Component) },
       { path: 'telematics', canActivate: [adminAreaGuard('telematics')], loadComponent: () => import('./pages/admin/admin-telematics.component').then(m => m.AdminTelematicsComponent) },
       { path: 'finance', canActivate: [adminAreaGuard('finance')], loadComponent: () => import('./pages/admin/admin-finance.component').then(m => m.AdminFinanceComponent) },
+      { path: 'payments', canActivate: [adminAreaGuard('finance')], loadComponent: () => import('./pages/admin/admin-payment-settings.component').then(m => m.AdminPaymentSettingsComponent) },
       { path: 'branch-subscriptions', canActivate: [adminAreaGuard('finance')], loadComponent: () => import('./pages/admin/admin-branch-subscriptions-v171.component').then(m=>m.AdminBranchSubscriptionsV171Component) },
       { path: 'marketing', canActivate: [adminAreaGuard('marketing')], loadComponent: () => import('./pages/admin/admin-marketing.component').then(m => m.AdminMarketingComponent) },
       { path: 'team-center', loadComponent: loadAdminTeamHub, data: { teamSection: 'people' } },

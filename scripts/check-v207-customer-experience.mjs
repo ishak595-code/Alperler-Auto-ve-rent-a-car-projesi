@@ -53,7 +53,7 @@ for (const token of ['dock-hidden','onWindowScroll','HostListener','backdrop-fil
   rejectText(sources.dock, token, `Mobile dock must not regain obsolete or scroll-heavy behavior: ${token}`);
 }
 
-// Mobile dock ownership contract: Search is the center primary action. Profile belongs to the upper account area.
+// Mobile dock ownership contract: Search stays the center primary action and Profile stays available at the bottom.
 requireText(sources.dock, 'return item.itemKey === "search";', "Mobile dock primary action must stay Search.");
 rejectText(sources.dock, 'item.itemKey === "appointment"', "Appointment must not take primary mobile dock ownership from Search.");
 const defaultDock = sources.navigation.match(/const DEFAULT_DOCK:[\s\S]*?\]\.map/)?.[0] || "";
@@ -63,9 +63,9 @@ for (const token of [
   "['sales', 'Satılık', 'directions_car', '/sales']",
   "['search', 'Ara', 'search', '/search']",
   "['campaigns', 'Fırsatlar', 'local_offer', '/campaigns']",
-  "['appointment', 'Randevu', 'event_available', '/appointment']",
+  "['account', 'Profil', 'account_circle', '/account']",
 ]) requireText(defaultDock, token, `Canonical mobile dock destination missing: ${token}`);
-rejectText(defaultDock, "['account', 'Profil', 'account_circle', '/account']", "Profile must not return to the mobile dock.");
+rejectText(defaultDock, "['appointment', 'Randevu', 'event_available', '/appointment']", "Appointment must not replace Profile in the mobile dock.");
 
 // Booking checkout owns the complete reservation review. Cards and details must never duplicate it.
 requireText(sources.bookingCheckout, "Rezervasyonu kontrol edin", "Booking checkout must keep the customer-facing reservation review heading.");
@@ -112,7 +112,6 @@ const forbiddenCustomerPhrases = [
   "Tur medyası henüz eklenmedi",
 ];
 
-// Scan every customer/partner page and component so implementation language cannot leak through an unlisted surface.
 const publicSurfaceFiles = [...walk("src/pages"), ...walk("src/components")]
   .filter((file) => !file.startsWith(`src${path.sep}pages${path.sep}admin${path.sep}`))
   .filter((file) => !file.includes(`${path.sep}admin-`));
@@ -130,7 +129,6 @@ for (const file of publicSurfaceFiles) {
   if (source.includes("Kiralama Özeti")) fail(`${file} duplicates a rental summary outside booking checkout.`);
 }
 
-// Canonical detail states also must never print raw backend error signals.
 rejectText(sources.rentalDetail, "{{loadError()}}", "Rental detail must not print a raw backend error to customers.");
 rejectText(sources.rentalDetail, "{{ loadError() }}", "Rental detail must not print a raw backend error to customers.");
 rejectText(sources.saleDetail, "{{ loadError() }}", "Sale detail must not print a raw backend error to customers.");
@@ -138,7 +136,6 @@ rejectText(sources.tourDetail, "{{ loadError() }}", "Tour detail must not print 
 rejectText(sources.blogDetail, "{{error()}}", "Blog detail must not print a raw backend error to customers.");
 rejectText(sources.blogDetail, "{{ error() }}", "Blog detail must not print a raw backend error to customers.");
 
-// Canonical customer language markers now live on the active V217 route owners.
 requireText(sources.rentalList, "ALPERLER KİRALAMA", "Rental catalogue must keep the customer-facing rental hero.");
 requireText(sources.saleList, "ALPERLER İKİNCİ EL", "Sale catalogue must keep the second-hand customer hero.");
 requireText(sources.tourList, "Rotanı seç, unutulmaz bir gün planla", "Tour catalogue must keep customer-oriented discovery copy.");

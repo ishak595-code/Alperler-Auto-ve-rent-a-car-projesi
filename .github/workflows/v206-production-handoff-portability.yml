@@ -12,18 +12,35 @@ on:
       - 'angular.json'
       - 'src/prestige-palette-defaults.css'
       - 'src/services/theme.service.ts'
+      - 'src/services/navigation-config.service.ts'
+      - 'src/services/default-site-config.ts'
+      - 'src/services/payment-settings.service.ts'
+      - 'src/pages/admin/admin-payment-settings.component.ts'
+      - 'src/components/customer-mobile-dock.component.ts'
       - 'src/v193-cinematic-3d.css'
       - 'src/device-experience.css'
+      - 'src/mobile-target-fixes.css'
       - 'src/app.routes.ts'
+      - 'api/payments.ts'
+      - 'api/_lib/integration-config.ts'
+      - 'api/_lib/public-origin.ts'
+      - 'supabase/functions/admin-core-gateway-v178/**'
+      - 'supabase/migrations/20260831161135_v221_mobile_dock_profile_canonical.sql'
+      - 'supabase/migrations/20260831162158_v221_payment_provider_contract.sql'
+      - 'scripts/check-v204-mobile-conversion-account.mjs'
       - 'scripts/check-v206-handoff.mjs'
       - 'scripts/check-portability-v186.mjs'
       - 'scripts/check-v203-canonical-runtime-integrity.mjs'
       - 'scripts/check-v205-responsive-prestige.mjs'
+      - 'scripts/check-v207-customer-experience.mjs'
       - 'scripts/check-v208-repository-governance.mjs'
       - 'scripts/cancel-stale-pr-workflows.mjs'
       - 'docs/**'
+      - 'playwright.v204.config.ts'
       - 'playwright.v205.config.ts'
+      - 'tests/v204/**'
       - 'tests/v205/**'
+      - '.github/workflows/v205-responsive-prestige.yml'
       - '.github/workflows/v206-production-handoff-portability.yml'
       - '.github/workflows/v208-repository-governance.yml'
   push:
@@ -37,18 +54,35 @@ on:
       - 'angular.json'
       - 'src/prestige-palette-defaults.css'
       - 'src/services/theme.service.ts'
+      - 'src/services/navigation-config.service.ts'
+      - 'src/services/default-site-config.ts'
+      - 'src/services/payment-settings.service.ts'
+      - 'src/pages/admin/admin-payment-settings.component.ts'
+      - 'src/components/customer-mobile-dock.component.ts'
       - 'src/v193-cinematic-3d.css'
       - 'src/device-experience.css'
+      - 'src/mobile-target-fixes.css'
       - 'src/app.routes.ts'
+      - 'api/payments.ts'
+      - 'api/_lib/integration-config.ts'
+      - 'api/_lib/public-origin.ts'
+      - 'supabase/functions/admin-core-gateway-v178/**'
+      - 'supabase/migrations/20260831161135_v221_mobile_dock_profile_canonical.sql'
+      - 'supabase/migrations/20260831162158_v221_payment_provider_contract.sql'
+      - 'scripts/check-v204-mobile-conversion-account.mjs'
       - 'scripts/check-v206-handoff.mjs'
       - 'scripts/check-portability-v186.mjs'
       - 'scripts/check-v203-canonical-runtime-integrity.mjs'
       - 'scripts/check-v205-responsive-prestige.mjs'
+      - 'scripts/check-v207-customer-experience.mjs'
       - 'scripts/check-v208-repository-governance.mjs'
       - 'scripts/cancel-stale-pr-workflows.mjs'
       - 'docs/**'
+      - 'playwright.v204.config.ts'
       - 'playwright.v205.config.ts'
+      - 'tests/v204/**'
       - 'tests/v205/**'
+      - '.github/workflows/v205-responsive-prestige.yml'
       - '.github/workflows/v206-production-handoff-portability.yml'
       - '.github/workflows/v208-repository-governance.yml'
 
@@ -71,13 +105,17 @@ jobs:
           cache: npm
       - name: Install exact dependency graph
         run: npm ci --no-audit --no-fund
+      - name: Mobile dock release contract
+        run: node scripts/check-v204-mobile-conversion-account.mjs
+      - name: Customer experience release contract
+        run: node scripts/check-v207-customer-experience.mjs
       - name: Full handoff certification
         run: npm run verify:handoff
 
   handoff-devices:
     needs: handoff-static
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

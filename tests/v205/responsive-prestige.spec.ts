@@ -11,6 +11,10 @@ async function scrollRange(page: import("@playwright/test").Page): Promise<numbe
   return page.evaluate(() => Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
 }
 
+async function settle(page: import("@playwright/test").Page): Promise<void> {
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+}
+
 test("device class keeps the intended navigation and conversion hierarchy", async ({ page }, testInfo) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
@@ -27,9 +31,13 @@ test("device class keeps the intended navigation and conversion hierarchy", asyn
     await expect(dock).toBeVisible();
     await expect(accessibleDock).toHaveCount(1);
     await expect(dock.locator("a.dock-action")).toHaveCount(5);
-    await expect(dock.locator('a[href="/search"]')).toHaveAttribute("aria-label", "İlan Ara");
+    await expect(dock.locator('a[href="/fleet"]')).toHaveAttribute("aria-label", "Kiralık");
+    await expect(dock.locator('a[href="/sales"]')).toHaveAttribute("aria-label", "Satılık");
+    await expect(dock.locator('a[href="/search"]')).toHaveAttribute("aria-label", "Ara");
+    await expect(dock.locator('a[href="/campaigns"]')).toHaveAttribute("aria-label", "Fırsatlar");
     await expect(dock.locator('a[href="/account"]')).toHaveAttribute("aria-label", "Profil");
     await expect(dock.locator('a[href="/appointment"]')).toHaveCount(0);
+    await expect(dock.locator('a[href="/search"]')).toHaveClass(/dock-primary/);
     await expect(desktopSearch).toBeHidden();
     await expect(trust).toBeVisible();
 
@@ -95,6 +103,18 @@ test("phone dock leaves the accessibility tree on downward scroll and returns on
   await expect(dock).not.toHaveAttribute("aria-hidden", "true");
   await expect(dock).not.toHaveAttribute("inert", "");
   await expect.poll(() => noHorizontalOverflow(page)).toBe(true);
+});
+
+test("core public routes stay overflow-free across the full device matrix", async ({ page }) => {
+  const routes = ["/", "/fleet", "/sales", "/campaigns", "/tours", "/blog", "/about"];
+
+  for (const route of routes) {
+    await page.goto(route, { waitUntil: "domcontentloaded" });
+    await settle(page);
+    await expect(page.locator("app-not-found")).toHaveCount(0);
+    await expect.poll(() => noHorizontalOverflow(page)).toBe(true);
+    await expect(page.locator("body")).toBeVisible();
+  }
 });
 
 test("public navigation targets resolve without the not-found shell", async ({ page }, testInfo) => {

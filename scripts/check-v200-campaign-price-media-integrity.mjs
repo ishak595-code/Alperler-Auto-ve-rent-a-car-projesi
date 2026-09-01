@@ -59,13 +59,15 @@ for (const contract of [
 ]) must(gateway, contract, `Booking campaign pricing contract missing: ${contract}`);
 
 const payments = read(paymentsPath);
+const paymentsCompact = payments.replace(/\s+/g, '');
 for (const contract of [
-  'total_price: number | null',
-  'const amount = calculateCharge(Number(bookingRow.total_price), settings);',
-  'const paymentAmount = Math.round(amount * 100);',
-  'amount, currency: bookingRow.currency',
-]) must(payments, contract, `Payment gateway must charge authoritative booking total: ${contract}`);
-mustNot(payments, 'calculateCharge(Number(body.amount)', 'Client supplied amount must never determine payment charge.');
+  'total_price:number|null',
+  'calculateCharge(Number(bookingRow.total_price),settings)',
+  'paymentAmount=Math.round(amount*100)',
+  'recordTransaction({bookingId:bookingRow.id,provider:"paytr"',
+  'recordTransaction({bookingId:bookingRow.id,provider:"iyzico"',
+]) must(paymentsCompact, contract, `Payment gateway must charge authoritative booking total: ${contract}`);
+mustNot(paymentsCompact, 'calculateCharge(Number(body.amount)', 'Client supplied amount must never determine payment charge.');
 
 const pricingMigration = read(pricingMigrationPath);
 for (const contract of [

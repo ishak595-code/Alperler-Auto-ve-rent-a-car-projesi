@@ -33,7 +33,7 @@ import { CustomerAuthService } from '../services/customer-auth.service';
               <span>Yeni parola tekrar</span>
               <input [(ngModel)]="confirmPassword" name="accountConfirmPassword" type="password" autocomplete="new-password" minlength="10" required />
             </label>
-            <p class="hint">En az 10 karakter, bir büyük harf, bir küçük harf ve bir rakam kullanın. Daha önce başka hesaplarda kullandığınız parolaları tercih etmeyin.</p>
+            <p class="hint">En az 10 karakter, bir büyük harf, bir küçük harf ve bir rakam kullanın. Veri sızıntılarında görülen parolalar kabul edilmez. Daha önce başka hesaplarda kullandığınız parolaları tercih etmeyin.</p>
             <button type="submit" class="primary" [disabled]="saving()">{{ saving() ? 'Güncelleniyor…' : 'Yeni Parolayı Kaydet' }}</button>
           </form>
         }

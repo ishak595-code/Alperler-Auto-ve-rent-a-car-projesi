@@ -24,7 +24,7 @@ import { NavbarComponent } from "./navbar.component";
       <app-customer-prefooter-v174></app-customer-prefooter-v174>
       <app-customer-footer-v70 [class.mobile-dock-present]="navigation.mobileDockRendered()"></app-customer-footer-v70>
 
-      @defer (on idle) {
+      @defer (when uiService.isFeedbackOpen(); prefetch on idle) {
         <app-feedback></app-feedback>
       }
 

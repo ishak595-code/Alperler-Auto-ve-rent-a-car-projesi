@@ -9,7 +9,7 @@ Alperler Rent A Car rezervasyon ve ödeme bildirimlerini tek bir dinamik bildiri
 Bu ekranda üç ilgili bölüm vardır:
 
 1. **E-posta ve SMS Bağlantıları**: Resend ve Twilio bağlantı anahtarları.
-2. **Otomatik Müşteri Mesajları**: rezervasyon ve ödeme e-posta metinleri, dil ve aktif/pasif durumu.
+2. **Otomatik Müşteri Mesajları**: rezervasyon ve ödeme e-posta ve SMS metinleri, dil ve aktif/pasif durumu.
 3. **Ofis / EFT Tahsilatı**: para gerçekten alındığında tahsilat ve müşteriye ödeme onayı.
 
 Sağlayıcı secret değerleri Supabase Vault'ta şifreli tutulur. Kaydedildikten sonra değerler tarayıcıya geri gönderilmez. Admin yalnız `Hazır` / `Ayarlı değil` durumunu ve kaynağın Vault veya environment fallback olduğunu görür.
@@ -58,6 +58,8 @@ Twilio SMS kullanılmak zorunda değildir. Resend e-posta tek başına çalışa
 
 Admin > Muhasebe & Tahsilat > **Otomatik Müşteri Mesajları** bölümünden Türkçe, İngilizce, Almanca ve Fransızca şablonlar yönetilir.
 
+Aynı müşteri şablonu hem e-posta hem SMS kanalının içerik kaynağıdır. E-posta tam konu/açılış/sıradaki-adım yapısını kullanır. SMS aynı güvenli değişkenleri düz metne dönüştürür, ödeme yöntemi uyarısını kanala uygun biçimde ekler ve sağlayıcı sınırı için 420 karaktere kontrollü olarak kısaltır. Böylece Admin'de değiştirilen müşteri mesajı e-posta ve SMS arasında eski/yeni metin ayrışması oluşturmaz.
+
 Desteklenen olaylar:
 
 - Rezervasyon alındı
@@ -88,18 +90,26 @@ Müşteri rezervasyonda **Ofiste ödeme** seçerse:
 
 - Rezervasyon oluşturulur.
 - Ödeme durumu `PENDING` kalır.
-- Rezervasyon e-postasında ödeme yöntemi açıkça `Ofiste ödeme` gösterilir.
-- E-posta rezervasyon teyidinin ödeme makbuzu olmadığı açıkça belirtilir.
+- Rezervasyon e-postası ve SMS'inde ödeme yöntemi açıkça `Ofiste ödeme` gösterilir.
+- E-posta ve SMS rezervasyon teyidinin ödeme makbuzu olmadığı açıkça belirtilir.
 - Para gerçekten ofiste alındığında Admin > Muhasebe & Tahsilat > Ofis / EFT Tahsilatı üzerinden kayıt yapılır.
 - Kayıt veritabanında tek transaction içinde, satır kilidi ve idempotency korumasıyla işlenir.
 - `payment_transactions` kaydı oluşur; muhasebe trigger'ı `finance_transactions` kaydını üretir; rezervasyonun `amount_paid` ve `payment_status` değerleri gerçek ödemeye göre yeniden hesaplanır.
 - Ardından müşteriye ayrı `Ödemeniz alındı` e-postası/SMS'i gönderilir.
 
-Aynı tahsilatın tekrar gönderilmesi idempotency anahtarıyla çift kayıt oluşturmaz. Kalan bakiyeden fazla ödeme reddedilir. İptal/reddedilmiş veya tamamen ödenmiş rezervasyona yeni tahsilat yapılamaz.
+Aynı tahsilatın tekrar gönderilmesi idempotency anahtarıyla çift kayıt oluşturmaz. Tarayıcı/telefon ağ cevabını kaybetse bile aynı değiştirilmemiş tahsilat formunun yeniden gönderimi aynı request-id kullanır. Kalan bakiyeden fazla ödeme reddedilir. İptal/reddedilmiş veya tamamen ödenmiş rezervasyona yeni tahsilat yapılamaz.
 
 ## Havale / EFT davranışı
 
-Rezervasyon e-postası havalenin henüz tahsil edilmediğini ve e-postanın makbuz olmadığını söyler. Banka hareketi gerçekten doğrulandıktan sonra Admin'den EFT tahsilatı kaydedilir ve ödeme onayı ayrıca gönderilir.
+Rezervasyon e-postası ve SMS havalenin henüz tahsil edilmediğini ve mesajın makbuz olmadığını söyler. Banka hareketi gerçekten doğrulandıktan sonra Admin'den EFT tahsilatı kaydedilir ve ödeme onayı ayrıca gönderilir.
+
+## Muhasebe bütünlüğü
+
+- Gerçek ödeme ile oluşan `finance_transactions` satırı `payment_transaction_id` ile ödeme kaydına bağlanır.
+- PayTR, iyzico, Ofis ve EFT kaynaklı ödeme satırları sıradan manuel muhasebe satırı gibi `VOID` yapılamaz. Bu, ödeme gerçeği ile rezervasyon bakiyesinin ayrışmasını engeller.
+- Manuel eklenmiş gider/gelir satırı gerekçesi belirtilerek void edilebilir.
+- Gerçek ödeme iadesi veya provider reversal işlemi, ödeme sağlayıcısı ve rezervasyon bakiyesiyle birlikte uzlaştırılan ayrı bir finansal akış gerektirir; yalnız ledger satırını silmek iade sayılmaz.
+- Farklı dövizler birbiriyle toplanmaz; özet ve PDF raporları para birimi bazında hesaplanır.
 
 ## Bildirim teslim güvenliği
 
@@ -116,8 +126,8 @@ Rezervasyon e-postası havalenin henüz tahsil edilmediğini ve e-postanın makb
 3. Resend API key ve doğrulanmış sender Admin'de Vault'a kaydedildi.
 4. Twilio kullanılacaksa Account SID/Auth Token ve sender veya Messaging Service SID Vault'a kaydedildi.
 5. Admin ekranında sağlayıcı durumu `Hazır`.
-6. Test rezervasyonu oluşturuldu ve müşteri e-postasında rezervasyon referansı, hizmet, tarihler, ödeme yöntemi ve durum doğru.
-7. Ofiste ödeme testinde ilk e-posta makbuz iddiası yapmıyor.
+6. Test rezervasyonu oluşturuldu ve müşteri e-postası/SMS'inde rezervasyon referansı, hizmet, ödeme yöntemi ve durum doğru.
+7. Ofiste ödeme testinde ilk mesaj makbuz iddiası yapmıyor.
 8. Aynı rezervasyona kontrollü düşük tutarlı tahsilat girildi; açık bakiye azaldı ve ödeme onayı ayrı geldi.
 9. Muhasebe defterinde ödeme yalnız bir kez görünüyor.
 10. Operasyon Merkezi'nde bugünkü ve yaklaşan rezervasyonlar ile bekleyen tahsilatlar doğru görünüyor.

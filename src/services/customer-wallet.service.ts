@@ -3,12 +3,17 @@ import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.conf
 import { CustomerAuthService } from './customer-auth.service';
 
 export type CustomerDocumentType = 'IDENTITY_FRONT'|'IDENTITY_BACK'|'DRIVING_LICENSE_FRONT'|'DRIVING_LICENSE_BACK'|'PASSPORT'|'ADDRESS_DOCUMENT'|'OTHER';
+export type CustomerPaymentProvider = 'PAYTR'|'IYZICO';
 
 export interface CustomerVaultTerms { version:string; title:string; body:string; is_active:boolean; published_at:string; }
 export interface CustomerVaultConsent { user_id:string; terms_version:string; accepted_at:string; revoked_at?:string|null; accepted_via:string; }
 export interface CustomerDocument {
   id:string; user_id:string; document_type:CustomerDocumentType; storage_path:string; original_name:string; mime_type:string; file_size:number;
   expiry_date?:string|null; verification_status:'PENDING'|'VERIFIED'|'REJECTED'|'EXPIRED'; verified_at?:string|null; rejection_reason?:string|null; created_at:string; updated_at:string;
+}
+export interface CustomerPaymentMethod {
+  id:string; user_id:string; provider:CustomerPaymentProvider; brand:string|null; last4:string|null; expiry_month:number|null; expiry_year:number|null;
+  label:string|null; is_default:boolean; status:'ACTIVE'|'REVOKED'; created_at:string; updated_at:string;
 }
 export interface CustomerExperiencePreferences {
   user_id:string; monthly_spend_target?:number|null; preferred_currency:'TRY'|'EUR'|'USD'|'CHF'; spend_alert_enabled:boolean;
@@ -23,24 +28,27 @@ export class CustomerWalletService{
   private readonly auth=inject(CustomerAuthService);
   private readonly documentBucket='customer-documents';
   private readonly preferenceSelect='user_id,monthly_spend_target,preferred_currency,spend_alert_enabled,spend_alert_threshold_percent,document_expiry_reminder_days,quick_checkout_enabled,preferred_payment_method_id';
+  private readonly paymentMethodSelect='id,user_id,provider,brand,last4,expiry_month,expiry_year,label,is_default,status,created_at,updated_at';
   readonly loading=signal(false);
   readonly terms=signal<CustomerVaultTerms|null>(null);
   readonly consent=signal<CustomerVaultConsent|null>(null);
   readonly documents=signal<CustomerDocument[]>([]);
+  readonly paymentMethods=signal<CustomerPaymentMethod[]>([]);
   readonly preferences=signal<CustomerExperiencePreferences|null>(null);
   readonly spending=signal<SpendingCurrencySummary[]>([]);
 
   async refresh():Promise<void>{
     const token=await this.requireToken();this.loading.set(true);
     try{
-      const [terms,consents,docs,prefs,spending]=await Promise.all([
+      const [terms,consents,docs,methods,prefs,spending]=await Promise.all([
         this.rows<CustomerVaultTerms>('customer_vault_terms?is_active=eq.true&select=version,title,body,is_active,published_at&limit=1',token),
         this.rows<CustomerVaultConsent>('customer_vault_consents?revoked_at=is.null&select=user_id,terms_version,accepted_at,revoked_at,accepted_via&order=accepted_at.desc&limit=1',token),
         this.rows<CustomerDocument>('customer_documents?select=id,user_id,document_type,storage_path,original_name,mime_type,file_size,expiry_date,verification_status,verified_at,rejection_reason,created_at,updated_at&order=created_at.desc',token),
+        this.rows<CustomerPaymentMethod>(`customer_payment_methods?status=eq.ACTIVE&select=${this.paymentMethodSelect}&order=is_default.desc,created_at.desc`,token),
         this.rows<CustomerExperiencePreferences>(`customer_experience_preferences?select=${this.preferenceSelect}&limit=1`,token),
         this.rpc<SpendingCurrencySummary[]>('customer_spending_summary',{},token),
       ]);
-      this.terms.set(terms[0]||null);this.consent.set(consents[0]||null);this.documents.set(docs);this.spending.set(Array.isArray(spending)?spending:[]);
+      this.terms.set(terms[0]||null);this.consent.set(consents[0]||null);this.documents.set(docs);this.paymentMethods.set(methods.map((row)=>this.normalizePaymentMethod(row)));this.spending.set(Array.isArray(spending)?spending:[]);
       if(prefs[0])this.preferences.set(this.normalizePreferences(prefs[0]));
       else await this.savePreferences({preferred_currency:'TRY',spend_alert_enabled:false,spend_alert_threshold_percent:80,document_expiry_reminder_days:30,quick_checkout_enabled:true});
     }finally{this.loading.set(false);}
@@ -62,7 +70,7 @@ export class CustomerWalletService{
     });
     const payload=await response.json().catch(()=>({})) as {ok?:boolean;code?:string;message?:string};
     if(!response.ok||payload.ok!==true)throw new Error(`${payload.code||`DOCUMENT_UPLOAD_${response.status}`}:${payload.message||'Belge yüklenemedi.'}`);
-    await this.refresh();
+    await this.refreshDocuments(token);
   }
 
   async openDocument(doc:CustomerDocument):Promise<void>{
@@ -101,10 +109,32 @@ export class CustomerWalletService{
     const rows=await response.json() as CustomerExperiencePreferences[];this.preferences.set(this.normalizePreferences(rows[0]||body));
   }
 
-  async setDefaultPaymentMethod(id:string):Promise<void>{const token=await this.requireToken();await this.rpc('set_default_customer_payment_method',{p_method_id:id},token);}
-  async removePaymentMethod(id:string):Promise<void>{const token=await this.requireToken();await this.rpc('remove_customer_payment_method',{p_method_id:id},token);}
+  async setDefaultPaymentMethod(id:string):Promise<void>{
+    const token=await this.requireToken();
+    if(!this.paymentMethods().some((row)=>row.id===id&&row.status==='ACTIVE'))throw new Error('PAYMENT_METHOD_NOT_FOUND');
+    await this.rpc('set_default_customer_payment_method',{p_method_id:id},token);
+    await this.refreshPaymentMethods(token);
+    const current=this.preferences();if(current)this.preferences.set({...current,preferred_payment_method_id:id});
+  }
+
+  async removePaymentMethod(id:string):Promise<void>{
+    const token=await this.requireToken();
+    if(!this.paymentMethods().some((row)=>row.id===id&&row.status==='ACTIVE'))throw new Error('PAYMENT_METHOD_NOT_FOUND');
+    await this.rpc('remove_customer_payment_method',{p_method_id:id},token);
+    await this.refreshPaymentMethods(token);
+    const current=this.preferences();if(current?.preferred_payment_method_id===id)this.preferences.set({...current,preferred_payment_method_id:null});
+  }
+
   currentCurrencySummary():SpendingCurrencySummary|null{const currency=this.preferences()?.preferred_currency||'TRY';return this.spending().find(row=>row.currency===currency)||null;}
 
+  private async refreshDocuments(token:string):Promise<void>{
+    this.documents.set(await this.rows<CustomerDocument>('customer_documents?select=id,user_id,document_type,storage_path,original_name,mime_type,file_size,expiry_date,verification_status,verified_at,rejection_reason,created_at,updated_at&order=created_at.desc',token));
+  }
+  private async refreshPaymentMethods(token:string):Promise<void>{
+    const methods=await this.rows<CustomerPaymentMethod>(`customer_payment_methods?status=eq.ACTIVE&select=${this.paymentMethodSelect}&order=is_default.desc,created_at.desc`,token);
+    this.paymentMethods.set(methods.map((row)=>this.normalizePaymentMethod(row)));
+  }
+  private normalizePaymentMethod(row:CustomerPaymentMethod):CustomerPaymentMethod{return{...row,provider:row.provider==='IYZICO'?'IYZICO':'PAYTR',brand:row.brand?String(row.brand):null,last4:/^\d{4}$/.test(String(row.last4||''))?String(row.last4):null,expiry_month:row.expiry_month===null||row.expiry_month===undefined?null:Number(row.expiry_month),expiry_year:row.expiry_year===null||row.expiry_year===undefined?null:Number(row.expiry_year),label:row.label?String(row.label):null,is_default:row.is_default===true,status:row.status==='REVOKED'?'REVOKED':'ACTIVE'};}
   private async detectFileSignature(file:File):Promise<string|null>{
     const bytes=new Uint8Array(await file.slice(0,16).arrayBuffer());const starts=(signature:number[])=>signature.every((value,index)=>bytes[index]===value);
     if(starts([0xff,0xd8,0xff]))return'image/jpeg';if(starts([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]))return'image/png';if(starts([0x25,0x50,0x44,0x46,0x2d]))return'application/pdf';
@@ -117,6 +147,6 @@ export class CustomerWalletService{
   private cleanFileName(value:string):string{return value.replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,180)||'belge';}
   private async requireToken():Promise<string>{const token=await this.auth.getAccessToken();if(!token)throw new Error('CUSTOMER_SESSION_REQUIRED');return token;}
   private headers(token:string,extra:Record<string,string>={}):Record<string,string>{return{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`,'content-type':'application/json',...extra};}
-  private async rows<T>(path:string,token:string):Promise<T[]>{const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`,{headers:this.headers(token)});if(!response.ok)throw new Error(`CUSTOMER_WALLET_READ_${response.status}`);return await response.json() as T[];}
+  private async rows<T>(path:string,token:string):Promise<T[]>{const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`,{headers:this.headers(token),cache:'no-store'});if(!response.ok)throw new Error(`CUSTOMER_WALLET_READ_${response.status}`);return await response.json() as T[];}
   private async rpc<T=unknown>(name:string,body:unknown,token:string):Promise<T>{const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/${name}`,{method:'POST',headers:this.headers(token),body:JSON.stringify(body)});if(!response.ok){const data=await response.json().catch(()=>({})) as {message?:string;code?:string};throw new Error(data.message||data.code||`${name.toUpperCase()}_FAILED`);}return await response.json().catch(()=>null) as T;}
 }

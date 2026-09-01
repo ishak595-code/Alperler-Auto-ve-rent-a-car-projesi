@@ -15,7 +15,7 @@ function forbidText(source, token, message) {
   if (source.includes(token)) throw new Error(message);
 }
 
-requireText(dockPolicy, "return path === '/';", 'Mobile dock must remain home-only.');
+requireText(dockPolicy, "return cleanCustomerPath(rawUrl) === '/';", 'Mobile dock must remain home-only through the canonical path normalizer.');
 const defaultDockMatch = navigation.match(/const DEFAULT_DOCK:[\s\S]*?\.map\(/);
 if (!defaultDockMatch) throw new Error('Canonical mobile dock defaults are missing.');
 const defaultDock = defaultDockMatch[0];

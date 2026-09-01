@@ -12,8 +12,11 @@ updates:
     labels:
       - "dependencies"
     groups:
-      production-runtime:
-        dependency-type: "production"
+      # Angular publishes several exact-peer packages. Runtime and build tooling
+      # must move together or npm ci can reject the graph with ERESOLVE.
+      angular-framework:
+        patterns:
+          - "@angular/*"
         update-types:
           - "patch"
           - "minor"
@@ -21,6 +24,11 @@ updates:
         patterns:
           - "tailwindcss"
           - "@tailwindcss/postcss"
+        update-types:
+          - "patch"
+          - "minor"
+      production-runtime:
+        dependency-type: "production"
         update-types:
           - "patch"
           - "minor"

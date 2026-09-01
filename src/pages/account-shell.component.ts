@@ -3,15 +3,15 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { AccountFavoritesV213Component } from '../components/account-favorites-v213.component';
-import { AccountSecurityV223Component } from '../components/account-security-v223.component';
+import { AccountProfileSettingsV225Component } from '../components/account-profile-settings-v225.component';
 import { AccountDashboardV150Component } from './account-dashboard-v150.component';
 
-type AccountSection = 'overview' | 'favorites' | 'security';
+type AccountSection = 'overview' | 'favorites' | 'profile';
 
 @Component({
   selector:'app-account-shell',
   standalone:true,
-  imports:[RouterLink,AccountDashboardV150Component,AccountFavoritesV213Component,AccountSecurityV223Component],
+  imports:[RouterLink,AccountDashboardV150Component,AccountFavoritesV213Component,AccountProfileSettingsV225Component],
   template:`
     <main class="account-shell" aria-labelledby="account-page-title">
       <header class="account-head">
@@ -19,21 +19,21 @@ type AccountSection = 'overview' | 'favorites' | 'security';
         <div>
           <p class="eyebrow">ALPERLER HESABIM</p>
           <h1 id="account-page-title">Hesabım</h1>
-          <p>Rezervasyonlarınızı, favorilerinizi, hesabınızı ve cüzdanınızı tek yerden yönetin.</p>
+          <p>Rezervasyonlarınızı, favorilerinizi, profilinizi ve cüzdanınızı kolayca yönetin.</p>
         </div>
       </header>
 
       <nav class="account-shortcuts" aria-label="Hesap bölümleri">
         <a routerLink="/account" [attr.aria-current]="section()==='overview' ? 'page' : null" [class.active]="section()==='overview'">Genel Bakış</a>
         <a routerLink="/account" [queryParams]="{section:'favorites'}" [attr.aria-current]="section()==='favorites' ? 'page' : null" [class.active]="section()==='favorites'">Favorilerim</a>
-        <a routerLink="/account" [queryParams]="{section:'security'}" [attr.aria-current]="section()==='security' ? 'page' : null" [class.active]="section()==='security'">Hesap Güvenliği</a>
+        <a routerLink="/account" [queryParams]="{section:'profile'}" [attr.aria-current]="section()==='profile' ? 'page' : null" [class.active]="section()==='profile'">Profil Ayarları</a>
         <a routerLink="/account/wallet">Cüzdan ve Belgeler</a>
       </nav>
 
       <section class="account-content" aria-live="polite">
         @switch (section()) {
           @case ('favorites') { <app-account-favorites-v213 /> }
-          @case ('security') { <app-account-security-v223 /> }
+          @case ('profile') { <app-account-profile-settings-v225 /> }
           @default { <app-account-dashboard-v150 /> }
         }
       </section>
@@ -48,6 +48,8 @@ export class AccountShellComponent {
   private readonly requestedSection=toSignal(this.route.queryParamMap.pipe(map((params)=>params.get('section')||'overview')),{initialValue:'overview'});
   readonly section=computed<AccountSection>(()=>{
     const value=this.requestedSection();
-    return value==='favorites'||value==='security'?value:'overview';
+    if(value==='favorites')return'favorites';
+    if(value==='profile'||value==='security')return'profile';
+    return'overview';
   });
 }

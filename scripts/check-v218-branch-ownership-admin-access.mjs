@@ -5,6 +5,7 @@ const requireText=(source,token,message)=>{if(!source.includes(token))fail(messa
 const forbidText=(source,token,message)=>{if(source.includes(token))fail(message);};
 const portal=read('src/services/branch-portal.service.ts');
 const profile=read('src/services/branch-portal-profile.service.ts');
+const profilePage=read('src/pages/branch-portal-profile-v225.component.ts');
 const branchDetail=read('src/pages/branch-detail-v171.component.ts');
 const routes=read('src/app.routes.ts');
 const adminLogin=read('src/pages/admin-login-v218.component.ts');
@@ -20,9 +21,16 @@ for(const [token,message] of [
 ])requireText(portal,token,message);
 for(const [token,message] of [
  ['const membership = this.portal.currentMembership()','profile writes must derive identity from active membership'],
- ['whatsapp: this.clean(input.whatsapp, 40) || null','branch profile must own WhatsApp'],
- ['branches?id=eq.${encodeURIComponent(membership.branchId)}','profile PATCH must be scoped to membership branch'],
+ ['service_update_branch_profile_v225','profile writes must use the narrow canonical RPC'],
+ ['p_branch_id:membership.branchId','profile RPC must be scoped to the active membership branch'],
+ ['p_whatsapp:this.clean(input.whatsapp,40)||null','profile RPC must persist branch WhatsApp'],
 ])requireText(profile,token,message);
+forbidText(profile,'rest/v1/branches?id=eq.','profile service must not directly PATCH the branches table');
+for(const [token,message] of [
+ ['WhatsApp','branch profile UI must own the WhatsApp field'],
+ ['form.whatsapp','branch profile UI must bind WhatsApp to the canonical profile draft'],
+ ['profiles.save(this.form)','branch profile UI must save through the canonical profile service'],
+])requireText(profilePage,token,message);
 requireText(branchDetail,'whatsappUrl(current.whatsapp)','public WhatsApp must come from branch profile');
 requireText(branchDetail,"https://wa.me/${value.replace(/\\D/g,'')}",'branch WhatsApp must open branch-specific wa.me target');
 for(const [token,message] of [

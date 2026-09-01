@@ -26,8 +26,8 @@ export class SaleVehicleCardV168Component{
   @Input({required:true})car!:Car;@Input()branchLabel='';
   get cover():string{return this.car.image||this.car.images?.[0]||'/vehicle-placeholder.svg';}
   get title():string{return this.car.title?.trim()||[this.car.year,this.car.brand,this.car.series,this.car.model].filter(Boolean).join(' ')||'Satılık araç';}
-  get isSold():boolean{return this.car.availability==='Satıldı'||this.car.isAvailable===false;}
-  get statusLabel():string{return this.isSold?'SATILDI':this.car.availability||'SATIŞTA';}
+  get isSold():boolean{const state=String(this.car.availability||'').trim().toLocaleUpperCase('tr-TR');return state==='SATILDI'||state==='SOLD'||this.car.isAvailable===false;}
+  get statusLabel():string{if(this.isSold)return'SATILDI';const state=String(this.car.availability||'').trim().toLocaleUpperCase('tr-TR');if(['AVAILABLE','MÜSAİT','MUSAIT','ACTIVE','AKTİF','AKTIF'].includes(state))return'SATIŞTA';if(['RESERVED','REZERVE','OPSİYONLU','OPSIYONLU'].includes(state))return'REZERVE';return'SATIŞTA';}
   get damageFree():boolean{const t=String(this.car.damageStatus||'').toLocaleLowerCase('tr-TR');return this.car.isDamageFree===true||/hasarsız|hatasız|boyasız|değişensiz/.test(t)&&!/lokal|boyalı|değişen|hasar/.test(t);}
   get damageLabel():string{return String(this.car.damageStatus||'').trim();}
   get warrantyLabel():string{return String(this.car.warranty||'').trim()||(this.car.hasWarranty?'Garanti bilgisi mevcut':'');}

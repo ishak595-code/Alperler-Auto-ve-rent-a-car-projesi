@@ -24,6 +24,8 @@ const forbidden = [
   ['güvenli kaynak', /güvenli\s+kaynak/i],
   ['güvenli katalog', /güvenli\s+katalog/i],
   ['canonical', /\bcanonical\b/i],
+  ['internal version', /\bV\d{2,4}(?:\.\d+)?\b/i],
+  ['checkout', /\bcheckout\b/i],
 ];
 
 function walk(directory) {

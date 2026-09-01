@@ -22,9 +22,9 @@ import { CustomerAuthService } from '../services/customer-auth.service';
               <header><div><small>ALPERLER SADAKAT</small><h2 id="checkout-loyalty-title">Puanınızı bu işlemde kullanın</h2><p>Mevcut bakiye: <strong>{{lifetime.pointsBalance|number}} puan</strong></p></div><button type="button" class="close" (click)="open.set(false)" aria-label="Sadakat puanı panelini kapat">×</button></header>
               <label><span>Kullanmak istediğiniz puan</span><input type="number" inputmode="numeric" [min]="minimumPoints()" [max]="lifetime.pointsBalance" step="1" [ngModel]="points()" (ngModelChange)="setPoints($event)" /></label>
               <div class="quick" aria-label="Hızlı puan seçimi"><button type="button" (click)="selectRatio(.25)">%25</button><button type="button" (click)="selectRatio(.5)">%50</button><button type="button" (click)="selectRatio(1)">Tümü</button></div>
-              <p class="rule">Minimum {{minimumPoints()|number}} puan. Puanın TL karşılığı ve bu işlemde kullanılabilecek azami oran V166 fiyat motoru tarafından ödeme anında yeniden hesaplanır. Tarayıcıdaki tutar güvenilir fiyat kaynağı değildir.</p>
+              <p class="rule">Minimum {{minimumPoints()|number}} puan. Puanınızın TL karşılığı ve bu işlemde kullanabileceğiniz en yüksek oran, ödeme tamamlanmadan önce güncel koşullara göre kesinleştirilir.</p>
               <div class="actions"><button type="button" class="remove" (click)="removePoints()">Puan Kullanma</button><button type="button" class="apply" (click)="applyPoints()" [disabled]="points()>0 && points()<minimumPoints()">{{points()>0 ? ((points()|number)+' Puanı Uygula') : 'Puan Seç'}}</button></div>
-              @if(applied()){<p class="applied" role="status">{{points()|number}} puan kullanım tercihiniz checkout'a eklendi. Kesin kullanılan puan ve indirim, sunucu doğrulamasından sonra rezervasyona yazılacak.</p>}
+              @if(applied()){<p class="applied" role="status">{{points()|number}} puan kullanım tercihiniz işleminize eklendi. Kesin puan ve indirim tutarı rezervasyon onayında gösterilir.</p>}
             </section>
           }
         </aside>

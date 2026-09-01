@@ -128,7 +128,7 @@ for (const forbidden of [
 for (const required of [
   "<app-customer-prefooter-v174>",
   "<app-customer-footer-v70",
-  "@defer (on idle)",
+  "@defer (when uiService.isFeedbackOpen(); prefetch on idle)",
   "<app-feedback>",
 ]) {
   if (!layout.includes(required)) fail(`customer shell contract missing: ${required}`);
@@ -138,5 +138,5 @@ if (layout.includes("@defer (on viewport")) {
 }
 
 if (!process.exitCode) {
-  console.log("V192 homepage runtime OK: lightweight global hydration, bounded route-owned catalogs, route code-splitting and deterministic full-page rendering are enforced.");
+  console.log("V192 homepage runtime OK: lightweight global hydration, bounded route-owned catalogs, interaction-led feedback loading, route code-splitting and deterministic full-page rendering are enforced.");
 }

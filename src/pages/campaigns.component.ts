@@ -16,7 +16,7 @@ import { PublicDetailDataService } from "../services/public-detail-data.service"
       <section class="content" aria-labelledby="offers-title">
         <div class="intro"><p class="kicker">Aktif Fırsatlar</p><h2 id="offers-title">Planınıza uygun avantajları inceleyin</h2><p>Geçerlilik tarihi, kapsamı ve fiyat avantajı açık kampanyaları karşılaştırın. Kartı açtığınızda ilgili araç veya tur detayına geçersiniz.</p></div>
         @if (loading()) {
-          <div class="empty" role="status"><mat-icon aria-hidden="true">hourglass_top</mat-icon><h2>Kampanyalar hazırlanıyor</h2><p>Güncel fırsatlar güvenli katalogdan yükleniyor.</p></div>
+          <div class="empty" role="status"><mat-icon aria-hidden="true">hourglass_top</mat-icon><h2>Kampanyalar hazırlanıyor</h2><p>Size özel güncel fırsatlar hazırlanıyor.</p></div>
         } @else if (campaigns().length) {
           <div class="grid">@for (campaign of campaigns(); track campaign.id) {
             <article class="offer">
@@ -26,7 +26,7 @@ import { PublicDetailDataService } from "../services/public-detail-data.service"
               </button>
             </article>
           }</div>
-        } @else {<div class="empty" role="status"><mat-icon aria-hidden="true">local_offer</mat-icon><h2>Şu anda aktif kampanya yok</h2><p>Yeni bir kampanya yayınlandığında burada otomatik olarak görüntülenir.</p></div>}
+        } @else {<div class="empty" role="status"><mat-icon aria-hidden="true">local_offer</mat-icon><h2>Şu anda aktif kampanya yok</h2><p>Yeni fırsatlar başladığında bu sayfada keşfedebilirsiniz.</p></div>}
       </section>
     </main>
   `,

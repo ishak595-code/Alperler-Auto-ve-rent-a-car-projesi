@@ -44,7 +44,7 @@ interface ContactResponse {
           <div>
             <span class="text-xs font-black uppercase tracking-[.18em] text-blue-400">Bize Ulaşın</span>
             <h2 class="mt-2 font-serif text-3xl font-black text-white sm:text-4xl">Sorunuzu doğrudan ekibimize iletin</h2>
-            <p class="mt-3 max-w-xl leading-relaxed text-slate-400">Araç kiralama, satılık araçlar, tur, randevu veya diğer konular için bize yazın. Başarı ekranı yalnız mesaj kalıcı olarak kaydedildiğinde gösterilir.</p>
+            <p class="mt-3 max-w-xl leading-relaxed text-slate-400">Araç kiralama, satılık araçlar, tur, randevu veya diğer konular için bize yazın. Ekibimiz talebinizi inceleyip gerektiğinde sizinle iletişime geçecektir.</p>
           </div>
 
           <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -59,13 +59,13 @@ interface ContactResponse {
           @if (sent()) {
             <div role="status" aria-live="polite" class="flex min-h-[28rem] flex-col items-center justify-center text-center">
               <div class="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><mat-icon class="!h-9 !w-9 !text-[36px]">check_circle</mat-icon></div>
-              <h2 class="mt-5 text-2xl font-black">Mesajınız kaydedildi</h2>
-              <p class="mt-2 max-w-md text-sm leading-relaxed text-slate-600">Mesajınız güvenli şekilde kayıt altına alındı. Ekibimiz gerekli olduğunda verdiğiniz iletişim bilgileri üzerinden sizinle bağlantı kuracaktır.</p>
+              <h2 class="mt-5 text-2xl font-black">Mesajınız alındı</h2>
+              <p class="mt-2 max-w-md text-sm leading-relaxed text-slate-600">Teşekkür ederiz. Ekibimiz mesajınızı inceleyip gerekli olduğunda verdiğiniz iletişim bilgileri üzerinden sizinle bağlantı kuracaktır.</p>
               @if (reference()) {
                 <div class="mt-5 rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-800">Referans: {{ reference() }}</div>
               }
               @if (!customerEmailSent()) {
-                <p class="mt-4 max-w-md text-xs leading-relaxed text-slate-500">Mesaj kaydınız tamamlandı. Otomatik e-posta sağlayıcısı henüz aktif değilse ayrıca e-posta gelmeyebilir.</p>
+                <p class="mt-4 max-w-md text-xs leading-relaxed text-slate-500">Onay e-postası ulaşmasa bile mesajınız alınmıştır. Referans numaranızı saklayabilirsiniz.</p>
               }
               <button type="button" (click)="reset()" data-analytics-key="contact-new-message" class="mt-6 min-h-12 rounded-xl bg-slate-900 px-6 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Yeni Mesaj Gönder</button>
             </div>
@@ -152,7 +152,7 @@ export class ContactComponent {
       this.errorMessage.set(
         code === "RATE_LIMITED"
           ? "Kısa sürede çok fazla mesaj gönderildi. Lütfen biraz sonra tekrar deneyin."
-          : "Mesaj kalıcı olarak kaydedilemedi. Lütfen tekrar deneyin veya telefon/WhatsApp kanalını kullanın.",
+          : "Mesajınız şu anda gönderilemedi. Lütfen tekrar deneyin veya telefon/WhatsApp üzerinden bize ulaşın.",
       );
     } finally {
       this.submitting.set(false);

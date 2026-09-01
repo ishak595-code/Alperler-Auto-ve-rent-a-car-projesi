@@ -83,7 +83,7 @@ jobs:
           FILE=src/pages/tour-catalog-v217.component.ts
           DATA=src/services/scalable-public-catalog-v217.service.ts
           test -f "$FILE" && test -f "$DATA"
-          for token in ScalablePublicCatalogV217Service "tourFacets()" "facets().priceMin" "facets().priceMax" "tour.badge" "tour.capacity" "tour.categoryName" "tour.images?.length" "pageSize:24"; do grep -Fq "$token" "$FILE"; done
+          for token in ScalablePublicCatalogV217Service "tourFacets()" "facets().priceMin" "facets().priceMax" "tour.badge" "tour.capacity" "tour.categoryName" "tour.image" "filtersOpen=signal(false)" "@if(filtersOpen())" "pageSize:24"; do grep -Fq "$token" "$FILE"; done
           for token in "listTours(" "tourFacets(" "public_tour_catalog_v217"; do grep -Fq "$token" "$DATA"; done
           grep -Fq "catalog_media" src/services/public-catalog-media.service.ts
           grep -Fq "TourCatalogV217Component" src/pages/tours.component.ts

@@ -39,9 +39,9 @@ for (const contract of [
   'İLAN BİLGİLERİ','AÇIKLAMA','KONUM',"activeTab.set('info')","activeTab.set('desc')","activeTab.set('loc')",
   'bottom-actions','readonly listingRows = computed<ListingRow[]>','Performans ve Tüketim Bilgilerini Gör','Ekspertiz ve Hasar Geçmişi','DetailMediaLightboxComponent',
   'for (const video of item.videos || [])','technicalRows','damageExpertise','tramerStatusLabel','tramerAmount','mapHref(item)',
-  'item.viewers','item.favCount','Konfor ve Donanımı Gör','(click)="callPhone()"','<span>Bilgi Al</span>','<span>WhatsApp</span>',
+  'item.viewers','item.favCount','Konfor ve Donanımı Gör','(click)="callPhone()"','(click)="inquire(item)"','aria-label="Satış talebi gönder"','<span>Satış Talebi Gönder</span>','<span>WhatsApp</span>',
 ]) must(sale, contract, `Sale approved UX/live-schema contract missing: ${contract}`);
-for (const forbidden of ['getTechnicalSpecs','class="core-facts"','[href]="phoneHref()"','Teknik Verileri Gör','Donanım ve Özellikleri Gör','<span>Satış Talebi</span>']) {
+for (const forbidden of ['getTechnicalSpecs','class="core-facts"','[href]="phoneHref()"','Teknik Verileri Gör','Donanım ve Özellikleri Gör','<span>Bilgi Al</span>']) {
   mustNot(sale, forbidden, `Legacy sale UX/data contract must not return: ${forbidden}`);
 }
 
@@ -98,4 +98,4 @@ for (const contract of [
   'revoke all on function public.reserve_booking_commercial_offer',
 ]) must(pricingGuard, contract, `Campaign normal-price reference guard missing: ${contract}`);
 
-console.log('V201.1/V217 canonical detail UX, bounded target campaigns, single CTA, external map, accessibility, live schema and pricing ownership: PASS');
+console.log('V201.1/V225 canonical detail UX, bounded target campaigns, single CTA, external map, accessibility, live schema and pricing ownership: PASS');

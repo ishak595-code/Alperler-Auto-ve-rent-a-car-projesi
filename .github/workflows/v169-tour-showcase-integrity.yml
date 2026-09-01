@@ -51,15 +51,20 @@ jobs:
           grep -Fq "facets().priceMax" "$SHOW"
           grep -Fq "tour.capacity" "$SHOW"
           grep -Fq "tour.categoryName" "$SHOW"
-          grep -Fq "tour.images?.length" "$SHOW"
-          grep -Fq "CustomerFavoritesV217Service" "$SHOW"
-          grep -Fq "hydrateVisible('TOUR'" "$SHOW"
+          grep -Fq "tour.image" "$SHOW"
+          grep -Fq "filtersOpen=signal(false)" "$SHOW"
+          grep -Fq "@if(filtersOpen())" "$SHOW"
+          grep -Fq '<section class="results">' "$SHOW"
           grep -Fq "pageSize:24" "$SHOW"
           grep -Fq "readonly reservationOpen = signal(false)" "$DETAIL"
           grep -Fq "Bu Turu Rezerve Et" "$DETAIL"
           grep -Fq "action-bar" "$DETAIL"
           grep -Fq "mapHref" "$DETAIL"
           grep -Fq "DetailMediaLightboxComponent" "$DETAIL"
+          if grep -Fq "CustomerFavoritesV217Service" "$SHOW" || grep -Fq "aria-pressed" "$SHOW"; then
+            echo "Tour catalog must remain a single accessible result per tour without a separate toggle button"
+            exit 1
+          fi
           if grep -Eq "0-5000|5000-15000|15000\+|priceRanges[[:space:]]*=" "$SHOW"; then
             echo "Tour filters must remain live-data derived"
             exit 1

@@ -118,7 +118,7 @@ type FactRow = { label: string; value: string };
 
         <nav class="bottom-actions" aria-label="Satılık araç işlemleri">
           <button type="button" class="phone" (click)="callPhone()" [attr.aria-disabled]="!phoneHref()" aria-label="Telefonla ara"><span class="phone-symbol" aria-hidden="true">☎</span><span>Ara</span></button>
-          <button type="button" class="inquiry" (click)="inquire(item)" [attr.aria-disabled]="item.availability === 'Satıldı'" aria-label="Araç için bilgi talebi gönder"><mat-icon aria-hidden="true">request_quote</mat-icon><span>Bilgi Al</span></button>
+          <button type="button" class="inquiry" (click)="inquire(item)" [attr.aria-disabled]="item.availability === 'Satıldı'" aria-label="Satış talebi gönder"><mat-icon aria-hidden="true">request_quote</mat-icon><span>Satış Talebi Gönder</span></button>
           <button type="button" class="whatsapp" (click)="whatsapp()" [attr.aria-disabled]="!whatsappPhone()" aria-label="WhatsApp ile bilgi al"><mat-icon aria-hidden="true">chat</mat-icon><span>WhatsApp</span></button>
         </nav>
 

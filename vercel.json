@@ -74,6 +74,7 @@
   ],
   "rewrites": [
     { "source": "/api/contact-admin", "destination": "/api/contact?mode=admin" },
+    { "source": "/api/send-email", "destination": "/api/contact?mode=email" },
     { "source": "/api/partner-requests", "destination": "/api/partner?op=requests" },
     { "source": "/api/partner-media", "destination": "/api/partner?op=media" },
     { "source": "/api/partner-upload-resume", "destination": "/api/partner?op=resume" },

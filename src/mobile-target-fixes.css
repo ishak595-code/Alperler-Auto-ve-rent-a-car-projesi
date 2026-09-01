@@ -2,40 +2,25 @@
    Homepage geometry belongs to HomeV71 and premium-responsive.css.
    Historical V39 and V62 homepage selectors are intentionally absent here. */
 
-/* The global customer dock floats above route content on coarse phone screens.
-   Reserve a predictable final scroll area only when the phone-class dock can
-   render. Detail pages are deliberately excluded because they own fixed CTAs. */
+/* V225: the five-action customer dock belongs only to the homepage. Inner
+   customer routes must never reserve space for a dock that is not rendered. */
 @media (max-width:639px) and (pointer:coarse), (max-width:950px) and (max-height:500px) and (pointer:coarse) {
-  app-home-v71 > main,
-  app-fleet app-rental-catalog-v217 > main,
-  app-fleet app-favorites-v217 > main,
-  app-sales-results app-sale-catalog-v217 > main,
-  app-tours app-tour-catalog-v217 > main,
-  app-blog-list app-blog-catalog-v217 > main,
-  app-campaigns > main,
-  app-search > main,
-  app-branches > main,
-  app-branch-detail > main,
-  app-contact-entry > main,
-  app-contact-entry app-contact > main,
-  app-list-your-car app-list-your-car-v172 > main,
-  app-appointment > main,
-  app-about > main,
-  app-faq > main,
-  app-legal > main,
-  app-branch-marketplace-v171 > main,
-  app-branch-partner-v171 > main,
-  app-branch-plans-v171 > main,
-  app-account-shell app-account-dashboard-v150 > main,
-  app-account-wallet > main {
+  app-home-v71 > main {
     padding-bottom: calc(7rem + env(safe-area-inset-bottom)) !important;
   }
 
-  /* Footer is outside the route-owned main element. It needs its own dock-safe
-     closing space so the final footer links never sit underneath the fixed dock. */
-  app-customer-footer-v70 .customer-footer {
-    padding-bottom: calc(7rem + env(safe-area-inset-bottom)) !important;
+  app-customer-footer-v70.mobile-dock-present .customer-footer {
+    padding-bottom: calc(6.15rem + env(safe-area-inset-bottom)) !important;
   }
+}
+
+/* Public catalogue summaries are customer surfaces. Infrastructure/source
+   descriptions are intentionally excluded from rendering and the accessibility
+   tree; the surrounding hero and result count already provide useful context. */
+app-rental-catalog-v217 .summary > span,
+app-sale-catalog-v217 .summary > span,
+app-tour-catalog-v217 .summary > span {
+  display: none !important;
 }
 
 /* V213 mobile hierarchy: keep the existing Hero search contract untouched.

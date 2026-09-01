@@ -25,10 +25,10 @@ for (const label of ['Seri / Model', 'Yıl', 'Kilometre', 'Yakıt', 'Vites', 'Ka
 requireText(sale, 'readonly listingRows = computed<ListingRow[]>', 'Sale facts must be rendered from one canonical listingRows contract.');
 requireText(sale, '(click)="callPhone()"', 'Sale phone action must be a persistent button action.');
 requireText(sale, '(click)="inquire(item)"', 'Sale inquiry CTA must keep the canonical inquiry action.');
-requireText(sale, 'aria-label="Araç için bilgi talebi gönder"', 'Sale inquiry CTA must keep a customer-facing accessible name.');
-requireText(sale, '<span>Bilgi Al</span>', 'Sale inquiry CTA must use the current customer-facing label.');
+requireText(sale, 'aria-label="Satış talebi gönder"', 'Sale inquiry CTA must keep the current customer-facing accessible name.');
+requireText(sale, '<span>Satış Talebi Gönder</span>', 'Sale inquiry CTA must state the action clearly.');
 requireText(sale, '<span>WhatsApp</span>', 'Sale WhatsApp CTA missing.');
-rejectText(sale, '<span>Satış Talebi</span>', 'Legacy sale CTA wording must not return.');
+rejectText(sale, '<span>Bilgi Al</span>', 'Old generic sale CTA wording must not return.');
 rejectText(sale, 'class="core-facts"', 'Duplicate top sale fact cards must not return.');
 rejectText(sale, '[href]="phoneHref()"', 'Sale phone action must not regress to the disappearing anchor implementation.');
 
@@ -66,4 +66,4 @@ rejectText(tour, 'Hazır olduğunuzda', 'Duplicate legacy tour reservation card 
 // Force old static PWA bundles out after this public contract release.
 requireText(worker, "const RELEASE = 'v202-public-detail-contract';", 'PWA cache release was not rotated for V202.');
 
-console.log('V202 public detail contract: OK');
+console.log('V202/V225 public detail contract: OK');

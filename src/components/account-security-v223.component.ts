@@ -13,7 +13,7 @@ import { CustomerAuthService } from '../services/customer-auth.service';
           <div>
             <p class="eyebrow">HESAP GÜVENLİĞİ</p>
             <h2 id="account-security-title">Parolanızı güvenle yönetin</h2>
-            <span>Yeni parola yalnız Supabase Auth hesabınızda değiştirilir. Parola uygulama veritabanında veya tarayıcı ayarlarında saklanmaz.</span>
+            <span>Güçlü ve size özel bir parola belirleyerek hesabınızı koruyun. Parolanızı dilediğiniz zaman buradan yenileyebilirsiniz.</span>
           </div>
           <button type="button" class="toggle" (click)="toggle()" [attr.aria-expanded]="open()" aria-controls="account-password-form">
             {{ open() ? 'Kapat' : 'Parolayı Değiştir' }}
@@ -33,7 +33,7 @@ import { CustomerAuthService } from '../services/customer-auth.service';
               <span>Yeni parola tekrar</span>
               <input [(ngModel)]="confirmPassword" name="accountConfirmPassword" type="password" autocomplete="new-password" minlength="10" required />
             </label>
-            <p class="hint">En az 10 karakter, bir büyük harf, bir küçük harf ve bir rakam kullanın. Veri sızıntılarında görülen parolalar kabul edilmez.</p>
+            <p class="hint">En az 10 karakter, bir büyük harf, bir küçük harf ve bir rakam kullanın. Veri sızıntılarında görülen parolalar kabul edilmez. Daha önce başka hesaplarda kullandığınız parolaları tercih etmeyin.</p>
             <button type="submit" class="primary" [disabled]="saving()">{{ saving() ? 'Güncelleniyor…' : 'Yeni Parolayı Kaydet' }}</button>
           </form>
         }

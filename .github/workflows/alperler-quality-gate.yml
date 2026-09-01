@@ -86,6 +86,19 @@ jobs:
       - name: TalkBack date accessibility guard
         run: npm run a11y:dates
 
+      - name: Customer-facing copy guard
+        id: customer_copy
+        run: node scripts/check-customer-facing-copy-v225.mjs
+
+      - name: Upload customer copy diagnostics
+        if: failure() && steps.customer_copy.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: customer-copy-v225-diagnostics
+          path: customer-copy-v225-diagnostics.txt
+          if-no-files-found: error
+          retention-days: 2
+
       - name: Rental and sale vehicle truth/media guard
         run: npm run media:vehicles
 

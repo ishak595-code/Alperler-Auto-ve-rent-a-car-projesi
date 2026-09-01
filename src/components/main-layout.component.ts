@@ -22,7 +22,7 @@ import { NavbarComponent } from "./navbar.component";
       <main id="main-content" tabindex="-1" class="customer-main"><router-outlet></router-outlet></main>
 
       <app-customer-prefooter-v174></app-customer-prefooter-v174>
-      <app-customer-footer-v70></app-customer-footer-v70>
+      <app-customer-footer-v70 [class.mobile-dock-present]="navigation.mobileDockRendered()"></app-customer-footer-v70>
 
       @defer (on idle) {
         <app-feedback></app-feedback>

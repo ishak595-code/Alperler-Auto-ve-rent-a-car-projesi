@@ -58,7 +58,6 @@ const removedLegacy = [
 ];
 removedLegacy.forEach(requireMissing);
 
-// A workflow may mention a deleted file only to assert that it stays deleted.
 const workflowDir = '.github/workflows';
 const workflowFiles = fs.readdirSync(workflowDir).filter((name) => /\.ya?ml$/i.test(name));
 const isAbsenceAssertion = (line, legacy) => {
@@ -105,7 +104,6 @@ for (const token of [
 ]) must(routes, token, `Canonical route missing: ${token}`);
 for (const token of ['branch-partner-v164.component','rental-results.component','tour-results.component','list-your-car-v2.component','tour-showcase-v169.component']) mustNot(routes, token, `Legacy route returned: ${token}`);
 
-// Route shells must delegate to the bounded V217 owners and must not revive historical showcase owners.
 const fleet = read('src/pages/fleet.component.ts');
 const rentalCatalog = read('src/pages/rental-catalog-v217.component.ts');
 const saleResults = read('src/pages/sales-results.component.ts');
@@ -142,7 +140,8 @@ for (const token of ['İLAN BİLGİLERİ','readonly listingRows = computed<Listi
 for (const token of ['class="summary"','summaryMeta(','class="core-facts"']) mustNot(sale, token, 'Sale hero must not duplicate canonical listing facts.');
 const saleActionBlock = sale.match(/<nav class="bottom-actions"[\s\S]*?<\/nav>/)?.[0] || '';
 if ((saleActionBlock.match(/<button\b/g) || []).length !== 3) throw new Error('Sale bottom bar must contain exactly three persistent buttons.');
-for (const token of ['Telefonla ara','Araç için bilgi talebi gönder','WhatsApp ile bilgi al']) must(saleActionBlock, token);
+for (const token of ['Telefonla ara','Satış Talebi Gönder','WhatsApp ile bilgi al']) must(saleActionBlock, token);
+mustNot(saleActionBlock, 'Araç için bilgi talebi gönder', 'Legacy sale inquiry wording must not return.');
 if (/\[disabled\].*(phone|whatsapp)|(phone|whatsapp).*\[disabled\]/i.test(saleActionBlock)) throw new Error('Phone/WhatsApp actions must not disappear through native disabled state.');
 
 const rental = read('src/pages/car-detail.component.ts');

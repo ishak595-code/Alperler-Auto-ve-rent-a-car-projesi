@@ -16,7 +16,7 @@ expect(!home.includes('@defer (on viewport'), 'Homepage sections must not wait f
 expect(home.includes('@for (section of managedSections(); track section.sectionKey) {\n        <app-dynamic-home-section'), 'Managed homepage sections must render eagerly and deterministically.');
 expect(!mainLayout.includes('@defer (on viewport'), 'Customer prefooter/footer must not depend on viewport defer.');
 expect(mainLayout.includes('<app-customer-prefooter-v174></app-customer-prefooter-v174>'), 'Customer prefooter must be eagerly present.');
-expect(mainLayout.includes('<app-customer-footer-v70></app-customer-footer-v70>'), 'Customer footer must be eagerly present.');
+expect(mainLayout.includes('<app-customer-footer-v70') && mainLayout.includes('[class.mobile-dock-present]="navigation.mobileDockRendered()"'), 'Customer footer must be eagerly present and remain aware of homepage mobile-dock spacing.');
 expect(coordinator.includes('return { config: 0, homepage: 0, branches: 0 };'), 'Global shell data owners must begin reconciliation immediately.');
 expect(coordinator.includes('Promise.allSettled(dueTasks.map((task) => task.run()))'), 'First-load global data owners must hydrate concurrently without one source blocking the rest.');
 expect(!coordinator.includes('key: "catalog"') && !coordinator.includes('key: "campaigns"'), 'Heavy catalog and campaign datasets must remain route-owned, not global-shell-owned.');

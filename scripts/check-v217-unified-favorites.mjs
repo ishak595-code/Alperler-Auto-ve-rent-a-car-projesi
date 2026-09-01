@@ -74,14 +74,17 @@ for (const forbidden of ['CarService', 'getCars()', 'getSaleCars()', 'getTours()
   if (account.includes(forbidden)) throw new Error(`V217_ACCOUNT_FAVORITES_FULL_CATALOG_REGRESSION:${forbidden}`);
 }
 
-for (const [file, type] of [
-  ['src/pages/tour-catalog-v217.component.ts', 'TOUR'],
-  ['src/pages/blog-catalog-v217.component.ts', 'BLOG'],
-]) {
-  const text = fs.readFileSync(file, 'utf8');
-  for (const token of [`toggle('${type}'`, `hydrateVisible('${type}'`, 'aria-pressed']) {
-    if (!text.includes(token)) throw new Error(`V217_${type}_FAVORITE_UI_MISSING:${token}`);
-  }
+const tourCatalog = fs.readFileSync('src/pages/tour-catalog-v217.component.ts', 'utf8');
+for (const token of ['class="card-link"', "[attr.aria-label]=\"tour.title+' turunu incele'\""]) {
+  if (!tourCatalog.includes(token)) throw new Error(`V225_TOUR_SINGLE_RESULT_CONTRACT_MISSING:${token}`);
+}
+for (const forbidden of ['CustomerFavoritesV217Service', "toggle('TOUR'", "hydrateVisible('TOUR'", 'aria-pressed']) {
+  if (tourCatalog.includes(forbidden)) throw new Error(`V225_TOUR_CATALOG_SEPARATE_TOGGLE_MUST_NOT_RETURN:${forbidden}`);
+}
+
+const blogCatalog = fs.readFileSync('src/pages/blog-catalog-v217.component.ts', 'utf8');
+for (const token of ["toggle('BLOG'", "hydrateVisible('BLOG'", 'aria-pressed']) {
+  if (!blogCatalog.includes(token)) throw new Error(`V217_BLOG_FAVORITE_UI_MISSING:${token}`);
 }
 
 const fleet = fs.readFileSync('src/pages/fleet.component.ts', 'utf8');
@@ -89,4 +92,4 @@ if (!fleet.includes('FavoritesV217Component') || !fleet.includes('favs')) {
   throw new Error('V217_UNIFIED_FAVORITES_ROUTE_MISSING');
 }
 
-console.log('V217 unified favorites contract passed: one canonical account-aware owner covers vehicle, tour and blog favorites, including navbar count compatibility, with bounded hydration and legacy migration only.');
+console.log('V217/V225 unified favorites contract passed: one canonical account-aware owner preserves vehicle, tour and blog favorite data, while the tour catalog remains one accessible result per tour without a separate toggle control.');

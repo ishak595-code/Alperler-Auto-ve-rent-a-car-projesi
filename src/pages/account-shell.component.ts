@@ -13,15 +13,17 @@ type AccountViewV225='overview'|'bookings'|'settings';
   standalone:true,
   imports:[RouterLink,AccountOverviewV225Component,AccountBookingsV225Component,AccountSettingsV225Component],
   template:`
-    <nav class="account-shortcuts" aria-label="Hesap bölümleri">
-      <div>
-        <a routerLink="/account" [class.active]="view()==='overview'" [attr.aria-current]="view()==='overview'?'page':null">Genel Bakış</a>
-        <a [routerLink]="['/account']" [queryParams]="{view:'bookings'}" [class.active]="view()==='bookings'" [attr.aria-current]="view()==='bookings'?'page':null">Rezervasyonlarım</a>
-        <a routerLink="/fleet" [queryParams]="{favs:true}">Favorilerim</a>
-        <a [routerLink]="['/account']" [queryParams]="{view:'settings'}" [class.active]="view()==='settings'" [attr.aria-current]="view()==='settings'?'page':null">Profil Ayarları</a>
-        <a routerLink="/account/wallet">Cüzdan ve Belgeler</a>
-      </div>
-    </nav>
+    @if(view()==='overview'){
+      <nav class="account-shortcuts" aria-label="Hesap bölümleri">
+        <div>
+          <a routerLink="/account" class="active" aria-current="page">Genel Bakış</a>
+          <a [routerLink]="['/account']" [queryParams]="{view:'bookings'}">Rezervasyonlarım</a>
+          <a routerLink="/fleet" [queryParams]="{favs:true}">Favorilerim</a>
+          <a [routerLink]="['/account']" [queryParams]="{view:'settings'}">Profil Ayarları</a>
+          <a routerLink="/account/wallet">Cüzdan ve Belgeler</a>
+        </div>
+      </nav>
+    }
     @switch(view()){
       @case('bookings'){<app-account-bookings-v225/>}
       @case('settings'){<app-account-settings-v225/>}

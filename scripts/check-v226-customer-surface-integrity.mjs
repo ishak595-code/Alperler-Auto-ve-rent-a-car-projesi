@@ -6,6 +6,7 @@ const accountService = readFileSync('src/services/customer-account.service.ts', 
 const accountDashboard = readFileSync('src/pages/account-dashboard-v150.component.ts', 'utf8');
 const legal = readFileSync('src/pages/legal.component.ts', 'utf8');
 const dateControl = readFileSync('src/components/accessible-native-date.component.ts', 'utf8');
+const mainLayout = readFileSync('src/components/main-layout.component.ts', 'utf8');
 const footer = readFileSync('src/components/customer-footer-v70.component.ts', 'utf8');
 const app = readFileSync('src/app.component.ts', 'utf8');
 const feedback = readFileSync('src/components/feedback.component.ts', 'utf8');
@@ -56,6 +57,7 @@ forbidText(app, 'a[href="/admin/login"]', 'Administrative links must not be hidd
 requireText(footerCutover, "action_type = 'admin'", 'Production data migration must retire public footer admin actions.');
 requireText(footerCutover, 'set is_enabled = false', 'Footer admin cutover must disable the live configuration row.');
 
+requireText(mainLayout, '@defer (when uiService.isFeedbackOpen(); prefetch on idle)', 'Feedback panel must load immediately from the user interaction signal, not wait indefinitely for browser idle.');
 requireText(feedback, 'fetch("/api/contact"', 'Feedback must use the canonical contact gateway.');
 requireText(feedback, 'idempotencyKey: this.submissionKey', 'Feedback submissions must remain idempotent.');
 requireText(newsletter, "fetch('/api/partner?op=newsletter-public'", 'Newsletter signup must use the canonical public newsletter gateway.');

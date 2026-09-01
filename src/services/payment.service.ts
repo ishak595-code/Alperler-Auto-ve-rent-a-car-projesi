@@ -82,7 +82,7 @@ export class PaymentService {
       if (usingSavedCard) {
         const token = await this.customerAuth.getAccessToken().catch(() => null);
         if (!token) return {ok:false,status:'rejected',provider:'iyzico',message:'Kayıtlı kartı kullanmak için hesabınıza yeniden giriş yapın.'};
-        return await firstValueFrom(this.http.post<PaymentSessionResponse>("/api/saved-card-payment", payload, { headers:{ Authorization:`Bearer ${token}` } }));
+        return await firstValueFrom(this.http.post<PaymentSessionResponse>("/api/wallet-cards?op=charge", payload, { headers:{ Authorization:`Bearer ${token}` } }));
       }
       return await firstValueFrom(this.http.post<PaymentSessionResponse>("/api/payments/create-session", payload));
     }

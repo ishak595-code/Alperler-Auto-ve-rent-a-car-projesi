@@ -27,6 +27,7 @@ const forbidden = [
   ['internal version', /\bV\d{2,4}(?:\.\d+)?\b/i],
   ['checkout', /\bcheckout\b/i],
 ];
+const diagnosticsPath = 'customer-copy-v225-diagnostics.txt';
 
 function walk(directory) {
   if (!fs.existsSync(directory)) return [];
@@ -81,9 +82,12 @@ for (const file of roots.flatMap(walk).filter((file) => file.endsWith('.ts'))) {
 }
 
 if (failures.length) {
-  console.error('V225_CUSTOMER_COPY_FAIL');
-  for (const failure of [...new Set(failures)].sort()) console.error(`- ${failure}`);
+  const uniqueFailures = [...new Set(failures)].sort();
+  const diagnostics = ['V225_CUSTOMER_COPY_FAIL', ...uniqueFailures.map((failure) => `- ${failure}`), ''].join('\n');
+  fs.writeFileSync(diagnosticsPath, diagnostics, 'utf8');
+  console.error(diagnostics.trimEnd());
   process.exit(1);
 }
 
+if (fs.existsSync(diagnosticsPath)) fs.rmSync(diagnosticsPath);
 console.log('V225 customer copy OK: public/customer literal UI copy is free of implementation-language leakage. Dynamic/admin-managed content is intentionally outside this source-code guard.');

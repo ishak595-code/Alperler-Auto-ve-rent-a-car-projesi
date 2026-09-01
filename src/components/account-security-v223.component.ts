@@ -12,8 +12,8 @@ import { CustomerAuthService } from '../services/customer-auth.service';
         <header>
           <div>
             <p class="eyebrow">HESAP GÜVENLİĞİ</p>
-            <h2 id="account-security-title">Parolanızı yönetin</h2>
-            <span>Güçlü ve yalnızca size ait bir parola kullanın. Değişiklik tamamlandığında hesabınız yeni parolanızla korunur.</span>
+            <h2 id="account-security-title">Parolanızı güvenle yönetin</h2>
+            <span>Güçlü ve size özel bir parola belirleyerek hesabınızı koruyun. Parolanızı dilediğiniz zaman buradan yenileyebilirsiniz.</span>
           </div>
           <button type="button" class="toggle" (click)="toggle()" [attr.aria-expanded]="open()" aria-controls="account-password-form">
             {{ open() ? 'Kapat' : 'Parolayı Değiştir' }}
@@ -33,7 +33,7 @@ import { CustomerAuthService } from '../services/customer-auth.service';
               <span>Yeni parola tekrar</span>
               <input [(ngModel)]="confirmPassword" name="accountConfirmPassword" type="password" autocomplete="new-password" minlength="10" required />
             </label>
-            <p class="hint">En az 10 karakter, bir büyük harf, bir küçük harf ve bir rakam kullanın. Daha önce veri sızıntılarında görülen parolalar kabul edilmez.</p>
+            <p class="hint">En az 10 karakter, bir büyük harf, bir küçük harf ve bir rakam kullanın. Daha önce başka hesaplarda kullandığınız parolaları tercih etmeyin.</p>
             <button type="submit" class="primary" [disabled]="saving()">{{ saving() ? 'Güncelleniyor…' : 'Yeni Parolayı Kaydet' }}</button>
           </form>
         }
@@ -80,7 +80,7 @@ export class AccountSecurityV223Component {
       }
       this.clearFields();
       this.open.set(false);
-      this.message.set('Parolanız başarıyla güncellendi.');
+      this.message.set('Parolanız güvenli şekilde güncellendi.');
     } finally {
       this.saving.set(false);
     }

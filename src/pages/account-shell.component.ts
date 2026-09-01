@@ -32,9 +32,9 @@ type AccountSection = 'overview' | 'favorites' | 'profile';
 
       <section class="account-content" aria-live="polite">
         @switch (section()) {
-          @case ('favorites') { <app-account-favorites-v213 /> }
-          @case ('profile') { <app-account-profile-settings-v225 /> }
-          @default { <app-account-dashboard-v150 /> }
+          @case ('favorites') { <app-account-favorites-v213></app-account-favorites-v213> }
+          @case ('profile') { <app-account-profile-settings-v225></app-account-profile-settings-v225> }
+          @default { <app-account-dashboard-v150></app-account-dashboard-v150> }
         }
       </section>
     </main>

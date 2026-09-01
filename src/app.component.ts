@@ -27,6 +27,9 @@ import { BookingSuccessOverlayComponent } from './components/booking-success-ove
   `,
   styles: [`
     a[href="/admin/login"]{display:none!important}
+    app-rental-catalog-v217 .summary div>span,
+    app-sale-catalog-v217 .summary div>span,
+    app-tour-catalog-v217 .summary div>span{display:none!important}
   `],
 })
 export class AppComponent implements OnInit {
@@ -50,11 +53,7 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit() {
-    // Router-native scroll restoration fires before async catalog pages always recover
-    // their full height. Retry only back/forward positions after late content hydration.
     this.deferredScrollRestoration.start();
-    // SEO and public-content freshness are user-visible startup work.
-    // Observability/enrichment that is not needed to render the shell remains deferred.
     this.seoService.init();
     this.syncPublicContentRefresh(this.initialUrl);
     this.scheduleBackgroundServices();
@@ -63,19 +62,9 @@ export class AppComponent implements OnInit {
   private scheduleBackgroundServices(): void {
     if (this.backgroundServicesStarted) return;
     const start = () => void this.startBackgroundServices();
-
-    if (typeof window === 'undefined') {
-      start();
-      return;
-    }
-
-    const idleWindow = window as Window & {
-      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
-    };
-    if (typeof idleWindow.requestIdleCallback === 'function') {
-      idleWindow.requestIdleCallback(start, { timeout: 2000 });
-      return;
-    }
+    if (typeof window === 'undefined') { start(); return; }
+    const idleWindow = window as Window & { requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number; };
+    if (typeof idleWindow.requestIdleCallback === 'function') { idleWindow.requestIdleCallback(start, { timeout: 2000 }); return; }
     globalThis.setTimeout(start, 500);
   }
 
@@ -92,7 +81,6 @@ export class AppComponent implements OnInit {
       this.injector.get(analyticsModule.VisitorAnalyticsService).init();
       this.injector.get(autofillModule.CustomerProfileAutofillService).start();
     } catch (error) {
-      // Background observability/enrichment must never block the customer shell.
       console.info('Deferred customer background services could not start.', error);
     }
   }

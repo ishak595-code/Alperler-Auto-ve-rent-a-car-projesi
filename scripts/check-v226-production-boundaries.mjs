@@ -2,9 +2,11 @@ import { readFileSync } from 'node:fs';
 
 const wallet = readFileSync('api/wallet-cards.ts', 'utf8');
 const payment = readFileSync('api/payments.ts', 'utf8');
+const branchesApi = readFileSync('api/branches.ts', 'utf8');
 const paymentService = readFileSync('src/services/payment.service.ts', 'utf8');
 const dockPolicy = readFileSync('src/services/mobile-dock-route-policy.ts', 'utf8');
 const navigation = readFileSync('src/services/navigation-config.service.ts', 'utf8');
+const branchWriteCutover = readFileSync('supabase/migrations/20260901174500_v225_branch_write_boundary_hardening.sql', 'utf8').toLowerCase();
 
 function requireText(source, token, message) {
   if (!source.includes(token)) throw new Error(message);
@@ -22,6 +24,16 @@ for (const label of ['Kiralık', 'Satılık', 'Ara', 'Fırsatlar', 'Profil']) {
 }
 const canonicalDockRows = [...defaultDock.matchAll(/^\s*\['[^']+',\s*'[^']+',\s*'[^']+',\s*'[^']+'\],?\s*$/gm)];
 if (canonicalDockRows.length !== 5) throw new Error(`Canonical mobile dock must contain exactly five defaults, found ${canonicalDockRows.length}.`);
+
+for (const token of [
+  'revoke insert, update, delete on table public.branches from authenticated',
+  'drop policy if exists branches_admin_delete on public.branches',
+  'drop policy if exists branches_admin_insert on public.branches',
+  'drop policy if exists branches_authenticated_update_v188 on public.branches',
+]) requireText(branchWriteCutover, token, `Branch direct-write cutover is missing: ${token}`);
+requireText(branchesApi, 'async function verifiedAdmin', 'Branch admin writes must verify the administrator server-side.');
+requireText(branchesApi, 'SUPABASE_SERVICE_ROLE_KEY', 'Branch admin writes must use a server-only service boundary.');
+requireText(branchesApi, 'await verifiedAdmin(request)', 'Branch mutations must pass through verifiedAdmin.');
 
 requireText(wallet, "provider!=='IYZICO'", 'Saved-card provider boundary is missing.');
 requireText(wallet, "env!==expectedEnvironment", 'Saved-card environment boundary is missing.');

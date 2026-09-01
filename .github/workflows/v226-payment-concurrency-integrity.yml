@@ -23,3 +23,5 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Verify saved-card concurrency and security contract
         run: node scripts/check-v226-payment-concurrency.mjs
+      - name: Verify production security boundaries
+        run: node scripts/check-v226-production-boundaries.mjs

@@ -49,7 +49,7 @@ requireText(dateControl, 'focus({ preventScroll: true })', 'Calendar focus resto
 requireText(dateControl, 'touch-action:manipulation', 'Calendar touch controls must use stable mobile tap handling.');
 requireText(dateControl, 'overscroll-behavior:contain', 'Calendar dialog must contain mobile overscroll.');
 
-requireText(dockPolicy, "return path === '/';", 'Customer mobile dock must remain home-only.');
+requireText(dockPolicy, "return cleanCustomerPath(rawUrl) === '/';", 'Customer mobile dock must remain home-only through the canonical path normalizer.');
 requireText(footer, "if(link.actionType==='ADMIN')return false", 'Public footer must never render administrative links.');
 requireText(footer, "if(link.actionType==='EXTERNAL')return this.safeExternalUrl(link.externalUrl)!=='#'", 'Public footer must suppress invalid external links instead of rendering dead anchors.');
 forbidText(app, 'a[href="/admin/login"]', 'Administrative links must not be hidden by global CSS.');

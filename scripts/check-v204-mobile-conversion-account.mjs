@@ -27,8 +27,8 @@ const required = [
 required.forEach(requireFile);
 
 const policy = read('src/services/mobile-dock-route-policy.ts');
-for (const token of ['shouldRenderMobileDock','isDockItemCurrent',"'/booking-checkout'",'/^\\/fleet\\/[^/]+$/','/^\\/sales\\/[^/]+$/','/^\\/tour\\/[^/]+$/']) must(policy, token);
-mustNot(policy, 'path !== "/"', 'Dock route policy must never hide every non-home customer route.');
+for (const token of ['shouldRenderMobileDock','isDockItemCurrent','cleanCustomerPath(rawUrl) === \'/\'']) must(policy, token, `Homepage-only dock policy missing: ${token}`);
+for (const forbidden of ['MOBILE_DOCK_SUPPRESSED_EXACT','MOBILE_DOCK_SUPPRESSED_PREFIXES','MOBILE_DOCK_DETAIL_ROUTES']) mustNot(policy, forbidden, `Dock policy must not maintain a growing internal-route exception list: ${forbidden}`);
 
 const navigation = read('src/services/navigation-config.service.ts');
 const dockDefaults = navigation.split('const DEFAULT_MENU')[0];
@@ -66,38 +66,40 @@ for (const token of [
   'window.matchMedia',
 ]) must(dock, token);
 for (const token of [
-  'onDockClick',
-  'NavigationStart',
-  'Scroll as RouterScroll',
-  'navigationScrollSettling',
-  'beginRouteNavigation()',
-  'finishRouteNavigationAfterScroll()',
-  'event.preventDefault();',
-  'window.scrollTo',
-  'dock-hidden',
-  'HostListener',
-  'backdrop-filter:blur',
-  '-webkit-backdrop-filter:blur',
+  'onDockClick','NavigationStart','Scroll as RouterScroll','navigationScrollSettling','beginRouteNavigation()',
+  'finishRouteNavigationAfterScroll()','event.preventDefault();','window.scrollTo','dock-hidden','HostListener',
+  'backdrop-filter:blur','-webkit-backdrop-filter:blur','RouterLinkActive',
 ]) mustNot(dock, token, `Obsolete, inaccessible or scroll-heavy mobile dock behavior returned: ${token}`);
-mustNot(dock, 'const shouldHide = path !== "/"', 'Mobile dock must not disappear on every non-home route.');
-mustNot(dock, 'RouterLinkActive', 'Dock active state must use one canonical route policy.');
 
 const responsive = read('src/premium-responsive.css');
 for (const token of ['V204 canonical mobile home conversion geometry','app-home-v71 .hero-stage','app-home-v71 .trust-row','app-home-v71 .planner','app-home-v71 .field-grid','app-account-dashboard-v150']) must(responsive, token);
 mustNot(responsive, 'app-list-your-car-v2', 'Deleted V2 valuation selector returned to canonical responsive CSS.');
 
 const mobileFixes = read('src/mobile-target-fixes.css');
-for (const token of ['app-home-v71 > main','app-fleet app-rental-catalog-v217 > main','app-fleet app-favorites-v217 > main','app-sales-results app-sale-catalog-v217 > main','app-tours app-tour-catalog-v217 > main','app-blog-list app-blog-catalog-v217 > main','app-campaigns > main','app-search > main','app-account-shell app-account-dashboard-v150 > main','app-customer-footer-v70 .customer-footer']) must(mobileFixes, token, `Canonical mobile dock safe-area owner missing: ${token}`);
-for (const token of ['app-fleet app-rental-showcase-v167 > main','app-sales-results app-sales-showcase-v168 > main','app-tours app-tour-showcase-v170 > main']) mustNot(mobileFixes, token, `Retired full-catalog safe-area selector remains active: ${token}`);
+must(mobileFixes, 'app-home-v71 > main', 'Homepage must keep mobile dock-safe bottom space.');
+for (const forbidden of [
+  'app-fleet app-rental-catalog-v217 > main','app-fleet app-favorites-v217 > main','app-sales-results app-sale-catalog-v217 > main',
+  'app-tours app-tour-catalog-v217 > main','app-blog-list app-blog-catalog-v217 > main','app-campaigns > main','app-search > main',
+  'app-account-shell app-account-dashboard-v150 > main','app-account-wallet > main','app-customer-footer-v70 .customer-footer',
+]) mustNot(mobileFixes, forbidden, `Internal customer route must not reserve homepage dock spacing: ${forbidden}`);
+for (const token of [
+  'app-rental-catalog-v217 .summary > span',
+  'app-sale-catalog-v217 .summary > span',
+  'app-tour-catalog-v217 .summary > span',
+  'display: none !important',
+]) must(mobileFixes, token, `Public technical catalogue copy must stay out of the rendered customer surface: ${token}`);
 mustNot(mobileFixes, 'app-home-v39', 'Deleted V39 homepage selector must not remain in the active CSS chain.');
 mustNot(mobileFixes, 'app-home section[aria-labelledby="campaigns-title"]', 'Deleted V62 homepage campaign selector must not remain in the active CSS chain.');
 
 const runtimeTest = read('tests/v204/mobile-dock.spec.ts');
-for (const token of ['"/fleet"', '"/sales"', '"/search"', '"/campaigns"', '"/account"', 'window.scrollTo', 'window.scrollBy', 'page.goBack()', 'aria-hidden', 'inert', 'aria-current', 'dock-auto-hidden', 'not.toBeFocused()']) must(runtimeTest, token, `Android dock accessibility/auto-hide regression missing behavior: ${token}`);
-must(runtimeTest, "await expect(dock.locator('a[href=\"/account\"]')).toHaveAttribute(\"aria-label\", \"Profil\");", 'Runtime regression must explicitly prove that Profil remains the fifth customer dock action.');
-must(runtimeTest, "await expect(dock.locator('a[href=\"/appointment\"]')).toHaveCount(0);", 'Runtime regression must prove that Randevu does not replace Profil in the dock.');
-must(runtimeTest, "await expect(dock.locator('a[href=\"/search\"]')).toHaveAttribute(\"aria-label\", \"Ara\");", 'Runtime regression must preserve the requested Ara action.');
-must(runtimeTest, 'toHaveClass(/dock-primary/)', 'Runtime regression must preserve Ara as the primary center action.');
+for (const token of [
+  'mobile dock belongs only to home',
+  '"/fleet"','"/sales"','"/search"','"/campaigns"','"/account"','"/account/wallet"',
+  'window.scrollTo','window.scrollBy','aria-hidden','inert','dock-auto-hidden','not.toBeFocused()',
+]) must(runtimeTest, token, `Android dock accessibility/home-only regression missing behavior: ${token}`);
+must(runtimeTest, "await expect(dock.locator('a[href=\"/account\"]')).toHaveAttribute(\"aria-label\", \"Profil\");", 'Runtime regression must prove that Profil remains the fifth homepage dock action.');
+must(runtimeTest, "await expect(dock.locator('a[href=\"/appointment\"]')).toHaveCount(0);", 'Runtime regression must prove that Randevu does not replace Profil in the homepage dock.');
+must(runtimeTest, 'await expect(dock).toHaveCount(0);', 'Runtime regression must prove inner routes do not render the dock.');
 const runtimeConfig = read('playwright.v204.config.ts');
 for (const token of ['SM-S928B','isMobile: true','hasTouch: true','width: 412','height: 915']) must(runtimeConfig, token, `Android runtime profile missing contract: ${token}`);
 
@@ -113,14 +115,10 @@ for (const token of ["when 'fleet' then 'Kiralık'","when 'sales' then 'Satılı
 
 const dockMigration = read('supabase/migrations/20260831161135_v221_mobile_dock_profile_canonical.sql');
 for (const token of [
-  "'fleet'::text,'Kiralık'::text",
-  "'sales','Satılık'",
-  "'search','Ara'",
-  "'campaigns','Fırsatlar'",
-  "'account','Profil'",
+  "'fleet'::text,'Kiralık'::text","'sales','Satılık'","'search','Ara'","'campaigns','Fırsatlar'","'account','Profil'",
   "item_key not in ('fleet','sales','search','campaigns','account')",
-]) must(dockMigration, token, `Canonical dock migration contract missing: ${token}`);
-mustNot(dockMigration, "'appointment','Randevu'", 'Canonical dock migration must not reactivate Randevu as a dock item.');
+]) must(dockMigration, token, `Canonical dock data contract missing: ${token}`);
+mustNot(dockMigration, "'appointment','Randevu'", 'Canonical dock data must not reactivate Randevu as a dock item.');
 
 const campaigns = read('src/pages/campaigns.component.ts');
 const homeSections = read('src/components/dynamic-home-section.component.ts');

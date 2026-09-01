@@ -39,7 +39,11 @@ function walk(directory) {
 
 function templates(source) {
   const values = [];
-  const regex = /template\s*:\s*`([\s\S]*?)`\s*,/g;
+  // Angular inline templates are delimited by the first closing backtick.
+  // Do not require a trailing comma: `template` is commonly the final
+  // Component metadata property, and doing so can accidentally consume
+  // class implementation code and create false customer-copy failures.
+  const regex = /template\s*:\s*`([\s\S]*?)`/g;
   let match;
   while ((match = regex.exec(source))) values.push(match[1]);
   return values;

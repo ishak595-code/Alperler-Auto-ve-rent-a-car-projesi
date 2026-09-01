@@ -108,7 +108,7 @@ const account = read('src/pages/account-dashboard-v150.component.ts');
 for (const token of ['routerLink="/account/wallet"','bookingFilter','filteredBookings','expandedBooking','toggleBooking','selectFilter','Cüzdan ve Belgeler','Profil Ayarları','queryParams]="{section:\'profile\'}"']) must(account, token);
 for (const forbidden of ['profileOpen','profileForm','saveProfile()','[(ngModel)]="profileForm']) mustNot(account, forbidden, `Dashboard must not regain duplicate profile-edit ownership: ${forbidden}`);
 const profileSettings = read('src/components/account-profile-settings-v225.component.ts');
-for (const token of ['saveProfile()','securityOpen','Güvenlik Ayarlarını Aç','account-security-v223']) must(profileSettings, token, `Canonical profile settings ownership missing: ${token}`);
+for (const token of ['(ngSubmit)="save()"','account.updateProfile','securityOpen','Güvenlik Ayarlarını Aç','account-security-v223']) must(profileSettings, token, `Canonical profile settings ownership missing: ${token}`);
 
 const proofMigration = read('supabase/migrations/20260828114500_v204_campaign_social_proof_attribution.sql');
 for (const token of ["ve.event_type = 'page_view'","'[?&]campaign=' || c.id::text || '(&|$)'",'count(distinct ve.visitor_id)','active_viewers_15m']) must(proofMigration, token);

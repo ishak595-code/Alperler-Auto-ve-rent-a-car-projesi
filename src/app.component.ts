@@ -7,15 +7,19 @@ import { PublicContentRefreshCoordinatorService } from './services/public-conten
 import { DeferredRouteScrollRestorationService } from './services/deferred-route-scroll-restoration.service';
 import { BookingSuccessExperienceService } from './services/booking-success-experience.service';
 import { CustomerMobileDockComponent } from './components/customer-mobile-dock.component';
+import { CustomerSavedCardsV225Component } from './components/customer-saved-cards-v225.component';
 import { RuntimeStatusGateComponent } from './components/runtime-status-gate.component';
 import { BookingSuccessOverlayComponent } from './components/booking-success-overlay.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CustomerMobileDockComponent, RuntimeStatusGateComponent, BookingSuccessOverlayComponent],
+  imports: [RouterOutlet, CustomerMobileDockComponent, CustomerSavedCardsV225Component, RuntimeStatusGateComponent, BookingSuccessOverlayComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
+    @if (showWalletCards()) {
+      <app-customer-saved-cards-v225></app-customer-saved-cards-v225>
+    }
     <router-outlet></router-outlet>
     @defer (when bookingSuccessExperience.result(); prefetch on idle) {
       <app-booking-success-overlay></app-booking-success-overlay>
@@ -43,11 +47,13 @@ export class AppComponent implements OnInit {
   private backgroundServicesStarted = false;
   private readonly initialUrl = typeof window !== 'undefined' ? window.location.pathname : this.router.url;
   readonly showCustomerChrome = signal(this.isCustomerRoute(this.initialUrl));
+  readonly showWalletCards = signal(false);
 
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => {
       const url=(event as NavigationEnd).urlAfterRedirects;
       this.showCustomerChrome.set(this.isCustomerRoute(url));
+      this.showWalletCards.set(this.cleanPath(url)==='/account/wallet');
       this.syncPublicContentRefresh(url);
     });
   }

@@ -47,6 +47,7 @@ export interface PaymentSessionRequest {
   amount: number;
   currency: "TRY" | "EUR" | "USD" | "CHF";
   method: "CARD";
+  paymentMethodId?: string;
   customer: PaymentSessionCustomer;
   returnUrl: string;
   cancelUrl: string;
@@ -55,7 +56,7 @@ export interface PaymentSessionRequest {
 }
 export interface PaymentSessionResponse {
   ok: boolean;
-  status: "ready" | "not_configured" | "rejected" | "error";
+  status: "ready" | "paid" | "not_configured" | "rejected" | "error";
   provider: PaymentProvider;
   checkoutUrl?: string;
   externalReference?: string;

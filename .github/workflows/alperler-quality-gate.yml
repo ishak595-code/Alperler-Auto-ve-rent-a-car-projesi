@@ -86,6 +86,9 @@ jobs:
       - name: TalkBack date accessibility guard
         run: npm run a11y:dates
 
+      - name: Customer-facing copy guard
+        run: node scripts/check-customer-facing-copy-v225.mjs
+
       - name: Rental and sale vehicle truth/media guard
         run: npm run media:vehicles
 

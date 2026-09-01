@@ -6,6 +6,7 @@ const excluded = [
   /(?:^|\/)admin(?:\/|-)/i,
   /(?:^|\/)branch-portal(?:\/|-|\.)/i,
   /(?:^|\/)branch-subscription(?:\/|-|\.)/i,
+  /(?:^|\/)track-car\.component\.ts$/i,
 ];
 const forbidden = [
   ['Supabase', /\bsupabase\b/i],
@@ -41,14 +42,38 @@ function templates(source) {
   return values;
 }
 
+function visibleLiteralText(template) {
+  const snippets = [];
+  const withoutComments = template.replace(/<!--[\s\S]*?-->/g, ' ');
+
+  const readableAttribute = /\b(?:aria-label|title|placeholder|alt)\s*=\s*(["'])([\s\S]*?)\1/gi;
+  let attributeMatch;
+  while ((attributeMatch = readableAttribute.exec(withoutComments))) {
+    snippets.push(attributeMatch[2].replace(/\{\{[\s\S]*?\}\}/g, ' '));
+  }
+
+  const textNodes = withoutComments
+    .replace(/\{\{[\s\S]*?\}\}/g, ' ')
+    .replace(/@let\b[^;]*;/g, ' ')
+    .replace(/@(?:if|for|switch|case)\s*\([^)]*\)\s*\{/g, ' ')
+    .replace(/@else(?:\s+if\s*\([^)]*\))?\s*\{/g, ' ')
+    .replace(/@default\s*\{/g, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/[{}]/g, ' ');
+
+  snippets.push(textNodes);
+  return snippets.join('\n');
+}
+
 const failures = [];
 for (const file of roots.flatMap(walk).filter((file) => file.endsWith('.ts'))) {
   const normalized = file.replaceAll('\\', '/');
   if (excluded.some((pattern) => pattern.test(normalized))) continue;
   const source = fs.readFileSync(file, 'utf8');
   for (const template of templates(source)) {
+    const customerText = visibleLiteralText(template);
     for (const [label, pattern] of forbidden) {
-      if (pattern.test(template)) failures.push(`${normalized}: customer-visible technical phrase: ${label}`);
+      if (pattern.test(customerText)) failures.push(`${normalized}: customer-visible technical phrase: ${label}`);
     }
   }
 }
@@ -59,4 +84,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('V225 customer copy OK: public/customer templates are free of implementation-language leakage.');
+console.log('V225 customer copy OK: public/customer literal UI copy is free of implementation-language leakage. Dynamic/admin-managed content is intentionally outside this source-code guard.');

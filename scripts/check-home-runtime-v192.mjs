@@ -127,7 +127,7 @@ for (const forbidden of [
 
 for (const required of [
   "<app-customer-prefooter-v174>",
-  "<app-customer-footer-v70>",
+  "<app-customer-footer-v70",
   "@defer (on idle)",
   "<app-feedback>",
 ]) {

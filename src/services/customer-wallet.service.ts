@@ -66,12 +66,22 @@ export class CustomerWalletService{
   }
 
   async openDocument(doc:CustomerDocument):Promise<void>{
-    const token=await this.requireToken();const encoded=doc.storage_path.split('/').map(encodeURIComponent).join('/');
-    const response=await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/sign/${this.documentBucket}/${encoded}`,{method:'POST',headers:this.headers(token),body:JSON.stringify({expiresIn:120})});
-    if(!response.ok)throw new Error('DOCUMENT_SIGN_FAILED');
-    const data=await response.json() as {signedURL?:string;signedUrl?:string};const signed=data.signedURL||data.signedUrl||'';if(!signed)throw new Error('DOCUMENT_SIGN_FAILED');
-    const url=signed.startsWith('http')?signed:`${SUPABASE_PROJECT_URL}/storage/v1${signed.startsWith('/')?'':'/'}${signed}`;
-    window.open(url,'_blank','noopener,noreferrer');
+    const preview=typeof window!=='undefined'?window.open('about:blank','_blank'):null;
+    if(preview){
+      try{preview.opener=null;preview.document.title='Belge hazırlanıyor';preview.document.body.textContent='Belgeniz güvenli şekilde hazırlanıyor...';}catch{/* tarayıcı boş önizlemeyi kısıtlayabilir */}
+    }
+    try{
+      const token=await this.requireToken();const encoded=doc.storage_path.split('/').map(encodeURIComponent).join('/');
+      const response=await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/sign/${this.documentBucket}/${encoded}`,{method:'POST',headers:this.headers(token),body:JSON.stringify({expiresIn:120})});
+      if(!response.ok)throw new Error('DOCUMENT_SIGN_FAILED');
+      const data=await response.json() as {signedURL?:string;signedUrl?:string};const signed=data.signedURL||data.signedUrl||'';if(!signed)throw new Error('DOCUMENT_SIGN_FAILED');
+      const url=signed.startsWith('http')?signed:`${SUPABASE_PROJECT_URL}/storage/v1${signed.startsWith('/')?'':'/'}${signed}`;
+      if(preview&&!preview.closed){preview.location.replace(url);return;}
+      if(typeof window!=='undefined')window.location.assign(url);
+    }catch(error){
+      if(preview&&!preview.closed)preview.close();
+      throw error;
+    }
   }
 
   async deleteDocument(doc:CustomerDocument):Promise<void>{

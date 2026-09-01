@@ -70,7 +70,7 @@ type BookingFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'COMPLETED' | 'CLOSED';
           </section>
 
           <section class="overview" aria-labelledby="overview-title">
-            <header><div><p class="eyebrow">HESAP ÖZETİ</p><h2 id="overview-title">Tek bakışta durumunuz</h2><span>Sayaçların tamamı hesabınızdaki gerçek işlem ve puan verisinden gelir.</span></div><button type="button" (click)="reload()" [disabled]="account.loading()">Yenile</button></header>
+            <header><div><p class="eyebrow">HESAP ÖZETİ</p><h2 id="overview-title">Tek bakışta durumunuz</h2></div><button type="button" (click)="reload()" [disabled]="account.loading()">Yenile</button></header>
             <div class="metric-row">
               <button type="button" (click)="toggleLoyalty()" [class.selected]="loyaltyOpen()"><small>Puan</small><strong>{{ account.lifetimeSummary()?.pointsBalance || account.loyalty()?.points_balance || 0 | number }}</strong><span>Detayı gör</span></button>
               <button type="button" (click)="selectFilter('PENDING')" [class.selected]="bookingFilter()==='PENDING'"><small>İnceleniyor</small><strong>{{ countStatus('PENDING') }}</strong><span>Talepleri aç</span></button>

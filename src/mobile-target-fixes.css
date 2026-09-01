@@ -8,6 +8,10 @@
   app-home-v71 > main {
     padding-bottom: calc(7rem + env(safe-area-inset-bottom)) !important;
   }
+
+  app-customer-footer-v70.mobile-dock-present .customer-footer {
+    padding-bottom: calc(6.15rem + env(safe-area-inset-bottom)) !important;
+  }
 }
 
 /* Public catalogue summaries are customer surfaces. Infrastructure/source

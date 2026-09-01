@@ -28,8 +28,11 @@ function count(source, token) {
 forbidText(accountShell, 'ALPERLER HESABIM', 'Account shell must not duplicate the dashboard identity header.');
 requireText(accountShell, '@switch (section())', 'Account shell must render exactly one account section through an exclusive switch.');
 if (count(accountShell, '<app-account-profile-settings-v225>') !== 1) throw new Error('Account shell must own exactly one profile-settings render path.');
-if (count(profileSettings, '<app-account-security-v223') !== 1) throw new Error('Profile settings must render account security exactly once.');
-forbidText(profileSettings, 'security-launch', 'Profile settings must not duplicate the security launcher owned by the security component.');
+if (count(profileSettings, '<app-account-security-v223') !== 1) throw new Error('Profile settings must own exactly one account security render path.');
+requireText(profileSettings, 'readonly securityOpen=signal(false)', 'Account security must start closed.');
+requireText(profileSettings, '(click)="toggleSecurity()"', 'Profile settings must expose one explicit security toggle.');
+requireText(profileSettings, '@if(securityOpen())', 'Account security must only render after explicit user action.');
+requireText(profileSettings, "'Güvenlik Ayarlarını Aç'", 'Profile settings must expose the canonical security launcher label.');
 
 requireText(accountService, 'readonly partialRefresh=signal(false)', 'Account service must expose partial refresh state.');
 requireText(accountService, 'Promise.allSettled', 'Optional account data must not fail the core profile surface.');

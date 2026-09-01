@@ -1,4 +1,4 @@
-name: V226 Payment Concurrency Integrity
+name: V226 Production Integrity
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  saved-card-concurrency:
+  v226-contracts:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -25,3 +25,5 @@ jobs:
         run: node scripts/check-v226-payment-concurrency.mjs
       - name: Verify production security boundaries
         run: node scripts/check-v226-production-boundaries.mjs
+      - name: Verify customer surface, footer, legal and planner integrity
+        run: node scripts/check-v226-customer-surface-integrity.mjs

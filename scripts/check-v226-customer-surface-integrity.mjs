@@ -4,8 +4,10 @@ const accountShell = readFileSync('src/pages/account-shell.component.ts', 'utf8'
 const profileSettings = readFileSync('src/components/account-profile-settings-v225.component.ts', 'utf8');
 const accountService = readFileSync('src/services/customer-account.service.ts', 'utf8');
 const accountDashboard = readFileSync('src/pages/account-dashboard-v150.component.ts', 'utf8');
+const walletService = readFileSync('src/services/customer-wallet.service.ts', 'utf8');
 const legal = readFileSync('src/pages/legal.component.ts', 'utf8');
 const dateControl = readFileSync('src/components/accessible-native-date.component.ts', 'utf8');
+const runtimeStability = readFileSync('src/runtime-stability.css', 'utf8');
 const mainLayout = readFileSync('src/components/main-layout.component.ts', 'utf8');
 const footer = readFileSync('src/components/customer-footer-v70.component.ts', 'utf8');
 const app = readFileSync('src/app.component.ts', 'utf8');
@@ -52,6 +54,14 @@ forbidText(dateControl, 'transform:translateY(1px)', 'Date controls must not mov
 requireText(dateControl, 'focus({ preventScroll: true })', 'Calendar focus restoration must not scroll/jump the mobile planner.');
 requireText(dateControl, 'touch-action:manipulation', 'Calendar touch controls must use stable mobile tap handling.');
 requireText(dateControl, 'overscroll-behavior:contain', 'Calendar dialog must contain mobile overscroll.');
+requireText(runtimeStability, 'app-home-v71 .planner .field-grid', 'Quick planner must reserve feedback geometry before validation messages appear.');
+requireText(runtimeStability, 'padding-bottom: 2.75rem', 'Quick planner feedback space must stay reserved.');
+requireText(runtimeStability, 'app-home-v71 .planner .planner-error + .planner-summary', 'Planner must suppress a duplicate summary while an error owns the feedback slot.');
+requireText(runtimeStability, '-webkit-tap-highlight-color: transparent', 'Planner mobile controls must not add browser tap highlight jitter.');
+
+requireText(walletService, "window.open('about:blank','_blank')", 'Document preview must synchronously reserve a browser tab from the user gesture.');
+requireText(walletService, 'preview.location.replace(url)', 'Signed document preview must navigate the reserved tab after signing.');
+requireText(walletService, 'if(preview&&!preview.closed)preview.close()', 'Failed document signing must close the reserved blank tab.');
 
 requireText(dockPolicy, "return cleanCustomerPath(rawUrl) === '/';", 'Customer mobile dock must remain home-only through the canonical path normalizer.');
 requireText(footer, "if(link.actionType==='ADMIN')return false", 'Public footer must never render administrative links.');

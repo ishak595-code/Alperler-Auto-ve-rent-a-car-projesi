@@ -15,6 +15,7 @@ function clean(v:unknown,max=500){return typeof v==='string'?v.trim().slice(0,ma
 function headers(extra:Record<string,string>={}){return{apikey:SERVICE,authorization:`Bearer ${SERVICE}`,'content-type':'application/json',...extra};}
 async function db(path:string,init:RequestInit={}){return fetch(`${SUPABASE_URL}/rest/v1/${path}`,{...init,headers:{...headers(),...(init.headers||{})},signal:init.signal||AbortSignal.timeout(15_000)});}
 async function rpc(name:string,body:Record<string,unknown>){const response=await db(`rpc/${name}`,{method:'POST',body:JSON.stringify(body)});const payload=await response.json().catch(()=>({}));if(!response.ok){const code=clean(payload?.message||payload?.code,180)||`${name.toUpperCase()}_${response.status}`;throw new Error(code);}return payload;}
+function requestId(request:Request):string{const supplied=clean(request.headers.get('x-request-id'),80);return /^[A-Za-z0-9._:-]{8,80}$/.test(supplied)?supplied:crypto.randomUUID();}
 
 async function requireFinance(request:Request,manage=false):Promise<Admin>{
   const auth=request.headers.get('authorization')||'';
@@ -80,7 +81,7 @@ async function sendPaymentNotification(bookingId:string,payment:any,method:strin
 async function recordPayment(request:Request,body:any,admin:Admin){
   const reference=clean(body?.bookingReference,128);if(!reference)throw new Error('BOOKING_REFERENCE_REQUIRED');
   const method=clean(body?.method,20).toUpperCase();if(!['OFFICE','EFT'].includes(method))throw new Error('INVALID_PAYMENT_METHOD');
-  const paid=amount(body?.amount);const supplied=clean(request.headers.get('x-request-id'),80);const idempotencyKey=/^[A-Za-z0-9._:-]{8,80}$/.test(supplied)?supplied:crypto.randomUUID();
+  const paid=amount(body?.amount);const idempotencyKey=requestId(request);
   const result=await rpc('service_record_offline_payment_v221',{p_actor:admin.id,p_booking_reference:reference,p_amount:paid,p_method:method,p_external_reference:clean(body?.externalReference,180)||null,p_note:clean(body?.note,1000)||null,p_idempotency_key:idempotencyKey});
   const payment=(result as any)?.payment;const bookingId=clean((result as any)?.booking?.id,80);const notification=await sendPaymentNotification(bookingId,payment,method);
   return json({...result,notification},(result as any)?.duplicate?200:201);
@@ -101,12 +102,15 @@ async function clearNotificationProvider(body:any,admin:Admin){
   return json({ok:true,notificationProviders:notificationStatus(result)});
 }
 
-async function createTransaction(body:any,admin:Admin){
+async function createTransaction(request:Request,body:any,admin:Admin){
   const direction=clean(body?.direction,10).toUpperCase();if(!['INCOME','EXPENSE'].includes(direction))throw new Error('INVALID_DIRECTION');
   const allowed=['RENTAL','VEHICLE_SALE','TOUR','DEPOSIT','SERVICE','REFUND','MAINTENANCE','FUEL','CLEANING','INSURANCE','TAX','ADVERTISING','SALARY','OFFICE','OTHER'];
   const category=clean(body?.category,40).toUpperCase();if(!allowed.includes(category))throw new Error('INVALID_CATEGORY');const gross=amount(body?.amount);const discount=nonNegative(body?.discountAmount);if(discount>gross)throw new Error('INVALID_DISCOUNT');
-  const row={occurred_at:iso(body?.occurredAt),direction,category,payment_method:clean(body?.paymentMethod,30)||null,gross_amount:gross,discount_amount:discount,tax_amount:0,net_amount:Math.max(0,gross-discount),currency:currency(body?.currency),counterparty_name:clean(body?.counterpartyName,200)||null,reference:clean(body?.reference,160)||null,description:clean(body?.description,1500)||null,source:'MANUAL',receipt_number:clean(body?.receiptNumber,120)||null,invoice_number:clean(body?.invoiceNumber,120)||null,status:'POSTED',created_by:admin.id,metadata:{recordedBy:admin.email}};
-  const res=await db('finance_transactions?select=*',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(row)});if(!res.ok)throw new Error('FINANCE_INSERT_FAILED');return json({ok:true,transaction:(await res.json())?.[0]},201);
+  const idempotencyKey=requestId(request);const externalReference=`manual:${idempotencyKey}`;
+  const row={occurred_at:iso(body?.occurredAt),direction,category,payment_method:clean(body?.paymentMethod,30)||null,gross_amount:gross,discount_amount:discount,tax_amount:0,net_amount:Math.max(0,gross-discount),currency:currency(body?.currency),counterparty_name:clean(body?.counterpartyName,200)||null,reference:clean(body?.reference,160)||null,description:clean(body?.description,1500)||null,source:'MANUAL',external_reference:externalReference,receipt_number:clean(body?.receiptNumber,120)||null,invoice_number:clean(body?.invoiceNumber,120)||null,status:'POSTED',created_by:admin.id,metadata:{recordedBy:admin.email,idempotencyKey}};
+  const res=await db('finance_transactions?select=*',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(row)});
+  if(res.status===409){const existing=await db(`finance_transactions?source=eq.MANUAL&external_reference=eq.${encodeURIComponent(externalReference)}&select=*&limit=1`);if(existing.ok){const rows=await existing.json();if(rows?.[0])return json({ok:true,transaction:rows[0],duplicate:true});}throw new Error('FINANCE_INSERT_CONFLICT');}
+  if(!res.ok)throw new Error('FINANCE_INSERT_FAILED');return json({ok:true,transaction:(await res.json())?.[0]},201);
 }
 async function voidTransaction(body:any,admin:Admin){
   const id=clean(body?.id,80);if(!id)throw new Error('ID_REQUIRED');
@@ -119,7 +123,7 @@ async function voidTransaction(body:any,admin:Admin){
   const res=await db(`finance_transactions?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'VOID',metadata:{...metadata,voidedBy:admin.email,voidedAt:new Date().toISOString(),voidReason:reason}})});if(!res.ok)throw new Error('VOID_FAILED');return json({ok:true});
 }
 
-function statusFor(code:string){if(code==='UNAUTHORIZED')return 401;if(code==='FORBIDDEN'||code==='FINANCE_ADMIN_REQUIRED')return 403;if(code.includes('NOT_FOUND'))return 404;if(code.includes('ALREADY_SETTLED')||code.includes('IDEMPOTENCY_CONFLICT')||code==='PAYMENT_LEDGER_REVERSAL_REQUIRED'||code==='AUTOMATIC_LEDGER_VOID_FORBIDDEN')return 409;if(code.startsWith('INVALID_')||code.endsWith('_REQUIRED')||code.includes('_INCOMPLETE')||code==='PAYMENT_EXCEEDS_OUTSTANDING'||code==='BOOKING_NOT_PAYABLE'||code==='BOOKING_TOTAL_REQUIRED')return 400;return 500;}
+function statusFor(code:string){if(code==='UNAUTHORIZED')return 401;if(code==='FORBIDDEN'||code==='FINANCE_ADMIN_REQUIRED')return 403;if(code.includes('NOT_FOUND'))return 404;if(code.includes('ALREADY_SETTLED')||code.includes('IDEMPOTENCY_CONFLICT')||code==='FINANCE_INSERT_CONFLICT'||code==='PAYMENT_LEDGER_REVERSAL_REQUIRED'||code==='AUTOMATIC_LEDGER_VOID_FORBIDDEN')return 409;if(code.startsWith('INVALID_')||code.endsWith('_REQUIRED')||code.includes('_INCOMPLETE')||code==='PAYMENT_EXCEEDS_OUTSTANDING'||code==='BOOKING_NOT_PAYABLE'||code==='BOOKING_TOTAL_REQUIRED')return 400;return 500;}
 Deno.serve(async(request)=>{
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});if(!SUPABASE_URL||!SERVICE)return json({ok:false,code:'SERVER_CONFIG_MISSING'},503);
   try{
@@ -129,7 +133,7 @@ Deno.serve(async(request)=>{
     if(action==='save_message_template')return await saveTemplate(body,admin);
     if(action==='save_notification_provider')return await saveNotificationProvider(body,admin);
     if(action==='clear_notification_provider')return await clearNotificationProvider(body,admin);
-    if(action==='create_transaction')return await createTransaction(body,admin);
+    if(action==='create_transaction')return await createTransaction(request,body,admin);
     if(action==='void_transaction')return await voidTransaction(body,admin);
     return json({ok:false,code:'UNKNOWN_ACTION'},400);
   }catch(error){const code=error instanceof Error?error.message:'FINANCE_FAILED';console.error('finance-admin',code);return json({ok:false,code},statusFor(code));}

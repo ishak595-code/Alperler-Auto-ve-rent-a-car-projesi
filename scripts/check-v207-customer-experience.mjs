@@ -34,8 +34,6 @@ for (const file of Object.values(paths)) {
 }
 const sources = Object.fromEntries(Object.entries(paths).map(([key, file]) => [key, read(file)]));
 
-// TalkBack contract: while visible the dock is a native navigation landmark. When scroll auto-hide
-// removes it visually, the same state must also remove it from focus and the accessibility tree.
 requireText(sources.dock, 'class="customer-command-dock"', "Mobile dock must remain a native nav landmark.");
 requireText(sources.dock, '[routerLink]="item.route"', "Mobile dock destinations must remain native router links.");
 requireText(sources.dock, '[attr.aria-current]="isCurrent(item.route) ? \'page\' : null"', "Current mobile dock destination must expose aria-current=page.");
@@ -53,7 +51,6 @@ for (const token of ['dock-hidden','onWindowScroll','HostListener','backdrop-fil
   rejectText(sources.dock, token, `Mobile dock must not regain obsolete or scroll-heavy behavior: ${token}`);
 }
 
-// Mobile dock ownership contract: Search stays the center primary action and Profile stays available at the bottom.
 requireText(sources.dock, 'return item.itemKey === "search";', "Mobile dock primary action must stay Search.");
 rejectText(sources.dock, 'item.itemKey === "appointment"', "Appointment must not take primary mobile dock ownership from Search.");
 const defaultDock = sources.navigation.match(/const DEFAULT_DOCK:[\s\S]*?\]\.map/)?.[0] || "";
@@ -67,7 +64,6 @@ for (const token of [
 ]) requireText(defaultDock, token, `Canonical mobile dock destination missing: ${token}`);
 rejectText(defaultDock, "['appointment', 'Randevu', 'event_available', '/appointment']", "Appointment must not replace Profile in the mobile dock.");
 
-// Booking checkout owns the complete reservation review. Cards and details must never duplicate it.
 requireText(sources.bookingCheckout, "Rezervasyonu kontrol edin", "Booking checkout must keep the customer-facing reservation review heading.");
 requireText(sources.bookingCheckout, '<dl class="review">', "Booking checkout must remain the single canonical owner of the reservation review data.");
 for (const token of ["<dt>Araç</dt>", "<dt>Zaman</dt>", "<dt>Şoför</dt>", "<dt>Teslim</dt>", "<dt>İade</dt>", "<dt>Toplam</dt>"]) {
@@ -82,7 +78,6 @@ requireText(sources.rentalDetail, "<dt>Kapı</dt>", "Rental detail must surface 
 requireText(sources.rentalDetail, "car.doors", "Rental detail door count must come from the canonical vehicle record.");
 requireText(sources.rentalDetail, "car.luggage", "Rental detail must retain luggage capacity from the canonical vehicle record.");
 
-// V217 list owners stay bounded and customer-facing. No full-catalog hydration may return.
 for (const [name, source] of [['rental',sources.rentalList],['sale',sources.saleList],['tour',sources.tourList],['blog',sources.blogList]]) {
   requireText(source, 'ScalablePublicCatalogV217Service', `${name} catalogue must keep the scalable server-owned source.`);
   requireText(source, 'pageSize:24', `${name} catalogue must keep bounded 24-item pages.`);
@@ -138,7 +133,8 @@ rejectText(sources.blogDetail, "{{ error() }}", "Blog detail must not print a ra
 
 requireText(sources.rentalList, "ALPERLER KİRALAMA", "Rental catalogue must keep the customer-facing rental hero.");
 requireText(sources.saleList, "ALPERLER İKİNCİ EL", "Sale catalogue must keep the second-hand customer hero.");
-requireText(sources.tourList, "Rotanı seç, unutulmaz bir gün planla", "Tour catalogue must keep customer-oriented discovery copy.");
+requireText(sources.tourList, "Doğa, kültür ve özel rotalar arasından size uygun deneyimi seçin.", "Tour catalogue must keep customer-oriented discovery copy.");
+requireText(sources.tourList, "filtersOpen=signal(false)", "Tour filters must stay closed until the customer opens them.");
 requireText(sources.blogList, "ALPERLER YOL REHBERİ", "Blog catalogue must keep editorial customer language.");
 requireText(sources.blogList, "Daha iyi bir yolculuk için doğru bilgiler", "Blog catalogue must keep a useful editorial introduction.");
 requireText(sources.saleDetail, "Performans ve Tüketim Bilgilerini Gör", "Sale detail must frame specifications as customer-useful performance information.");

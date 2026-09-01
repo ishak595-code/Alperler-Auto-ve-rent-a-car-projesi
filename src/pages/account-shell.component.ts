@@ -1,28 +1,53 @@
-import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, computed, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { map } from 'rxjs';
 import { AccountFavoritesV213Component } from '../components/account-favorites-v213.component';
 import { AccountSecurityV223Component } from '../components/account-security-v223.component';
 import { AccountDashboardV150Component } from './account-dashboard-v150.component';
 
+type AccountSection = 'overview' | 'favorites' | 'security';
+
 @Component({
-  selector: 'app-account-shell',
-  standalone: true,
-  imports: [RouterLink, AccountDashboardV150Component, AccountFavoritesV213Component, AccountSecurityV223Component],
-  template: `
-    <nav class="account-shortcuts" aria-label="Hesap kısa yolları">
-      <div>
-        <a routerLink="/account">Genel Bakış</a>
-        <a routerLink="/fleet" [queryParams]="{favs:true}">Favorilerim</a>
-        <a href="#account-security">Hesap Güvenliği</a>
+  selector:'app-account-shell',
+  standalone:true,
+  imports:[RouterLink,AccountDashboardV150Component,AccountFavoritesV213Component,AccountSecurityV223Component],
+  template:`
+    <main class="account-shell" aria-labelledby="account-page-title">
+      <header class="account-head">
+        <a routerLink="/" class="home-link" aria-label="Ana sayfaya dön"><span aria-hidden="true">←</span><span>Ana Sayfa</span></a>
+        <div>
+          <p class="eyebrow">ALPERLER HESABIM</p>
+          <h1 id="account-page-title">Hesabım</h1>
+          <p>Rezervasyonlarınızı, favorilerinizi, hesabınızı ve cüzdanınızı tek yerden yönetin.</p>
+        </div>
+      </header>
+
+      <nav class="account-shortcuts" aria-label="Hesap bölümleri">
+        <a routerLink="/account" [attr.aria-current]="section()==='overview' ? 'page' : null" [class.active]="section()==='overview'">Genel Bakış</a>
+        <a routerLink="/account" [queryParams]="{section:'favorites'}" [attr.aria-current]="section()==='favorites' ? 'page' : null" [class.active]="section()==='favorites'">Favorilerim</a>
+        <a routerLink="/account" [queryParams]="{section:'security'}" [attr.aria-current]="section()==='security' ? 'page' : null" [class.active]="section()==='security'">Hesap Güvenliği</a>
         <a routerLink="/account/wallet">Cüzdan ve Belgeler</a>
-      </div>
-    </nav>
-    <app-account-favorites-v213></app-account-favorites-v213>
-    <app-account-security-v223></app-account-security-v223>
-    <app-account-dashboard-v150></app-account-dashboard-v150>
+      </nav>
+
+      <section class="account-content" aria-live="polite">
+        @switch (section()) {
+          @case ('favorites') { <app-account-favorites-v213 /> }
+          @case ('security') { <app-account-security-v223 /> }
+          @default { <app-account-dashboard-v150 /> }
+        }
+      </section>
+    </main>
   `,
-  styles: [`
-    :host{display:block;background:#060a12}.account-shortcuts{border-bottom:1px solid #263548;background:#08101c;padding:8px 12px}.account-shortcuts>div{display:flex;width:min(100%,1180px);margin:auto;gap:7px;overflow-x:auto;scrollbar-width:none}.account-shortcuts>div::-webkit-scrollbar{display:none}.account-shortcuts a{display:inline-flex;min-height:40px;flex:none;align-items:center;border:1px solid #304158;border-radius:10px;background:#0e1724;padding:0 12px;color:#dbe4ef;text-decoration:none;font-size:10px;font-weight:900}.account-shortcuts a:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}@media(min-width:768px){.account-shortcuts{padding-block:10px}.account-shortcuts a{font-size:11px}}
-  `],
+  styles:[`
+    :host{display:block;background:#060a12}.account-shell{min-height:100vh;background:#060a12;color:#f4f6f8}.account-head{width:min(100%,1180px);margin:auto;padding:clamp(18px,4vw,34px) clamp(14px,3vw,34px) 12px}.home-link{display:inline-flex;min-height:42px;align-items:center;gap:.45rem;border:1px solid #263548;border-radius:12px;background:#0b1420;padding:0 .85rem;color:#dbe7f5;text-decoration:none;font-size:.72rem;font-weight:900}.home-link:focus-visible,.account-shortcuts a:focus-visible{outline:3px solid #60a5fa;outline-offset:3px}.account-head>div{margin-top:18px}.eyebrow{margin:0;color:#c6a15b;font-size:.58rem;font-weight:950;letter-spacing:.14em}.account-head h1{margin:.3rem 0 0;font:700 clamp(1.85rem,6vw,3rem)/1.02 Georgia,serif}.account-head p:not(.eyebrow){max-width:720px;margin:.5rem 0 0;color:#9eacc0;font-size:.76rem;line-height:1.6}.account-shortcuts{display:flex;width:100%;gap:.55rem;overflow-x:auto;border-block:1px solid #263548;background:#07101b;padding:10px max(14px,calc((100vw - 1180px)/2 + 14px));scrollbar-width:none}.account-shortcuts::-webkit-scrollbar{display:none}.account-shortcuts a{display:inline-flex;min-height:44px;flex:0 0 auto;align-items:center;border:1px solid #304158;border-radius:12px;background:#0d1724;padding:0 14px;color:#dce6f2;text-decoration:none;font-size:.7rem;font-weight:900}.account-shortcuts a.active{border-color:#54779c;background:#13263a;color:#fff;box-shadow:inset 0 0 0 1px rgba(96,165,250,.12)}.account-content{padding-top:18px}@media(max-width:620px){.account-head{padding-top:14px}.account-shortcuts{padding-inline:14px}}
+  `]
 })
-export class AccountShellComponent {}
+export class AccountShellComponent {
+  private readonly route=inject(ActivatedRoute);
+  private readonly requestedSection=toSignal(this.route.queryParamMap.pipe(map((params)=>params.get('section')||'overview')),{initialValue:'overview'});
+  readonly section=computed<AccountSection>(()=>{
+    const value=this.requestedSection();
+    return value==='favorites'||value==='security'?value:'overview';
+  });
+}

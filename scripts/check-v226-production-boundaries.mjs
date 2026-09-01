@@ -14,9 +14,14 @@ function forbidText(source, token, message) {
 }
 
 requireText(dockPolicy, "return path === '/';", 'Mobile dock must remain home-only.');
+const defaultDockMatch = navigation.match(/const DEFAULT_DOCK:[\s\S]*?\.map\(/);
+if (!defaultDockMatch) throw new Error('Canonical mobile dock defaults are missing.');
+const defaultDock = defaultDockMatch[0];
 for (const label of ['Kiralık', 'Satılık', 'Ara', 'Fırsatlar', 'Profil']) {
-  requireText(navigation, `label: '${label}'`, `Canonical mobile dock label is missing: ${label}`);
+  requireText(defaultDock, `'${label}'`, `Canonical mobile dock label is missing: ${label}`);
 }
+const canonicalDockRows = [...defaultDock.matchAll(/^\s*\['[^']+',\s*'[^']+',\s*'[^']+',\s*'[^']+'\],?\s*$/gm)];
+if (canonicalDockRows.length !== 5) throw new Error(`Canonical mobile dock must contain exactly five defaults, found ${canonicalDockRows.length}.`);
 
 requireText(wallet, "provider!=='IYZICO'", 'Saved-card provider boundary is missing.');
 requireText(wallet, "env!==expectedEnvironment", 'Saved-card environment boundary is missing.');

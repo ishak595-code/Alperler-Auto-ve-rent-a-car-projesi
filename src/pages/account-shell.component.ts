@@ -1,21 +1,24 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AccountFavoritesV213Component } from '../components/account-favorites-v213.component';
+import { AccountSecurityV223Component } from '../components/account-security-v223.component';
 import { AccountDashboardV150Component } from './account-dashboard-v150.component';
 
 @Component({
   selector: 'app-account-shell',
   standalone: true,
-  imports: [RouterLink, AccountDashboardV150Component, AccountFavoritesV213Component],
+  imports: [RouterLink, AccountDashboardV150Component, AccountFavoritesV213Component, AccountSecurityV223Component],
   template: `
     <nav class="account-shortcuts" aria-label="Hesap kısa yolları">
       <div>
         <a routerLink="/account">Genel Bakış</a>
         <a routerLink="/fleet" [queryParams]="{favs:true}">Favorilerim</a>
+        <a href="#account-security">Hesap Güvenliği</a>
         <a routerLink="/account/wallet">Cüzdan ve Belgeler</a>
       </div>
     </nav>
     <app-account-favorites-v213></app-account-favorites-v213>
+    <app-account-security-v223></app-account-security-v223>
     <app-account-dashboard-v150></app-account-dashboard-v150>
   `,
   styles: [`

@@ -1,0 +1,52 @@
+name: V229 Live Payment Checkout
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/pages/booking-checkout.component.ts"
+      - "src/pages/admin/admin-payment-settings.component.ts"
+      - "src/services/payment-settings.service.ts"
+      - "scripts/check-v229-live-payment-checkout.mjs"
+      - ".github/workflows/v229-live-payment-checkout.yml"
+  push:
+    branches:
+      - main
+      - v229-live-payment-settings-checkout
+    paths:
+      - "src/pages/booking-checkout.component.ts"
+      - "src/pages/admin/admin-payment-settings.component.ts"
+      - "src/services/payment-settings.service.ts"
+      - "scripts/check-v229-live-payment-checkout.mjs"
+      - ".github/workflows/v229-live-payment-checkout.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v229-live-payment-checkout-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  payment-checkout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+      - name: Verify live payment settings contract
+        run: node scripts/check-v229-live-payment-checkout.mjs
+      - name: Frontend type check
+        run: npm run lint
+      - name: Production build
+        run: npm run build

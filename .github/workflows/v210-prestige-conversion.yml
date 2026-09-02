@@ -44,11 +44,11 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout immutable source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Set up Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm

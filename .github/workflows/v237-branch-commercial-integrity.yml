@@ -38,10 +38,11 @@ jobs:
           PLAN=supabase/migrations/20260903114500_v237_complimentary_single_listing_plan.sql
           GUARD=supabase/migrations/20260903115000_v237_complimentary_plan_contract_guard.sql
           ACCESS=supabase/migrations/20260903130000_v237_super_admin_complimentary_subscription_guard.sql
+          DISCOVERY=supabase/migrations/20260903131000_v237_hide_admin_grant_plan_from_public.sql
           QUOTA=supabase/migrations/20260903093000_v237_active_listing_quota_semantics.sql
           USAGE=supabase/migrations/20260903113000_v237_branch_listing_usage_portal.sql
           INVOKER=supabase/migrations/20260903120000_v237_listing_usage_security_invoker.sql
-          test -f "$PLAN" && test -f "$GUARD" && test -f "$ACCESS" && test -f "$QUOTA" && test -f "$USAGE" && test -f "$INVOKER"
+          test -f "$PLAN" && test -f "$GUARD" && test -f "$ACCESS" && test -f "$DISCOVERY" && test -f "$QUOTA" && test -f "$USAGE" && test -f "$INVOKER"
           grep -Fq "'{listingLimit}', '1'::jsonb" "$PLAN"
           grep -Fq "'{adminGrantOnly}', 'true'::jsonb" "$PLAN"
           grep -Fq "monthly_fee = 0" "$GUARD"
@@ -52,6 +53,9 @@ jobs:
           grep -Fq "upper(coalesce(p_status,'')) <> 'EXEMPT'" "$ACCESS"
           grep -Fq "p_price_override is null or p_price_override > 0" "$ACCESS"
           grep -Fq "coalesce(p.entitlements->>'adminGrantOnly','false') <> 'true'" "$ACCESS"
+          grep -Fq "for select to anon" "$DISCOVERY"
+          grep -Fq "or private.can_manage_finance()" "$DISCOVERY"
+          grep -Fq "coalesce(entitlements->>'adminGrantOnly','false') <> 'true'" "$DISCOVERY"
           grep -Fq "new.publication_status = 'PUBLISHED'" "$QUOTA"
           grep -Fq "BRANCH_ACTIVE_LISTING_LIMIT_REACHED" "$QUOTA"
           grep -Fq "my_branch_listing_usage_v237" "$USAGE"

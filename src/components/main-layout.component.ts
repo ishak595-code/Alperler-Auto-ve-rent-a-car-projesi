@@ -24,9 +24,7 @@ import { NavbarComponent } from "./navbar.component";
       <app-customer-prefooter-v174></app-customer-prefooter-v174>
       <app-customer-footer-v70 [class.mobile-dock-present]="navigation.mobileDockRendered()"></app-customer-footer-v70>
 
-      @defer (when uiService.isFeedbackOpen(); prefetch on idle) {
-        <app-feedback></app-feedback>
-      }
+      <app-feedback></app-feedback>
 
       @if (isHomePage() && showWhatsapp() && getWhatsappNumber()) {
         <a [href]="getWhatsappHref()" target="_blank" rel="noopener noreferrer" class="whatsapp-fab" [class.dock-offset]="navigation.mobileDockRendered()" aria-label="WhatsApp"><svg fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.031 0C5.395 0 0 5.393 0 12.032c0 2.126.551 4.204 1.6 6.044L.194 24l6.064-1.589A12.016 12.016 0 0012.031 24c6.634 0 12.03-5.393 12.03-12.03S18.667 0 12.031 0zm3.87 17.202c-.596 1.688-3.045 2.158-4.225 1.956-2.126-.367-4.48-1.956-6.02-3.486-1.54-1.53-3.11-3.873-3.477-6.002-.192-1.18.257-3.63 1.946-4.234.34-.12.724-.138 1.054.01.275.12.504.385.66.696.532 1.063 1.137 2.65 1.256 2.924.12.276.156.606.01.909-.156.312-.413.578-.716.89-.312.312-.66.697-.33 1.266.33.57 1.486 2.45 3.2 3.974 1.348 1.192 2.87 1.632 3.42 1.962.55.33 1.045.248 1.412-.046.367-.294 1.055-1.21 1.44-1.633.386-.421.78-.348 1.202-.192.422.155 2.64 1.248 3.09 1.476.45.23.75.348.86.541.11.192.11 1.11-.476 2.808z" /></svg></a>

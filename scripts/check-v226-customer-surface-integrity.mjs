@@ -25,15 +25,9 @@ const footerCutover = readFileSync('supabase/migrations/20260902014500_v226_cust
 const avatarUpsertPolicy = readFileSync('supabase/migrations/20260902110004_v226_customer_avatar_upsert_select_policy.sql', 'utf8').toLowerCase();
 const campaignCtaGuard = readFileSync('supabase/migrations/20260902110216_v226_campaign_cta_internal_route_guard.sql', 'utf8').toLowerCase();
 
-function requireText(source, token, message) {
-  if (!source.includes(token)) throw new Error(message);
-}
-function forbidText(source, token, message) {
-  if (source.includes(token)) throw new Error(message);
-}
-function count(source, token) {
-  return source.split(token).length - 1;
-}
+function requireText(source, token, message) { if (!source.includes(token)) throw new Error(message); }
+function forbidText(source, token, message) { if (source.includes(token)) throw new Error(message); }
+function count(source, token) { return source.split(token).length - 1; }
 
 forbidText(accountShell, 'ALPERLER HESABIM', 'Account shell must not duplicate the dashboard identity header.');
 requireText(accountShell, '@switch (section())', 'Account shell must render exactly one account section through an exclusive switch.');
@@ -58,33 +52,23 @@ requireText(accountDashboard, 'this.account.partialRefresh()', 'Dashboard must s
 requireText(legal, 'selectedDocument=computed', 'Legal content must react to asynchronously hydrated live configuration.');
 requireText(legal, 'const cfg=this.config()', 'Legal content must read the live config signal inside the computed projection.');
 forbidText(legal, 'setContent(', 'Legal content must not use a one-shot route/config snapshot.');
-for (const type of ['rental','hourly-rental','sales','tour','partner','branch','commercial-communication','kvkk','privacy','cookies','terms','distance-selling','cancellation','insurance']) {
-  requireText(legal, `${type}:`.includes('-') ? `"${type}"` : `${type}:`, `Legal customer route contract is missing: ${type}`);
-}
+for (const type of ['rental','hourly-rental','sales','tour','partner','branch','commercial-communication','kvkk','privacy','cookies','terms','distance-selling','cancellation','insurance']) requireText(legal, `${type}:`.includes('-') ? `"${type}"` : `${type}:`, `Legal customer route contract is missing: ${type}`);
 
 requireText(routes, "path: 'tours'", 'Public tour catalog route must remain registered.');
 requireText(routes, "path: 'tour/:id'", 'Public tour detail route must remain registered.');
 requireText(toursWrapper, 'TourCatalogV217Component', 'Tours route wrapper must own the canonical V217 bounded catalog.');
 requireText(toursWrapper, '<app-tour-catalog-v217 />', 'Tours route wrapper must render only the canonical V217 catalog.');
 forbidText(toursWrapper, 'TourShowcaseV170Component', 'Tours route must never restore the obsolete V170 showcase.');
-for (const legacyPath of ['src/pages/tour-showcase-v170.component.ts', 'src/services/tour-public-data-v170.service.ts']) {
-  if (existsSync(legacyPath)) throw new Error(`Obsolete tour listing layer must stay deleted: ${legacyPath}`);
-}
+for (const legacyPath of ['src/pages/tour-showcase-v170.component.ts', 'src/services/tour-public-data-v170.service.ts']) if (existsSync(legacyPath)) throw new Error(`Obsolete tour listing layer must stay deleted: ${legacyPath}`);
 requireText(dynamicHome, "section.sectionType==='TOURS'", 'Homepage must retain the dynamic tour section renderer.');
 requireText(dynamicHome, 'class="rail"', 'Homepage tour and vehicle selections must retain the horizontal rail layout contract.');
 requireText(dynamicHome, "this.layout.toursFor(this.section.sectionKey)", 'Homepage tours must be resolved from the live homepage layout service.');
-for (const token of ['tour.duration', 'tour.locationName', 'tour.capacity', 'Kişi başı', 'Planı ve Fiyatı Gör']) {
-  requireText(dynamicHome, token, `Homepage tour cards must expose the factual decision signal: ${token}`);
-}
+for (const token of ['tour.duration','tour.locationName','tour.capacity','Kişi başı','tourIncluded(tour)','Tura dahil','Rotayı ve Ayrıntıları Keşfet']) requireText(dynamicHome, token, `Homepage tour cards must expose the factual decision signal: ${token}`);
 requireText(homepageLayout, "section.sectionType === 'TOURS'", 'Homepage layout must hydrate tour sections dynamically.');
 requireText(homepageLayout, 'this.catalog.listTours', 'Homepage tour hydration must delegate to the scalable public catalog.');
 requireText(publicCatalog, 'public_tour_catalog_v217', 'Customer tours must be read from the Supabase public tour catalog.');
-for (const token of ['price_per_person', 'duration', 'capacity', 'location_name']) {
-  requireText(publicCatalog, token, `Public tour catalog must retain decision field: ${token}`);
-}
-for (const token of ['tour.duration', 'tour.locationName', 'tour.capacity', 'Kişi başı']) {
-  requireText(tourCatalog, token, `Tour cards must expose the factual decision signal: ${token}`);
-}
+for (const token of ['price_per_person','duration','capacity','location_name','included_items']) requireText(publicCatalog, token, `Public tour catalog must retain decision field: ${token}`);
+for (const token of ['tour.duration','tour.locationName','tour.capacity','Kişi başı']) requireText(tourCatalog, token, `Tour cards must expose the factual decision signal: ${token}`);
 requireText(tourCatalog, '{{items().length}} tur gösteriliyor', 'Paginated tour catalog must describe the loaded result count truthfully.');
 forbidText(tourCatalog, '{{items().length}} tur bulundu', 'Paginated tour catalog must not present a loaded-page count as the total number of matches.');
 forbidText(tourCatalog, '4.9', 'Tour catalog must not manufacture a fixed rating.');
@@ -117,14 +101,14 @@ requireText(campaignCtaGuard, "cta_url !~ '^//'", 'Campaign CTA guard must rejec
 requireText(campaignCtaGuard, "cta_url !~ '^/admin'", 'Campaign CTA guard must reject administrative targets.');
 requireText(campaignCtaGuard, "cta_url !~ '^/branch-portal'", 'Campaign CTA guard must reject branch portal targets.');
 
-requireText(mainLayout, '@defer (when uiService.isFeedbackOpen(); prefetch on idle)', 'Feedback panel must load immediately from the user interaction signal, not wait indefinitely for browser idle.');
+requireText(mainLayout, '<app-feedback></app-feedback>', 'Feedback overlay must be mounted synchronously so the first click cannot race a lazy chunk.');
+forbidText(mainLayout, '@defer (when uiService.isFeedbackOpen()', 'Feedback overlay must not be deferred on the same signal that opens it.');
+for (const token of ['height:100dvh','overscroll-behavior:contain','body.style.overflow = "hidden"','@HostListener("document:keydown.escape")','animation:none!important']) requireText(feedback, token, `Feedback overlay stability contract is missing: ${token}`);
 requireText(feedback, 'fetch("/api/contact"', 'Feedback must use the canonical contact gateway.');
-requireText(feedback, 'idempotencyKey: this.submissionKey', 'Feedback submissions must remain idempotent.');
+requireText(feedback, 'idempotencyKey:this.submissionKey', 'Feedback submissions must remain idempotent.');
 requireText(newsletter, "fetch('/api/partner?op=newsletter-public'", 'Newsletter signup must use the canonical public newsletter gateway.');
 requireText(newsletter, 'op=newsletter-admin-read', 'Newsletter admin listing must use the authenticated admin read gateway.');
 requireText(newsletter, "fetch('/api/partner?op=newsletter-admin'", 'Newsletter campaign actions must use the authenticated admin gateway.');
-for (const edge of ['newsletter-gateway','newsletter-admin','newsletter-admin-read-v186']) {
-  requireText(partner, `edgeFunction: "${edge}"`, `Partner API must route newsletter traffic to ${edge}.`);
-}
+for (const edge of ['newsletter-gateway','newsletter-admin','newsletter-admin-read-v186']) requireText(partner, `edgeFunction: "${edge}"`, `Partner API must route newsletter traffic to ${edge}.`);
 
 console.log('V226 customer surface integrity contract passed.');

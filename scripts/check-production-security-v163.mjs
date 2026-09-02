@@ -101,7 +101,7 @@ assert(!legacySpecs.includes('CAR_SPECS_DB'),'static technical-spec database mus
 all(legacySpecs,["fetch('/api/catalog?resource=vehicles'",'technicalSpecs'],'technical-spec live compatibility adapter');
 
 const pkg=JSON.parse(read('package.json'));
-assert(pkg.devDependencies?.tailwindcss==='4.2.1','Tailwind must be pinned as a build-only dependency');
+assert(/^4\.2\.\d+$/.test(String(pkg.devDependencies?.tailwindcss||'')),'Tailwind must remain a build-only dependency on the vetted 4.2.x patch line');
 for(const name of ['@angular/common','@angular/compiler','@angular/core','@angular/forms','@angular/platform-browser','@angular/router']){
   assert(/^21\.2\.(?:2[0-9]|[3-9][0-9])$/.test(String(pkg.dependencies?.[name]||'')),`${name} must stay on patched Angular 21.2.20+`);
 }

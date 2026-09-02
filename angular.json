@@ -33,8 +33,8 @@
               "src/prestige-palette-defaults.css",
               "src/premium-responsive.css",
               "src/v193-cinematic-3d.css",
-              "src/device-experience.css",
-              "src/home-planner-touch-stability.css"
+              "src/home-planner-touch-stability.css",
+              "src/device-experience.css"
             ],
             "tsConfig": "tsconfig.json"
           },

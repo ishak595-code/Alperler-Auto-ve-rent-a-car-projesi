@@ -85,6 +85,8 @@ for (const token of ['price_per_person', 'duration', 'capacity', 'location_name'
 for (const token of ['tour.duration', 'tour.locationName', 'tour.capacity', 'Kişi başı']) {
   requireText(tourCatalog, token, `Tour cards must expose the factual decision signal: ${token}`);
 }
+requireText(tourCatalog, '{{items().length}} tur gösteriliyor', 'Paginated tour catalog must describe the loaded result count truthfully.');
+forbidText(tourCatalog, '{{items().length}} tur bulundu', 'Paginated tour catalog must not present a loaded-page count as the total number of matches.');
 forbidText(tourCatalog, '4.9', 'Tour catalog must not manufacture a fixed rating.');
 forbidText(tourCatalog.toLocaleLowerCase('tr-TR'), '12 değerlendirme', 'Tour catalog must not manufacture fixed review counts.');
 forbidText(dynamicHome, '4.9', 'Homepage tour cards must not manufacture a fixed rating.');

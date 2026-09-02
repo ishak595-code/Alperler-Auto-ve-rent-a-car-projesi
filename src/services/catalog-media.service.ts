@@ -248,7 +248,7 @@ export class CatalogMediaService {
           apikey: SUPABASE_PUBLISHABLE_KEY,
           authorization: `Bearer ${token}`,
           "content-type": file.type,
-          "cache-control": "3600",
+          "cache-control": "31536000",
           "x-upsert": "false",
         },
         body: file,
@@ -259,7 +259,7 @@ export class CatalogMediaService {
 
   private async uploadTus(file: File, objectPath: string, token: string): Promise<void> {
     const metadata = [
-      ["bucketName", this.bucket], ["objectName", objectPath], ["contentType", file.type], ["cacheControl", "3600"],
+      ["bucketName", this.bucket], ["objectName", objectPath], ["contentType", file.type], ["cacheControl", "31536000"],
     ].map(([key, value]) => `${key} ${btoa(unescape(encodeURIComponent(value)))}`).join(",");
     const create = await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/upload/resumable`, {
       method: "POST",

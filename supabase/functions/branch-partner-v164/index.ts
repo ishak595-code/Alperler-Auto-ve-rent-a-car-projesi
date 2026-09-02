@@ -15,6 +15,7 @@ const ALLOWED_SERVICES = new Set(["RENTAL", "SALES", "TOUR_TRANSFER"]);
 const ALLOWED_OFFICE = new Set(["OWN", "RENT", "PLAN", "NONE"]);
 const ALLOWED_LISTING = new Set(["OWN_FLEET", "REGIONAL_NETWORK", "BOTH"]);
 const ALLOWED_BUDGET = new Set(["DISCUSS", "UNDER_100K", "100K_250K", "250K_500K", "500K_PLUS"]);
+const ALLOWED_BUSINESS_TYPES = new Set(["SOLE_PROPRIETORSHIP", "LIMITED", "JOINT_STOCK", "COOPERATIVE", "OTHER"]);
 const ALLOWED_STATUS = new Set(["NEW", "REVIEWING", "CONTACTED", "DUE_DILIGENCE", "APPROVED", "REJECTED", "CLOSED"]);
 
 type AdminSession = { id: string; email: string; role: string; permissions: Record<string, unknown> };
@@ -38,12 +39,9 @@ function allowedOrigin(request: Request): string | null {
   if (!raw) return null;
   try {
     const parsed = new URL(raw);
-    const local = (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") &&
-      (parsed.protocol === "http:" || parsed.protocol === "https:");
+    const local = (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") && (parsed.protocol === "http:" || parsed.protocol === "https:");
     return local || ALLOWED_ORIGINS.has(parsed.origin) ? parsed.origin : "";
-  } catch {
-    return "";
-  }
+  } catch { return ""; }
 }
 function cors(request: Request): Record<string, string> {
   const origin = allowedOrigin(request);
@@ -94,27 +92,34 @@ function integer(value: unknown, min: number, max: number, fallback: number): nu
   return Number.isFinite(parsed) ? Math.max(min, Math.min(max, Math.round(parsed))) : fallback;
 }
 function trustedClientAddress(request: Request): string {
-  // Supabase's gateway supplies X-Forwarded-For from the peer connection. Do not
-  // trust the former application-level x-client-ip header because direct callers
-  // could spoof it and weaken network rate limits.
   return clean(request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("cf-connecting-ip") || "unknown", 100);
 }
 function allowedRedirectOrigin(request: Request): string {
   const candidate = clean(request.headers.get("x-app-origin"), 300);
   if (!candidate) return "";
-  const allowed = clean(Deno.env.get("APP_ALLOWED_ORIGINS"), 2000)
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
+  const allowed = clean(Deno.env.get("APP_ALLOWED_ORIGINS"), 2000).split(",").map((value) => value.trim()).filter(Boolean);
   if (!allowed.length) return "";
   try {
     const parsed = new URL(candidate);
-    return (parsed.protocol === "https:" || parsed.hostname === "localhost") && allowed.includes(parsed.origin)
-      ? parsed.origin
-      : "";
-  } catch {
-    return "";
-  }
+    return (parsed.protocol === "https:" || parsed.hostname === "localhost") && allowed.includes(parsed.origin) ? parsed.origin : "";
+  } catch { return ""; }
+}
+function validHttps(value: string): boolean {
+  if (!value) return true;
+  try { const parsed = new URL(value); return parsed.protocol === "https:" && !parsed.username && !parsed.password; }
+  catch { return false; }
+}
+function dueDiligenceReady(row: Record<string, unknown>): boolean {
+  return Boolean(
+    clean(row.current_business, 180).length >= 2
+    && ALLOWED_BUSINESS_TYPES.has(clean(row.business_type, 40).toUpperCase())
+    && clean(row.tax_office, 120).length >= 2
+    && /^[0-9]{10,11}$/.test(clean(row.tax_number, 20))
+    && clean(row.business_address, 500).length >= 10
+    && row.accuracy_accepted_at
+    && row.privacy_accepted_at
+    && row.due_diligence_consent_at
+  );
 }
 
 async function requireAdmin(request: Request): Promise<AdminSession> {
@@ -168,7 +173,7 @@ async function sendAcknowledgement(email: string, reference: string, city: strin
       from,
       to: [email],
       subject: `Alperler Auto şube başvurunuz alındı | ${reference}`,
-      text: `Başvurunuz merkezi sistemimize kaydedildi. Bölge: ${city} / ${district}. Referans: ${reference}. İnceleme tamamlandığında sizinle iletişime geçeceğiz.`,
+      text: `Başvurunuz merkezi sistemimize kaydedildi. Bölge: ${city} / ${district}. Referans: ${reference}. İnceleme, ticari doğrulama ve gerekli sözleşme adımları tamamlanmadan şube canlıya açılmaz.`,
     }),
     signal: AbortSignal.timeout(10_000),
   }).catch(() => null);
@@ -176,15 +181,42 @@ async function sendAcknowledgement(email: string, reference: string, city: strin
 
 async function createApplication(request: Request, input: Record<string, unknown>, id: string): Promise<Response> {
   if (clean(input.website, 200)) return json(request, { ok: true, accepted: true }, 202, id);
+
   const fullName = clean(input.fullName, 160);
   const phone = clean(input.phone, 40);
   const email = clean(input.email, 160).toLowerCase();
+  const currentBusiness = clean(input.currentBusiness, 180);
+  const businessType = clean(input.businessType, 40).toUpperCase();
+  const taxOffice = clean(input.taxOffice, 120);
+  const taxNumber = clean(input.taxNumber, 20).replace(/\s/g, "");
+  const tradeRegistryNo = clean(input.tradeRegistryNo, 80);
+  const mersisNo = clean(input.mersisNo, 20).replace(/\s/g, "");
+  const businessAddress = clean(input.businessAddress, 500);
+  const businessWebsite = clean(input.businessWebsite, 500);
+  const accuracyAccepted = input.accuracyAccepted === true;
+  const privacyAccepted = input.privacyAccepted === true;
+  const dueDiligenceAccepted = input.dueDiligenceAccepted === true;
   const location = await resolveGeo(clean(input.provinceCode, 16), clean(input.districtCode, 20));
   const services = Array.isArray(input.services)
     ? [...new Set(input.services.map((item) => clean(item, 30).toUpperCase()).filter((item) => ALLOWED_SERVICES.has(item)))].slice(0, 3)
     : [];
+
   if (!fullName || !location || !/^[+0-9()\s-]{7,24}$/.test(phone) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !services.length) {
     return json(request, { ok: false, code: "INVALID_REQUIRED_FIELDS", message: "Ad, telefon, e-posta, il, ilçe ve hizmet bilgilerini kontrol edin." }, 400, id);
+  }
+  if (
+    currentBusiness.length < 2
+    || !ALLOWED_BUSINESS_TYPES.has(businessType)
+    || taxOffice.length < 2
+    || !/^[0-9]{10,11}$/.test(taxNumber)
+    || (mersisNo && !/^[0-9]{16}$/.test(mersisNo))
+    || businessAddress.length < 10
+    || !validHttps(businessWebsite)
+    || !accuracyAccepted
+    || !privacyAccepted
+    || !dueDiligenceAccepted
+  ) {
+    return json(request, { ok: false, code: "BUSINESS_DUE_DILIGENCE_REQUIRED", message: "Ticari doğrulama alanlarını ve gerekli onayları kontrol edin." }, 400, id);
   }
 
   const networkHash = await sha256(`${trustedClientAddress(request)}|${clean(request.headers.get("user-agent"), 300)}`);
@@ -205,6 +237,7 @@ async function createApplication(request: Request, input: Record<string, unknown
   const office = clean(input.officeStatus, 30).toUpperCase();
   const listing = clean(input.listingModel, 40).toUpperCase();
   const budget = clean(input.budgetRange, 40).toUpperCase();
+  const acceptedAt = new Date().toISOString();
   const insert = await db("branch_partner_requests?select=*", {
     method: "POST",
     headers: { Prefer: "return=representation" },
@@ -218,7 +251,17 @@ async function createApplication(request: Request, input: Record<string, unknown
       city: location.city,
       district: location.district,
       operating_area: clean(input.operatingArea, 180) || null,
-      current_business: clean(input.currentBusiness, 180) || null,
+      current_business: currentBusiness,
+      business_type: businessType,
+      tax_office: taxOffice,
+      tax_number: taxNumber,
+      trade_registry_no: tradeRegistryNo || null,
+      mersis_no: mersisNo || null,
+      business_address: businessAddress,
+      business_website: businessWebsite || null,
+      accuracy_accepted_at: acceptedAt,
+      privacy_accepted_at: acceptedAt,
+      due_diligence_consent_at: acceptedAt,
       experience_years: integer(input.experienceYears, 0, 60, 0),
       office_status: ALLOWED_OFFICE.has(office) ? office : "PLAN",
       current_fleet_size: integer(input.currentFleetSize, 0, 5000, 0),
@@ -229,7 +272,7 @@ async function createApplication(request: Request, input: Record<string, unknown
       notes: clean(input.notes, 4000) || null,
       status: "NEW",
       source_path: "/branch-partner",
-      submitted_at: new Date().toISOString(),
+      submitted_at: acceptedAt,
     }),
   });
   if (!insert.ok) {
@@ -252,26 +295,19 @@ async function linkOwner(branchId: string, row: Record<string, unknown>, admin: 
   const email = clean(row.email, 160).toLowerCase();
   if (!email) throw new Error("BRANCH_OWNER_EMAIL_REQUIRED");
 
-  const link = async (): Promise<Record<string, unknown>> => {
-    const response = await db("rpc/link_branch_owner_by_email", {
-      method: "POST",
-      body: JSON.stringify({ p_branch_id: branchId, p_email: email, p_partner_request_id: row.id, p_actor: admin.id }),
-    });
-    if (!response.ok) {
-      console.error("branch owner link", response.status, (await response.text().catch(() => "")).slice(0, 300));
-      throw new Error("BRANCH_OWNER_LINK_FAILED");
-    }
-    return await response.json();
-  };
-
-  const linked = await link();
-  const identityState = clean(linked["identityState"], 20) as BranchOwnerAccess["identityState"] || "UNKNOWN";
+  const response = await db("rpc/link_branch_owner_by_email", {
+    method: "POST",
+    body: JSON.stringify({ p_branch_id: branchId, p_email: email, p_partner_request_id: row.id, p_actor: admin.id }),
+  });
+  if (!response.ok) {
+    console.error("branch owner link", response.status, (await response.text().catch(() => "")).slice(0, 300));
+    throw new Error("BRANCH_OWNER_LINK_FAILED");
+  }
+  const linked = await response.json() as Record<string, unknown>;
+  const identityState = (clean(linked["identityState"], 20) || "UNKNOWN") as BranchOwnerAccess["identityState"];
   if (linked["membershipLinked"] === true) {
     return { email, membershipLinked: true, inviteSent: false, verificationRequired: false, identityState: "CONFIRMED" };
   }
-
-  // An existing but unverified Auth account must verify that identity. Sending a
-  // second invite can fail with "user already exists" and must never abort branch provisioning.
   if (identityState === "UNVERIFIED") {
     return { email, membershipLinked: false, inviteSent: false, verificationRequired: true, identityState };
   }
@@ -283,29 +319,19 @@ async function linkOwner(branchId: string, row: Record<string, unknown>, admin: 
   const invitation = await fetch(endpoint, {
     method: "POST",
     headers: serviceHeaders(),
-    body: JSON.stringify({
-      email,
-      data: { branch_id: branchId, branch_role: "BRANCH_OWNER", partner_reference: row.reference },
-    }),
+    body: JSON.stringify({ email, data: { branch_id: branchId, branch_role: "BRANCH_OWNER", partner_reference: row.reference } }),
     signal: AbortSignal.timeout(12_000),
   });
   if (!invitation.ok) {
     const detail = await invitation.text().catch(() => "");
     if (inviteId) {
-      await db("rpc/mark_branch_invite_delivery", {
-        method: "POST",
-        body: JSON.stringify({ p_invite_id: inviteId, p_status: "FAILED", p_error: detail.slice(0, 500) }),
-      }).catch(() => null);
+      await db("rpc/mark_branch_invite_delivery", { method: "POST", body: JSON.stringify({ p_invite_id: inviteId, p_status: "FAILED", p_error: detail.slice(0, 500) }) }).catch(() => null);
     }
     throw new Error("BRANCH_OWNER_INVITE_FAILED");
   }
   if (inviteId) {
-    await db("rpc/mark_branch_invite_delivery", {
-      method: "POST",
-      body: JSON.stringify({ p_invite_id: inviteId, p_status: "SENT" }),
-    });
+    await db("rpc/mark_branch_invite_delivery", { method: "POST", body: JSON.stringify({ p_invite_id: inviteId, p_status: "SENT" }) });
   }
-
   return { email, membershipLinked: false, inviteSent: true, verificationRequired: true, identityState: "MISSING" };
 }
 
@@ -319,6 +345,7 @@ async function provision(request: Request, input: Record<string, unknown>, id: s
   const row = Array.isArray(rows) ? rows[0] as Record<string, unknown> : null;
   if (!row) return json(request, { ok: false, code: "BRANCH_PARTNER_NOT_FOUND" }, 404, id);
   if (row.status !== "APPROVED") return json(request, { ok: false, code: "BRANCH_PARTNER_NOT_APPROVED" }, 409, id);
+  if (!dueDiligenceReady(row)) return json(request, { ok: false, code: "BUSINESS_DUE_DILIGENCE_REQUIRED" }, 409, id);
   if (!row.email) return json(request, { ok: false, code: "BRANCH_OWNER_EMAIL_REQUIRED" }, 409, id);
 
   const rpc = await db("rpc/provision_branch_partner_request", {
@@ -346,11 +373,13 @@ async function updateApplication(request: Request, input: Record<string, unknown
   if (!reference || !ALLOWED_STATUS.has(status)) return json(request, { ok: false, code: "INVALID_UPDATE" }, 400, id);
   const existing = await db(`branch_partner_requests?reference=eq.${encodeURIComponent(reference)}&select=*&limit=1`);
   const existingRows = existing.ok ? await existing.json() : [];
-  const row = Array.isArray(existingRows) ? existingRows[0] : null;
+  const row = Array.isArray(existingRows) ? existingRows[0] as Record<string, unknown> : null;
   if (!row) return json(request, { ok: false, code: "BRANCH_PARTNER_NOT_FOUND" }, 404, id);
-  if (status === "APPROVED" && !row.email) {
-    return json(request, { ok: false, code: "BRANCH_OWNER_EMAIL_REQUIRED", message: "Şubeyi onaylamak için aday e-postası zorunludur." }, 409, id);
+  if (status === "APPROVED" && !row.email) return json(request, { ok: false, code: "BRANCH_OWNER_EMAIL_REQUIRED" }, 409, id);
+  if (status === "APPROVED" && !dueDiligenceReady(row)) {
+    return json(request, { ok: false, code: "BUSINESS_DUE_DILIGENCE_REQUIRED", message: "Ticari doğrulama ve başvuru onayları tamamlanmadan bayilik onaylanamaz." }, 409, id);
   }
+
   const patch: Record<string, unknown> = {
     status,
     internal_notes: clean(input.internalNotes, 4000) || null,

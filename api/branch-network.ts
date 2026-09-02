@@ -11,12 +11,32 @@ function legacyId(row: any): string | number {
   return row.id;
 }
 
+function publicBrandProfile(value: unknown): Record<string, string> {
+  const source = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const result: Record<string, string> = {};
+  const keys = ["instagramUrl", "facebookUrl", "tiktokUrl", "youtubeUrl", "xUrl"] as const;
+  for (const key of keys) {
+    const raw = clean(source[key], 500);
+    if (!raw) continue;
+    try {
+      const parsed = new URL(raw);
+      if (parsed.protocol === "https:" && !parsed.username && !parsed.password) result[key] = parsed.toString();
+    } catch { /* invalid public social URL is omitted */ }
+  }
+  return result;
+}
+
 function branchToApi(row: any) {
   return {
     id: row.code || row.id,
     cloudId: row.id,
     slug: row.slug,
     name: row.name,
+    operatorName: row.operator_display_name || row.name,
+    operatorLegalName: row.operator_legal_name || undefined,
+    operatorRelationship: row.operator_relationship || undefined,
+    operatorVerified: Boolean(row.operator_identity_verified_at),
+    platformDisclaimer: row.platform_disclaimer || undefined,
     city: row.city || "",
     district: row.district || "",
     addressLabel: row.address_line || "",
@@ -40,6 +60,7 @@ function branchToApi(row: any) {
     customerGuaranteeEnabled: row.customer_guarantee_enabled !== false,
     centralPricingRequired: row.central_pricing_required !== false,
     listingRequiresApproval: row.listing_requires_approval !== false,
+    brandProfile: publicBrandProfile(row.brand_profile),
   };
 }
 

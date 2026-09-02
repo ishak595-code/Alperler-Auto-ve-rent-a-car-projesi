@@ -38,16 +38,21 @@ const media = read('src/services/public-catalog-media.service.ts');
 if (!media.includes('loadForVehicle(vehicleId: string)')) fail('catalog media owner query missing for vehicles');
 if (!media.includes('loadForTour(tourId: string)')) fail('catalog media owner query missing for tours');
 
-// V208: the active V170 showcase keeps its compatibility service, but public tour
-// database ownership is canonicalized in CarService -> CatalogService. Tour detail
-// remains owned by PublicDetailDataService above, where single-record projection and
-// owner-scoped media are already enforced.
-const tours = read('src/services/tour-public-data-v170.service.ts');
-if (!tours.includes('inject(CarService)')) fail('V170 tour showcase adapter must delegate to canonical CarService');
-if (!tours.includes('refreshCloudCatalog(true)') || !tours.includes('getTours()')) fail('V170 tour showcase adapter must consume canonical tour catalogue state');
-for (const forbidden of ['SUPABASE_PROJECT_URL', 'SUPABASE_PUBLISHABLE_KEY', 'fetch(']) {
-  if (tours.includes(forbidden)) fail(`V170 tour showcase adapter must not own a parallel database source: ${forbidden}`);
+// Current tour listing ownership is V217. The former V170 showcase and its public-data
+// adapter were retired after the route wrapper moved to the bounded scalable catalog.
+// V170 demand and booking technology remains active inside the canonical tour detail flow.
+const toursWrapper = read('src/pages/tours.component.ts');
+const tourCatalog = read('src/pages/tour-catalog-v217.component.ts');
+const scalableCatalog = read('src/services/scalable-public-catalog-v217.service.ts');
+if (!toursWrapper.includes('TourCatalogV217Component') || !toursWrapper.includes('<app-tour-catalog-v217 />')) fail('tour route wrapper must render only the canonical V217 catalog');
+if (!tourCatalog.includes('ScalablePublicCatalogV217Service') || !tourCatalog.includes('pageSize:24')) fail('canonical tour catalog must use bounded V217 hydration');
+if (!scalableCatalog.includes('public_tour_catalog_v217') || !scalableCatalog.includes('listTours(') || !scalableCatalog.includes('tourFacets(')) fail('V217 tour catalog must own the current public tour database source');
+for (const legacyPath of ['src/pages/tour-showcase-v170.component.ts', 'src/services/tour-public-data-v170.service.ts']) {
+  if (fs.existsSync(legacyPath)) fail(`retired tour listing layer must not return: ${legacyPath}`);
 }
+
+const tourDetail = read('src/pages/tour-detail.component.ts');
+if (!tourDetail.includes('TourDemandV170Service') || !tourDetail.includes('TourBookingV170Service')) fail('active V170 demand and booking technology must remain integrated into canonical tour detail');
 
 const blog = read('src/pages/blog-detail.component.ts');
 if (blog.includes('getBlogPosts()')) fail('blog detail must not depend on global catalogue hydration');

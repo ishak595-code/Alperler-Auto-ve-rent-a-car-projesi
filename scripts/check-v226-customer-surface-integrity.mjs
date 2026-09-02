@@ -16,6 +16,8 @@ const newsletter = readFileSync('src/services/newsletter.service.ts', 'utf8');
 const partner = readFileSync('api/partner.ts', 'utf8');
 const dockPolicy = readFileSync('src/services/mobile-dock-route-policy.ts', 'utf8');
 const footerCutover = readFileSync('supabase/migrations/20260902014500_v226_customer_footer_admin_link_retire.sql', 'utf8').toLowerCase();
+const avatarUpsertPolicy = readFileSync('supabase/migrations/20260902110004_v226_customer_avatar_upsert_select_policy.sql', 'utf8').toLowerCase();
+const campaignCtaGuard = readFileSync('supabase/migrations/20260902110216_v226_campaign_cta_internal_route_guard.sql', 'utf8').toLowerCase();
 
 function requireText(source, token, message) {
   if (!source.includes(token)) throw new Error(message);
@@ -40,6 +42,10 @@ requireText(accountService, 'readonly partialRefresh=signal(false)', 'Account se
 requireText(accountService, 'Promise.allSettled', 'Optional account data must not fail the core profile surface.');
 requireText(accountService, "this.getRows<CustomerProfile>", 'Customer profile remains a required core account read.');
 requireText(accountService, "this.getRows<CustomerBooking>", 'Customer booking history remains a required core account read.');
+requireText(accountService, "'x-upsert':'true'", 'Avatar replacement must use the canonical Storage upsert path.');
+requireText(avatarUpsertPolicy, 'create policy customer_avatar_select_own', 'Avatar upsert must retain owner SELECT visibility.');
+requireText(avatarUpsertPolicy, "bucket_id = 'customer-avatars'", 'Avatar SELECT policy must remain scoped to the customer avatar bucket.');
+requireText(avatarUpsertPolicy, 'owner_id = (select auth.uid())::text', 'Avatar SELECT policy must remain scoped to the authenticated owner.');
 forbidText(accountDashboard.toLocaleLowerCase('tr-TR'), 'bağlantınızı kontrol', 'Account errors must not misdiagnose every server failure as a customer connection problem.');
 requireText(accountDashboard, 'this.account.partialRefresh()', 'Dashboard must surface degraded optional-data refresh truthfully.');
 
@@ -69,6 +75,11 @@ requireText(footer, "if(link.actionType==='EXTERNAL')return this.safeExternalUrl
 forbidText(app, 'a[href="/admin/login"]', 'Administrative links must not be hidden by global CSS.');
 requireText(footerCutover, "action_type = 'admin'", 'Production data migration must retire public footer admin actions.');
 requireText(footerCutover, 'set is_enabled = false', 'Footer admin cutover must disable the live configuration row.');
+
+requireText(campaignCtaGuard, 'campaigns_cta_internal_route_v226_check', 'Campaign customer CTA guard must remain installed.');
+requireText(campaignCtaGuard, "cta_url !~ '^//'", 'Campaign CTA guard must reject protocol-relative targets.');
+requireText(campaignCtaGuard, "cta_url !~ '^/admin'", 'Campaign CTA guard must reject administrative targets.');
+requireText(campaignCtaGuard, "cta_url !~ '^/branch-portal'", 'Campaign CTA guard must reject branch portal targets.');
 
 requireText(mainLayout, '@defer (when uiService.isFeedbackOpen(); prefetch on idle)', 'Feedback panel must load immediately from the user interaction signal, not wait indefinitely for browser idle.');
 requireText(feedback, 'fetch("/api/contact"', 'Feedback must use the canonical contact gateway.');

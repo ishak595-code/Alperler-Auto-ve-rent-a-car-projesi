@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const accountShell = readFileSync('src/pages/account-shell.component.ts', 'utf8');
 const profileSettings = readFileSync('src/components/account-profile-settings-v225.component.ts', 'utf8');
@@ -13,6 +13,7 @@ const footer = readFileSync('src/components/customer-footer-v70.component.ts', '
 const app = readFileSync('src/app.component.ts', 'utf8');
 const routes = readFileSync('src/app.routes.ts', 'utf8');
 const dynamicHome = readFileSync('src/components/dynamic-home-section.component.ts', 'utf8');
+const toursWrapper = readFileSync('src/pages/tours.component.ts', 'utf8');
 const tourCatalog = readFileSync('src/pages/tour-catalog-v217.component.ts', 'utf8');
 const publicCatalog = readFileSync('src/services/scalable-public-catalog-v217.service.ts', 'utf8');
 const homepageLayout = readFileSync('src/services/homepage-layout.service.ts', 'utf8');
@@ -63,9 +64,18 @@ for (const type of ['rental','hourly-rental','sales','tour','partner','branch','
 
 requireText(routes, "path: 'tours'", 'Public tour catalog route must remain registered.');
 requireText(routes, "path: 'tour/:id'", 'Public tour detail route must remain registered.');
+requireText(toursWrapper, 'TourCatalogV217Component', 'Tours route wrapper must own the canonical V217 bounded catalog.');
+requireText(toursWrapper, '<app-tour-catalog-v217 />', 'Tours route wrapper must render only the canonical V217 catalog.');
+forbidText(toursWrapper, 'TourShowcaseV170Component', 'Tours route must never restore the obsolete V170 showcase.');
+for (const legacyPath of ['src/pages/tour-showcase-v170.component.ts', 'src/services/tour-public-data-v170.service.ts']) {
+  if (existsSync(legacyPath)) throw new Error(`Obsolete tour listing layer must stay deleted: ${legacyPath}`);
+}
 requireText(dynamicHome, "section.sectionType==='TOURS'", 'Homepage must retain the dynamic tour section renderer.');
 requireText(dynamicHome, 'class="rail"', 'Homepage tour and vehicle selections must retain the horizontal rail layout contract.');
 requireText(dynamicHome, "this.layout.toursFor(this.section.sectionKey)", 'Homepage tours must be resolved from the live homepage layout service.');
+for (const token of ['tour.duration', 'tour.locationName', 'tour.capacity', 'Kişi başı', 'Planı ve Fiyatı Gör']) {
+  requireText(dynamicHome, token, `Homepage tour cards must expose the factual decision signal: ${token}`);
+}
 requireText(homepageLayout, "section.sectionType === 'TOURS'", 'Homepage layout must hydrate tour sections dynamically.');
 requireText(homepageLayout, 'this.catalog.listTours', 'Homepage tour hydration must delegate to the scalable public catalog.');
 requireText(publicCatalog, 'public_tour_catalog_v217', 'Customer tours must be read from the Supabase public tour catalog.');
@@ -77,6 +87,8 @@ for (const token of ['tour.duration', 'tour.locationName', 'tour.capacity', 'Ki�
 }
 forbidText(tourCatalog, '4.9', 'Tour catalog must not manufacture a fixed rating.');
 forbidText(tourCatalog.toLocaleLowerCase('tr-TR'), '12 değerlendirme', 'Tour catalog must not manufacture fixed review counts.');
+forbidText(dynamicHome, '4.9', 'Homepage tour cards must not manufacture a fixed rating.');
+forbidText(dynamicHome.toLocaleLowerCase('tr-TR'), '12 değerlendirme', 'Homepage tour cards must not manufacture fixed review counts.');
 
 requireText(dateControl, 'focus({ preventScroll: true })', 'Calendar focus restoration must not scroll/jump the mobile planner.');
 forbidText(dateControl, 'transform:translateY(1px)', 'Date controls must not move geometry on pointer press.');

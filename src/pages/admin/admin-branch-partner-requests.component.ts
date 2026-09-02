@@ -118,5 +118,5 @@ export class AdminBranchPartnerRequestsComponent implements OnInit {
   serviceLabels(req:BranchPartnerAdminRecord):string{const m:Record<string,string>={RENTAL:"Kiralama",SALES:"Satış",TOUR_TRANSFER:"Tur / Transfer"};return req.services.map(s=>m[s]||s).join(" · ")||"Belirtilmedi";}
   listingLabel(req:BranchPartnerAdminRecord):string{return({OWN_FLEET:"Kendi araçları",REGIONAL_NETWORK:"Bölgesel araç ağı",BOTH:"Kendi filo + bölgesel ağ"} as Record<string,string>)[req.listingModel]||req.listingModel;}
   officeLabel(req:BranchPartnerAdminRecord):string{return({OWN:"Kendi ofisi",RENT:"Kiralanmış ofis",PLAN:"Ofis planlıyor",NONE:"Ofis yok"} as Record<string,string>)[req.officeStatus]||req.officeStatus;}
-  budgetLabel(req:BranchPartnerAdminRecord):string{return({DISCUSS:"Görüşmede netleşecek",UNDER_100K:"100.000 TL altı",100K_250K:"100.000 - 250.000 TL",250K_500K:"250.000 - 500.000 TL",500K_PLUS:"500.000 TL üzeri"} as Record<string,string>)[req.budgetRange]||req.budgetRange;}
+  budgetLabel(req:BranchPartnerAdminRecord):string{return({DISCUSS:"Görüşmede netleşecek",UNDER_100K:"100.000 TL altı","100K_250K":"100.000 - 250.000 TL","250K_500K":"250.000 - 500.000 TL","500K_PLUS":"500.000 TL üzeri"} as Record<string,string>)[req.budgetRange]||req.budgetRange;}
 }

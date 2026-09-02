@@ -49,8 +49,9 @@
       { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
     ]},
     { "source": "/catalog-media/:path*", "headers": [
-      { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
-      { "key": "CDN-Cache-Control", "value": "public, max-age=31536000, immutable" }
+      { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" },
+      { "key": "CDN-Cache-Control", "value": "public, max-age=604800" },
+      { "key": "x-vercel-enable-rewrite-caching", "value": "1" }
     ]},
     { "source": "/admin/:path*", "headers": [
       { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive, nosnippet" },

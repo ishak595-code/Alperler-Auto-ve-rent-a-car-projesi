@@ -46,6 +46,14 @@ updates:
       - dependency-name: "pdfkit"
         update-types:
           - "version-update:semver-minor"
+      # V165 intentionally pins the Tailwind/PostCSS integration at 4.2.x. Minor
+      # upgrades require an explicit visual compatibility migration and device matrix.
+      - dependency-name: "tailwindcss"
+        update-types:
+          - "version-update:semver-minor"
+      - dependency-name: "@tailwindcss/postcss"
+        update-types:
+          - "version-update:semver-minor"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -63,3 +71,8 @@ updates:
           - "actions/checkout"
           - "actions/setup-node"
           - "actions/upload-artifact"
+      # CodeQL init/analyze are one security toolchain and must never cross major
+      # versions independently. Dependabot must update them in one PR.
+      codeql-runtime:
+        patterns:
+          - "github/codeql-action/*"

@@ -1,0 +1,29 @@
+name: V226 Production Integrity
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - v226-production-hardening-zero-regression
+
+permissions:
+  contents: read
+
+jobs:
+  v226-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Verify saved-card concurrency and security contract
+        run: node scripts/check-v226-payment-concurrency.mjs
+      - name: Verify production security boundaries
+        run: node scripts/check-v226-production-boundaries.mjs
+      - name: Verify customer surface, footer, legal and planner integrity
+        run: node scripts/check-v226-customer-surface-integrity.mjs

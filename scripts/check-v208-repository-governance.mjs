@@ -47,12 +47,31 @@ for (const contract of ["run.head_sha === currentSha", "pull_requests", "/cancel
   if (!cancelScript.includes(contract)) failures.push(`Stale-run cancellation safety contract is missing: ${contract}`);
 }
 
-const tourAdapter = read("src/services/tour-public-data-v170.service.ts");
-for (const forbidden of ["SUPABASE_PROJECT_URL", "SUPABASE_PUBLISHABLE_KEY", "fetch("]) {
-  if (tourAdapter.includes(forbidden)) failures.push(`V170 tour adapter reopened a parallel database source: ${forbidden}`);
+// The V170 tour listing adapter is intentionally retired. Repository governance now
+// protects the canonical V217 bounded list owner while keeping active V170 booking
+// and flexible-demand technology in the tour detail flow.
+for (const retired of [
+  "src/pages/tour-showcase-v170.component.ts",
+  "src/services/tour-public-data-v170.service.ts",
+]) {
+  if (existsSync(join(root, retired))) failures.push(`Retired tour listing layer must stay deleted: ${retired}`);
 }
-for (const required of ["inject(CarService)", "refreshCloudCatalog(true)", "getTours()"] ) {
-  if (!tourAdapter.includes(required)) failures.push(`V170 tour adapter must delegate to canonical CarService: ${required}`);
+const toursWrapper = read("src/pages/tours.component.ts");
+const tourCatalog = read("src/pages/tour-catalog-v217.component.ts");
+const scalableCatalog = read("src/services/scalable-public-catalog-v217.service.ts");
+const tourDetail = read("src/pages/tour-detail.component.ts");
+for (const required of ["TourCatalogV217Component", "<app-tour-catalog-v217 />"]) {
+  if (!toursWrapper.includes(required)) failures.push(`Canonical tours route wrapper contract is missing: ${required}`);
+}
+if (toursWrapper.includes("TourShowcaseV170Component")) failures.push("Canonical tours route must not restore the retired V170 showcase.");
+for (const required of ["ScalablePublicCatalogV217Service", "pageSize:24"]) {
+  if (!tourCatalog.includes(required)) failures.push(`Canonical V217 tour catalog contract is missing: ${required}`);
+}
+for (const required of ["public_tour_catalog_v217", "listTours(", "tourFacets("]) {
+  if (!scalableCatalog.includes(required)) failures.push(`V217 tour database ownership contract is missing: ${required}`);
+}
+for (const required of ["TourDemandV170Service", "TourBookingV170Service"]) {
+  if (!tourDetail.includes(required)) failures.push(`Active V170 tour detail technology must remain integrated: ${required}`);
 }
 
 const packageJson = read("package.json");

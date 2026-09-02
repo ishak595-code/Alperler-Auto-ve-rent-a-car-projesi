@@ -11,6 +11,7 @@ on:
       - "src/components/accessible-native-date.component.ts"
       - "src/components/booking-success-overlay.component.ts"
       - "src/components/customer-mobile-dock.component.ts"
+      - "src/components/account-profile-settings-v225.component.ts"
       - "src/models/site-config.model.ts"
       - "src/pages/account-dashboard-v150.component.ts"
       - "src/pages/account-login.component.ts"
@@ -23,6 +24,8 @@ on:
       - "src/services/accessibility-runtime.service.ts"
       - "src/services/auth.service.ts"
       - "src/services/customer-booking-actions.service.ts"
+      - "src/services/customer-wallet.service.ts"
+      - "src/services/customer-saved-cards-v225.service.ts"
       - "src/services/profile-admin-bridge.service.ts"
       - "src/services/booking-success*"
       - "src/services/pwa-runtime.service.ts"
@@ -68,7 +71,7 @@ jobs:
           grep -Fq 'aria-label="Takvimi kapat"' src/components/accessible-native-date.component.ts
           grep -Fq 'onDialogKeydown' src/components/accessible-native-date.component.ts
           grep -Fq 'onDayKeydown' src/components/accessible-native-date.component.ts
-          grep -Fq 'triggerButton?.nativeElement.focus()' src/components/accessible-native-date.component.ts
+          grep -Fq 'focus({ preventScroll: true })' src/components/accessible-native-date.component.ts
           ! grep -Fq 'type="date"' src/components/accessible-native-date.component.ts
           ! grep -Fq 'native-date-control' src/components/accessible-native-date.component.ts
           ! grep -Fq 'showPicker' src/components/accessible-native-date.component.ts
@@ -157,14 +160,21 @@ jobs:
           grep -Fq 'customer_cancel_booking' src/services/customer-booking-actions.service.ts
           grep -Fq "Talebiniz başarıyla gönderildi" src/components/booking-success-overlay.component.ts
 
-          # The customer wallet is a document vault, not a fake payment surface.
+          # The customer wallet may contain provider-tokenized saved cards and private
+          # documents. Provider tokens must never cross into browser source.
+          grep -Fq 'CustomerSavedCardsV225Service' src/pages/account-wallet.component.ts
+          grep -Fq 'Kayıtlı kartlarım' src/pages/account-wallet.component.ts
           grep -Fq 'IDENTITY_FRONT' src/pages/account-wallet.component.ts
           grep -Fq 'IDENTITY_BACK' src/pages/account-wallet.component.ts
           grep -Fq 'DRIVING_LICENSE_FRONT' src/pages/account-wallet.component.ts
           grep -Fq 'DRIVING_LICENSE_BACK' src/pages/account-wallet.component.ts
           grep -Fq 'capture="environment"' src/pages/account-wallet.component.ts
+          ! grep -Eq 'cardUserKey|cardToken|utoken|ctoken' src/pages/account-wallet.component.ts src/services/customer-saved-cards-v225.service.ts
+          grep -Fq "window.open('about:blank','_blank')" src/services/customer-wallet.service.ts
+          grep -Fq 'preview.location.replace(url)' src/services/customer-wallet.service.ts
+          grep -Fq 'customer_documents?id=eq.' src/services/customer-wallet.service.ts
+          grep -Fq 'DOCUMENT_STORAGE_CLEANUP_PENDING' src/services/customer-wallet.service.ts
           ! grep -Fq 'Harcama Görünümüm' src/pages/account-wallet.component.ts
-          ! grep -Fq 'Ödeme Yöntemlerim' src/pages/account-wallet.component.ts
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v7

@@ -66,19 +66,30 @@ export class CustomerWalletService{
   }
 
   async openDocument(doc:CustomerDocument):Promise<void>{
-    const token=await this.requireToken();const encoded=doc.storage_path.split('/').map(encodeURIComponent).join('/');
-    const response=await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/sign/${this.documentBucket}/${encoded}`,{method:'POST',headers:this.headers(token),body:JSON.stringify({expiresIn:120})});
-    if(!response.ok)throw new Error('DOCUMENT_SIGN_FAILED');
-    const data=await response.json() as {signedURL?:string;signedUrl?:string};const signed=data.signedURL||data.signedUrl||'';if(!signed)throw new Error('DOCUMENT_SIGN_FAILED');
-    const url=signed.startsWith('http')?signed:`${SUPABASE_PROJECT_URL}/storage/v1${signed.startsWith('/')?'':'/'}${signed}`;
-    window.open(url,'_blank','noopener,noreferrer');
+    const preview=typeof window!=='undefined'?window.open('about:blank','_blank'):null;
+    if(preview){
+      try{preview.opener=null;preview.document.title='Belge hazırlanıyor';preview.document.body.textContent='Belgeniz güvenli şekilde hazırlanıyor...';}catch{/* tarayıcı boş önizlemeyi kısıtlayabilir */}
+    }
+    try{
+      const token=await this.requireToken();const encoded=doc.storage_path.split('/').map(encodeURIComponent).join('/');
+      const response=await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/sign/${this.documentBucket}/${encoded}`,{method:'POST',headers:this.headers(token),body:JSON.stringify({expiresIn:120})});
+      if(!response.ok)throw new Error('DOCUMENT_SIGN_FAILED');
+      const data=await response.json() as {signedURL?:string;signedUrl?:string};const signed=data.signedURL||data.signedUrl||'';if(!signed)throw new Error('DOCUMENT_SIGN_FAILED');
+      const url=signed.startsWith('http')?signed:`${SUPABASE_PROJECT_URL}/storage/v1${signed.startsWith('/')?'':'/'}${signed}`;
+      if(preview&&!preview.closed){preview.location.replace(url);return;}
+      if(typeof window!=='undefined')window.location.assign(url);
+    }catch(error){
+      if(preview&&!preview.closed)preview.close();
+      throw error;
+    }
   }
 
   async deleteDocument(doc:CustomerDocument):Promise<void>{
-    const token=await this.requireToken();await this.deleteStorageObject(doc.storage_path,token);
-    const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/customer_documents?id=eq.${encodeURIComponent(doc.id)}`,{method:'DELETE',headers:this.headers(token,{Prefer:'return=minimal'})});
+    const token=await this.requireToken();
+    const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/customer_documents?id=eq.${encodeURIComponent(doc.id)}&user_id=eq.${encodeURIComponent(doc.user_id)}`,{method:'DELETE',headers:this.headers(token,{Prefer:'return=minimal'})});
     if(!response.ok)throw new Error('DOCUMENT_DELETE_FAILED');
     this.documents.update(rows=>rows.filter(row=>row.id!==doc.id));
+    await this.deleteStorageObject(doc.storage_path,token).catch(error=>console.warn('DOCUMENT_STORAGE_CLEANUP_PENDING',error));
   }
 
   async savePreferences(patch:Partial<CustomerExperiencePreferences>):Promise<void>{

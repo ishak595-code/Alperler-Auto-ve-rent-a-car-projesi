@@ -1,0 +1,34 @@
+/* Canonical V226 touch stability for the homepage quick planner.
+   Keep this narrowly scoped to HomeV71 so catalog/detail/admin interactions are unaffected. */
+
+@media (pointer: coarse) {
+  app-home-v71 .planner,
+  app-home-v71 .field-grid,
+  app-home-v71 .date-grid,
+  app-home-v71 .time-grid {
+    overflow-anchor: none;
+  }
+
+  app-home-v71 .planner :is(select, input, button) {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  app-home-v71 .planner :is(select, input) {
+    transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  }
+
+  app-home-v71 .planner-action,
+  app-home-v71 .planner-action:active {
+    transform: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  app-home-v71 .planner,
+  app-home-v71 .planner * {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}

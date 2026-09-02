@@ -35,21 +35,52 @@ export class CustomerAccountService{
   private readonly auth=inject(CustomerAuthService);
   private readonly profileSelect='user_id,email,full_name,phone,birth_date,address_line,district,city,country,postal_code,avatar_url,preferred_locale,preferred_branch_id,marketing_consent,status';
   private readonly loyaltySelect='user_id,points_balance,lifetime_points,completed_rentals,lifetime_spend,tier,successful_referrals,referral_points_earned';
-  readonly loading=signal(false);readonly profile=signal<CustomerProfile|null>(null);readonly loyalty=signal<LoyaltyAccount|null>(null);readonly ledger=signal<LoyaltyLedgerItem[]>([]);readonly bookings=signal<CustomerBooking[]>([]);readonly paymentMethods=signal<SafePaymentMethod[]>([]);readonly loyaltySettings=signal<LoyaltySettings|null>(null);readonly referralSummary=signal<ReferralSummary|null>(null);readonly lifetimeSummary=signal<CustomerLifetimeSummary|null>(null);
+  readonly loading=signal(false);
+  readonly partialRefresh=signal(false);
+  readonly profile=signal<CustomerProfile|null>(null);
+  readonly loyalty=signal<LoyaltyAccount|null>(null);
+  readonly ledger=signal<LoyaltyLedgerItem[]>([]);
+  readonly bookings=signal<CustomerBooking[]>([]);
+  readonly paymentMethods=signal<SafePaymentMethod[]>([]);
+  readonly loyaltySettings=signal<LoyaltySettings|null>(null);
+  readonly referralSummary=signal<ReferralSummary|null>(null);
+  readonly lifetimeSummary=signal<CustomerLifetimeSummary|null>(null);
 
   async refreshProfileSummary():Promise<void>{const token=await this.auth.getAccessToken();if(!token){this.profile.set(null);return;}try{await this.rpc('ensure_customer_profile',{},token);const profile=await this.getRows<CustomerProfile>('customer_profiles?select=user_id,email,full_name,phone,avatar_url,status&limit=1',token);this.profile.set(profile[0]||null);}catch{/* Navbar kimliği müşteri gezintisini engellemez. */}}
-  clearLocalProfile():void{this.profile.set(null);this.lifetimeSummary.set(null);}
+  clearLocalProfile():void{this.profile.set(null);this.lifetimeSummary.set(null);this.partialRefresh.set(false);}
 
-  async refresh():Promise<void>{const token=await this.requireToken();this.loading.set(true);try{await this.rpc('ensure_customer_profile',{},token);await this.rpc<string>('get_or_create_customer_referral_code',{},token);const[profile,loyalty,ledger,bookings,methods,settings,referral,lifetime]=await Promise.all([
-    this.getRows<CustomerProfile>(`customer_profiles?select=${this.profileSelect}&limit=1`,token),
-    this.getRows<LoyaltyAccount>(`customer_loyalty_accounts?select=${this.loyaltySelect}&limit=1`,token),
-    this.getRows<LoyaltyLedgerItem>('customer_loyalty_ledger?select=id,booking_id,referral_id,direction,points,reason,source,created_at&order=created_at.desc&limit=100',token),
-    this.getRows<CustomerBooking>('bookings?deleted_at=is.null&select=id,reference,booking_type,item_name,image,start_at,end_at,total_price,currency,status,payment_status,loyalty_points_awarded,created_at&order=created_at.desc&limit=100',token),
-    this.getRows<SafePaymentMethod>('customer_payment_methods?status=eq.ACTIVE&select=id,provider,brand,last4,expiry_month,expiry_year,label,is_default,status&order=is_default.desc,created_at.desc',token),
-    this.getRows<LoyaltySettings>('loyalty_program_settings?select=enabled,points_per_rental_day,minimum_points_per_rental,silver_threshold,gold_threshold,platinum_threshold,referral_inviter_points,referral_invitee_points,referral_rental_inviter_points,referral_rental_invitee_points,referral_sale_inviter_points,referral_sale_invitee_points,referral_tour_inviter_points,referral_tour_invitee_points,referral_milestone_3_points,referral_milestone_5_points,referral_milestone_10_points,benefits,redemption_enabled,point_value_try,minimum_redeem_points,max_redeem_percent,referral_checkout_discount_enabled,referral_checkout_discount_mode,referral_rental_invitee_discount,referral_sale_invitee_discount,referral_tour_invitee_discount,allow_campaign_referral_stack,allow_campaign_loyalty_stack,allow_referral_loyalty_stack,tour_points_per_100_try,sale_points_per_1000_try&limit=1',token),
-    this.rpc<ReferralSummary|null>('customer_referral_summary',{},token),
-    this.rpc<CustomerLifetimeSummary|null>('customer_lifetime_summary',{p_user_id:null},token),
-  ]);this.profile.set(profile[0]||null);this.loyalty.set(loyalty[0]||null);this.ledger.set(ledger);this.bookings.set(bookings);this.paymentMethods.set(methods);this.loyaltySettings.set(settings[0]||null);this.referralSummary.set(referral||null);this.lifetimeSummary.set(lifetime||null);}finally{this.loading.set(false);}}
+  async refresh():Promise<void>{
+    const token=await this.requireToken();
+    this.loading.set(true);
+    this.partialRefresh.set(false);
+    try{
+      await this.rpc('ensure_customer_profile',{},token);
+      let optionalFailure=false;
+      try{await this.rpc<string>('get_or_create_customer_referral_code',{},token);}catch{optionalFailure=true;}
+
+      const[profileResult,loyaltyResult,ledgerResult,bookingsResult,methodsResult,settingsResult,referralResult,lifetimeResult]=await Promise.allSettled([
+        this.getRows<CustomerProfile>(`customer_profiles?select=${this.profileSelect}&limit=1`,token),
+        this.getRows<LoyaltyAccount>(`customer_loyalty_accounts?select=${this.loyaltySelect}&limit=1`,token),
+        this.getRows<LoyaltyLedgerItem>('customer_loyalty_ledger?select=id,booking_id,referral_id,direction,points,reason,source,created_at&order=created_at.desc&limit=100',token),
+        this.getRows<CustomerBooking>('bookings?deleted_at=is.null&select=id,reference,booking_type,item_name,image,start_at,end_at,total_price,currency,status,payment_status,loyalty_points_awarded,created_at&order=created_at.desc&limit=100',token),
+        this.getRows<SafePaymentMethod>('customer_payment_methods?status=eq.ACTIVE&select=id,provider,brand,last4,expiry_month,expiry_year,label,is_default,status&order=is_default.desc,created_at.desc',token),
+        this.getRows<LoyaltySettings>('loyalty_program_settings?select=enabled,points_per_rental_day,minimum_points_per_rental,silver_threshold,gold_threshold,platinum_threshold,referral_inviter_points,referral_invitee_points,referral_rental_inviter_points,referral_rental_invitee_points,referral_sale_inviter_points,referral_sale_invitee_points,referral_tour_inviter_points,referral_tour_invitee_points,referral_milestone_3_points,referral_milestone_5_points,referral_milestone_10_points,benefits,redemption_enabled,point_value_try,minimum_redeem_points,max_redeem_percent,referral_checkout_discount_enabled,referral_checkout_discount_mode,referral_rental_invitee_discount,referral_sale_invitee_discount,referral_tour_invitee_discount,allow_campaign_referral_stack,allow_campaign_loyalty_stack,allow_referral_loyalty_stack,tour_points_per_100_try,sale_points_per_1000_try&limit=1',token),
+        this.rpc<ReferralSummary|null>('customer_referral_summary',{},token),
+        this.rpc<CustomerLifetimeSummary|null>('customer_lifetime_summary',{p_user_id:null},token),
+      ]);
+
+      if(profileResult.status==='rejected')throw profileResult.reason;
+      this.profile.set(profileResult.value[0]||null);
+      if(loyaltyResult.status==='fulfilled')this.loyalty.set(loyaltyResult.value[0]||null);else optionalFailure=true;
+      if(ledgerResult.status==='fulfilled')this.ledger.set(ledgerResult.value);else optionalFailure=true;
+      if(bookingsResult.status==='fulfilled')this.bookings.set(bookingsResult.value);else optionalFailure=true;
+      if(methodsResult.status==='fulfilled')this.paymentMethods.set(methodsResult.value);else optionalFailure=true;
+      if(settingsResult.status==='fulfilled')this.loyaltySettings.set(settingsResult.value[0]||null);else optionalFailure=true;
+      if(referralResult.status==='fulfilled')this.referralSummary.set(referralResult.value||null);else optionalFailure=true;
+      if(lifetimeResult.status==='fulfilled')this.lifetimeSummary.set(lifetimeResult.value||null);else optionalFailure=true;
+      this.partialRefresh.set(optionalFailure);
+    }finally{this.loading.set(false);}
+  }
 
   async updateProfile(patch:Partial<CustomerProfile>):Promise<void>{const token=await this.requireToken();const safe={full_name:this.text(patch.full_name,160),phone:this.text(patch.phone,40),birth_date:patch.birth_date||null,address_line:this.text(patch.address_line,240),district:this.text(patch.district,100),city:this.text(patch.city,100),country:this.text(patch.country,2)?.toUpperCase()||'TR',postal_code:this.text(patch.postal_code,30),preferred_locale:this.text(patch.preferred_locale,10)||'tr',preferred_branch_id:patch.preferred_branch_id||null,marketing_consent:Boolean(patch.marketing_consent),updated_at:new Date().toISOString()};await this.patchProfile(safe,token);}
 

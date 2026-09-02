@@ -75,6 +75,34 @@ app-home-v71 .planner-note {
   display: none !important;
 }
 
+/* Quick-planner runtime stability. The feedback slot is reserved before an
+   error/summary appears, so validating or changing a choice does not push the
+   booking action up and down. If an error is present it owns the slot and the
+   informational summary is suppressed until the error is cleared. */
+app-home-v71 .planner .field-grid {
+  padding-bottom: 2.75rem;
+}
+
+app-home-v71 .planner .planner-error,
+app-home-v71 .planner .planner-summary {
+  display: flex;
+  min-height: 2.15rem;
+  align-items: center;
+  margin: -2.4rem 0 .25rem !important;
+}
+
+app-home-v71 .planner .planner-error + .planner-summary {
+  display: none;
+}
+
+app-home-v71 .planner select,
+app-home-v71 .planner input,
+app-home-v71 .planner button,
+app-home-v71 .planner app-accessible-native-date {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Installed PWA surfaces use the dynamic viewport and never inherit browser-tab
    overscroll behavior. Safe areas are consumed by the fixed navbar/dock rather
    than padding the whole body, which previously risked double top offsets. */

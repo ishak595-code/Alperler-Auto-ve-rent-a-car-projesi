@@ -49,8 +49,11 @@ const invariants = [
   ['onDayKeydown', 'calendar buttons must support keyboard date navigation'],
   ['moveActiveDate', 'calendar navigation must use one deterministic focus movement path'],
   ['focusDate', 'calendar must focus the exact target date button'],
-  ['afterRender(() => this.triggerButton?.nativeElement.focus())', 'closing the calendar must restore focus after Angular has rendered'],
+  ['afterRender(() => this.triggerButton?.nativeElement.focus({ preventScroll: true }))', 'closing the calendar must restore focus without moving the mobile viewport'],
+  ['day.focus({ preventScroll: true })', 'calendar day focus must not scroll the mobile viewport'],
   ['afterRender(() => this.focusDate(initial))', 'opening the calendar must focus the initial date after Angular has rendered'],
+  ['touch-action:manipulation', 'date controls must use stable mobile tap handling'],
+  ['overscroll-behavior:contain', 'calendar dialog must contain mobile overscroll'],
   ['<strong>Tarihi seç</strong>', 'the visible control itself must permanently say Tarihi seç'],
   ['color:var(--alper-muted,#b9c3d2)', 'calendar secondary text must use the accessible premium muted token'],
 ];
@@ -67,6 +70,7 @@ const forbidden = [
   ['role="grid"', 'calendar must not reintroduce an ARIA grid when native buttons provide the required semantics'],
   ['role="gridcell"', 'calendar must not reintroduce gridcell required-parent complexity'],
   ['queueMicrotask(() => this.focusActiveDay())', 'opening the dialog may not focus before Angular renders the @if block'],
+  ['transform:translateY(1px)', 'pointer press must not shift date-control geometry'],
 ];
 for (const [needle, message] of forbidden) {
   if (dateComponent.includes(needle)) failures.push(message);
@@ -80,4 +84,4 @@ if (failures.length) {
   console.error(failures.join("\n"));
   process.exit(1);
 }
-console.log("Date-control guard passed: semantic Tarihi seç trigger, named native date buttons, deterministic focus, modal focus return, accessible contrast tokens, and no Chromium native date proxy.");
+console.log("Date-control guard passed: semantic Tarihi seç trigger, named native date buttons, deterministic no-scroll focus, modal focus return, stable touch geometry, accessible contrast tokens, and no Chromium native date proxy.");

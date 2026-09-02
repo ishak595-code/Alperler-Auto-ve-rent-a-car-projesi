@@ -172,8 +172,12 @@ export class AccountDashboardV150Component implements OnInit {
 
   async reload(): Promise<void> {
     this.pageError.set('');
-    try { await this.account.refresh(); }
-    catch { this.pageError.set('Hesap bilgileriniz şu anda yenilenemedi. Lütfen bağlantınızı kontrol edip tekrar deneyin.'); }
+    try {
+      await this.account.refresh();
+      if (this.account.partialRefresh()) this.pageError.set('Hesabınız açıldı ancak bazı ek bilgiler şu anda güncellenemedi. Lütfen biraz sonra tekrar deneyin.');
+    } catch {
+      this.pageError.set('Hesap bilgileriniz şu anda yenilenemedi. Lütfen tekrar deneyin.');
+    }
   }
 
   toggleLoyalty(): void { this.loyaltyOpen.update((value) => !value); }

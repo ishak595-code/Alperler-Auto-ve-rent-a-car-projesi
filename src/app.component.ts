@@ -25,9 +25,6 @@ import { BookingSuccessOverlayComponent } from './components/booking-success-ove
       <app-runtime-status-gate></app-runtime-status-gate>
     }
   `,
-  styles: [`
-    a[href="/admin/login"]{display:none!important}
-  `],
 })
 export class AppComponent implements OnInit {
   themeService = inject(ThemeService);

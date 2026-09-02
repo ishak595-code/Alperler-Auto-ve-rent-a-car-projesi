@@ -65,14 +65,16 @@ Important route owners:
 - `/fleet/:id` -> `RentalDetailShellComponent` -> `CarDetailComponent`
 - `/sales` -> `SalesResultsComponent` -> active `SalesShowcaseV168Component`
 - `/sales/:id` -> `SaleDetailShellComponent` -> `SaleCarDetailComponent`
-- `/tours` -> `ToursComponent` -> active `TourShowcaseV170Component`
+- `/tours` -> `ToursComponent` -> active `TourCatalogV217Component`
 - `/tour/:id` -> `TourDetailShellComponent` -> `TourDetailComponent`
 - `/blog/:id` -> `BlogDetailComponent`
 - `/list-your-car` -> `ListYourCarComponent` -> active `ListYourCarV172Component`
 - `/branch-partner` -> active `BranchPartnerV171Component`
 - `/account` -> `AccountShellComponent` -> active `AccountDashboardV150Component`
 
-The stable wrapper is the public contract. A versioned component can still be the active production implementation. Never delete a file only because its name contains V150, V167, V168, V170, V171 or V172.
+The stable wrapper is the public contract. A versioned component can still be the active production implementation. Never delete a file only because its name contains a historical release suffix. Confirm the canonical route owner and its current imports before removing or reviving any component.
+
+The obsolete V170 tour listing layer (`TourShowcaseV170Component` and `TourPublicDataV170Service`) has been retired. Do not recreate or reconnect it. V170 tour demand and booking services remain active technology inside the canonical tour-detail reservation flow and must not be confused with the retired listing layer.
 
 ## Homepage and live content
 
@@ -80,11 +82,9 @@ The stable wrapper is the public contract. A versioned component can still be th
 
 Live entity ownership:
 
-- rental and sale vehicles -> `CarService`
-- tours -> `CarService`
-- campaigns -> `CampaignService`
-- branches -> `BranchService`
-- homepage ordering -> `HomepageLayoutService`
+- homepage rental, sale, tour, blog, campaign and branch catalogue rows -> `ScalablePublicCatalogV217Service`
+- campaign social-proof refresh and campaign interaction helpers -> `CampaignService`
+- homepage ordering and placement resolution -> `HomepageLayoutService`
 - realtime refresh -> `PublicContentRealtimeService`
 
 Do not hardcode catalogue arrays into the homepage. Admin-managed data must remain the source of truth.

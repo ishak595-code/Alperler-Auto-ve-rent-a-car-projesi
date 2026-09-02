@@ -1,8 +1,13 @@
-import { Component, inject, OnInit, signal } from "@angular/core";
 import { CommonModule, Location } from "@angular/common";
+import { Component, OnInit, computed, inject, signal } from "@angular/core";
 import { ActivatedRoute, Router, RouterModule } from "@angular/router";
-import { CarService } from "../services/car.service";
 import { MatIconModule } from "@angular/material/icon";
+import { CarService } from "../services/car.service";
+
+interface LegalDocumentContent {
+  title: string;
+  content: string;
+}
 
 @Component({
   selector:"app-legal",standalone:true,imports:[CommonModule,MatIconModule,RouterModule],
@@ -13,7 +18,37 @@ import { MatIconModule } from "@angular/material/icon";
   `
 })
 export class LegalComponent implements OnInit {
-  private readonly route=inject(ActivatedRoute);private readonly router=inject(Router);private readonly carService=inject(CarService);private readonly location=inject(Location);readonly config=this.carService.getConfig();readonly currentType=signal<string|null>(null);readonly title=signal("");readonly content=signal("");
+  private readonly route=inject(ActivatedRoute);
+  private readonly router=inject(Router);
+  private readonly carService=inject(CarService);
+  private readonly location=inject(Location);
+  readonly config=this.carService.getConfig();
+  readonly currentType=signal<string|null>(null);
+
+  private readonly selectedDocument=computed<LegalDocumentContent>(()=>{
+    const type=this.currentType();
+    const cfg=this.config();
+    const docs:Record<string,LegalDocumentContent>={
+      rental:{title:"Araç Kiralama Koşulları",content:cfg.rentalTermsText||""},
+      "hourly-rental":{title:"Saatlik Araç Kiralama Koşulları",content:cfg.hourlyRentalTermsText||""},
+      sales:{title:"İkinci El Satış & İlan Koşulları",content:cfg.salesTermsText||""},
+      tour:{title:"Tur & Transfer Hizmet Koşulları",content:cfg.tourTermsText||""},
+      partner:{title:"Aracını Değerlendir Başvuru Koşulları",content:cfg.partnerTermsText||""},
+      branch:{title:"Şube & Bayilik Başvuru Koşulları",content:cfg.branchTermsText||""},
+      "commercial-communication":{title:"Bülten & Ticari Elektronik İleti Bilgilendirmesi",content:cfg.commercialCommunicationText||""},
+      kvkk:{title:"KVKK Aydınlatma Metni",content:cfg.kvkkText||""},
+      privacy:{title:"Gizlilik Politikası",content:cfg.privacyText||""},
+      cookies:{title:"Çerez Politikası",content:cfg.cookiesText||""},
+      terms:{title:"Genel Kullanım Şartları",content:cfg.termsText||""},
+      "distance-selling":{title:"Mesafeli İşlem Bilgilendirmesi",content:cfg.distanceSellingText||""},
+      cancellation:{title:"İade ve İptal Politikası",content:cfg.cancellationText||""},
+      insurance:{title:"Araç Sigorta ve Sorumluluk Metni",content:cfg.insuranceText||""}
+    };
+    return type&&docs[type]?docs[type]:{title:"Yasal Bilgilendirme",content:""};
+  });
+  readonly title=computed(()=>this.selectedDocument().title);
+  readonly content=computed(()=>this.selectedDocument().content);
+
   readonly documents=[
     {id:"rental",title:"Araç Kiralama Koşulları",icon:"key",path:["/legal"],query:{type:"rental"}},
     {id:"hourly-rental",title:"Saatlik Araç Kiralama Koşulları",icon:"schedule",path:["/legal"],query:{type:"hourly-rental"}},
@@ -31,7 +66,15 @@ export class LegalComponent implements OnInit {
     {id:"insurance",title:"Araç Sigorta ve Sorumluluk",icon:"health_and_safety",path:["/legal"],query:{type:"insurance"}},
     {id:"faq",title:"Sıkça Sorulan Sorular",icon:"help_outline",path:["/faq"],query:{}}
   ];
-  ngOnInit():void{this.route.queryParams.subscribe((params)=>{const type=typeof params["type"]==="string"?params["type"]:null;this.currentType.set(type);if(type)this.setContent(type);if(typeof window!=="undefined")window.scrollTo(0,0);});}
-  goBack():void{if(typeof window!=="undefined"&&window.history.length>1)this.location.back();else void this.router.navigate(["/"]);}clearType():void{void this.router.navigate(["/legal"]);}
-  private setContent(type:string):void{const cfg=this.config();const docs:Record<string,{title:string;content:string}>={rental:{title:"Araç Kiralama Koşulları",content:cfg.rentalTermsText||""},"hourly-rental":{title:"Saatlik Araç Kiralama Koşulları",content:cfg.hourlyRentalTermsText||""},sales:{title:"İkinci El Satış & İlan Koşulları",content:cfg.salesTermsText||""},tour:{title:"Tur & Transfer Hizmet Koşulları",content:cfg.tourTermsText||""},partner:{title:"Aracını Değerlendir Başvuru Koşulları",content:cfg.partnerTermsText||""},branch:{title:"Şube & Bayilik Başvuru Koşulları",content:cfg.branchTermsText||""},"commercial-communication":{title:"Bülten & Ticari Elektronik İleti Bilgilendirmesi",content:cfg.commercialCommunicationText||""},kvkk:{title:"KVKK Aydınlatma Metni",content:cfg.kvkkText||""},privacy:{title:"Gizlilik Politikası",content:cfg.privacyText||""},cookies:{title:"Çerez Politikası",content:cfg.cookiesText||""},terms:{title:"Genel Kullanım Şartları",content:cfg.termsText||""},"distance-selling":{title:"Mesafeli İşlem Bilgilendirmesi",content:cfg.distanceSellingText||""},cancellation:{title:"İade ve İptal Politikası",content:cfg.cancellationText||""},insurance:{title:"Araç Sigorta ve Sorumluluk Metni",content:cfg.insuranceText||""}};const selected=docs[type]||{title:"Yasal Bilgilendirme",content:""};this.title.set(selected.title);this.content.set(selected.content);}
+
+  ngOnInit():void{
+    this.route.queryParams.subscribe((params)=>{
+      const type=typeof params["type"]==="string"?params["type"]:null;
+      this.currentType.set(type);
+      if(typeof window!=="undefined")window.scrollTo(0,0);
+    });
+  }
+
+  goBack():void{if(typeof window!=="undefined"&&window.history.length>1)this.location.back();else void this.router.navigate(["/"]);}
+  clearType():void{void this.router.navigate(["/legal"]);}
 }

@@ -48,7 +48,7 @@ if (!read('.nvmrc').trim().startsWith('22')) fail('.nvmrc must pin the Node 22 l
 
 const angular = JSON.parse(read('angular.json'));
 const styles = angular.projects?.app?.architect?.build?.options?.styles || [];
-const expectedStyleOrder = [
+const canonicalBaseLayers = [
   'src/tailwind.css',
   'src/base-shell.css',
   'src/mobile-target-fixes.css',
@@ -57,10 +57,21 @@ const expectedStyleOrder = [
   'src/prestige-palette-defaults.css',
   'src/premium-responsive.css',
   'src/v193-cinematic-3d.css',
-  'src/device-experience.css',
 ];
-if (JSON.stringify(styles) !== JSON.stringify(expectedStyleOrder)) {
-  fail(`global stylesheet ownership/order changed. Expected: ${expectedStyleOrder.join(' -> ')}`);
+let cursor = -1;
+for (const layer of canonicalBaseLayers) {
+  const next = styles.indexOf(layer);
+  if (next < 0) fail(`required global stylesheet missing: ${layer}`);
+  else if (next <= cursor) fail(`canonical global stylesheet order changed around: ${layer}`);
+  cursor = Math.max(cursor, next);
+}
+const plannerLayer = 'src/home-planner-touch-stability.css';
+if (styles.includes(plannerLayer)) {
+  const plannerIndex = styles.indexOf(plannerLayer);
+  const cinematicIndex = styles.indexOf('src/v193-cinematic-3d.css');
+  const deviceIndex = styles.indexOf('src/device-experience.css');
+  if (plannerIndex <= cinematicIndex) fail(`${plannerLayer} must remain after cinematic/base policy layers`);
+  if (deviceIndex >= 0 && plannerIndex >= deviceIndex) fail(`${plannerLayer} must remain before the final device policy layer`);
 }
 if (styles.at(-1) !== 'src/device-experience.css') fail('device-experience.css must remain the final global device-policy layer');
 

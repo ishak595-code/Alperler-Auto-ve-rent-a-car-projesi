@@ -133,7 +133,9 @@ jobs:
           PARTNER=src/pages/branch-partner-v171.component.ts
           ADMIN=src/pages/admin/admin-branch-partner-requests.component.ts
           DUE=supabase/migrations/20260902234500_v237_branch_onboarding_due_diligence_and_listing_limits.sql
-          test -f "$PARTNER" && test -f "$ADMIN" && test -f "$DUE"
+          DB_GUARD=supabase/migrations/20260903121000_v237_branch_due_diligence_db_guard.sql
+          EDGE=supabase/functions/branch-partner-v164/index.ts
+          test -f "$PARTNER" && test -f "$ADMIN" && test -f "$DUE" && test -f "$DB_GUARD" && test -f "$EDGE"
           grep -Fq 'İşletme / Ticari Unvan *' "$PARTNER"
           grep -Fq 'businessType:this.businessType' "$PARTNER"
           grep -Fq 'taxOffice:this.taxOffice.trim()' "$PARTNER"
@@ -143,7 +145,10 @@ jobs:
           grep -Fq 'currentBusiness:this.businessName.trim()' "$PARTNER"
           grep -Fq 'dueDiligenceReady' "$ADMIN"
           grep -Fq 'Ticari Doğrulama' "$ADMIN"
-          grep -Fq 'BRANCH_DUE_DILIGENCE_REQUIRED' "$DUE"
+          grep -Fq 'BUSINESS_DUE_DILIGENCE_REQUIRED' "$EDGE"
+          grep -Fq 'BRANCH_DUE_DILIGENCE_REQUIRED' "$DB_GUARD"
+          grep -Fq 'branch_partner_approval_due_diligence_v237' "$DB_GUARD"
+          grep -Fq 'branch_provision_due_diligence_v237' "$DB_GUARD"
           test -f src/pages/admin/admin-branch-identities-v171.component.ts
           test -f src/pages/admin/admin-branch-moderation-v171.component.ts
           test -f src/pages/admin/admin-branch-subscriptions-v171.component.ts

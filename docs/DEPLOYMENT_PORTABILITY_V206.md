@@ -120,6 +120,18 @@ For Vercel or a compatible serverless host:
 - preserve PWA static asset headers/service-worker scope behavior;
 - preserve hashed production assets.
 
+For a generic Node/Express host, VPS, container platform or a hosting service that can run a persistent Node process, the repository contains the portable runtime in `server.ts`:
+
+```bash
+npm ci
+npm run build
+npm start
+```
+
+The host must provide Node.js 22, the required environment variables and a `PORT` value when its platform requires one. `server.ts` serves the built Angular application, the SPA fallback and the same-origin `/api/*` routes, so these application APIs are not dependent on Vercel Functions when deployed through this runtime.
+
+A ZIP/source export should contain the repository source, `package-lock.json`, `server.ts`, `api/`, `supabase/migrations/`, `supabase/functions/`, `.env.example` and the documentation. It must not contain a real `.env`, `.vercel/project.json`, service-role key or provider credentials. If the new host keeps using the existing Supabase project, live database/Auth/Storage data stays in Supabase and does not need to be embedded in the ZIP. If the backend is also being moved, migrate database data, Auth configuration and Storage separately using the Supabase recovery/migration procedure.
+
 If moving away from Vercel, reproduce the behavioral contract, not Vercel-specific implementation details blindly.
 
 ## 8. PWA contract after move
@@ -191,6 +203,7 @@ Critical behavior:
 - catalogue lists load live content;
 - one rental, sale, tour and blog detail resolves;
 - images/media resolve;
+- feedback opens on the first interaction as a stable full-screen dialog and closes by its close control and Escape;
 - admin login preserves intended return URL;
 - customer login/account route works;
 - PWA assets resolve;

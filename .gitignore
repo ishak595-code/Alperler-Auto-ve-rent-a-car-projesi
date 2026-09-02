@@ -14,6 +14,12 @@ dist-ssr/
 .angular/
 *.tsbuildinfo
 
+# Local secrets and hosting-account bindings never belong in the portable source tree
+.env
+.env.*
+!.env.example
+.vercel/
+
 # Never commit packaged source/deployment archives
 *.zip
 public/*.zip

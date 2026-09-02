@@ -22,6 +22,10 @@ updates:
           - "minor"
       production-runtime:
         dependency-type: "production"
+        # Angular is intentionally owned only by angular-framework above. Keep it
+        # out of the broad production group even if Dependabot reuses older PR state.
+        exclude-patterns:
+          - "@angular/*"
         update-types:
           - "patch"
           - "minor"

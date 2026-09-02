@@ -4,23 +4,8 @@ import { FormsModule } from "@angular/forms";
 import { UiService } from "../services/ui.service";
 
 type FeedbackCategory = "BUG" | "FEATURE" | "GENERAL" | "CONTENT" | "OTHER";
-
-interface FeedbackStoreResponse {
-  ok?: boolean;
-  stored?: boolean;
-  reference?: string;
-  code?: string;
-}
-
-interface BodyStyleSnapshot {
-  overflow: string;
-  position: string;
-  top: string;
-  left: string;
-  right: string;
-  width: string;
-  paddingRight: string;
-}
+interface FeedbackStoreResponse { ok?: boolean; stored?: boolean; reference?: string; code?: string; }
+interface BodyStyleSnapshot { overflow:string; position:string; top:string; left:string; right:string; width:string; paddingRight:string; }
 
 @Component({
   selector: "app-feedback",
@@ -29,26 +14,11 @@ interface BodyStyleSnapshot {
   template: `
     @if (uiService.isFeedbackOpen()) {
       <div class="feedback-layer" role="presentation">
-        <section
-          id="feedback-dialog"
-          class="panel"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="feedback-title"
-          aria-describedby="feedback-subtitle"
-          tabindex="-1"
-          (keydown)="onDialogKeydown($event)"
-        >
+        <section id="feedback-dialog" class="panel" role="dialog" aria-modal="true" aria-labelledby="feedback-title" aria-describedby="feedback-subtitle" tabindex="-1" (keydown)="onDialogKeydown($event)">
           <header class="panel-head">
-            <div class="panel-head-copy">
-              <h2 id="feedback-title">{{ t().feedback.title }}</h2>
-              <p id="feedback-subtitle">{{ t().feedback.subtitle }}</p>
-            </div>
-            <button type="button" (click)="close()" class="close-button" aria-label="Geri bildirimi kapat">
-              <span aria-hidden="true">×</span>
-            </button>
+            <div class="panel-head-copy"><h2 id="feedback-title">{{ t().feedback.title }}</h2><p id="feedback-subtitle">{{ t().feedback.subtitle }}</p></div>
+            <button type="button" (click)="close()" class="close-button" aria-label="Geri bildirimi kapat"><span aria-hidden="true">×</span></button>
           </header>
-
           <div class="panel-content">
             @if (!isSuccess()) {
               <form (submit)="submitFeedback($event)" class="feedback-form" novalidate>
@@ -60,57 +30,14 @@ interface BodyStyleSnapshot {
                   <label class="field"><span>Telefon</span><input [(ngModel)]="phone" name="feedbackPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="40" required /></label>
                   <label class="field"><span>E-posta</span><input [(ngModel)]="email" name="feedbackEmail" type="email" inputmode="email" autocomplete="email" maxlength="160" required /></label>
                 </div>
-
-                <label class="field">
-                  <span>{{ t().feedback.category }}</span>
-                  <select [(ngModel)]="category" name="feedbackCategory" aria-label="Geri bildirim kategorisi">
-                    <option value="GENERAL">{{ t().feedback.categories.GENERAL }}</option>
-                    <option value="BUG">{{ t().feedback.categories.BUG }}</option>
-                    <option value="FEATURE">{{ t().feedback.categories.FEATURE }}</option>
-                    <option value="CONTENT">{{ t().feedback.categories.CONTENT }}</option>
-                    <option value="OTHER">{{ t().feedback.categories.OTHER }}</option>
-                  </select>
-                </label>
-
-                <fieldset class="rating-field">
-                  <legend>{{ t().feedback.rating }}</legend>
-                  <div class="rating-row">
-                    @for (star of [1, 2, 3, 4, 5]; track star) {
-                      <button
-                        type="button"
-                        (click)="rating.set(star)"
-                        [attr.aria-label]="star + ' yıldız'"
-                        [attr.aria-pressed]="rating() === star"
-                        [class.selected]="star <= rating()"
-                        class="star-button"
-                      >
-                        <span aria-hidden="true">★</span>
-                      </button>
-                    }
-                  </div>
-                </fieldset>
-
-                <label class="field">
-                  <span>{{ t().feedback.message }}</span>
-                  <textarea [(ngModel)]="message" name="feedbackMessage" rows="5" maxlength="3000" [placeholder]="t().feedback.placeholder" required></textarea>
-                </label>
-
-                @if (errorMessage()) {
-                  <p class="form-error" role="alert">{{ errorMessage() }}</p>
-                }
-
-                <button type="submit" [disabled]="submitting() || !isValid()" class="submit-button">
-                  {{ submitting() ? 'Kaydediliyor' : t().feedback.submit }}
-                </button>
+                <label class="field"><span>{{ t().feedback.category }}</span><select [(ngModel)]="category" name="feedbackCategory" aria-label="Geri bildirim kategorisi"><option value="GENERAL">{{ t().feedback.categories.GENERAL }}</option><option value="BUG">{{ t().feedback.categories.BUG }}</option><option value="FEATURE">{{ t().feedback.categories.FEATURE }}</option><option value="CONTENT">{{ t().feedback.categories.CONTENT }}</option><option value="OTHER">{{ t().feedback.categories.OTHER }}</option></select></label>
+                <fieldset class="rating-field"><legend>{{ t().feedback.rating }}</legend><div class="rating-row">@for (star of [1,2,3,4,5]; track star) {<button type="button" (click)="rating.set(star)" [attr.aria-label]="star + ' yıldız'" [attr.aria-pressed]="rating() === star" [class.selected]="star <= rating()" class="star-button"><span aria-hidden="true">★</span></button>}</div></fieldset>
+                <label class="field"><span>{{ t().feedback.message }}</span><textarea [(ngModel)]="message" name="feedbackMessage" rows="5" maxlength="3000" [placeholder]="t().feedback.placeholder" required></textarea></label>
+                @if (errorMessage()) {<p class="form-error" role="alert">{{ errorMessage() }}</p>}
+                <button type="submit" [disabled]="submitting() || !isValid()" class="submit-button">{{ submitting() ? 'Kaydediliyor' : t().feedback.submit }}</button>
               </form>
             } @else {
-              <div class="success-state" role="status" aria-live="polite">
-                <div class="success-icon" aria-hidden="true">✓</div>
-                <h3>{{ t().feedback.success }}</h3>
-                <p>Görüşünüz güvenli şekilde kaydedildi ve ekibimizin mesaj kutusuna iletildi.</p>
-                @if (reference()) { <strong>Referans: {{ reference() }}</strong> }
-                <button type="button" (click)="close()">Kapat</button>
-              </div>
+              <div class="success-state" role="status" aria-live="polite"><div class="success-icon" aria-hidden="true">✓</div><h3>{{ t().feedback.success }}</h3><p>Görüşünüz güvenli şekilde kaydedildi ve ekibimizin mesaj kutusuna iletildi.</p>@if (reference()) {<strong>Referans: {{ reference() }}</strong>}<button type="button" (click)="close()">Kapat</button></div>
             }
           </div>
         </section>
@@ -122,188 +49,20 @@ interface BodyStyleSnapshot {
   `],
 })
 export class FeedbackComponent implements OnDestroy {
-  readonly uiService = inject(UiService);
-  readonly t = this.uiService.translations;
-  private readonly document = inject(DOCUMENT);
+  readonly uiService=inject(UiService); readonly t=this.uiService.translations; private readonly document=inject(DOCUMENT);
+  category:FeedbackCategory="GENERAL"; rating=signal(5); name=""; surname=""; phone=""; email=""; message="";
+  readonly isSuccess=signal(false); readonly submitting=signal(false); readonly errorMessage=signal(""); readonly reference=signal("");
+  private submissionKey=crypto.randomUUID(); private modalActive=false; private modalScrollY=0; private previousFocus:HTMLElement|null=null; private bodyStyleSnapshot:BodyStyleSnapshot|null=null;
+  private readonly modalLifecycle=effect(()=>{const open=this.uiService.isFeedbackOpen();if(typeof window==="undefined")return;if(open)this.activateModal();else this.deactivateModal();});
 
-  category: FeedbackCategory = "GENERAL";
-  rating = signal(5);
-  name = "";
-  surname = "";
-  phone = "";
-  email = "";
-  message = "";
-  readonly isSuccess = signal(false);
-  readonly submitting = signal(false);
-  readonly errorMessage = signal("");
-  readonly reference = signal("");
-  private submissionKey = crypto.randomUUID();
-  private modalActive = false;
-  private modalScrollY = 0;
-  private previousFocus: HTMLElement | null = null;
-  private bodyStyleSnapshot: BodyStyleSnapshot | null = null;
-
-  private readonly modalLifecycle = effect(() => {
-    const open = this.uiService.isFeedbackOpen();
-    if (typeof window === "undefined") return;
-    if (open) this.activateModal();
-    else this.deactivateModal();
-  });
-
-  isValid(): boolean {
-    return Boolean(
-      this.name.trim().length >= 2 &&
-      this.surname.trim().length >= 2 &&
-      /^[+0-9()\s-]{7,24}$/.test(this.phone.trim()) &&
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email.trim()) &&
-      this.message.trim().length >= 2
-    );
-  }
-
-  async submitFeedback(event: Event): Promise<void> {
-    event.preventDefault();
-    if (!this.isValid() || this.submitting()) return;
-    this.submitting.set(true);
-    this.errorMessage.set("");
-    try {
-      const categoryLabel = this.categoryLabel(this.category);
-      const storedMessage = `GERİ BİLDİRİM\nKategori: ${categoryLabel}\nPuan: ${this.rating()}/5\n\n${this.message.trim()}`;
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          name: this.name.trim(),
-          surname: this.surname.trim(),
-          phone: this.phone.trim(),
-          email: this.email.trim(),
-          message: storedMessage,
-          idempotencyKey: this.submissionKey,
-        }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as FeedbackStoreResponse;
-      if (!response.ok || !payload.ok || !payload.stored) throw new Error(payload.code || "FEEDBACK_STORE_FAILED");
-
-      this.reference.set(payload.reference || "");
-      this.isSuccess.set(true);
-    } catch (error) {
-      console.error("Feedback store failed", error);
-      this.errorMessage.set("Geri bildirim kaydedilemedi. Lütfen tekrar deneyin.");
-    } finally {
-      this.submitting.set(false);
-    }
-  }
-
-  close(): void {
-    if (!this.uiService.isFeedbackOpen()) return;
-    this.uiService.closeFeedback();
-    this.reset();
-  }
-
-  @HostListener("document:keydown.escape", ["$event"])
-  onEscape(event: KeyboardEvent): void {
-    if (!this.uiService.isFeedbackOpen()) return;
-    event.preventDefault();
-    event.stopPropagation();
-    this.close();
-  }
-
-  onDialogKeydown(event: KeyboardEvent): void {
-    if (event.key !== "Tab") return;
-    const panel = this.document.getElementById("feedback-dialog");
-    if (!panel) return;
-    const focusable = Array.from(
-      panel.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
-      )
-    ).filter((element) => element.getClientRects().length > 0);
-    if (!focusable.length) {
-      event.preventDefault();
-      panel.focus({ preventScroll: true });
-      return;
-    }
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    const active = this.document.activeElement;
-    if (event.shiftKey && active === first) {
-      event.preventDefault();
-      last.focus({ preventScroll: true });
-    } else if (!event.shiftKey && active === last) {
-      event.preventDefault();
-      first.focus({ preventScroll: true });
-    }
-  }
-
-  ngOnDestroy(): void {
-    this.modalLifecycle.destroy();
-    this.deactivateModal(false);
-  }
-
-  private activateModal(): void {
-    if (this.modalActive) return;
-    this.modalActive = true;
-    this.modalScrollY = window.scrollY;
-    this.previousFocus = this.document.activeElement instanceof HTMLElement ? this.document.activeElement : null;
-    const body = this.document.body;
-    this.bodyStyleSnapshot = {
-      overflow: body.style.overflow,
-      position: body.style.position,
-      top: body.style.top,
-      left: body.style.left,
-      right: body.style.right,
-      width: body.style.width,
-      paddingRight: body.style.paddingRight,
-    };
-    const scrollbarGap = Math.max(0, window.innerWidth - this.document.documentElement.clientWidth);
-    body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `-${this.modalScrollY}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.width = "100%";
-    if (scrollbarGap > 0) body.style.paddingRight = `${scrollbarGap}px`;
-    this.document.documentElement.dataset["feedbackModalOpen"] = "true";
-    window.requestAnimationFrame(() => {
-      this.document.getElementById("feedback-dialog")?.focus({ preventScroll: true });
-    });
-  }
-
-  private deactivateModal(restoreFocus = true): void {
-    if (!this.modalActive) return;
-    this.modalActive = false;
-    const body = this.document.body;
-    const snapshot = this.bodyStyleSnapshot;
-    if (snapshot) {
-      body.style.overflow = snapshot.overflow;
-      body.style.position = snapshot.position;
-      body.style.top = snapshot.top;
-      body.style.left = snapshot.left;
-      body.style.right = snapshot.right;
-      body.style.width = snapshot.width;
-      body.style.paddingRight = snapshot.paddingRight;
-    }
-    delete this.document.documentElement.dataset["feedbackModalOpen"];
-    window.scrollTo(0, this.modalScrollY);
-    if (restoreFocus && this.previousFocus?.isConnected) this.previousFocus.focus({ preventScroll: true });
-    this.previousFocus = null;
-    this.bodyStyleSnapshot = null;
-  }
-
-  private reset(): void {
-    this.category = "GENERAL";
-    this.rating.set(5);
-    this.name = "";
-    this.surname = "";
-    this.phone = "";
-    this.email = "";
-    this.message = "";
-    this.isSuccess.set(false);
-    this.submitting.set(false);
-    this.errorMessage.set("");
-    this.reference.set("");
-    this.submissionKey = crypto.randomUUID();
-  }
-
-  private categoryLabel(category: FeedbackCategory): string {
-    return ({ BUG: "Hata", FEATURE: "Özellik Önerisi", GENERAL: "Genel", CONTENT: "İçerik", OTHER: "Diğer" } as Record<FeedbackCategory, string>)[category];
-  }
+  isValid():boolean{return Boolean(this.name.trim().length>=2&&this.surname.trim().length>=2&&/^[+0-9()\s-]{7,24}$/.test(this.phone.trim())&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email.trim())&&this.message.trim().length>=2);}
+  async submitFeedback(event:Event):Promise<void>{event.preventDefault();if(!this.isValid()||this.submitting())return;this.submitting.set(true);this.errorMessage.set("");try{const categoryLabel=this.categoryLabel(this.category);const storedMessage=`GERİ BİLDİRİM\nKategori: ${categoryLabel}\nPuan: ${this.rating()}/5\n\n${this.message.trim()}`;const response=await fetch("/api/contact",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:this.name.trim(),surname:this.surname.trim(),phone:this.phone.trim(),email:this.email.trim(),message:storedMessage,idempotencyKey:this.submissionKey})});const payload=(await response.json().catch(()=>({}))) as FeedbackStoreResponse;if(!response.ok||!payload.ok||!payload.stored)throw new Error(payload.code||"FEEDBACK_STORE_FAILED");this.reference.set(payload.reference||"");this.isSuccess.set(true);}catch(error){console.error("Feedback store failed",error);this.errorMessage.set("Geri bildirim kaydedilemedi. Lütfen tekrar deneyin.");}finally{this.submitting.set(false);}}
+  close():void{if(!this.uiService.isFeedbackOpen())return;this.uiService.toggleFeedback(false);this.reset();}
+  @HostListener("document:keydown.escape",["$event"]) onEscape(event:KeyboardEvent):void{if(!this.uiService.isFeedbackOpen())return;event.preventDefault();event.stopPropagation();this.close();}
+  onDialogKeydown(event:KeyboardEvent):void{if(event.key!=="Tab")return;const panel=this.document.getElementById("feedback-dialog");if(!panel)return;const focusable=Array.from(panel.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')).filter(element=>element.getClientRects().length>0);if(!focusable.length){event.preventDefault();panel.focus({preventScroll:true});return;}const first=focusable[0],last=focusable[focusable.length-1],active=this.document.activeElement;if(event.shiftKey&&active===first){event.preventDefault();last.focus({preventScroll:true});}else if(!event.shiftKey&&active===last){event.preventDefault();first.focus({preventScroll:true});}}
+  ngOnDestroy():void{this.modalLifecycle.destroy();this.deactivateModal(false);}
+  private activateModal():void{if(this.modalActive)return;this.modalActive=true;this.modalScrollY=window.scrollY;this.previousFocus=this.document.activeElement instanceof HTMLElement?this.document.activeElement:null;const body=this.document.body;this.bodyStyleSnapshot={overflow:body.style.overflow,position:body.style.position,top:body.style.top,left:body.style.left,right:body.style.right,width:body.style.width,paddingRight:body.style.paddingRight};const scrollbarGap=Math.max(0,window.innerWidth-this.document.documentElement.clientWidth);body.style.overflow="hidden";body.style.position="fixed";body.style.top=`-${this.modalScrollY}px`;body.style.left="0";body.style.right="0";body.style.width="100%";if(scrollbarGap>0)body.style.paddingRight=`${scrollbarGap}px`;this.document.documentElement.dataset["feedbackModalOpen"]="true";window.requestAnimationFrame(()=>this.document.getElementById("feedback-dialog")?.focus({preventScroll:true}));}
+  private deactivateModal(restoreFocus=true):void{if(!this.modalActive)return;this.modalActive=false;const body=this.document.body,snapshot=this.bodyStyleSnapshot;if(snapshot){body.style.overflow=snapshot.overflow;body.style.position=snapshot.position;body.style.top=snapshot.top;body.style.left=snapshot.left;body.style.right=snapshot.right;body.style.width=snapshot.width;body.style.paddingRight=snapshot.paddingRight;}delete this.document.documentElement.dataset["feedbackModalOpen"];window.scrollTo(0,this.modalScrollY);if(restoreFocus&&this.previousFocus?.isConnected)this.previousFocus.focus({preventScroll:true});this.previousFocus=null;this.bodyStyleSnapshot=null;}
+  private reset():void{this.category="GENERAL";this.rating.set(5);this.name="";this.surname="";this.phone="";this.email="";this.message="";this.isSuccess.set(false);this.submitting.set(false);this.errorMessage.set("");this.reference.set("");this.submissionKey=crypto.randomUUID();}
+  private categoryLabel(category:FeedbackCategory):string{return({BUG:"Hata",FEATURE:"Özellik Önerisi",GENERAL:"Genel",CONTENT:"İçerik",OTHER:"Diğer"} as Record<FeedbackCategory,string>)[category];}
 }

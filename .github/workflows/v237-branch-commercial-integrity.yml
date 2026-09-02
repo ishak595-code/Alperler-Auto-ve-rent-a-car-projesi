@@ -6,8 +6,11 @@ on:
     paths:
       - "src/pages/branch-plans-v171.component.ts"
       - "src/pages/branch-subscription-v171.component.ts"
+      - "src/pages/branch-directory-v171.component.ts"
+      - "src/pages/branch-detail-v171.component.ts"
       - "src/pages/admin/admin-branch-subscriptions-v171.component.ts"
       - "src/services/branch-subscription-v171.service.ts"
+      - "src/services/branch-communication.service.ts"
       - "supabase/migrations/20260903*_v237_*.sql"
       - ".github/workflows/v237-branch-commercial-integrity.yml"
   workflow_dispatch:
@@ -56,6 +59,21 @@ jobs:
           grep -Fq 'this.adminGrantOnly(plan)?0:' "$ADMIN"
           grep -Fq 'Aktif İlan Hakkı' "$PORTAL"
           grep -Fq 'Taslak ve merkez incelemesindeki ilanlar aktif ilan hakkından düşmez' "$PORTAL"
+
+      - name: Branch communication routes stay canonical and safe
+        shell: bash
+        run: |
+          set -euo pipefail
+          COMM=src/services/branch-communication.service.ts
+          test -f "$COMM"
+          grep -Fq 'https://wa.me/' "$COMM"
+          grep -Fq 'emailUrl' "$COMM"
+          grep -Fq 'httpsUrl' "$COMM"
+          grep -Fq 'BranchCommunicationService' src/pages/branch-directory-v171.component.ts
+          grep -Fq 'BranchCommunicationService' src/pages/branch-detail-v171.component.ts
+          ! grep -Fq "'tel:'+branch.phone" src/pages/branch-directory-v171.component.ts
+          ! grep -Fq "'tel:'+current.phone" src/pages/branch-detail-v171.component.ts
+          ! grep -Fq 'whatsappUrl(value:string)' src/pages/branch-detail-v171.component.ts
 
       - name: TypeScript and production build
         run: |

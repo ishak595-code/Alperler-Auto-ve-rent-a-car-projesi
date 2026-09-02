@@ -74,6 +74,8 @@ Important route owners:
 
 The stable wrapper is the public contract. A versioned component can still be the active production implementation. Never delete a file only because its name contains a historical release suffix. Confirm the canonical route owner and its current imports before removing or reviving any component.
 
+The obsolete V170 tour listing layer (`TourShowcaseV170Component` and `TourPublicDataV170Service`) has been retired. Do not recreate or reconnect it. V170 tour demand and booking services remain active technology inside the canonical tour-detail reservation flow and must not be confused with the retired listing layer.
+
 ## Homepage and live content
 
 `HomeV71Component` owns the hero and quick planner. `HomepageLayoutService` owns section order and placements from Supabase. `DynamicHomeSectionComponent` renders live catalogue entities.

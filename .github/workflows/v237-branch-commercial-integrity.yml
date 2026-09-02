@@ -12,6 +12,7 @@ on:
       - "src/services/branch-subscription-v171.service.ts"
       - "src/services/branch-communication.service.ts"
       - "supabase/migrations/20260903*_v237_*.sql"
+      - "supabase/functions/branch-partner-v164/index.ts"
       - ".github/workflows/v237-branch-commercial-integrity.yml"
   workflow_dispatch:
 
@@ -49,6 +50,19 @@ jobs:
           grep -Fq "my_branch_listing_usage_v237" "$USAGE"
           grep -Fq "security invoker" "$INVOKER"
           grep -Fq "m.user_id = auth.uid()" "$INVOKER"
+
+      - name: Due diligence is enforced at edge and database boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB_GUARD=supabase/migrations/20260903121000_v237_branch_due_diligence_db_guard.sql
+          EDGE=supabase/functions/branch-partner-v164/index.ts
+          test -f "$DB_GUARD" && test -f "$EDGE"
+          grep -Fq 'BUSINESS_DUE_DILIGENCE_REQUIRED' "$EDGE"
+          grep -Fq 'BRANCH_DUE_DILIGENCE_REQUIRED' "$DB_GUARD"
+          grep -Fq 'branch_partner_approval_due_diligence_v237' "$DB_GUARD"
+          grep -Fq 'branch_provision_due_diligence_v237' "$DB_GUARD"
+          grep -Fq 'old.status is distinct from' "$DB_GUARD"
 
       - name: Public discovery hides discretionary grant
         shell: bash

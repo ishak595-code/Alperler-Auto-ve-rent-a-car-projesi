@@ -52,14 +52,29 @@ if (!detail.includes('isAvailable: row["is_active"] === true')) {
   failures.push("Tour detail availability must not reject RLS-visible scheduled tours.");
 }
 
-const legacyTour = read("src/services/tour-public-data-v170.service.ts");
-for (const forbidden of ["SUPABASE_PROJECT_URL", "SUPABASE_PUBLISHABLE_KEY", "fetch("]) {
-  if (legacyTour.includes(forbidden)) {
-    failures.push(`V170 tour compatibility adapter must not own a parallel database source: ${forbidden}`);
-  }
+// Current tour list ownership is the bounded V217 security-invoker catalog. The old
+// V170 list adapter is retired and must not return. V170 booking and demand services
+// remain part of canonical tour detail and are checked by the tour integrity gates.
+for (const retired of [
+  "src/pages/tour-showcase-v170.component.ts",
+  "src/services/tour-public-data-v170.service.ts",
+]) {
+  if (existsSync(join(root, retired))) failures.push(`Retired tour listing source must stay deleted: ${retired}`);
 }
-for (const required of ["inject(CarService)", "refreshCloudCatalog(true)", "getTours()"] ) {
-  if (!legacyTour.includes(required)) failures.push(`V170 tour compatibility adapter must delegate to canonical CarService: ${required}`);
+const toursWrapper = read("src/pages/tours.component.ts");
+const tourCatalog = read("src/pages/tour-catalog-v217.component.ts");
+const scalableCatalog = read("src/services/scalable-public-catalog-v217.service.ts");
+if (!toursWrapper.includes("TourCatalogV217Component") || !toursWrapper.includes("<app-tour-catalog-v217 />")) {
+  failures.push("Canonical tours route must render the V217 tour catalog only.");
+}
+if (!tourCatalog.includes("ScalablePublicCatalogV217Service") || !tourCatalog.includes("pageSize:24")) {
+  failures.push("Canonical tour list must use bounded V217 public catalog hydration.");
+}
+for (const required of ["public_tour_catalog_v217", "TOUR_SELECT", "listTours(", "tourFacets("]) {
+  if (!scalableCatalog.includes(required)) failures.push(`V217 public tour database source contract is missing: ${required}`);
+}
+for (const forbidden of ["/rest/v1/tours?", "publication_status=eq.PUBLISHED"]) {
+  if (tourCatalog.includes(forbidden)) failures.push(`TourCatalogV217Component must not reopen a direct parallel tour source: ${forbidden}`);
 }
 
 const campaign = read("src/services/campaign.service.ts");

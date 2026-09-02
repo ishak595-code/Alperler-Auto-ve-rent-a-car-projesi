@@ -29,6 +29,12 @@
     margin-top: .42rem !important;
     line-height: 1.43 !important;
   }
+
+  /* Fleet already has a dedicated fixed bottom-dock destination on phones.
+     Keep the hamburger focused on destinations that are not already one tap away. */
+  #mobile-navigation a.menu-row[href="/fleet"] {
+    display: none !important;
+  }
 }
 
 /* A rotated phone remains compact even when its CSS viewport crosses the
@@ -61,5 +67,9 @@
   app-home-v71 .field select,
   app-home-v71 .field input {
     min-height: 44px !important;
+  }
+
+  #mobile-navigation a.menu-row[href="/fleet"] {
+    display: none !important;
   }
 }

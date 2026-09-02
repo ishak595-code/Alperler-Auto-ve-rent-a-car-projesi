@@ -17,6 +17,7 @@ const toursWrapper = readFileSync('src/pages/tours.component.ts', 'utf8');
 const tourCatalog = readFileSync('src/pages/tour-catalog-v217.component.ts', 'utf8');
 const publicCatalog = readFileSync('src/services/scalable-public-catalog-v217.service.ts', 'utf8');
 const homepageLayout = readFileSync('src/services/homepage-layout.service.ts', 'utf8');
+const adminCatalog = readFileSync('src/pages/admin/admin-catalog-workspace.component.ts', 'utf8');
 const feedback = readFileSync('src/components/feedback.component.ts', 'utf8');
 const newsletter = readFileSync('src/services/newsletter.service.ts', 'utf8');
 const partner = readFileSync('api/partner.ts', 'utf8');
@@ -69,6 +70,7 @@ requireText(homepageLayout, 'this.catalog.listTours', 'Homepage tour hydration m
 requireText(publicCatalog, 'public_tour_catalog_v217', 'Customer tours must be read from the Supabase public tour catalog.');
 for (const token of ['price_per_person','duration','capacity','location_name','included_items']) requireText(publicCatalog, token, `Public tour catalog must retain decision field: ${token}`);
 for (const token of ['tour.duration','tour.locationName','tour.capacity','Kişi başı']) requireText(tourCatalog, token, `Tour cards must expose the factual decision signal: ${token}`);
+for (const token of ['Fiyata dahil','tour.includedItems.join','tour.includedItems=splitLines','[(ngModel)]="tour.pricePerPerson"','[(ngModel)]="tour.duration"','[(ngModel)]="tour.capacity"','[(ngModel)]="tour.locationName"']) requireText(adminCatalog, token, `Admin tour workspace must retain customer decision-field ownership: ${token}`);
 requireText(tourCatalog, '{{items().length}} tur gösteriliyor', 'Paginated tour catalog must describe the loaded result count truthfully.');
 forbidText(tourCatalog, '{{items().length}} tur bulundu', 'Paginated tour catalog must not present a loaded-page count as the total number of matches.');
 forbidText(tourCatalog, '4.9', 'Tour catalog must not manufacture a fixed rating.');

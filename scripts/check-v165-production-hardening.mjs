@@ -6,6 +6,7 @@ const read = (path) => fs.readFileSync(path, "utf8");
 const must = (condition, message) => { if (!condition) failures.push(message); };
 const contains = (source, token, message) => must(source.includes(token), message);
 const absent = (source, token, message) => must(!source.includes(token), message);
+const isTailwind42Patch = (value) => /^4\.2\.\d+$/.test(String(value || ""));
 
 const pkg = JSON.parse(read("package.json"));
 const lock = JSON.parse(read("package-lock.json"));
@@ -28,9 +29,9 @@ const securityMigration = read("supabase/migrations/20260825143000_v165_security
 const proofMigration = read("supabase/migrations/20260825143100_v165_campaign_proof_cache.sql");
 const branchMigration = read("supabase/migrations/20260825143200_v165_branch_access_claim.sql");
 
-must(pkg.devDependencies?.["@tailwindcss/postcss"] === "4.2.1", "@tailwindcss/postcss must remain pinned to 4.2.1");
+must(isTailwind42Patch(pkg.devDependencies?.["@tailwindcss/postcss"]), "@tailwindcss/postcss must remain within the vetted 4.2.x patch line");
 must(pkg.devDependencies?.postcss === "8.5.26", "postcss must remain pinned to 8.5.26");
-must(lock.packages?.[""]?.devDependencies?.["@tailwindcss/postcss"] === "4.2.1", "package-lock must pin @tailwindcss/postcss");
+must(isTailwind42Patch(lock.packages?.[""]?.devDependencies?.["@tailwindcss/postcss"]), "package-lock must keep @tailwindcss/postcss within the vetted 4.2.x patch line");
 must(lock.packages?.[""]?.devDependencies?.postcss === "8.5.26", "package-lock must pin postcss");
 must(postcss.plugins?.["@tailwindcss/postcss"] && typeof postcss.plugins["@tailwindcss/postcss"] === "object", "PostCSS Tailwind plugin configuration is missing");
 

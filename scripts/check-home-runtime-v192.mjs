@@ -12,6 +12,7 @@ const car = read("src/services/car.service.ts");
 const coordinator = read("src/services/public-content-refresh-coordinator.service.ts");
 const home = read("src/pages/home-v71.component.ts");
 const layout = read("src/components/main-layout.component.ts");
+const feedback = read("src/components/feedback.component.ts");
 
 const staticPageImports = routes
   .split(/\r?\n/)
@@ -128,15 +129,23 @@ for (const forbidden of [
 for (const required of [
   "<app-customer-prefooter-v174>",
   "<app-customer-footer-v70",
-  "@defer (when uiService.isFeedbackOpen(); prefetch on idle)",
-  "<app-feedback>",
+  "<app-feedback></app-feedback>",
 ]) {
   if (!layout.includes(required)) fail(`customer shell contract missing: ${required}`);
+}
+if (layout.includes("@defer (when uiService.isFeedbackOpen()")) {
+  fail("feedback must not lazy-load on the same interaction signal that opens the dialog");
+}
+if (!feedback.includes("@if (uiService.isFeedbackOpen())")) {
+  fail("synchronously mounted feedback component must render no dialog DOM while closed");
+}
+if (!feedback.includes('height:100dvh') || !feedback.includes('body.style.overflow = "hidden"')) {
+  fail("feedback runtime must retain full-screen geometry and scroll-lock stability");
 }
 if (layout.includes("@defer (on viewport")) {
   fail("customer prefooter/footer must not wait for viewport visibility");
 }
 
 if (!process.exitCode) {
-  console.log("V192 homepage runtime OK: lightweight global hydration, bounded route-owned catalogs, interaction-led feedback loading, route code-splitting and deterministic full-page rendering are enforced.");
+  console.log("V192 homepage runtime OK: lightweight global hydration, bounded route-owned catalogs, synchronously mounted signal-gated feedback, route code-splitting and deterministic full-page rendering are enforced.");
 }

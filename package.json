@@ -52,9 +52,9 @@
     "tsx": "^4.21.0"
   },
   "devDependencies": {
-    "@angular/build": "21.2.21",
-    "@angular/cli": "21.2.21",
-    "@angular/compiler-cli": "21.2.21",
+    "@angular/build": "21.2.22",
+    "@angular/cli": "21.2.22",
+    "@angular/compiler-cli": "21.2.22",
     "@tailwindcss/postcss": "4.2.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",

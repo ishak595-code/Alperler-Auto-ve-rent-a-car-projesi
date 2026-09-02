@@ -8,6 +8,9 @@ const failures = [];
 const requireText = (source, needle, message) => {
   if (!source.includes(needle)) failures.push(message);
 };
+const requireMatch = (source, pattern, message) => {
+  if (!pattern.test(source)) failures.push(message);
+};
 const forbidText = (source, needle, message) => {
   if (source.includes(needle)) failures.push(message);
 };
@@ -26,11 +29,11 @@ requireText(checkout, 'paymentSettings.settings().iban', 'EFT UI must render the
 requireText(checkout, 'formattedIban()', 'EFT UI must display normalized IBAN data without inventing an account.');
 forbidText(checkout, '<small>Bilgiler onay sonrası</small>', 'Checkout may not hide configured EFT details behind stale fixed copy.');
 
-requireText(settings, 'bankName:string', 'Payment settings contract must keep a generic bank name field.');
-requireText(settings, 'bankName:this.clean(settings.bankName,160)||null', 'Saving payment settings must accept a generic bank name.');
-requireText(settings, "iban:this.clean(settings.iban,80).replace(/\\s+/g,'').toUpperCase()||null", 'Saving payment settings must normalize IBAN values.');
+requireMatch(settings, /bankName\s*:\s*string\s*;/, 'Payment settings contract must keep a generic bank name field.');
+requireMatch(settings, /bankName\s*:\s*this\.clean\(settings\.bankName\s*,\s*160\)\s*\|\|\s*null/, 'Saving payment settings must accept a generic bank name.');
+requireMatch(settings, /iban\s*:\s*this\.clean\(settings\.iban\s*,\s*80\)\.replace\(\/\\s\+\/g\s*,\s*''\)\.toUpperCase\(\)\s*\|\|\s*null/, 'Saving payment settings must normalize IBAN values.');
 requireText(settings, 'bank_name,iban,account_holder', 'Public payment settings read must include bank transfer details.');
-requireText(settings, "cache:'no-store'", 'Public payment settings must not use stale browser cache.');
+requireMatch(settings, /cache\s*:\s*'no-store'/, 'Public payment settings must not use stale browser cache.');
 
 requireText(admin, '[(ngModel)]="form.bankName"', 'Admin must retain editable bank-name input.');
 requireText(admin, 'name="bankName"', 'Admin bank field must remain a free editable form control.');

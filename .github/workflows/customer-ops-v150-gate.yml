@@ -71,7 +71,7 @@ jobs:
           grep -Fq 'aria-label="Takvimi kapat"' src/components/accessible-native-date.component.ts
           grep -Fq 'onDialogKeydown' src/components/accessible-native-date.component.ts
           grep -Fq 'onDayKeydown' src/components/accessible-native-date.component.ts
-          grep -Fq 'triggerButton?.nativeElement.focus()' src/components/accessible-native-date.component.ts
+          grep -Fq 'focus({ preventScroll: true })' src/components/accessible-native-date.component.ts
           ! grep -Fq 'type="date"' src/components/accessible-native-date.component.ts
           ! grep -Fq 'native-date-control' src/components/accessible-native-date.component.ts
           ! grep -Fq 'showPicker' src/components/accessible-native-date.component.ts
@@ -172,6 +172,8 @@ jobs:
           ! grep -Eq 'cardUserKey|cardToken|utoken|ctoken' src/pages/account-wallet.component.ts src/services/customer-saved-cards-v225.service.ts
           grep -Fq "window.open('about:blank','_blank')" src/services/customer-wallet.service.ts
           grep -Fq 'preview.location.replace(url)' src/services/customer-wallet.service.ts
+          grep -Fq 'customer_documents?id=eq.' src/services/customer-wallet.service.ts
+          grep -Fq 'DOCUMENT_STORAGE_CLEANUP_PENDING' src/services/customer-wallet.service.ts
           ! grep -Fq 'Harcama Görünümüm' src/pages/account-wallet.component.ts
 
       - name: Set up Node.js 22

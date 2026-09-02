@@ -11,6 +11,11 @@ const runtimeStability = readFileSync('src/runtime-stability.css', 'utf8');
 const mainLayout = readFileSync('src/components/main-layout.component.ts', 'utf8');
 const footer = readFileSync('src/components/customer-footer-v70.component.ts', 'utf8');
 const app = readFileSync('src/app.component.ts', 'utf8');
+const routes = readFileSync('src/app.routes.ts', 'utf8');
+const dynamicHome = readFileSync('src/components/dynamic-home-section.component.ts', 'utf8');
+const tourCatalog = readFileSync('src/pages/tour-catalog-v217.component.ts', 'utf8');
+const publicCatalog = readFileSync('src/services/scalable-public-catalog-v217.service.ts', 'utf8');
+const homepageLayout = readFileSync('src/services/homepage-layout.service.ts', 'utf8');
 const feedback = readFileSync('src/components/feedback.component.ts', 'utf8');
 const newsletter = readFileSync('src/services/newsletter.service.ts', 'utf8');
 const partner = readFileSync('api/partner.ts', 'utf8');
@@ -56,8 +61,25 @@ for (const type of ['rental','hourly-rental','sales','tour','partner','branch','
   requireText(legal, `${type}:`.includes('-') ? `"${type}"` : `${type}:`, `Legal customer route contract is missing: ${type}`);
 }
 
-forbidText(dateControl, 'transform:translateY(1px)', 'Date controls must not move geometry on pointer press.');
+requireText(routes, "path: 'tours'", 'Public tour catalog route must remain registered.');
+requireText(routes, "path: 'tour/:id'", 'Public tour detail route must remain registered.');
+requireText(dynamicHome, "section.sectionType==='TOURS'", 'Homepage must retain the dynamic tour section renderer.');
+requireText(dynamicHome, 'class="rail"', 'Homepage tour and vehicle selections must retain the horizontal rail layout contract.');
+requireText(dynamicHome, "this.layout.toursFor(this.section.sectionKey)", 'Homepage tours must be resolved from the live homepage layout service.');
+requireText(homepageLayout, "section.sectionType === 'TOURS'", 'Homepage layout must hydrate tour sections dynamically.');
+requireText(homepageLayout, 'this.catalog.listTours', 'Homepage tour hydration must delegate to the scalable public catalog.');
+requireText(publicCatalog, 'public_tour_catalog_v217', 'Customer tours must be read from the Supabase public tour catalog.');
+for (const token of ['price_per_person', 'duration', 'capacity', 'location_name']) {
+  requireText(publicCatalog, token, `Public tour catalog must retain decision field: ${token}`);
+}
+for (const token of ['tour.duration', 'tour.locationName', 'tour.capacity', 'Kişi başı']) {
+  requireText(tourCatalog, token, `Tour cards must expose the factual decision signal: ${token}`);
+}
+forbidText(tourCatalog, '4.9', 'Tour catalog must not manufacture a fixed rating.');
+forbidText(tourCatalog.toLocaleLowerCase('tr-TR'), '12 değerlendirme', 'Tour catalog must not manufacture fixed review counts.');
+
 requireText(dateControl, 'focus({ preventScroll: true })', 'Calendar focus restoration must not scroll/jump the mobile planner.');
+forbidText(dateControl, 'transform:translateY(1px)', 'Date controls must not move geometry on pointer press.');
 requireText(dateControl, 'touch-action:manipulation', 'Calendar touch controls must use stable mobile tap handling.');
 requireText(dateControl, 'overscroll-behavior:contain', 'Calendar dialog must contain mobile overscroll.');
 requireText(runtimeStability, 'app-home-v71 .planner .field-grid', 'Quick planner must reserve feedback geometry before validation messages appear.');

@@ -13,12 +13,12 @@ for (const [fragment, message] of [
   ['position:fixed;inset:0', 'feedback must remain viewport-fixed'],
   ['width:100vw', 'feedback must remain full viewport width'],
   ['height:100dvh', 'feedback must use dynamic viewport height'],
-  ['body.style.position = "fixed"', 'feedback must lock background scroll without viewport jump'],
-  ['body.style.overflow = "hidden"', 'feedback must prevent background scroll'],
+  ['body.style.position="fixed"', 'feedback must lock background scroll without viewport jump'],
+  ['body.style.overflow="hidden"', 'feedback must prevent background scroll'],
   ['feedbackModalOpen', 'feedback modal lifecycle marker is missing'],
   ['document:keydown.escape', 'feedback must close on Escape'],
   ['onDialogKeydown', 'feedback focus trap is missing'],
-  ['this.uiService.closeFeedback()', 'feedback must use canonical UiService close action'],
+  ['this.uiService.toggleFeedback(false)', 'feedback must close through the existing UiService overlay contract'],
   ['fetch("/api/contact"', 'feedback must submit through the same-origin contact gateway'],
 ]) requireText(feedback, fragment, message);
 if (feedback.includes('backdrop-filter:blur')) fail('feedback must not reintroduce GPU backdrop blur that can shimmer on mobile WebKit');
@@ -26,7 +26,7 @@ if (feedback.includes('window.setTimeout(() => this.reset()')) fail('feedback mu
 
 const footer = read('src/components/customer-footer-v70.component.ts');
 requireText(footer, "footer.settings().showFeedback", 'feedback visibility must remain admin/footer-settings controlled');
-requireText(footer, 'this.ui.openFeedback()', 'footer must use canonical feedback open action');
+requireText(footer, 'this.ui.toggleFeedback(true)', 'footer must use the existing UiService feedback-open contract');
 requireText(footer, "link.actionType==='FEEDBACK'", 'footer feedback action contract is missing');
 
 const routes = read('src/app.routes.ts');

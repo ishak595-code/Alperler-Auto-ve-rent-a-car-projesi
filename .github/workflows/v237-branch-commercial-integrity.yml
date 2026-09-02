@@ -1,0 +1,64 @@
+name: V237 Branch Commercial Integrity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/pages/branch-plans-v171.component.ts"
+      - "src/pages/branch-subscription-v171.component.ts"
+      - "src/pages/admin/admin-branch-subscriptions-v171.component.ts"
+      - "src/services/branch-subscription-v171.service.ts"
+      - "supabase/migrations/20260903*_v237_*.sql"
+      - ".github/workflows/v237-branch-commercial-integrity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  branch-commercial-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+
+      - name: Complimentary plan is admin-granted and one active listing
+        shell: bash
+        run: |
+          set -euo pipefail
+          PLAN=supabase/migrations/20260903114500_v237_complimentary_single_listing_plan.sql
+          GUARD=supabase/migrations/20260903115000_v237_complimentary_plan_contract_guard.sql
+          QUOTA=supabase/migrations/20260903093000_v237_active_listing_quota_semantics.sql
+          USAGE=supabase/migrations/20260903113000_v237_branch_listing_usage_portal.sql
+          test -f "$PLAN" && test -f "$GUARD" && test -f "$QUOTA" && test -f "$USAGE"
+          grep -Fq "'{listingLimit}', '1'::jsonb" "$PLAN"
+          grep -Fq "'{adminGrantOnly}', 'true'::jsonb" "$PLAN"
+          grep -Fq "monthly_fee = 0" "$GUARD"
+          grep -Fq '"listingLimit":1,"adminGrantOnly":true' "$GUARD"
+          grep -Fq "new.publication_status = 'PUBLISHED'" "$QUOTA"
+          grep -Fq "BRANCH_ACTIVE_LISTING_LIMIT_REACHED" "$QUOTA"
+          grep -Fq "my_branch_listing_usage_v237" "$USAGE"
+
+      - name: Public discovery hides discretionary grant
+        shell: bash
+        run: |
+          set -euo pipefail
+          SERVICE=src/services/branch-subscription-v171.service.ts
+          ADMIN=src/pages/admin/admin-branch-subscriptions-v171.component.ts
+          PORTAL=src/pages/branch-subscription-v171.component.ts
+          grep -Fq 'plan.entitlements?.["adminGrantOnly"]!==true' "$SERVICE"
+          grep -Fq 'Yalnız Super Admin atar · 1 aktif ilan' "$ADMIN"
+          grep -Fq 'this.adminGrantOnly(plan)?0:' "$ADMIN"
+          grep -Fq 'Aktif İlan Hakkı' "$PORTAL"
+          grep -Fq 'Taslak ve merkez incelemesindeki ilanlar aktif ilan hakkından düşmez' "$PORTAL"
+
+      - name: TypeScript and production build
+        run: |
+          npm run lint
+          npx tsc --noEmit -p tsconfig.api.json
+          npm run build

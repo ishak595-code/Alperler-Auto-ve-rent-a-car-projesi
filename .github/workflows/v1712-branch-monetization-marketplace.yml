@@ -30,13 +30,15 @@ jobs:
       - name: Install exact dependency graph
         run: npm ci --no-audit --no-fund
 
-      - name: Subscription plan and reapproval contract
+      - name: Subscription plan and active-listing quota contract
         shell: bash
         run: |
           set -euo pipefail
           BASE=supabase/migrations/20260825204500_v1712_branch_subscriptions_review_marketplace.sql
           DRAFT=supabase/migrations/20260825211000_v1715_branch_draft_review_lifecycle.sql
-          test -f "$BASE" && test -f "$DRAFT"
+          QUOTA=supabase/migrations/20260903093000_v237_active_listing_quota_semantics.sql
+          USAGE=supabase/migrations/20260903113000_v237_branch_listing_usage_portal.sql
+          test -f "$BASE" && test -f "$DRAFT" && test -f "$QUOTA" && test -f "$USAGE"
           grep -Fq "('START','Başlangıç'" "$BASE"
           grep -Fq "('PRO','Profesyonel'" "$BASE"
           grep -Fq "('GROWTH','Büyüme'" "$BASE"
@@ -48,6 +50,16 @@ jobs:
           grep -Fq "old.publication_status in ('PUBLISHED','SCHEDULED')" "$DRAFT"
           grep -Fq "new.publication_status:='PENDING_REVIEW'" "$DRAFT"
           grep -Fq "v_requested in ('DRAFT','REJECTED')" "$DRAFT"
+          grep -Fq "new.publication_status = 'PUBLISHED'" "$QUOTA"
+          grep -Fq "pg_advisory_xact_lock" "$QUOTA"
+          grep -Fq "BRANCH_ACTIVE_LISTING_LIMIT_REACHED" "$QUOTA"
+          grep -Fq "my_branch_listing_usage_v237" "$USAGE"
+          grep -Fq "v.publication_status = 'PUBLISHED'" "$USAGE"
+          grep -Fq "t.publication_status = 'PUBLISHED'" "$USAGE"
+          grep -Fq "to authenticated" "$USAGE"
+          grep -Fq "myListingUsage" src/services/branch-subscription-v171.service.ts
+          grep -Fq "Aktif İlan Hakkı" src/pages/branch-subscription-v171.component.ts
+          grep -Fq "Taslak ve merkez incelemesindeki ilanlar aktif ilan hakkından düşmez" src/pages/branch-subscription-v171.component.ts
 
       - name: Verified operator and recurring billing contract
         shell: bash
@@ -103,6 +115,7 @@ jobs:
           test -f src/pages/branch-portal-home-v171.component.ts
           test -f src/pages/branch-portal-tours-v171.component.ts
           test -f src/pages/branch-portal-vehicle-media-v171.component.ts
+          test -f src/pages/branch-subscription-v171.component.ts
           grep -Fq 'branchPortalOperatingGuard' src/app.routes.ts
           grep -Fq "branch-portal/vehicles" src/app.routes.ts
           grep -Fq "branch-portal/vehicle-media" src/app.routes.ts
@@ -110,14 +123,32 @@ jobs:
           grep -Fq 'Taslak Kaydet' src/pages/branch-portal-tours-v171.component.ts
           grep -Fq 'Merkez İncelemesine Gönder' src/pages/branch-portal-tours-v171.component.ts
           grep -Fq 'Fotoğraf / Video Seç' src/pages/branch-portal-vehicle-media-v171.component.ts
+          grep -Fq 'usageFor' src/pages/branch-subscription-v171.component.ts
+          grep -Fq 'remaining_slots' src/services/branch-subscription-v171.service.ts
 
-      - name: Business identity and Super Admin control contract
+      - name: Business due diligence and Super Admin control contract
         shell: bash
         run: |
           set -euo pipefail
-          test -f src/pages/branch-partner-v171.component.ts
-          grep -Fq 'İşletme / Şube adı *' src/pages/branch-partner-v171.component.ts
-          grep -Fq 'currentBusiness:this.businessName.trim()' src/pages/branch-partner-v171.component.ts
+          PARTNER=src/pages/branch-partner-v171.component.ts
+          ADMIN=src/pages/admin/admin-branch-partner-requests.component.ts
+          DUE=supabase/migrations/20260902234500_v237_branch_onboarding_due_diligence_and_listing_limits.sql
+          DB_GUARD=supabase/migrations/20260903121000_v237_branch_due_diligence_db_guard.sql
+          EDGE=supabase/functions/branch-partner-v164/index.ts
+          test -f "$PARTNER" && test -f "$ADMIN" && test -f "$DUE" && test -f "$DB_GUARD" && test -f "$EDGE"
+          grep -Fq 'İşletme / Ticari Unvan *' "$PARTNER"
+          grep -Fq 'businessType:this.businessType' "$PARTNER"
+          grep -Fq 'taxOffice:this.taxOffice.trim()' "$PARTNER"
+          grep -Fq 'taxNumber:this.taxNumber.trim()' "$PARTNER"
+          grep -Fq 'businessAddress:this.businessAddress.trim()' "$PARTNER"
+          grep -Fq 'dueDiligenceAccepted:this.dueDiligenceAccepted' "$PARTNER"
+          grep -Fq 'currentBusiness:this.businessName.trim()' "$PARTNER"
+          grep -Fq 'dueDiligenceReady' "$ADMIN"
+          grep -Fq 'Ticari Doğrulama' "$ADMIN"
+          grep -Fq 'BUSINESS_DUE_DILIGENCE_REQUIRED' "$EDGE"
+          grep -Fq 'BRANCH_DUE_DILIGENCE_REQUIRED' "$DB_GUARD"
+          grep -Fq 'branch_partner_approval_due_diligence_v237' "$DB_GUARD"
+          grep -Fq 'branch_provision_due_diligence_v237' "$DB_GUARD"
           test -f src/pages/admin/admin-branch-identities-v171.component.ts
           test -f src/pages/admin/admin-branch-moderation-v171.component.ts
           test -f src/pages/admin/admin-branch-subscriptions-v171.component.ts

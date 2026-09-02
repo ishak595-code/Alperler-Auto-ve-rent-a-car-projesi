@@ -7,6 +7,7 @@ const portal=read('src/services/branch-portal.service.ts');
 const profile=read('src/services/branch-portal-profile.service.ts');
 const profilePage=read('src/pages/branch-portal-profile-v225.component.ts');
 const branchDetail=read('src/pages/branch-detail-v171.component.ts');
+const communication=read('src/services/branch-communication.service.ts');
 const routes=read('src/app.routes.ts');
 const adminLogin=read('src/pages/admin-login-v218.component.ts');
 const adminRecovery=read('src/services/admin-password-recovery-v220.service.ts');
@@ -31,8 +32,11 @@ for(const [token,message] of [
  ['form.whatsapp','branch profile UI must bind WhatsApp to the canonical profile draft'],
  ['profiles.save(this.form)','branch profile UI must save through the canonical profile service'],
 ])requireText(profilePage,token,message);
-requireText(branchDetail,'whatsappUrl(current.whatsapp)','public WhatsApp must come from branch profile');
-requireText(branchDetail,"https://wa.me/${value.replace(/\\D/g,'')}",'branch WhatsApp must open branch-specific wa.me target');
+requireText(branchDetail,'communication.whatsappUrl(current.whatsapp)','public WhatsApp must come from the current branch profile through the canonical communication service');
+requireText(branchDetail,'BranchCommunicationService','public branch detail must use the canonical communication owner');
+requireText(communication,'https://wa.me/${digits}','canonical branch communication service must open branch-specific wa.me target');
+requireText(communication,'String(value || "").replace(/\\D/g, "")','WhatsApp target must be derived from the branch-specific number');
+forbidText(branchDetail,'https://wa.me/','branch detail must not duplicate WhatsApp URL construction outside the canonical communication service');
 for(const [token,message] of [
  ['select v.branch_id into resolved_branch','vehicle bookings must resolve canonical vehicle branch'],
  ['select t.branch_id into resolved_branch','tour bookings must resolve canonical tour branch'],

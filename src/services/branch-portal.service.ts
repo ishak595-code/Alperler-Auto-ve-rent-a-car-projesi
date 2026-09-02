@@ -250,18 +250,65 @@ export class BranchPortalService {
     if (file.size <= 0 || file.size > 10 * 1024 * 1024) throw new Error("IMAGE_TOO_LARGE");
     const extension = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" } as Record<string, string>)[file.type] || "jpg";
     const path = `branches/${branchId}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${extension}`;
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/vehicle-media/${path}`, {
+    if (file.size >= 6 * 1024 * 1024) {
+      await this.uploadVehicleImageTus(file, path, token);
+    } else {
+      const response = await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/vehicle-media/${path}`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          authorization: `Bearer ${token}`,
+          "content-type": file.type,
+          "cache-control": "31536000",
+          "x-upsert": "false",
+        },
+        body: file,
+      });
+      if (!response.ok) throw new Error("IMAGE_UPLOAD_FAILED");
+    }
+    return `${SUPABASE_PROJECT_URL}/storage/v1/object/public/vehicle-media/${path}`;
+  }
+
+  private async uploadVehicleImageTus(file: File, path: string, token: string): Promise<void> {
+    const metadata = [
+      ["bucketName", "vehicle-media"],
+      ["objectName", path],
+      ["contentType", file.type],
+      ["cacheControl", "31536000"],
+    ].map(([key, value]) => `${key} ${btoa(unescape(encodeURIComponent(value)))}`).join(",");
+    const create = await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/upload/resumable`, {
       method: "POST",
       headers: {
         apikey: SUPABASE_PUBLISHABLE_KEY,
         authorization: `Bearer ${token}`,
-        "content-type": file.type,
+        "Tus-Resumable": "1.0.0",
+        "Upload-Length": String(file.size),
+        "Upload-Metadata": metadata,
         "x-upsert": "false",
       },
-      body: file,
     });
-    if (!response.ok) throw new Error("IMAGE_UPLOAD_FAILED");
-    return `${SUPABASE_PROJECT_URL}/storage/v1/object/public/vehicle-media/${path}`;
+    if (!create.ok) throw new Error("IMAGE_UPLOAD_FAILED");
+    const location = create.headers.get("location");
+    if (!location) throw new Error("IMAGE_UPLOAD_FAILED");
+    const uploadUrl = new URL(location, SUPABASE_PROJECT_URL).toString();
+    let offset = Number(create.headers.get("upload-offset") || 0);
+    while (offset < file.size) {
+      const end = Math.min(offset + 6 * 1024 * 1024, file.size);
+      const response = await fetch(uploadUrl, {
+        method: "PATCH",
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          authorization: `Bearer ${token}`,
+          "Tus-Resumable": "1.0.0",
+          "Upload-Offset": String(offset),
+          "Content-Type": "application/offset+octet-stream",
+        },
+        body: file.slice(offset, end, file.type),
+      });
+      if (!response.ok) throw new Error("IMAGE_UPLOAD_FAILED");
+      const nextOffset = Number(response.headers.get("upload-offset"));
+      offset = Number.isFinite(nextOffset) && nextOffset > offset ? nextOffset : end;
+    }
   }
 
   async acceptPolicy(policyId: string): Promise<void> {

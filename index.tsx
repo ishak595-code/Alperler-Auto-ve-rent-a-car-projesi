@@ -6,8 +6,12 @@ import { provideRouter, RouteReuseStrategy, withInMemoryScrolling } from '@angul
 import { AppComponent } from './src/app.component';
 import { provideLegacyWebhookSafety } from './src/providers/legacy-webhook-safety.provider';
 import { bookingSuccessInterceptor } from './src/services/booking-success.interceptor';
+import { BranchAwareCarService } from './src/services/branch-aware-car.service';
+import { BranchAwarePublicDetailDataService } from './src/services/branch-aware-public-detail-data.service';
+import { CarService } from './src/services/car.service';
 import { GlobalErrorHandler } from './src/services/global-error-handler';
 import { ParamAwareRouteReuseStrategy } from './src/services/param-aware-route-reuse.strategy';
+import { PublicDetailDataService } from './src/services/public-detail-data.service';
 import { startPwaRuntime } from './src/services/pwa-runtime.service';
 
 const LEGACY_CATALOG_STORAGE_KEY = /^db_(?:cars|rental_?cars?|sale_?cars?|sales?|vehicles?|tours?|inventory|config|faqs?|blog)(?:_|$)/i;
@@ -66,6 +70,8 @@ async function bootstrap(): Promise<void> {
       { provide: ErrorHandler, useClass: GlobalErrorHandler },
       { provide: APP_BASE_HREF, useValue: '/' },
       { provide: RouteReuseStrategy, useClass: ParamAwareRouteReuseStrategy },
+      { provide: CarService, useClass: BranchAwareCarService },
+      { provide: PublicDetailDataService, useClass: BranchAwarePublicDetailDataService },
       provideRouter(
         routes,
         withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' })

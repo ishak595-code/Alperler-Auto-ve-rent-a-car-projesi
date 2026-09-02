@@ -85,10 +85,11 @@ export class CustomerWalletService{
   }
 
   async deleteDocument(doc:CustomerDocument):Promise<void>{
-    const token=await this.requireToken();await this.deleteStorageObject(doc.storage_path,token);
-    const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/customer_documents?id=eq.${encodeURIComponent(doc.id)}`,{method:'DELETE',headers:this.headers(token,{Prefer:'return=minimal'})});
+    const token=await this.requireToken();
+    const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/customer_documents?id=eq.${encodeURIComponent(doc.id)}&user_id=eq.${encodeURIComponent(doc.user_id)}`,{method:'DELETE',headers:this.headers(token,{Prefer:'return=minimal'})});
     if(!response.ok)throw new Error('DOCUMENT_DELETE_FAILED');
     this.documents.update(rows=>rows.filter(row=>row.id!==doc.id));
+    await this.deleteStorageObject(doc.storage_path,token).catch(error=>console.warn('DOCUMENT_STORAGE_CLEANUP_PENDING',error));
   }
 
   async savePreferences(patch:Partial<CustomerExperiencePreferences>):Promise<void>{

@@ -1,5 +1,4 @@
 import { Injectable, inject } from '@angular/core';
-import { SUPABASE_PUBLISHABLE_KEY, supabaseFunctionUrl } from '../supabase.config';
 import { AuthService } from './auth.service';
 
 export interface AdminUpcomingBooking {
@@ -37,41 +36,25 @@ interface AdminOperationsPayload extends Partial<AdminOperationsSnapshot> {
 @Injectable({ providedIn:'root' })
 export class AdminOperationsService {
   private readonly auth=inject(AuthService);
-  private readonly proxyEndpoint='/api/partner?op=admin-core&view=operations';
-  private readonly directEndpoint=`${supabaseFunctionUrl('admin-core-gateway-v178')}?view=operations`;
+  private readonly endpoint='/api/partner?op=admin-core&view=operations';
 
   async load():Promise<AdminOperationsSnapshot>{
     const token=await this.requireToken();
-    let response:Response|null=null;
-    let payload:AdminOperationsPayload={};
-    try{
-      response=await this.fetchProxy(token);
+    let response=await this.fetchSnapshot(token);
+    let payload=await this.payload(response);
+
+    if([502,503,504].includes(response.status)){
+      await new Promise(resolve=>setTimeout(resolve,250));
+      response=await this.fetchSnapshot(token);
       payload=await this.payload(response);
-    }catch{
-      response=null;
     }
 
-    if(!response||(!response.ok&&![401,403].includes(response.status))||response.ok&&payload.ok!==true){
-      try{
-        const direct=await this.fetchDirect(token);
-        const directPayload=await this.payload(direct);
-        if(direct.ok&&directPayload.ok===true){response=direct;payload=directPayload;}
-        else if(!response||!response.ok){response=direct;payload=directPayload;}
-      }catch{
-        // Preserve the proxy failure below so the UI can report one stable error.
-      }
-    }
-
-    if(!response||!response.ok||payload.ok!==true)throw new Error(payload.code||payload.message||`ADMIN_OPERATIONS_${response?.status||0}`);
+    if(!response.ok||payload.ok!==true)throw new Error(payload.code||payload.message||`ADMIN_OPERATIONS_${response.status}`);
     return this.normalize(payload);
   }
 
-  private fetchProxy(token:string):Promise<Response>{
-    return fetch(this.proxyEndpoint,{method:'GET',headers:{authorization:`Bearer ${token}`,accept:'application/json','x-request-id':crypto.randomUUID()},cache:'no-store',signal:AbortSignal.timeout(20_000)});
-  }
-
-  private fetchDirect(token:string):Promise<Response>{
-    return fetch(this.directEndpoint,{method:'GET',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:`Bearer ${token}`,accept:'application/json','x-request-id':crypto.randomUUID()},cache:'no-store',signal:AbortSignal.timeout(20_000)});
+  private fetchSnapshot(token:string):Promise<Response>{
+    return fetch(this.endpoint,{method:'GET',headers:{authorization:`Bearer ${token}`,accept:'application/json','x-request-id':crypto.randomUUID()},cache:'no-store',signal:AbortSignal.timeout(25_000)});
   }
 
   private async payload(response:Response):Promise<AdminOperationsPayload>{return await response.json().catch(()=>({})) as AdminOperationsPayload;}

@@ -1,0 +1,31 @@
+name: OPS V239 In-App Owner Setup
+
+on:
+  push:
+    branches:
+      - v239-admin-first-access-recovery
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: v239-admin-first-access-recovery
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+      - name: V239 in-app first access contract
+        run: node scripts/check-v239-admin-first-access.mjs
+      - name: Frontend TypeScript
+        run: npm run lint
+      - name: Vercel API TypeScript
+        run: npm run typecheck:api
+      - name: Production build
+        run: npm run build

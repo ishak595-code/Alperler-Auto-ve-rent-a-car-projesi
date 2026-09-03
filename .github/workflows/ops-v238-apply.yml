@@ -1,0 +1,62 @@
+name: OPS V238 Apply Canonical Gates
+
+on:
+  push:
+    branches:
+      - v238-profile-navigation-integrity
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: v238-profile-navigation-integrity
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply V238 patch once
+        shell: bash
+        run: |
+          if [ -f src/components/account-referral-v238.component.ts ]; then
+            echo "V238 source patch already applied."
+            exit 0
+          fi
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          workflow=Path('.github/workflows/ops-v238-profile-navigation.yml').read_text()
+          marker="          python3 - <<'PY'\n"
+          start=workflow.index(marker)
+          end=workflow.index("          PY\n",start)+len("          PY\n")
+          block=workflow[start:end]
+          block='\n'.join(line[10:] if line.startswith('          ') else line for line in block.splitlines())+'\n'
+          subprocess.run(['bash','-lc',block],check=True)
+          PY
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+      - name: V238 profile and navigation guard
+        run: node scripts/check-v238-profile-navigation-integrity.mjs
+      - name: Frontend TypeScript
+        run: npm run lint
+      - name: Vercel API TypeScript
+        run: npx tsc --noEmit -p tsconfig.api.json
+      - name: Production build
+        run: npm run build
+      - name: Commit V238 source
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/services/navigation-config.service.ts src/components/account-profile-settings-v225.component.ts src/components/account-referral-v238.component.ts src/pages/account-dashboard-v150.component.ts scripts/check-v238-profile-navigation-integrity.mjs supabase/migrations/20260903002500_v238_remove_duplicate_mobile_menu_search.sql
+          if git diff --cached --quiet; then
+            echo "No source changes to commit."
+          else
+            git commit -m "V238: remove duplicate account navigation and surface referrals"
+            git push origin HEAD:v238-profile-navigation-integrity
+          fi

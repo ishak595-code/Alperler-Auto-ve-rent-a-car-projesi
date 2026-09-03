@@ -1,0 +1,51 @@
+name: OPS V238 Align V204 Contract
+
+on:
+  push:
+    branches:
+      - v238-profile-navigation-integrity
+
+permissions:
+  contents: write
+
+jobs:
+  align:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: v238-profile-navigation-integrity
+          fetch-depth: 0
+      - name: Align legacy account contract
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/check-v204-mobile-conversion-account.mjs')
+          s=p.read_text()
+          old="""  'src/pages/account-dashboard-v150.component.ts',\n  'src/components/account-profile-settings-v225.component.ts',\n"""
+          new="""  'src/pages/account-dashboard-v150.component.ts',\n  'src/pages/account-shell.component.ts',\n  'src/components/account-profile-settings-v225.component.ts',\n  'src/components/account-referral-v238.component.ts',\n"""
+          if old not in s: raise SystemExit('required account anchors missing')
+          s=s.replace(old,new,1)
+          old="""const account = read('src/pages/account-dashboard-v150.component.ts');\nfor (const token of ['routerLink=\"/account/wallet\"','bookingFilter','filteredBookings','expandedBooking','toggleBooking','selectFilter','Cüzdan ve Belgeler','Profil Ayarları','queryParams]=\"{section:\\'profile\\'}\"']) must(account, token);\nfor (const forbidden of ['profileOpen','profileForm','saveProfile()','[(ngModel)]=\"profileForm']) mustNot(account, forbidden, `Dashboard must not regain duplicate profile-edit ownership: ${forbidden}`);\nconst profileSettings = read('src/components/account-profile-settings-v225.component.ts');\nfor (const token of ['(ngSubmit)=\"save()\"','account.updateProfile','securityOpen','Güvenlik Ayarlarını Aç','account-security-v223']) must(profileSettings, token, `Canonical profile settings ownership missing: ${token}`);\n"""
+          new="""const account = read('src/pages/account-dashboard-v150.component.ts');\nfor (const token of ['bookingFilter','filteredBookings','expandedBooking','toggleBooking','selectFilter','Profil Ayarları','queryParams]=\"{section:\\'profile\\'}\"','routerLink=\"/appointment\"','<app-account-referral-v238 />']) must(account, token);\nfor (const forbidden of ['profileOpen','profileForm','saveProfile()','[(ngModel)]=\"profileForm','routerLink=\"/account/wallet\"','Cüzdan ve Belgeler','<small>HESABIM</small><strong>Cüzdan</strong>']) mustNot(account, forbidden, `Dashboard must not regain duplicate account/profile ownership: ${forbidden}`);\nconst accountShell = read('src/pages/account-shell.component.ts');\nmust(accountShell, 'routerLink=\"/account/wallet\"', 'Account shell must own the canonical wallet route.');\nconst walletLabels = (accountShell.match(/Cüzdan ve Belgeler/g) || []).length;\nif (walletLabels !== 1) throw new Error(`Account shell must expose exactly one canonical Cüzdan ve Belgeler entry, found ${walletLabels}.`);\nconst referral = read('src/components/account-referral-v238.component.ts');\nfor (const token of ['ARKADAŞINI DAVET ET','Davet Linkini Kopyala','Paylaş']) must(referral, token, `Profile landing referral experience missing: ${token}`);\nconst profileSettings = read('src/components/account-profile-settings-v225.component.ts');\nfor (const token of ['(ngSubmit)=\"save()\"','account.updateProfile','securityOpen','Güvenlik Ayarlarını Aç','account-security-v223']) must(profileSettings, token, `Canonical profile settings ownership missing: ${token}`);\nmustNot(profileSettings, 'referral-card', 'Referral ownership must remain on the Profile landing page, not duplicated in Profile Settings.');\n"""
+          if old not in s: raise SystemExit('legacy account contract block missing')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+      - name: Verify updated V204 and V238 contracts
+        run: |
+          node scripts/check-v204-mobile-conversion-account.mjs
+          node scripts/check-v238-profile-navigation-integrity.mjs
+      - name: Commit contract alignment
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/check-v204-mobile-conversion-account.mjs
+          if git diff --cached --quiet; then
+            echo "No contract change needed."
+          else
+            git commit -m "V238: align mobile account regression with canonical wallet ownership"
+            git push origin HEAD:v238-profile-navigation-integrity
+          fi

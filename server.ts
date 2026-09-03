@@ -4,8 +4,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import bookingsApi from "./api/bookings";
-import rentalAvailabilityApi from "./api/rental-availability";
-import adminBookingActionsApi from "./api/admin-booking-actions";
 import branchesApi from "./api/branches";
 import catalogApi from "./api/catalog";
 import contactApi from "./api/contact";
@@ -13,7 +11,6 @@ import paymentsApi from "./api/payments";
 import partnerApi from "./api/partner";
 import branchNetworkApi from "./api/branch-network";
 import financeReportApi from "./api/finance/report";
-import sendEmailApi from "./api/send-email";
 import robotsApi from "./api/robots";
 import sitemapApi from "./api/sitemap";
 import socialPreviewApi from "./api/social-preview";
@@ -55,8 +52,6 @@ type WebHandler={fetch(request:Request):Promise<Response>};
 type RouteTarget={handler:WebHandler;query?:Record<string,string>};
 const directApiHandlers=new Map<string,WebHandler>([
   ["/api/bookings",bookingsApi],
-  ["/api/rental-availability",rentalAvailabilityApi],
-  ["/api/admin-booking-actions",adminBookingActionsApi],
   ["/api/branches",branchesApi],
   ["/api/catalog",catalogApi],
   ["/api/contact",contactApi],
@@ -64,16 +59,18 @@ const directApiHandlers=new Map<string,WebHandler>([
   ["/api/partner",partnerApi],
   ["/api/branch-network",branchNetworkApi],
   ["/api/finance/report",financeReportApi],
-  ["/api/send-email",sendEmailApi],
 ]);
 const aliasTargets=new Map<string,RouteTarget>([
   ["/api/contact-admin",{handler:contactApi,query:{mode:"admin"}}],
+  ["/api/send-email",{handler:contactApi,query:{mode:"email"}}],
   ["/api/partner-requests",{handler:partnerApi,query:{op:"requests"}}],
   ["/api/partner-media",{handler:partnerApi,query:{op:"media"}}],
   ["/api/partner-upload-resume",{handler:partnerApi,query:{op:"resume"}}],
   ["/api/payments/create-session",{handler:paymentsApi,query:{op:"create-session"}}],
   ["/api/payments/paytr-callback",{handler:paymentsApi,query:{op:"paytr-callback"}}],
   ["/api/integrations/status",{handler:bookingsApi,query:{mode:"integration-status"}}],
+  ["/api/rental-availability",{handler:bookingsApi,query:{mode:"rental-availability"}}],
+  ["/api/admin-booking-actions",{handler:bookingsApi,query:{mode:"admin-booking-actions"}}],
 ]);
 app.use("/api",express.raw({type:"*/*",limit:"2mb"}));
 
@@ -120,9 +117,14 @@ app.get(/^\/catalog-media\/.+/, (req,res)=>{
   if(!supabaseProjectUrl){res.setHeader("Cache-Control","no-store");res.status(503).send("Catalog media storage is not configured.");return;}
   const relative=req.path.slice("/catalog-media/".length);
   if(!relative||relative.split("/").some(segment=>segment==="..")){res.status(400).send("Invalid catalog media path.");return;}
-  const encoded=relative.split("/").map(segment=>encodeURIComponent(decodeURIComponent(segment))).join("/");
-  res.setHeader("Cache-Control","public, max-age=86400, stale-while-revalidate=604800");
-  res.redirect(302,`${supabaseProjectUrl}/storage/v1/object/public/catalog-media/${encoded}`);
+  try{
+    const encoded=relative.split("/").map(segment=>encodeURIComponent(decodeURIComponent(segment))).join("/");
+    res.setHeader("Cache-Control","public, max-age=86400, stale-while-revalidate=604800");
+    res.redirect(302,`${supabaseProjectUrl}/storage/v1/object/public/catalog-media/${encoded}`);
+  }catch{
+    res.setHeader("Cache-Control","no-store");
+    res.status(400).send("Invalid catalog media path.");
+  }
 });
 
 const aiCrawlerPattern=/(GPTBot|OAI-SearchBot|ChatGPT-User|OAI-AdsBot|ClaudeBot|Claude-SearchBot|Claude-User|Google-Extended|CCBot|PerplexityBot|Perplexity-User|Applebot-Extended|Bytespider|Amazonbot|meta-externalagent|meta-externalfetcher|cohere-ai)/i;

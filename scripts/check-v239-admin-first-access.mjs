@@ -5,23 +5,26 @@ const assert = (condition, message) => {
   if (!condition) throw new Error(`V239_ADMIN_FIRST_ACCESS: ${message}`);
 };
 
-const login = read('src/pages/admin/admin-login.component.ts');
+const routes = read('src/app.routes.ts');
+const login = read('src/pages/admin-login-v218.component.ts');
 const service = read('src/services/admin-first-access-v239.service.ts');
 const edge = read('supabase/functions/admin-first-access-v239/index.ts');
 const migration = read('supabase/migrations/20260903012500_v239_admin_first_access_tokens.sql');
 const manifest = read('supabase/functions/deployment-manifest.v186.json');
 
-assert(login.includes('"first-access"'), 'admin login does not own a first-access mode');
-assert(login.includes('İlk Yönetici Kurulumu'), 'accessible first-access entry is missing');
-assert(login.includes('Tek kullanımlık kurulum kodu'), 'setup code field is missing');
+assert(routes.includes("{ path: 'admin/login', loadComponent: () => import('./pages/admin-login-v218.component').then(m => m.AdminLoginV218Component) }"), 'admin/login route ownership changed without updating the first-access contract');
+assert(login.includes('AdminFirstAccessV239Service'), 'live admin login does not inject the V239 first-access service');
+assert(login.includes('firstAccessMode'), 'live admin login does not own a first-access mode');
+assert(login.includes('İlk Yönetici Kurulumu'), 'accessible first-access entry is missing from the live admin login');
+assert(login.includes('Tek kullanımlık kurulum kodu'), 'setup code field is missing from the live admin login');
 assert(login.includes('autocomplete="one-time-code"'), 'setup code field is not exposed as a one-time-code input');
 assert(login.includes('inputmode="numeric"'), 'setup code field is not optimized for numeric/screen-reader entry');
 assert(login.includes('aria-describedby="admin-first-access-help"'), 'first-access form lacks accessible help ownership');
 assert(login.includes('role="alert"') && login.includes('aria-live="assertive"'), 'accessible error announcement is missing');
 assert(login.includes('role="status"') && login.includes('aria-live="polite"'), 'accessible success announcement is missing');
-assert(login.includes('firstAccessService.complete'), 'first-access screen does not call the dedicated setup service');
-assert(!/doFirstAccess\([\s\S]{0,450}resetPassword\(/.test(login), 'first-access still sends the owner through recovery email');
-assert(login.includes('E-posta bağlantısına tıklamanız gerekmez'), 'UI does not explicitly remove the email-link dependency');
+assert(login.includes('this.firstAccess.complete'), 'live first-access screen does not call the dedicated setup service');
+assert(!login.includes('Yeni yönetici kaydı bu ekrandan açılamaz.'), 'live route still tells the owner that first access cannot be opened here');
+assert(login.includes('E-posta bağlantısı gerekmez'), 'UI does not explicitly remove the email-link dependency');
 
 assert(service.includes('supabaseFunctionUrl("admin-first-access-v239")'), 'frontend service does not call the V239 Edge Function');
 assert(service.includes('/^\\d{12}$/'), 'frontend service does not require a 12-digit setup code');
@@ -51,4 +54,4 @@ assert(migration.includes('failed_attempts < 8'), 'one-time grant attempt limit 
 assert(manifest.includes('"slug": "admin-first-access-v239"'), 'V239 function missing from deployment manifest');
 assert(manifest.includes('"verifyJwt": false'), 'first-access function must remain callable before an admin session exists');
 
-console.log('V239 accessible in-app owner setup contract: PASS');
+console.log('V239/V240 live-route accessible in-app owner setup contract: PASS');

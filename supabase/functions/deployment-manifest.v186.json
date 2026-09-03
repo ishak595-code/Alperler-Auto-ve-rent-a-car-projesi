@@ -3,7 +3,7 @@
   "baselineDate": "2026-08-26",
   "notes": "verifyJwt mirrors the intended production deployment contract. A false value does not imply privileged anonymous access; public/custom-auth gateways enforce their own request security where designed.",
   "functions": [
-    { "slug": "admin-core-gateway-v178", "verifyJwt": false },
+    { "slug": "admin-core-gateway-v178", "verifyJwt": true },
     { "slug": "admin-first-access-v239", "verifyJwt": false },
     { "slug": "admin-team", "verifyJwt": true },
     { "slug": "analytics-admin-v186", "verifyJwt": true },

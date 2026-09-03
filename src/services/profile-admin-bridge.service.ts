@@ -11,8 +11,6 @@ export interface ProfileAdminAccess {
 @Injectable({ providedIn: 'root' })
 export class ProfileAdminBridgeService {
   private readonly auth = inject(CustomerAuthService);
-  private readonly customerStorageKey = 'alperler_customer_session_v1';
-  private readonly adminStorageKey = 'alperler_admin_session_v1';
   readonly access = signal<ProfileAdminAccess | null>(null);
   readonly loading = signal(false);
 
@@ -65,31 +63,14 @@ export class ProfileAdminBridgeService {
     }
   }
 
-  async openAdmin(target = '/admin'): Promise<void> {
+  async openAdmin(): Promise<void> {
     const access = await this.refresh();
     if (!access) throw new Error('Bu hesapta yönetim yetkisi bulunmuyor.');
-    if (typeof localStorage === 'undefined' || typeof window === 'undefined') throw new Error('Tarayıcı oturumu kullanılamıyor.');
+    if (typeof window === 'undefined') throw new Error('Tarayıcı oturumu kullanılamıyor.');
 
-    const customerSession = localStorage.getItem(this.customerStorageKey);
-    if (!customerSession) throw new Error('Müşteri oturumu bulunamadı. Lütfen yeniden giriş yapın.');
-
-    try {
-      const parsed = JSON.parse(customerSession) as { accessToken?: string; refreshToken?: string; expiresAt?: number; user?: { id?: string } };
-      if (!parsed.accessToken || !parsed.refreshToken || !parsed.expiresAt || parsed.user?.id !== access.userId) {
-        throw new Error('SESSION_INVALID');
-      }
-      localStorage.setItem(this.adminStorageKey, customerSession);
-      window.location.assign(this.safeAdminTarget(target));
-    } catch (error) {
-      if (error instanceof Error && error.message !== 'SESSION_INVALID') throw error;
-      throw new Error('Yönetim oturumu güvenli biçimde hazırlanamadı. Lütfen yeniden giriş yapın.');
-    }
-  }
-
-  private safeAdminTarget(target: string): string {
-    const value = String(target || '').trim();
-    return value.startsWith('/admin') && !value.startsWith('//') && !value.startsWith('/admin/login')
-      ? value.slice(0, 1200)
-      : '/admin';
+    // V243 boundary: a customer JWT may prove that the identity also has an admin role,
+    // but it is never copied into the admin session. Super admin always authenticates
+    // through the dedicated /admin/login flow and dedicated admin storage key.
+    window.location.assign('/admin/login');
   }
 }

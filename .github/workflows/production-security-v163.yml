@@ -9,12 +9,14 @@ on:
       - "api/**"
       - "src/**"
       - "supabase/**"
+      - "public/service-worker.js"
       - "package.json"
       - "package-lock.json"
       - "scripts/check-production-security-v163.mjs"
       - "scripts/check-production-integration-v1632.mjs"
       - "scripts/check-v239-admin-first-access.mjs"
       - "scripts/check-v241-profile-admin-resilience.mjs"
+      - "scripts/check-v243-admin-customer-domain-separation.mjs"
       - "vercel.json"
       - ".github/dependabot.yml"
       - ".github/workflows/production-security-v163.yml"
@@ -25,12 +27,14 @@ on:
       - "api/**"
       - "src/**"
       - "supabase/**"
+      - "public/service-worker.js"
       - "package.json"
       - "package-lock.json"
       - "scripts/check-production-security-v163.mjs"
       - "scripts/check-production-integration-v1632.mjs"
       - "scripts/check-v239-admin-first-access.mjs"
       - "scripts/check-v241-profile-admin-resilience.mjs"
+      - "scripts/check-v243-admin-customer-domain-separation.mjs"
       - "vercel.json"
       - ".github/dependabot.yml"
       - ".github/workflows/production-security-v163.yml"
@@ -78,6 +82,9 @@ jobs:
 
       - name: V241 profile and admin resilience contract gate
         run: node scripts/check-v241-profile-admin-resilience.mjs
+
+      - name: V243 super-admin and customer domain separation gate
+        run: node scripts/check-v243-admin-customer-domain-separation.mjs
 
       - name: Frontend TypeScript check
         run: npm run lint

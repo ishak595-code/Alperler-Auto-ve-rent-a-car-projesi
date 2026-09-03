@@ -61,6 +61,53 @@ async function proxy(
   }
 }
 
+function shouldFallbackAdminOperations(response: Response): boolean {
+  return [404, 500, 502, 503, 504].includes(response.status);
+}
+
+async function adminOperationsFallback(request: Request): Promise<Response> {
+  const decision = originDecision(request);
+  const authorization = request.headers.get("authorization") || "";
+  if (!authorization.startsWith("Bearer ")) {
+    return Response.json({ ok: false, code: "UNAUTHORIZED", requestId: decision.requestId }, { status: 401, headers: { ...corsHeaders(decision, ALLOWED_METHODS), "cache-control": "private, no-store" } });
+  }
+  try {
+    const upstream = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/service_admin_operations_snapshot_self_v243`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        authorization,
+        "content-type": "application/json",
+        accept: "application/json",
+        "x-request-id": decision.requestId,
+      },
+      body: "{}",
+      signal: AbortSignal.timeout(15_000),
+    });
+    return new Response(await upstream.text(), {
+      status: upstream.status,
+      headers: {
+        ...corsHeaders(decision, ALLOWED_METHODS),
+        "content-type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
+        "cache-control": "private, no-store",
+        "x-admin-operations-source": "self-rpc-v243",
+        "x-upstream-request-id": upstream.headers.get("x-request-id") || decision.requestId,
+      },
+    });
+  } catch (error) {
+    console.error("admin operations self-rpc unavailable", decision.requestId, error);
+    return Response.json({ ok: false, code: "ADMIN_OPERATIONS_FALLBACK_UNAVAILABLE", requestId: decision.requestId }, { status: 503, headers: { ...corsHeaders(decision, ALLOWED_METHODS), "cache-control": "private, no-store" } });
+  }
+}
+
+async function adminCore(request: Request): Promise<Response> {
+  const primary = await proxy(request, { edgeFunction: "admin-core-gateway-v178", allowedMethods: ["GET", "PATCH"], timeout: 25_000, requireAuth: true, maxBodyBytes: 64 * 1024, unavailableCode: "ADMIN_CORE_GATEWAY_UNAVAILABLE", unavailableMessage: "Yönetim merkezi servisine şu anda ulaşılamıyor.", forwardQuery: ["view", "staffId"] });
+  const source = new URL(request.url);
+  const operationsRead = request.method.toUpperCase() === "GET" && (source.searchParams.get("view") || "operations") === "operations";
+  if (operationsRead && shouldFallbackAdminOperations(primary)) return adminOperationsFallback(request);
+  return primary;
+}
+
 export default {
   async fetch(request: Request): Promise<Response> {
     const guarded = guardOrigin(request, ALLOWED_METHODS); if (guarded) return guarded;
@@ -77,7 +124,7 @@ export default {
     if (operation === "branch-network-admin") return proxy(request, { edgeFunction: "branch-network-admin", allowedMethods: ["GET", "PATCH"], timeout: 25_000, requireAuth: true, maxBodyBytes: 64 * 1024, unavailableCode: "BRANCH_NETWORK_ADMIN_UNAVAILABLE", unavailableMessage: "Şube ağ yönetim servisine şu anda ulaşılamıyor.", forwardQuery: ["branchId"] });
     if (operation === "branch-security-admin") return proxy(request, { edgeFunction: "branch-admin-security-v181", allowedMethods: ["GET", "PATCH"], timeout: 20_000, requireAuth: true, maxBodyBytes: 24 * 1024, unavailableCode: "BRANCH_SECURITY_ADMIN_UNAVAILABLE", unavailableMessage: "Şube güvenlik yönetim servisine şu anda ulaşılamıyor.", forwardQuery: ["view"] });
     if (operation === "branch-operations-admin") return proxy(request, { edgeFunction: "branch-operations-gateway-v177", allowedMethods: ["PATCH"], timeout: 20_000, requireAuth: true, maxBodyBytes: 32 * 1024, unavailableCode: "BRANCH_OPERATIONS_ADMIN_UNAVAILABLE", unavailableMessage: "Şube operasyon güvenlik servisine şu anda ulaşılamıyor." });
-    if (operation === "admin-core") return proxy(request, { edgeFunction: "admin-core-gateway-v178", allowedMethods: ["GET", "PATCH"], timeout: 25_000, requireAuth: true, maxBodyBytes: 64 * 1024, unavailableCode: "ADMIN_CORE_GATEWAY_UNAVAILABLE", unavailableMessage: "Yönetim merkezi servisine şu anda ulaşılamıyor.", forwardQuery: ["view", "staffId"] });
+    if (operation === "admin-core") return adminCore(request);
     if (operation === "finance-admin") return proxy(request, { edgeFunction: "finance-admin", allowedMethods: ["GET", "POST"], timeout: 25_000, requireAuth: true, maxBodyBytes: 64 * 1024, unavailableCode: "FINANCE_ADMIN_UNAVAILABLE", unavailableMessage: "Finans yönetim servisine şu anda ulaşılamıyor.", forwardQuery: ["from", "to"] });
     if (operation === "marketing-admin") return proxy(request, { edgeFunction: "marketing-admin", allowedMethods: ["GET", "POST"], timeout: 25_000, requireAuth: true, maxBodyBytes: 64 * 1024, unavailableCode: "MARKETING_ADMIN_UNAVAILABLE", unavailableMessage: "Pazarlama yönetim servisine şu anda ulaşılamıyor." });
     if (operation === "telematics-admin") return proxy(request, { edgeFunction: "telematics-admin", allowedMethods: ["GET", "POST"], timeout: 20_000, requireAuth: true, maxBodyBytes: 16 * 1024, unavailableCode: "TELEMATICS_ADMIN_UNAVAILABLE", unavailableMessage: "Araç telematik yönetim servisine şu anda ulaşılamıyor." });

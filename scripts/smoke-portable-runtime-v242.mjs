@@ -44,10 +44,10 @@ async function waitForHealth() {
 async function expectJson(path, status, code, init = {}) {
   const response = await fetch(`${origin}${path}`, { redirect: 'manual', signal: AbortSignal.timeout(5_000), ...init });
   const type = String(response.headers.get('content-type') || '').toLowerCase();
-  assert(type.includes('application/json'), `${path} must return application JSON instead of a platform/HTML crash page, got ${type || 'no content-type'} (${response.status})`);
+  assert(type.includes('application/json'), `${path} must return application JSON instead of a platform/HTML crash page, got ${type || 'no content-type'} (${response.status})\nPortable runtime output:\n${output}`);
   const payload = await response.json().catch(() => null);
-  assert(response.status === status, `${path} expected HTTP ${status}, got ${response.status}: ${JSON.stringify(payload)}`);
-  if (code) assert(payload?.code === code, `${path} expected application code ${code}, got ${JSON.stringify(payload)}`);
+  assert(response.status === status, `${path} expected HTTP ${status}, got ${response.status}: ${JSON.stringify(payload)}\nPortable runtime output:\n${output}`);
+  if (code) assert(payload?.code === code, `${path} expected application code ${code}, got ${JSON.stringify(payload)}\nPortable runtime output:\n${output}`);
   return payload;
 }
 

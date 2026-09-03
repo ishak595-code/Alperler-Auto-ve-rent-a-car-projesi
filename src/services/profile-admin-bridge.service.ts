@@ -63,7 +63,7 @@ export class ProfileAdminBridgeService {
     }
   }
 
-  async openAdmin(): Promise<void> {
+  async openAdmin(_legacyTarget?: string): Promise<void> {
     const access = await this.refresh();
     if (!access) throw new Error('Bu hesapta yönetim yetkisi bulunmuyor.');
     if (typeof window === 'undefined') throw new Error('Tarayıcı oturumu kullanılamıyor.');

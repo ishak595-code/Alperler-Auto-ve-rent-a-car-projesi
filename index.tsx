@@ -13,6 +13,7 @@ import { GlobalErrorHandler } from './src/services/global-error-handler';
 import { ParamAwareRouteReuseStrategy } from './src/services/param-aware-route-reuse.strategy';
 import { PublicDetailDataService } from './src/services/public-detail-data.service';
 import { startPwaRuntime } from './src/services/pwa-runtime.service';
+import { installWebPlatformCompatibility } from './src/services/web-platform-compatibility';
 
 const LEGACY_CATALOG_STORAGE_KEY = /^db_(?:cars|rental_?cars?|sale_?cars?|sales?|vehicles?|tours?|inventory|config|faqs?|blog)(?:_|$)/i;
 
@@ -37,6 +38,11 @@ function purgeLegacyCatalogStorage(): void {
 // application deliberately does not intercept beforeinstallprompt or render a
 // competing in-page installer. V162 owns only worker lifecycle, offline fallback
 // and installed display-mode state.
+
+// Install compatibility shims before any PWA, auth or data transport starts.
+// Critical transports still retain local fallbacks, so this is defense in depth
+// rather than a hidden dependency on one browser API version.
+installWebPlatformCompatibility();
 
 // The published Supabase catalogue is authoritative. Old schema snapshots must
 // never win over current vehicle data during bootstrap or from another stale tab.

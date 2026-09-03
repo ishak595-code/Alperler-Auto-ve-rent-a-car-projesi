@@ -2,8 +2,11 @@ import { CommonModule } from "@angular/common";
 import { Component, OnInit, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
+import { AdminFirstAccessV239Service } from "../../services/admin-first-access-v239.service";
 import { AuthService } from "../../services/auth.service";
 import { CarService } from "../../services/car.service";
+
+type AdminLoginModeV239 = "login" | "first-access" | "forgot" | "set-password";
 
 @Component({
   selector: "app-admin-login",
@@ -32,14 +35,32 @@ import { CarService } from "../../services/car.service";
         <div class="w-full max-w-md rounded-[28px] border border-slate-200 bg-white p-6 shadow-2xl sm:p-9">
           <div class="mb-7 text-center">
             <div class="mx-auto mb-4 inline-flex rounded-full bg-slate-950 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white">Yönetici Paneli</div>
-            <h2 class="text-3xl font-black tracking-tight text-slate-950">{{ mode() === 'forgot' ? 'Şifreyi Yenile' : mode() === 'set-password' ? 'Yeni Şifre Belirle' : 'Giriş Yap' }}</h2>
-            <p class="mt-2 text-sm leading-relaxed text-slate-500">{{ mode() === 'forgot' ? 'Yenileme isteği kayıtlı yönetici e-posta adresi için güvenli biçimde işlenir.' : mode() === 'set-password' ? 'Yeni şifrenizi belirleyin. Bu ekran yalnız geçerli davet veya yenileme bağlantısıyla açılır.' : 'Yalnızca aktif ve yetkili yönetici hesapları giriş yapabilir.' }}</p>
+            <h2 id="admin-login-heading" tabindex="-1" class="text-3xl font-black tracking-tight text-slate-950">{{ heading() }}</h2>
+            <p class="mt-2 text-sm leading-relaxed text-slate-500">{{ description() }}</p>
           </div>
 
           @if (successMsg()) { <div role="status" aria-live="polite" class="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold leading-relaxed text-emerald-800">{{ successMsg() }}</div> }
           @if (errorMsg()) { <div role="alert" aria-live="assertive" class="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold leading-relaxed text-red-700">{{ errorMsg() }}</div> }
 
-          @if (mode() === 'forgot') {
+          @if (mode() === 'first-access') {
+            <form (submit)="onFirstAccessSetup($event)" class="space-y-5" aria-describedby="admin-first-access-help">
+              <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-relaxed text-amber-950">
+                Ana yönetici hesabı: <strong>{{ authService.getPrimaryAdminEmail() }}</strong>
+              </div>
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Tek kullanımlık kurulum kodu</span>
+                <input type="text" [(ngModel)]="setupCode" name="setupCode" inputmode="numeric" autocomplete="one-time-code" maxlength="12" pattern="[0-9]*" aria-describedby="admin-first-access-help" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 font-mono text-lg font-black tracking-widest text-slate-950 outline-none transition focus:border-slate-500 focus:bg-white" />
+              </label>
+              <label class="block">
+                <span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Yeni yönetici şifresi</span>
+                <div class="relative"><input [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" name="firstAccessPassword" autocomplete="new-password" minlength="12" aria-describedby="admin-first-access-help" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 pr-16 font-bold text-slate-950 outline-none transition focus:border-slate-500 focus:bg-white" /><button type="button" (click)="showPassword.update(v => !v)" [attr.aria-label]="showPassword() ? 'Şifreyi gizle' : 'Şifreyi göster'" class="absolute inset-y-0 right-0 flex min-w-14 items-center justify-center px-3 text-xs font-black text-slate-500">{{ showPassword() ? 'Gizle' : 'Göster' }}</button></div>
+              </label>
+              <label class="block"><span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Yeni şifre tekrar</span><input type="password" [(ngModel)]="confirmPassword" name="firstAccessConfirmPassword" autocomplete="new-password" minlength="12" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 font-bold text-slate-950 outline-none transition focus:border-slate-500 focus:bg-white" /></label>
+              <div id="admin-first-access-help" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs font-semibold leading-relaxed text-slate-700">E-posta bağlantısına tıklamanız gerekmez. Kurulum kodu 12 rakamdır. Şifre en az 12 karakter olmalı ve büyük harf, küçük harf, rakam ve özel karakter içermelidir.</div>
+              <button type="submit" [disabled]="isLoading()" class="min-h-14 w-full rounded-xl bg-slate-950 px-5 font-black text-white transition hover:bg-slate-800 disabled:opacity-50">{{ isLoading() ? 'Güvenli kurulum yapılıyor...' : 'Yönetici Şifremi Oluştur' }}</button>
+              <button type="button" (click)="setMode('login')" class="min-h-12 w-full rounded-xl border border-slate-200 font-bold text-slate-600 transition hover:bg-slate-50">Giriş Ekranına Dön</button>
+            </form>
+          } @else if (mode() === 'forgot') {
             <div class="space-y-5">
               <label class="block"><span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Yönetici e-postası</span><input type="email" [(ngModel)]="resetEmail" autocomplete="email" inputmode="email" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 font-bold text-slate-950 outline-none transition focus:border-slate-500 focus:bg-white" /></label>
               <button type="button" (click)="doReset()" [disabled]="isLoading()" class="min-h-14 w-full rounded-xl bg-slate-950 px-5 font-black text-white transition hover:bg-slate-800 disabled:opacity-50">{{ isLoading() ? 'İstek işleniyor...' : 'Şifre Yenileme Bağlantısı İste' }}</button>
@@ -47,9 +68,9 @@ import { CarService } from "../../services/car.service";
             </div>
           } @else if (mode() === 'set-password') {
             <form (submit)="onSetPassword($event)" class="space-y-5">
-              <label class="block"><span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Yeni şifre</span><div class="relative"><input [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" name="newPassword" autocomplete="new-password" minlength="10" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 pr-16 font-bold text-slate-950 outline-none transition focus:border-slate-500 focus:bg-white" /><button type="button" (click)="showPassword.update(v => !v)" [attr.aria-label]="showPassword() ? 'Şifreyi gizle' : 'Şifreyi göster'" class="absolute inset-y-0 right-0 flex min-w-14 items-center justify-center px-3 text-xs font-black text-slate-500">{{ showPassword() ? 'Gizle' : 'Göster' }}</button></div></label>
-              <label class="block"><span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Yeni şifre tekrar</span><input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" autocomplete="new-password" minlength="10" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 font-bold text-slate-950 outline-none transition focus:border-slate-500 focus:bg-white" /></label>
-              <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs font-semibold leading-relaxed text-slate-700">En az 10 karakter, bir büyük harf, bir küçük harf ve bir rakam kullanın.</div>
+              <label class="block"><span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Yeni şifre</span><div class="relative"><input [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" name="newPassword" autocomplete="new-password" minlength="12" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 pr-16 font-bold text-slate-950 outline-none transition focus:border-slate-500 focus:bg-white" /><button type="button" (click)="showPassword.update(v => !v)" [attr.aria-label]="showPassword() ? 'Şifreyi gizle' : 'Şifreyi göster'" class="absolute inset-y-0 right-0 flex min-w-14 items-center justify-center px-3 text-xs font-black text-slate-500">{{ showPassword() ? 'Gizle' : 'Göster' }}</button></div></label>
+              <label class="block"><span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Yeni şifre tekrar</span><input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" autocomplete="new-password" minlength="12" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 font-bold text-slate-950 outline-none transition focus:border-slate-500 focus:bg-white" /></label>
+              <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs font-semibold leading-relaxed text-slate-700">En az 12 karakter, büyük harf, küçük harf, rakam ve özel karakter kullanın.</div>
               <button type="submit" [disabled]="isLoading()" class="min-h-14 w-full rounded-xl bg-slate-950 px-5 font-black text-white transition hover:bg-slate-800 disabled:opacity-50">{{ isLoading() ? 'Kaydediliyor...' : 'Yeni Şifreyi Kaydet' }}</button>
             </form>
           } @else {
@@ -58,8 +79,8 @@ import { CarService } from "../../services/car.service";
               <label class="block"><span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Şifre</span><div class="relative"><input [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" name="password" autocomplete="current-password" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 pr-16 font-bold text-slate-950 outline-none transition focus:border-slate-500 focus:bg-white" /><button type="button" (click)="showPassword.update(v => !v)" [attr.aria-label]="showPassword() ? 'Şifreyi gizle' : 'Şifreyi göster'" class="absolute inset-y-0 right-0 flex min-w-14 items-center justify-center px-3 text-xs font-black text-slate-500">{{ showPassword() ? 'Gizle' : 'Göster' }}</button></div></label>
               <button type="submit" [disabled]="isLoading()" class="min-h-14 w-full rounded-xl bg-slate-950 px-5 font-black text-white shadow-lg transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-600">{{ isLoading() ? 'Kontrol ediliyor...' : 'Güvenli Giriş Yap' }}</button>
             </form>
-            <div class="mt-4 grid gap-2 text-xs font-black sm:grid-cols-2"><button type="button" (click)="doFirstAccess()" [disabled]="isLoading()" class="min-h-11 rounded-xl border border-amber-200 bg-amber-50 px-3 text-amber-900 transition hover:bg-amber-100 disabled:opacity-50">İlk giriş / Şifremi oluştur</button><button type="button" (click)="setMode('forgot')" class="min-h-11 rounded-xl px-3 text-slate-700 hover:bg-slate-50 hover:underline">Şifremi unuttum</button></div>
-            <p class="mt-3 text-xs leading-relaxed text-slate-500">İlk girişte mevcut şifreyi bilmeniz gerekmez. Güvenli bağlantı yalnız kayıtlı ana yönetici e-posta adresine gönderilir.</p>
+            <div class="mt-4 grid gap-2 text-xs font-black sm:grid-cols-2"><button type="button" (click)="doFirstAccess()" [disabled]="isLoading()" class="min-h-11 rounded-xl border border-amber-200 bg-amber-50 px-3 text-amber-950 transition hover:bg-amber-100 disabled:opacity-50">İlk Yönetici Kurulumu</button><button type="button" (click)="setMode('forgot')" class="min-h-11 rounded-xl px-3 text-slate-700 hover:bg-slate-50 hover:underline">Şifremi unuttum</button></div>
+            <p class="mt-3 text-xs leading-relaxed text-slate-500">İlk kurulum doğrudan bu ekranın içinde yapılır. E-posta bağlantısına tıklamanız gerekmez.</p>
           }
         </div>
       </section>
@@ -68,6 +89,7 @@ import { CarService } from "../../services/car.service";
 })
 export class AdminLoginComponent implements OnInit {
   readonly authService = inject(AuthService);
+  readonly firstAccessService = inject(AdminFirstAccessV239Service);
   readonly carService = inject(CarService);
   readonly router = inject(Router);
   readonly config = this.carService.getConfig();
@@ -75,55 +97,110 @@ export class AdminLoginComponent implements OnInit {
   password = "";
   confirmPassword = "";
   resetEmail = this.authService.getPrimaryAdminEmail();
-  readonly mode = signal<"login" | "forgot" | "set-password">("login");
+  setupCode = "";
+  readonly mode = signal<AdminLoginModeV239>("login");
   readonly errorMsg = signal("");
   readonly successMsg = signal("");
   readonly showPassword = signal(false);
   readonly isLoading = signal(false);
+
+  heading(): string {
+    if (this.mode() === "first-access") return "İlk Yönetici Kurulumu";
+    if (this.mode() === "forgot") return "Şifreyi Yenile";
+    if (this.mode() === "set-password") return "Yeni Şifre Belirle";
+    return "Giriş Yap";
+  }
+
+  description(): string {
+    if (this.mode() === "first-access") return "E-posta bağlantısı gerekmez. Tek kullanımlık kurulum kodunu ve yeni şifrenizi bu ekranda girin.";
+    if (this.mode() === "forgot") return "Yenileme isteği kayıtlı yönetici e-posta adresi için güvenli biçimde işlenir.";
+    if (this.mode() === "set-password") return "Geçerli yenileme oturumuyla yeni şifrenizi belirleyin.";
+    return "Yalnızca aktif ve yetkili yönetici hesapları giriş yapabilir.";
+  }
 
   async ngOnInit(): Promise<void> {
     await this.authService.waitUntilReady();
     const params = new URLSearchParams(window.location.search);
     const passwordFlow = params.get("recovery") === "1" || params.get("invite") === "1";
     if (passwordFlow) {
-      if (this.authService.isLoggedIn()) this.mode.set("set-password");
-      else { this.mode.set("forgot"); this.errorMsg.set("Bağlantının süresi dolmuş veya bağlantı doğrulanamamış. Yeni bir şifre yenileme bağlantısı isteyin."); }
+      if (this.authService.isLoggedIn()) this.setMode("set-password");
+      else { this.setMode("forgot"); this.errorMsg.set("Yenileme oturumu doğrulanamadı. İlk kurulum yapacaksanız İlk Yönetici Kurulumu seçeneğini kullanın."); }
       return;
     }
     if (this.authService.isLoggedIn()) void this.router.navigate(["/admin/dashboard"]);
   }
 
-  setMode(mode: "login" | "forgot" | "set-password"): void {
-    this.mode.set(mode); this.errorMsg.set(""); this.successMsg.set(""); this.password = ""; this.confirmPassword = "";
-    this.username = this.authService.getPrimaryAdminEmail(); this.resetEmail = this.authService.getPrimaryAdminEmail();
+  setMode(mode: AdminLoginModeV239): void {
+    this.mode.set(mode);
+    this.errorMsg.set("");
+    this.successMsg.set("");
+    this.password = "";
+    this.confirmPassword = "";
+    this.showPassword.set(false);
+    if (mode !== "first-access") this.setupCode = "";
+    this.username = this.authService.getPrimaryAdminEmail();
+    this.resetEmail = this.authService.getPrimaryAdminEmail();
+    setTimeout(() => document.getElementById("admin-login-heading")?.focus(), 0);
   }
 
   async onLogin(event: Event): Promise<void> {
-    event.preventDefault(); this.errorMsg.set(""); this.successMsg.set(""); this.isLoading.set(true);
-    const success = await this.authService.login(this.username, this.password); this.isLoading.set(false);
+    event.preventDefault();
+    this.errorMsg.set(""); this.successMsg.set(""); this.isLoading.set(true);
+    const success = await this.authService.login(this.username, this.password);
+    this.isLoading.set(false);
     if (success) { void this.router.navigate(["/admin/dashboard"]); return; }
     this.syncError("Yönetici girişi tamamlanamadı.");
+  }
+
+  doFirstAccess(): void {
+    if (this.isLoading()) return;
+    this.setMode("first-access");
+  }
+
+  async onFirstAccessSetup(event: Event): Promise<void> {
+    event.preventDefault();
+    this.errorMsg.set(""); this.successMsg.set("");
+    const cleanCode = this.setupCode.replace(/\s+/g, "");
+    if (!/^\d{12}$/.test(cleanCode)) { this.errorMsg.set("Kurulum kodu 12 rakam olmalı."); return; }
+    if (this.password !== this.confirmPassword) { this.errorMsg.set("Yeni şifreler birbiriyle eşleşmiyor."); return; }
+    const validation = this.validateFirstAccessPassword(this.password);
+    if (validation) { this.errorMsg.set(validation); return; }
+
+    const passwordForLogin = this.password;
+    this.isLoading.set(true);
+    const result = await this.firstAccessService.complete(cleanCode, this.password, this.confirmPassword);
+    if (!result.ok) {
+      this.isLoading.set(false);
+      this.errorMsg.set(result.message);
+      return;
+    }
+
+    const loggedIn = await this.authService.login(this.authService.getPrimaryAdminEmail(), passwordForLogin);
+    this.isLoading.set(false);
+    this.setupCode = "";
+    this.confirmPassword = "";
+    if (loggedIn) {
+      this.password = "";
+      this.successMsg.set("Yönetici şifreniz oluşturuldu. Yönetim paneli açılıyor.");
+      setTimeout(() => void this.router.navigate(["/admin/dashboard"]), 250);
+      return;
+    }
+
+    this.successMsg.set("Yönetici şifreniz oluşturuldu. Yeni şifrenizle normal giriş yapabilirsiniz.");
+    this.mode.set("login");
+    this.username = this.authService.getPrimaryAdminEmail();
+    setTimeout(() => document.getElementById("admin-login-heading")?.focus(), 0);
   }
 
   async onSetPassword(event: Event): Promise<void> {
     event.preventDefault(); this.errorMsg.set(""); this.successMsg.set("");
     if (this.password !== this.confirmPassword) { this.errorMsg.set("Yeni şifreler birbiriyle eşleşmiyor."); return; }
-    const validation = this.authService.validateStrongPassword(this.password); if (validation) { this.errorMsg.set(validation); return; }
+    const validation = this.validateFirstAccessPassword(this.password); if (validation) { this.errorMsg.set(validation); return; }
     this.isLoading.set(true); const success = await this.authService.changeCurrentPassword(this.password); this.isLoading.set(false);
     if (!success) { this.syncError("Yeni şifre kaydedilemedi."); return; }
     this.successMsg.set("Şifreniz güncellendi. Yönetim paneli açılıyor."); this.password = ""; this.confirmPassword = "";
     window.history.replaceState(null, document.title, "/admin/login");
-    setTimeout(() => void this.router.navigate(["/admin/dashboard"]), 450);
-  }
-
-  async doFirstAccess(): Promise<void> {
-    if (this.isLoading()) return;
-    this.errorMsg.set(""); this.successMsg.set("");
-    this.isLoading.set(true);
-    const success = await this.authService.resetPassword(this.authService.getPrimaryAdminEmail());
-    this.isLoading.set(false);
-    if (!success) { this.syncError("İlk yönetici şifresi oluşturma bağlantısı gönderilemedi."); return; }
-    this.successMsg.set("İlk giriş bağlantısı kayıtlı ana yönetici e-posta adresine gönderildi. Bağlantıyı açıp yeni şifrenizi belirleyin.");
+    setTimeout(() => void this.router.navigate(["/admin/dashboard"]), 250);
   }
 
   async doReset(): Promise<void> {
@@ -134,7 +211,16 @@ export class AdminLoginComponent implements OnInit {
     const success = await this.authService.resetPassword(email);
     this.isLoading.set(false);
     if (!success) { this.syncError("Şifre yenileme isteği işlenemedi."); return; }
-    this.successMsg.set("Yenileme isteği e-posta servisine iletildi. Gelen kutusu ve spam klasörünü kontrol edin. Güvenlik nedeniyle hesap varlığı bu ekranda açıklanmaz.");
+    this.successMsg.set("Yenileme isteği e-posta servisine iletildi. İlk kurulum için e-posta yerine İlk Yönetici Kurulumu seçeneğini kullanabilirsiniz.");
+  }
+
+  private validateFirstAccessPassword(password: string): string | null {
+    if (password.length < 12) return "Şifre en az 12 karakter olmalı.";
+    if (!/[a-zçğıöşü]/.test(password)) return "Şifrede en az bir küçük harf bulunmalı.";
+    if (!/[A-ZÇĞİÖŞÜ]/.test(password)) return "Şifrede en az bir büyük harf bulunmalı.";
+    if (!/[0-9]/.test(password)) return "Şifrede en az bir rakam bulunmalı.";
+    if (!/[^A-Za-z0-9ÇĞİÖŞÜçğıöşü]/.test(password)) return "Şifrede en az bir özel karakter bulunmalı.";
+    return null;
   }
 
   private syncError(fallback: string): void { this.errorMsg.set(this.authService.lastErrorMessage() || fallback); }

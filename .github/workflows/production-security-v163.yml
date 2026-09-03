@@ -14,6 +14,7 @@ on:
       - "scripts/check-production-security-v163.mjs"
       - "scripts/check-production-integration-v1632.mjs"
       - "scripts/check-v239-admin-first-access.mjs"
+      - "scripts/check-v241-profile-admin-resilience.mjs"
       - "vercel.json"
       - ".github/dependabot.yml"
       - ".github/workflows/production-security-v163.yml"
@@ -29,6 +30,7 @@ on:
       - "scripts/check-production-security-v163.mjs"
       - "scripts/check-production-integration-v1632.mjs"
       - "scripts/check-v239-admin-first-access.mjs"
+      - "scripts/check-v241-profile-admin-resilience.mjs"
       - "vercel.json"
       - ".github/dependabot.yml"
       - ".github/workflows/production-security-v163.yml"
@@ -73,6 +75,9 @@ jobs:
 
       - name: V239 in-app owner first-access contract gate
         run: node scripts/check-v239-admin-first-access.mjs
+
+      - name: V241 profile and admin resilience contract gate
+        run: node scripts/check-v241-profile-admin-resilience.mjs
 
       - name: Frontend TypeScript check
         run: npm run lint

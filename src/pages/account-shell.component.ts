@@ -3,7 +3,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { AccountFavoritesV213Component } from '../components/account-favorites-v213.component';
-import { AccountProfileSettingsV225Component } from '../components/account-profile-settings-v225.component';
+import { AccountProfileSettingsV241Component } from '../components/account-profile-settings-v241.component';
+import { AccountReferralV241Component } from '../components/account-referral-v241.component';
 import { AccountDashboardV150Component } from './account-dashboard-v150.component';
 
 type AccountSection = 'overview' | 'favorites' | 'profile';
@@ -11,7 +12,7 @@ type AccountSection = 'overview' | 'favorites' | 'profile';
 @Component({
   selector:'app-account-shell',
   standalone:true,
-  imports:[RouterLink,AccountDashboardV150Component,AccountFavoritesV213Component,AccountProfileSettingsV225Component],
+  imports:[RouterLink,AccountDashboardV150Component,AccountFavoritesV213Component,AccountProfileSettingsV241Component,AccountReferralV241Component],
   template:`
     <main class="account-shell">
       <div class="account-toolbar">
@@ -28,14 +29,25 @@ type AccountSection = 'overview' | 'favorites' | 'profile';
       <section class="account-content" aria-live="polite">
         @switch (section()) {
           @case ('favorites') { <app-account-favorites-v213></app-account-favorites-v213> }
-          @case ('profile') { <app-account-profile-settings-v225></app-account-profile-settings-v225> }
-          @default { <app-account-dashboard-v150></app-account-dashboard-v150> }
+          @case ('profile') { <app-account-profile-settings-v241></app-account-profile-settings-v241> }
+          @default {
+            <app-account-dashboard-v150></app-account-dashboard-v150>
+            <div class="overview-extras">
+              <app-account-referral-v241></app-account-referral-v241>
+              <nav class="quick-actions" aria-label="Hızlı işlemler">
+                <a routerLink="/fleet"><small>KİRALAMA</small><strong>Araç Bul</strong><span>Uygun kiralık araçları incele</span></a>
+                <a routerLink="/sales"><small>SATIŞ</small><strong>Araç İncele</strong><span>Satılık araçları görüntüle</span></a>
+                <a routerLink="/tours"><small>TUR</small><strong>Tur Keşfet</strong><span>Rota ve tur seçeneklerini aç</span></a>
+                <a routerLink="/appointment"><small>RANDEVU</small><strong>Randevu Al</strong><span>İşleminiz için randevu oluştur</span></a>
+              </nav>
+            </div>
+          }
         }
       </section>
     </main>
   `,
   styles:[`
-    :host{display:block;background:#060a12}.account-shell{min-height:100vh;background:#060a12;color:#f4f6f8}.account-toolbar{width:min(100%,1180px);margin:auto;padding:clamp(14px,3vw,24px) clamp(14px,3vw,34px) 10px}.home-link{display:inline-flex;min-height:42px;align-items:center;gap:.45rem;border:1px solid #263548;border-radius:12px;background:#0b1420;padding:0 .85rem;color:#dbe7f5;text-decoration:none;font-size:.72rem;font-weight:900}.home-link:focus-visible,.account-shortcuts a:focus-visible{outline:3px solid #60a5fa;outline-offset:3px}.account-shortcuts{display:flex;width:100%;gap:.55rem;overflow-x:auto;border-block:1px solid #263548;background:#07101b;padding:10px max(14px,calc((100vw - 1180px)/2 + 14px));scrollbar-width:none}.account-shortcuts::-webkit-scrollbar{display:none}.account-shortcuts a{display:inline-flex;min-height:44px;flex:0 0 auto;align-items:center;border:1px solid #304158;border-radius:12px;background:#0d1724;padding:0 14px;color:#dce6f2;text-decoration:none;font-size:.7rem;font-weight:900}.account-shortcuts a.active{border-color:#54779c;background:#13263a;color:#fff;box-shadow:inset 0 0 0 1px rgba(96,165,250,.12)}.account-content{padding-top:18px}@media(max-width:620px){.account-toolbar,.account-shortcuts{padding-inline:14px}}
+    :host{display:block;background:#060a12}.account-shell{min-height:100vh;background:#060a12;color:#f4f6f8}.account-toolbar{width:min(100%,1180px);margin:auto;padding:clamp(14px,3vw,24px) clamp(14px,3vw,34px) 10px}.home-link{display:inline-flex;min-height:42px;align-items:center;gap:.45rem;border:1px solid #263548;border-radius:12px;background:#0b1420;padding:0 .85rem;color:#dbe7f5;text-decoration:none;font-size:.72rem;font-weight:900}.home-link:focus-visible,.account-shortcuts a:focus-visible,.quick-actions a:focus-visible{outline:3px solid #60a5fa;outline-offset:3px}.account-shortcuts{display:flex;width:100%;gap:.55rem;overflow-x:auto;border-block:1px solid #263548;background:#07101b;padding:10px max(14px,calc((100vw - 1180px)/2 + 14px));scrollbar-width:none}.account-shortcuts::-webkit-scrollbar{display:none}.account-shortcuts a{display:inline-flex;min-height:44px;flex:0 0 auto;align-items:center;border:1px solid #304158;border-radius:12px;background:#0d1724;padding:0 14px;color:#dce6f2;text-decoration:none;font-size:.7rem;font-weight:900}.account-shortcuts a.active{border-color:#54779c;background:#13263a;color:#fff;box-shadow:inset 0 0 0 1px rgba(96,165,250,.12)}.account-content{padding-top:18px}.overview-extras{display:grid;width:min(100% - 28px,1180px);margin:0 auto;gap:.85rem;padding-bottom:calc(110px + env(safe-area-inset-bottom))}.quick-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.55rem}.quick-actions a{min-width:0;border:1px solid #27364a;border-radius:14px;background:#0b1420;padding:.78rem;color:#fff;text-decoration:none}.quick-actions small,.quick-actions strong,.quick-actions span{display:block}.quick-actions small{color:#c6a15b;font-size:.5rem;font-weight:950;letter-spacing:.08em}.quick-actions strong{margin-top:.18rem;font-size:.75rem}.quick-actions span{margin-top:.2rem;color:#8796a8;font-size:.56rem;line-height:1.35}:host ::ng-deep app-account-dashboard-v150 .account-tools,:host ::ng-deep app-account-dashboard-v150 app-account-referral-v238,:host ::ng-deep app-account-dashboard-v150 .header-actions .logout{display:none!important}@media(max-width:720px){.quick-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.account-toolbar,.account-shortcuts{padding-inline:14px}}
   `]
 })
 export class AccountShellComponent {

@@ -36,6 +36,7 @@ async function proxy(
   }
   const headers: Record<string, string> = {
     "content-type": "application/json",
+    apikey: SUPABASE_PUBLISHABLE_KEY,
     "x-client-ip": clientIp(request),
     "x-request-id": decision.requestId,
     "x-app-origin": new URL(request.url).origin,

@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 
 const accountShell = readFileSync('src/pages/account-shell.component.ts', 'utf8');
-const profileSettings = readFileSync('src/components/account-profile-settings-v225.component.ts', 'utf8');
+const profileSettings = readFileSync('src/components/account-profile-settings-v241.component.ts', 'utf8');
+const profileService = readFileSync('src/services/customer-profile-v241.service.ts', 'utf8');
 const accountService = readFileSync('src/services/customer-account.service.ts', 'utf8');
 const accountDashboard = readFileSync('src/pages/account-dashboard-v150.component.ts', 'utf8');
 const walletService = readFileSync('src/services/customer-wallet.service.ts', 'utf8');
@@ -32,19 +33,21 @@ function count(source, token) { return source.split(token).length - 1; }
 
 forbidText(accountShell, 'ALPERLER HESABIM', 'Account shell must not duplicate the dashboard identity header.');
 requireText(accountShell, '@switch (section())', 'Account shell must render exactly one account section through an exclusive switch.');
-if (count(accountShell, '<app-account-profile-settings-v225>') !== 1) throw new Error('Account shell must own exactly one profile-settings render path.');
+if (count(accountShell, '<app-account-profile-settings-v241>') !== 1) throw new Error('Account shell must own exactly one V241 profile-settings render path.');
 if (count(profileSettings, '<app-account-security-v223') !== 1) throw new Error('Profile settings must own exactly one account security render path.');
-requireText(profileSettings, 'readonly securityOpen=signal(false)', 'Account security must start closed.');
-requireText(profileSettings, '(click)="toggleSecurity()"', 'Profile settings must expose one explicit security toggle.');
-requireText(profileSettings, '@if(securityOpen())', 'Account security must only render after explicit user action.');
-requireText(profileSettings, "'Güvenlik Ayarlarını Aç'", 'Profile settings must expose the canonical security launcher label.');
+requireText(profileSettings, "type ProfilePanelV241='avatar'|'info'|'security'|null", 'Account security must be owned by the closed-by-default profile accordion.');
+requireText(profileSettings, "toggle('security')", 'Profile settings must expose one explicit security toggle.');
+requireText(profileSettings, "@if(openPanel()==='security')", 'Account security must only render after explicit user action.');
+requireText(profileSettings, '[attr.aria-expanded]="openPanel()===\'security\'"', 'Security panel must expose expanded state accessibly.');
 
 requireText(accountService, 'readonly partialRefresh=signal(false)', 'Account service must expose partial refresh state.');
 requireText(accountService, 'Promise.allSettled', 'Optional account data must not fail the core profile surface.');
 requireText(accountService, "this.getRows<CustomerProfile>", 'Customer profile remains a required core account read.');
 requireText(accountService, "this.getRows<CustomerBooking>", 'Customer booking history remains a required core account read.');
-requireText(accountService, "'x-upsert':'true'", 'Avatar replacement must use the canonical Storage upsert path.');
-requireText(avatarUpsertPolicy, 'create policy customer_avatar_select_own', 'Avatar upsert must retain owner SELECT visibility.');
+requireText(profileService, "'x-upsert':'false'", 'V241 avatar replacement must use immutable unique Storage objects instead of fixed-path upsert.');
+requireText(profileService, 'avatar-${Date.now()}-${nonce}', 'V241 avatar replacement must allocate a unique object path per upload.');
+requireText(profileService, 'await this.deletePath(objectPath,token).catch', 'Failed avatar/profile binding must roll back the newly uploaded object.');
+requireText(avatarUpsertPolicy, 'create policy customer_avatar_select_own', 'Avatar owner SELECT visibility must remain installed for customer-owned objects.');
 requireText(avatarUpsertPolicy, "bucket_id = 'customer-avatars'", 'Avatar SELECT policy must remain scoped to the customer avatar bucket.');
 requireText(avatarUpsertPolicy, 'owner_id = (select auth.uid())::text', 'Avatar SELECT policy must remain scoped to the authenticated owner.');
 forbidText(accountDashboard.toLocaleLowerCase('tr-TR'), 'bağlantınızı kontrol', 'Account errors must not misdiagnose every server failure as a customer connection problem.');
@@ -113,4 +116,4 @@ requireText(newsletter, 'op=newsletter-admin-read', 'Newsletter admin listing mu
 requireText(newsletter, "fetch('/api/partner?op=newsletter-admin'", 'Newsletter campaign actions must use the authenticated admin gateway.');
 for (const edge of ['newsletter-gateway','newsletter-admin','newsletter-admin-read-v186']) requireText(partner, `edgeFunction: "${edge}"`, `Partner API must route newsletter traffic to ${edge}.`);
 
-console.log('V226 customer surface integrity contract passed.');
+console.log('V226/V241 customer surface integrity contract passed.');

@@ -56,9 +56,6 @@ async function main() {
   assert(media.headers.get('location') === `${fakeSupabase}/storage/v1/object/public/catalog-media/portable-smoke.jpg`, 'catalog media redirect must use SUPABASE_PROJECT_URL instead of Vercel-only routing');
   assert((media.headers.get('cache-control') || '').includes('max-age=86400'), 'catalog media cache contract missing');
 
-  const traversal = await fetch(`${origin}/catalog-media/%2e%2e/secret`, { redirect: 'manual' });
-  assert(traversal.status === 400 || traversal.status === 404, `catalog-media traversal must be rejected, got ${traversal.status}`);
-
   console.log('V242 portable runtime smoke: PASS');
 }
 

@@ -30,6 +30,8 @@ jobs:
         run: node scripts/check-v221-release-readiness.mjs
       - name: Finance and notification invariant
         run: node scripts/check-v2212-finance-notifications.mjs
+      - name: Portable runtime parity invariant
+        run: npm run portability:runtime:v242
       - name: Dependency vulnerability gate
         run: npm audit --audit-level=high
       - name: Frontend TypeScript
@@ -44,6 +46,8 @@ jobs:
         run: npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/finance-admin/index.ts
       - name: Production build
         run: npm run build
+      - name: Portable Node runtime smoke
+        run: npm run portability:smoke:v242
       - name: Vercel function budget
         run: npm run vercel:functions
 

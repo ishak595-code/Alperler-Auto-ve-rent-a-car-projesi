@@ -4,6 +4,7 @@ const read=(path)=>fs.readFileSync(path,'utf8');
 const assert=(condition,message)=>{if(!condition)throw new Error(`V241_PROFILE_ADMIN_RESILIENCE: ${message}`);};
 
 const operations=read('src/services/admin-operations.service.ts');
+const partner=read('api/partner.ts');
 const profileService=read('src/services/customer-profile-v241.service.ts');
 const profileUi=read('src/components/account-profile-settings-v241.component.ts');
 const referral=read('src/components/account-referral-v241.component.ts');
@@ -12,10 +13,12 @@ const adminSettings=read('src/pages/admin/admin-settings-v241.component.ts');
 const settingsHub=read('src/pages/admin/admin-site-settings-hub.component.ts');
 const migration=read('supabase/migrations/20260903160000_v241_customer_profile_write_grants.sql');
 
-assert(operations.includes("supabaseFunctionUrl('admin-core-gateway-v178')"),'admin operations has no direct authenticated Edge fallback');
-assert(operations.includes('apikey:SUPABASE_PUBLISHABLE_KEY'),'direct admin fallback does not send publishable project boundary');
-assert(operations.includes('fetchProxy')&&operations.includes('fetchDirect'),'admin operations does not own proxy-to-direct resilience');
-assert(!operations.includes('SERVICE_ROLE'),'server credential leaked into browser admin operations service');
+assert(operations.includes("'/api/partner?op=admin-core&view=operations'"),'admin operations is not bound to the canonical same-origin gateway');
+assert(operations.includes('fetchSnapshot(token)'),'admin operations does not own same-origin retry resilience');
+for(const forbidden of ['SUPABASE_PUBLISHABLE_KEY','SUPABASE_PROJECT_URL','supabaseFunctionUrl','/functions/v1/','/rest/v1/','SERVICE_ROLE'])assert(!operations.includes(forbidden),`browser admin operations bypasses the same-origin security gateway: ${forbidden}`);
+assert(partner.includes('apikey: SUPABASE_PUBLISHABLE_KEY'),'server gateway does not send the Supabase publishable project boundary upstream');
+assert(partner.includes('operation === "admin-core"')&&partner.includes('edgeFunction: "admin-core-gateway-v178"'),'admin-core is not owned by the canonical partner gateway');
+assert(/operation === "admin-core"[\s\S]{0,500}requireAuth: true/.test(partner),'admin-core gateway no longer requires an authenticated bearer session');
 
 assert(profileService.includes("'x-upsert':'false'"),'customer avatar upload still relies on upsert/update semantics');
 assert(profileService.includes('avatar-${Date.now()}-${nonce}'),'customer avatar path is not unique/immutable per upload');
@@ -46,4 +49,4 @@ for(const column of ['full_name','phone','birth_date','address_line','district',
 assert(!/grant update\s+on table public\.customer_profiles/i.test(migration),'migration grants broad table-level UPDATE instead of owned columns');
 assert(!migration.includes('user_id,')&&!migration.includes('email,')&&!migration.includes('status,'),'immutable/admin-owned customer profile columns were accidentally granted');
 
-console.log('V241 customer profile, referral, compact settings and admin transport resilience contract: PASS');
+console.log('V241 customer profile, referral, compact settings and same-origin admin transport resilience contract: PASS');

@@ -63,7 +63,9 @@ requireText(tour, '<span>WhatsApp’tan Sor</span>', 'Tour WhatsApp action missi
 requireText(tour, '<span>Bu Turu Rezerve Et</span>', 'Tour reservation action missing.');
 rejectText(tour, 'Hazır olduğunuzda', 'Duplicate legacy tour reservation card must not return.');
 
-// Force old static PWA bundles out after this public contract release.
-requireText(worker, "const RELEASE = 'v202-public-detail-contract';", 'PWA cache release was not rotated for V202.');
+// The PWA cache must always have an explicit release owner, but later releases are allowed
+// to rotate it without making this historical V202 contract stale.
+const releaseMatch = worker.match(/const RELEASE = ['"]([^'"]+)['"];?/);
+if (!releaseMatch?.[1]?.trim()) throw new Error('PWA cache release owner is missing.');
 
 console.log('V202/V225 public detail contract: OK');

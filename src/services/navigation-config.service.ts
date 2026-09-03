@@ -105,7 +105,7 @@ export class NavigationConfigService {
   }
 
   itemsFor(surface: NavigationSurface, includeInactive = false): NavigationItem[] {
-    return this._items().filter((item) => item.surface === surface && !item.archivedAt && (includeInactive || item.isActive)).sort((a,b) => a.sortOrder-b.sortOrder || a.label.localeCompare(b.label,'tr'));
+    return this._items().filter((item) => item.surface === surface && !item.archivedAt && (includeInactive || item.isActive) && !this.isForbiddenMobileMenuSearch(item)).sort((a,b) => a.sortOrder-b.sortOrder || a.label.localeCompare(b.label,'tr'));
   }
   archivedItemsFor(surface: NavigationSurface): NavigationItem[] { return this._items().filter((item)=>item.surface===surface&&Boolean(item.archivedAt)).sort((a,b)=>(b.archivedAt||'').localeCompare(a.archivedAt||'')); }
   setMobileDockAutoHidden(hidden:boolean):void{ this._mobileDockAutoHidden.set(this._settings().mobileDockAutoHide ? hidden : false); }
@@ -143,6 +143,7 @@ export class NavigationConfigService {
   }
 
   async addPreset(surface:NavigationSurface,preset:NavigationPreset):Promise<void>{
+    if(surface==='MOBILE_MENU'&&(preset.key==='search'||preset.route==='/search'))throw new Error('Arama mobil alt barda sabittir ve hamburger menüye tekrar eklenemez.');
     const token=await this.requiredToken();const route=this.safeRoute(preset.route);if(!route)throw new Error('Bu hazır butonun bağlantısı uygulamadaki bir sayfayla eşleşmiyor.');
     const existing=this._items().filter((item)=>item.surface===surface);const duplicate=existing.find((item)=>item.itemKey===preset.key);const nextSort=this.itemsFor(surface,true).reduce((max,item)=>Math.max(max,item.sortOrder),0)+10;
     if(duplicate){await this.rest('PATCH',`navigation_items?id=eq.${encodeURIComponent(duplicate.id)}`,{label:preset.label,icon:preset.icon,route,sort_order:duplicate.archivedAt?nextSort:duplicate.sortOrder,is_active:true,archived_at:null,updated_at:new Date().toISOString()},token);await this.refreshAdmin();return;}
@@ -150,18 +151,18 @@ export class NavigationConfigService {
   }
 
   async addCustom(surface:NavigationSurface,input:{label:string;icon:string;route:string}):Promise<void>{
-    const token=await this.requiredToken();const label=input.label.trim().slice(0,60);const icon=input.icon.trim().slice(0,60)||'link';const route=this.safeRoute(input.route);if(!label||!route)throw new Error('Geçerli bir buton adı ve çalışan site içi bağlantı girin.');
+    const token=await this.requiredToken();const label=input.label.trim().slice(0,60);const icon=input.icon.trim().slice(0,60)||'link';const route=this.safeRoute(input.route);if(!label||!route)throw new Error('Geçerli bir buton adı ve çalışan site içi bağlantı girin.');if(surface==='MOBILE_MENU'&&route==='/search')throw new Error('Arama mobil alt barda sabittir ve hamburger menüye tekrar eklenemez.');
     const key=`custom-${Date.now().toString(36)}`;const nextSort=this.itemsFor(surface,true).reduce((max,item)=>Math.max(max,item.sortOrder),0)+10;
     await this.rest('POST','navigation_items',{surface,item_key:key,label,icon,route,sort_order:nextSort,is_active:true,archived_at:null,metadata:{custom:true}},token);await this.refreshAdmin();
   }
 
   async updateItem(item:NavigationItem):Promise<void>{
-    if(item.archivedAt)throw new Error('Kaldırılmış bir butonu düzenlemeden önce geri yükleyin.');const token=await this.requiredToken();const route=this.safeRoute(item.route);if(!route)throw new Error('Bu bağlantı uygulamadaki geçerli bir müşteri sayfasına gitmiyor.');
+    if(item.archivedAt)throw new Error('Kaldırılmış bir butonu düzenlemeden önce geri yükleyin.');const token=await this.requiredToken();const route=this.safeRoute(item.route);if(!route)throw new Error('Bu bağlantı uygulamadaki geçerli bir müşteri sayfasına gitmiyor.');if(item.surface==='MOBILE_MENU'&&(item.itemKey==='search'||route==='/search'))throw new Error('Arama mobil alt barda sabittir ve hamburger menüye tekrar eklenemez.');
     await this.rest('PATCH',`navigation_items?id=eq.${encodeURIComponent(item.id)}`,{label:item.label.trim().slice(0,60),icon:item.icon.trim().slice(0,60)||'link',route,sort_order:item.sortOrder,is_active:item.isActive,metadata:item.metadata||{},updated_at:new Date().toISOString()},token);await this.refreshAdmin();
   }
 
   async archiveItem(id:string):Promise<void>{const token=await this.requiredToken();await this.rest('PATCH',`navigation_items?id=eq.${encodeURIComponent(id)}`,{is_active:false,archived_at:new Date().toISOString(),updated_at:new Date().toISOString()},token);await this.refreshAdmin();}
-  async restoreItem(id:string):Promise<void>{const item=this._items().find((candidate)=>candidate.id===id&&candidate.archivedAt);if(!item)throw new Error('Geri yüklenecek buton bulunamadı.');const route=this.safeRoute(item.route);if(!route)throw new Error('Bu butonun eski bağlantısı artık geçerli değil. Önce aynı butonu hazır seçeneklerden yeniden ekleyin.');const token=await this.requiredToken();const nextSort=this.itemsFor(item.surface,true).reduce((max,candidate)=>Math.max(max,candidate.sortOrder),0)+10;await this.rest('PATCH',`navigation_items?id=eq.${encodeURIComponent(id)}`,{is_active:true,archived_at:null,sort_order:nextSort,updated_at:new Date().toISOString()},token);await this.refreshAdmin();}
+  async restoreItem(id:string):Promise<void>{const item=this._items().find((candidate)=>candidate.id===id&&candidate.archivedAt);if(!item)throw new Error('Geri yüklenecek buton bulunamadı.');const route=this.safeRoute(item.route);if(!route)throw new Error('Bu butonun eski bağlantısı artık geçerli değil. Önce aynı butonu hazır seçeneklerden yeniden ekleyin.');if(item.surface==='MOBILE_MENU'&&(item.itemKey==='search'||route==='/search'))throw new Error('Arama mobil alt barda sabittir ve hamburger menüye geri yüklenemez.');const token=await this.requiredToken();const nextSort=this.itemsFor(item.surface,true).reduce((max,candidate)=>Math.max(max,candidate.sortOrder),0)+10;await this.rest('PATCH',`navigation_items?id=eq.${encodeURIComponent(id)}`,{is_active:true,archived_at:null,sort_order:nextSort,updated_at:new Date().toISOString()},token);await this.refreshAdmin();}
   async reorder(surface:NavigationSurface,orderedIds:string[]):Promise<void>{const token=await this.requiredToken();const allowed=new Set(this.itemsFor(surface,true).map((item)=>item.id));if(orderedIds.some((id)=>!allowed.has(id)))throw new Error('Sıralama listesinde başka bir menüye ait buton bulundu.');await Promise.all(orderedIds.map((id,index)=>this.rest('PATCH',`navigation_items?id=eq.${encodeURIComponent(id)}`,{sort_order:(index+1)*10,updated_at:new Date().toISOString()},token)));await this.refreshAdmin();}
 
   private queueRefresh():void{
@@ -170,6 +171,7 @@ export class NavigationConfigService {
   }
   private applySettingsRow(row:any):void{const next:NavigationSettings={mobileDockEnabled:row.mobile_dock_enabled!==false,mobileMenuEnabled:row.mobile_menu_enabled!==false,mobileDockAutoHide:row.mobile_dock_auto_hide!==false};this._settings.set(next);if(!next.mobileDockAutoHide)this._mobileDockAutoHidden.set(false);}
   private fromRow(row:any):NavigationItem{return{id:String(row.id||''),surface:row.surface as NavigationSurface,itemKey:String(row.item_key||''),label:String(row.label||''),icon:String(row.icon||'link'),route:String(row.route||'/'),sortOrder:Number(row.sort_order||0),isActive:row.is_active!==false,archivedAt:row.archived_at?String(row.archived_at):null,metadata:row.metadata&&typeof row.metadata==='object'?row.metadata:{}};}
+  private isForbiddenMobileMenuSearch(item:NavigationItem):boolean{return item.surface==='MOBILE_MENU'&&(item.itemKey==='search'||item.route.split('?')[0].split('#')[0]==='/search');}
   private safeRoute(value:string):string{const route=String(value||'').trim();if(!/^\/[A-Za-z0-9_./?#=&%-]*$/.test(route))return'';const path=route.split('?')[0].split('#')[0];const root=path.split('/').filter(Boolean)[0]||'';return NAVIGABLE_ROUTE_ROOTS.has(root)?route:'';}
   private async requiredToken():Promise<string>{const {AuthService}=await import('./auth.service');const auth=this.injector.get(AuthService);const token=await auth.getAccessToken();if(!token)throw new Error('ADMIN_SESSION_REQUIRED');return token;}
   private async rest<T=unknown>(method:'GET'|'POST'|'PATCH'|'DELETE',path:string,body:unknown,token:string):Promise<T>{

@@ -13,7 +13,9 @@ const required = [
   'src/components/dynamic-home-section.component.ts',
   'src/pages/campaigns.component.ts',
   'src/pages/account-dashboard-v150.component.ts',
+  'src/pages/account-shell.component.ts',
   'src/components/account-profile-settings-v225.component.ts',
+  'src/components/account-referral-v238.component.ts',
   'src/pages/admin/admin-homepage.component.ts',
   'src/pages/admin/admin-campaigns-v167.component.ts',
   'src/premium-responsive.css',
@@ -105,10 +107,17 @@ const runtimeConfig = read('playwright.v204.config.ts');
 for (const token of ['SM-S928B','isMobile: true','hasTouch: true','width: 412','height: 915']) must(runtimeConfig, token, `Android runtime profile missing contract: ${token}`);
 
 const account = read('src/pages/account-dashboard-v150.component.ts');
-for (const token of ['routerLink="/account/wallet"','bookingFilter','filteredBookings','expandedBooking','toggleBooking','selectFilter','Cüzdan ve Belgeler','Profil Ayarları','queryParams]="{section:\'profile\'}"']) must(account, token);
-for (const forbidden of ['profileOpen','profileForm','saveProfile()','[(ngModel)]="profileForm']) mustNot(account, forbidden, `Dashboard must not regain duplicate profile-edit ownership: ${forbidden}`);
+for (const token of ['bookingFilter','filteredBookings','expandedBooking','toggleBooking','selectFilter','Profil Ayarları','queryParams]="{section:\'profile\'}"','routerLink="/appointment"','<app-account-referral-v238 />']) must(account, token);
+for (const forbidden of ['profileOpen','profileForm','saveProfile()','[(ngModel)]="profileForm','routerLink="/account/wallet"','Cüzdan ve Belgeler','<small>HESABIM</small><strong>Cüzdan</strong>']) mustNot(account, forbidden, `Dashboard must not regain duplicate account/profile ownership: ${forbidden}`);
+const accountShell = read('src/pages/account-shell.component.ts');
+must(accountShell, 'routerLink="/account/wallet"', 'Account shell must own the canonical wallet route.');
+const walletLabels = (accountShell.match(/Cüzdan ve Belgeler/g) || []).length;
+if (walletLabels !== 1) throw new Error(`Account shell must expose exactly one canonical Cüzdan ve Belgeler entry, found ${walletLabels}.`);
+const referral = read('src/components/account-referral-v238.component.ts');
+for (const token of ['ARKADAŞINI DAVET ET','Davet Linkini Kopyala','Paylaş']) must(referral, token, `Profile landing referral experience missing: ${token}`);
 const profileSettings = read('src/components/account-profile-settings-v225.component.ts');
 for (const token of ['(ngSubmit)="save()"','account.updateProfile','securityOpen','Güvenlik Ayarlarını Aç','account-security-v223']) must(profileSettings, token, `Canonical profile settings ownership missing: ${token}`);
+mustNot(profileSettings, 'referral-card', 'Referral ownership must remain on the Profile landing page, not duplicated in Profile Settings.');
 
 const proofMigration = read('supabase/migrations/20260828114500_v204_campaign_social_proof_attribution.sql');
 for (const token of ["ve.event_type = 'page_view'","'[?&]campaign=' || c.id::text || '(&|$)'",'count(distinct ve.visitor_id)','active_viewers_15m']) must(proofMigration, token);

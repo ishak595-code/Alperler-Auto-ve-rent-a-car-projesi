@@ -111,16 +111,18 @@ jobs:
           grep -Fq 'checkoutGuard' src/app.routes.ts
           grep -Fq 'navigate(["/booking-checkout"]' src/pages/contact-entry.component.ts
 
-          # Admin access uses the same confirmed Supabase identity as the customer
-          # profile, verifies admin_users and preserves the requested admin route.
-          # AccountLogin must NOT eagerly instantiate AuthService because both auth
-          # services would otherwise race to consume the one-time recovery hash.
+          # V243 keeps customer and Super Admin authentication as separate domains.
+          # A customer identity may be checked against admin_users only to decide whether
+          # the dedicated admin login can be offered. Customer session material is never
+          # restored by AuthService or copied into admin storage by the bridge.
           grep -Fq "path: 'admin/login', loadComponent:" src/app.routes.ts
           grep -Fq "returnUrl: state.url || '/admin'" src/app.routes.ts
-          grep -Fq 'alperler_customer_session_v1' src/services/auth.service.ts
+          grep -Fq 'alperler_admin_session_v1' src/services/auth.service.ts
+          ! grep -Fq 'alperler_customer_session_v1' src/services/auth.service.ts
           grep -Fq 'admin_users?user_id=eq.' src/services/profile-admin-bridge.service.ts
-          grep -Fq 'alperler_admin_session_v1' src/services/profile-admin-bridge.service.ts
-          grep -Fq 'window.location.assign(this.safeAdminTarget(target))' src/services/profile-admin-bridge.service.ts
+          ! grep -Fq 'alperler_admin_session_v1' src/services/profile-admin-bridge.service.ts
+          ! grep -Fq 'localStorage.setItem' src/services/profile-admin-bridge.service.ts
+          grep -Fq "window.location.assign('/admin/login')" src/services/profile-admin-bridge.service.ts
           grep -Fq 'adminReturnTarget()' src/pages/account-login.component.ts
           grep -Fq 'await this.adminBridge.openAdmin(adminTarget)' src/pages/account-login.component.ts
           grep -Fq 'this.injector.get(AuthService)' src/pages/account-login.component.ts

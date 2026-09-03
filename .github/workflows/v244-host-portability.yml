@@ -1,0 +1,81 @@
+name: V244 Host Portability and Endpoint Integrity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "api/**"
+      - "src/**"
+      - "server.ts"
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".env.example"
+      - "vercel.json"
+      - "package.json"
+      - "package-lock.json"
+      - "supabase/functions/**"
+      - "supabase/migrations/**"
+      - "scripts/check-v244-host-portability.mjs"
+      - "docs/HOSTING_HANDOFF_V244.md"
+      - ".github/workflows/v244-host-portability.yml"
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - "src/**"
+      - "server.ts"
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".env.example"
+      - "vercel.json"
+      - "package.json"
+      - "package-lock.json"
+      - "supabase/functions/**"
+      - "supabase/migrations/**"
+      - "scripts/check-v244-host-portability.mjs"
+      - "docs/HOSTING_HANDOFF_V244.md"
+      - ".github/workflows/v244-host-portability.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  portability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: V244 host and endpoint contract
+        run: npm run portability:host:v244
+
+      - name: Existing portable source contract
+        run: npm run portability:source:v234
+
+      - name: Existing runtime parity contract
+        run: npm run portability:runtime:v242
+
+      - name: Vercel optional adapter function budget
+        run: npm run vercel:functions
+
+      - name: API TypeScript
+        run: npm run typecheck:api
+
+      - name: Frontend TypeScript
+        run: npm run lint
+
+      - name: Production build
+        run: npm run build
+
+      - name: Portable Node smoke
+        run: npm run portability:smoke:v242

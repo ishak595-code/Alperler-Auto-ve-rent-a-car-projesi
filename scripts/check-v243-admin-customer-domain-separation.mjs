@@ -23,8 +23,11 @@ assert(bridge.includes('window.location.assign(\'/admin/login\')'),'customer-to-
 for(const forbidden of ['adminStorageKey','alperler_admin_session_v1','localStorage.setItem(','customerSession'])assert(!bridge.includes(forbidden),`customer bridge can still bootstrap admin session: ${forbidden}`);
 
 assert(operations.includes("'/api/partner?op=admin-core&view=operations'"),'admin overview left the canonical same-origin endpoint');
-for(const forbidden of ['SUPABASE_PROJECT_URL','SUPABASE_PUBLISHABLE_KEY','supabaseFunctionUrl','/rest/v1/','/functions/v1/'])assert(!operations.includes(forbidden),`browser admin operations bypasses same-origin transport: ${forbidden}`);
-assert(operations.includes("payload.code==='UNAUTHORIZED'")&&operations.includes('await this.auth.logout()'),'expired admin session is not returned to the dedicated admin login');
+assert(operations.includes('service_admin_operations_snapshot_self_v243'),'admin overview is missing the V243 self-scoped transport fallback');
+assert(operations.includes('body:\'{}\'')&&operations.includes('apikey:SUPABASE_PUBLISHABLE_KEY'),'self-RPC fallback is not an authenticated no-argument request');
+for(const forbidden of ['supabaseFunctionUrl','/functions/v1/','SERVICE_ROLE','p_actor','p_user','user_id=','admin_users?'])assert(!operations.includes(forbidden),`browser admin operations fallback exceeds the self-scoped contract: ${forbidden}`);
+assert((operations.match(/\/rest\/v1\/rpc\//g)||[]).length===1,'browser admin operations exposes additional direct RPC paths');
+assert(operations.includes("fallback.response.status===401")&&operations.includes('await this.auth.logout()'),'expired admin session is not returned to the dedicated admin login');
 
 assert(partner.includes('service_admin_operations_snapshot_self_v243'),'server-side admin operations fallback is missing');
 assert(partner.includes('x-admin-operations-source')&&partner.includes('self-rpc-v243'),'fallback source is not observable');
@@ -55,6 +58,6 @@ assert(profileUi.includes('type="file"'),'canonical customer avatar is not file-
 assert(profileUi.includes('accept="image/jpeg,image/png,image/webp"'),'canonical customer avatar file types changed unexpectedly');
 assert(!/avatar_url[^\n]{0,120}(input|ngModel)|[(][(]ngModel[)][)][^\n]{0,80}avatar/i.test(profileUi),'customer profile exposes an avatar URL input');
 
-assert(serviceWorker.includes("const RELEASE = 'v243-admin-customer-domain-separation'"),'V243 service worker release does not evict stale customer/admin UI assets');
+assert(/^const RELEASE = 'v24[3-9][A-Za-z0-9._-]*';$/m.test(serviceWorker),'service worker release does not evict stale V243+ customer/admin UI assets');
 
-console.log('V243 super-admin/customer hard separation, admin operations resilience, customer navigation and file-only avatar contract: PASS');
+console.log('V243 super-admin/customer hard separation, resilient admin operations, customer navigation and file-only avatar contract: PASS');

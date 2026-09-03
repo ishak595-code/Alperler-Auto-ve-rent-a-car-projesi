@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "supabase/migrations/20260826040000_v178_admin_core_security_gateway.sql"
+      - "supabase/migrations/20260903172000_v243_admin_customer_domain_separation.sql"
       - "supabase/functions/admin-core-gateway-v178/**"
       - "src/services/admin-management.service.ts"
       - "src/services/admin-operations.service.ts"
@@ -59,20 +60,43 @@ jobs:
           count=$(grep -Fc "from public, anon, authenticated;" "$MIG")
           test "$count" -ge 11
 
-      - name: Super Admin browser cannot bypass gateways
+      - name: Super Admin browser gateway and self-scoped resilience contract
         shell: bash
         run: |
           set -euo pipefail
-          for file in src/services/admin-management.service.ts src/services/admin-operations.service.ts; do
-            if grep -E 'SUPABASE_PROJECT_URL|SUPABASE_PUBLISHABLE_KEY|supabaseFunctionUrl|/rest/v1/|/functions/v1/' "$file"; then
-              echo "Direct Supabase admin path detected in $file"
-              exit 1
-            fi
-          done
+
+          # Management/write surfaces remain same-origin only.
+          if grep -E 'SUPABASE_PROJECT_URL|SUPABASE_PUBLISHABLE_KEY|supabaseFunctionUrl|/rest/v1/|/functions/v1/' src/services/admin-management.service.ts; then
+            echo "Direct Supabase management path detected"
+            exit 1
+          fi
           grep -Fq '/api/partner?op=admin-core' src/services/admin-management.service.ts
           grep -Fq '/api/partner?op=admin-team' src/services/admin-management.service.ts
-          grep -Fq '/api/partner?op=admin-core&view=operations' src/services/admin-operations.service.ts
           grep -Fq "inject(HomepageAdminService)" src/services/admin-management.service.ts
+
+          # Operations keeps the canonical same-origin path first. V244 may fall back
+          # only to the no-argument V243 self RPC, which derives identity from auth.uid()
+          # and delegates to the V178 authorization contract.
+          OPS=src/services/admin-operations.service.ts
+          grep -Fq '/api/partner?op=admin-core&view=operations' "$OPS"
+          grep -Fq 'service_admin_operations_snapshot_self_v243' "$OPS"
+          grep -Fq 'SUPABASE_PROJECT_URL' "$OPS"
+          grep -Fq 'SUPABASE_PUBLISHABLE_KEY' "$OPS"
+          grep -Fq 'apikey:SUPABASE_PUBLISHABLE_KEY' "$OPS"
+          grep -Fq 'authorization:`Bearer ${token}`' "$OPS"
+          grep -Fq "body:'{}'" "$OPS"
+          if grep -E '/functions/v1/|SUPABASE_SERVICE_ROLE|SERVICE_ROLE|service_role|p_actor|p_user|user_id=|admin_users\?' "$OPS"; then
+            echo "Admin operations fallback is broader than the approved self-scoped RPC"
+            exit 1
+          fi
+          count=$(grep -Fc '/rest/v1/rpc/' "$OPS")
+          test "$count" -eq 1
+
+          SELF=supabase/migrations/20260903172000_v243_admin_customer_domain_separation.sql
+          grep -Fq 'service_admin_operations_snapshot_self_v243()' "$SELF"
+          grep -Fq 'v_actor uuid := auth.uid()' "$SELF"
+          grep -Fq 'service_admin_operations_snapshot_v178(v_actor)' "$SELF"
+          grep -Fq 'revoke all on function public.service_admin_operations_snapshot_self_v243() from anon' "$SELF"
 
       - name: Same-origin API proxy contract
         shell: bash

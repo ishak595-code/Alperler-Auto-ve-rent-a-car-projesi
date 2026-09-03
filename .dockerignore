@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.vercel
+.env
+.env.*
+coverage
+playwright-report
+test-results
+*.log

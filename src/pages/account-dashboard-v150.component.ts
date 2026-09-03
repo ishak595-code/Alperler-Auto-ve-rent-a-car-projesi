@@ -5,13 +5,14 @@ import { CustomerAccountService, CustomerBooking } from '../services/customer-ac
 import { CustomerAuthService } from '../services/customer-auth.service';
 import { CustomerBookingActionsService } from '../services/customer-booking-actions.service';
 import { ProfileAdminBridgeService } from '../services/profile-admin-bridge.service';
+import { AccountReferralV238Component } from '../components/account-referral-v238.component';
 
 type BookingFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'COMPLETED' | 'CLOSED';
 
 @Component({
   selector: 'app-account-dashboard-v150',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, AccountReferralV238Component],
   template: `
     <main class="account-page">
       <section class="shell">
@@ -32,7 +33,6 @@ type BookingFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'COMPLETED' | 'CLOSED';
               <button type="button" class="admin-entry" (click)="openAdmin()" [disabled]="adminOpening()">{{ adminOpening() ? 'Yönetim açılıyor...' : 'Yönetim' }}</button>
             }
             <a routerLink="/account" [queryParams]="{section:'profile'}">Profil Ayarları</a>
-            <a routerLink="/account/wallet">Cüzdan ve Belgeler</a>
             <button type="button" class="logout" (click)="logout()">Çıkış</button>
           </div>
         </header>
@@ -47,8 +47,10 @@ type BookingFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'COMPLETED' | 'CLOSED';
             <a routerLink="/fleet"><small>KİRALAMA</small><strong>Araç Bul</strong></a>
             <a routerLink="/sales"><small>SATIŞ</small><strong>Araç İncele</strong></a>
             <a routerLink="/tours"><small>ROTA</small><strong>Tur Keşfet</strong></a>
-            <a routerLink="/account/wallet"><small>HESABIM</small><strong>Cüzdan</strong></a>
+            <a routerLink="/appointment"><small>RANDEVU</small><strong>Randevu Al</strong></a>
           </section>
+
+          <app-account-referral-v238 />
 
           <section class="overview" aria-labelledby="overview-title">
             <header>

@@ -28,6 +28,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Release ownership invariant
         run: node scripts/check-v221-release-readiness.mjs
+      - name: Super-admin and customer domain separation invariant
+        run: node scripts/check-v243-admin-customer-domain-separation.mjs
       - name: Finance and notification invariant
         run: node scripts/check-v2212-finance-notifications.mjs
       - name: Portable runtime parity invariant

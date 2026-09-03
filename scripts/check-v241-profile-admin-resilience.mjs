@@ -18,7 +18,7 @@ assert(operations.includes('fetchSnapshot(token)'),'admin operations does not ow
 for(const forbidden of ['SUPABASE_PUBLISHABLE_KEY','SUPABASE_PROJECT_URL','supabaseFunctionUrl','/functions/v1/','/rest/v1/','SERVICE_ROLE'])assert(!operations.includes(forbidden),`browser admin operations bypasses the same-origin security gateway: ${forbidden}`);
 assert(partner.includes('apikey: SUPABASE_PUBLISHABLE_KEY'),'server gateway does not send the Supabase publishable project boundary upstream');
 assert(partner.includes('operation === "admin-core"')&&partner.includes('edgeFunction: "admin-core-gateway-v178"'),'admin-core is not owned by the canonical partner gateway');
-assert(/operation === "admin-core"[\s\S]{0,500}requireAuth: true/.test(partner),'admin-core gateway no longer requires an authenticated bearer session');
+assert(/edgeFunction: "admin-core-gateway-v178"[\s\S]{0,500}requireAuth: true/.test(partner),'admin-core gateway no longer requires an authenticated bearer session');
 
 assert(profileService.includes("'x-upsert':'false'"),'customer avatar upload still relies on upsert/update semantics');
 assert(profileService.includes('avatar-${Date.now()}-${nonce}'),'customer avatar path is not unique/immutable per upload');
@@ -31,6 +31,7 @@ assert(profileUi.includes('readonly profileSaving=signal(false)')&&profileUi.inc
 assert(profileUi.includes("this.openPanel.set(null)")&&profileUi.includes('Profil bilgileriniz kaydedildi.'),'profile save does not collapse after success');
 assert(profileUi.includes('async logout()'),'logout is not owned by profile settings');
 assert(profileUi.includes('aria-expanded'),'profile accordion is not exposed accessibly');
+assert(profileUi.includes('type="file"'),'customer avatar is no longer file-driven');
 
 assert(referral.includes('readonly open=signal(false)'),'referral area is not collapsed by default');
 assert(referral.includes('[attr.aria-expanded]="open()"'),'referral toggle lacks accessible expanded state');
@@ -38,10 +39,11 @@ assert(accountShell.includes('app-account-referral-v241'),'new dynamic referral 
 assert(accountShell.includes('app-account-dashboard-v150 .account-tools')&&accountShell.includes('.header-actions .logout'),'old top quick actions/logout are not removed from the customer presentation');
 assert(accountShell.indexOf('app-account-dashboard-v150')<accountShell.indexOf('quick-actions'),'customer quick actions are not placed after the account dashboard/history owner');
 
-assert(adminSettings.includes("type AdminSettingsPanelV241='profile'|'brand'|'contact'|'security'|null"),'general admin settings are not split into panels');
-assert(adminSettings.includes("saveSection('profile')")&&adminSettings.includes("saveSection('brand')")&&adminSettings.includes("saveSection('contact')"),'admin settings sections do not save independently');
+assert(adminSettings.includes("type AdminSettingsPanelV243='brand'|'contact'|'account'|null"),'general admin settings are not split into one-open panels');
+assert(adminSettings.includes("saveSection('brand')")&&adminSettings.includes("saveSection('contact')")&&adminSettings.includes('changePassword()'),'admin settings sections do not save independently');
 assert(adminSettings.includes('this.openPanel.set(null)'),'successful admin settings do not collapse');
-assert(settingsHub.includes('AdminSettingsV241Component'),'settings hub is not wired to V241 general settings');
+assert(adminSettings.includes('class="subtabs"'),'admin settings options are not presented at the top');
+assert(settingsHub.includes('AdminSettingsV241Component'),'settings hub is not wired to the compact general settings owner');
 assert(settingsHub.includes("toggleDetail('home-device')")&&settingsHub.includes("toggleDetail('home-planner')")&&settingsHub.includes("toggleDetail('home-copy')")&&settingsHub.includes("toggleDetail('home-content')"),'homepage settings remain one long continuously rendered page');
 
 assert(migration.includes('grant update ('),'customer profile migration does not restore UPDATE permission');

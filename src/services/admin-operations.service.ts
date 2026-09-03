@@ -40,8 +40,17 @@ export class AdminOperationsService {
 
   async load():Promise<AdminOperationsSnapshot>{
     const token=await this.requireToken();
-    let response=await this.fetchSnapshot(token);
-    let payload=await this.payload(response);
+    let response:Response;
+    let payload:AdminOperationsPayload;
+
+    try{
+      response=await this.fetchSnapshot(token);
+      payload=await this.payload(response);
+    }catch{
+      await new Promise(resolve=>setTimeout(resolve,250));
+      response=await this.fetchSnapshot(token);
+      payload=await this.payload(response);
+    }
 
     if([502,503,504].includes(response.status)){
       await new Promise(resolve=>setTimeout(resolve,250));
@@ -49,6 +58,10 @@ export class AdminOperationsService {
       payload=await this.payload(response);
     }
 
+    if(response.status===401||payload.code==='UNAUTHORIZED'){
+      await this.auth.logout();
+      throw new Error('ADMIN_SESSION_REQUIRED');
+    }
     if(!response.ok||payload.ok!==true)throw new Error(payload.code||payload.message||`ADMIN_OPERATIONS_${response.status}`);
     return this.normalize(payload);
   }

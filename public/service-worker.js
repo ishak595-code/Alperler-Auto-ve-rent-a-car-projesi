@@ -1,4 +1,4 @@
-const RELEASE = 'v202-public-detail-contract';
+const RELEASE = 'v243-admin-customer-domain-separation';
 const CACHE_PREFIX = 'alperler-pwa-';
 const SHELL_CACHE = `${CACHE_PREFIX}${RELEASE}-shell`;
 const STATIC_CACHE = `${CACHE_PREFIX}${RELEASE}-static`;

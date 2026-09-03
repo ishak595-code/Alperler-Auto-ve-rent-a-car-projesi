@@ -13,6 +13,7 @@ on:
       - "package-lock.json"
       - "scripts/check-production-security-v163.mjs"
       - "scripts/check-production-integration-v1632.mjs"
+      - "scripts/check-v239-admin-first-access.mjs"
       - "vercel.json"
       - ".github/dependabot.yml"
       - ".github/workflows/production-security-v163.yml"
@@ -27,6 +28,7 @@ on:
       - "package-lock.json"
       - "scripts/check-production-security-v163.mjs"
       - "scripts/check-production-integration-v1632.mjs"
+      - "scripts/check-v239-admin-first-access.mjs"
       - "vercel.json"
       - ".github/dependabot.yml"
       - ".github/workflows/production-security-v163.yml"
@@ -69,6 +71,9 @@ jobs:
       - name: V163.2 reservation integration contract gate
         run: node scripts/check-production-integration-v1632.mjs
 
+      - name: V239 in-app owner first-access contract gate
+        run: node scripts/check-v239-admin-first-access.mjs
+
       - name: Frontend TypeScript check
         run: npm run lint
 
@@ -91,6 +96,9 @@ jobs:
 
       - name: Customer document upload Edge Function type check
         run: deno check --node-modules-dir=auto supabase/functions/customer-document-upload/index.ts
+
+      - name: V239 owner first-access Edge Function type check
+        run: deno check --node-modules-dir=auto supabase/functions/admin-first-access-v239/index.ts
 
       - name: Production build
         run: npm run build

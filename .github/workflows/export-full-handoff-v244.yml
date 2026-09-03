@@ -1,0 +1,113 @@
+name: V244 Full Handoff Package
+
+on:
+  push:
+    branches:
+      - handoff-v244-full-package
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout handoff snapshot
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Prove production code is unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e a2d3195c18bfe280ad0492c81ff3f3ab1a1fb3db^{commit}
+          actual="$(git diff --name-only a2d3195c18bfe280ad0492c81ff3f3ab1a1fb3db..HEAD | sort)"
+          expected="$(printf '%s\n' '.github/workflows/export-full-handoff-v244.yml' 'TESLIMAT_KURULUM_REHBERI_V244_TR.md' | sort)"
+          if [ "$actual" != "$expected" ]; then
+            echo 'Unexpected production-source drift in handoff branch:'
+            printf '%s\n' "$actual"
+            exit 1
+          fi
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Frontend TypeScript
+        run: npm run lint
+
+      - name: API TypeScript
+        run: npm run typecheck:api
+
+      - name: Production build
+        run: npm run build
+
+      - name: Host portability contract
+        run: npm run portability:host:v244
+
+      - name: Portable Node runtime smoke
+        run: npm run portability:smoke:v242
+
+      - name: Assemble complete portable handoff directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE/export/Alperler-Rent-A-Car-V244-FULL-HANDOFF"
+          mkdir -p "$root"
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='node_modules/' \
+            --exclude='.angular/' \
+            --exclude='.cache/' \
+            --exclude='export/' \
+            ./ "$root/"
+
+          cat > "$root/BUILD_PROOF.txt" <<EOF
+          ALPERLER RENT A CAR V244 FULL HANDOFF
+          Canonical production source commit: a2d3195c18bfe280ad0492c81ff3f3ab1a1fb3db
+          Packaging branch: handoff-v244-full-package
+          Packaging commit: $GITHUB_SHA
+          Build UTC: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          Node: $(node --version)
+          npm: $(npm --version)
+
+          Verification completed in this packaging run:
+          - exact npm dependency installation
+          - frontend TypeScript check
+          - API TypeScript check
+          - Angular production build
+          - V244 host portability contract
+          - portable Node runtime smoke
+
+          The packaging branch differs from the canonical production commit only by:
+          - TESLIMAT_KURULUM_REHBERI_V244_TR.md
+          - .github/workflows/export-full-handoff-v244.yml
+
+          Production secrets and live customer/payment/auth data are intentionally NOT embedded.
+          Required secret names are documented in .env.example.
+          EOF
+
+          cd "$root"
+          find . -type f -print | LC_ALL=C sort > PACKAGE_MANIFEST.txt
+          find . -type f ! -name 'CHECKSUMS_SHA256.txt' -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > CHECKSUMS_SHA256.txt
+          printf '%s\n' 'a2d3195c18bfe280ad0492c81ff3f3ab1a1fb3db' > PRODUCTION_SOURCE_COMMIT.txt
+
+          echo "Packaged files: $(find . -type f | wc -l)"
+          echo "Package size: $(du -sh . | cut -f1)"
+
+      - name: Upload verified full handoff ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Alperler-Rent-A-Car-V244-TAM-TESLIMAT
+          path: export/Alperler-Rent-A-Car-V244-FULL-HANDOFF/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 9

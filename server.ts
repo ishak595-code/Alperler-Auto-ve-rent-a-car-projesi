@@ -11,6 +11,7 @@ import paymentsApi from "./api/payments";
 import partnerApi from "./api/partner";
 import branchNetworkApi from "./api/branch-network";
 import financeReportApi from "./api/finance/report";
+import walletCardsApi from "./api/wallet-cards";
 import robotsApi from "./api/robots";
 import sitemapApi from "./api/sitemap";
 import socialPreviewApi from "./api/social-preview";
@@ -59,6 +60,8 @@ const directApiHandlers=new Map<string,WebHandler>([
   ["/api/partner",partnerApi],
   ["/api/branch-network",branchNetworkApi],
   ["/api/finance/report",financeReportApi],
+  ["/api/wallet-cards",walletCardsApi],
+  ["/api/social-preview",socialPreviewApi],
 ]);
 const aliasTargets=new Map<string,RouteTarget>([
   ["/api/contact-admin",{handler:contactApi,query:{mode:"admin"}}],
@@ -70,6 +73,7 @@ const aliasTargets=new Map<string,RouteTarget>([
   ["/api/payments/paytr-callback",{handler:paymentsApi,query:{op:"paytr-callback"}}],
   ["/api/integrations/status",{handler:bookingsApi,query:{mode:"integration-status"}}],
   ["/api/rental-availability",{handler:bookingsApi,query:{mode:"rental-availability"}}],
+  ["/api/tour-availability",{handler:bookingsApi,query:{mode:"tour-availability"}}],
   ["/api/admin-booking-actions",{handler:bookingsApi,query:{mode:"admin-booking-actions"}}],
 ]);
 app.use("/api",express.raw({type:"*/*",limit:"2mb"}));

@@ -10,7 +10,7 @@ const HARDCODED_VERCEL_HOST = /(?:https?:\/\/)?[a-z0-9-]{3,}\.vercel\.app\b/i;
 
 const manifest = JSON.parse(read('supabase/functions/deployment-manifest.v186.json'));
 if (manifest.schemaVersion !== 1) fail('unexpected Edge manifest schema');
-if (!Array.isArray(manifest.functions) || manifest.functions.length !== 44) fail('Edge manifest must contain the intended 44-function V186 production baseline');
+if (!Array.isArray(manifest.functions) || manifest.functions.length !== 45) fail('Edge manifest must contain the intended 45-function production baseline');
 const manifestSlugs = [...new Set(manifest.functions.map((item) => item.slug))].sort();
 if (manifestSlugs.length !== manifest.functions.length) fail('duplicate Edge slug in manifest');
 for (const item of manifest.functions) if (!item.slug || typeof item.verifyJwt !== 'boolean') fail(`invalid Edge manifest entry: ${JSON.stringify(item)}`);

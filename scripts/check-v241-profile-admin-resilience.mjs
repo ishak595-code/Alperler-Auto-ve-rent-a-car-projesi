@@ -14,8 +14,11 @@ const settingsHub=read('src/pages/admin/admin-site-settings-hub.component.ts');
 const migration=read('supabase/migrations/20260903160000_v241_customer_profile_write_grants.sql');
 
 assert(operations.includes("'/api/partner?op=admin-core&view=operations'"),'admin operations is not bound to the canonical same-origin gateway');
-assert(operations.includes('fetchSnapshot(token)'),'admin operations does not own same-origin retry resilience');
-for(const forbidden of ['SUPABASE_PUBLISHABLE_KEY','SUPABASE_PROJECT_URL','supabaseFunctionUrl','/functions/v1/','/rest/v1/','SERVICE_ROLE'])assert(!operations.includes(forbidden),`browser admin operations bypasses the same-origin security gateway: ${forbidden}`);
+assert(operations.includes('tryCanonical(token)'),'admin operations does not own canonical transport resilience');
+assert(operations.includes('service_admin_operations_snapshot_self_v243'),'admin operations is missing the approved self-scoped fallback');
+assert(operations.includes('SUPABASE_PUBLISHABLE_KEY')&&operations.includes('SUPABASE_PROJECT_URL'),'self-RPC fallback lacks the public Supabase transport boundary');
+for(const forbidden of ['supabaseFunctionUrl','/functions/v1/','SERVICE_ROLE','p_actor','user_id=','admin_users?'])assert(!operations.includes(forbidden),`browser admin operations fallback is broader than the approved self RPC: ${forbidden}`);
+assert((operations.match(/\/rest\/v1\/rpc\//g)||[]).length===1,'browser admin operations exposes more than one direct RPC path');
 assert(partner.includes('apikey: SUPABASE_PUBLISHABLE_KEY'),'server gateway does not send the Supabase publishable project boundary upstream');
 assert(partner.includes('operation === "admin-core"')&&partner.includes('edgeFunction: "admin-core-gateway-v178"'),'admin-core is not owned by the canonical partner gateway');
 assert(/edgeFunction: "admin-core-gateway-v178"[\s\S]{0,500}requireAuth: true/.test(partner),'admin-core gateway no longer requires an authenticated bearer session');
@@ -51,4 +54,4 @@ for(const column of ['full_name','phone','birth_date','address_line','district',
 assert(!/grant update\s+on table public\.customer_profiles/i.test(migration),'migration grants broad table-level UPDATE instead of owned columns');
 assert(!migration.includes('user_id,')&&!migration.includes('email,')&&!migration.includes('status,'),'immutable/admin-owned customer profile columns were accidentally granted');
 
-console.log('V241 customer profile, referral, compact settings and same-origin admin transport resilience contract: PASS');
+console.log('V241 customer profile, referral, compact settings and resilient admin transport contract: PASS');

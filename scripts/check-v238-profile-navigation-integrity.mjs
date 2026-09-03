@@ -6,6 +6,9 @@ const profile=read('src/components/account-profile-settings-v225.component.ts');
 const referral=read('src/components/account-referral-v238.component.ts');
 const shell=read('src/pages/account-shell.component.ts');
 const migration=read('supabase/migrations/20260903002500_v238_remove_duplicate_mobile_menu_search.sql');
+const navbar=read('src/components/navbar.component.ts');
+const adminLogin=read('src/pages/admin/admin-login.component.ts');
+const adminAuth=read('src/services/auth.service.ts');
 const assert=(ok,msg)=>{if(!ok){console.error(`V238 FAIL: ${msg}`);process.exitCode=1;}};
 assert(nav.includes("isForbiddenMobileMenuSearch"),'mobile menu runtime Search guard missing');
 assert(nav.includes("surface==='MOBILE_MENU'&&(preset.key==='search'||preset.route==='/search')"),'preset Search reinsertion guard missing');
@@ -20,4 +23,8 @@ assert(!profile.includes('class="referral-card"')&&!profile.includes('referralLi
 const walletMentions=(shell.match(/Cüzdan ve Belgeler/g)||[]).length;
 assert(walletMentions===1,`account shell must own exactly one canonical wallet entry, found ${walletMentions}`);
 assert(migration.includes("surface = 'MOBILE_MENU'")&&migration.includes("item_key = 'search'")&&migration.includes('archived_at'),'migration does not archive mobile-menu Search');
+assert(navbar.includes('routerLink=\"/admin/login\"')&&navbar.includes('Yönetici Girişi'),'hamburger admin login entry missing');
+assert(adminLogin.includes('İlk giriş / Şifremi oluştur')&&adminLogin.includes('doFirstAccess()'),'secure first admin access action missing');
+assert(adminAuth.includes('`${this.adminLoginRedirect()}?recovery=1`'),'admin password recovery does not return to admin password-set flow');
+for(const forbidden of ['passwordlessAdmin','bypassAdmin','skipAdminAuth','adminWithoutPassword']) assert(!navbar.includes(forbidden)&&!adminLogin.includes(forbidden)&&!adminAuth.includes(forbidden),`unsafe admin bypass marker present: ${forbidden}`);
 if(!process.exitCode)console.log('V238 profile/navigation integrity guard passed.');

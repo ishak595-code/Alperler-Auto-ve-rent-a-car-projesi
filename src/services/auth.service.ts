@@ -282,7 +282,7 @@ export class AuthService {
     }
 
     try {
-      const redirectTo = `${window.location.origin}/account/login?recovery=1&returnUrl=${encodeURIComponent('/admin')}`;
+      const redirectTo = `${this.adminLoginRedirect()}?recovery=1`;
       const response = await fetch(
         `${supabaseAuthUrl("recover")}?redirect_to=${encodeURIComponent(redirectTo)}`,
         {

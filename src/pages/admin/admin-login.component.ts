@@ -58,7 +58,8 @@ import { CarService } from "../../services/car.service";
               <label class="block"><span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Şifre</span><div class="relative"><input [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" name="password" autocomplete="current-password" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 pr-16 font-bold text-slate-950 outline-none transition focus:border-slate-500 focus:bg-white" /><button type="button" (click)="showPassword.update(v => !v)" [attr.aria-label]="showPassword() ? 'Şifreyi gizle' : 'Şifreyi göster'" class="absolute inset-y-0 right-0 flex min-w-14 items-center justify-center px-3 text-xs font-black text-slate-500">{{ showPassword() ? 'Gizle' : 'Göster' }}</button></div></label>
               <button type="submit" [disabled]="isLoading()" class="min-h-14 w-full rounded-xl bg-slate-950 px-5 font-black text-white shadow-lg transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-600">{{ isLoading() ? 'Kontrol ediliyor...' : 'Güvenli Giriş Yap' }}</button>
             </form>
-            <div class="mt-4 flex justify-start text-xs font-black"><button type="button" (click)="setMode('forgot')" class="min-h-11 text-slate-700 hover:underline">Şifremi unuttum</button></div>
+            <div class="mt-4 grid gap-2 text-xs font-black sm:grid-cols-2"><button type="button" (click)="doFirstAccess()" [disabled]="isLoading()" class="min-h-11 rounded-xl border border-amber-200 bg-amber-50 px-3 text-amber-900 transition hover:bg-amber-100 disabled:opacity-50">İlk giriş / Şifremi oluştur</button><button type="button" (click)="setMode('forgot')" class="min-h-11 rounded-xl px-3 text-slate-700 hover:bg-slate-50 hover:underline">Şifremi unuttum</button></div>
+            <p class="mt-3 text-xs leading-relaxed text-slate-500">İlk girişte mevcut şifreyi bilmeniz gerekmez. Güvenli bağlantı yalnız kayıtlı ana yönetici e-posta adresine gönderilir.</p>
           }
         </div>
       </section>
@@ -113,6 +114,16 @@ export class AdminLoginComponent implements OnInit {
     this.successMsg.set("Şifreniz güncellendi. Yönetim paneli açılıyor."); this.password = ""; this.confirmPassword = "";
     window.history.replaceState(null, document.title, "/admin/login");
     setTimeout(() => void this.router.navigate(["/admin/dashboard"]), 450);
+  }
+
+  async doFirstAccess(): Promise<void> {
+    if (this.isLoading()) return;
+    this.errorMsg.set(""); this.successMsg.set("");
+    this.isLoading.set(true);
+    const success = await this.authService.resetPassword(this.authService.getPrimaryAdminEmail());
+    this.isLoading.set(false);
+    if (!success) { this.syncError("İlk yönetici şifresi oluşturma bağlantısı gönderilemedi."); return; }
+    this.successMsg.set("İlk giriş bağlantısı kayıtlı ana yönetici e-posta adresine gönderildi. Bağlantıyı açıp yeni şifrenizi belirleyin.");
   }
 
   async doReset(): Promise<void> {

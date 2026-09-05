@@ -5,7 +5,7 @@ import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.conf
 
 @Injectable()
 export class CatalogAdminResilientService extends CatalogAdminEditorService {
-  private readonly auth = inject(AuthService);
+  private readonly adminAuth = inject(AuthService);
 
   constructor() {
     super();
@@ -48,7 +48,7 @@ export class CatalogAdminResilientService extends CatalogAdminEditorService {
   }
 
   private async requiredAdminToken(): Promise<string> {
-    const token = await this.auth.getAccessToken();
+    const token = await this.adminAuth.getAccessToken();
     if (!token) throw new Error("Yönetici oturumu gerekli.");
     return token;
   }

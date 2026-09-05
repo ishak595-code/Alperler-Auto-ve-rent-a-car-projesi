@@ -5,6 +5,8 @@ import { AdminCatalogWorkspaceComponent } from './admin-catalog-workspace.compon
 import { AdminCampaignsV167Component } from './admin-campaigns-v167.component';
 import { AdminCommercialBenefitsComponent } from './admin-commercial-benefits.component';
 import { AdminBlogComponent } from './admin-blog.component';
+import { CatalogAdminEditorService } from '../../services/catalog-admin-editor.service';
+import { CatalogAdminResilientService } from '../../services/catalog-admin-resilient.service';
 
 type ContentSection='rental'|'sale'|'tour'|'campaigns'|'benefits'|'blog';
 
@@ -12,6 +14,7 @@ type ContentSection='rental'|'sale'|'tour'|'campaigns'|'benefits'|'blog';
   selector:'app-admin-content-hub',
   standalone:true,
   imports:[CommonModule,AdminCatalogWorkspaceComponent,AdminCampaignsV167Component,AdminCommercialBenefitsComponent,AdminBlogComponent],
+  providers:[{provide:CatalogAdminEditorService,useClass:CatalogAdminResilientService}],
   template:`
     <div class="workspace">
       <header class="workspace-head">
@@ -62,7 +65,6 @@ export class AdminContentHubComponent implements OnInit{
     const path=this.router.url.split('?')[0].replace(/\/$/,'');
     if(path==='/admin/sales')return'sale';
     if(path==='/admin/tours')return'tour';
-    if(path==='/admin/campaigns')return'campaigns';
     if(path==='/admin/blog')return'blog';
     if(path==='/admin/benefits')return'benefits';
     return'rental';

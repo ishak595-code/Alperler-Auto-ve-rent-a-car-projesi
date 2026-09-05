@@ -9,6 +9,8 @@ import { CatalogAdminEditorService } from '../../services/catalog-admin-editor.s
 import { CatalogAdminResilientService } from '../../services/catalog-admin-resilient.service';
 import { CatalogMediaService } from '../../services/catalog-media.service';
 import { CatalogMediaHighCapacityService } from '../../services/catalog-media-high-capacity.service';
+import { BlogAdminService } from '../../services/blog-admin.service';
+import { BlogAdminResilientService } from '../../services/blog-admin-resilient.service';
 
 type ContentSection='rental'|'sale'|'tour'|'campaigns'|'benefits'|'blog';
 
@@ -19,6 +21,7 @@ type ContentSection='rental'|'sale'|'tour'|'campaigns'|'benefits'|'blog';
   providers:[
     {provide:CatalogAdminEditorService,useClass:CatalogAdminResilientService},
     {provide:CatalogMediaService,useClass:CatalogMediaHighCapacityService},
+    {provide:BlogAdminService,useClass:BlogAdminResilientService},
   ],
   template:`
     <div class="workspace">

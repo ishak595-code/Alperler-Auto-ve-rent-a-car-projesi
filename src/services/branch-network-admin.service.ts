@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from "@angular/core";
+import { adminFetch } from "./admin-fetch";
 import { AuthService } from "./auth.service";
 
 export interface BranchNetworkWorkspace {
@@ -26,7 +27,7 @@ export class BranchNetworkAdminService {
     this._loading.set(true);
     try {
       const token = await this.requiredToken();
-      const response = await fetch(`${this.endpoint}&branchId=${encodeURIComponent(branchId)}`, {
+      const response = await adminFetch(`${this.endpoint}&branchId=${encodeURIComponent(branchId)}`, {
         headers: this.headers(token),
         cache: "no-store",
       });
@@ -77,7 +78,7 @@ export class BranchNetworkAdminService {
 
   private async action(body: Record<string, unknown>): Promise<any> {
     const token = await this.requiredToken();
-    const response = await fetch(this.endpoint, {
+    const response = await adminFetch(this.endpoint, {
       method: "PATCH",
       headers: this.headers(token),
       body: JSON.stringify(body),

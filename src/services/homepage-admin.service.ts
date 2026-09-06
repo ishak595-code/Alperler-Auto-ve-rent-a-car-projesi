@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { adminFetch } from "./admin-fetch";
 import { AuthService } from './auth.service';
 import { CarService } from './car.service';
 
@@ -76,5 +77,5 @@ export class HomepageAdminService {
   private createSectionKey(title:string):string{const base=title.toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,48)||'bolum';return`${base}_${Date.now().toString(36)}`;}
   private normalizeMaxItems(value:number):number{const numeric=Math.floor(Number(value));return Number.isFinite(numeric)&&numeric>=1?Math.min(numeric,50):1;}
   private async requiredToken():Promise<string>{const token=await this.auth.getAccessToken();if(!token)throw new Error('ADMIN_SESSION_REQUIRED');return token;}
-  private async request<T>(method:'GET'|'PATCH',token:string,body?:unknown):Promise<T>{const response=await fetch(this.endpoint,{method,headers:{authorization:`Bearer ${token}`,'content-type':'application/json',accept:'application/json','x-request-id':crypto.randomUUID()},body:method==='GET'?undefined:JSON.stringify(body),cache:'no-store'});const payload=await response.json().catch(()=>({})) as T&{code?:string;message?:string};if(!response.ok)throw new Error(String(payload.code||payload.message||`SITE_CONTENT_ADMIN_${response.status}`));return payload;}
+  private async request<T>(method:'GET'|'PATCH',token:string,body?:unknown):Promise<T>{const response=await adminFetch(this.endpoint,{method,headers:{authorization:`Bearer ${token}`,'content-type':'application/json',accept:'application/json','x-request-id':crypto.randomUUID()},body:method==='GET'?undefined:JSON.stringify(body),cache:'no-store'});const payload=await response.json().catch(()=>({})) as T&{code?:string;message?:string};if(!response.ok)throw new Error(String(payload.code||payload.message||`SITE_CONTENT_ADMIN_${response.status}`));return payload;}
 }

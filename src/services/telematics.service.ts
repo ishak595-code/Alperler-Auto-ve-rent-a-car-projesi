@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { adminFetch } from "./admin-fetch";
 import { AuthService } from './auth.service';
 
 export type RemoteCommand = 'LOCK' | 'UNLOCK' | 'HORN' | 'IMMOBILIZE_NEXT_STOP' | 'CLEAR_IMMOBILIZER';
@@ -49,7 +50,7 @@ export class TelematicsService {
   async refresh(): Promise<void> {
     this.loading.set(true);
     try {
-      const response = await fetch('/api/partner?op=telematics-admin', {
+      const response = await adminFetch('/api/partner?op=telematics-admin', {
         headers: await this.headers(),
         cache: 'no-store',
       });
@@ -83,7 +84,7 @@ export class TelematicsService {
   }
 
   private async post(body: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const response = await fetch('/api/partner?op=telematics-admin', {
+    const response = await adminFetch('/api/partner?op=telematics-admin', {
       method: 'POST',
       headers: await this.headers(),
       body: JSON.stringify(body),

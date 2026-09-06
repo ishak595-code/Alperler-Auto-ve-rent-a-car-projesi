@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { adminFetch } from "./admin-fetch";
 import { AuthService } from './auth.service';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
 
@@ -50,7 +51,7 @@ export class PaymentSettingsService {
   async refreshPublic(): Promise<void> {
     this._loading.set(true);
     try {
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/payment_settings?config_key=eq.main&select=${this.publicSettingsSelect}`, {
+      const response = await adminFetch(`${SUPABASE_PROJECT_URL}/rest/v1/payment_settings?config_key=eq.main&select=${this.publicSettingsSelect}`, {
         headers: { apikey: SUPABASE_PUBLISHABLE_KEY, accept: 'application/json' }, cache: 'no-store',
       });
       if (!response.ok) return;
@@ -61,7 +62,7 @@ export class PaymentSettingsService {
 
   async refreshAdmin(): Promise<void> {
     const token = await this.requiredToken();
-    const response = await fetch(`${this.adminEndpoint}&view=payment-settings`, { headers: this.adminHeaders(token), cache: 'no-store' });
+    const response = await adminFetch(`${this.adminEndpoint}&view=payment-settings`, { headers: this.adminHeaders(token), cache: 'no-store' });
     const row = await response.json().catch(() => ({})) as Record<string, unknown> & { code?: string };
     if (!response.ok) throw new Error(String(row.code || `PAYMENT_SETTINGS_${response.status}`));
     this._settings.set(row['config_key'] ? this.fromRow(row) : { ...DEFAULTS });
@@ -77,7 +78,7 @@ export class PaymentSettingsService {
       throw new Error('PayTR kart tahsilatı bu entegrasyonda TRY ile çalışır. Kart açıkken para birimini TRY seçin.');
     }
     await this.assertCardProviderReady(settings);
-    const response = await fetch(this.adminEndpoint, {
+    const response = await adminFetch(this.adminEndpoint, {
       method: 'PATCH',
       headers: this.adminHeaders(token),
       body: JSON.stringify({
@@ -104,7 +105,7 @@ export class PaymentSettingsService {
 
   private async assertCardProviderReady(settings: PaymentSettings): Promise<void> {
     if (!settings.cardEnabled || settings.provider === 'NONE') return;
-    const response = await fetch(this.providerStatusEndpoint, {
+    const response = await adminFetch(this.providerStatusEndpoint, {
       headers: { accept: 'application/json' },
       cache: 'no-store',
     });

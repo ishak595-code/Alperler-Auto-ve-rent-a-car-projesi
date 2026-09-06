@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { adminFetch } from "./admin-fetch";
 import { AuthService } from './auth.service';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
 
@@ -58,7 +59,7 @@ export class AdminMediaService {
 
     const publicUrl = `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${this.bucket}/${encodedPath}`;
     try {
-      const asset = await fetch('/api/partner?op=media-control-admin', {
+      const asset = await adminFetch('/api/partner?op=media-control-admin', {
         method: 'POST',
         cache: 'no-store',
         headers: {
@@ -103,7 +104,7 @@ export class AdminMediaService {
   async drainCleanup(limit = 30): Promise<AdminMediaCleanupResult> {
     const token = await this.auth.getAccessToken();
     if (!token) throw new Error('ADMIN_SESSION_REQUIRED');
-    const response = await fetch('/api/partner?op=media-control-admin', {
+    const response = await adminFetch('/api/partner?op=media-control-admin', {
       method: 'POST',
       cache: 'no-store',
       headers: {
@@ -124,7 +125,7 @@ export class AdminMediaService {
   }
 
   private async uploadStandard(file: File, encodedPath: string, token: string): Promise<void> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/${this.bucket}/${encodedPath}`, {
+    const response = await adminFetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/${this.bucket}/${encodedPath}`, {
       method: 'POST',
       headers: {
         apikey: SUPABASE_PUBLISHABLE_KEY,
@@ -149,7 +150,7 @@ export class AdminMediaService {
       ['cacheControl', '31536000'],
     ].map(([key, value]) => `${key} ${this.base64(value)}`).join(',');
 
-    const create = await fetch(this.resumableEndpoint(), {
+    const create = await adminFetch(this.resumableEndpoint(), {
       method: 'POST',
       headers: {
         apikey: SUPABASE_PUBLISHABLE_KEY,
@@ -174,7 +175,7 @@ export class AdminMediaService {
       for (const delay of [0, 800, 2000, 5000]) {
         if (delay) await this.delay(delay);
         try {
-          response = await fetch(uploadUrl, {
+          response = await adminFetch(uploadUrl, {
             method: 'PATCH',
             headers: {
               apikey: SUPABASE_PUBLISHABLE_KEY,
@@ -201,7 +202,7 @@ export class AdminMediaService {
   }
 
   private async queueStorageCleanup(objectPath: string, entityId: string, token: string): Promise<void> {
-    const cleanup = await fetch('/api/partner?op=media-control-admin', {
+    const cleanup = await adminFetch('/api/partner?op=media-control-admin', {
       method: 'POST',
       cache: 'no-store',
       headers: {
@@ -217,7 +218,7 @@ export class AdminMediaService {
   }
 
   private async deleteStorageObject(objectPath: string, token: string): Promise<void> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/${this.bucket}`, {
+    const response = await adminFetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/${this.bucket}`, {
       method: 'DELETE',
       headers: {
         apikey: SUPABASE_PUBLISHABLE_KEY,

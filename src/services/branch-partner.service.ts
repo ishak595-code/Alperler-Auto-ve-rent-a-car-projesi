@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from "@angular/core";
+import { adminFetch } from "./admin-fetch";
 import { AuthService } from "./auth.service";
 
 export type BranchPartnerStatus = "NEW"|"REVIEWING"|"CONTACTED"|"DUE_DILIGENCE"|"APPROVED"|"REJECTED"|"CLOSED";
@@ -125,7 +126,7 @@ export class BranchPartnerService {
     this._error.set(null);
     try{
       const token=await this.requiredToken();
-      const response=await fetch(this.endpoint,{method:"GET",headers:this.headers(token),cache:"no-store"});
+      const response=await adminFetch(this.endpoint,{method:"GET",headers:this.headers(token),cache:"no-store"});
       const payload=await response.json().catch(()=>({})) as GatewayResponse;
       if(!response.ok||!payload.ok||!Array.isArray(payload.requests))throw new Error(payload.code||"BRANCH_PARTNER_LIST_FAILED");
       this._records.set(payload.requests.map(row=>this.fromRow(row)));
@@ -137,7 +138,7 @@ export class BranchPartnerService {
 
   async update(reference:string,status:BranchPartnerStatus,internalNotes=""):Promise<void>{
     const token=await this.requiredToken();
-    const response=await fetch(this.endpoint,{method:"PATCH",headers:this.headers(token),body:JSON.stringify({reference,status,internalNotes})});
+    const response=await adminFetch(this.endpoint,{method:"PATCH",headers:this.headers(token),body:JSON.stringify({reference,status,internalNotes})});
     const payload=await response.json().catch(()=>({})) as GatewayResponse;
     if(!response.ok||!payload.ok||!payload.request)throw new Error(payload.code||"BRANCH_PARTNER_UPDATE_FAILED");
     const updated=this.fromRow(payload.request);
@@ -146,7 +147,7 @@ export class BranchPartnerService {
 
   async provision(reference:string,branchName?:string):Promise<ProvisionedBranchSummary>{
     const token=await this.requiredToken();
-    const response=await fetch(this.endpoint,{method:"PATCH",headers:this.headers(token),body:JSON.stringify({action:"PROVISION",reference,branchName:branchName?.trim()||undefined})});
+    const response=await adminFetch(this.endpoint,{method:"PATCH",headers:this.headers(token),body:JSON.stringify({action:"PROVISION",reference,branchName:branchName?.trim()||undefined})});
     const payload=await response.json().catch(()=>({})) as GatewayResponse;
     if(!response.ok||!payload.ok||!payload.branch)throw new Error(payload.code||"BRANCH_PROVISION_FAILED");
     if(payload.request){
@@ -157,7 +158,7 @@ export class BranchPartnerService {
   }
 
   private async callPublic(body:unknown):Promise<GatewayResponse>{
-    const response=await fetch(this.endpoint,{method:"POST",headers:this.headers(),body:JSON.stringify(body)});
+    const response=await adminFetch(this.endpoint,{method:"POST",headers:this.headers(),body:JSON.stringify(body)});
     const payload=await response.json().catch(()=>({})) as GatewayResponse;
     if(!response.ok)throw new Error(payload.code||payload.message||`BRANCH_PARTNER_${response.status}`);
     return payload;

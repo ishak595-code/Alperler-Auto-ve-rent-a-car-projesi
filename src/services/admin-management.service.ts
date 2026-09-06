@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { adminFetch } from "./admin-fetch";
 import { AuthService } from './auth.service';
 import {
   HomepageAdminService,
@@ -351,7 +352,7 @@ export class AdminManagementService {
     token: string,
     body?: unknown,
   ): Promise<T> {
-    const response = await fetch(endpoint, {
+    const response = await adminFetch(endpoint, {
       method,
       headers: {
         authorization: `Bearer ${token}`,

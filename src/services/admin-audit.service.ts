@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { adminFetch } from "./admin-fetch";
 import { AuthService } from './auth.service';
 
 export interface AdminAuditRow {
@@ -22,7 +23,7 @@ export class AdminAuditService {
     if (!token) throw new Error('Yönetici oturumu bulunamadı.');
 
     const safeLimit = Math.max(1, Math.min(Math.trunc(Number(limit) || 300), 500));
-    const response = await fetch(`/api/partner?op=admin-core&view=audit&limit=${safeLimit}`, {
+    const response = await adminFetch(`/api/partner?op=admin-core&view=audit&limit=${safeLimit}`, {
       headers: { authorization: `Bearer ${token}` },
       signal: AbortSignal.timeout(20_000),
     });

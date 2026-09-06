@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { adminFetch } from "./admin-fetch";
 import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
@@ -18,7 +19,7 @@ export class MarketingService {
   async refresh() {
     this.loading.set(true);
     try {
-      const response = await fetch(this.endpoint, { headers: await this.headers(), cache: 'no-store' });
+      const response = await adminFetch(this.endpoint, { headers: await this.headers(), cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.code || 'MARKETING_READ_FAILED');
       this.campaigns.set(data.campaigns || []);
@@ -35,7 +36,7 @@ export class MarketingService {
   channels(provider: string): string[] { return this.integrations().find((x) => x.provider === provider)?.channels || []; }
 
   private async post(body: Record<string, unknown>) {
-    const response = await fetch(this.endpoint, {
+    const response = await adminFetch(this.endpoint, {
       method: 'POST', headers: await this.headers(), body: JSON.stringify(body), cache: 'no-store',
     });
     const data = await response.json().catch(() => ({}));

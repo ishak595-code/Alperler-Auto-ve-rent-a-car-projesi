@@ -15,6 +15,7 @@ import { CustomerAuthService } from "./customer-auth.service";
 import { CommercialOfferContextService } from "./commercial-offer-context.service";
 import { currentAnalyticsSessionId } from "./analytics-link.util";
 import { AnalyticsIdentityService } from "./analytics-identity.service";
+import { AdminGatewayTransportService, isAdminGatewayFailure } from "./admin-gateway-transport.service";
 
 interface ApprovalImpact { bookingId?:string; reference?:string; conflictCount:number; alternativeOfferCount:number; }
 interface BookingApiResponse { ok:boolean; booking?:ApiBooking; bookings?:ApiBooking[]; notification?:NotificationDeliveryReport; code?:string; message?:string; }
@@ -28,6 +29,7 @@ export class BookingService {
   private readonly customerAuth=inject(CustomerAuthService);
   private readonly commercialOffer=inject(CommercialOfferContextService);
   private readonly analyticsIdentity=inject(AnalyticsIdentityService);
+  private readonly transport=inject(AdminGatewayTransportService);
   private readonly bookings=signal<BookingRecord[]>([]);
   private readonly adminError=signal<string|null>(null);
   private readonly adminLoaded=signal(false);
@@ -77,7 +79,65 @@ export class BookingService {
 
   private wallClockValue(value:string):string{const raw=value.trim();const dateOnly=/^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);if(dateOnly)return`${dateOnly[1]}-${dateOnly[2]}-${dateOnly[3]}T00:00:00`;const local=/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(raw);if(local)return`${local[1]}-${local[2]}-${local[3]}T${local[4]}:${local[5]}:${local[6]||"00"}`;const date=new Date(raw);if(Number.isNaN(date.getTime()))throw new Error("INVALID_RENTAL_DATES:Kiralama tarihi geçerli değil.");const pad=(part:number)=>String(part).padStart(2,"0");return`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;}
 
-  private async refreshAdminRecords(showLoading=true):Promise<void>{if(showLoading)this.adminLoaded.set(false);try{const response=await this.request<BookingApiResponse>("GET");if(!response.ok||!response.bookings)throw new Error(response.code||"BOOKING_LIST_FAILED");const records=response.bookings.map((record)=>this.fromApi(record));try{const alternatives=await this.adminAction("GET");const byReference=new Map<string,BookingAlternativeOffer[]>();for(const offer of alternatives.offers||[]){const reference=String((offer as BookingAlternativeOffer&{bookingReference?:string}).bookingReference||"");if(!reference)continue;const cleanOffer={...offer} as BookingAlternativeOffer&{bookingReference?:string};delete cleanOffer.bookingReference;const list=byReference.get(reference)||[];list.push(cleanOffer);byReference.set(reference,list);}for(const record of records)record.alternatives=(byReference.get(record.id)||[]).sort((a,b)=>a.rank-b.rank||b.score-a.score);}catch(error){console.info("Alternative offers unavailable; reservation list remains usable.",error);}this.bookings.set(records.sort((a,b)=>b.createdAt.getTime()-a.createdAt.getTime()));this.adminError.set(null);}catch(error){console.error("Booking data source is unavailable.",error);this.adminError.set("Rezervasyon veri kaynağına ulaşılamadı. Oturumunuzu ve bağlantınızı kontrol edip tekrar deneyin.");throw error;}finally{this.adminLoaded.set(true);}}
+  /**
+   * Yönetici rezervasyon listesi. Sıra: aynı-origin BFF (/api/bookings → booking-gateway)
+   * → doğrudan veritabanı (PostgREST, RLS: private.can_manage_operations()).
+   * booking-gateway tarayıcı origin'ini reddettiği için Edge doğrudan çağrılmaz.
+   * Yetki hataları (401/403) yedeğe düşmez; kullanıcıya hangi katmanın neden
+   * yanıt vermediği Türkçe olarak söylenir.
+   */
+  private async refreshAdminRecords(showLoading=true):Promise<void>{
+    if(showLoading)this.adminLoaded.set(false);
+    try{
+      const records=await this.loadAdminBookings();
+      try{const alternatives=await this.adminAction("GET");const byReference=new Map<string,BookingAlternativeOffer[]>();for(const offer of alternatives.offers||[]){const reference=String((offer as BookingAlternativeOffer&{bookingReference?:string}).bookingReference||"");if(!reference)continue;const cleanOffer={...offer} as BookingAlternativeOffer&{bookingReference?:string};delete cleanOffer.bookingReference;const list=byReference.get(reference)||[];list.push(cleanOffer);byReference.set(reference,list);}for(const record of records)record.alternatives=(byReference.get(record.id)||[]).sort((a,b)=>a.rank-b.rank||b.score-a.score);}catch(error){console.info("Alternative offers unavailable; reservation list remains usable.",error);}
+      this.bookings.set(records.sort((a,b)=>b.createdAt.getTime()-a.createdAt.getTime()));
+      this.adminError.set(null);
+    }catch(error){
+      console.error("Booking data source is unavailable.",error);
+      this.adminError.set(this.adminListErrorMessage(error));
+      throw error;
+    }finally{this.adminLoaded.set(true);}
+  }
+
+  private async loadAdminBookings():Promise<BookingRecord[]>{
+    let primary:unknown;
+    try{
+      const response=await this.transport.bff<BookingApiResponse&Record<string,unknown>>("/api/bookings",{method:"GET",timeoutMs:20_000});
+      if(!Array.isArray(response.bookings))throw new Error(String(response.code||"BOOKING_LIST_FAILED"));
+      return response.bookings.map((record)=>this.fromApi(record));
+    }catch(error){primary=error;}
+    if(isAdminGatewayFailure(primary)&&!primary.transport&&primary.status!==500)throw primary;
+    try{
+      const rows=await this.transport.rest<Record<string,unknown>[]>("bookings?deleted_at=is.null&select=id,reference,booking_type,vehicle_id,tour_id,legacy_item_id,item_name,image,customer_name,customer_email,customer_phone,base_price,total_price,currency,person_count,start_at,end_at,days,rental_hours,with_driver,pickup_branch_id,dropoff_branch_id,pickup_location,dropoff_location,rental_duration,metadata,campaign_id,notes,payment_method,payment_status,external_payment_reference,source,status,created_at,updated_at&order=created_at.desc&limit=500");
+      console.warn("Rezervasyon listesi doğrudan veritabanından okundu (site API yanıt vermedi).",primary);
+      return (Array.isArray(rows)?rows:[]).map((row)=>this.fromApi(this.bookingRowToApi(row)));
+    }catch(restError){
+      throw new Error(`${this.transport.describe(primary,"Rezervasyon listesi")} · ${this.transport.describe(restError,"Veritabanı")}`);
+    }
+  }
+
+  /** booking-gateway toApi() ile birebir aynı eşleme; veritabanı satırını API şekline çevirir. */
+  private bookingRowToApi(row:Record<string,any>):ApiBooking{
+    const metadata=row["metadata"]&&typeof row["metadata"]==="object"?row["metadata"] as Record<string,unknown>:{};
+    const num=(value:unknown)=>value===null||value===undefined?undefined:Number(value);
+    return{
+      id:String(row["reference"]||row["id"]),type:row["booking_type"],itemId:row["vehicle_id"]||row["tour_id"]||row["legacy_item_id"]||undefined,itemName:row["item_name"],image:row["image"]||undefined,
+      customerName:row["customer_name"],customerEmail:row["customer_email"]||undefined,customerPhone:row["customer_phone"],
+      basePrice:num(row["base_price"]),totalPrice:num(row["total_price"]),currency:row["currency"],personCount:row["person_count"]??undefined,
+      startDate:row["start_at"]||undefined,endDate:row["end_at"]||undefined,days:row["days"]??undefined,rentalHours:row["rental_hours"]??undefined,withDriver:Boolean(row["with_driver"]),
+      pickupBranchId:row["pickup_branch_id"]||undefined,dropoffBranchId:row["dropoff_branch_id"]||undefined,pickupLocation:row["pickup_location"]||undefined,dropoffLocation:row["dropoff_location"]||undefined,
+      rentalDuration:row["rental_duration"]||undefined,selectedExtraIds:Array.isArray(metadata["selected_extra_ids"])?metadata["selected_extra_ids"] as string[]:undefined,
+      campaignId:row["campaign_id"]||undefined,notes:row["notes"]||undefined,paymentMethod:row["payment_method"],paymentStatus:row["payment_status"],externalPaymentReference:row["external_payment_reference"]||undefined,
+      source:["WEB","ADMIN","PHONE"].includes(row["source"])?row["source"]:"WEB",status:row["status"],createdAt:String(row["created_at"]||""),updatedAt:String(row["updated_at"]||""),
+    } as ApiBooking;
+  }
+
+  private adminListErrorMessage(error:unknown):string{
+    if(error instanceof Error&&error.message==="ADMIN_SESSION_REQUIRED")return"Yönetici oturumu bulunamadı. Çıkış yapıp yeniden giriş yapın.";
+    if(isAdminGatewayFailure(error))return this.transport.describe(error,"Rezervasyon listesi");
+    return error instanceof Error&&error.message?error.message:"Rezervasyon veri kaynağına ulaşılamadı. Oturumunuzu ve bağlantınızı kontrol edip tekrar deneyin.";
+  }
 
   private async adminAction(method:"GET"|"POST",body?:unknown):Promise<AdminActionResponse>{const token=await this.authService.getAccessToken();if(!token)throw new Error("ADMIN_SESSION_REQUIRED");const headers={Authorization:`Bearer ${token}`,"content-type":"application/json","x-request-id":crypto.randomUUID()};try{return method==="GET"?await firstValueFrom(this.http.get<AdminActionResponse>("/api/admin-booking-actions",{headers})):await firstValueFrom(this.http.post<AdminActionResponse>("/api/admin-booking-actions",body,{headers}));}catch(error){throw this.normalizeRequestError(error);}}
 

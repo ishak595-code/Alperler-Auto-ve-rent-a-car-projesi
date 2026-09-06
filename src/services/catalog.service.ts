@@ -1,4 +1,5 @@
 import { Injectable, inject } from "@angular/core";
+import { adminFetch } from "./admin-fetch";
 import { Vehicle } from "../models/car.model";
 import { SiteConfig } from "../models/site-config.model";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
@@ -129,7 +130,7 @@ export class CatalogService {
   async saveConfig(config: SiteConfig): Promise<SiteConfig> {
     const token = await this.authService.getAccessToken();
     if (!token) throw new Error("ADMIN_SESSION_REQUIRED");
-    const response = await fetch("/api/partner?op=site-content-admin", {
+    const response = await adminFetch("/api/partner?op=site-content-admin", {
       method: "PATCH",
       cache: "no-store",
       headers: {
@@ -193,7 +194,7 @@ export class CatalogService {
   }
 
   private async directPageWithTotal(path: string, start: number, end: number, fresh: boolean): Promise<{ rows: unknown[]; total: number | null }> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
+    const response = await adminFetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
       method: "GET",
       cache: fresh ? "no-store" : "default",
       headers: {
@@ -360,7 +361,7 @@ export class CatalogService {
   ): Promise<T> {
     const token = await this.authService.getAccessToken();
     if (!token) throw new Error("ADMIN_SESSION_REQUIRED");
-    const response = await fetch(`/api/catalog?resource=${encodeURIComponent(resource)}`, {
+    const response = await adminFetch(`/api/catalog?resource=${encodeURIComponent(resource)}`, {
       method,
       headers: {
         authorization: `Bearer ${token}`,

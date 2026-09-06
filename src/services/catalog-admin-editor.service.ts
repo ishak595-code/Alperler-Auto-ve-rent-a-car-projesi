@@ -1,5 +1,5 @@
 import { Injectable, inject } from "@angular/core";
-import { AuthService } from "./auth.service";
+import { AdminGatewayTransportService, isAdminGatewayFailure } from "./admin-gateway-transport.service";
 
 export type CatalogOrigin = "REAL" | "DEMO";
 export type CatalogQuality = "UNVERIFIED" | "RESEARCHED" | "BUSINESS_VERIFIED";
@@ -88,7 +88,9 @@ interface CatalogSnapshotPayload {
 
 @Injectable({ providedIn: "root" })
 export class CatalogAdminEditorService {
-  private readonly auth = inject(AuthService);
+  private readonly transport = inject(AdminGatewayTransportService);
+  /** Kaynak-gerçeği: Supabase Edge Function. BFF yalnızca taşıma hatasında yedek. */
+  private readonly edgeFunction = "catalog-admin-gateway-v184";
   private readonly endpoint = "/api/partner?op=catalog-admin";
 
   async vehicles(): Promise<VehicleAdminRecord[]> {
@@ -229,20 +231,57 @@ export class CatalogAdminEditorService {
     await this.saveTour(record);
   }
 
+  /**
+   * Katalog listesi. Sıra: Edge snapshot RPC → BFF → doğrudan tablo (RLS).
+   * Üçüncü adım aynı satırları (listing_origin='CENTRAL') veritabanından okur;
+   * RPC ile birebir aynı şemayı döndürdüğü için aynı eşleyiciyle çalışır.
+   * Yetki hataları (401/403) hiçbir zaman yedeğe düşmez.
+   */
   private async snapshot(): Promise<CatalogSnapshotPayload> {
-    const payload = await this.request<{ data?: CatalogSnapshotPayload }>("GET", `${this.endpoint}&view=snapshot`);
-    return payload.data || {};
+    try {
+      const payload = await this.request<{ data?: CatalogSnapshotPayload }>("GET", `${this.endpoint}&view=snapshot`);
+      return payload.data || {};
+    } catch (error) {
+      if (!this.canFallbackToDatabase(error)) throw error;
+      try {
+        const [vehicles, tours] = await Promise.all([
+          this.transport.rest<Record<string, unknown>[]>("vehicles?listing_origin=eq.CENTRAL&select=id,stock_code,category,brand,model,model_year,price,rental_price_daily,mileage_km,fuel_type,transmission,body_type,color,engine,seats,doors,location,description,features,images,cover_image,is_featured,is_active,availability_status,seo_slug,publication_status,published_at,scheduled_at,record_origin,data_quality_status,spec_source_url,spec_source_name,actual_vehicle_verified,branch_id,metadata,updated_at&order=updated_at.desc&limit=2000"),
+          this.transport.rest<Record<string, unknown>[]>("tours?listing_origin=eq.CENTRAL&select=id,title,seo_slug,category,short_description,description,price_per_person,duration,capacity,meeting_point,itinerary,included_items,excluded_items,images,cover_image,is_featured,is_active,publication_status,published_at,scheduled_at,record_origin,data_quality_status,source_url,source_name,location_name,latitude,longitude,map_url,branch_id,metadata,updated_at&order=updated_at.desc&limit=2000"),
+        ]);
+        console.warn("Katalog listesi doğrudan veritabanından okundu (gateway yanıt vermedi).", error);
+        return { vehicles: Array.isArray(vehicles) ? vehicles : [], tours: Array.isArray(tours) ? tours : [] };
+      } catch (restError) {
+        throw new Error(`${this.transport.describe(error, "Katalog listesi")} · ${this.transport.describe(restError, "Veritabanı")}`);
+      }
+    }
   }
 
   private async mediaSummary(kind: "VEHICLE" | "TOUR", id: string): Promise<MediaSummary> {
-    const payload = await this.request<{ data?: Partial<MediaSummary> }>(
-      "GET",
-      `${this.endpoint}&view=media-summary&kind=${kind.toLowerCase()}&id=${encodeURIComponent(id)}`,
-    );
-    return {
-      activeImages: Math.max(0, Number(payload.data?.activeImages || 0)),
-      activeCovers: Math.max(0, Number(payload.data?.activeCovers || 0)),
-    };
+    try {
+      const payload = await this.request<{ data?: Partial<MediaSummary> }>(
+        "GET",
+        `${this.endpoint}&view=media-summary&kind=${kind.toLowerCase()}&id=${encodeURIComponent(id)}`,
+      );
+      return {
+        activeImages: Math.max(0, Number(payload.data?.activeImages || 0)),
+        activeCovers: Math.max(0, Number(payload.data?.activeCovers || 0)),
+      };
+    } catch (error) {
+      if (!this.canFallbackToDatabase(error)) throw error;
+      const column = kind === "VEHICLE" ? "vehicle_id" : "tour_id";
+      const rows = await this.transport.rest<Array<{ is_cover?: boolean }>>(
+        `catalog_media?${column}=eq.${encodeURIComponent(id)}&is_active=eq.true&kind=eq.IMAGE&select=is_cover`,
+      );
+      const list = Array.isArray(rows) ? rows : [];
+      return { activeImages: list.length, activeCovers: list.filter((row) => row.is_cover === true).length };
+    }
+  }
+
+  private canFallbackToDatabase(error: unknown): boolean {
+    if (!isAdminGatewayFailure(error)) return false;
+    if (error.status === 401 || error.status === 403 || error.status === 429) return false;
+    if (["UNAUTHORIZED", "FORBIDDEN", "CONTENT_PERMISSION_REQUIRED", "RATE_LIMITED"].includes(error.code)) return false;
+    return true;
   }
 
   private vehicleErrors(record: VehicleAdminRecord, media: MediaSummary): string[] {
@@ -435,31 +474,25 @@ export class CatalogAdminEditorService {
   }
 
   private async request<T = Record<string, unknown>>(method: "GET" | "POST" | "PATCH", url: string, body?: Record<string, unknown>): Promise<T> {
-    const token = await this.requiredToken();
-    const response = await fetch(url, {
-      method,
-      headers: {
-        authorization: `Bearer ${token}`,
-        accept: "application/json",
-        ...(method === "GET" ? {} : { "content-type": "application/json" }),
-      },
-      body: method === "GET" ? undefined : JSON.stringify(body || {}),
-      cache: "no-store",
-    });
-    const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
-    if (!response.ok || payload["ok"] === false) {
-      const code = String(payload["code"] || `CATALOG_ADMIN_${response.status}`);
+    const source = new URL(url, "http://localhost");
+    const query: Record<string, string | undefined> = {};
+    for (const key of ["view", "kind", "id"]) query[key] = source.searchParams.get(key) || undefined;
+    try {
+      return await this.transport.gateway<T & Record<string, unknown>>({
+        edgeFunction: this.edgeFunction,
+        bffUrl: this.endpoint,
+        method,
+        query,
+        body,
+      });
+    } catch (error) {
+      if (!isAdminGatewayFailure(error)) throw error;
+      const code = error.code;
       if (code.includes("PUBLICATION_BLOCKED:")) throw new Error(`Yayın engellendi: ${this.publicationMessage(code)}`);
       if (code === "INVALID_CATALOG_FIELD_VALUE") throw new Error("Girilen katalog alanlarından biri geçersiz. Sayı, tarih ve seçimleri kontrol edin.");
       if (code === "RATE_LIMITED") throw new Error("Çok hızlı işlem yapıldı. Kısa bir süre sonra tekrar deneyin.");
-      throw new Error(code);
+      if (code === "VEHICLE_NOT_FOUND" || code === "TOUR_NOT_FOUND") throw new Error("Kayıt bulunamadı. Liste yenilenmiş olabilir.");
+      throw this.transport.humanize(error, method === "GET" ? "Katalog verisi" : "Katalog kaydı");
     }
-    return payload as T;
-  }
-
-  private async requiredToken(): Promise<string> {
-    const token = await this.auth.getAccessToken();
-    if (!token) throw new Error("Yönetici oturumu gerekli.");
-    return token;
   }
 }

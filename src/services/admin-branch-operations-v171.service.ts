@@ -1,4 +1,5 @@
 import { Injectable, inject } from "@angular/core";
+import { adminFetch } from "./admin-fetch";
 import { AuthService } from "./auth.service";
 
 export type BranchLifecycleStatusV171 = "ACTIVE" | "SUSPENDED" | "CLOSED" | "DRAFT";
@@ -33,7 +34,7 @@ export class AdminBranchOperationsV171Service {
 
   private async action(body:Record<string,unknown>):Promise<BranchOperationsPayload>{
     const token=await this.requiredToken();
-    const response=await fetch(this.endpoint,{method:"PATCH",headers:{authorization:`Bearer ${token}`,"content-type":"application/json",accept:"application/json","x-request-id":crypto.randomUUID()},body:JSON.stringify(body),cache:"no-store"});
+    const response=await adminFetch(this.endpoint,{method:"PATCH",headers:{authorization:`Bearer ${token}`,"content-type":"application/json",accept:"application/json","x-request-id":crypto.randomUUID()},body:JSON.stringify(body),cache:"no-store"});
     const payload=await response.json().catch(()=>({})) as BranchOperationsPayload;
     if(!response.ok||payload.ok!==true)throw new Error(String(payload.code||payload.message||`BRANCH_OPERATIONS_${response.status}`));
     return payload;

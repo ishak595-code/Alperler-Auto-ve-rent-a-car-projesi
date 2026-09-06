@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { adminFetch } from "./admin-fetch";
 import { AuthService } from './auth.service';
 
 export interface PaytrSecretStatus {
@@ -48,7 +49,7 @@ export class PaymentProviderSecretsService {
     this._loading.set(true);
     try {
       const token = await this.requiredToken();
-      const response = await fetch(`${this.endpoint}&view=payment-provider-secrets`, {
+      const response = await adminFetch(`${this.endpoint}&view=payment-provider-secrets`, {
         headers: this.headers(token),
         cache: 'no-store',
       });
@@ -84,7 +85,7 @@ export class PaymentProviderSecretsService {
     this._saving.set(true);
     try {
       const token = await this.requiredToken();
-      const response = await fetch(this.endpoint, {
+      const response = await adminFetch(this.endpoint, {
         method: 'PATCH',
         headers: this.headers(token),
         body: JSON.stringify(body),

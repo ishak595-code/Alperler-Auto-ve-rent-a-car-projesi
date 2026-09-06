@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { adminFetch } from "./admin-fetch";
 import { AuthService } from './auth.service';
 
 export interface AnalyticsOverview {
@@ -118,7 +119,7 @@ export class AdminAnalyticsService {
   private async query<T>(payload: Record<string, unknown>): Promise<T> {
     const token = await this.auth.getAccessToken();
     if (!token) throw new Error('ADMIN_SESSION_REQUIRED');
-    const response = await fetch('/api/partner?op=analytics-admin', {
+    const response = await adminFetch('/api/partner?op=analytics-admin', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
       body: JSON.stringify(payload),

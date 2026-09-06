@@ -1,4 +1,5 @@
 import { Injectable, inject } from "@angular/core";
+import { adminFetch } from "./admin-fetch";
 import { AuthService } from "./auth.service";
 import { RuntimeControls } from "./runtime-controls.service";
 
@@ -77,7 +78,7 @@ export class AdminSystemHealthService {
   private async request(body: Record<string, unknown>): Promise<GatewayResponse> {
     const token = await this.auth.getAccessToken();
     if (!token) throw new Error("ADMIN_SESSION_REQUIRED");
-    const response = await fetch(this.endpoint, {
+    const response = await adminFetch(this.endpoint, {
       method: "PATCH",
       cache: "no-store",
       headers: {

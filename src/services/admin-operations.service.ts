@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { adminFetch } from "./admin-fetch";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
 import { AuthService } from './auth.service';
 
@@ -108,7 +109,7 @@ export class AdminOperationsService {
   private async fetchWithTimeout(input:RequestInfo|URL,init:RequestInit,timeoutMs:number):Promise<Response>{
     const controller=new AbortController();
     const timer=globalThis.setTimeout(()=>controller.abort(),timeoutMs);
-    try{return await fetch(input,{...init,signal:controller.signal});}
+    try{return await adminFetch(input,{...init,signal:controller.signal});}
     finally{globalThis.clearTimeout(timer);}
   }
 

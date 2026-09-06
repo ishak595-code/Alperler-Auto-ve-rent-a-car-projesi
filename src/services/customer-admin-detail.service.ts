@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { adminFetch } from "./admin-fetch";
 import { AuthService } from './auth.service';
 import { CustomerDocument, CustomerDocumentType, CustomerExperiencePreferences } from './customer-wallet.service';
 import { SafePaymentMethod } from './customer-account.service';
@@ -50,5 +51,5 @@ export class CustomerAdminDetailService{
   private normalizePrefs(row:CustomerExperiencePreferences):CustomerExperiencePreferences{return{...row,monthly_spend_target:row.monthly_spend_target==null?null:Number(row.monthly_spend_target),spend_alert_threshold_percent:Number(row.spend_alert_threshold_percent||80),document_expiry_reminder_days:Number(row.document_expiry_reminder_days||30)};}
   private async requireToken():Promise<string>{const token=await this.auth.getAccessToken();if(!token)throw new Error('ADMIN_SESSION_REQUIRED');return token;}
   private validUuid(value:string){return/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);}
-  private async request<T>(method:'GET'|'PATCH',token:string,body?:unknown,userId?:string):Promise<T>{const path=userId?`${this.endpoint}&userId=${encodeURIComponent(userId)}`:this.endpoint;const response=await fetch(path,{method,headers:{authorization:`Bearer ${token}`,'content-type':'application/json',accept:'application/json','x-request-id':crypto.randomUUID()},body:method==='GET'?undefined:JSON.stringify(body),cache:'no-store'});const payload=await response.json().catch(()=>({})) as T&{code?:string;message?:string};if(!response.ok)throw new Error(String(payload.code||payload.message||`CUSTOMER_ADMIN_DETAIL_${response.status}`));return payload;}
+  private async request<T>(method:'GET'|'PATCH',token:string,body?:unknown,userId?:string):Promise<T>{const path=userId?`${this.endpoint}&userId=${encodeURIComponent(userId)}`:this.endpoint;const response=await adminFetch(path,{method,headers:{authorization:`Bearer ${token}`,'content-type':'application/json',accept:'application/json','x-request-id':crypto.randomUUID()},body:method==='GET'?undefined:JSON.stringify(body),cache:'no-store'});const payload=await response.json().catch(()=>({})) as T&{code?:string;message?:string};if(!response.ok)throw new Error(String(payload.code||payload.message||`CUSTOMER_ADMIN_DETAIL_${response.status}`));return payload;}
 }

@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { AuthService } from "./auth.service";
+import { AdminGatewayTransportService, isAdminGatewayFailure } from "./admin-gateway-transport.service";
 
 export type CatalogMediaKind = "IMAGE" | "VIDEO";
 export type CatalogEntityType = "VEHICLE" | "TOUR" | "BLOG";
@@ -65,7 +66,10 @@ interface MediaControlResponse {
 @Injectable({ providedIn: "root" })
 export class CatalogMediaService {
   private readonly auth = inject(AuthService);
+  private readonly transport = inject(AdminGatewayTransportService);
   private readonly bucket = "catalog-media";
+  /** Kaynak-gerçeği: Supabase Edge Function. BFF yalnızca taşıma hatasında yedek. */
+  private readonly edgeFunction = "media-control-admin-v185";
   private readonly endpoint = "/api/partner?op=media-control-admin";
   private readonly tusThreshold = 6 * 1024 * 1024;
   private readonly tusChunkSize = 6 * 1024 * 1024;
@@ -199,23 +203,20 @@ export class CatalogMediaService {
     body?: Record<string, unknown>,
     query?: Record<string, string>,
   ): Promise<MediaControlResponse> {
-    const token = await this.requiredToken();
-    const search = new URLSearchParams(query || {});
-    const url = search.size ? `${this.endpoint}&${search.toString()}` : this.endpoint;
-    const response = await fetch(url, {
-      method,
-      cache: "no-store",
-      headers: {
-        authorization: `Bearer ${token}`,
-        accept: "application/json",
-        ...(method === "GET" ? {} : { "content-type": "application/json" }),
-        "x-request-id": crypto.randomUUID(),
-      },
-      body: method === "GET" ? undefined : JSON.stringify(body || {}),
-    });
-    const payload = await response.json().catch(() => ({})) as MediaControlResponse;
-    if (!response.ok || payload.ok !== true) throw new Error(this.mediaError(payload.code || `MEDIA_CONTROL_${response.status}`));
-    return payload;
+    try {
+      return await this.transport.gateway<MediaControlResponse & Record<string, unknown>>({
+        edgeFunction: this.edgeFunction,
+        bffUrl: this.endpoint,
+        method,
+        query,
+        body,
+        timeoutMs: 30_000,
+      });
+    } catch (error) {
+      if (!isAdminGatewayFailure(error)) throw error;
+      if (error.transport || error.status >= 500) throw this.transport.humanize(error, "Medya");
+      throw new Error(this.mediaError(error.code));
+    }
   }
 
   private mediaError(code: string): string {

@@ -1,4 +1,5 @@
 import { Injectable, inject } from "@angular/core";
+import { adminFetch } from "./admin-fetch";
 import { AuthService } from "./auth.service";
 
 export interface StaffBranchAssignmentRecord {
@@ -45,7 +46,7 @@ export class AssignmentCenterService {
 
   async load(): Promise<AssignmentSnapshot> {
     const token = await this.requiredToken();
-    const response = await fetch(`${this.endpoint}&view=assignments`, { headers: this.headers(token), cache: "no-store" });
+    const response = await adminFetch(`${this.endpoint}&view=assignments`, { headers: this.headers(token), cache: "no-store" });
     const payload = await response.json().catch(() => ({})) as AssignmentGatewaySnapshot;
     if (!response.ok) throw new Error(String(payload.code || `ASSIGNMENT_${response.status}`));
     const branches = Array.isArray(payload.branches) ? payload.branches : [];
@@ -91,7 +92,7 @@ export class AssignmentCenterService {
 
   private async action(body: Record<string, unknown>): Promise<void> {
     const token = await this.requiredToken();
-    const response = await fetch(this.endpoint, {
+    const response = await adminFetch(this.endpoint, {
       method: "PATCH",
       headers: this.headers(token),
       body: JSON.stringify(body),

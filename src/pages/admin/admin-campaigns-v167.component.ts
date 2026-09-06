@@ -166,7 +166,7 @@ type CampaignTargetOption = { id: string; label: string };
 
             <footer>
               <button type="button" (click)="previous()" [disabled]="step() === 1">← Önceki</button>
-              <div><button type="button" (click)="saveAs('DRAFT', false)" [disabled]="saving()">{{ saving() ? 'Kaydediliyor…' : 'Taslağı Kaydet' }}</button>@if (step() < 4) { <button type="button" class="next" (click)="next()">Sonraki →</button> }</div>
+              <div><button type="button" (click)="saveAs('DRAFT')" [disabled]="saving()">{{ saving() ? 'Kaydediliyor…' : 'Taslağı Kaydet' }}</button>@if (step() < 4) { <button type="button" class="next" (click)="next()">Sonraki →</button> }</div>
             </footer>
           </section>
         }
@@ -432,10 +432,14 @@ export class AdminCampaignsV167Component implements OnInit {
           pricingVersion: 'V200',
         },
       });
-      this.edit(saved);
-      this.step.set(announce ? 4 : preserveStep);
       if (announce) {
+        // Açık kayıt: düzenleyici kapanır, liste açılır (kullanıcı bir sonraki işe geçer).
         this.toast.show(status === 'PUBLISHED' ? 'Kampanya canlı yayınlandı.' : status === 'SCHEDULED' ? 'Kampanya planlandı.' : status === 'ARCHIVED' ? 'Kampanya arşivlendi.' : 'Kampanya taslağı kaydedildi.', 'success');
+        this.closeEditor();
+        if (typeof window !== 'undefined') window.setTimeout(() => window.scrollTo({ top: 0 }), 60);
+      } else {
+        this.edit(saved);
+        this.step.set(preserveStep);
       }
       return saved;
     } catch (error) {

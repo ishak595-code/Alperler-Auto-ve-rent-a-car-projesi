@@ -9,9 +9,12 @@ import { ToastService } from "../services/toast.service";
   template: `
     <div
       class="fixed top-6 right-6 z-[60] flex flex-col gap-3 pointer-events-none"
+      aria-live="polite"
+      aria-relevant="additions"
     >
       @for (toast of toastService.toasts(); track toast.id) {
         <div
+          [attr.role]="toast.type === 'error' ? 'alert' : 'status'"
           class="pointer-events-auto min-w-[300px] bg-white rounded-lg shadow-2xl border-l-4 p-4 transform transition-all animate-fade-in-left flex items-center justify-between"
           [class.border-green-500]="toast.type === 'success'"
           [class.border-red-500]="toast.type === 'error'"

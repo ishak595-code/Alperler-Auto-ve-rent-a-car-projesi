@@ -28,7 +28,7 @@ const catalogCache = new Map<string, VehicleAdminRecord[] | TourAdminRecord[]>()
     <main class="workspace-page">
       <div class="shell">
           <header class="toolbar">
-            <h1>{{ pageTitle() }} <span class="count" aria-live="polite">{{ resultCount() }} kayıt</span></h1>
+            <h1>{{ pageTitle() }} <span class="count" aria-live="polite">{{ loading() ? 'yükleniyor' : resultCount() + ' kayıt' }}</span></h1>
             <div class="toolbar-actions">
               <input [(ngModel)]="search" type="search" [attr.aria-label]="modeLabel() + ' kayıtlarında ara'" [placeholder]="searchPlaceholder()" autocomplete="off" />
               <button type="button" class="ghost" (click)="refresh()" [disabled]="loading()" aria-label="Listeyi yenile">Yenile</button>

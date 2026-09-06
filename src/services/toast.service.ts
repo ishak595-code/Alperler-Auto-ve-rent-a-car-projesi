@@ -19,10 +19,10 @@ export class ToastService {
     
     this.toasts.update(t => [...t, newToast]);
 
-    // Auto remove after 3 seconds
+    // Hata mesajları ekran okuyucunun okuyabilmesi için daha uzun kalır.
     setTimeout(() => {
       this.remove(id);
-    }, 3000);
+    }, type === 'error' ? 8000 : 4000);
   }
 
   remove(id: number) {

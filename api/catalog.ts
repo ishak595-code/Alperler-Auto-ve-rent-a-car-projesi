@@ -87,10 +87,12 @@ function sanitizedMetadata(input: unknown, excluded: Set<string>, legacyId: numb
 function publicCache(resource: Resource): string {
   switch (resource) {
     case "vehicles": return "no-store";
-    case "tours": return "public, max-age=60, s-maxage=300, stale-while-revalidate=7200";
+    // Yönetim panelinden yayınlanan içerik en geç 30 sn içinde vitrine yansır;
+    // tarayıcı hiç önbelleklemez, CDN kısa süre tutar ve arkada tazeler.
+    case "tours":
     case "blog":
-    case "faqs": return "public, max-age=120, s-maxage=600, stale-while-revalidate=21600";
-    case "config": return "public, max-age=60, s-maxage=300, stale-while-revalidate=3600";
+    case "faqs":
+    case "config": return "public, max-age=0, s-maxage=30, stale-while-revalidate=120";
   }
 }
 

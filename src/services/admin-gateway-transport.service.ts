@@ -218,8 +218,10 @@ export class AdminGatewayTransportService {
     }
 
     const rawCode = payload.code ?? payload.message;
-    const code = String(typeof rawCode === "number" ? `HTTP_${rawCode}` : rawCode || `HTTP_${response.status}`).slice(0, 160);
-    const transport = TRANSPORT_CODES.has(code) || response.status === 404 || response.status >= 502;
+    const detail = typeof payload.message === "string" && payload.message && payload.message !== rawCode ? ` — ${payload.message.slice(0, 140)}` : "";
+    const code = String(typeof rawCode === "number" ? `HTTP_${rawCode}${detail}` : rawCode || `HTTP_${response.status}${detail}`).slice(0, 220);
+    const baseCode = String(typeof rawCode === "number" ? `HTTP_${rawCode}` : rawCode || `HTTP_${response.status}`);
+    const transport = TRANSPORT_CODES.has(baseCode) || response.status === 404 || response.status >= 502;
     throw new AdminGatewayFailure(layer, response.status, code, transport);
   }
 

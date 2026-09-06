@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { Component, Input, OnInit, computed, inject, signal } from "@angular/core";
+import { Component, Input, OnDestroy, OnInit, computed, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { VehicleCardComponent } from "../../components/vehicle-card.component";
 import { Vehicle } from "../../models/car.model";
@@ -17,6 +17,8 @@ import { ToastService } from "../../services/toast.service";
 
 export type CatalogWorkspaceMode = "RENTAL" | "SALE" | "TOUR";
 type WorkspaceStep = 1 | 2 | 3 | 4;
+/** Sekmeler arası geçişte liste anında görünsün diye mod başına son liste (titreme yok). */
+const catalogCache = new Map<string, VehicleAdminRecord[] | TourAdminRecord[]>();
 
 @Component({
   selector: "app-admin-catalog-workspace",
@@ -25,7 +27,6 @@ type WorkspaceStep = 1 | 2 | 3 | 4;
   template: `
     <main class="workspace-page">
       <div class="shell">
-        @if (!selectedVehicle() && !selectedTour()) {
           <header class="toolbar">
             <h1>{{ pageTitle() }} <span class="count" aria-live="polite">{{ resultCount() }} kayıt</span></h1>
             <div class="toolbar-actions">
@@ -44,7 +45,7 @@ type WorkspaceStep = 1 | 2 | 3 | 4;
               <ul class="rows">
                 @for (item of filteredTours(); track item.id) {
                   <li>
-                    <button type="button" class="row" [id]="'row-' + item.id" (click)="selectTour(item)" [attr.aria-label]="tourRowLabel(item)">
+                    <button type="button" class="row" [id]="'row-' + item.id" (click)="viewTour(item)" [attr.aria-label]="tourRowLabel(item)">
                       <span class="thumb" aria-hidden="true">@if(item.coverImage || item.images[0]){<img [src]="item.coverImage || item.images[0]" alt="" loading="lazy"/>}</span>
                       <span class="copy"><strong>{{ item.title || 'İsimsiz tur' }}</strong><small>{{ item.duration || 'Süre girilmedi' }} · {{ item.pricePerPerson | number:'1.0-0' }} TL/kişi</small></span>
                       <span class="badge" [class]="'badge s-' + item.publicationStatus.toLowerCase()">{{ statusLabel(item.publicationStatus) }}</span>
@@ -57,7 +58,7 @@ type WorkspaceStep = 1 | 2 | 3 | 4;
               <ul class="rows">
                 @for (item of filteredVehicles(); track item.id) {
                   <li>
-                    <button type="button" class="row" [id]="'row-' + item.id" (click)="selectVehicle(item)" [attr.aria-label]="vehicleRowLabel(item)">
+                    <button type="button" class="row" [id]="'row-' + item.id" (click)="viewVehicle(item)" [attr.aria-label]="vehicleRowLabel(item)">
                       <span class="thumb" aria-hidden="true">@if(item.coverImage || item.images[0]){<img [src]="item.coverImage || item.images[0]" alt="" loading="lazy"/>}</span>
                       <span class="copy"><strong>{{ item.brand || 'Marka' }} {{ item.model || 'Model' }}</strong><small>{{ item.modelYear || 'Yıl yok' }} · {{ item.stockCode || 'Stok kodu yok' }}{{ priceMeta(item) }}</small></span>
                       <span class="badge" [class]="'badge s-' + item.publicationStatus.toLowerCase()">{{ statusLabel(item.publicationStatus) }}</span>
@@ -68,11 +69,71 @@ type WorkspaceStep = 1 | 2 | 3 | 4;
               </ul>
             }
           </section>
-        } @else {
+
+        @if (viewingVehicle() || viewingTour() || selectedVehicle() || selectedTour()) {
+          <div class="sheet" role="dialog" aria-modal="true" [attr.aria-labelledby]="'sheet-title'" (keydown.escape)="closeSheet()">
+            @if ((viewingVehicle() || viewingTour()) && !selectedVehicle() && !selectedTour()) {
+              <section class="detail-shell">
+                <header class="detail-head">
+                  <button type="button" class="back" (click)="closeSheet()" aria-label="Listeye dön">←</button>
+                  <h2 id="sheet-title" tabindex="-1" #sheetTitle>{{ viewingTitle() }}</h2>
+                  <span [class]="'badge s-' + viewingStatus().toLowerCase()">{{ statusLabel(viewingStatus()) }}</span>
+                </header>
+                @if (viewingVehicle(); as car) {
+                  <div class="detail-body">
+                    <div class="detail-media">@if (car.coverImage || car.images[0]) {<img [src]="car.coverImage || car.images[0]" [alt]="car.brand + ' ' + car.model + ' kapak görseli'" />} @else {<div class="no-media">Görsel yok</div>}</div>
+                    <dl class="facts">
+                      <div><dt>Fiyat</dt><dd>{{ priceMeta(car) ? priceMeta(car).slice(3) : 'Girilmedi' }}</dd></div>
+                      <div><dt>Model yılı</dt><dd>{{ car.modelYear || '—' }}</dd></div>
+                      <div><dt>Stok kodu</dt><dd>{{ car.stockCode || '—' }}</dd></div>
+                      <div><dt>Yakıt</dt><dd>{{ car.fuelType || '—' }}</dd></div>
+                      <div><dt>Vites</dt><dd>{{ car.transmission || '—' }}</dd></div>
+                      <div><dt>Kasa</dt><dd>{{ car.bodyType || '—' }}</dd></div>
+                      <div><dt>Renk</dt><dd>{{ car.color || '—' }}</dd></div>
+                      <div><dt>Konum</dt><dd>{{ car.location || '—' }}</dd></div>
+                      <div><dt>Müsaitlik</dt><dd>{{ availabilityLabel(car.availabilityStatus) }}</dd></div>
+                      <div><dt>Şube</dt><dd>{{ branchName(car.branchId) }}</dd></div>
+                      <div><dt>Görsel sayısı</dt><dd>{{ car.images.length }}</dd></div>
+                      <div><dt>Veri doğrulama</dt><dd>{{ qualityLabel(car.dataQualityStatus) }}</dd></div>
+                    </dl>
+                    @if (car.description) {<p class="desc">{{ car.description }}</p>}
+                    @if (car.features.length) {<div class="chips">@for (feature of car.features.slice(0, 16); track feature) {<span>{{ feature }}</span>}</div>}
+                  </div>
+                  <footer class="detail-actions">
+                    <button type="button" class="primary" (click)="editVehicle(car)">Düzenle</button>
+                    @if (car.publicationStatus !== 'PUBLISHED') {<button type="button" class="ghost" (click)="quickStatus(car, 'PUBLISHED')" [disabled]="saving()">Yayınla</button>}
+                    @if (car.publicationStatus !== 'ARCHIVED') {<button type="button" class="ghost danger" (click)="quickStatus(car, 'ARCHIVED')" [disabled]="saving()">Arşivle</button>} @else {<button type="button" class="ghost" (click)="quickStatus(car, 'DRAFT')" [disabled]="saving()">Taslağa Al</button>}
+                    <a class="ghost link" [href]="mode==='RENTAL' ? '/fleet/'+car.id : '/sales/'+car.id" target="_blank" rel="noopener">Müşteri sayfası</a>
+                  </footer>
+                }
+                @if (viewingTour(); as tour) {
+                  <div class="detail-body">
+                    <div class="detail-media">@if (tour.coverImage || tour.images[0]) {<img [src]="tour.coverImage || tour.images[0]" [alt]="tour.title + ' kapak görseli'" />} @else {<div class="no-media">Görsel yok</div>}</div>
+                    <dl class="facts">
+                      <div><dt>Kişi başı</dt><dd>{{ tour.pricePerPerson | number:'1.0-0' }} TL</dd></div>
+                      <div><dt>Süre</dt><dd>{{ tour.duration || '—' }}</dd></div>
+                      <div><dt>Kapasite</dt><dd>{{ tour.capacity || '—' }}</dd></div>
+                      <div><dt>Konum</dt><dd>{{ tour.locationName || '—' }}</dd></div>
+                      <div><dt>Buluşma</dt><dd>{{ tour.meetingPoint || '—' }}</dd></div>
+                      <div><dt>Şube</dt><dd>{{ branchName(tour.branchId) }}</dd></div>
+                      <div><dt>Görsel sayısı</dt><dd>{{ tour.images.length }}</dd></div>
+                      <div><dt>Veri doğrulama</dt><dd>{{ qualityLabel(tour.dataQualityStatus) }}</dd></div>
+                    </dl>
+                    @if (tour.shortDescription || tour.description) {<p class="desc">{{ tour.shortDescription || tour.description }}</p>}
+                  </div>
+                  <footer class="detail-actions">
+                    <button type="button" class="primary" (click)="editTour(tour)">Düzenle</button>
+                    @if (tour.publicationStatus !== 'PUBLISHED') {<button type="button" class="ghost" (click)="quickStatus(tour, 'PUBLISHED')" [disabled]="saving()">Yayınla</button>}
+                    @if (tour.publicationStatus !== 'ARCHIVED') {<button type="button" class="ghost danger" (click)="quickStatus(tour, 'ARCHIVED')" [disabled]="saving()">Arşivle</button>} @else {<button type="button" class="ghost" (click)="quickStatus(tour, 'DRAFT')" [disabled]="saving()">Taslağa Al</button>}
+                    <a class="ghost link" [href]="'/tour/'+tour.id" target="_blank" rel="noopener">Müşteri sayfası</a>
+                  </footer>
+                }
+              </section>
+            } @else {
           <section class="editor-shell">
             <header class="editor-head">
-              <button type="button" class="back" (click)="closeEditor()">← Listeye dön</button>
-              <div><p>{{ selectedTitle() }}</p><strong>{{ stepTitle() }}</strong></div>
+              <button type="button" class="back" (click)="closeSheet()">← Geri</button>
+              <div><p>{{ selectedTitle() }}</p><strong id="sheet-title" tabindex="-1" #sheetTitle>{{ stepTitle() }}</strong></div>
               <span>{{ step() }}/4</span>
             </header>
 
@@ -273,15 +334,18 @@ type WorkspaceStep = 1 | 2 | 3 | 4;
               <div><button type="button" class="ghost" (click)="saveProgress()" [disabled]="saving()">{{ saving() ? 'Kaydediliyor…' : 'Taslağı Kaydet' }}</button>@if(step()<4){<button type="button" class="primary" (click)="nextStep()">Sonraki →</button>}</div>
             </footer>
           </section>
+            }
+          </div>
         }
       </div>
     </main>
   `,
   styles: [`
+.sheet{position:fixed;inset:0;z-index:200;overflow-y:auto;background:#f4f7fb;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}.detail-shell{width:min(100%,900px);margin:auto;padding:8px 8px 28px}.detail-head{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:8px;background:#f4f7fb;padding:6px 0}.detail-head .back,.editor-head .back{min-height:38px;min-width:38px;border:1px solid #dbe4ef;border-radius:10px;background:#fff;color:#0f172a;font-weight:900}.detail-head h2{flex:1;min-width:0;margin:0;font-size:16px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.detail-head h2:focus{outline:none}.detail-body{border:1px solid #dbe4ef;border-radius:14px;background:#fff;padding:12px}.detail-media{aspect-ratio:16/9;overflow:hidden;border-radius:10px;background:#e2e8f0}.detail-media img{width:100%;height:100%;object-fit:cover}.no-media{display:grid;height:100%;place-items:center;color:#64748b;font-size:12px}.facts{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin:12px 0 0}.facts div{display:flex;flex-direction:column;min-width:0}.facts dt{color:#64748b;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}.facts dd{margin:0;font-size:13px;font-weight:800;overflow-wrap:anywhere}.desc{margin:12px 0 0;color:#334155;font-size:13px;line-height:1.6}.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}.chips span{border-radius:999px;background:#f1f5f9;padding:4px 8px;font-size:11px}.detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}.detail-actions>*{display:inline-flex;min-height:44px;align-items:center;justify-content:center;border-radius:10px;font-size:12px;font-weight:900;text-decoration:none;cursor:pointer}.detail-actions .link{color:#1d4ed8}.danger{color:#be123c}.sheet .editor-shell{width:min(100%,1100px);margin:8px auto}@media(min-width:720px){.facts{grid-template-columns:repeat(3,1fr)}.detail-actions{display:flex;flex-wrap:wrap}}
     :host{display:block;background:#f4f7fb;color:#0f172a}.workspace-page{padding:8px 8px 16px}.shell{width:min(100%,1380px);margin:auto}.toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 8px}.toolbar h1{margin:0;font-size:15px;font-weight:950}.toolbar .count{margin-left:6px;color:#64748b;font-size:11px;font-weight:700}.toolbar-actions{display:flex;flex:1 1 320px;gap:6px}.toolbar-actions input{flex:1 1 120px;min-width:0;min-height:40px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;padding:0 10px;font-size:13px}.toolbar-actions button{min-height:40px;flex:0 0 auto;border-radius:10px;padding:0 12px;font-size:12px;font-weight:900}.primary{border:0;background:#2563eb;color:white}.ghost{border:1px solid #dbe4ef;background:white;color:#0f172a}.alert{margin:0 0 8px;border:1px solid #fecaca;border-radius:12px;background:#fff1f2;padding:10px 12px;color:#9f1239;font-size:12px;line-height:1.5}.alert strong{display:block;margin-bottom:2px}.list-panel,.editor-shell{border:1px solid #dbe4ef;border-radius:14px;background:white;box-shadow:0 4px 14px rgba(15,23,42,.04);overflow:hidden}.editor-shell{margin-top:8px}.rows{list-style:none;margin:0;padding:0}.rows li{border-bottom:1px solid #eef2f7}.rows li:last-child{border-bottom:0}.row{display:grid;width:100%;grid-template-columns:56px minmax(0,1fr) auto 14px;align-items:center;gap:10px;min-height:56px;border:0;background:white;padding:6px 10px 6px 8px;text-align:left;color:inherit;cursor:pointer}.row:hover{background:#f8fafc}.row:focus-visible{outline:2px solid #2563eb;outline-offset:-2px;background:#eff6ff}.thumb{display:block;width:56px;height:42px;overflow:hidden;border-radius:8px;background:#e2e8f0}.thumb img{width:100%;height:100%;object-fit:cover}.copy{min-width:0}.copy strong,.copy small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.copy strong{font-size:13px;font-weight:900}.copy small{margin-top:2px;color:#64748b;font-size:11px}.badge{flex:none;border-radius:999px;padding:3px 8px;font-size:9px;font-weight:950;letter-spacing:.04em;background:#e2e8f0;color:#334155}.badge.s-published{background:#dcfce7;color:#166534}.badge.s-draft{background:#fef3c7;color:#92400e}.badge.s-scheduled{background:#dbeafe;color:#1e40af}.badge.s-archived{background:#e2e8f0;color:#475569}.chev{color:#94a3b8;font-size:18px;line-height:1}.empty{padding:28px 14px;text-align:center;color:#64748b;font-size:12px}.editor-head{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;background:#07101f;padding:12px;color:white}.editor-head .back{min-height:40px;border:1px solid #334155;border-radius:10px;background:#0f1c31;padding:0 11px;color:white;font-weight:850}.editor-head p{margin:0;color:#94a3b8;font-size:9px}.editor-head strong{display:block;margin-top:2px;font-size:14px}.editor-head>span{display:grid;width:42px;height:42px;place-items:center;border-radius:50%;background:#1d4ed8;font-size:11px;font-weight:950}.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#e2e8f0}.steps button{display:grid;min-height:64px;place-items:center;gap:2px;border:0;background:white;padding:8px;color:#64748b}.steps b{display:grid;width:24px;height:24px;place-items:center;border-radius:50%;background:#e2e8f0;font-size:9px}.steps span{font-size:8px;font-weight:850}.steps button.active{background:#eff6ff;color:#1d4ed8}.steps button.active b,.steps button.done b{background:#2563eb;color:white}.panel{margin:14px;border:1px solid #e2e8f0;border-radius:18px;background:#fff;padding:15px}.panel>header{margin-bottom:14px}.panel h2{margin:0;font-size:18px}.panel header p{margin:5px 0 0;color:#64748b;font-size:10px;line-height:1.5}.upload-zone{display:grid;min-height:180px;place-items:center;align-content:center;gap:7px;border:2px dashed #93c5fd;border-radius:18px;background:#eff6ff;padding:20px;text-align:center;cursor:pointer}.upload-zone input{position:absolute;width:1px;height:1px;opacity:0}.upload-zone strong{color:#1d4ed8}.upload-zone span{color:#64748b;font-size:9px}.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:12px}.media-card{border:1px solid #e2e8f0;border-radius:14px;padding:8px}.media-preview{position:relative;aspect-ratio:16/10;overflow:hidden;border-radius:10px;background:#0f172a}.media-preview img,.media-preview video{width:100%;height:100%;object-fit:cover}.media-preview b{position:absolute;top:7px;left:7px;border-radius:999px;background:#fbbf24;padding:4px 7px;font-size:8px}.media-card label,.panel label{display:flex;flex-direction:column;gap:5px;margin-top:8px;color:#475569;font-size:9px;font-weight:850}.media-card input,.panel input,.panel select,.panel textarea{width:100%;min-height:44px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;padding:8px 10px;color:#0f172a}.media-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:7px}.media-actions button,.publish-actions button,.ghost{min-height:40px;border:1px solid #dbe4ef;border-radius:10px;background:white;font-size:9px;font-weight:900}.danger{color:#be123c}.form-grid{display:grid;grid-template-columns:1fr;gap:10px}.form-grid label{margin-top:0}.wide{grid-column:1/-1}.check{flex-direction:row!important;align-items:center!important;min-height:44px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;padding:8px 10px}.check input{width:auto!important;min-height:auto!important}.expertise{border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc;padding:12px}.expertise>strong{display:block;margin-bottom:10px}.stack{display:grid;gap:0}.preview-layout{display:grid}.detail-preview,.tour-preview{margin-top:12px;border:1px solid #e2e8f0;border-radius:14px;padding:12px}.detail-preview h3,.tour-preview h3{margin:0}.detail-preview p,.tour-preview p{color:#64748b;font-size:10px;line-height:1.6}.detail-preview div{display:flex;flex-wrap:wrap;gap:5px}.detail-preview span{border-radius:999px;background:#f1f5f9;padding:5px 7px;font-size:8px}.preview-image{aspect-ratio:16/9;overflow:hidden;border-radius:12px;background:#e2e8f0}.preview-image img{width:100%;height:100%;object-fit:cover}.tour-preview strong,.tour-preview small{display:block;margin-top:7px}.publish-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}.publish-actions .schedule{background:#fef3c7;color:#92400e}.publish-actions .publish{background:#16a34a;color:white}.publish-actions .archive{background:#0f172a;color:white}.public-link{display:flex;min-height:44px;align-items:center;justify-content:center;margin-top:10px;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:10px;font-weight:900;text-decoration:none}.editor-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #e2e8f0;background:#f8fafc;padding:12px}.editor-nav>div{display:flex;gap:7px}.editor-nav button{min-height:44px;padding:0 13px}.ghost:disabled,.primary:disabled,.publish-actions button:disabled{opacity:.45}@media(min-width:720px){.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.preview-layout{grid-template-columns:minmax(0,1fr) minmax(320px,.55fr)}.steps span{font-size:9px}}@media(max-width:560px){.editor-head{grid-template-columns:1fr auto}.editor-head .back{grid-column:1/-1;justify-self:start}.steps span{display:none}.panel{margin:8px;padding:12px}.publish-actions{grid-template-columns:1fr}.editor-nav{align-items:stretch;flex-direction:column}.editor-nav>div{display:grid;grid-template-columns:1fr 1fr}.editor-nav>button{width:100%}}
   `],
 })
-export class AdminCatalogWorkspaceComponent implements OnInit {
+export class AdminCatalogWorkspaceComponent implements OnInit, OnDestroy {
   @Input({ required: true }) mode: CatalogWorkspaceMode = "RENTAL";
   private readonly editor = inject(CatalogAdminEditorService);
   readonly mediaService = inject(CatalogMediaService);
@@ -292,6 +356,9 @@ export class AdminCatalogWorkspaceComponent implements OnInit {
   readonly tours = signal<TourAdminRecord[]>([]);
   readonly selectedVehicle = signal<VehicleAdminRecord | null>(null);
   readonly selectedTour = signal<TourAdminRecord | null>(null);
+  readonly viewingVehicle = signal<VehicleAdminRecord | null>(null);
+  readonly viewingTour = signal<TourAdminRecord | null>(null);
+  private lastFocusedRowId = '';
   readonly media = signal<CatalogMediaItem[]>([]);
   readonly loading = signal(false);
   readonly saving = signal(false);
@@ -306,7 +373,7 @@ export class AdminCatalogWorkspaceComponent implements OnInit {
   readonly filteredTours = computed(() => {const q=this.search.trim().toLocaleLowerCase('tr-TR');return this.tours().filter((row)=>!q||`${row.title} ${row.category||''} ${row.locationName||''}`.toLocaleLowerCase('tr-TR').includes(q));});
   readonly resultCount = computed(() => this.mode==='TOUR'?this.filteredTours().length:this.filteredVehicles().length);
 
-  ngOnInit():void{void this.refresh();}
+  ngOnInit():void{const cached=catalogCache.get(this.mode);if(cached){if(this.mode==='TOUR')this.tours.set(cached as TourAdminRecord[]);else this.vehicles.set(cached as VehicleAdminRecord[]);}void this.refresh();}
   modeLabel():string{return this.mode==='RENTAL'?'Kiralık Araç':this.mode==='SALE'?'Satılık Araç':'Tur';}
   pageTitle():string{return this.mode==='RENTAL'?'Kiralık Araçlar':this.mode==='SALE'?'Satılık Araçlar':'Turlar';}
   pageDescription():string{return this.mode==='RENTAL'?'Kiralık araçları listeleyin, arayın, kendi fotoğraf ve videolarını yükleyin, fiyat ve koşulları tamamlayıp yayınlayın.':this.mode==='SALE'?'Satılık araçları kendi medyası, teknik bilgileri ve ekspertiziyle tek kayıtta yönetin.':'Her turun kendi fotoğraf/video, program, rota, fiyat, kapasite ve yayın ayarlarını tek akışta yönetin.';}
@@ -320,13 +387,29 @@ export class AdminCatalogWorkspaceComponent implements OnInit {
   statusSpoken(status:string):string{return status==='PUBLISHED'?'canlı':status==='DRAFT'?'taslak':status==='SCHEDULED'?'planlı':'arşiv';}
   stepTitle():string{return this.stepItems.find((row)=>row.id===this.step())?.label||'';}
 
-  async refresh():Promise<void>{this.loading.set(true);this.error.set('');try{const catalogPromise=this.mode==='TOUR'?this.editor.tours():this.editor.vehicles();const[catalogResult,peopleResult]=await Promise.allSettled([catalogPromise,this.management.refreshPeople()]);if(catalogResult.status==='fulfilled'){if(this.mode==='TOUR'){this.tours.set(catalogResult.value as TourAdminRecord[]);}else{this.vehicles.set(catalogResult.value as VehicleAdminRecord[]);}}else{this.error.set(this.message(catalogResult.reason));}if(peopleResult.status==='rejected'){console.error('Ekip/şube verisi yüklenemedi (katalog listesini etkilemez):',peopleResult.reason);}}finally{this.loading.set(false);}}
+  /** Yenileme sırasında mevcut liste ekranda kalır (titreme yok); yükleniyor durumu yalnız ilk açılışta görünür. */
+  async refresh():Promise<void>{const hasData=this.mode==='TOUR'?this.tours().length>0:this.vehicles().length>0;if(!hasData)this.loading.set(true);this.error.set('');try{const catalogPromise=this.mode==='TOUR'?this.editor.tours():this.editor.vehicles();const[catalogResult,peopleResult]=await Promise.allSettled([catalogPromise,this.management.refreshPeople()]);if(catalogResult.status==='fulfilled'){catalogCache.set(this.mode,catalogResult.value);if(this.mode==='TOUR'){this.tours.set(catalogResult.value as TourAdminRecord[]);}else{this.vehicles.set(catalogResult.value as VehicleAdminRecord[]);}}else{this.error.set(this.message(catalogResult.reason));}if(peopleResult.status==='rejected'){console.error('Ekip/şube verisi yüklenemedi (katalog listesini etkilemez):',peopleResult.reason);}}finally{this.loading.set(false);}}
   async createNew():Promise<void>{this.saving.set(true);try{if(this.mode==='TOUR'){const item=await this.editor.createTour();this.tours.update((rows)=>[item,...rows]);await this.selectTour(item);}else{const item=await this.editor.createVehicle(this.mode);if(this.mode==='SALE')item.metadata={...(item.metadata||{}),tramerStatus:'UNKNOWN',tramerCurrency:'TRY',damageExpertise:{},isDamageFree:false};this.vehicles.update((rows)=>[item,...rows]);await this.selectVehicle(item);}this.step.set(1);this.toast.show(`${this.modeLabel()} taslağı oluşturuldu. Önce medya ekleyebilirsiniz.`,'success');}catch(error){this.toast.show(this.message(error),'error');}finally{this.saving.set(false);}}
-  async selectVehicle(item:VehicleAdminRecord):Promise<void>{this.selectedTour.set(null);this.selectedVehicle.set(this.clone(item));this.step.set(1);await this.loadMedia('VEHICLE',item.id);}
-  async selectTour(item:TourAdminRecord):Promise<void>{this.selectedVehicle.set(null);this.selectedTour.set(this.clone(item));this.step.set(1);await this.loadMedia('TOUR',item.id);}
-  closeEditor():void{this.selectedVehicle.set(null);this.selectedTour.set(null);this.media.set([]);this.step.set(1);}
+  async selectVehicle(item:VehicleAdminRecord):Promise<void>{this.selectedTour.set(null);this.selectedVehicle.set(this.clone(item));this.step.set(1);this.openSheet();await this.loadMedia('VEHICLE',item.id);}
+  async selectTour(item:TourAdminRecord):Promise<void>{this.selectedVehicle.set(null);this.selectedTour.set(this.clone(item));this.step.set(1);this.openSheet();await this.loadMedia('TOUR',item.id);}
+  /** Satıra dokunma: önce salt-okunur ayrıntı paneli (düzenleme, yayın, arşiv, müşteri sayfası oradan). */
+  viewVehicle(item:VehicleAdminRecord):void{this.lastFocusedRowId=item.id;this.viewingTour.set(null);this.viewingVehicle.set(item);this.openSheet();}
+  viewTour(item:TourAdminRecord):void{this.lastFocusedRowId=item.id;this.viewingVehicle.set(null);this.viewingTour.set(item);this.openSheet();}
+  editVehicle(item:VehicleAdminRecord):void{this.lastFocusedRowId=item.id;void this.selectVehicle(item);}
+  editTour(item:TourAdminRecord):void{this.lastFocusedRowId=item.id;void this.selectTour(item);}
+  viewingTitle():string{const car=this.viewingVehicle();if(car)return `${car.brand||'Marka'} ${car.model||'Model'}`.trim();return this.viewingTour()?.title||'Tur';}
+  viewingStatus():string{return this.viewingVehicle()?.publicationStatus||this.viewingTour()?.publicationStatus||'DRAFT';}
+  availabilityLabel(value:string):string{return({AVAILABLE:'Müsait / Satışta',RESERVED:'Rezerve',RENTED:'Kirada',SOLD:'Satıldı',MAINTENANCE:'Bakımda'} as Record<string,string>)[value]||value||'—';}
+  qualityLabel(value:string):string{return value==='BUSINESS_VERIFIED'?'İşletme doğruladı':value==='RESEARCHED'?'Araştırma ile tamamlandı':'Kontrol edilmedi';}
+  branchName(id?:string):string{if(!id)return'Seçilmedi';const branch=this.management.branches().find((row)=>row.id===id);return branch?`${branch.name} · ${branch.city}`:'Seçilmedi';}
+  async quickStatus(record:VehicleAdminRecord|TourAdminRecord,status:'DRAFT'|'PUBLISHED'|'ARCHIVED'):Promise<void>{this.saving.set(true);try{const next=this.clone(record);next.publicationStatus=status;next.isActive=status==='PUBLISHED';next.publishedAt=status==='PUBLISHED'?new Date().toISOString():next.publishedAt;next.scheduledAt=undefined;next.recordOrigin='REAL';if('brand' in next)await this.editor.saveVehicle(next);else await this.editor.saveTour(next);await this.refresh();const fresh=this.mode==='TOUR'?this.tours().find((row)=>row.id===record.id):this.vehicles().find((row)=>row.id===record.id);if(fresh){if('brand' in fresh)this.viewingVehicle.set(fresh as VehicleAdminRecord);else this.viewingTour.set(fresh as TourAdminRecord);}this.toast.show(this.statusSaveMessage(status),'success');}catch(error){this.toast.show(this.message(error),'error');}finally{this.saving.set(false);}}
+  /** Panel: sayfanın geri kalanı kaydırılmaz, odak panel başlığına gider. */
+  private openSheet():void{if(typeof document==='undefined')return;document.body.style.overflow='hidden';window.setTimeout(()=>{(document.getElementById('sheet-title') as HTMLElement|null)?.focus();},40);}
+  closeSheet():void{const rowId=this.lastFocusedRowId;this.viewingVehicle.set(null);this.viewingTour.set(null);this.selectedVehicle.set(null);this.selectedTour.set(null);this.media.set([]);this.step.set(1);if(typeof document==='undefined')return;document.body.style.overflow='';if(rowId)window.setTimeout(()=>{document.getElementById(`row-${rowId}`)?.focus();},40);}
+  closeEditor():void{this.closeSheet();}
+  ngOnDestroy():void{if(typeof document!=='undefined')document.body.style.overflow='';}
   /** Kayıt sonrası düzenleyici kapanır, liste açılır ve odak kaydedilen satıra döner (ekran okuyucu satırı okur). */
-  private returnToList(id:string):void{this.closeEditor();if(typeof window==='undefined')return;window.setTimeout(()=>{const row=document.getElementById(`row-${id}`);if(row){row.focus();row.scrollIntoView({block:'center'});}else{window.scrollTo({top:0});}},60);}
+  private returnToList(id:string):void{this.lastFocusedRowId=id;this.closeSheet();if(typeof window==='undefined')return;window.setTimeout(()=>{const row=document.getElementById(`row-${id}`);if(row){row.focus();row.scrollIntoView({block:'center'});}else{window.scrollTo({top:0});}},80);}
   nextStep():void{this.step.set(Math.min(4,this.step()+1) as WorkspaceStep);}
   previousStep():void{this.step.set(Math.max(1,this.step()-1) as WorkspaceStep);}
 

@@ -32,7 +32,7 @@ function headers(request: Request): HeadersInit {
   return {
     ...(origin ? { "access-control-allow-origin": origin } : {}),
     "access-control-allow-methods": "POST,OPTIONS",
-    "access-control-allow-headers": "authorization,content-type,x-request-id,x-app-origin",
+    "access-control-allow-headers": "authorization,apikey,content-type,x-request-id,x-app-origin",
     "cache-control": "private, no-store, max-age=0",
     "content-type": "application/json; charset=utf-8",
     "x-content-type-options": "nosniff",

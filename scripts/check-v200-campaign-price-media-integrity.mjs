@@ -90,9 +90,9 @@ for (const contract of [
 ]) must(gcMigration, contract, `Campaign media lifecycle contract missing: ${contract}`);
 
 const route = read(routePath);
-for (const contract of [
-  'AdminCampaignsV167Component',
-  'Ortak galeri kullanılmaz',
-]) must(route, contract, `Campaign admin ownership route missing: ${contract}`);
+must(route, 'AdminCampaignsV167Component', 'Campaign admin ownership route missing: AdminCampaignsV167Component');
+// V246+: the per-record media ownership promise lives inside the campaign editor itself,
+// not in the hub header copy (the hub header is intentionally compact for screen readers).
+must(read(canonicalAdminPath), 'Ortak galeri veya dışarıdan kapak URL girişi yok', 'Campaign editor must state per-record media ownership');
 
 console.log('V200 campaign price/media/payment integrity: PASS');

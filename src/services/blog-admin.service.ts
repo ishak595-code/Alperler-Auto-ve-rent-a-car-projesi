@@ -108,7 +108,7 @@ export class BlogAdminService {
     });
     if (!response.ok) throw new Error(await this.errorCode(response, "BLOG_SAVE"));
     const rows = await response.json() as Record<string, unknown>[];
-    if (!rows[0]) throw new Error("BLOG_NOT_FOUND");
+    if (!rows[0]) throw new Error("Kayıt güncellenmedi: yazı bulunamadı ya da veritabanı yazma izni (RLS) bu oturum için kapalı. Yönetici kaydınızın aktif olduğundan emin olun.");
     return this.fromRow(rows[0]);
   }
 
@@ -187,8 +187,14 @@ export class BlogAdminService {
     return normalized || `yazi-${Date.now()}`;
   }
 
+  /** PostgREST hatasını Türkçe ve nedenli bir cümleye çevirir (RLS reddi, tetikleyici, eşsiz alan çakışması vb.). */
   private async errorCode(response: Response, fallback: string): Promise<string> {
     const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
-    return String(payload["message"] || payload["code"] || `${fallback}_${response.status}`);
+    if (response.status === 401) return "Yönetici oturumu doğrulanamadı. Çıkış yapıp yeniden giriş yapın.";
+    const message = String(payload["message"] || payload["code"] || `${fallback}_${response.status}`);
+    const details = [payload["details"], payload["hint"]].filter((value) => typeof value === "string" && value).map(String).join(" · ");
+    if (response.status === 403 || /row-level security/i.test(message)) return `Blog yazma yetkisi veritabanı tarafından reddedildi (RLS). Yönetici kaydınızın aktif olduğundan emin olun. ${message}`.trim();
+    if (/duplicate|unique/i.test(message)) return `Aynı SEO adresi (slug) başka bir yazıda kullanılıyor. ${message}`;
+    return details ? `${message} — ${details}` : message;
   }
 }

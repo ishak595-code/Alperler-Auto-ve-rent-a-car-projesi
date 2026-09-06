@@ -45,7 +45,12 @@ for(const route of ['/admin/:path*','/branch-portal/:path*','/track-car/:path*',
 
 const angular=JSON.parse(read('angular.json'));
 const production=angular?.projects?.app?.architect?.build?.configurations?.production||{};
-assert(production.optimization===true,'production optimization must be explicit');
+const optimization=production.optimization;
+const explicitOptimization=optimization===true||(optimization&&typeof optimization==='object'&&optimization.scripts===true&&optimization.styles&&optimization.styles.minify===true&&optimization.styles.inlineCritical===false&&optimization.fonts===true);
+assert(explicitOptimization,'production optimization must be explicit');
+// Critical-CSS inlining rewrites the stylesheet link to media="print" with an inline onload swap; the CSP
+// script-src-attr 'none' policy blocks that handler, so the global stylesheet would never apply. Keep it off.
+assert(!(optimization&&typeof optimization==='object'&&optimization.styles&&optimization.styles.inlineCritical===true),'critical CSS inlining is incompatible with script-src-attr none');
 assert(production.sourceMap===false,'production source maps must be disabled');
 assert(production.extractLicenses===true,'production license extraction must be explicit');
 assert(production.outputHashing==='all','production output hashing must remain enabled');

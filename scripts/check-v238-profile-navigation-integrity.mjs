@@ -24,7 +24,7 @@ const walletMentions=(shell.match(/Cüzdan ve Belgeler/g)||[]).length;
 assert(walletMentions===1,`account shell must own exactly one canonical wallet entry, found ${walletMentions}`);
 assert(migration.includes("surface = 'MOBILE_MENU'")&&migration.includes("item_key = 'search'")&&migration.includes('archived_at'),'migration does not archive mobile-menu Search');
 assert(navbar.includes('routerLink=\"/admin/login\"')&&navbar.includes('Yönetici Girişi'),'hamburger admin login entry missing');
-assert(adminLogin.includes('İlk giriş / Şifremi oluştur')&&adminLogin.includes('doFirstAccess()'),'secure first admin access action missing');
+assert((adminLogin.includes('İlk giriş / Şifremi oluştur')||adminLogin.includes('İlk Yönetici Kurulumu'))&&adminLogin.includes('doFirstAccess()'),'secure first admin access action missing');
 assert(adminAuth.includes('`${this.adminLoginRedirect()}?recovery=1`'),'admin password recovery does not return to admin password-set flow');
 for(const forbidden of ['passwordlessAdmin','bypassAdmin','skipAdminAuth','adminWithoutPassword']) assert(!navbar.includes(forbidden)&&!adminLogin.includes(forbidden)&&!adminAuth.includes(forbidden),`unsafe admin bypass marker present: ${forbidden}`);
 if(!process.exitCode)console.log('V238 profile/navigation integrity guard passed.');

@@ -193,3 +193,20 @@ export async function adminFetch(input: RequestInfo | URL, init?: RequestInit): 
     return synthetic(503, code, describeTrail(trail, method === "GET" ? "Veri okuma" : "Kayıt"), trail);
   }
 }
+
+/**
+ * Başarısız bir adminFetch yanıtını kullanıcıya gösterilecek Türkçe cümleye çevirir:
+ * kod + üst katmanın mesajı + hangi katmanların denendiği.
+ */
+export function adminErrorMessage(response: Response, payload: Record<string, unknown> | null | undefined, subject: string): string {
+  const record = payload && typeof payload === "object" ? payload : {};
+  const rawCode = record["code"] ?? record["message"];
+  const code = typeof rawCode === "number" ? `HTTP_${rawCode}` : String(rawCode || `HTTP_${response.status}`);
+  if (code === "UNAUTHORIZED" || response.status === 401) return "Yönetici oturumu doğrulanamadı. Çıkış yapıp yeniden giriş yapın.";
+  if (code === "FORBIDDEN" || response.status === 403) return "Bu işlem için yönetici yetkiniz yok (yetki denetimi Supabase tarafından reddedildi).";
+  if (code === "RATE_LIMITED" || response.status === 429) return "Çok hızlı işlem yapıldı. Kısa bir süre sonra tekrar deneyin.";
+  const message = typeof record["message"] === "string" && record["message"] !== rawCode ? ` — ${String(record["message"]).slice(0, 160)}` : "";
+  const trail = adminFetchTrail(response);
+  const layers = trail && trail.attempts.length ? ` (${trail.attempts.map((a) => `${a.layer === "edge" ? "Supabase Edge" : "Site API"}: ${a.code}`).join(" · ")})` : "";
+  return `${subject} yüklenemedi: ${code}${message}${layers}`;
+}

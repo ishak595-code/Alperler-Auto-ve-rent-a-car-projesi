@@ -3,18 +3,40 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const MAX_BODY_BYTES = 64 * 1024;
+const ALLOWED_ORIGINS = new Set(
+  [Deno.env.get("PUBLIC_SITE_URL") || ""]
+    .map((value) => { try { return new URL(value).origin; } catch { return ""; } })
+    .filter(Boolean),
+);
 
 type JsonObject = Record<string, unknown>;
 
-function json(body: unknown, status = 200): Response {
-  return Response.json(body, {
-    status,
-    headers: {
-      "cache-control": "private, no-store, max-age=0",
-      "content-type": "application/json; charset=utf-8",
-      "x-content-type-options": "nosniff",
-    },
-  });
+function allowedOriginValue(value: string): string {
+  if (!value) return "";
+  try {
+    const parsed = new URL(value);
+    if ((parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") && ["http:", "https:"].includes(parsed.protocol)) return parsed.origin;
+    if (parsed.hostname.endsWith(".vercel.app") && parsed.protocol === "https:") return parsed.origin;
+    return ALLOWED_ORIGINS.has(parsed.origin) ? parsed.origin : "";
+  } catch {
+    return "";
+  }
+}
+function resolveOrigin(request: Request): { supplied: boolean; allowed: string } {
+  const browserOrigin = (request.headers.get("origin") || "").trim();
+  const appOrigin = (request.headers.get("x-app-origin") || "").trim();
+  if (browserOrigin) return { supplied: true, allowed: allowedOriginValue(browserOrigin) };
+  if (appOrigin) return { supplied: true, allowed: allowedOriginValue(appOrigin) };
+  return { supplied: false, allowed: "" };
+}
+function cors(origin: string): Record<string, string> {
+  return {
+    ...(origin ? { "access-control-allow-origin": origin } : {}),
+    "access-control-allow-methods": "GET,PATCH,OPTIONS",
+    "access-control-allow-headers": "authorization,apikey,content-type,x-request-id,x-app-origin",
+    "access-control-max-age": "600",
+    vary: "Origin",
+  };
 }
 function clean(value: unknown, max: number): string { return typeof value === "string" ? value.trim().slice(0, max) : ""; }
 function uuid(value: unknown): string { const text = clean(value, 80); return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text) ? text : ""; }
@@ -77,8 +99,19 @@ function statusFor(code: string): number {
 }
 
 Deno.serve(async (request: Request) => {
+  const origin = resolveOrigin(request);
+  const json = (body: unknown, status = 200): Response => Response.json(body, {
+    status,
+    headers: {
+      ...cors(origin.allowed),
+      "cache-control": "private, no-store, max-age=0",
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+    },
+  });
+  if (origin.supplied && !origin.allowed) return json({ ok: false, code: "ORIGIN_NOT_ALLOWED" }, 403);
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin.allowed) });
   if (!SUPABASE_URL || !SERVICE_KEY) return json({ ok: false, code: "SERVER_CONFIG_MISSING" }, 503);
-  if (request.method === "OPTIONS") return new Response(null, { status: 204 });
   if (!["GET", "PATCH"].includes(request.method)) return json({ ok: false, code: "METHOD_NOT_ALLOWED" }, 405);
   try {
     const actor = await requireActor(request);

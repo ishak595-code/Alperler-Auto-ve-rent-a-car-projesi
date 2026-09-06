@@ -50,7 +50,7 @@ function cors(origin: string): Record<string, string> {
   return {
     ...(origin ? { "access-control-allow-origin": origin } : {}),
     "access-control-allow-methods": "GET,POST,PATCH,OPTIONS",
-    "access-control-allow-headers": "authorization,content-type,x-request-id,x-app-origin",
+    "access-control-allow-headers": "authorization,apikey,content-type,x-request-id,x-app-origin",
     "access-control-max-age": "600",
     vary: "Origin",
   };

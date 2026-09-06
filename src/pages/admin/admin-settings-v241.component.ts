@@ -39,7 +39,7 @@ type AdminSettingsPanelV243='brand'|'contact'|'account'|null;
           <div class="body grid">
             <div class="logo-row wide">
               <div class="logo-preview">@if(formConfig.logoUrl){<img [src]="formConfig.logoUrl" alt="Site logosu önizlemesi" />}@else{<span>Logo Yok</span>}</div>
-              <div class="logo-copy"><strong>Site Logosu</strong><p>Logo yalnız dosyadan yüklenir. Teknik URL alanı gösterilmez.</p><label class="file-button">{{logoUploading()?'Yükleniyor...':'Logo Dosyası Seç'}}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" (change)="onLogoSelected($event)" [disabled]="logoUploading()||saving()" /></label></div>
+              <div class="logo-copy"><strong>Site Logosu</strong><p>Logo yalnız dosyadan yüklenir. Teknik URL alanı gösterilmez.</p><label class="file-button">{{logoUploading()?'Yükleniyor...':'Logo Dosyası Seç'}}<input type="file" accept="image/*" (change)="onLogoSelected($event)" [disabled]="logoUploading()||saving()" /></label></div>
             </div>
             <label><span>Şirket Adı</span><input [(ngModel)]="formConfig.companyName" name="companyNameV243" required /></label>
             <label><span>Slogan</span><input [(ngModel)]="formConfig.tagline" name="taglineV243" /></label>

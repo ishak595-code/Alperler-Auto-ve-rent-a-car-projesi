@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { adminFetch } from "./admin-fetch";
+import { mediaRejectionReason } from "./media-file.util";
 import { AuthService } from './auth.service';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
 
@@ -24,10 +25,10 @@ const HOMEPAGE_BACKGROUND_QUALITIES = [0.82, 0.74, 0.66, 0.58] as const;
 export class AdminMediaService {
   private readonly auth = inject(AuthService);
   private readonly bucket = 'catalog-media';
-  private readonly maxImageBytes = 15 * 1024 * 1024;
+  /** Depolama kovası tavanı ile aynı (200 MB); çözünürlük sınırı yok. */
+  private readonly maxImageBytes = 200 * 1024 * 1024;
   private readonly tusThreshold = 6 * 1024 * 1024;
   private readonly tusChunkSize = 6 * 1024 * 1024;
-  private readonly allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
 
   async uploadHomepageImage(file: File, sectionKey: string, purpose: 'profile' | 'cover' | 'background'): Promise<AdminMediaUploadResult> {
     const prepared = purpose === 'background' ? await this.prepareHomepageBackground(file) : file;
@@ -283,8 +284,9 @@ export class AdminMediaService {
   }
 
   private validateImage(file: File): void {
-    if (!this.allowedImageTypes.has(file.type)) throw new Error('Yalnız JPG, PNG, WEBP veya AVIF görsel yükleyebilirsiniz.');
-    if (!file.size || file.size > this.maxImageBytes) throw new Error('Görsel en fazla 15 MB olabilir.');
+    const reason = mediaRejectionReason(file, { video: false });
+    if (reason) throw new Error(reason);
+    if (!file.size || file.size > this.maxImageBytes) throw new Error('Görsel depolama tavanı olan 200 MB sınırını aşıyor.');
   }
 
   private resumableEndpoint(): string {

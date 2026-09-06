@@ -147,9 +147,9 @@ const catalogCache = new Map<string, VehicleAdminRecord[] | TourAdminRecord[]>()
               <section class="panel media-first">
                 <header><h2>Fotoğraf & Video</h2><p>Bu medya yalnız bu {{ entityNoun() }} kaydına aittir. Ortak galeri kullanılmaz.</p></header>
                 <label class="upload-zone">
-                  <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm" (change)="uploadFiles($event)" />
+                  <input type="file" multiple accept="image/*,video/*" (change)="uploadFiles($event)" />
                   <strong>{{ uploading() ? 'Yükleniyor %' + mediaService.uploadProgress() : 'Fotoğraf veya Video Dosyası Seç' }}</strong>
-                  <span>JPEG, PNG, WebP, AVIF, MP4, WebM · en fazla 50 MB/dosya</span>
+                  <span>Galeri, kamera veya dosyalardan; telefon nasıl çektiyse öyle yüklenir (fotoğraf ve video, 200 MB'a kadar)</span>
                 </label>
                 <div class="media-grid">
                   @for(item of media(); track item.id) {

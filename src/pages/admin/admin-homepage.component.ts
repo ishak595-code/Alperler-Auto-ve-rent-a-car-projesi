@@ -69,7 +69,7 @@ interface ThemeOption { value: HomepageTheme; label: string; preview: string; te
               <label><span>Üst güven satırı</span><input [(ngModel)]="heroTrustLine" name="homeHeroTrustLine" maxlength="140" aria-label="Ana sayfa üst güven satırı" /></label>
               <label><span>Arama kutusu örnek metni</span><input [(ngModel)]="searchPlaceholder" name="homeSearchPlaceholder" maxlength="120" aria-label="Ana sayfa arama kutusu örnek metni" /></label>
               <label><span>Arka plan görseli URL</span><input [(ngModel)]="heroImage" name="homeHeroImage" type="url" placeholder="https://..." aria-label="Ana sayfa hero arka plan görseli URL adresi" /></label>
-              <label class="file-button"><span>Hero Görseli Yükle</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" (change)="onHeroImageSelected($event)" aria-label="Ana sayfa hero görseli dosyası seç" /></label>
+              <label class="file-button"><span>Hero Görseli Yükle</span><input type="file" accept="image/*" (change)="onHeroImageSelected($event)" aria-label="Ana sayfa hero görseli dosyası seç" /></label>
               @if (topAreaUploading()) { <p class="upload-state" role="status">Hero görseli yükleniyor…</p> }
             </section>
             <section class="editor-block">
@@ -157,19 +157,19 @@ interface ThemeOption { value: HomepageTheme; label: string; preview: string; te
                         <strong>Profil / logo görseli</strong>
                         @if (setting(section,'profileImage')) { <img class="media-preview avatar" [src]="setting(section,'profileImage')" alt="Bölüm profil görseli önizlemesi" /> }
                         <label><span>Görsel URL</span><input type="url" [ngModel]="setting(section,'profileImage')" (ngModelChange)="setSetting(section,'profileImage',$event)" [name]="section.sectionKey + '-profile-url'" placeholder="https://..." /></label>
-                        <label class="file-button"><span>Galeriden / Dosyadan Seç</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" (change)="onFileSelected(section,'profile',$event)" [attr.aria-label]="section.title + ' profil görselini dosyadan seç'" /></label>
+                        <label class="file-button"><span>Galeriden / Dosyadan Seç</span><input type="file" accept="image/*" (change)="onFileSelected(section,'profile',$event)" [attr.aria-label]="section.title + ' profil görselini dosyadan seç'" /></label>
                       </div>
                       <div class="media-field">
                         <strong>Kapak / bölüm görseli</strong>
                         @if (setting(section,'coverImage')) { <img class="media-preview" [src]="setting(section,'coverImage')" alt="Bölüm kapak görseli önizlemesi" /> }
                         <label><span>Görsel URL</span><input type="url" [ngModel]="setting(section,'coverImage')" (ngModelChange)="setSetting(section,'coverImage',$event)" [name]="section.sectionKey + '-cover-url'" placeholder="https://..." /></label>
-                        <label class="file-button"><span>Galeriden / Dosyadan Seç</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" (change)="onFileSelected(section,'cover',$event)" [attr.aria-label]="section.title + ' kapak görselini dosyadan seç'" /></label>
+                        <label class="file-button"><span>Galeriden / Dosyadan Seç</span><input type="file" accept="image/*" (change)="onFileSelected(section,'cover',$event)" [attr.aria-label]="section.title + ' kapak görselini dosyadan seç'" /></label>
                       </div>
                       <div class="media-field">
                         <strong>Arka plan görseli</strong>
                         @if (setting(section,'backgroundImage')) { <img class="media-preview" [src]="setting(section,'backgroundImage')" alt="Bölüm arka plan görseli önizlemesi" /> }
                         <label><span>Görsel URL</span><input type="url" [ngModel]="setting(section,'backgroundImage')" (ngModelChange)="setSetting(section,'backgroundImage',$event)" [name]="section.sectionKey + '-background-url'" placeholder="https://..." /></label>
-                        <label class="file-button"><span>Galeriden / Dosyadan Seç</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" (change)="onFileSelected(section,'background',$event)" [attr.aria-label]="section.title + ' arka plan görselini dosyadan seç'" /></label>
+                        <label class="file-button"><span>Galeriden / Dosyadan Seç</span><input type="file" accept="image/*" (change)="onFileSelected(section,'background',$event)" [attr.aria-label]="section.title + ' arka plan görselini dosyadan seç'" /></label>
                       </div>
                     </div>
                     @if (uploadingKey() === section.sectionKey) { <p class="upload-state" role="status">Görsel yükleniyor…</p> }

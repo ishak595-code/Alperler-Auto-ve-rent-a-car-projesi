@@ -72,9 +72,9 @@ type CampaignTargetOption = { id: string; label: string };
               <section class="panel">
                 <header><h2>Kampanya Görseli</h2><p>Dosya yalnız bu kampanyanın kimliği altında yüklenir. 6 MB ve üzeri dosyalarda kesintiye dayanıklı TUS yükleme kullanılır.</p></header>
                 <label class="upload">
-                  <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" (change)="uploadCover($event)" [disabled]="uploading()" />
+                  <input type="file" accept="image/*" (change)="uploadCover($event)" [disabled]="uploading()" />
                   <strong>{{ uploading() ? 'Yükleniyor ve kampanyaya bağlanıyor…' : 'Kapak Görseli Dosyası Seç' }}</strong>
-                  <span>JPG, PNG, WebP veya AVIF · en fazla 15 MB</span>
+                  <span>Galeri, kamera veya dosyalardan; fotoğraf telefon nasıl çektiyse öyle</span>
                 </label>
                 @if (coverImage) {
                   <div class="preview-cover"><img [src]="coverImage" [alt]="title || 'Kampanya kapağı'" /><button type="button" (click)="coverImage = ''">Kapağı Kaldır</button></div>

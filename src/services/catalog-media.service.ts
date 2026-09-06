@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from "@angular/core";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { AuthService } from "./auth.service";
 import { AdminGatewayTransportService, isAdminGatewayFailure } from "./admin-gateway-transport.service";
+import { describeStorageError, mediaExtension, mediaRejectionReason, resolveMediaType } from "./media-file.util";
 
 export type CatalogMediaKind = "IMAGE" | "VIDEO";
 export type CatalogEntityType = "VEHICLE" | "TOUR" | "BLOG";
@@ -73,7 +74,8 @@ export class CatalogMediaService {
   private readonly endpoint = "/api/partner?op=media-control-admin";
   private readonly tusThreshold = 6 * 1024 * 1024;
   private readonly tusChunkSize = 6 * 1024 * 1024;
-  readonly maxUploadBytes = 50 * 1024 * 1024;
+  /** Depolama kovası tavanı (V246 migration: 200 MB). Çözünürlük sınırı yoktur. */
+  readonly maxUploadBytes = 200 * 1024 * 1024;
   private readonly _uploadProgress = signal(0);
   readonly uploadProgress = this._uploadProgress.asReadonly();
 
@@ -95,15 +97,16 @@ export class CatalogMediaService {
   ): Promise<CatalogMediaItem> {
     this.validateFile(file);
     const token = await this.requiredToken();
-    const kind: CatalogMediaKind = file.type.startsWith("video/") ? "VIDEO" : "IMAGE";
+    const mediaType = resolveMediaType(file);
+    const kind: CatalogMediaKind = mediaType.startsWith("video/") ? "VIDEO" : "IMAGE";
     if (options.isCover && kind !== "IMAGE") throw new Error("Kapak yalnız fotoğraf olabilir.");
-    const extension = this.extension(file);
+    const extension = mediaExtension(mediaType, file);
     const objectPath = `${entityType.toLowerCase()}/${entityId}/${crypto.randomUUID()}.${extension}`;
     this._uploadProgress.set(0);
     try {
-      if (file.size >= this.tusThreshold) await this.uploadTus(file, objectPath, token);
+      if (file.size >= this.tusThreshold) await this.uploadTus(file, objectPath, token, mediaType);
       else {
-        await this.uploadStandard(file, objectPath, token);
+        await this.uploadStandard(file, objectPath, token, mediaType);
         this._uploadProgress.set(100);
       }
 
@@ -240,7 +243,7 @@ export class CatalogMediaService {
     } catch { throw new Error(code); }
   }
 
-  private async uploadStandard(file: File, objectPath: string, token: string): Promise<void> {
+  private async uploadStandard(file: File, objectPath: string, token: string, mediaType: string): Promise<void> {
     const response = await fetch(
       `${SUPABASE_PROJECT_URL}/storage/v1/object/${this.bucket}/${objectPath.split("/").map(encodeURIComponent).join("/")}`,
       {
@@ -248,19 +251,19 @@ export class CatalogMediaService {
         headers: {
           apikey: SUPABASE_PUBLISHABLE_KEY,
           authorization: `Bearer ${token}`,
-          "content-type": file.type,
+          "content-type": mediaType,
           "cache-control": "31536000",
           "x-upsert": "false",
         },
         body: file,
       },
     );
-    if (!response.ok) throw new Error(`CATALOG_MEDIA_UPLOAD_${response.status}`);
+    if (!response.ok) throw new Error(describeStorageError(response.status, await response.json().catch(() => ({})), "Medya depolamaya yüklenemedi"));
   }
 
-  private async uploadTus(file: File, objectPath: string, token: string): Promise<void> {
+  private async uploadTus(file: File, objectPath: string, token: string, mediaType: string): Promise<void> {
     const metadata = [
-      ["bucketName", this.bucket], ["objectName", objectPath], ["contentType", file.type], ["cacheControl", "31536000"],
+      ["bucketName", this.bucket], ["objectName", objectPath], ["contentType", mediaType], ["cacheControl", "31536000"],
     ].map(([key, value]) => `${key} ${btoa(unescape(encodeURIComponent(value)))}`).join(",");
     const create = await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/upload/resumable`, {
       method: "POST",
@@ -273,7 +276,7 @@ export class CatalogMediaService {
         "x-upsert": "false",
       },
     });
-    if (!create.ok) throw new Error(`CATALOG_TUS_CREATE_${create.status}`);
+    if (!create.ok) throw new Error(describeStorageError(create.status, await create.json().catch(() => ({})), "Büyük dosya yüklemesi başlatılamadı"));
     const location = create.headers.get("location");
     if (!location) throw new Error("CATALOG_TUS_LOCATION_MISSING");
     const uploadUrl = new URL(location, SUPABASE_PROJECT_URL).toString();
@@ -333,13 +336,10 @@ export class CatalogMediaService {
   }
 
   private validateFile(file: File): void {
-    const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/avif", "video/mp4", "video/webm"]);
-    if (!allowed.has(file.type)) throw new Error("Yalnız JPEG, PNG, WebP, AVIF, MP4 veya WebM yüklenebilir.");
-    if (file.size < 1 || file.size > this.maxUploadBytes) throw new Error("Dosya 50 MB sınırını aşıyor.");
-  }
-
-  private extension(file: File): string {
-    return ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif", "video/mp4": "mp4", "video/webm": "webm" } as Record<string, string>)[file.type] || "bin";
+    // Telefon ne çektiyse o yüklenir: tüm fotoğraf ve video türleri ("video/mp4", "video/webm", MOV, 3GP, GIF...).
+    const reason = mediaRejectionReason(file, { video: true });
+    if (reason) throw new Error(reason);
+    if (file.size > this.maxUploadBytes) throw new Error("Dosya depolama tavanı olan 200 MB sınırını aşıyor.");
   }
 
   private fromRow(row: CatalogMediaRow): CatalogMediaItem {

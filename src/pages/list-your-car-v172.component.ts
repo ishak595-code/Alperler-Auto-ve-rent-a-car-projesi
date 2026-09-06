@@ -1,3 +1,4 @@
+import { mediaRejectionReason, resolveMediaType } from "../services/media-file.util";
 import { CommonModule, Location } from "@angular/common";
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
@@ -222,7 +223,7 @@ export class ListYourCarV172Component implements OnInit {
   toOptionalNumber(value:unknown):number|null{if(value===null||value===undefined||value==="")return null;const number=Number(value);return Number.isFinite(number)?number:null;}
 
   onFilesSelected(event:Event){
-    const input=event.target as HTMLInputElement;const selected=Array.from(input.files||[]);const allowed=new Set(["image/jpeg","image/png","image/webp","video/mp4","application/pdf"]);const valid=selected.filter(file=>allowed.has(file.type)&&file.size>0&&file.size<=50*1024*1024).slice(0,10);const total=valid.reduce((sum,file)=>sum+file.size,0);
+    const input=event.target as HTMLInputElement;const selected=Array.from(input.files||[]);const valid=selected.filter(file=>{const type=resolveMediaType(file);return (type==="application/pdf"||!mediaRejectionReason(file,{video:true}))&&file.size>0&&file.size<=50*1024*1024;}).slice(0,10);const total=valid.reduce((sum,file)=>sum+file.size,0);
     if(valid.length!==selected.length||total>200*1024*1024){this.errorMessage.set("Bazı dosyalar kabul edilmedi. En fazla 10 dosya, dosya başına 50 MB ve toplam 200 MB sınırı vardır.");this.files.set(total>200*1024*1024?[]:valid);return;}
     this.errorMessage.set("");this.files.set(valid);
   }

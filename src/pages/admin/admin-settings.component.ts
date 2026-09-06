@@ -44,7 +44,7 @@ import { SiteConfig } from '../../models/site-config.model';
               </div>
               <label class="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 text-xs font-black text-blue-700">
                 Profil Fotoğrafı Yükle
-                <input type="file" class="sr-only" accept="image/jpeg,image/png,image/webp,image/avif" (change)="onAdminProfileSelected($event)" aria-label="Yönetici profil fotoğrafı seç" />
+                <input type="file" class="sr-only" accept="image/*" (change)="onAdminProfileSelected($event)" aria-label="Yönetici profil fotoğrafı seç" />
               </label>
               @if (profileUploading()) { <p class="text-xs font-bold text-blue-600" role="status">Görsel yükleniyor…</p> }
             </div>

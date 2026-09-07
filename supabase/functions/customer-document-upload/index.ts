@@ -14,6 +14,12 @@ const DOCUMENT_TYPES = new Set([
   "OTHER",
 ]);
 
+const CORS: Record<string, string> = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "POST,OPTIONS",
+  "access-control-allow-headers": "authorization,apikey,x-request-id",
+};
+
 function clean(value: unknown, max: number): string {
   return typeof value === "string" ? value.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, max) : "";
 }
@@ -25,6 +31,7 @@ function json(body: unknown, status: number, id: string): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
+      ...CORS,
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
       "x-request-id": id,
@@ -95,6 +102,7 @@ async function removeStorage(path: string): Promise<void> {
 
 Deno.serve(async (request) => {
   const id = requestId(request);
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (request.method !== "POST") return json({ ok: false, code: "METHOD_NOT_ALLOWED", requestId: id }, 405, id);
   if (!SUPABASE_URL || !SERVICE_KEY) return json({ ok: false, code: "SERVER_CONFIG_MISSING", requestId: id }, 503, id);
   const contentLength = Number(request.headers.get("content-length") || 0);

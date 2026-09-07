@@ -11,10 +11,16 @@ type AdminContext = {
   canRegistry: boolean;
 };
 
+const CORS: Record<string, string> = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "PATCH,OPTIONS",
+  "access-control-allow-headers": "authorization,apikey,content-type,x-request-id,x-app-origin",
+};
+
 function json(body: unknown, status = 200): Response {
   return Response.json(body, {
     status,
-    headers: { "cache-control": "no-store", "content-type": "application/json; charset=utf-8" },
+    headers: { ...CORS, "cache-control": "no-store", "content-type": "application/json; charset=utf-8" },
   });
 }
 
@@ -87,7 +93,7 @@ function statusFor(code: string): number {
 
 Deno.serve(async (request: Request) => {
   if (!SUPABASE_URL || !SERVICE_KEY) return json({ ok: false, code: "SERVER_CONFIG_MISSING" }, 503);
-  if (request.method === "OPTIONS") return new Response(null, { status: 204 });
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (request.method !== "PATCH") return json({ ok: false, code: "METHOD_NOT_ALLOWED" }, 405);
 
   try {

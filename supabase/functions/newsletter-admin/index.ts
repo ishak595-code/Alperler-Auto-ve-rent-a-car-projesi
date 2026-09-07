@@ -10,7 +10,8 @@ const CONCURRENCY = 5;
 type Actor = { id: string; email: string; role: string; permissions: Record<string, unknown> };
 type Delivery = { id: string; email: string; subscriber_id: string | null; attempt_count: number; metadata?: Record<string, unknown> };
 
-function json(body: unknown, status = 200): Response { return Response.json(body, { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } }); }
+const CORS: Record<string, string> = { "access-control-allow-origin": "*", "access-control-allow-methods": "POST,OPTIONS", "access-control-allow-headers": "authorization,apikey,content-type,x-request-id,x-app-origin" };
+function json(body: unknown, status = 200): Response { return Response.json(body, { status, headers: { ...CORS, "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } }); }
 function clean(value: unknown, max: number): string { return typeof value === "string" ? value.trim().slice(0, max) : ""; }
 function email(value: unknown): string | null { const v = clean(value, 200).toLowerCase(); return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? v : null; }
 function serviceHeaders(extra: Record<string, string> = {}) { return { apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}`, "content-type": "application/json", ...extra }; }
@@ -110,6 +111,7 @@ async function updateSubscriber(actor: Actor, input: Record<string, unknown>, st
 }
 
 Deno.serve(async (request) => {
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (request.method !== "POST") return json({ ok: false, code: "METHOD_NOT_ALLOWED" }, 405);
   if (!URL || !SERVICE_KEY) return json({ ok: false, code: "SERVER_CONFIG_MISSING" }, 503);
   if (Number(request.headers.get("content-length") || 0) > 20_000) return json({ ok: false, code: "PAYLOAD_TOO_LARGE" }, 413);

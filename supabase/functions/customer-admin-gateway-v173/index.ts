@@ -8,7 +8,8 @@ const supabase=createClient(SUPABASE_URL,SERVICE_KEY,{auth:{persistSession:false
 
 type AdminContext={id:string;email:string;role:string;permissions:Record<string,unknown>;canManageSettings:boolean};
 
-function json(body:unknown,status=200){return Response.json(body,{status,headers:{"cache-control":"no-store","content-type":"application/json; charset=utf-8"}});}
+const CORS:Record<string,string>={"access-control-allow-origin":"*","access-control-allow-methods":"GET,POST,PATCH,OPTIONS","access-control-allow-headers":"authorization,apikey,content-type,x-request-id,x-app-origin"};
+function json(body:unknown,status=200){return Response.json(body,{status,headers:{...CORS,"cache-control":"no-store","content-type":"application/json; charset=utf-8"}});}
 function clean(value:unknown,max:number){return typeof value==="string"?value.trim().slice(0,max):"";}
 function uuid(value:unknown){const v=clean(value,80);return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)?v:"";}
 function serviceHeaders(extra:Record<string,string>={}){return{apikey:SERVICE_KEY,authorization:`Bearer ${SERVICE_KEY}`,"content-type":"application/json",...extra};}
@@ -76,7 +77,7 @@ async function mutate(request:Request,admin:AdminContext){
 
 Deno.serve(async request=>{
   if(!SUPABASE_URL||!SERVICE_KEY)return json({ok:false,code:"SERVER_CONFIG_MISSING"},503);
-  const method=request.method.toUpperCase();if(method==="OPTIONS")return new Response(null,{status:204});
+  const method=request.method.toUpperCase();if(method==="OPTIONS")return new Response(null,{status:204,headers:CORS});
   if(!["GET","POST","PATCH"].includes(method))return json({ok:false,code:"METHOD_NOT_ALLOWED"},405);
   try{
     const admin=await requireAdmin(request);

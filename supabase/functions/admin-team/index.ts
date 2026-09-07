@@ -7,6 +7,12 @@ const admin = createClient(URL, SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+const CORS: Record<string, string> = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "POST,PATCH,OPTIONS",
+  "access-control-allow-headers": "authorization,apikey,content-type,x-request-id,x-app-origin",
+};
+
 const allowedRoles = new Set(["owner", "admin", "editor", "support"]);
 const granularPermissionKeys = [
   "content.manage",
@@ -22,6 +28,7 @@ function json(body: unknown, status = 200): Response {
   return Response.json(body, {
     status,
     headers: {
+      ...CORS,
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
     },
@@ -292,6 +299,7 @@ async function updateAdmin(actor: { id: string; email: string }, input: Record<s
 }
 
 Deno.serve(async (request) => {
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (!["POST", "PATCH"].includes(request.method)) return json({ ok: false, code: "METHOD_NOT_ALLOWED" }, 405);
   if (!URL || !SERVICE_KEY) return json({ ok: false, code: "SERVER_CONFIG_MISSING" }, 503);
   if (Number(request.headers.get("content-length") || 0) > 30_000) return json({ ok: false, code: "PAYLOAD_TOO_LARGE" }, 413);

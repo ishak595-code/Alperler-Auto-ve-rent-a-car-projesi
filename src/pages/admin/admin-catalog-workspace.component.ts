@@ -152,31 +152,31 @@ const catalogCache = new Map<string, VehicleAdminRecord[] | TourAdminRecord[]>()
                   <span>Galeri, kamera veya dosyalardan; telefon nasıl çektiyse öyle yüklenir (fotoğraf ve video, 200 MB'a kadar)</span>
                 </label>
                 @if (media().length > 1) {
-                  <div class="bulk-actions">
-                    <label class="bulk-select-all">
-                      <input type="checkbox" [checked]="allMediaSelected()" (change)="toggleSelectAll()" />
-                      <span>{{ selectedMedia().length ? selectedMedia().length + ' seçili' : 'Tümünü seç' }}</span>
+                  <div class="bulk-actions" style="display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;">
+                    <label class="bulk-select-all" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                      <input type="checkbox" [checked]="allMediaSelected()" (change)="toggleSelectAll()" style="width:18px;height:18px;" />
+                      <span style="font-size:13px;font-weight:700;color:#334155;">{{ selectedMedia().length ? selectedMedia().length + ' seçili' : 'Tümünü seç' }}</span>
                     </label>
                     @if (selectedMedia().length) {
-                      <button type="button" class="danger" (click)="bulkRemoveMedia()" [disabled]="saving()">{{ selectedMedia().length }} medyayı kaldır</button>
+                      <button type="button" class="danger" (click)="bulkRemoveMedia()" [disabled]="saving()" style="margin-left:auto;">{{ selectedMedia().length }} medyayı kaldır</button>
                     }
                   </div>
                 }
                 <div class="media-grid">
                   @for(item of media(); track item.id; let idx = $index) {
-                    <article class="media-card" [class.selected]="isMediaSelected(item.id)">
-                      <label class="media-checkbox">
-                        <input type="checkbox" [checked]="isMediaSelected(item.id)" (change)="toggleMediaSelection(item.id)" />
+                    <article class="media-card" [class.selected]="isMediaSelected(item.id)" [style.outline]="isMediaSelected(item.id) ? '2px solid #3b82f6' : ''">
+                      <label class="media-checkbox" style="position:absolute;top:8px;left:8px;z-index:2;display:grid;place-items:center;width:28px;height:28px;border-radius:6px;background:rgba(255,255,255,0.95);cursor:pointer;">
+                        <input type="checkbox" [checked]="isMediaSelected(item.id)" (change)="toggleMediaSelection(item.id)" style="width:16px;height:16px;" />
                       </label>
                       <div class="media-preview">
                         @if(item.kind==='IMAGE'){<img [src]="item.url" [alt]="item.altText || selectedTitle()"/>}
                         @else{<video [src]="item.url" [poster]="item.posterUrl" controls playsinline preload="metadata"></video>}
                         @if(item.isCover){<b>KAPAK</b>}
                       </div>
-                      <div class="media-order">
-                        <button type="button" (click)="moveMediaUp(idx)" [disabled]="idx === 0" aria-label="Yukarı taşı" title="Yukarı taşı">↑</button>
-                        <span>{{ idx + 1 }}</span>
-                        <button type="button" (click)="moveMediaDown(idx)" [disabled]="idx === media().length - 1" aria-label="Aşağı taşı" title="Aşağı taşı">↓</button>
+                      <div class="media-order" style="display:flex;align-items:center;gap:4px;margin:8px 0;justify-content:center;">
+                        <button type="button" (click)="moveMediaUp(idx)" [disabled]="idx === 0" aria-label="Yukarı taşı" title="Yukarı taşı" style="min-width:32px;padding:4px 8px;font-size:16px;font-weight:bold;" [style.opacity]="idx === 0 ? '0.3' : '1'">↑</button>
+                        <span style="font-size:12px;font-weight:700;color:#64748b;min-width:24px;text-align:center;">{{ idx + 1 }}</span>
+                        <button type="button" (click)="moveMediaDown(idx)" [disabled]="idx === media().length - 1" aria-label="Aşağı taşı" title="Aşağı taşı" style="min-width:32px;padding:4px 8px;font-size:16px;font-weight:bold;" [style.opacity]="idx === media().length - 1 ? '0.3' : '1'">↓</button>
                       </div>
                       <label><span>Alternatif metin</span><input [ngModel]="item.altText" (ngModelChange)="updateAlt(item,$event)" /></label>
                       <div class="media-actions">@if(item.kind==='IMAGE'){<button type="button" (click)="makeCover(item)" [disabled]="item.isCover">Kapak Yap</button>}<button type="button" class="danger" (click)="removeMedia(item)">Kaldır</button></div>

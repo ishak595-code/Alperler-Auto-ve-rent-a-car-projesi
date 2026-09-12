@@ -18,7 +18,7 @@ import { ToastService } from "../services/toast.service";
           class="pointer-events-auto min-w-[300px] bg-white rounded-lg shadow-2xl border-l-4 p-4 transform transition-all animate-fade-in-left flex items-center justify-between"
           [class.border-green-500]="toast.type === 'success'"
           [class.border-red-500]="toast.type === 'error'"
-          [class.border-blue-500]="toast.type === 'info'"
+          [class.border-[#E15A62]]="toast.type === 'info'"
         >
           <div class="flex items-center">
             @if (toast.type === "success") {
@@ -51,7 +51,7 @@ import { ToastService } from "../services/toast.service";
               </svg>
             } @else {
               <svg
-                class="w-6 h-6 text-blue-500 mr-3"
+                class="w-6 h-6 text-[#E15A62] mr-3"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

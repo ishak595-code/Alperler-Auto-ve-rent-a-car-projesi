@@ -166,7 +166,7 @@ import {
                 <p class="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300">Dosya özeti</p>
                 <dl class="mt-4 space-y-3 text-sm"><div><dt>İşlem</dt><dd>{{ intent()==='sell' ? 'Satış' : 'Filoya katılım' }}</dd></div><div><dt>Araç</dt><dd>{{ carBrand() || '-' }} {{ carModel() || '' }}</dd></div><div><dt>Konum</dt><dd>{{ selectedLocationLabel() }}</dd></div><div><dt>Beklenti</dt><dd>{{ askingPrice() ? (askingPrice() | number:'1.0-0') + ' TL' : 'Belirtilmedi' }}</dd></div><div><dt>Dosya</dt><dd>{{ files().length }} adet</dd></div></dl>
               </section>
-              <section class="rounded-[1.75rem] border border-blue-300/20 bg-blue-300/10 p-5"><strong class="text-sm text-blue-200">Süreç nasıl ilerler?</strong><ol class="mt-4 space-y-3 text-xs leading-5 text-blue-50/80"><li><b>1.</b> Başvuru ve belgeleriniz alınır.</li><li><b>2.</b> Uzman ekip piyasa bandı ve A-E kondisyon sınıfı oluşturur.</li><li><b>3.</b> Gerekirse ekspertiz veya görüşme randevusu atanır.</li><li><b>4.</b> Uzman değerlemesi tamamlandığında resmi teklif aşamasına geçilir.</li></ol></section>
+              <section class="rounded-[1.75rem] border border-blue-300/20 bg-blue-300/10 p-5"><strong class="text-sm text-[#E15A62]">Süreç nasıl ilerler?</strong><ol class="mt-4 space-y-3 text-xs leading-5 text-blue-50/80"><li><b>1.</b> Başvuru ve belgeleriniz alınır.</li><li><b>2.</b> Uzman ekip piyasa bandı ve A-E kondisyon sınıfı oluşturur.</li><li><b>3.</b> Gerekirse ekspertiz veya görüşme randevusu atanır.</li><li><b>4.</b> Uzman değerlemesi tamamlandığında resmi teklif aşamasına geçilir.</li></ol></section>
             </aside>
           </div>
         }

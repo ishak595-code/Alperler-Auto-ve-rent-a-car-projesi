@@ -22,7 +22,7 @@ import { ToastService } from "../../services/toast.service";
     <main class="min-h-full bg-slate-50 p-4 md:p-8">
       <div class="mx-auto max-w-7xl space-y-6">
         <header class="overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8">
-          <p class="text-xs font-black uppercase tracking-[.2em] text-blue-400">Operasyon kontrolü</p>
+          <p class="text-xs font-black uppercase tracking-[.2em] text-[#E15A62]">Operasyon kontrolü</p>
           <div class="mt-2 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 class="text-3xl font-black md:text-4xl">Görev ve Sorumluluk Merkezi</h1>
@@ -35,7 +35,7 @@ import { ToastService } from "../../services/toast.service";
         </header>
 
         <section class="sticky top-0 z-40 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:justify-end" aria-label="Görev merkezi hızlı işlemleri">
-          <a routerLink="/admin/team" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 font-black text-white"><mat-icon aria-hidden="true">add_task</mat-icon>Yeni Görev Ata</a>
+          <a routerLink="/admin/team" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#9E1B24] px-5 font-black text-white"><mat-icon aria-hidden="true">add_task</mat-icon>Yeni Görev Ata</a>
           <button type="button" (click)="refresh()" [disabled]="loading()" class="min-h-12 rounded-xl border border-slate-200 bg-white px-5 font-black text-slate-950 disabled:opacity-50">{{ loading() ? 'Yükleniyor…' : 'Yenile' }}</button>
         </section>
 

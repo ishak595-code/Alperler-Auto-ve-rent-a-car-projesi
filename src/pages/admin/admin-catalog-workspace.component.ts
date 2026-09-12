@@ -101,9 +101,9 @@ const catalogCache = new Map<string, VehicleAdminRecord[] | TourAdminRecord[]>()
                   </div>
                   <footer class="detail-actions">
                     <button type="button" class="primary" (click)="editVehicle(car)">Düzenle</button>
+                    <a class="ghost link" [href]="mode==='RENTAL' ? '/fleet/'+car.id : '/sales/'+car.id" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">Müşteri sayfası</a>
                     @if (car.publicationStatus !== 'PUBLISHED') {<button type="button" class="ghost" (click)="quickStatus(car, 'PUBLISHED')" [disabled]="saving()">Yayınla</button>}
                     @if (car.publicationStatus !== 'ARCHIVED') {<button type="button" class="ghost danger" (click)="quickStatus(car, 'ARCHIVED')" [disabled]="saving()">Arşivle</button>} @else {<button type="button" class="ghost" (click)="quickStatus(car, 'DRAFT')" [disabled]="saving()">Taslağa Al</button>}
-                    <a class="ghost link" [href]="mode==='RENTAL' ? '/fleet/'+car.id : '/sales/'+car.id" target="_blank" rel="noopener">Müşteri sayfası</a>
                   </footer>
                 }
                 @if (viewingTour(); as tour) {
@@ -123,9 +123,9 @@ const catalogCache = new Map<string, VehicleAdminRecord[] | TourAdminRecord[]>()
                   </div>
                   <footer class="detail-actions">
                     <button type="button" class="primary" (click)="editTour(tour)">Düzenle</button>
+                    <a class="ghost link" [href]="'/tour/'+tour.id" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">Müşteri sayfası</a>
                     @if (tour.publicationStatus !== 'PUBLISHED') {<button type="button" class="ghost" (click)="quickStatus(tour, 'PUBLISHED')" [disabled]="saving()">Yayınla</button>}
                     @if (tour.publicationStatus !== 'ARCHIVED') {<button type="button" class="ghost danger" (click)="quickStatus(tour, 'ARCHIVED')" [disabled]="saving()">Arşivle</button>} @else {<button type="button" class="ghost" (click)="quickStatus(tour, 'DRAFT')" [disabled]="saving()">Taslağa Al</button>}
-                    <a class="ghost link" [href]="'/tour/'+tour.id" target="_blank" rel="noopener">Müşteri sayfası</a>
                   </footer>
                 }
               </section>

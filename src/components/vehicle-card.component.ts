@@ -28,7 +28,7 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
             (error)="handleImageError($event)"
             loading="lazy"
             decoding="async"
-            [alt]="car.brand + ' ' + car.model"
+            [alt]="imageAltText()"
             class="w-full h-full object-cover transition-transform duration-700 md:group-hover:scale-105"
             referrerpolicy="no-referrer"
           />
@@ -368,6 +368,13 @@ export class VehicleCardComponent {
         // Kullanıcı paylaşım penceresini kapatırsa hata göstermeyiz.
       });
     }
+  }
+
+  imageAltText(): string {
+    const brand = this.car.brand || 'Araç';
+    const model = this.car.model || '';
+    const year = this.car.year ? ` ${this.car.year}` : '';
+    return `${brand} ${model}${year}`.trim();
   }
 
   get buttonText(): string {

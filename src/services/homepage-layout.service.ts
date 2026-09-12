@@ -47,6 +47,7 @@ export class HomepageLayoutService {
   private readonly _loading = signal(false);
   private readonly _loaded = signal(false);
   private readonly _error = signal('');
+  private readonly _sectionErrors = signal<Record<string, string>>({});
   private readonly _clock = signal(Date.now());
   private readonly _vehicles = signal<Record<string, Vehicle[]>>({});
   private readonly _tours = signal<Record<string, TourCardV217[]>>({});
@@ -65,6 +66,7 @@ export class HomepageLayoutService {
   readonly loading = this._loading.asReadonly();
   readonly loaded = this._loaded.asReadonly();
   readonly error = this._error.asReadonly();
+  readonly sectionErrors = this._sectionErrors.asReadonly();
   readonly realtimeState = this.realtime.state;
 
   constructor() {
@@ -113,6 +115,7 @@ export class HomepageLayoutService {
         const blogMap: Record<string, BlogCardV217[]> = {};
         const campaignMap: Record<string, CampaignRecord[]> = {};
         const branchMap: Record<string, BranchCardV217[]> = {};
+        const sectionErrorMap: Record<string, string> = {};
         const validPlacementIds = new Set<string>();
 
         await Promise.all(
@@ -209,6 +212,7 @@ export class HomepageLayoutService {
               }
             } catch (error) {
               console.error('Homepage section load failed', section.sectionKey, error);
+              sectionErrorMap[section.sectionKey] = error instanceof Error ? error.message : 'CATALOG_LOAD_FAILED';
               vehicleMap[section.sectionKey] = [];
               tourMap[section.sectionKey] = [];
               blogMap[section.sectionKey] = [];
@@ -222,6 +226,7 @@ export class HomepageLayoutService {
         const visibleSections = sections.filter((section) => {
           const renderer = this.renderer(section);
           if (renderer === 'PARTNER' || renderer === 'PROMO') return true;
+          if (sectionErrorMap[section.sectionKey]) return true;
           if (renderer === 'BRANCHES') return (branchMap[section.sectionKey] || []).length > 0;
           if (section.sectionType === 'VEHICLES') return (vehicleMap[section.sectionKey] || []).length > 0;
           if (section.sectionType === 'TOURS') return (tourMap[section.sectionKey] || []).length > 0;
@@ -235,6 +240,7 @@ export class HomepageLayoutService {
         this._blogs.set(blogMap);
         this._campaigns.set(campaignMap);
         this._branches.set(branchMap);
+        this._sectionErrors.set(sectionErrorMap);
         this._placements.set(validPlacements);
         this._sections.set(visibleSections);
         this._loaded.set(true);
@@ -278,6 +284,14 @@ export class HomepageLayoutService {
 
   branchesFor(key: string): BranchCardV217[] {
     return this._branches()[key] || [];
+  }
+
+  sectionHasError(key: string): boolean {
+    return Boolean(this._sectionErrors()[key]);
+  }
+
+  sectionErrorMessage(key: string): string {
+    return this._sectionErrors()[key] || '';
   }
 
   placementsFor(key: string): PublicHomepagePlacement[] {

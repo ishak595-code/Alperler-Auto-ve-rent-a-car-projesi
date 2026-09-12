@@ -23,7 +23,7 @@ import { MatIconModule } from "@angular/material/icon";
       <button
         (click)="close.emit(); $event.stopPropagation()"
         aria-label="Kapat"
-        class="absolute top-4 right-4 text-white hover:text-blue-500 transition-colors z-50 p-2 bg-black/50 rounded-full"
+        class="absolute top-4 right-4 text-white hover:text-prestige-red-light transition-colors z-50 p-2 bg-black/50 rounded-full"
       >
         <mat-icon class="text-3xl">close</mat-icon>
       </button>
@@ -38,7 +38,7 @@ import { MatIconModule } from "@angular/material/icon";
           *ngIf="items().length > 1"
           (click)="prev($event)"
           aria-label="Önceki Görsel"
-          class="absolute left-0 md:-left-16 top-1/2 -translate-y-1/2 text-white hover:text-blue-500 transition-all p-4 z-50"
+          class="absolute left-0 md:-left-16 top-1/2 -translate-y-1/2 text-white hover:text-prestige-red-light transition-all p-4 z-50"
         >
           <mat-icon class="text-5xl">chevron_left</mat-icon>
         </button>
@@ -73,7 +73,7 @@ import { MatIconModule } from "@angular/material/icon";
           *ngIf="items().length > 1"
           (click)="next($event)"
           aria-label="Sonraki Görsel"
-          class="absolute right-0 md:-right-16 top-1/2 -translate-y-1/2 text-white hover:text-blue-500 transition-all p-4 z-50"
+          class="absolute right-0 md:-right-16 top-1/2 -translate-y-1/2 text-white hover:text-prestige-red-light transition-all p-4 z-50"
         >
           <mat-icon class="text-5xl">chevron_right</mat-icon>
         </button>
@@ -98,7 +98,7 @@ import { MatIconModule } from "@angular/material/icon";
           *ngFor="let item of items(); let i = index"
           (click)="goTo(i)"
           class="w-16 h-12 md:w-20 md:h-14 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all cursor-pointer"
-          [class.border-blue-500]="i === currentIndex()"
+          [class.border-prestige-red-light]="i === currentIndex()"
           [class.border-transparent]="i !== currentIndex()"
           [class.opacity-50]="i !== currentIndex()"
         >

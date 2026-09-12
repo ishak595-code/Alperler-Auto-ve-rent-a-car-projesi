@@ -128,8 +128,8 @@ let nextDateControlId = 0;
     .date-control{display:block;min-width:0}
     .date-label{display:block;margin-bottom:.38rem;color:var(--date-label,var(--alper-muted,#b9c3d2));font-size:.66rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
     .date-surface{display:flex;width:100%;min-height:58px;align-items:center;justify-content:space-between;gap:.7rem;border:1px solid var(--date-border,var(--alper-border,rgba(148,163,184,.24)));border-radius:min(var(--site-radius,12px),16px);background:var(--date-bg,var(--alper-card,#050c1a));padding:.72rem .82rem .72rem .92rem;color:var(--date-color,var(--alper-text,#fff));text-align:left;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:border-color .16s ease,box-shadow .16s ease,background-color .16s ease}
-    .date-surface:focus-visible{outline:0;border-color:var(--date-focus,var(--alper-blue-light,#60a5fa));box-shadow:0 0 0 3px color-mix(in srgb,var(--date-focus,var(--alper-blue-light,#60a5fa)) 24%,transparent)}
-    .date-surface:active:not(:disabled){border-color:var(--date-focus,var(--alper-blue-light,#60a5fa));background:color-mix(in srgb,var(--date-bg,var(--alper-card,#050c1a)) 92%,var(--date-focus,var(--alper-blue-light,#60a5fa)) 8%)}
+    .date-surface:focus-visible{outline:0;border-color:var(--date-focus,var(--alper-blue-light,#E15A62));box-shadow:0 0 0 3px color-mix(in srgb,var(--date-focus,var(--alper-blue-light,#E15A62)) 24%,transparent)}
+    .date-surface:active:not(:disabled){border-color:var(--date-focus,var(--alper-blue-light,#E15A62));background:color-mix(in srgb,var(--date-bg,var(--alper-card,#050c1a)) 92%,var(--date-focus,var(--alper-blue-light,#E15A62)) 8%)}
     .date-surface:disabled{cursor:not-allowed;opacity:.55}
     .date-copy{display:block;min-width:0}
     .date-copy strong,.date-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -147,14 +147,14 @@ let nextDateControlId = 0;
     .calendar-month{min-width:0;text-align:center;font:900 .84rem/1.2 ui-sans-serif,system-ui,sans-serif}
     .calendar-icon-button{display:grid;place-items:center;width:44px;height:44px;flex:0 0 44px;border:1px solid var(--alper-border,rgba(148,163,184,.24));border-radius:12px;background:var(--alper-surface,#0b1627);color:var(--alper-text,#fff);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
     .calendar-icon-button:disabled{opacity:.35;cursor:not-allowed}
-    .calendar-icon-button:focus-visible,.calendar-day:focus-visible,.calendar-secondary:focus-visible{outline:3px solid color-mix(in srgb,var(--alper-blue-light,#60a5fa) 65%,transparent);outline-offset:2px}
+    .calendar-icon-button:focus-visible,.calendar-day:focus-visible,.calendar-secondary:focus-visible{outline:3px solid color-mix(in srgb,var(--alper-blue-light,#E15A62) 65%,transparent);outline-offset:2px}
     .calendar-weekdays,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.3rem}
     .calendar-weekdays{margin-bottom:.3rem;color:var(--alper-muted,#b9c3d2);font:800 .62rem/1.1 ui-sans-serif,system-ui,sans-serif;text-align:center}
     .calendar-weekdays span{padding:.25rem 0}
     .calendar-day{width:100%;min-width:0;aspect-ratio:1;border:1px solid transparent;border-radius:11px;background:transparent;color:var(--alper-text,#fff);font:800 .74rem/1 ui-sans-serif,system-ui,sans-serif;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
     .calendar-day.outside{color:var(--alper-muted,#b9c3d2);opacity:.88}
-    .calendar-day.today{border-color:var(--alper-blue-light,#60a5fa)}
-    .calendar-day.selected{background:var(--alper-blue,#2563eb);color:#fff;border-color:var(--alper-blue-light,#60a5fa)}
+    .calendar-day.today{border-color:var(--alper-blue-light,#E15A62)}
+    .calendar-day.selected{background:var(--alper-blue,#9E1B24);color:#fff;border-color:var(--alper-blue-light,#E15A62)}
     .calendar-day:disabled{opacity:.3;cursor:not-allowed}
     .calendar-footer{justify-content:flex-end;flex-wrap:wrap;gap:.5rem;margin-top:.85rem}
     .calendar-secondary{min-height:44px;border:1px solid var(--alper-border,rgba(148,163,184,.24));border-radius:11px;background:var(--alper-surface,#0b1627);padding:.65rem .85rem;color:var(--alper-text,#fff);font:850 .72rem/1.2 ui-sans-serif,system-ui,sans-serif;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}

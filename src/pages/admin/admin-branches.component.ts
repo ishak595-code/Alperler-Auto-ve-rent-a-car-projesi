@@ -18,10 +18,10 @@ import { ToastService } from "../../services/toast.service";
       <header class="sticky top-0 z-30 border-b border-slate-200 bg-white shadow-sm">
         <div class="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 md:px-8">
           <div class="flex min-w-0 items-center gap-3">
-            <button type="button" (click)="router.navigate(['/admin/dashboard'])" aria-label="Kontrol paneline dön" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
+            <button type="button" (click)="router.navigate(['/admin/dashboard'])" aria-label="Kontrol paneline dön" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
             <div class="min-w-0"><h1 class="truncate text-xl font-black">Şube Yönetimi</h1><p class="text-xs text-slate-500">Şube bilgisi, doğrulama, açma, askıya alma, kapatma ve ağ kontrolü tek merkezde</p></div>
           </div>
-          <button type="button" (click)="newBranch()" class="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><mat-icon aria-hidden="true">add</mat-icon><span>Merkez Şubesi Ekle</span></button>
+          <button type="button" (click)="newBranch()" class="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light"><mat-icon aria-hidden="true">add</mat-icon><span>Merkez Şubesi Ekle</span></button>
         </div>
       </header>
 
@@ -58,7 +58,7 @@ import { ToastService } from "../../services/toast.service";
               </div>
               <div class="mt-4 flex flex-wrap gap-2">@for (service of branch.services; track service) { <span class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-600">{{ serviceLabel(service) }}</span> }</div>
               <div class="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                <button type="button" (click)="editBranch(branch)" class="min-h-11 rounded-xl border border-slate-300 px-3 font-black hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Bilgileri Düzenle</button>
+                <button type="button" (click)="editBranch(branch)" class="min-h-11 rounded-xl border border-slate-300 px-3 font-black hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light">Bilgileri Düzenle</button>
                 @if (branch.networkType === 'FRANCHISE' || branch.networkType === 'PARTNER') {<button type="button" (click)="openNetwork(branch)" class="min-h-11 rounded-xl bg-violet-700 px-3 font-black text-white">Ağ Kontrolü</button>}
                 @if(statusOf(branch)==='ACTIVE'){
                   <button type="button" (click)="openLifecycle(branch,'SUSPENDED')" class="min-h-11 rounded-xl bg-amber-500 px-3 font-black text-slate-950">Askıya Al</button>
@@ -94,7 +94,7 @@ import { ToastService } from "../../services/toast.service";
             <fieldset class="rounded-xl border border-slate-200 p-4"><legend class="px-1 text-xs font-black uppercase tracking-wider text-slate-500">Hizmetler</legend><div class="grid grid-cols-2 gap-2 pt-2">@for (service of serviceOptions; track service) {<label class="flex min-h-11 items-center gap-2 rounded-lg bg-slate-50 px-3 text-sm font-bold"><input type="checkbox" [checked]="hasService(service)" (change)="toggleService(service, $event)" class="h-5 w-5" />{{ serviceLabel(service) }}</label>}</div></fieldset>
             <div class="grid gap-2 sm:grid-cols-2"><label class="check-row"><input type="checkbox" [(ngModel)]="draft.isPickupPoint" />Teslim Alma</label><label class="check-row"><input type="checkbox" [(ngModel)]="draft.isReturnPoint" />İade</label></div>
             @if (errorMessage()) {<div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-800">{{ errorMessage() }}</div>}
-            <button type="button" (click)="save()" [disabled]="saving()" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 font-black text-white disabled:opacity-50">@if (saving()) {<mat-icon class="animate-spin" aria-hidden="true">progress_activity</mat-icon> Kaydediliyor...} @else {<mat-icon aria-hidden="true">save</mat-icon> Şube Bilgilerini Kaydet}</button>
+            <button type="button" (click)="save()" [disabled]="saving()" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#9E1B24] px-4 font-black text-white disabled:opacity-50">@if (saving()) {<mat-icon class="animate-spin" aria-hidden="true">progress_activity</mat-icon> Kaydediliyor...} @else {<mat-icon aria-hidden="true">save</mat-icon> Şube Bilgilerini Kaydet}</button>
             @if (!isNew() && (draft.networkType === 'FRANCHISE' || draft.networkType === 'PARTNER')) {<button type="button" (click)="openNetwork(draft)" class="min-h-12 w-full rounded-xl bg-violet-700 px-4 font-black text-white">Bayi Ağ Kontrolüne Git</button>}
           </div>
         </section>
@@ -116,7 +116,7 @@ import { ToastService } from "../../services/toast.service";
       }
     </main>
   `,
-  styles: [`.field-label{display:block;margin-bottom:.4rem;font-size:.7rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#64748b}.field{min-height:48px;width:100%;border:1px solid #cbd5e1;border-radius:.75rem;padding:.7rem .85rem;outline:none;background:white}.field:focus{box-shadow:0 0 0 2px #3b82f6;border-color:#3b82f6}.admin-date{--date-bg:#fff;--date-color:#0f172a;--date-label:#475569;--date-border:#cbd5e1;--date-hint:#64748b;--date-icon:#2563eb;--date-focus:#2563eb}.check-row{display:flex;min-height:48px;align-items:center;gap:.5rem;border-radius:.75rem;background:#f8fafc;padding:0 .75rem;font-size:.8rem;font-weight:800}.check-row input{width:20px;height:20px}`],
+  styles: [`.field-label{display:block;margin-bottom:.4rem;font-size:.7rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#64748b}.field{min-height:48px;width:100%;border:1px solid #cbd5e1;border-radius:.75rem;padding:.7rem .85rem;outline:none;background:white}.field:focus{box-shadow:0 0 0 2px #3b82f6;border-color:#3b82f6}.admin-date{--date-bg:#fff;--date-color:#0f172a;--date-label:#475569;--date-border:#cbd5e1;--date-hint:#64748b;--date-icon:#9E1B24;--date-focus:#9E1B24}.check-row{display:flex;min-height:48px;align-items:center;gap:.5rem;border-radius:.75rem;background:#f8fafc;padding:0 .75rem;font-size:.8rem;font-weight:800}.check-row input{width:20px;height:20px}`],
 })
 export class AdminBranchesComponent implements OnInit {
   readonly branchService=inject(BranchService);readonly toastService=inject(ToastService);readonly router=inject(Router);private readonly route=inject(ActivatedRoute);private readonly operations=inject(AdminBranchOperationsV171Service);readonly saving=signal(false);readonly isNew=signal(true);readonly errorMessage=signal("");readonly lifecycleTarget=signal<Branch|null>(null);readonly lifecycleStatus=signal<BranchLifecycleStatusV171>("SUSPENDED");readonly serviceOptions:BranchServiceType[]=["RENTAL","SALES","TOUR","TRANSFER","PICKUP","RETURN"];

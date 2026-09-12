@@ -19,10 +19,10 @@ import { GeoDirectoryService } from "../services/geo-directory.service";
   template:`
 <main class="min-h-screen bg-slate-950 pb-20 text-white">
   <section class="mx-auto max-w-6xl px-4 py-10 md:px-8">
-    <a routerLink="/branch-plans" class="text-sm font-black text-blue-300">← Paketleri ve avantajları gör</a>
+    <a routerLink="/branch-plans" class="text-sm font-black text-prestige-red-light">← Paketleri ve avantajları gör</a>
     <div class="mt-6 grid gap-8 lg:grid-cols-[.78fr_1.22fr]">
       <aside>
-        <p class="text-xs font-black uppercase tracking-[.18em] text-blue-300">Doğrulanmış şube ağı</p>
+        <p class="text-xs font-black uppercase tracking-[.18em] text-prestige-red-light">Doğrulanmış şube ağı</p>
         <h1 class="mt-3 text-4xl font-black leading-tight md:text-5xl">İşletmenizi Alperler Auto'nun yerel dijital satış kanalına taşıyın.</h1>
         <p class="mt-5 text-sm leading-7 text-slate-300">Başvurunuz ticari kimlik, yetkili, iletişim, hizmet kapasitesi ve bölge uygunluğu açısından incelenir. Onay tek başına canlı yayın hakkı vermez.</p>
         <ul class="mt-6 space-y-3 text-sm text-slate-300">
@@ -91,14 +91,14 @@ import { GeoDirectoryService } from "../services/geo-directory.service";
             <label class="consent"><input type="checkbox" [(ngModel)]="dueDiligenceAccepted" name="dueDiligenceAccepted"/>Alperler Auto'nun başvuruyu onaylamadan önce ticari kayıt, yetkili, adres, araç sahipliği, marka standardı ve gerekli diğer uygunluk kontrollerini yapabileceğini kabul ediyorum.</label>
           </section>
 
-          <button type="submit" [disabled]="submitting()||!valid()" class="mt-6 min-h-13 w-full rounded-xl bg-blue-600 px-5 py-4 font-black text-white disabled:opacity-40">{{submitting()?'Başvuru kaydediliyor…':'Başvuruyu Güvenli Şekilde Gönder'}}</button>
+          <button type="submit" [disabled]="submitting()||!valid()" class="mt-6 min-h-13 w-full rounded-xl bg-prestige-red px-5 py-4 font-black text-white disabled:opacity-40">{{submitting()?'Başvuru kaydediliyor…':'Başvuruyu Güvenli Şekilde Gönder'}}</button>
         }
       </form>
     </div>
   </section>
 </main>`,
   styles:[`
-    .form-section{margin-top:1.25rem;border-top:1px solid #e2e8f0;padding-top:1.15rem}.form-section:first-of-type{border-top:0}.form-section h3{margin:0 0 .25rem;font-weight:900}.form-section>p{margin:.25rem 0 0;color:#64748b;font-size:.75rem;line-height:1.45rem}.form-section label:not(.check):not(.consent){display:grid;gap:.3rem}.form-section label>span{font-size:.67rem;font-weight:900;color:#334155}.field{width:100%;min-height:48px;border:1px solid #cbd5e1;border-radius:12px;padding:.7rem .8rem;background:#f8fafc}.check{display:flex;align-items:center;gap:.5rem;font-size:.875rem}.consent{display:flex;align-items:flex-start;gap:.65rem;margin-top:.85rem;font-size:.82rem;line-height:1.35rem}.consent input{margin-top:.2rem;flex:0 0 auto}input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}
+    .form-section{margin-top:1.25rem;border-top:1px solid #e2e8f0;padding-top:1.15rem}.form-section:first-of-type{border-top:0}.form-section h3{margin:0 0 .25rem;font-weight:900}.form-section>p{margin:.25rem 0 0;color:#64748b;font-size:.75rem;line-height:1.45rem}.form-section label:not(.check):not(.consent){display:grid;gap:.3rem}.form-section label>span{font-size:.67rem;font-weight:900;color:#334155}.field{width:100%;min-height:48px;border:1px solid #cbd5e1;border-radius:12px;padding:.7rem .8rem;background:#f8fafc}.check{display:flex;align-items:center;gap:.5rem;font-size:.875rem}.consent{display:flex;align-items:flex-start;gap:.65rem;margin-top:.85rem;font-size:.82rem;line-height:1.35rem}.consent input{margin-top:.2rem;flex:0 0 auto}input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid #E15A62;outline-offset:2px}
   `],
 })
 export class BranchPartnerV171Component implements OnInit {

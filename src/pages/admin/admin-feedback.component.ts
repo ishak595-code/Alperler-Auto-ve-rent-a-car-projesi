@@ -22,21 +22,21 @@ import { ToastService } from "../../services/toast.service";
               type="button"
               (click)="goBack()"
               aria-label="Kontrol paneline dön"
-              class="flex min-h-12 min-w-12 items-center justify-center rounded-xl bg-slate-100 font-black text-slate-700 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              class="flex min-h-12 min-w-12 items-center justify-center rounded-xl bg-slate-100 font-black text-slate-700 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light"
             >
               ←
             </button>
             <div>
-              <p class="text-[10px] font-black uppercase tracking-[0.18em] text-blue-600">Müşteri İletişimi</p>
+              <p class="text-[10px] font-black uppercase tracking-[0.18em] text-[#9E1B24]">Müşteri İletişimi</p>
               <h1 class="text-2xl font-black tracking-tight text-slate-950">Mesaj Kutusu</h1>
               <p class="mt-1 text-xs text-slate-500">Web iletişim formundan Supabase'e güvenli kaydedilen gerçek mesajlar.</p>
             </div>
           </div>
 
           <div class="grid w-full gap-2 lg:w-auto lg:grid-cols-[minmax(240px,1fr)_160px_auto]">
-            <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Ad, e-posta, telefon veya mesaj ara…" aria-label="Mesajlarda ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500" />
+            <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Ad, e-posta, telefon veya mesaj ara…" aria-label="Mesajlarda ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-prestige-red-light" />
             <select [ngModel]="filter()" (ngModelChange)="setFilter($event)" aria-label="Mesaj durum filtresi" class="min-h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black"><option value="ALL">Tüm durumlar</option><option value="NEW">Yeni</option><option value="READ">Okundu</option><option value="REPLIED">Yanıtlandı</option><option value="ARCHIVED">Arşiv</option></select>
-            <button type="button" (click)="refresh()" [disabled]="contactService.loading()" class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white hover:bg-blue-600 disabled:opacity-50">{{ contactService.loading() ? "Yenileniyor..." : "Yenile" }}</button>
+            <button type="button" (click)="refresh()" [disabled]="contactService.loading()" class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white hover:bg-[#9E1B24] disabled:opacity-50">{{ contactService.loading() ? "Yenileniyor..." : "Yenile" }}</button>
           </div>
         </div>
       </header>
@@ -48,7 +48,7 @@ import { ToastService } from "../../services/toast.service";
               type="button"
               (click)="setFilter(item.value)"
               [class.ring-2]="filter() === item.value"
-              [class.ring-blue-500]="filter() === item.value"
+              [class.ring-[#E15A62]]="filter() === item.value"
               class="min-h-20 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-300"
             >
               <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">{{ item.label }}</span>
@@ -117,7 +117,7 @@ import { ToastService } from "../../services/toast.service";
                         rows="3"
                         [value]="item.internalNotes || ''"
                         maxlength="2000"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-blue-500 focus:bg-white"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-prestige-red-light focus:bg-white"
                         placeholder="Müşteriye gösterilmez"
                       ></textarea>
                     </label>

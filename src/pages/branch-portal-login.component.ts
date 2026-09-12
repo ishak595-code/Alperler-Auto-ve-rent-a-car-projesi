@@ -14,7 +14,7 @@ import { BranchPortalService } from "../services/branch-portal.service";
     <main class="min-h-screen bg-slate-950 px-4 py-10 text-slate-200">
       <div class="mx-auto grid min-h-[calc(100vh-5rem)] max-w-5xl items-center gap-8 lg:grid-cols-[1.05fr_.95fr]">
         <section class="hidden lg:block">
-          <p class="text-xs font-black uppercase tracking-[.18em] text-blue-400">Alperler Auto Şube Ağı</p>
+          <p class="text-xs font-black uppercase tracking-[.18em] text-prestige-red-light">Alperler Auto Şube Ağı</p>
           <h1 class="mt-4 max-w-2xl text-5xl font-black leading-[1.05] text-white">Kendi şubenizi yönetin. Marka standardı merkezde kalsın.</h1>
           <p class="mt-5 max-w-xl text-base leading-7 text-slate-400">Bu portal yalnızca onaylanmış Alperler Auto şube yetkilileri içindir. Her şube yalnızca kendi ilanlarını, kendi fiyat sınırlarını, kendi açılış durumunu ve kendisine yönlendirilen müşteri kayıtlarını görür.</p>
           <div class="mt-8 grid gap-3 sm:grid-cols-3">
@@ -35,7 +35,7 @@ import { BranchPortalService } from "../services/branch-portal.service";
               <button type="submit" [disabled]="loading()" class="action">{{ loading() ? 'Hesap hazırlanıyor...' : 'Şifremi Kaydet ve Portala Gir' }}</button>
             </form>
           } @else {
-            <div class="mt-5"><p class="text-xs font-black uppercase tracking-wider text-blue-400">Yetkili Şube Girişi</p><h2 id="branch-login-title" class="mt-2 text-2xl font-black text-white">Şube Portalı</h2><p class="mt-2 text-sm leading-6 text-slate-400">Merkez tarafından yetkilendirilen e-posta ve şifrenizle giriş yapın.</p></div>
+            <div class="mt-5"><p class="text-xs font-black uppercase tracking-wider text-prestige-red-light">Yetkili Şube Girişi</p><h2 id="branch-login-title" class="mt-2 text-2xl font-black text-white">Şube Portalı</h2><p class="mt-2 text-sm leading-6 text-slate-400">Merkez tarafından yetkilendirilen e-posta ve şifrenizle giriş yapın.</p></div>
             <form class="mt-6 space-y-4" (ngSubmit)="login()">
               <label class="block"><span class="label">E-posta</span><input [(ngModel)]="email" name="email" type="email" autocomplete="email" class="field" required /></label>
               <label class="block"><span class="label">Şifre</span><input [(ngModel)]="password" name="password" type="password" autocomplete="current-password" class="field" required /></label>
@@ -49,7 +49,7 @@ import { BranchPortalService } from "../services/branch-portal.service";
     </main>
   `,
   styles: [`
-    .benefit{display:flex;min-height:150px;flex-direction:column;gap:.45rem;border:1px solid #1e293b;border-radius:18px;background:#0f172a;padding:1rem}.benefit mat-icon{color:#60a5fa}.benefit strong{color:white}.benefit span{font-size:.72rem;line-height:1.25rem;color:#94a3b8}.label{display:block;margin-bottom:.4rem;font-size:.65rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8}.field{min-height:50px;width:100%;border:1px solid #334155;border-radius:13px;background:#020617;padding:0 .9rem;color:white;outline:none}.field:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.13)}.action{min-height:52px;width:100%;border:0;border-radius:13px;background:#2563eb;padding:0 1rem;font-weight:900;color:white}.action:disabled{opacity:.55}.error{margin:0;border:1px solid rgba(244,63,94,.25);border-radius:12px;background:rgba(244,63,94,.1);padding:.75rem;color:#fecdd3;font-size:.78rem;font-weight:800;line-height:1.3rem}
+    .benefit{display:flex;min-height:150px;flex-direction:column;gap:.45rem;border:1px solid #1e293b;border-radius:18px;background:#0f172a;padding:1rem}.benefit mat-icon{color:var(--alper-blue-light)}.benefit strong{color:white}.benefit span{font-size:.72rem;line-height:1.25rem;color:#94a3b8}.label{display:block;margin-bottom:.4rem;font-size:.65rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8}.field{min-height:50px;width:100%;border:1px solid #334155;border-radius:13px;background:#020617;padding:0 .9rem;color:white;outline:none}.field:focus{border-color:var(--alper-blue-light);box-shadow:0 0 0 3px rgba(96,165,250,.13)}.action{min-height:52px;width:100%;border:0;border-radius:13px;background:var(--alper-blue);padding:0 1rem;font-weight:900;color:white}.action:disabled{opacity:.55}.error{margin:0;border:1px solid rgba(244,63,94,.25);border-radius:12px;background:rgba(244,63,94,.1);padding:.75rem;color:#fecdd3;font-size:.78rem;font-weight:800;line-height:1.3rem}
   `],
 })
 export class BranchPortalLoginComponent implements OnInit {

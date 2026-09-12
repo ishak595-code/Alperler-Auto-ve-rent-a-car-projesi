@@ -1,20 +1,6 @@
-/* Responsive finishing for the customer prestige system. */
-
-/* Calm luxury fallback palette. Runtime admin settings can override these variables. */
-:root{
-  --alper-bg:#060A12;
-  --alper-list:#08101B;
-  --alper-surface:#0B1420;
-  --alper-card:#0E1724;
-  --alper-elevated:#121D2C;
-  --alper-border:#27364A;
-  --alper-blue:#315E86;
-  --alper-blue-light:#7899B8;
-  --alper-gold:#C6A15B;
-  --alper-text:#F4F6F8;
-  --alper-muted:#A2ADBA;
-  --alper-subtle:#718096;
-}
+/* Responsive finishing for the customer prestige system.
+   Palette ownership: prestige-palette-defaults.css and ThemeService.
+   This layer ONLY handles geometry/layout, never palette redefinition. */
 
 /* Rich vehicle cards stay spacious. Two columns begin only when the screen can support them. */
 @media (max-width: 639px) {

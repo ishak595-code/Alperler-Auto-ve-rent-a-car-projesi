@@ -37,23 +37,23 @@ import { PublicFaqV217, PublicFaqV217Service } from "../services/public-faq-v217
         } @else if (loadError()) {
           <div class="rounded-xl border border-red-900/60 bg-slate-900 p-6 text-center" role="alert">
             <p>FAQ bilgilerine şu anda ulaşılamıyor.</p>
-            <button type="button" (click)="reload()" class="mt-4 rounded-lg bg-blue-600 px-4 py-2 font-bold text-white">Tekrar dene</button>
+            <button type="button" (click)="reload()" class="mt-4 rounded-lg bg-prestige-red px-4 py-2 font-bold text-white">Tekrar dene</button>
           </div>
         } @else if (faqs().length === 0) {
           <div class="rounded-xl border border-slate-800 bg-slate-900 p-6 text-center" role="status">Henüz yayınlanmış soru bulunmuyor.</div>
         } @else {
           <div class="space-y-4">
             @for (faq of faqs(); track faq.id) {
-              <article class="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-sm transition-all duration-300 hover:shadow-md group hover:border-blue-500">
+              <article class="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-sm transition-all duration-300 hover:shadow-md group hover:border-prestige-red-light">
                 <h3>
                   <button
                     type="button"
                     (click)="toggleFaq(faq.id)"
-                    class="w-full flex justify-between items-center p-6 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 bg-slate-900 hover:bg-slate-800 transition-colors"
+                    class="w-full flex justify-between items-center p-6 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light bg-slate-900 hover:bg-slate-800 transition-colors"
                     [attr.aria-expanded]="isOpen(faq.id)"
                     [attr.aria-controls]="'faq-answer-' + faq.id"
                   >
-                    <span class="font-bold text-slate-100 text-lg group-hover:text-blue-400 transition-colors">{{ faq.question }}</span>
+                    <span class="font-bold text-slate-100 text-lg group-hover:text-prestige-red-light transition-colors">{{ faq.question }}</span>
                     <span class="text-slate-400 transform transition-transform duration-300 bg-slate-800 rounded-full p-1" [class.rotate-180]="isOpen(faq.id)">
                       <mat-icon aria-hidden="true">expand_more</mat-icon>
                     </span>

@@ -20,11 +20,11 @@ import { ToastService } from "../../services/toast.service";
         <header class="overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8">
           <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p class="text-xs font-black uppercase tracking-[.2em] text-blue-400">Operasyon merkezi</p>
+              <p class="text-xs font-black uppercase tracking-[.2em] text-[#E15A62]">Operasyon merkezi</p>
               <h1 class="mt-2 text-3xl font-black md:text-4xl">Sistem Sağlığı ve Bakım</h1>
               <p class="mt-2 max-w-3xl text-sm leading-7 text-slate-300">Çalışma modunu, güvenli toparlanmaları ve sistem olaylarını tek yerden yönetin. Yönetim işlemleri tarayıcıdan veritabanına doğrudan yazmaz; yetkili sunucu geçidi ve denetim kaydı üzerinden yürür.</p>
             </div>
-            <button type="button" (click)="refreshAll()" [disabled]="loading() || repairing()" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-5 font-black text-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:opacity-50">
+            <button type="button" (click)="refreshAll()" [disabled]="loading() || repairing()" class="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-5 font-black text-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light disabled:opacity-50">
               <mat-icon aria-hidden="true">refresh</mat-icon>{{ loading() ? 'Kontrol ediliyor…' : 'Şimdi Kontrol Et' }}
             </button>
           </div>
@@ -63,7 +63,7 @@ import { ToastService } from "../../services/toast.service";
               <label class="field"><span>Durum mesajı</span><input [(ngModel)]="draft.statusMessage" maxlength="250" placeholder="Örn. Kartla ödeme kısa süreliğine kullanılamıyor" /></label>
             </div>
 
-            <button type="button" (click)="saveRuntimeControls()" [disabled]="saving() || repairing()" class="mt-5 min-h-12 w-full rounded-2xl bg-slate-950 px-5 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50">{{ saving() ? 'Kaydediliyor…' : 'Çalışma Modunu Kaydet' }}</button>
+            <button type="button" (click)="saveRuntimeControls()" [disabled]="saving() || repairing()" class="mt-5 min-h-12 w-full rounded-2xl bg-slate-950 px-5 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light disabled:opacity-50">{{ saving() ? 'Kaydediliyor…' : 'Çalışma Modunu Kaydet' }}</button>
             <p class="mt-3 text-xs leading-5 text-slate-500">Bu ayarlar public olarak okunur, fakat yalnız yetkili Super Admin gateway’i üzerinden değiştirilebilir.</p>
           </div>
 
@@ -76,7 +76,7 @@ import { ToastService } from "../../services/toast.service";
               <div class="health-note"><mat-icon aria-hidden="true">account_tree</mat-icon><span><strong>Bağlantılar:</strong> yalnız eksik temel menü ve ana sayfa kayıtlarını yeniden oluşturur.</span></div>
               <div class="health-note warning"><mat-icon aria-hidden="true">verified_user</mat-icon><span><strong>Koruma:</strong> yalnız owner/admin rolü çalıştırabilir ve işlem audit log'a yazılır.</span></div>
             </div>
-            <button type="button" (click)="runSafeRepair()" [disabled]="repairing() || saving()" class="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blue-700 px-5 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50"><mat-icon aria-hidden="true">build_circle</mat-icon>{{ repairing() ? 'Bakım uygulanıyor…' : 'Güvenli Bakımı Çalıştır' }}</button>
+            <button type="button" (click)="runSafeRepair()" [disabled]="repairing() || saving()" class="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blue-700 px-5 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light disabled:opacity-50"><mat-icon aria-hidden="true">build_circle</mat-icon>{{ repairing() ? 'Bakım uygulanıyor…' : 'Güvenli Bakımı Çalıştır' }}</button>
             @if (lastRepair(); as repair) {
               <div class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs leading-6 text-emerald-900" role="status">
                 <strong class="block">Son bakım tamamlandı</strong>
@@ -107,7 +107,7 @@ import { ToastService } from "../../services/toast.service";
                     <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs font-semibold text-slate-500"><span>Tekrar: {{ event.occurrence_count }}</span><span>İlk: {{ formatDate(event.first_seen) }}</span><span>Son: {{ formatDate(event.last_seen) }}</span>@if (event.route) { <span class="break-all">Sayfa: {{ event.route }}</span> }@if (event.client_family) { <span>{{ event.client_family }}</span> }</div>
                     @if (event.recovery_action) { <p class="mt-2 text-xs font-bold text-emerald-700">Onarım: {{ event.recovery_action }}</p> }
                   </div>
-                  <button type="button" (click)="toggleResolved(event)" class="min-h-11 shrink-0 rounded-xl border border-slate-200 px-4 text-xs font-black text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">{{ event.resolved_at ? 'Yeniden Aç' : 'Çözüldü İşaretle' }}</button>
+                  <button type="button" (click)="toggleResolved(event)" class="min-h-11 shrink-0 rounded-xl border border-slate-200 px-4 text-xs font-black text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light">{{ event.resolved_at ? 'Yeniden Aç' : 'Çözüldü İşaretle' }}</button>
                 </div>
               </article>
             } @empty {
@@ -122,7 +122,7 @@ import { ToastService } from "../../services/toast.service";
     .metric{display:flex;min-height:140px;flex-direction:column;border:1px solid #e2e8f0;border-radius:24px;background:white;padding:20px;box-shadow:0 8px 24px rgba(15,23,42,.05)}
     .metric span{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#64748b}.metric strong{margin-top:10px;font-size:34px;line-height:1;font-weight:900;color:#0f172a}.metric small{margin-top:auto;padding-top:10px;color:#94a3b8;font-weight:700}
     .field{display:flex;flex-direction:column;gap:7px}.field>span{font-size:.68rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#475569}.field input,.field select,.field textarea{min-height:44px;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc;padding:10px 12px;outline:none}.field input:focus,.field select:focus,.field textarea:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgb(59 130 246/.14)}
-    .toggle-card{display:flex;min-height:72px;cursor:pointer;align-items:flex-start;gap:12px;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc;padding:13px}.toggle-card input{margin-top:3px;width:20px;height:20px;accent-color:#2563eb}.toggle-card span{display:flex;flex-direction:column}.toggle-card strong{font-size:13px;color:#0f172a}.toggle-card small{margin-top:3px;font-size:11px;line-height:1.45;color:#64748b}
+    .toggle-card{display:flex;min-height:72px;cursor:pointer;align-items:flex-start;gap:12px;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc;padding:13px}.toggle-card input{margin-top:3px;width:20px;height:20px;accent-color:var(--alper-blue)}.toggle-card span{display:flex;flex-direction:column}.toggle-card strong{font-size:13px;color:#0f172a}.toggle-card small{margin-top:3px;font-size:11px;line-height:1.45;color:#64748b}
     .health-note{display:flex;gap:10px;border-radius:14px;background:#f0fdf4;padding:12px;color:#166534}.health-note mat-icon{flex:none}.health-note.warning{background:#fff7ed;color:#9a3412}
     .severity{display:inline-flex;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:900;background:#f1f5f9;color:#334155}.severity[data-level="WARN"]{background:#fef3c7;color:#92400e}.severity[data-level="ERROR"]{background:#fee2e2;color:#991b1b}.severity[data-level="CRITICAL"]{background:#881337;color:white}.severity[data-level="INFO"]{background:#dbeafe;color:#1e40af}
   `],

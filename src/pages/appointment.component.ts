@@ -17,7 +17,7 @@ import { VisitorAnalyticsService } from "../services/visitor-analytics.service";
       <div class="sticky top-[72px] z-40 border-b border-slate-800 bg-slate-900 shadow-lg md:top-[96px]">
         <div class="mx-auto max-w-7xl px-4">
           <div class="flex min-h-16 items-center gap-2 py-2 sm:gap-3">
-            <button type="button" (click)="goBack()" class="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Geri Dön">
+            <button type="button" (click)="goBack()" class="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light" aria-label="Geri Dön">
               <mat-icon>arrow_back</mat-icon>
             </button>
             <h1 class="text-lg font-bold text-white">Randevu Talebi</h1>
@@ -46,7 +46,7 @@ import { VisitorAnalyticsService } from "../services/visitor-analytics.service";
                   <div class="mt-4 text-xs font-bold uppercase tracking-wider text-slate-500">Bildirim Durumu</div>
                   <p class="mt-1 text-sm font-medium text-slate-700">{{ deliveryMessage() }}</p>
                 </div>
-                <button type="button" (click)="goHome()" class="mt-8 min-h-12 rounded-xl bg-slate-900 px-8 py-3 font-bold text-white transition-colors hover:bg-blue-500 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Ana Sayfaya Dön</button>
+                <button type="button" (click)="goHome()" class="mt-8 min-h-12 rounded-xl bg-slate-900 px-8 py-3 font-bold text-white transition-colors hover:bg-prestige-red hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light">Ana Sayfaya Dön</button>
               </div>
             } @else {
               <form data-analytics-form="booking_conversion" [formGroup]="appointmentForm" (ngSubmit)="onSubmit()" class="space-y-6">
@@ -68,15 +68,15 @@ import { VisitorAnalyticsService } from "../services/visitor-analytics.service";
                 <div class="grid grid-cols-1 gap-6 pt-4 md:grid-cols-2">
                   <label class="block">
                     <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">Ad Soyad *</span>
-                    <input type="text" autocomplete="name" formControlName="name" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" placeholder="Adınız Soyadınız" />
+                    <input type="text" autocomplete="name" formControlName="name" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-prestige-red-light" placeholder="Adınız Soyadınız" />
                   </label>
                   <label class="block">
                     <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">Telefon *</span>
-                    <input type="tel" inputmode="tel" autocomplete="tel" formControlName="phone" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" placeholder="05XX XXX XX XX" />
+                    <input type="tel" inputmode="tel" autocomplete="tel" formControlName="phone" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-prestige-red-light" placeholder="05XX XXX XX XX" />
                   </label>
                   <label class="block md:col-span-2">
                     <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">E-posta *</span>
-                    <input type="email" inputmode="email" autocomplete="email" formControlName="email" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" placeholder="ornek@email.com" />
+                    <input type="email" inputmode="email" autocomplete="email" formControlName="email" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-prestige-red-light" placeholder="ornek@email.com" />
                     <span class="mt-1 block text-xs text-slate-500">Randevu kaydı ve durum değişiklikleri bu adrese gönderilir.</span>
                   </label>
                 </div>
@@ -84,24 +84,24 @@ import { VisitorAnalyticsService } from "../services/visitor-analytics.service";
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <label class="block">
                     <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">Tarih *</span>
-                    <input type="date" [min]="minDate" formControlName="date" aria-label="Randevu tarihi seç" title="Randevu tarihi seç" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                    <input type="date" [min]="minDate" formControlName="date" aria-label="Randevu tarihi seç" title="Randevu tarihi seç" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-prestige-red-light" />
                   </label>
                   <label class="block">
                     <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">Saat *</span>
-                    <input type="time" formControlName="time" aria-label="Randevu saati seç" title="Randevu saati seç" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                    <input type="time" formControlName="time" aria-label="Randevu saati seç" title="Randevu saati seç" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-prestige-red-light" />
                   </label>
                 </div>
 
                 <label class="block">
                   <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">Mesajınız / Notunuz</span>
-                  <textarea formControlName="message" rows="4" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" placeholder="Eklemek istediğiniz detaylar..."></textarea>
+                  <textarea formControlName="message" rows="4" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-prestige-red-light" placeholder="Eklemek istediğiniz detaylar..."></textarea>
                 </label>
 
                 @if (hasFormErrors()) {
                   <div role="alert" aria-live="assertive" class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-800">Lütfen ad-soyad, telefon, e-posta, konu, tarih ve saat alanlarını geçerli biçimde doldurun.</div>
                 }
 
-                <button type="submit" [disabled]="isSubmitting()" class="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-4 font-bold uppercase tracking-wider text-white shadow-xl transition-colors hover:bg-blue-500 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:px-8">
+                <button type="submit" [disabled]="isSubmitting()" class="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-4 font-bold uppercase tracking-wider text-white shadow-xl transition-colors hover:bg-prestige-red hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light focus-visible:ring-offset-2 sm:px-8">
                   @if (isSubmitting()) {
                     <mat-icon class="animate-spin">progress_activity</mat-icon>
                     Kaydediliyor...

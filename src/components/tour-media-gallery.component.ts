@@ -22,7 +22,7 @@ interface GallerySlide {
       <section class="mx-auto max-w-5xl px-4 pt-8 sm:px-6" aria-labelledby="tour-gallery-title">
         <div class="mb-4 flex items-end justify-between gap-4">
           <div>
-            <p class="text-[10px] font-black uppercase tracking-[.18em] text-blue-600">Gerçek Rota Medyası</p>
+            <p class="text-[10px] font-black uppercase tracking-[.18em] text-prestige-red">Gerçek Rota Medyası</p>
             <h3 id="tour-gallery-title" class="mt-1 text-xl font-black text-slate-950 sm:text-2xl">Fotoğraf & Video Galerisi</h3>
           </div>
           <span class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">{{ safeActiveIndex() + 1 }} / {{ slides().length }}</span>
@@ -73,7 +73,7 @@ interface GallerySlide {
                 (click)="activeIndex.set(index)"
                 [attr.aria-label]="(slide.kind === 'VIDEO' ? 'Videoyu aç: ' : 'Fotoğrafı aç: ') + slide.title"
                 [attr.aria-current]="safeActiveIndex() === index ? 'true' : null"
-                class="relative min-h-16 min-w-24 snap-start overflow-hidden rounded-xl border-2 bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                class="relative min-h-16 min-w-24 snap-start overflow-hidden rounded-xl border-2 bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light"
                 [class.border-blue-600]="safeActiveIndex() === index"
                 [class.border-transparent]="safeActiveIndex() !== index"
               >

@@ -47,9 +47,9 @@ import { isDockItemCurrent, shouldRenderMobileDock } from "../services/mobile-do
     .dock-label{display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .dock-action:active{transform:translateY(1px)}
     .dock-action:focus-visible{outline:3px solid var(--alper-gold,#c6a15b);outline-offset:-3px}
-    .dock-action.dock-active{background:color-mix(in srgb,var(--alper-blue,#315e86) 25%,transparent);color:#fff}
+    .dock-action.dock-active{background:color-mix(in srgb,var(--alper-blue,#E15A62) 25%,transparent);color:#fff}
     .dock-action.dock-active::before{background:var(--alper-blue-light,#93c5fd)}
-    .dock-action.dock-active .dock-icon-shell{background:color-mix(in srgb,var(--alper-blue,#315e86) 38%,transparent);transform:translateY(-1px)}
+    .dock-action.dock-active .dock-icon-shell{background:color-mix(in srgb,var(--alper-blue,#E15A62) 38%,transparent);transform:translateY(-1px)}
     .dock-action.dock-primary{margin:-7px 1px 1px;border-color:color-mix(in srgb,var(--alper-gold,#c6a15b) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--alper-gold,#c6a15b) 18%,var(--alper-surface,#0b1420)),color-mix(in srgb,var(--alper-gold,#c6a15b) 8%,var(--alper-bg,#060a12)));color:#fff;box-shadow:0 12px 28px rgba(2,6,23,.34),0 0 0 1px rgba(198,161,91,.08)}
     .dock-action.dock-primary::before{background:var(--alper-gold,#c6a15b)}
     .dock-action.dock-primary .dock-icon-shell{width:38px;height:36px;border-radius:12px;background:var(--alper-gold,#c6a15b);color:#111827;box-shadow:0 8px 20px rgba(198,161,91,.22);transform:translateY(-1px)}

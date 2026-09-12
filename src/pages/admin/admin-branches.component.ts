@@ -18,10 +18,10 @@ import { ToastService } from "../../services/toast.service";
       <header class="sticky top-0 z-30 border-b border-slate-200 bg-white shadow-sm">
         <div class="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 md:px-8">
           <div class="flex min-w-0 items-center gap-3">
-            <button type="button" (click)="router.navigate(['/admin/dashboard'])" aria-label="Kontrol paneline dön" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E15A62]"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
+            <button type="button" (click)="router.navigate(['/admin/dashboard'])" aria-label="Kontrol paneline dön" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
             <div class="min-w-0"><h1 class="truncate text-xl font-black">Şube Yönetimi</h1><p class="text-xs text-slate-500">Şube bilgisi, doğrulama, açma, askıya alma, kapatma ve ağ kontrolü tek merkezde</p></div>
           </div>
-          <button type="button" (click)="newBranch()" class="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E15A62]"><mat-icon aria-hidden="true">add</mat-icon><span>Merkez Şubesi Ekle</span></button>
+          <button type="button" (click)="newBranch()" class="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light"><mat-icon aria-hidden="true">add</mat-icon><span>Merkez Şubesi Ekle</span></button>
         </div>
       </header>
 
@@ -58,7 +58,7 @@ import { ToastService } from "../../services/toast.service";
               </div>
               <div class="mt-4 flex flex-wrap gap-2">@for (service of branch.services; track service) { <span class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-600">{{ serviceLabel(service) }}</span> }</div>
               <div class="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                <button type="button" (click)="editBranch(branch)" class="min-h-11 rounded-xl border border-slate-300 px-3 font-black hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E15A62]">Bilgileri Düzenle</button>
+                <button type="button" (click)="editBranch(branch)" class="min-h-11 rounded-xl border border-slate-300 px-3 font-black hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light">Bilgileri Düzenle</button>
                 @if (branch.networkType === 'FRANCHISE' || branch.networkType === 'PARTNER') {<button type="button" (click)="openNetwork(branch)" class="min-h-11 rounded-xl bg-violet-700 px-3 font-black text-white">Ağ Kontrolü</button>}
                 @if(statusOf(branch)==='ACTIVE'){
                   <button type="button" (click)="openLifecycle(branch,'SUSPENDED')" class="min-h-11 rounded-xl bg-amber-500 px-3 font-black text-slate-950">Askıya Al</button>

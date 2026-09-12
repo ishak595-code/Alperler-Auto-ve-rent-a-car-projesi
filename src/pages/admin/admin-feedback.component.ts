@@ -22,7 +22,7 @@ import { ToastService } from "../../services/toast.service";
               type="button"
               (click)="goBack()"
               aria-label="Kontrol paneline dön"
-              class="flex min-h-12 min-w-12 items-center justify-center rounded-xl bg-slate-100 font-black text-slate-700 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E15A62]"
+              class="flex min-h-12 min-w-12 items-center justify-center rounded-xl bg-slate-100 font-black text-slate-700 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light"
             >
               ←
             </button>
@@ -34,7 +34,7 @@ import { ToastService } from "../../services/toast.service";
           </div>
 
           <div class="grid w-full gap-2 lg:w-auto lg:grid-cols-[minmax(240px,1fr)_160px_auto]">
-            <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Ad, e-posta, telefon veya mesaj ara…" aria-label="Mesajlarda ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-[#E15A62]" />
+            <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Ad, e-posta, telefon veya mesaj ara…" aria-label="Mesajlarda ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-prestige-red-light" />
             <select [ngModel]="filter()" (ngModelChange)="setFilter($event)" aria-label="Mesaj durum filtresi" class="min-h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black"><option value="ALL">Tüm durumlar</option><option value="NEW">Yeni</option><option value="READ">Okundu</option><option value="REPLIED">Yanıtlandı</option><option value="ARCHIVED">Arşiv</option></select>
             <button type="button" (click)="refresh()" [disabled]="contactService.loading()" class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white hover:bg-[#9E1B24] disabled:opacity-50">{{ contactService.loading() ? "Yenileniyor..." : "Yenile" }}</button>
           </div>
@@ -117,7 +117,7 @@ import { ToastService } from "../../services/toast.service";
                         rows="3"
                         [value]="item.internalNotes || ''"
                         maxlength="2000"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-[#E15A62] focus:bg-white"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-prestige-red-light focus:bg-white"
                         placeholder="Müşteriye gösterilmez"
                       ></textarea>
                     </label>

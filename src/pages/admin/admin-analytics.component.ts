@@ -61,7 +61,7 @@ import { ToastService } from '../../services/toast.service';
             <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div><p class="text-[10px] font-black uppercase tracking-widest text-[#9E1B24]">Canlı ve son oturumlar</p><h2 class="mt-1 text-2xl font-black text-slate-950">Ziyaretçiler</h2></div>
               <div class="grid gap-2 sm:grid-cols-3 md:min-w-[560px]">
-                <input [(ngModel)]="search" placeholder="IP, cihaz, şehir, sayfa, müşteri…" aria-label="Ziyaretçi ara" class="min-h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-[#E15A62]" />
+                <input [(ngModel)]="search" placeholder="IP, cihaz, şehir, sayfa, müşteri…" aria-label="Ziyaretçi ara" class="min-h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-prestige-red-light" />
                 <label class="flex min-h-11 items-center gap-2 rounded-xl bg-slate-50 px-3 text-xs font-black"><input type="checkbox" [(ngModel)]="liveOnly" /> Sadece canlı</label>
                 <label class="flex min-h-11 items-center gap-2 rounded-xl bg-slate-50 px-3 text-xs font-black"><input type="checkbox" [(ngModel)]="errorsOnly" /> Hata alanlar</label>
               </div>
@@ -69,7 +69,7 @@ import { ToastService } from '../../services/toast.service';
 
             <div class="mt-5 space-y-3">
               @for (session of filteredSessions(); track session.session_id) {
-                <button type="button" (click)="selectSession(session)" class="w-full rounded-2xl border border-slate-200 p-4 text-left transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E15A62]">
+                <button type="button" (click)="selectSession(session)" class="w-full rounded-2xl border border-slate-200 p-4 text-left transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light">
                   <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
                     <div class="min-w-0 flex-1">
                       <div class="flex flex-wrap items-center gap-2">

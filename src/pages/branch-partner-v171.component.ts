@@ -19,10 +19,10 @@ import { GeoDirectoryService } from "../services/geo-directory.service";
   template:`
 <main class="min-h-screen bg-slate-950 pb-20 text-white">
   <section class="mx-auto max-w-6xl px-4 py-10 md:px-8">
-    <a routerLink="/branch-plans" class="text-sm font-black text-[#E15A62]">← Paketleri ve avantajları gör</a>
+    <a routerLink="/branch-plans" class="text-sm font-black text-prestige-red-light">← Paketleri ve avantajları gör</a>
     <div class="mt-6 grid gap-8 lg:grid-cols-[.78fr_1.22fr]">
       <aside>
-        <p class="text-xs font-black uppercase tracking-[.18em] text-[#E15A62]">Doğrulanmış şube ağı</p>
+        <p class="text-xs font-black uppercase tracking-[.18em] text-prestige-red-light">Doğrulanmış şube ağı</p>
         <h1 class="mt-3 text-4xl font-black leading-tight md:text-5xl">İşletmenizi Alperler Auto'nun yerel dijital satış kanalına taşıyın.</h1>
         <p class="mt-5 text-sm leading-7 text-slate-300">Başvurunuz ticari kimlik, yetkili, iletişim, hizmet kapasitesi ve bölge uygunluğu açısından incelenir. Onay tek başına canlı yayın hakkı vermez.</p>
         <ul class="mt-6 space-y-3 text-sm text-slate-300">
@@ -91,7 +91,7 @@ import { GeoDirectoryService } from "../services/geo-directory.service";
             <label class="consent"><input type="checkbox" [(ngModel)]="dueDiligenceAccepted" name="dueDiligenceAccepted"/>Alperler Auto'nun başvuruyu onaylamadan önce ticari kayıt, yetkili, adres, araç sahipliği, marka standardı ve gerekli diğer uygunluk kontrollerini yapabileceğini kabul ediyorum.</label>
           </section>
 
-          <button type="submit" [disabled]="submitting()||!valid()" class="mt-6 min-h-13 w-full rounded-xl bg-[#9E1B24] px-5 py-4 font-black text-white disabled:opacity-40">{{submitting()?'Başvuru kaydediliyor…':'Başvuruyu Güvenli Şekilde Gönder'}}</button>
+          <button type="submit" [disabled]="submitting()||!valid()" class="mt-6 min-h-13 w-full rounded-xl bg-prestige-red px-5 py-4 font-black text-white disabled:opacity-40">{{submitting()?'Başvuru kaydediliyor…':'Başvuruyu Güvenli Şekilde Gönder'}}</button>
         }
       </form>
     </div>

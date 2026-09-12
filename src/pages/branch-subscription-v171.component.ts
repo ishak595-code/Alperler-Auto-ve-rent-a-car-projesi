@@ -16,7 +16,7 @@ import {
 <main class="min-h-screen bg-slate-100 pb-20 text-slate-900">
   <header class="border-b border-slate-200 bg-white">
     <div class="mx-auto flex min-h-16 max-w-6xl items-center justify-between px-4 md:px-8">
-      <div><p class="text-[10px] font-black uppercase tracking-[.16em] text-[#9E1B24]">Şube Portalı</p><h1 class="text-lg font-black">Abonelik ve Faturalar</h1></div>
+      <div><p class="text-[10px] font-black uppercase tracking-[.16em] text-prestige-red">Şube Portalı</p><h1 class="text-lg font-black">Abonelik ve Faturalar</h1></div>
       <a routerLink="/branch-portal" class="rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white no-underline">Portala Dön</a>
     </div>
   </header>
@@ -33,7 +33,7 @@ import {
         <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <p class="text-xs font-black uppercase tracking-wider text-[#9E1B24]">{{item.branch?.operator_display_name||item.branch?.name}}</p>
+              <p class="text-xs font-black uppercase tracking-wider text-prestige-red">{{item.branch?.operator_display_name||item.branch?.name}}</p>
               <h2 class="mt-1 text-2xl font-black">{{item.plan?.name||'Şube Paketi'}}</h2>
               <p class="mt-1 text-sm text-slate-500">{{item.branch?.city}} / {{item.branch?.district}}</p>
             </div>
@@ -53,7 +53,7 @@ import {
                 <div><p class="text-[10px] font-black uppercase tracking-wider text-blue-700">Aktif İlan Hakkı</p><strong class="mt-1 block text-2xl font-black text-blue-950">{{usage.published_count}} / {{usage.listing_limit}}</strong></div>
                 <div class="text-right"><span class="text-xs text-blue-700">Kalan yayın hakkı</span><strong class="block text-xl font-black text-blue-950">{{usage.remaining_slots}}</strong></div>
               </div>
-              <div class="mt-4 h-2 overflow-hidden rounded-full bg-blue-100" aria-hidden="true"><div class="h-full rounded-full bg-[#9E1B24]" [style.width.%]="usagePercent(usage)"></div></div>
+              <div class="mt-4 h-2 overflow-hidden rounded-full bg-blue-100" aria-hidden="true"><div class="h-full rounded-full bg-prestige-red" [style.width.%]="usagePercent(usage)"></div></div>
               <div class="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
                 <div class="rounded-xl bg-white p-3"><span class="block text-slate-500">Taslak</span><strong class="mt-1 block text-base">{{usage.draft_count}}</strong></div>
                 <div class="rounded-xl bg-white p-3"><span class="block text-slate-500">İncelemede</span><strong class="mt-1 block text-base">{{usage.pending_review_count}}</strong></div>
@@ -77,7 +77,7 @@ import {
 
     <div class="mt-8 rounded-3xl border border-slate-200 bg-white shadow-sm">
       <div class="border-b border-slate-200 p-5"><h2 class="text-xl font-black">Faturalar</h2><p class="text-sm text-slate-500">Şubenize ait abonelik faturaları ve ödeme durumu. Açık faturalar güvenli PayTR ödeme ekranına yönlendirilir; kart bilgisi Alperler Auto veritabanında tutulmaz.</p></div>
-      <div class="overflow-x-auto"><table class="min-w-[820px] w-full text-left text-sm"><thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500"><tr><th class="p-3">Fatura</th><th class="p-3">Tutar</th><th class="p-3">Durum</th><th class="p-3">Son ödeme</th><th class="p-3">Ödeme</th><th class="p-3">İşlem</th></tr></thead><tbody>@for(invoice of invoices();track invoice.id){<tr class="border-t border-slate-100"><td class="p-3 font-black">{{invoice.invoice_number}}</td><td class="p-3">{{invoice.amount|number:'1.0-0'}} {{invoice.currency}}</td><td class="p-3">{{invoice.status}}</td><td class="p-3">{{invoice.due_at|date:'dd.MM.yyyy'}}</td><td class="p-3">{{invoice.paid_at?(invoice.paid_at|date:'dd.MM.yyyy HH:mm'):'Bekliyor'}}</td><td class="p-3">@if(payable(invoice)){<button type="button" (click)="pay(invoice)" [disabled]="payingInvoiceId()===invoice.id" class="min-h-10 rounded-xl bg-[#9E1B24] px-4 font-black text-white disabled:opacity-50">{{payingInvoiceId()===invoice.id?'Hazırlanıyor…':'Güvenli Öde'}}</button>}@else if(invoice.status==='PAID'){<span class="font-black text-emerald-700">Ödendi</span>}@else{<span class="text-slate-400">İşlem yok</span>}</td></tr>}@empty{<tr><td colspan="6" class="p-8 text-center text-slate-500">Henüz fatura oluşturulmadı.</td></tr>}</tbody></table></div>
+      <div class="overflow-x-auto"><table class="min-w-[820px] w-full text-left text-sm"><thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500"><tr><th class="p-3">Fatura</th><th class="p-3">Tutar</th><th class="p-3">Durum</th><th class="p-3">Son ödeme</th><th class="p-3">Ödeme</th><th class="p-3">İşlem</th></tr></thead><tbody>@for(invoice of invoices();track invoice.id){<tr class="border-t border-slate-100"><td class="p-3 font-black">{{invoice.invoice_number}}</td><td class="p-3">{{invoice.amount|number:'1.0-0'}} {{invoice.currency}}</td><td class="p-3">{{invoice.status}}</td><td class="p-3">{{invoice.due_at|date:'dd.MM.yyyy'}}</td><td class="p-3">{{invoice.paid_at?(invoice.paid_at|date:'dd.MM.yyyy HH:mm'):'Bekliyor'}}</td><td class="p-3">@if(payable(invoice)){<button type="button" (click)="pay(invoice)" [disabled]="payingInvoiceId()===invoice.id" class="min-h-10 rounded-xl bg-prestige-red px-4 font-black text-white disabled:opacity-50">{{payingInvoiceId()===invoice.id?'Hazırlanıyor…':'Güvenli Öde'}}</button>}@else if(invoice.status==='PAID'){<span class="font-black text-emerald-700">Ödendi</span>}@else{<span class="text-slate-400">İşlem yok</span>}</td></tr>}@empty{<tr><td colspan="6" class="p-8 text-center text-slate-500">Henüz fatura oluşturulmadı.</td></tr>}</tbody></table></div>
     </div>
   </section>
 </main>`,

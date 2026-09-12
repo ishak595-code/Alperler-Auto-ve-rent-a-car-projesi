@@ -14,7 +14,7 @@ import { CommonModule } from "@angular/common";
       @for (img of images(); track $index; let i = $index) {
         <button
           type="button"
-          class="absolute inset-0 w-full h-full transition-opacity duration-500 ease-in-out will-change-[opacity] cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E15A62] focus-visible:ring-inset"
+          class="absolute inset-0 w-full h-full transition-opacity duration-500 ease-in-out will-change-[opacity] cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light focus-visible:ring-inset"
           [class.opacity-100]="i === currentIndex()"
           [class.opacity-0]="i !== currentIndex()"
           [class.pointer-events-none]="i !== currentIndex()"
@@ -154,7 +154,7 @@ import { CommonModule } from "@angular/common";
                   [attr.aria-label]="(i + 1) + '. görseli göster'"
                   [attr.aria-current]="i === currentIndex() ? 'true' : null"
                   class="w-16 h-12 rounded-md overflow-hidden border-2 transition-all shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                  [class.border-[#E15A62]]="i === currentIndex()"
+                  [class.border-prestige-red-light]="i === currentIndex()"
                   [class.border-transparent]="i !== currentIndex()"
                   [class.opacity-60]="i !== currentIndex()"
                 >

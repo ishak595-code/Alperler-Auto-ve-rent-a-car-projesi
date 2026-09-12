@@ -13,14 +13,14 @@ import { RuntimeControlsService } from "../services/runtime-controls.service";
     @if (!isAdminRoute() && controls.controls().maintenanceMode) {
       <section class="fixed inset-0 z-[490] flex items-center justify-center bg-[#050b16] px-5 py-10 text-white" role="alertdialog" aria-modal="true" aria-labelledby="maintenance-title" aria-describedby="maintenance-description">
         <div class="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-white/10 bg-[#0b1526] p-6 shadow-[0_40px_100px_rgba(0,0,0,.55)] sm:p-9">
-          <div aria-hidden="true" class="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[#9E1B24]/20 blur-3xl"></div>
+          <div aria-hidden="true" class="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-prestige-red/20 blur-3xl"></div>
           <div class="relative">
-            <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#E15A62]/25 bg-[#9E1B24]/10 text-[#E15A62]"><mat-icon aria-hidden="true">engineering</mat-icon></div>
-            <p class="mt-6 text-xs font-black uppercase tracking-[.2em] text-[#E15A62]">Alperler Auto sistem durumu</p>
+            <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-prestige-red-light/25 bg-prestige-red/10 text-prestige-red-light"><mat-icon aria-hidden="true">engineering</mat-icon></div>
+            <p class="mt-6 text-xs font-black uppercase tracking-[.2em] text-prestige-red-light">Alperler Auto sistem durumu</p>
             <h1 id="maintenance-title" class="mt-2 font-serif text-3xl font-black leading-tight sm:text-4xl">{{ controls.controls().maintenanceTitle }}</h1>
             <p id="maintenance-description" class="mt-4 text-sm leading-7 text-slate-300 sm:text-base">{{ controls.controls().maintenanceMessage }}</p>
             @if (controls.controls().statusMessage) { <p class="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-bold text-slate-200">{{ controls.controls().statusMessage }}</p> }
-            <button type="button" (click)="retry()" [disabled]="controls.loading()" class="mt-7 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 font-black text-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E15A62] disabled:opacity-60">
+            <button type="button" (click)="retry()" [disabled]="controls.loading()" class="mt-7 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 font-black text-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light disabled:opacity-60">
               <mat-icon aria-hidden="true">refresh</mat-icon>{{ controls.loading() ? 'Kontrol ediliyor…' : 'Durumu Yeniden Kontrol Et' }}
             </button>
           </div>

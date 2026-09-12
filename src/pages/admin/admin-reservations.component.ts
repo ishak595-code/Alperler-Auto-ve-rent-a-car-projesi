@@ -141,7 +141,7 @@ import { ToastService } from "../../services/toast.service";
     .toolbar h1{margin:0;min-width:0;font-size:15px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.count{margin-left:6px;color:#64748b;font-size:11px;font-weight:700}
     .tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.search{flex:1 1 220px}.search input{width:100%;min-height:38px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;padding:0 10px;font-size:13px}
     .filters{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1 1 100%}.filters::-webkit-scrollbar{display:none}
-    .filters button{flex:0 0 auto;min-height:34px;border:1px solid #e2e8f0;border-radius:999px;background:#fff;padding:0 11px;color:#475569;font-size:11px;font-weight:900}.filters button.active{border-color:#9E1B24;background:#eff6ff;color:#9E1B24}
+    .filters button{flex:0 0 auto;min-height:34px;border:1px solid #e2e8f0;border-radius:999px;background:#fff;padding:0 11px;color:#475569;font-size:11px;font-weight:900}.filters button.active{border-color:var(--alper-blue);background:#eff6ff;color:var(--alper-blue)}
     .body{width:min(100%,1200px);margin:auto;padding:8px}
     .notice{display:flex;gap:12px;align-items:flex-start;border:1px solid #e2e8f0;border-radius:14px;background:#fff;padding:16px}.notice h2{margin:0;font-size:15px;font-weight:950}.notice p{margin:6px 0 0;font-size:13px;line-height:1.5}.notice.warn{border-color:#fcd34d;background:#fffbeb;color:#78350f}.notice.empty{color:#64748b}.muted{color:#64748b;font-size:12px}
     .spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
@@ -153,13 +153,13 @@ import { ToastService } from "../../services/toast.service";
     .chev{color:#94a3b8;transition:transform .15s}.chev.up{transform:rotate(180deg)}
     .detail{border-top:1px solid #e2e8f0;background:#f8fafc;padding:10px}.cards{display:grid;gap:8px}@media(min-width:900px){.cards{grid-template-columns:repeat(3,1fr)}}
     .card{border:1px solid #e2e8f0;border-radius:12px;background:#fff;padding:10px 12px}.card h3{margin:0 0 6px;font-size:11px;font-weight:950;letter-spacing:.08em;text-transform:uppercase;color:#64748b}
-    .card dl{margin:0;display:grid;gap:4px}.card dl>div{display:flex;justify-content:space-between;gap:10px;font-size:13px}.card dt{color:#64748b}.card dd{margin:0;text-align:right;font-weight:800;overflow-wrap:anywhere}.mono{font-family:ui-monospace,monospace;font-size:11px}.card a{color:#9E1B24}
+    .card dl{margin:0;display:grid;gap:4px}.card dl>div{display:flex;justify-content:space-between;gap:10px;font-size:13px}.card dt{color:#64748b}.card dd{margin:0;text-align:right;font-weight:800;overflow-wrap:anywhere}.mono{font-family:ui-monospace,monospace;font-size:11px}.card a{color:var(--alper-blue)}
     .note{margin:0 0 8px;border-left:3px solid #9E1B24;padding-left:8px;font-size:13px;color:#334155;white-space:pre-line}
     .alt-panel{margin-top:8px;border-color:#fcd34d;background:#fffbeb}.alt-panel h3{color:#78350f;text-transform:none;letter-spacing:0;font-size:13px}
     .alts{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}.alts li{border:1px solid #fde68a;border-radius:10px;background:#fff;padding:8px}.alt-head{display:flex;gap:8px}.alt-head img{width:72px;height:50px;border-radius:8px;object-fit:cover}.alt-head strong{display:block;font-size:13px}.alt-head small{display:block;color:#64748b;font-size:11px}
     .actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}@media(min-width:640px){.actions{display:flex;flex-wrap:wrap}}
     .btn{display:inline-flex;min-height:42px;align-items:center;justify-content:center;gap:5px;border:1px solid transparent;border-radius:10px;padding:0 12px;font-size:12px;font-weight:900;color:#fff;cursor:pointer}.btn:disabled{cursor:not-allowed;opacity:.45}.btn:focus-visible{outline:2px solid #9E1B24;outline-offset:2px}
-    .btn.primary,.btn.blue{background:#9E1B24}.btn.green{background:#15803d}.btn.red{background:#be123c}.btn.dark{background:#0f172a}.btn.light{background:#e2e8f0;color:#0f172a}.btn.amber{background:#b45309}.btn.amber-outline{background:#fffbeb;border-color:#fcd34d;color:#78350f}.notice .btn{margin-top:10px}
+    .btn.primary,.btn.blue{background:var(--alper-blue)}.btn.green{background:#15803d}.btn.red{background:#be123c}.btn.dark{background:#0f172a}.btn.light{background:#e2e8f0;color:#0f172a}.btn.amber{background:#b45309}.btn.amber-outline{background:#fffbeb;border-color:#fcd34d;color:#78350f}.notice .btn{margin-top:10px}
   `],
 })
 export class AdminReservationsComponent implements OnInit,OnDestroy {

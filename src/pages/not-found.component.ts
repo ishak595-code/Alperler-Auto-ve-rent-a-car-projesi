@@ -10,7 +10,7 @@ import { RouterLink } from "@angular/router";
     <div
       class="min-h-[70vh] flex flex-col justify-center items-center px-4 text-center"
     >
-      <h1 class="text-9xl font-black text-[#9E1B24] drop-shadow-lg mb-4">404</h1>
+      <h1 class="text-9xl font-black text-prestige-red drop-shadow-lg mb-4">404</h1>
       <h2 class="text-3xl font-bold text-slate-900 mb-6">Sayfa Bulunamadı</h2>
       <p class="text-slate-500 max-w-md mx-auto mb-8 leading-relaxed">
         Aradığınız sayfaya ulaşılamıyor. URL'yi yanlış yazmış olabilirsiniz veya
@@ -18,7 +18,7 @@ import { RouterLink } from "@angular/router";
       </p>
       <a
         routerLink="/"
-        class="bg-slate-900 text-white font-bold py-3 px-8 rounded-lg hover:bg-[#9E1B24] hover:text-white transition-all shadow-lg active:scale-95 flex items-center gap-2"
+        class="bg-slate-900 text-white font-bold py-3 px-8 rounded-lg hover:bg-prestige-red hover:text-white transition-all shadow-lg active:scale-95 flex items-center gap-2"
       >
         <svg
           class="w-5 h-5"

@@ -7,4 +7,4 @@
 @source "../index.html";
 @source "../index.tsx";
 
-@source inline("bg-slate-50 text-slate-800 antialiased selection:bg-blue-900 selection:text-white");
+@source inline("bg-slate-50 text-slate-800 antialiased selection:bg-[#9E1B24] selection:text-white");

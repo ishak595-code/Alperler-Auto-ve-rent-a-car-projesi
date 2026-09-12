@@ -151,13 +151,32 @@ const catalogCache = new Map<string, VehicleAdminRecord[] | TourAdminRecord[]>()
                   <strong>{{ uploading() ? 'Yükleniyor %' + mediaService.uploadProgress() : 'Fotoğraf veya Video Dosyası Seç' }}</strong>
                   <span>Galeri, kamera veya dosyalardan; telefon nasıl çektiyse öyle yüklenir (fotoğraf ve video, 200 MB'a kadar)</span>
                 </label>
+                @if (media().length > 1) {
+                  <div class="bulk-actions">
+                    <label class="bulk-select-all">
+                      <input type="checkbox" [checked]="allMediaSelected()" (change)="toggleSelectAll()" />
+                      <span>{{ selectedMedia().length ? selectedMedia().length + ' seçili' : 'Tümünü seç' }}</span>
+                    </label>
+                    @if (selectedMedia().length) {
+                      <button type="button" class="danger" (click)="bulkRemoveMedia()" [disabled]="saving()">{{ selectedMedia().length }} medyayı kaldır</button>
+                    }
+                  </div>
+                }
                 <div class="media-grid">
-                  @for(item of media(); track item.id) {
-                    <article class="media-card">
+                  @for(item of media(); track item.id; let idx = $index) {
+                    <article class="media-card" [class.selected]="isMediaSelected(item.id)">
+                      <label class="media-checkbox">
+                        <input type="checkbox" [checked]="isMediaSelected(item.id)" (change)="toggleMediaSelection(item.id)" />
+                      </label>
                       <div class="media-preview">
                         @if(item.kind==='IMAGE'){<img [src]="item.url" [alt]="item.altText || selectedTitle()"/>}
                         @else{<video [src]="item.url" [poster]="item.posterUrl" controls playsinline preload="metadata"></video>}
                         @if(item.isCover){<b>KAPAK</b>}
+                      </div>
+                      <div class="media-order">
+                        <button type="button" (click)="moveMediaUp(idx)" [disabled]="idx === 0" aria-label="Yukarı taşı" title="Yukarı taşı">↑</button>
+                        <span>{{ idx + 1 }}</span>
+                        <button type="button" (click)="moveMediaDown(idx)" [disabled]="idx === media().length - 1" aria-label="Aşağı taşı" title="Aşağı taşı">↓</button>
                       </div>
                       <label><span>Alternatif metin</span><input [ngModel]="item.altText" (ngModelChange)="updateAlt(item,$event)" /></label>
                       <div class="media-actions">@if(item.kind==='IMAGE'){<button type="button" (click)="makeCover(item)" [disabled]="item.isCover">Kapak Yap</button>}<button type="button" class="danger" (click)="removeMedia(item)">Kaldır</button></div>
@@ -360,6 +379,7 @@ export class AdminCatalogWorkspaceComponent implements OnInit, OnDestroy {
   readonly viewingTour = signal<TourAdminRecord | null>(null);
   private lastFocusedRowId = '';
   readonly media = signal<CatalogMediaItem[]>([]);
+  readonly selectedMedia = signal<string[]>([]);
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly uploading = signal(false);
@@ -417,6 +437,16 @@ export class AdminCatalogWorkspaceComponent implements OnInit, OnDestroy {
   async updateAlt(item:CatalogMediaItem,value:string):Promise<void>{try{await this.mediaService.update(item,{altText:value});this.media.update((rows)=>rows.map((row)=>row.id===item.id?{...row,altText:value}:row));}catch(error){this.toast.show(this.message(error),'error');}}
   async makeCover(item:CatalogMediaItem):Promise<void>{try{await this.mediaService.update(item,{isCover:true});await this.loadMediaForSelection();await this.reloadSelection();this.toast.show('Kapak görseli değiştirildi.','success');}catch(error){this.toast.show(this.message(error),'error');}}
   async removeMedia(item:CatalogMediaItem):Promise<void>{try{await this.mediaService.remove(item);await this.loadMediaForSelection();await this.reloadSelection();this.toast.show('Medya kaldırıldı.','info');}catch(error){this.toast.show(this.message(error),'error');}}
+
+  allMediaSelected():boolean{return this.media().length>0&&this.selectedMedia().length===this.media().length;}
+  isMediaSelected(id:string):boolean{return this.selectedMedia().includes(id);}
+  toggleMediaSelection(id:string):void{this.selectedMedia.update((selected)=>selected.includes(id)?selected.filter((item)=>item!==id):[...selected,id]);}
+  toggleSelectAll():void{if(this.allMediaSelected())this.selectedMedia.set([]);else this.selectedMedia.set(this.media().map((item)=>item.id));}
+  async bulkRemoveMedia():Promise<void>{const ids=this.selectedMedia();if(!ids.length)return;const confirmed=typeof window!=='undefined'&&window.confirm(`${ids.length} medya öğesini kaldırmak istediğinizden emin misiniz?`);if(!confirmed)return;try{for(const id of ids){const item=this.media().find((m)=>m.id===id);if(item)await this.mediaService.remove(item);}this.selectedMedia.set([]);await this.loadMediaForSelection();await this.reloadSelection();this.toast.show(`${ids.length} medya kaldırıldı.`,'info');}catch(error){this.toast.show(this.message(error),'error');}}
+  async moveMediaUp(index:number):Promise<void>{if(index<=0)return;await this.swapMedia(index,index-1);}
+  async moveMediaDown(index:number):Promise<void>{if(index>=this.media().length-1)return;await this.swapMedia(index,index+1);}
+  private async swapMedia(indexA:number,indexB:number):Promise<void>{const items=this.media();const itemA=items[indexA];const itemB=items[indexB];if(!itemA||!itemB)return;try{const newOrderA=indexB+1;const newOrderB=indexA+1;await this.mediaService.update(itemA,{sortOrder:newOrderA});await this.mediaService.update(itemB,{sortOrder:newOrderB});const next=[...items];next[indexA]=itemB;next[indexB]=itemA;this.media.set(next);}catch(error){this.toast.show(this.message(error),'error');}}
+
 
   async saveProgress():Promise<void>{if(this.selectedVehicle())await this.saveVehicleAs('DRAFT');else if(this.selectedTour())await this.saveTourAs('DRAFT');}
   async saveVehicleAs(status:'DRAFT'|'SCHEDULED'|'PUBLISHED'|'ARCHIVED'):Promise<void>{const car=this.selectedVehicle();if(!car)return;if(status==='SCHEDULED'&&!this.validFutureSchedule(car.scheduledAt)){this.toast.show('Planlı yayın için gelecekte bir tarih ve saat seçin.','error');return;}car.publicationStatus=status;car.isActive=status==='PUBLISHED'||status==='SCHEDULED';car.publishedAt=status==='PUBLISHED'?new Date().toISOString():car.publishedAt;car.scheduledAt=status==='SCHEDULED'?car.scheduledAt:undefined;car.recordOrigin='REAL';if(this.mode==='RENTAL'&&this.meta(car,'hourlyRentalEnabled')===true){const hourly=Number(this.meta(car,'hourlyPrice')||0),minimum=Number(this.meta(car,'minimumRentalHours')||1);if(hourly<=0||!Number.isInteger(minimum)||minimum<1||minimum>23){this.toast.show('Saatlik kiralama için fiyat ve 1-23 arası minimum saat zorunlu.','error');return;}}if(this.mode==='SALE'){const truth=this.saleTruthError(car);if(truth){this.toast.show(truth,'error');return;}}this.saving.set(true);try{await this.editor.saveVehicle(car);await this.reloadSelection();this.toast.show(this.statusSaveMessage(status),'success');this.returnToList(car.id);}catch(error){this.toast.show(this.message(error),'error');}finally{this.saving.set(false);}}

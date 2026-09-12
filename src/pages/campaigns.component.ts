@@ -5,6 +5,7 @@ import { Router } from "@angular/router";
 import { CampaignProof, CampaignRecord, CampaignService } from "../services/campaign.service";
 import { CommercialOfferContextService } from "../services/commercial-offer-context.service";
 import { PublicDetailDataService } from "../services/public-detail-data.service";
+import { UiService } from "../services/ui.service";
 
 @Component({
   selector: "app-campaigns",
@@ -12,23 +13,23 @@ import { PublicDetailDataService } from "../services/public-detail-data.service"
   imports: [CommonModule, MatIconModule],
   template: `
     <main class="page">
-      <header class="topbar"><div class="topbar-inner"><button type="button" class="back" (click)="goBack()" aria-label="Kampanyalardan geri dön"><mat-icon aria-hidden="true">arrow_back</mat-icon></button><div><p class="kicker">Alperler Rent A Car</p><h1>Kampanyalar</h1></div></div></header>
+      <header class="topbar"><div class="topbar-inner"><button type="button" class="back" (click)="goBack()" [attr.aria-label]="t().campaignsPage.backAria"><mat-icon aria-hidden="true">arrow_back</mat-icon></button><div><p class="kicker">Alperler Rent A Car</p><h1>{{ t().campaignsPage.title }}</h1></div></div></header>
       <section class="content" aria-labelledby="offers-title">
-        <div class="intro"><p class="kicker">Aktif Fırsatlar</p><h2 id="offers-title">Planınıza uygun avantajları inceleyin</h2><p>Geçerlilik tarihi, kapsamı ve fiyat avantajı açık kampanyaları karşılaştırın. Kartı açtığınızda ilgili araç veya tur detayına geçersiniz.</p></div>
+        <div class="intro"><p class="kicker">{{ t().campaignsPage.kicker }}</p><h2 id="offers-title">{{ t().campaignsPage.introTitle }}</h2><p>{{ t().campaignsPage.introCopy }}</p></div>
         @if (error()) {
-          <div class="empty error" role="alert"><mat-icon aria-hidden="true">cloud_off</mat-icon><h2>Kampanyalar yüklenemedi</h2><p>{{ error() }}</p><button type="button" (click)="load()" class="retry-btn">Tekrar Dene</button></div>
+          <div class="empty error" role="alert"><mat-icon aria-hidden="true">cloud_off</mat-icon><h2>{{ t().campaignsPage.errorTitle }}</h2><p>{{ error() }}</p><button type="button" (click)="load()" class="retry-btn">{{ t().campaignsPage.retry }}</button></div>
         } @else if (loading()) {
-          <div class="empty" role="status"><mat-icon aria-hidden="true">hourglass_top</mat-icon><h2>Kampanyalar hazırlanıyor</h2><p>Size özel güncel fırsatlar hazırlanıyor.</p></div>
+          <div class="empty" role="status"><mat-icon aria-hidden="true">hourglass_top</mat-icon><h2>{{ t().campaignsPage.loadingTitle }}</h2><p>{{ t().campaignsPage.loadingCopy }}</p></div>
         } @else if (campaigns().length) {
           <div class="grid">@for (campaign of campaigns(); track campaign.id) {
             <article class="offer">
               <button type="button" class="offer-button" (click)="openCampaign(campaign)" [attr.aria-label]="campaignAriaLabel(campaign)">
-                <div class="media">@if (campaign.coverImage) {<img [src]="campaignImage(campaign)" [alt]="campaign.title" loading="lazy" decoding="async" />} @else {<div class="media-empty" aria-label="Kampanya görseli eklenmedi"><mat-icon aria-hidden="true">local_offer</mat-icon></div>}<div class="top-badges"><span class="badge">KAMPANYA</span>@if (campaign.discountPercent) {<span class="discount">%{{ campaign.discountPercent }} İNDİRİM</span>} @else if (campaign.badge) {<span class="discount">{{ campaign.badge }}</span>}</div>@if (campaign.endsAt) {<span class="time" [class.urgent]="isUrgent(campaign.endsAt)"><mat-icon aria-hidden="true">schedule</mat-icon>{{ countdown(campaign.endsAt) }}</span>}</div>
-                <div class="body"><div class="proof" [class.hot]="proofFor(campaign).activeViewers15m > 0 || proofFor(campaign).recentViewers24h > 1"><span class="dot" aria-hidden="true"></span><mat-icon aria-hidden="true">visibility</mat-icon><strong>{{ proofLabel(campaign) }}</strong></div><p class="hook">{{ campaignHook(campaign) }}</p><h2>{{ campaign.title }}</h2><p class="copy">{{ campaign.shortDescription || campaign.description || 'Kampanya koşullarını ve kapsamını detay ekranında inceleyin.' }}</p><div class="price-row"><div>@if (campaign.oldPrice && campaign.newPrice && campaign.oldPrice > campaign.newPrice) {<span class="old">{{ formatPrice(campaign.oldPrice) }}</span>}@if (campaign.newPrice != null) {<strong class="new">{{ formatPrice(campaign.newPrice) }}</strong>}</div>@if (campaignSavings(campaign) > 0) {<span class="saving">{{ formatPrice(campaignSavings(campaign)) }} avantaj</span>} @else if (campaign.discountPercent) {<span class="saving">%{{ campaign.discountPercent }} avantaj</span>}</div>@if (campaign.endsAt) {<p class="deadline">Bitiş: {{ formatDeadline(campaign.endsAt) }}</p>}<span class="cta"><span>{{ campaign.ctaLabel || 'Kampanyayı İncele' }}</span><mat-icon aria-hidden="true">arrow_forward</mat-icon></span></div>
+                <div class="media">@if (campaign.coverImage) {<img [src]="campaignImage(campaign)" [alt]="campaign.title" loading="lazy" decoding="async" />} @else {<div class="media-empty" [attr.aria-label]="t().campaignsPage.mediaEmptyAria"><mat-icon aria-hidden="true">local_offer</mat-icon></div>}<div class="top-badges"><span class="badge">{{ t().campaignsPage.badge }}</span>@if (campaign.discountPercent) {<span class="discount">{{ discountLabel(campaign.discountPercent) }}</span>} @else if (campaign.badge) {<span class="discount">{{ campaign.badge }}</span>}</div>@if (campaign.endsAt) {<span class="time" [class.urgent]="isUrgent(campaign.endsAt)"><mat-icon aria-hidden="true">schedule</mat-icon>{{ countdown(campaign.endsAt) }}</span>}</div>
+                <div class="body"><div class="proof" [class.hot]="proofFor(campaign).activeViewers15m > 0 || proofFor(campaign).recentViewers24h > 1"><span class="dot" aria-hidden="true"></span><mat-icon aria-hidden="true">visibility</mat-icon><strong>{{ proofLabel(campaign) }}</strong></div><p class="hook">{{ campaignHook(campaign) }}</p><h2>{{ campaign.title }}</h2><p class="copy">{{ campaign.shortDescription || campaign.description || t().campaignsPage.fallbackDesc }}</p><div class="price-row"><div>@if (campaign.oldPrice && campaign.newPrice && campaign.oldPrice > campaign.newPrice) {<span class="old">{{ formatPrice(campaign.oldPrice) }}</span>}@if (campaign.newPrice != null) {<strong class="new">{{ formatPrice(campaign.newPrice) }}</strong>}</div>@if (campaignSavings(campaign) > 0) {<span class="saving">{{ savingAmount(campaign) }}</span>} @else if (campaign.discountPercent) {<span class="saving" >{{ savingPct(campaign.discountPercent) }}</span>}</div>@if (campaign.endsAt) {<p class="deadline">{{ deadlineLabel(campaign.endsAt) }}</p>}<span class="cta"><span>{{ campaign.ctaLabel || t().campaignsPage.cta }}</span><mat-icon aria-hidden="true">arrow_forward</mat-icon></span></div>
               </button>
             </article>
           }</div>
-        } @else {<div class="empty" role="status"><mat-icon aria-hidden="true">local_offer</mat-icon><h2>Şu anda aktif kampanya yok</h2><p>Yeni fırsatlar başladığında bu sayfada keşfedebilirsiniz.</p></div>}
+        } @else {<div class="empty" role="status"><mat-icon aria-hidden="true">local_offer</mat-icon><h2>{{ t().campaignsPage.emptyTitle }}</h2><p>{{ t().campaignsPage.emptyCopy }}</p></div>}
       </section>
     </main>
   `,
@@ -42,6 +43,8 @@ export class CampaignsComponent implements OnInit {
   private readonly detailData = inject(PublicDetailDataService);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   private readonly proofByCampaign = this.campaignService.proofByCampaign;
   readonly loading = signal(true);
   readonly error = signal('');
@@ -59,7 +62,7 @@ export class CampaignsComponent implements OnInit {
       await this.campaignService.refreshSocialProof(true).catch(() => undefined);
     } catch (e) {
       console.error('Campaigns load failed', e);
-      this.error.set('Kampanyalar şu anda yüklenemiyor. Lütfen tekrar deneyin.');
+      this.error.set(this.t().campaignsPage.loadError);
     } finally {
       this.loading.set(false);
     }
@@ -75,12 +78,16 @@ export class CampaignsComponent implements OnInit {
   campaignImage(campaign: CampaignRecord): string { return this.detailData.mediaUrl(campaign.coverImage); }
   formatPrice(value: number): string { return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 }).format(value); }
   campaignSavings(item: CampaignRecord): number { return item.oldPrice != null && item.newPrice != null ? Math.max(0, item.oldPrice - item.newPrice) : 0; }
-  campaignHook(item: CampaignRecord): string { const saving = this.campaignSavings(item); if (saving > 0) return `${this.formatPrice(saving)} fiyat avantajı`; if (item.discountPercent) return `%${item.discountPercent} fiyat avantajı`; return "Kampanya avantajını inceleyin"; }
+  campaignHook(item: CampaignRecord): string { const c=this.t().campaignsPage; const saving = this.campaignSavings(item); if (saving > 0) return String(c.hookSaving||'').replace('{amount}', this.formatPrice(saving)); if (item.discountPercent) return String(c.hookPct||'').replace('{n}', String(item.discountPercent)); return c.hookDefault; }
   proofFor(item: CampaignRecord): CampaignProof { return this.proofByCampaign()[item.id] || { campaignId: item.id, pageViewsTotal: 0, uniqueViewersTotal: 0, recentViewers24h: 0, activeViewers15m: 0 }; }
-  proofLabel(item: CampaignRecord): string { const proof = this.proofFor(item); if (proof.activeViewers15m > 0) return `${proof.activeViewers15m} kişi son 15 dakikada inceledi`; if (proof.recentViewers24h > 0) return `${proof.recentViewers24h} kişi son 24 saatte inceledi`; if (proof.uniqueViewersTotal > 0) return `${proof.uniqueViewersTotal} kişi inceledi`; return proof.pageViewsTotal > 0 ? `${proof.pageViewsTotal} görüntülenme` : "Yeni kampanya"; }
-  campaignAriaLabel(item: CampaignRecord): string { return `${item.title}. ${this.proofLabel(item)}. ${item.endsAt ? this.countdown(item.endsAt) + '. ' : ''}${item.ctaLabel || 'Kampanyayı incele'}`; }
-  countdown(value: string): string { const remaining = new Date(value).getTime() - Date.now(); if (!Number.isFinite(remaining) || remaining <= 0) return "Süre doldu"; const hours = Math.floor(remaining / 3_600_000); const days = Math.floor(hours / 24); if (days > 1) return `${days} gün kaldı`; if (days === 1) return "1 gün kaldı"; return `${Math.max(1, hours)} saat kaldı`; }
+  proofLabel(item: CampaignRecord): string { const c=this.t().campaignsPage; const proof = this.proofFor(item); if (proof.activeViewers15m > 0) return String(c.proofActive||'').replace('{n}', String(proof.activeViewers15m)); if (proof.recentViewers24h > 0) return String(c.proofDay||'').replace('{n}', String(proof.recentViewers24h)); if (proof.uniqueViewersTotal > 0) return String(c.proofTotal||'').replace('{n}', String(proof.uniqueViewersTotal)); return proof.pageViewsTotal > 0 ? String(c.proofViews||'').replace('{n}', String(proof.pageViewsTotal)) : c.proofNew; }
+  campaignAriaLabel(item: CampaignRecord): string { return `${item.title}. ${this.proofLabel(item)}. ${item.endsAt ? this.countdown(item.endsAt) + '. ' : ''}${item.ctaLabel || this.t().campaignsPage.cta}`; }
+  countdown(value: string): string { const c=this.t().campaignsPage; const remaining = new Date(value).getTime() - Date.now(); if (!Number.isFinite(remaining) || remaining <= 0) return c.ended; const hours = Math.floor(remaining / 3_600_000); const days = Math.floor(hours / 24); if (days > 1) return String(c.daysLeft||'').replace('{n}', String(days)); if (days === 1) return c.oneDayLeft; return String(c.hoursLeft||'').replace('{n}', String(Math.max(1, hours))); }
   isUrgent(value: string): boolean { const remaining = new Date(value).getTime() - Date.now(); return Number.isFinite(remaining) && remaining > 0 && remaining <= 48 * 3_600_000; }
-  formatDeadline(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? "Belirtilmedi" : new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(date); }
+  formatDeadline(value: string): string { const date = new Date(value); const loc=({TR:'tr-TR',EN:'en-GB',DE:'de-DE',FR:'fr-FR',ES:'es-ES',RU:'ru-RU',ZH:'zh-CN',AR:'ar',KU:'ku'} as Record<string,string>)[this.ui.currentLang()]||'tr-TR'; return Number.isNaN(date.getTime()) ? this.t().campaignsPage.unspecified : new Intl.DateTimeFormat(loc, { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date); }
+  discountLabel(n:number){return String(this.t().campaignsPage.discount||'').replace('{n}', String(n));}
+  savingAmount(campaign:CampaignRecord){return String(this.t().campaignsPage.saving||'').replace('{amount}', this.formatPrice(this.campaignSavings(campaign)));}
+  savingPct(n:number){return String(this.t().campaignsPage.savingPct||'').replace('{n}', String(n));}
+  deadlineLabel(value:string){return String(this.t().campaignsPage.deadline||'').replace('{date}', this.formatDeadline(value));}
   private isLive(item: CampaignRecord): boolean { const now = Date.now(); const start = item.startsAt ? new Date(item.startsAt).getTime() : Number.NEGATIVE_INFINITY; const end = item.endsAt ? new Date(item.endsAt).getTime() : Number.POSITIVE_INFINITY; return item.isActive && item.publicationStatus === "PUBLISHED" && (!item.startsAt || start <= now) && (!item.endsAt || end > now); }
 }

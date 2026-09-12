@@ -5,6 +5,7 @@ import { Car } from '../models/car.model';
 import { TurkishCurrencyPipe } from '../pipes/turkish-currency.pipe';
 import { CampaignRecord } from '../services/campaign.service';
 import { RentalCampaignPricingService } from '../services/rental-campaign-pricing.service';
+import { UiService } from '../services/ui.service';
 
 @Component({
   selector: 'app-rental-vehicle-card-v167',
@@ -18,18 +19,18 @@ import { RentalCampaignPricingService } from '../services/rental-campaign-pricin
           <img [src]="imageUrl()" [alt]="title()" loading="lazy" decoding="async" (error)="imageFailed($event)" />
           <div class="media-shade" aria-hidden="true"></div>
           <span class="stock">{{ stockLabel() }}</span>
-          <span class="availability" [class.closed]="!available">{{ available ? 'MÜSAİT' : 'ŞU AN DOLU' }}</span>
+          <span class="availability" [class.closed]="!available">{{ available ? t().rentalCard.available : t().rentalCard.busy }}</span>
           @if (campaign && campaign.visibilityMode === 'EVERYWHERE') {
-            <span class="campaign">{{ campaign.badge || 'FIRSAT' }}</span>
+            <span class="campaign">{{ campaign.badge || t().rentalCard.deal }}</span>
           }
         </div>
 
         <div class="body">
-          <div class="title-row"><div><p>{{ car.type || 'Kiralık araç' }}</p><h2>{{ title() }}</h2></div>@if(car.year){<strong>{{car.year}}</strong>}</div>
-          <div class="chips" aria-label="Öne çıkan araç özellikleri">
+          <div class="title-row"><div><p>{{ car.type || t().rentalCard.rentalVehicle }}</p><h2>{{ title() }}</h2></div>@if(car.year){<strong>{{car.year}}</strong>}</div>
+          <div class="chips" [attr.aria-label]="t().rentalCard.featuresAria">
             @if(car.transmission){<span>{{car.transmission}}</span>}
             @if(car.fuel){<span>{{car.fuel}}</span>}
-            @if(car.seats){<span>{{car.seats}} kişi</span>}
+            @if(car.seats){<span>{{ seatsLabel() }}</span>}
             @if(car.driverOption){<span>{{driverLabel()}}</span>}
           </div>
 
@@ -37,15 +38,15 @@ import { RentalCampaignPricingService } from '../services/rental-campaign-pricin
 
           @if (campaignQuote(); as offer) {
             @if (offer.eligible && offer.discount > 0) {
-              <div class="offer"><span>{{campaign?.title}}</span><strong>{{offer.finalTotal|turkishCurrency}}</strong><small>{{offer.quantity}} {{ contextUnit() }} toplam · {{offer.discount|turkishCurrency}} avantaj</small></div>
+              <div class="offer"><span>{{campaign?.title}}</span><strong>{{offer.finalTotal|turkishCurrency}}</strong><small>{{ offerTotalAdv(offer.quantity, (offer.discount | turkishCurrency)) }}</small></div>
             } @else if (campaign && campaign.visibilityMode === 'EVERYWHERE') {
               <div class="offer conditions"><span>{{campaign.title}}</span><small>{{pricing.conditionLabel(campaign,pricing.contextFromParams(queryParams))}}</small></div>
             }
           }
 
           <div class="footer">
-            <div><small>{{ hourlyContext() ? 'Saatlik kiralama' : 'Günlük kiralama' }}</small><strong>{{ canonicalPrice() | turkishCurrency }}</strong></div>
-            <span>Aracı İncele <b aria-hidden="true">→</b></span>
+            <div><small>{{ hourlyContext() ? t().rentalCard.hourly : t().rentalCard.daily }}</small><strong>{{ canonicalPrice() | turkishCurrency }}</strong></div>
+            <span>{{ t().rentalCard.inspect }} <b aria-hidden="true">→</b></span>
           </div>
         </div>
       </article>
@@ -57,25 +58,32 @@ import { RentalCampaignPricingService } from '../services/rental-campaign-pricin
 })
 export class RentalVehicleCardV167Component {
   readonly pricing=inject(RentalCampaignPricingService);
+  private readonly ui=inject(UiService);
+  readonly t=this.ui.translations;
   @Input({required:true}) car!:Car;
   @Input() queryParams:Params={};
   @Input() branchLabel='';
   @Input() campaign:CampaignRecord|null=null;
   @Input() available=true;
 
-  title():string{return String(this.car.title||[this.car.brand,this.car.model,this.car.series].filter(Boolean).join(' ')||'Kiralık araç').trim();}
-  stockLabel():string{return this.car.cloudStockCode?`ARAÇ NO ${this.car.cloudStockCode}`:`ARAÇ NO ${String(this.car.id)}`;}
-  locationLabel():string{return String(this.car.location||this.car.branchDistrict||this.car.branchCity||'').trim()||'Konum için bizimle iletişime geçin';}
+  title():string{return String(this.car.title||[this.car.brand,this.car.model,this.car.series].filter(Boolean).join(' ')||this.t().rentalCard.rentalVehicle).trim();}
+  stockLabel():string{const code=this.car.cloudStockCode||String(this.car.id);return String(this.t().rentalCard.stock||'').replace('{code}', String(code));}
+  locationLabel():string{return String(this.car.location||this.car.branchDistrict||this.car.branchCity||'').trim()||this.t().rentalCard.locationFallback;}
   canonicalPrice():number{return this.hourlyContext()?Number(this.car.hourlyPrice||0):Number(this.car.price||0);}
   hourlyContext():boolean{return this.queryParams?.['duration']==='hourly'&&this.car.hourlyRentalEnabled===true&&Number(this.car.hourlyPrice||0)>0;}
   campaignQuote(){return this.pricing.quote(this.car,this.campaign,this.pricing.contextFromParams(this.queryParams));}
   detailParams():Params{return{...this.queryParams,...(this.campaign?{campaign:this.campaign.id}:{})};}
-  contextUnit():string{return this.hourlyContext()?'saat':'gün';}
-  driverLabel():string{return this.car.driverOption==='WITH_DRIVER'?'Şoförlü':this.car.driverOption==='WITHOUT_DRIVER'?'Şoförsüz':'Şoförlü / şoförsüz';}
+  contextUnit():string{return this.hourlyContext()?this.t().rentalCard.hourUnit:this.t().rentalCard.dayUnit;}seatsLabel():string{return String(this.t().rentalCard.seats||'').replace('{n}', String(this.car.seats||''));}
+  driverLabel():string{const r=this.t().rentalCard;return this.car.driverOption==='WITH_DRIVER'?r.withDriver:this.car.driverOption==='WITHOUT_DRIVER'?r.withoutDriver:r.bothDrivers;}
   imageUrl():string{return this.car.images?.[0]||this.car.image||'/vehicle-placeholder.svg';}
   ariaLabel():string{
-    const details=[this.title(),this.available?'müsait':'şu an dolu',this.car.year?`${this.car.year} model`:'',this.car.transmission||'',this.car.fuel||'',this.locationLabel(),`${this.canonicalPrice()} Türk lirası ${this.hourlyContext()?'saatlik':'günlük'} kiralama`].filter(Boolean);
-    return `${details.join(', ')}. Aracı incele`;
+    const r=this.t().rentalCard;
+    const avail=this.available?r.ariaAvailable:r.ariaBusy;
+    const model=this.car.year?String(r.ariaModel||'').replace('{year}', String(this.car.year)):'';
+    const priceKey=this.hourlyContext()?'ariaPriceHourly':'ariaPriceDaily';
+    const price=String(r[priceKey]||'').replace('{price}', String(this.canonicalPrice()));
+    const details=[this.title(),avail,model,this.car.transmission||'',this.car.fuel||'',this.locationLabel(),price].filter(Boolean);
+    return `${details.join(', ')}. ${r.ariaInspect}`;
   }
   imageFailed(event:Event):void{const image=event.target as HTMLImageElement;image.onerror=null;image.src='/vehicle-placeholder.svg';}
 }

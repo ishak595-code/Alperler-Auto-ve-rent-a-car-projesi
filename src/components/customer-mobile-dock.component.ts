@@ -3,6 +3,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { NavigationEnd, Router, RouterLink } from "@angular/router";
 import { NavigationConfigService, NavigationItem } from "../services/navigation-config.service";
 import { isDockItemCurrent, shouldRenderMobileDock } from "../services/mobile-dock-route-policy";
+import { UiService } from "../services/ui.service";
 
 @Component({
   selector: "app-customer-mobile-dock",
@@ -15,7 +16,7 @@ import { isDockItemCurrent, shouldRenderMobileDock } from "../services/mobile-do
         [class.dock-auto-hidden]="autoHidden()"
         [attr.aria-hidden]="autoHidden() ? 'true' : null"
         [attr.inert]="autoHidden() ? '' : null"
-        aria-label="Alt hızlı menü"
+        [attr.aria-label]="t().dock.ariaLabel"
       >
         @for (item of navigation.itemsFor('MOBILE_DOCK'); track item.id) {
           <a

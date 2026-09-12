@@ -14,6 +14,7 @@ import {
   ScalablePublicCatalogV217Service,
   TourCardV217,
 } from '../services/scalable-public-catalog-v217.service';
+import { UiService } from '../services/ui.service';
 
 type FavoriteViewV217={
   key:string;
@@ -35,16 +36,16 @@ type FavoriteViewV217={
     <main class="page">
       <header class="top">
         <div class="shell">
-          <button type="button" (click)="back()" aria-label="Geri dön"><mat-icon>arrow_back</mat-icon></button>
+          <button type="button" (click)="back()" [attr.aria-label]="t().favoritesPage.backAria"><mat-icon>arrow_back</mat-icon></button>
           <div>
-            <p>ALPERLER HESABIM</p>
-            <h1>Favorilerim</h1>
-            <span>Beğendiğiniz araçları, turları ve rehber yazılarını tek yerde saklayın.</span>
+            <p>{{ t().favoritesPage.kicker }}</p>
+            <h1>{{ t().favoritesPage.title }}</h1>
+            <span>{{ t().favoritesPage.subtitle }}</span>
           </div>
         </div>
       </header>
 
-      <nav class="tabs shell" aria-label="Favori türleri">
+      <nav class="tabs shell" [attr.aria-label]="t().favoritesPage.tabsAria">
         @for(tab of tabs;track tab.value){
           <button type="button" [class.active]="filter()===tab.value" [attr.aria-pressed]="filter()===tab.value" (click)="select(tab.value)">
             <mat-icon>{{tab.icon}}</mat-icon>{{tab.label}}
@@ -53,18 +54,18 @@ type FavoriteViewV217={
       </nav>
 
       <section class="summary shell" aria-live="polite">
-        <strong>{{items().length}} kayıt</strong>
+        <strong>{{ countLabel() }}</strong>
         @if(loading()){
-          <span>Favorileriniz hazırlanıyor.</span>
+          <span>{{ t().favoritesPage.preparing }}</span>
         }@else if(!error()){
-          <span>Kaydettikleriniz burada otomatik olarak görünür.</span>
+          <span>{{ t().favoritesPage.readyHint }}</span>
         }
       </section>
 
       <section class="grid shell" aria-live="polite">
         @for(item of items();track item.key){
           <article class="card">
-            <a [routerLink]="item.route" class="open" [attr.aria-label]="item.title+' detayını aç'">
+            <a [routerLink]="item.route" class="open" [attr.aria-label]="openDetailAria(item.title)">
               <div class="media">
                 @if(item.image){<img [src]="item.image" [alt]="item.title" loading="lazy" decoding="async"/>}
                 @else{<mat-icon>{{iconFor(item.type)}}</mat-icon>}
@@ -74,10 +75,10 @@ type FavoriteViewV217={
                 <h2>{{item.title}}</h2>
                 <p>{{item.meta}}</p>
                 @if(item.price){<strong>{{item.price}}</strong>}
-                <span>İncele <mat-icon>arrow_forward</mat-icon></span>
+                <span>{{ t().favoritesPage.inspect }} <mat-icon>arrow_forward</mat-icon></span>
               </div>
             </a>
-            <button type="button" class="heart" (click)="remove(item)" [attr.aria-label]="item.title+' favorilerden çıkar'">
+            <button type="button" class="heart" (click)="remove(item)" [attr.aria-label]="removeAria(item.title)">
               <mat-icon>favorite</mat-icon>
             </button>
           </article>
@@ -85,9 +86,9 @@ type FavoriteViewV217={
           @if(!loading()&&!error()){
             <div class="empty">
               <mat-icon>favorite_border</mat-icon>
-              <strong>Henüz favoriniz yok</strong>
-              <span>Araç, tur veya blog kartlarındaki kalp simgesine dokunarak kaydedebilirsiniz.</span>
-              <div><a routerLink="/fleet">Araçlar</a><a routerLink="/tours">Turlar</a><a routerLink="/blog">Blog</a></div>
+              <strong>{{ t().favoritesPage.emptyTitle }}</strong>
+              <span>{{ t().favoritesPage.emptyHint }}</span>
+              <div><a routerLink="/fleet">{{ t().favoritesPage.linkVehicles }}</a><a routerLink="/tours">{{ t().favoritesPage.linkTours }}</a><a routerLink="/blog">{{ t().favoritesPage.linkBlog }}</a></div>
             </div>
           }
         }
@@ -96,13 +97,13 @@ type FavoriteViewV217={
       @if(error()){
         <div class="error shell" role="status">
           <mat-icon>cloud_sync</mat-icon>
-          <strong>Favorilerinize şu anda ulaşılamıyor</strong>
-          <span>Kayıtlarınız güvende. Bağlantı kısa süre içinde otomatik olarak yeniden kontrol edilecek.</span>
+          <strong>{{ t().favoritesPage.errorTitle }}</strong>
+          <span>{{ t().favoritesPage.errorHint }}</span>
         </div>
       }
 
       @if(hasMore()&&!error()){
-        <div class="load"><button type="button" (click)="loadMore()" [disabled]="loading()">{{loading()?'Hazırlanıyor...':'Daha Fazla Göster'}}</button></div>
+        <div class="load"><button type="button" (click)="loadMore()" [disabled]="loading()">{{loading()?t().favoritesPage.loading:t().favoritesPage.loadMore}}</button></div>
       }
     </main>
   `,
@@ -114,17 +115,19 @@ export class FavoritesV217Component implements OnInit {
   private readonly favorites=inject(CustomerFavoritesV217Service);
   private readonly data=inject(ScalablePublicCatalogV217Service);
   private readonly location=inject(Location);
+  private readonly ui=inject(UiService);
+  readonly t=this.ui.translations;
   readonly items=signal<FavoriteViewV217[]>([]);
   readonly loading=signal(false);
   readonly error=signal(false);
   readonly hasMore=signal(false);
   readonly filter=signal<FavoriteFilterV217>('ALL');
-  readonly tabs=[
-    {value:'ALL' as const,label:'Tümü',icon:'favorite'},
-    {value:'VEHICLE' as const,label:'Araçlar',icon:'directions_car'},
-    {value:'TOUR' as const,label:'Turlar',icon:'landscape'},
-    {value:'BLOG' as const,label:'Blog',icon:'article'},
-  ];
+  get tabs(){const f=this.t().favoritesPage;return[
+    {value:'ALL' as const,label:f.tabAll,icon:'favorite'},
+    {value:'VEHICLE' as const,label:f.tabVehicles,icon:'directions_car'},
+    {value:'TOUR' as const,label:f.tabTours,icon:'landscape'},
+    {value:'BLOG' as const,label:f.tabBlog,icon:'article'},
+  ];}
   private page=0;
   private automaticRecoveryAttempts=0;
 
@@ -240,8 +243,8 @@ export class FavoritesV217Component implements OnInit {
       title:car.title||[car.brand,car.model,car.series,car.year].filter(Boolean).join(' '),
       meta:[car.year,car.transmission,car.fuel,car.location].filter(Boolean).join(' · '),
       image:String(car.image||car.images?.[0]||''),
-      badge:sale?'SATILIK':'KİRALIK',
-      price:car.price?`${new Intl.NumberFormat('tr-TR').format(Number(car.price))} TL${sale?'':' / gün'}`:'',
+      badge:sale?this.t().favoritesPage.badgeSale:this.t().favoritesPage.badgeRent,
+      price:car.price?`${new Intl.NumberFormat('tr-TR').format(Number(car.price))} TL${sale?'':this.t().favoritesPage.perDay}`:'',
       route:[sale?'/sales':'/fleet',car.cloudSlug||car.cloudId||car.id],
     };
   }
@@ -251,11 +254,11 @@ export class FavoritesV217Component implements OnInit {
       key:`TOUR:${storedId}`,
       type:'TOUR',
       entityId:storedId,
-      title:String(tour.title||'Tur'),
+      title:String(tour.title||this.t().favoritesPage.tourFallback),
       meta:[tour.duration,tour.locationName||tour.meetingPoint].filter(Boolean).join(' · '),
       image:String(tour.image||''),
-      badge:'TUR',
-      price:tour.price?`${new Intl.NumberFormat('tr-TR').format(Number(tour.price))} TL / kişi`:'',
+      badge:this.t().favoritesPage.badgeTour,
+      price:tour.price?`${new Intl.NumberFormat('tr-TR').format(Number(tour.price))} TL${this.t().favoritesPage.perPerson}`:'',
       route:['/tour',tour.cloudSlug||tour.cloudId||tour.id],
     };
   }
@@ -268,7 +271,7 @@ export class FavoritesV217Component implements OnInit {
       title:blog.title,
       meta:[blog.date,blog.authorName,blog.readTime].filter(Boolean).join(' · '),
       image:String(blog.image||''),
-      badge:'BLOG',
+      badge:this.t().favoritesPage.badgeBlog,
       price:'',
       route:['/blog',blog.cloudSlug||blog.cloudId],
     };

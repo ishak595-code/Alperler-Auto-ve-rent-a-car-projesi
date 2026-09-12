@@ -13,48 +13,48 @@ import { NavigationConfigService } from "../services/navigation-config.service";
   standalone: true,
   imports: [CommonModule, RouterLink, RouterLinkActive, MatIconModule],
   template: `
-    <nav class="site-navbar" aria-label="Ana navigasyon">
+    <nav class="site-navbar" [attr.aria-label]="t().nav.mainAria">
       <div class="navbar-shell">
         <div class="navbar-row">
-          <a routerLink="/" aria-label="Alperler Rent A Car ana sayfa" class="brand-link">
+          <a routerLink="/" [attr.aria-label]="t().nav.homeAria" class="brand-link">
             @if (config().logoUrl) {
               <img [src]="config().logoUrl" alt="Alperler Rent A Car" class="brand-logo" />
             } @else {
               <span class="brand-lockup">
                 <span class="brand-mark" aria-hidden="true">A</span>
-                <span class="brand-copy"><strong class="brand-name">Alperler Rent A Car</strong><small class="brand-sub">Kiralama • Satış • Tur</small></span>
+                <span class="brand-copy"><strong class="brand-name">Alperler Rent A Car</strong><small class="brand-sub">{{ t().nav.brandSub }}</small></span>
               </span>
             }
           </a>
 
-          <div class="desktop-nav" aria-label="Masaüstü site menüsü">
+          <div class="desktop-nav" [attr.aria-label]="t().nav.desktopMenuAria">
             @for (item of navigation.itemsFor('MOBILE_MENU'); track item.id) {
               <a [routerLink]="item.route" [routerLinkActiveOptions]="{ exact: item.route === '/' }" routerLinkActive="nav-link-active" class="nav-link" [attr.aria-label]="item.label">{{ item.label }}</a>
             }
           </div>
 
           <div class="navbar-actions">
-            <button type="button" (click)="toggleLangMenu()" aria-label="Dil seçimi" [attr.aria-expanded]="isLangMenuOpen()" class="desktop-control language-trigger">{{ uiService.currentLang() }}</button>
+            <button type="button" (click)="toggleLangMenu()" [attr.aria-label]="t().nav.languageSelect" [attr.aria-expanded]="isLangMenuOpen()" class="desktop-control language-trigger">{{ uiService.currentLang() }}</button>
             @if (isLangMenuOpen()) {
               <div role="menu" class="language-menu">
                 @for (lang of languages; track lang) { <button type="button" role="menuitem" (click)="setLang(lang)" class="language-option">{{ langName(lang) }}</button> }
               </div>
             }
-            <a routerLink="/fleet" [queryParams]="{ favs: 'true' }" aria-label="Favoriler" class="desktop-control icon-control"><mat-icon aria-hidden="true">favorite_border</mat-icon></a>
+            <a routerLink="/fleet" [queryParams]="{ favs: 'true' }" [attr.aria-label]="t().common.favorites" class="desktop-control icon-control"><mat-icon aria-hidden="true">favorite_border</mat-icon></a>
 
             @if (!customerAuth.isLoggedIn()) {
-              <a routerLink="/account/login" aria-label="Giriş yap veya kayıt ol" class="auth-entry">
-                <mat-icon aria-hidden="true">person_outline</mat-icon><span>Giriş / Kayıt</span>
+              <a routerLink="/account/login" [attr.aria-label]="t().nav.loginRegisterAria" class="auth-entry">
+                <mat-icon aria-hidden="true">person_outline</mat-icon><span>{{ t().nav.loginRegister }}</span>
               </a>
             } @else {
-              <a routerLink="/account" aria-label="Hesabım" class="account-entry">
+              <a routerLink="/account" [attr.aria-label]="t().nav.myAccount" class="account-entry">
                 @if (customerAccount.profile()?.avatar_url) { <img class="account-avatar" [src]="customerAccount.profile()?.avatar_url" alt="" aria-hidden="true" /> } @else { <mat-icon aria-hidden="true">account_circle</mat-icon> }
                 <span>{{ accountLabel() }}</span>
               </a>
             }
 
             @if (navigation.mobileMenuEnabled()) {
-              <button id="mobile-menu-trigger" type="button" (click)="toggleMenu()" [attr.aria-label]="isMenuOpen() ? 'Menüyü kapat' : 'Menüyü aç'" [attr.aria-expanded]="isMenuOpen()" [attr.aria-controls]="isMenuOpen() ? 'mobile-navigation' : null" class="mobile-menu-trigger"><mat-icon aria-hidden="true">{{ isMenuOpen() ? 'close' : 'menu' }}</mat-icon></button>
+              <button id="mobile-menu-trigger" type="button" (click)="toggleMenu()" [attr.aria-label]="isMenuOpen() ? t().nav.closeMenu : t().nav.openMenu" [attr.aria-expanded]="isMenuOpen()" [attr.aria-controls]="isMenuOpen() ? 'mobile-navigation' : null" class="mobile-menu-trigger"><mat-icon aria-hidden="true">{{ isMenuOpen() ? 'close' : 'menu' }}</mat-icon></button>
             }
           </div>
         </div>
@@ -62,27 +62,27 @@ import { NavigationConfigService } from "../services/navigation-config.service";
     </nav>
 
     @if (navigation.mobileMenuEnabled() && isMenuOpen()) {
-      <nav id="mobile-navigation" aria-label="Mobil navigasyon" class="mobile-navigation">
+      <nav id="mobile-navigation" [attr.aria-label]="t().nav.mobileNavAria" class="mobile-navigation">
         <div class="mobile-menu-shell">
-          <div class="mobile-menu-intro"><p class="menu-kicker">Alperler Rent A Car</p><p>Kiralama, satış, tur ve diğer hizmetlere buradan ulaşın.</p></div>
+          <div class="mobile-menu-intro"><p class="menu-kicker">Alperler Rent A Car</p><p>{{ t().nav.mobileIntro }}</p></div>
           <div class="mobile-menu-card">
             @for (item of navigation.itemsFor('MOBILE_MENU'); track item.id; let first=$first; let last=$last) {
               <a [id]="first ? 'mobile-menu-first-link' : null" [routerLink]="item.route" (click)="closeMenu(false)" class="menu-row" [class.last]="last" [attr.aria-label]="item.label"><mat-icon aria-hidden="true">{{ item.icon }}</mat-icon><span>{{ item.label }}</span></a>
             }
           </div>
-          <div class="mobile-menu-card mobile-account-card" aria-label="Kişisel ayarlar">
-            <a [routerLink]="customerAuth.isLoggedIn() ? '/account' : '/account/login'" (click)="closeMenu(false)" class="menu-row" [attr.aria-label]="customerAuth.isLoggedIn() ? 'Hesabım' : 'Giriş yap veya kayıt ol'">
+          <div class="mobile-menu-card mobile-account-card" [attr.aria-label]="t().nav.personalSettings">
+            <a [routerLink]="customerAuth.isLoggedIn() ? '/account' : '/account/login'" (click)="closeMenu(false)" class="menu-row" [attr.aria-label]="customerAuth.isLoggedIn() ? t().nav.myAccount : t().nav.loginRegisterAria">
               @if (customerAuth.isLoggedIn() && customerAccount.profile()?.avatar_url) { <img class="menu-avatar" [src]="customerAccount.profile()?.avatar_url" alt="" aria-hidden="true" /> } @else { <mat-icon aria-hidden="true">{{ customerAuth.isLoggedIn() ? 'account_circle' : 'person_outline' }}</mat-icon> }
-              <span>{{ customerAuth.isLoggedIn() ? accountLabel() : 'Giriş Yap / Kayıt Ol' }}</span>
+              <span>{{ customerAuth.isLoggedIn() ? accountLabel() : t().nav.loginRegisterLong }}</span>
             </a>
-            <a routerLink="/fleet" [queryParams]="{ favs:'true' }" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">favorite_border</mat-icon><span>Favoriler</span>@if (favoriteCount() > 0) { <strong class="menu-count" [attr.aria-label]="favoriteCount() + ' favori'">{{ favoriteCount() > 99 ? '99+' : favoriteCount() }}</strong> }</a>
-            <button type="button" class="menu-row last" (click)="toggleMobileLanguage()" [attr.aria-expanded]="mobileLanguageOpen()" aria-controls="mobile-language-options"><mat-icon aria-hidden="true">language</mat-icon><span>Dil: {{ langName(uiService.currentLang()) }}</span><mat-icon aria-hidden="true" class="expand-icon" [class.expanded]="mobileLanguageOpen()">expand_more</mat-icon></button>
+            <a routerLink="/fleet" [queryParams]="{ favs:'true' }" (click)="closeMenu(false)" class="menu-row"><mat-icon aria-hidden="true">favorite_border</mat-icon><span>{{ t().common.favorites }}</span>@if (favoriteCount() > 0) { <strong class="menu-count" [attr.aria-label]="favoritesCountLabel()">{{ favoriteCount() > 99 ? '99+' : favoriteCount() }}</strong> }</a>
+            <button type="button" class="menu-row last" (click)="toggleMobileLanguage()" [attr.aria-expanded]="mobileLanguageOpen()" aria-controls="mobile-language-options"><mat-icon aria-hidden="true">language</mat-icon><span>{{ t().nav.language }}: {{ langName(uiService.currentLang()) }}</span><mat-icon aria-hidden="true" class="expand-icon" [class.expanded]="mobileLanguageOpen()">expand_more</mat-icon></button>
             @if (mobileLanguageOpen()) {
-              <div id="mobile-language-options" class="mobile-language-grid" aria-label="Dil seçenekleri">
+              <div id="mobile-language-options" class="mobile-language-grid" [attr.aria-label]="t().nav.languageOptions">
                 @for (lang of languages; track lang) { <button type="button" (click)="setMobileLang(lang)" [attr.aria-pressed]="uiService.currentLang()===lang" class="mobile-language-option"><strong>{{ lang }}</strong><span>{{ langName(lang) }}</span></button> }
               </div>
             }
-            <a routerLink="/admin/login" (click)="closeMenu(false)" class="menu-row admin-entry" aria-label="Yönetici girişi"><mat-icon aria-hidden="true">admin_panel_settings</mat-icon><span>Yönetici Girişi</span></a>
+            <a routerLink="/admin/login" (click)="closeMenu(false)" class="menu-row admin-entry" [attr.aria-label]="t().nav.adminLogin"><mat-icon aria-hidden="true">admin_panel_settings</mat-icon><span>{{ t().nav.adminLogin }}</span></a>
           </div>
         </div>
       </nav>
@@ -99,7 +99,7 @@ import { NavigationConfigService } from "../services/navigation-config.service";
   `],
 })
 export class NavbarComponent implements OnDestroy {
-  carService=inject(CarService);customerAuth=inject(CustomerAuthService);customerAccount=inject(CustomerAccountService);uiService=inject(UiService);navigation=inject(NavigationConfigService);router=inject(Router);config=this.carService.getConfig();favoriteCount=this.carService.getFavoriteCount;
+  carService=inject(CarService);customerAuth=inject(CustomerAuthService);customerAccount=inject(CustomerAccountService);uiService=inject(UiService);t=this.uiService.translations;navigation=inject(NavigationConfigService);router=inject(Router);config=this.carService.getConfig();favoriteCount=this.carService.getFavoriteCount;
   isMenuOpen=signal(false);isLangMenuOpen=signal(false);mobileLanguageOpen=signal(false);languages:Language[]=["TR","EN","DE","FR","KU","ES","RU","ZH","AR"];
   constructor(){
     effect(()=>{if(!this.navigation.mobileMenuEnabled())this.closeMenu(false);});
@@ -107,7 +107,8 @@ export class NavbarComponent implements OnDestroy {
     this.router.events.subscribe(event=>{if(event instanceof NavigationEnd)this.closeMenu(false);});
   }
   ngOnDestroy():void{this.setDocumentMenuOpen(false);}
-  accountLabel():string{const fullName=String(this.customerAccount.profile()?.full_name||'').trim();return fullName?fullName.split(/\s+/)[0]:'Hesabım';}
+  accountLabel():string{const fullName=String(this.customerAccount.profile()?.full_name||'').trim();return fullName?fullName.split(/\s+/)[0]:this.t().nav.myAccount;}
+  favoritesCountLabel():string{return String(this.t().nav.favoritesCount||'').replace('{n}', String(this.favoriteCount()));}
   toggleMenu():void{this.isMenuOpen()?this.closeMenu(false):this.openMenu();}
   openMenu():void{if(this.isMenuOpen())return;this.isLangMenuOpen.set(false);this.mobileLanguageOpen.set(false);this.isMenuOpen.set(true);this.setDocumentMenuOpen(true);this.focusElement("mobile-menu-first-link");}
   closeMenu(restoreFocus=false):void{if(!this.isMenuOpen()){this.setDocumentMenuOpen(false);return;}this.isMenuOpen.set(false);this.mobileLanguageOpen.set(false);this.setDocumentMenuOpen(false);if(restoreFocus)this.focusElement("mobile-menu-trigger");}

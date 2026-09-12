@@ -3,6 +3,7 @@ import { Component, inject } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { Router, RouterLink } from "@angular/router";
 import { CarService } from "../services/car.service";
+import { UiService } from "../services/ui.service";
 
 @Component({
   selector: "app-about",
@@ -12,21 +13,21 @@ import { CarService } from "../services/car.service";
     <main class="about-root">
       <header class="module-head">
         <div class="head-inner">
-          <button type="button" (click)="goBack()" aria-label="Geri" class="back-button"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
-          <div><p>AlperAuto</p><h1>Hakkımızda</h1></div>
+          <button type="button" (click)="goBack()" [attr.aria-label]="t().aboutPage.backAria" class="back-button"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
+          <div><p>AlperAuto</p><h1>{{ t().aboutPage.title }}</h1></div>
         </div>
       </header>
 
       <section class="hero" aria-labelledby="about-title">
         <div class="hero-glow" aria-hidden="true"></div>
         <div class="hero-inner">
-          <p class="eyebrow">Kiralama · Satış · Transfer · Tur</p>
-          <h2 id="about-title">{{ config().aboutTitle || 'Araç, yolculuk ve seyahatte tek noktadan çözüm' }}</h2>
-          <p class="hero-copy">İnsanların ve kurumların doğru araca, doğru bilgiye ve doğru hizmete daha az uğraşla ulaşabilmesi için çalışıyoruz.</p>
-          <div class="hero-actions" aria-label="Hizmetlere hızlı erişim">
-            <a routerLink="/fleet">Kiralık Araçlar</a>
-            <a routerLink="/sales">Satılık Araçlar</a>
-            <a routerLink="/tours">Turlar</a>
+          <p class="eyebrow">{{ t().aboutPage.eyebrow }}</p>
+          <h2 id="about-title">{{ config().aboutTitle || t().aboutPage.titleFallback }}</h2>
+          <p class="hero-copy">{{ t().aboutPage.heroCopy }}</p>
+          <div class="hero-actions" [attr.aria-label]="t().aboutPage.servicesAria">
+            <a routerLink="/fleet">{{ t().aboutPage.linkRental }}</a>
+            <a routerLink="/sales">{{ t().aboutPage.linkSales }}</a>
+            <a routerLink="/tours">{{ t().aboutPage.linkTours }}</a>
           </div>
         </div>
       </section>
@@ -34,8 +35,8 @@ import { CarService } from "../services/car.service";
       <section class="story" aria-labelledby="mission-title">
         <div class="story-inner">
           <div class="story-heading">
-            <p class="eyebrow dark">Neden Varız?</p>
-            <h2 id="mission-title">Bir araçtan fazlası, ihtiyaca uygun çözüm.</h2>
+            <p class="eyebrow dark">{{ t().aboutPage.whyEyebrow }}</p>
+            <h2 id="mission-title">{{ t().aboutPage.whyTitle }}</h2>
           </div>
           <div class="story-copy">{{ config().aboutText }}</div>
         </div>
@@ -43,18 +44,18 @@ import { CarService } from "../services/car.service";
 
       <section class="solutions" aria-labelledby="solutions-title">
         <div class="section-inner">
-          <div class="section-heading"><p class="eyebrow dark">Tek Platform</p><h2 id="solutions-title">İhtiyacınız değişse de çözüm aynı yerde.</h2></div>
+          <div class="section-heading"><p class="eyebrow dark">{{ t().aboutPage.platformEyebrow }}</p><h2 id="solutions-title">{{ t().aboutPage.platformTitle }}</h2></div>
           <div class="solution-grid">
-            <article><span aria-hidden="true"><mat-icon>key</mat-icon></span><h3>Araç Kiralama</h3><p>Günlük, uzun dönem, şoförlü veya özel gün ihtiyaçlarında uygun seçenekleri daha kolay karşılaştırın.</p><a routerLink="/fleet">Kiralık araçları gör</a></article>
-            <article><span aria-hidden="true"><mat-icon>directions_car</mat-icon></span><h3>Alım, Satım ve Değerleme</h3><p>Satılık araçları inceleyin veya kendi aracınızı satış ve kiralama filosu için değerlendirmeye gönderin.</p><a routerLink="/sales">Satılık araçları gör</a></article>
-            <article><span aria-hidden="true"><mat-icon>explore</mat-icon></span><h3>Tur ve Transfer</h3><p>Yerel saha bilgisiyle özel rotaları, transferleri ve bölgesel seyahat seçeneklerini tek yerden planlayın.</p><a routerLink="/tours">Turları keşfet</a></article>
+            <article><span aria-hidden="true"><mat-icon>key</mat-icon></span><h3>{{ t().aboutPage.solRentalTitle }}</h3><p>{{ t().aboutPage.solRentalBody }}</p><a routerLink="/fleet">{{ t().aboutPage.solRentalLink }}</a></article>
+            <article><span aria-hidden="true"><mat-icon>directions_car</mat-icon></span><h3>{{ t().aboutPage.solSaleTitle }}</h3><p>{{ t().aboutPage.solSaleBody }}</p><a routerLink="/sales">{{ t().aboutPage.solSaleLink }}</a></article>
+            <article><span aria-hidden="true"><mat-icon>explore</mat-icon></span><h3>{{ t().aboutPage.solTourTitle }}</h3><p>{{ t().aboutPage.solTourBody }}</p><a routerLink="/tours">{{ t().aboutPage.solTourLink }}</a></article>
           </div>
         </div>
       </section>
 
       <section class="team-section" aria-labelledby="team-title">
         <div class="section-inner">
-          <div class="section-heading center"><p class="eyebrow">AlperAuto Ekibi</p><h2 id="team-title">Yerel bilgi, ortak sorumluluk.</h2><p>Hizmetin dijital taraftan saha operasyonuna kadar tek ekip anlayışıyla ilerlemesini hedefliyoruz.</p></div>
+          <div class="section-heading center"><p class="eyebrow">{{ t().aboutPage.teamEyebrow }}</p><h2 id="team-title">{{ t().aboutPage.teamTitle }}</h2><p>{{ t().aboutPage.teamCopy }}</p></div>
           <div class="team-grid">
             @for (member of config().team; track member.id) {
               <article class="team-card">
@@ -73,8 +74,8 @@ import { CarService } from "../services/car.service";
       </section>
 
       <section class="closing" aria-labelledby="closing-title">
-        <div><p class="eyebrow">AlperAuto</p><h2 id="closing-title">Daha az belirsizlik, daha hızlı çözüm.</h2><p>Bireysel veya kurumsal ihtiyacınızı anlatın. Doğru araç, satış, transfer ya da tur seçeneğine birlikte ulaşalım.</p></div>
-        <a routerLink="/contact">Bize Ulaşın <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>
+        <div><p class="eyebrow">AlperAuto</p><h2 id="closing-title">{{ t().aboutPage.closingTitle }}</h2><p>{{ t().aboutPage.closingCopy }}</p></div>
+        <a routerLink="/contact">{{ t().aboutPage.contactCta }} <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>
       </section>
     </main>
   `,
@@ -86,6 +87,8 @@ export class AboutComponent {
   private readonly carService = inject(CarService);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   readonly config = this.carService.getConfig();
 
   initials(name: string): string {

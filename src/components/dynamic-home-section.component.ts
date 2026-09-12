@@ -6,6 +6,7 @@ import { VehicleListItemComponent } from './vehicle-list-item.component';
 import { CampaignRecord, CampaignService } from '../services/campaign.service';
 import { HomepageLayoutService, PublicHomepageSection } from '../services/homepage-layout.service';
 import { PublicDetailDataService } from '../services/public-detail-data.service';
+import { UiService } from '../services/ui.service';
 
 @Component({selector:'app-dynamic-home-section',standalone:true,imports:[CommonModule,MatIconModule,RouterLink,VehicleListItemComponent],template:`
 @if(shouldRender()){
@@ -15,9 +16,9 @@ import { PublicDetailDataService } from '../services/public-detail-data.service'
   <div class="section-error" role="alert">
    <div class="error-icon"><mat-icon aria-hidden="true">cloud_off</mat-icon></div>
    <div class="error-copy">
-    <h3>{{section.title}} yüklenemedi</h3>
-    <p>İçerik geçici olarak yüklenemedi. Lütfen sayfayı yenileyin veya birkaç dakika sonra tekrar deneyin.</p>
-    <button type="button" class="retry-button" (click)="retrySection()" aria-label="{{section.title}} bölümünü yeniden yükle"><mat-icon aria-hidden="true">refresh</mat-icon>Tekrar Dene</button>
+    <h3>{{ loadFailedTitle() }}</h3>
+    <p>{{ t().homeSection.loadFailedBody }}</p>
+    <button type="button" class="retry-button" (click)="retrySection()" [attr.aria-label]="retryAria()"><mat-icon aria-hidden="true">refresh</mat-icon>{{ t().homeSection.retry }}</button>
    </div>
   </div>
  }@else if(renderer()==='PARTNER'){

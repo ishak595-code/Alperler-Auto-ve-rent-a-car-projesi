@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { GlobalSearchKind, GlobalSearchResult, GlobalSearchService } from '../services/global-search.service';
+import { UiService } from '../services/ui.service';
 
 type SearchFilter = 'ALL' | 'VEHICLES' | 'TRAVEL' | 'CONTENT' | 'SERVICES';
 
@@ -16,15 +17,15 @@ type SearchFilter = 'ALL' | 'VEHICLES' | 'TRAVEL' | 'CONTENT' | 'SERVICES';
       <header class="search-head">
         <div class="search-shell">
           <div class="title-row">
-            <button type="button" class="back" (click)="goBack()" aria-label="Aramadan geri dön"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
-            <div><p>ALPERLER ARAMA</p><h1>Ne arıyorsunuz?</h1></div>
+            <button type="button" class="back" (click)="goBack()" [attr.aria-label]="t().searchPage.backAria"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
+            <div><p>{{ t().searchPage.kicker }}</p><h1>{{ t().searchPage.title }}</h1></div>
           </div>
           <label class="search-box" for="global-search-input">
             <mat-icon aria-hidden="true">search</mat-icon>
-            <input id="global-search-input" type="search" inputmode="search" autocomplete="off" [ngModel]="query()" (ngModelChange)="setQuery($event)" placeholder="Marka, model, araç no, tur, kampanya, blog veya hizmet ara" aria-describedby="search-status" />
-            @if (query().trim()) {<button type="button" (click)="clearQuery($event)" aria-label="Aramayı temizle"><mat-icon aria-hidden="true">close</mat-icon></button>}
+            <input id="global-search-input" type="search" inputmode="search" autocomplete="off" [ngModel]="query()" (ngModelChange)="setQuery($event)" [placeholder]="t().searchPage.placeholder" aria-describedby="search-status" />
+            @if (query().trim()) {<button type="button" (click)="clearQuery($event)" [attr.aria-label]="t().searchPage.clearAria"><mat-icon aria-hidden="true">close</mat-icon></button>}
           </label>
-          <div class="filters" role="group" aria-label="Arama sonucu türü">
+          <div class="filters" role="group" [attr.aria-label]="t().searchPage.filtersAria">
             @for (option of filters; track option.id) {
               <button type="button" (click)="setFilter(option.id)" [attr.aria-pressed]="filter() === option.id" [class.active]="filter() === option.id">{{ option.label }}</button>
             }
@@ -33,11 +34,11 @@ type SearchFilter = 'ALL' | 'VEHICLES' | 'TRAVEL' | 'CONTENT' | 'SERVICES';
       </header>
 
       <section class="results" aria-labelledby="search-results-title">
-        <div class="result-head"><div><h2 id="search-results-title">Sonuçlar</h2><p id="search-status" role="status" aria-live="polite">{{ statusText() }}</p></div>@if (results().length) {<strong>{{ results().length }}{{ hasMore() ? '+' : '' }}</strong>}</div>
+        <div class="result-head"><div><h2 id="search-results-title">{{ t().searchPage.resultsTitle }}</h2><p id="search-status" role="status" aria-live="polite">{{ statusText() }}</p></div>@if (results().length) {<strong>{{ results().length }}{{ hasMore() ? '+' : '' }}</strong>}</div>
         @if (loading()) {
-          <div class="state" role="status"><mat-icon aria-hidden="true">sync</mat-icon><strong>Güncel sonuçlar aranıyor</strong></div>
+          <div class="state" role="status"><mat-icon aria-hidden="true">sync</mat-icon><strong>{{ t().searchPage.searching }}</strong></div>
         } @else if (query().trim().length < 2) {
-          <div class="state intro"><mat-icon aria-hidden="true">manage_search</mat-icon><strong>Aramaya başlayın</strong><span>En az iki karakter yazın. Marka, model, stok veya araç numarası, tur, kampanya, blog ve hizmetler birlikte aranır.</span></div>
+          <div class="state intro"><mat-icon aria-hidden="true">manage_search</mat-icon><strong>{{ t().searchPage.startTitle }}</strong><span>{{ t().searchPage.startHint }}</span></div>
         } @else if (results().length) {
           <div class="result-grid">
             @for (item of results(); track item.key) {
@@ -50,16 +51,16 @@ type SearchFilter = 'ALL' | 'VEHICLES' | 'TRAVEL' | 'CONTENT' | 'SERVICES';
                   <div class="topline"><span>{{ kindLabel(item.kind) }}</span>@if (item.meta) {<small>{{ item.meta }}</small>}</div>
                   <h3>{{ item.title }}</h3>
                   @if (item.summary) {<p>{{ compact(item.summary) }}</p>}
-                  <strong>İncele <mat-icon aria-hidden="true">arrow_forward</mat-icon></strong>
+                  <strong>{{ t().searchPage.inspect }} <mat-icon aria-hidden="true">arrow_forward</mat-icon></strong>
                 </div>
               </a>
             }
           </div>
           @if (hasMore()) {
-            <button type="button" class="load-more" (click)="loadMore()" [disabled]="loadingMore()">{{ loadingMore() ? 'Yükleniyor...' : 'Daha Fazla Sonuç' }}</button>
+            <button type="button" class="load-more" (click)="loadMore()" [disabled]="loadingMore()">{{ loadingMore() ? t().searchPage.loading : t().searchPage.loadMore }}</button>
           }
         } @else {
-          <div class="state"><mat-icon aria-hidden="true">search_off</mat-icon><strong>Eşleşme bulunamadı</strong><span>Farklı bir marka, model, araç numarası, tur adı, kampanya veya hizmet adı deneyin.</span></div>
+          <div class="state"><mat-icon aria-hidden="true">search_off</mat-icon><strong>{{ t().searchPage.emptyTitle }}</strong><span>{{ t().searchPage.emptyHint }}</span></div>
         }
       </section>
     </main>
@@ -73,6 +74,8 @@ export class SearchComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   private debounceTimer?: ReturnType<typeof setTimeout>;
   private request?: AbortController;
   private requestSerial = 0;
@@ -83,20 +86,23 @@ export class SearchComponent implements OnInit, OnDestroy {
   readonly loadingMore = signal(false);
   readonly results = signal<GlobalSearchResult[]>([]);
   readonly hasMore = signal(false);
-  readonly filters = [
-    { id: 'ALL' as const, label: 'Tümü' },
-    { id: 'VEHICLES' as const, label: 'Araçlar' },
-    { id: 'TRAVEL' as const, label: 'Tur & Fırsat' },
-    { id: 'CONTENT' as const, label: 'Rehber' },
-    { id: 'SERVICES' as const, label: 'Hizmetler' },
-  ];
+  get filters(){const s=this.t().searchPage;return[
+    { id: 'ALL' as const, label: s.filterAll },
+    { id: 'VEHICLES' as const, label: s.filterVehicles },
+    { id: 'TRAVEL' as const, label: s.filterTravel },
+    { id: 'CONTENT' as const, label: s.filterContent },
+    { id: 'SERVICES' as const, label: s.filterServices },
+  ];}
 
   readonly statusText = computed(() => {
+    const s = this.t().searchPage;
     const value = this.query().trim();
-    if (this.loading()) return 'Güncel içerikler aranıyor.';
-    if (value.length < 2) return 'En az iki karakter yazın.';
-    if (!this.results().length) return 'Eşleşme bulunamadı.';
-    return this.hasMore() ? `İlk ${this.results().length} eşleşme gösteriliyor.` : `${this.results().length} eşleşme bulundu.`;
+    if (this.loading()) return s.statusSearching;
+    if (value.length < 2) return s.statusMinChars;
+    if (!this.results().length) return s.statusEmpty;
+    return this.hasMore()
+      ? String(s.statusPartial||'').replace('{n}', String(this.results().length))
+      : String(s.statusFound||'').replace('{n}', String(this.results().length));
   });
 
   constructor() {
@@ -143,7 +149,8 @@ export class SearchComponent implements OnInit, OnDestroy {
   goBack(): void { if (typeof window !== 'undefined' && window.history.length > 1) this.location.back(); else void this.router.navigate(['/']); }
 
   kindLabel(kind: GlobalSearchKind): string {
-    const labels: Record<GlobalSearchKind,string> = { RENTAL:'Kiralık araç',SALE:'Satılık araç',TOUR:'Tur',CAMPAIGN:'Kampanya',BLOG:'Blog',BRANCH:'Şube',FAQ:'Sık sorulan soru',SECTION:'Vitrin',PAGE:'Hizmet' };
+    const s=this.t().searchPage;
+    const labels: Record<GlobalSearchKind,string> = { RENTAL:s.kindRental,SALE:s.kindSale,TOUR:s.kindTour,CAMPAIGN:s.kindCampaign,BLOG:s.kindBlog,BRANCH:s.kindBranch,FAQ:s.kindFaq,SECTION:s.kindSection,PAGE:s.kindPage };
     return labels[kind];
   }
   kindIcon(kind: GlobalSearchKind): string {

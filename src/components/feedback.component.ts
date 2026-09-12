@@ -22,33 +22,33 @@ interface FeedbackStoreResponse {
         <section class="panel" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
           <header class="panel-head">
             <div class="head-copy">
-              <span class="eyebrow">ALPERLER DENEYİM</span>
+              <span class="eyebrow">{{ t().feedback.eyebrow }}</span>
               <h2 id="feedback-title">{{ t().feedback.title }}</h2>
               <p>{{ t().feedback.subtitle }}</p>
             </div>
-            <button type="button" (click)="close()" class="close-button" aria-label="Kapat"><span aria-hidden="true">×</span></button>
+            <button type="button" (click)="close()" class="close-button" [attr.aria-label]="t().common.close"><span aria-hidden="true">×</span></button>
           </header>
 
           <div class="panel-content">
             @if (!isSuccess()) {
               <form (submit)="submitFeedback($event)" class="feedback-form" novalidate>
-                <div class="intro-card"><strong>Görüşünüz doğrudan ekibimize ulaşır.</strong><span>Hata, öneri veya deneyiminizi birkaç adımda paylaşın.</span></div>
+                <div class="intro-card"><strong>{{ t().feedback.introTitle }}</strong><span>{{ t().feedback.introText }}</span></div>
                 <div class="form-grid">
-                  <label class="field"><span>Ad</span><input [(ngModel)]="name" name="feedbackName" autocomplete="given-name" maxlength="80" required /></label>
-                  <label class="field"><span>Soyad</span><input [(ngModel)]="surname" name="feedbackSurname" autocomplete="family-name" maxlength="80" required /></label>
+                  <label class="field"><span>{{ t().contact.checkout.firstName }}</span><input [(ngModel)]="name" name="feedbackName" autocomplete="given-name" maxlength="80" required /></label>
+                  <label class="field"><span>{{ t().contact.checkout.lastName }}</span><input [(ngModel)]="surname" name="feedbackSurname" autocomplete="family-name" maxlength="80" required /></label>
                 </div>
                 <div class="form-grid">
-                  <label class="field"><span>Telefon</span><input [(ngModel)]="phone" name="feedbackPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="40" required /></label>
-                  <label class="field"><span>E-posta</span><input [(ngModel)]="email" name="feedbackEmail" type="email" inputmode="email" autocomplete="email" maxlength="160" required /></label>
+                  <label class="field"><span>{{ t().contact.checkout.phoneLabel }}</span><input [(ngModel)]="phone" name="feedbackPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="40" required /></label>
+                  <label class="field"><span>{{ t().contact.checkout.emailLabel }}</span><input [(ngModel)]="email" name="feedbackEmail" type="email" inputmode="email" autocomplete="email" maxlength="160" required /></label>
                 </div>
-                <label class="field"><span>{{ t().feedback.category }}</span><select [(ngModel)]="category" name="feedbackCategory" aria-label="Geri bildirim kategorisi"><option value="GENERAL">{{ t().feedback.categories.GENERAL }}</option><option value="BUG">{{ t().feedback.categories.BUG }}</option><option value="FEATURE">{{ t().feedback.categories.FEATURE }}</option><option value="CONTENT">{{ t().feedback.categories.CONTENT }}</option><option value="OTHER">{{ t().feedback.categories.OTHER }}</option></select></label>
-                <fieldset class="rating-field"><legend>{{ t().feedback.rating }}</legend><div class="rating-row">@for (star of [1,2,3,4,5]; track star) {<button type="button" (click)="rating.set(star)" [attr.aria-label]="star + ' yıldız'" [attr.aria-pressed]="rating() === star" [class.selected]="star <= rating()" class="star-button"><span aria-hidden="true">★</span></button>}</div></fieldset>
+                <label class="field"><span>{{ t().feedback.category }}</span><select [(ngModel)]="category" name="feedbackCategory" [attr.aria-label]="t().feedback.categoryAria"><option value="GENERAL">{{ t().feedback.categories.GENERAL }}</option><option value="BUG">{{ t().feedback.categories.BUG }}</option><option value="FEATURE">{{ t().feedback.categories.FEATURE }}</option><option value="CONTENT">{{ t().feedback.categories.CONTENT }}</option><option value="OTHER">{{ t().feedback.categories.OTHER }}</option></select></label>
+                <fieldset class="rating-field"><legend>{{ t().feedback.rating }}</legend><div class="rating-row">@for (star of [1,2,3,4,5]; track star) {<button type="button" (click)="rating.set(star)" [attr.aria-label]="starAria(star)" [attr.aria-pressed]="rating() === star" [class.selected]="star <= rating()" class="star-button"><span aria-hidden="true">★</span></button>}</div></fieldset>
                 <label class="field"><span>{{ t().feedback.message }}</span><textarea [(ngModel)]="message" name="feedbackMessage" rows="6" maxlength="3000" [placeholder]="t().feedback.placeholder" required></textarea></label>
                 @if (errorMessage()) {<p class="form-error" role="alert">{{ errorMessage() }}</p>}
-                <button type="submit" [disabled]="submitting() || !isValid()" class="submit-button">{{ submitting() ? 'Kaydediliyor' : t().feedback.submit }}</button>
+                <button type="submit" [disabled]="submitting() || !isValid()" class="submit-button">{{ submitting() ? t().feedback.saving : t().feedback.submit }}</button>
               </form>
             } @else {
-              <div class="success-state" role="status" aria-live="polite"><div class="success-icon" aria-hidden="true">✓</div><h3>{{ t().feedback.success }}</h3><p>Görüşünüz güvenli şekilde kaydedildi ve ekibimizin mesaj kutusuna iletildi.</p>@if (reference()) {<strong>Referans: {{ reference() }}</strong>}<button type="button" (click)="close()">Kapat</button></div>
+              <div class="success-state" role="status" aria-live="polite"><div class="success-icon" aria-hidden="true">✓</div><h3>{{ t().feedback.success }}</h3><p>{{ t().feedback.successSubtitle }}</p>@if (reference()) {<strong>{{ t().feedback.referenceLabel }}: {{ reference() }}</strong>}<button type="button" (click)="close()">{{ t().common.close }}</button></div>
             }
           </div>
         </section>
@@ -100,11 +100,13 @@ export class FeedbackComponent {
       const payload=(await response.json().catch(()=>({}))) as FeedbackStoreResponse;
       if(!response.ok||!payload.ok||!payload.stored)throw new Error(payload.code||"FEEDBACK_STORE_FAILED");
       this.reference.set(payload.reference||""); this.isSuccess.set(true);
-    } catch(error) { console.error("Feedback store failed",error); this.errorMessage.set("Geri bildirim kaydedilemedi. Lütfen tekrar deneyin."); }
+    } catch(error) { console.error("Feedback store failed",error); this.errorMessage.set(this.t().feedback.storeError); }
     finally { this.submitting.set(false); }
   }
 
   close(): void { this.uiService.toggleFeedback(false); this.reset(); }
   private reset(): void { this.category="GENERAL";this.rating.set(5);this.name="";this.surname="";this.phone="";this.email="";this.message="";this.isSuccess.set(false);this.submitting.set(false);this.errorMessage.set("");this.reference.set("");this.submissionKey=crypto.randomUUID(); }
+  starAria(star: number): string { return String(this.t().feedback.starAria || "").replace("{n}", String(star)); }
+  /** Staff-facing labels for stored inbox message (not customer UI). */
   private categoryLabel(category: FeedbackCategory): string { return ({BUG:"Hata",FEATURE:"Özellik Önerisi",GENERAL:"Genel",CONTENT:"İçerik",OTHER:"Diğer"} as Record<FeedbackCategory,string>)[category]; }
 }

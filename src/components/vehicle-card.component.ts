@@ -39,7 +39,7 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
             type="button"
             (click)="toggleFavorite($event)"
             class="w-11 h-11 rounded-full bg-white/95 backdrop-blur shadow hover:bg-white flex items-center justify-center transition-colors group/btn focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light"
-            [attr.aria-label]="isFavorite() ? 'Favorilerden çıkar' : 'Favorilere ekle'"
+            [attr.aria-label]="isFavorite() ? t().common.removeFromFav : t().common.addToFav"
             [attr.aria-pressed]="isFavorite()"
           >
             <mat-icon
@@ -53,7 +53,7 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
             type="button"
             (click)="shareVehicle($event)"
             class="w-11 h-11 rounded-full bg-white/95 backdrop-blur shadow hover:bg-white flex items-center justify-center transition-colors group/btn focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light"
-            [attr.aria-label]="car.brand + ' ' + car.model + ' aracını paylaş'"
+            [attr.aria-label]="shareAriaLabel()"
           >
             <mat-icon
               class="text-slate-500 group-hover/btn:text-slate-700 text-[20px] transition-colors"
@@ -130,7 +130,7 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
                 class="bg-slate-100 px-2 py-1 rounded text-slate-700 flex items-center"
                 ><mat-icon class="text-[14px] w-[14px] h-[14px] mr-1"
                   >person</mat-icon
-                >{{ car.seats }} Kişilik</span
+                >{{ seatsLabel() }}</span
               >
             }
             @if (car.category === "SALE" && car.damageStatus) {
@@ -153,7 +153,7 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
                 class="text-[14px] w-[14px] h-[14px] mr-1.5 text-slate-700 shrink-0"
                 >verified_user</mat-icon
               >
-              <span>%100 Kaskolu & Yol Yardım</span>
+              <span>{{ t().vehicleCard.insured }}</span>
             </div>
           } @else {
             <div class="flex items-center bg-emerald-50/70 p-1.5 rounded text-emerald-900">
@@ -161,14 +161,14 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
                 class="text-[14px] w-[14px] h-[14px] mr-1.5 text-emerald-600 shrink-0"
                 >fact_check</mat-icon
               >
-              <span>101 Nokta Ekspertizli</span>
+              <span>{{ t().vehicleCard.expertise }}</span>
             </div>
             <div class="flex items-center bg-slate-50 p-1.5 rounded text-slate-800">
               <mat-icon
                 class="text-[14px] w-[14px] h-[14px] mr-1.5 text-emerald-500 shrink-0"
                 >shield</mat-icon
               >
-              <span>Alperler Güvencesi</span>
+              <span>{{ t().vehicleCard.guarantee }}</span>
             </div>
           }
         </div>
@@ -194,7 +194,7 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
                     "
                     aria-hidden="true"
                   ></span>
-                  {{ car.isAvailable !== false ? "Müsait" : "Dolu" }}
+                  {{ car.isAvailable !== false ? t().vehicleCard.available : t().vehicleCard.busy }}
                 </span>
                 @if (car.driverOption) {
                   <span
@@ -202,10 +202,10 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
                   >
                     {{
                       car.driverOption === "WITH_DRIVER"
-                        ? "ŞOFÖRLÜ"
+                        ? t().vehicleCard.withDriver
                         : car.driverOption === "WITHOUT_DRIVER"
-                          ? "ŞOFÖRSÜZ"
-                          : "ŞOFÖRLÜ & ŞOFÖRSÜZ"
+                          ? t().vehicleCard.withoutDriver
+                          : t().vehicleCard.bothDrivers
                     }}
                   </span>
                 }
@@ -215,7 +215,7 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
                     class="bg-red-50 text-red-700 border-red-200 text-[10px] px-2 py-1 rounded font-bold w-fit border uppercase tracking-wider flex items-center"
                   >
                     <span class="w-2 h-2 rounded-full mr-1.5 bg-red-500" aria-hidden="true"></span>
-                    Satıldı
+                    {{ t().vehicleCard.sold }}
                   </span>
                 } @else {
                   <span
@@ -260,7 +260,7 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
             class="min-h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 text-xs font-bold py-2.5 px-3 rounded-lg text-center transition-colors flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light focus-visible:ring-offset-2"
             [attr.aria-label]="detailAriaLabel"
           >
-            Detay
+            {{ t().vehicleCard.details }}
           </a>
         </div>
       </div>
@@ -284,7 +284,19 @@ export class VehicleCardComponent {
   }
 
   get detailAriaLabel(): string {
-    return `${this.car.year || ""} ${this.car.brand || ""} ${this.car.model || ""} detaylarını görüntüle`.trim();
+    return String(this.t().vehicleCard.detailAria||'')
+      .replace('{year}', String(this.car.year||''))
+      .replace('{brand}', String(this.car.brand||''))
+      .replace('{model}', String(this.car.model||''))
+      .replace(/\s+/g,' ').trim();
+  }
+  shareAriaLabel(): string {
+    return String(this.t().vehicleCard.shareAria||'')
+      .replace('{brand}', String(this.car.brand||''))
+      .replace('{model}', String(this.car.model||''));
+  }
+  seatsLabel(): string {
+    return String(this.t().vehicleCard.seats||'').replace('{n}', String(this.car.seats||''));
   }
 
   handleImageError(event: Event) {
@@ -359,19 +371,22 @@ export class VehicleCardComponent {
     if (typeof navigator !== "undefined" && navigator.share && typeof window !== "undefined") {
       navigator.share({
         title: `${this.car.brand} ${this.car.model}`,
-        text: `${this.car.year} model ${this.car.brand} ${this.car.model} Alperler'de!`,
+        text: String(this.t().vehicleCard.shareText||'')
+          .replace('{year}', String(this.car.year||''))
+          .replace('{brand}', String(this.car.brand||''))
+          .replace('{model}', String(this.car.model||'')),
         url:
           window.location.origin +
           (this.variant === "rental" ? "/fleet/" : "/sales/") +
           this.car.id,
       }).catch(() => {
-        // Kullanıcı paylaşım penceresini kapatırsa hata göstermeyiz.
+        // Ignore share cancellation.
       });
     }
   }
 
   imageAltText(): string {
-    const brand = this.car.brand || 'Araç';
+    const brand = this.car.brand || this.t().vehicleCard.vehicleFallback;
     const model = this.car.model || '';
     const year = this.car.year ? ` ${this.car.year}` : '';
     return `${brand} ${model}${year}`.trim();
@@ -380,15 +395,15 @@ export class VehicleCardComponent {
   get buttonText(): string {
     if (this.car.isAvailable === false) {
       return this.variant === "rental"
-        ? this.t().buttons.notAvailable || "MÜSAİT DEĞİL"
-        : "SATILDI";
+        ? this.t().buttons.notAvailable || this.t().vehicleCard.busy
+        : this.t().vehicleCard.soldUpper;
     }
 
     if (this.variant === "rental") {
       if (this.withDriver) return this.t().buttons.rentDriver;
-      return this.t().home.featured.bookBtn || "HEMEN KİRALA";
+      return this.t().home.featured.bookBtn || this.t().buttons.rent;
     }
 
-    return this.t().car.inspectNow || "HEMEN AL";
+    return this.t().car.inspectNow || this.t().buttons.details;
   }
 }

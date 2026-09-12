@@ -1,21 +1,7 @@
 /* Alperler Rent A Car customer-facing prestige design system.
-   Blue is an interaction color, not a surface color. Gold is reserved for real value/brand accents.
-   Admin surfaces are intentionally excluded. */
+   Palette ownership: prestige-palette-defaults.css and ThemeService.
+   This layer defines material/shadow/interaction behavior, not brand colors. */
 :root {
-  --alper-bg: #050A18;
-  --alper-list: #080F20;
-  --alper-surface: #0B1224;
-  --alper-card: #0D1628;
-  --alper-elevated: #101A2E;
-  --alper-border: #24314A;
-  --alper-blue: #2563EB;
-  --alper-blue-light: #60A5FA;
-  --alper-gold: #EABF35;
-  --alper-text: #F8FAFC;
-  --alper-muted: #94A3B8;
-  --alper-subtle: #64748B;
-  --alper-danger: #F87171;
-  --alper-success: #34D399;
   --alper-shadow: 0 18px 50px rgba(0, 0, 0, .24);
   --alper-shadow-hover: 0 22px 58px rgba(0, 0, 0, .3);
   --alper-focus-ring: 0 0 0 3px color-mix(in srgb, var(--alper-blue-light) 20%, transparent);

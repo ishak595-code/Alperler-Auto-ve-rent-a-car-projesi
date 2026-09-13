@@ -1,4 +1,5 @@
-import { Component, ElementRef, EventEmitter, Input, OnDestroy, Output, ViewChild } from "@angular/core";
+import { Component, ElementRef, EventEmitter, Input, OnDestroy, Output, ViewChild, inject } from "@angular/core";
+import { UiService } from "../services/ui.service";
 import { MatIconModule } from "@angular/material/icon";
 
 interface CalendarDay {
@@ -33,7 +34,7 @@ let nextDateControlId = 0;
         (click)="openCalendar()"
       >
         <span class="date-copy" aria-hidden="true">
-          <strong>Tarihi seç</strong>
+          <strong>{{ t().nativeDate.selectStrong }}</strong>
           @if (value) { <small>{{ formattedValue() }}</small> }
         </span>
         <mat-icon aria-hidden="true">calendar_month</mat-icon>
@@ -55,9 +56,9 @@ let nextDateControlId = 0;
           <header class="calendar-header">
             <div>
               <p class="calendar-context">{{ normalizedLabel() }}</p>
-              <h2 [id]="dialogTitleId">Tarih seç</h2>
+              <h2 [id]="dialogTitleId">{{ t().nativeDate.dialogTitle }}</h2>
             </div>
-            <button class="calendar-icon-button" type="button" aria-label="Takvimi kapat" (click)="closeCalendar(true)">
+            <button class="calendar-icon-button" type="button" [attr.aria-label]="t().nativeDate.closeAria" (click)="closeCalendar(true)">
               <mat-icon aria-hidden="true">close</mat-icon>
             </button>
           </header>
@@ -66,7 +67,7 @@ let nextDateControlId = 0;
             <button
               class="calendar-icon-button"
               type="button"
-              aria-label="Önceki ay"
+              [attr.aria-label]="t().nativeDate.prevMonthAria"
               [disabled]="previousMonthDisabled()"
               (click)="changeMonth(-1)"
             >
@@ -78,7 +79,7 @@ let nextDateControlId = 0;
             <button
               class="calendar-icon-button"
               type="button"
-              aria-label="Sonraki ay"
+              [attr.aria-label]="t().nativeDate.nextMonthAria"
               [disabled]="nextMonthDisabled()"
               (click)="changeMonth(1)"
             >
@@ -87,10 +88,10 @@ let nextDateControlId = 0;
           </div>
 
           <div class="calendar-weekdays" aria-hidden="true">
-            @for (weekday of weekdays; track weekday) { <span>{{ weekday }}</span> }
+            @for (weekday of weekdayLabels(); track weekday) { <span>{{ weekday }}</span> }
           </div>
 
-          <div class="calendar-grid" role="group" [attr.aria-label]="monthTitle() + ' tarihleri'">
+          <div class="calendar-grid" role="group" [attr.aria-label]="daysAria()">
             @for (day of calendarDays(); track day.key) {
               <button
                 class="calendar-day"
@@ -115,9 +116,9 @@ let nextDateControlId = 0;
 
           <footer class="calendar-footer">
             @if (value) {
-              <button class="calendar-secondary" type="button" (click)="clearDate()">Tarihi temizle</button>
+              <button class="calendar-secondary" type="button" (click)="clearDate()">{{ t().nativeDate.clear }}</button>
             }
-            <button class="calendar-secondary" type="button" (click)="selectToday()" [disabled]="todayDisabled()">Bugün</button>
+            <button class="calendar-secondary" type="button" (click)="selectToday()" [disabled]="todayDisabled()">{{ t().nativeDate.today }}</button>
           </footer>
         </div>
       </dialog>
@@ -168,16 +169,17 @@ let nextDateControlId = 0;
   `],
 })
 export class AccessibleNativeDateComponent implements OnDestroy {
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   readonly inputId = `alperler-date-${++nextDateControlId}`;
   readonly labelId = `${this.inputId}-label`;
   readonly dialogId = `${this.inputId}-dialog`;
   readonly dialogTitleId = `${this.inputId}-dialog-title`;
-  readonly weekdays = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 
   @ViewChild("triggerButton") private triggerButton?: ElementRef<HTMLButtonElement>;
   @ViewChild("calendarDialog") private calendarDialog?: ElementRef<HTMLDialogElement>;
 
-  @Input({ required: true }) label = "Tarih";
+  @Input({ required: true }) label = "";
   @Input() value = "";
   @Input() min = "";
   @Input() max = "";
@@ -197,15 +199,28 @@ export class AccessibleNativeDateComponent implements OnDestroy {
     this.restoreBodyScroll();
   }
 
+  weekdayLabels(): string[] {
+    const days = this.t().nativeDate.weekdays;
+    return Array.isArray(days) && days.length === 7 ? days : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  }
+
+  daysAria(): string {
+    return String(this.t().nativeDate.daysAria || "").replace("{month}", this.monthTitle());
+  }
+
+  private localeTag(): string {
+    return ({ TR: "tr-TR", EN: "en-GB", DE: "de-DE", FR: "fr-FR", ES: "es-ES", RU: "ru-RU", ZH: "zh-CN", AR: "ar", KU: "ku" } as Record<string, string>)[this.ui.currentLang()] || "tr-TR";
+  }
+
   normalizedLabel(): string {
     const label = String(this.label || "").trim();
-    return label || "Tarih";
+    return label || this.t().nativeDate.defaultLabel;
   }
 
   triggerAccessibleName(): string {
     return this.value
-      ? `${this.normalizedLabel()}: ${this.formattedValue()}, tarihi değiştir`
-      : `${this.normalizedLabel()}: Tarihi seç`;
+      ? `${this.normalizedLabel()}: ${this.formattedValue()}, ${this.t().nativeDate.changeSuffix}`
+      : `${this.normalizedLabel()}: ${this.t().nativeDate.selectSuffix}`;
   }
 
   formattedValue(): string {
@@ -292,7 +307,7 @@ export class AccessibleNativeDateComponent implements OnDestroy {
   }
 
   monthTitle(): string {
-    return new Intl.DateTimeFormat("tr-TR", { month: "long", year: "numeric" })
+    return new Intl.DateTimeFormat(this.localeTag(), { month: "long", year: "numeric" })
       .format(new Date(this.viewYear, this.viewMonth, 1, 12));
   }
 
@@ -415,13 +430,13 @@ export class AccessibleNativeDateComponent implements OnDestroy {
 
   private dayAccessibleName(date: Date, selected: boolean, today: boolean): string {
     const parts = [this.formatLongDate(date)];
-    if (today) parts.push("bugün");
-    if (selected) parts.push("seçili");
+    if (today) parts.push(this.t().nativeDate.todayWord);
+    if (selected) parts.push(this.t().nativeDate.selectedWord);
     return parts.join(", ");
   }
 
   private formatLongDate(date: Date): string {
-    return new Intl.DateTimeFormat("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(date);
+    return new Intl.DateTimeFormat(this.localeTag(), { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(date);
   }
 
   private parseDateKey(value: string): Date | null {

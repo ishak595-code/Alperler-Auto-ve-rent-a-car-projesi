@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
+import { UiService } from '../services/ui.service';
 
 export type DetailMediaItem = {
   kind: 'IMAGE' | 'VIDEO';
@@ -18,28 +19,28 @@ export type DetailMediaItem = {
         class="overlay"
         role="dialog"
         aria-modal="true"
-        [attr.aria-label]="title || 'Medya tam ekran görünümü'"
+        [attr.aria-label]="title || t().mediaLightbox.defaultAria"
         tabindex="-1"
         (keydown)="onKeydown($event)"
         (touchstart)="touchStart($event)"
         (touchend)="touchEnd($event)"
         (click)="backdropClick($event)"
       >
-        <button #closeButton type="button" class="close" (click)="requestClose()" aria-label="Tam ekran medyayı kapat">×</button>
+        <button #closeButton type="button" class="close" (click)="requestClose()" [attr.aria-label]="t().mediaLightbox.closeAria">×</button>
 
         @if (currentItem(); as media) {
           <div class="stage" (click)="$event.stopPropagation()">
             @if (media.kind === 'IMAGE') {
-              <img [src]="media.url" [alt]="media.title || title || 'Detay görseli'" decoding="async" />
+              <img [src]="media.url" [alt]="media.title || title || t().mediaLightbox.imageAlt" decoding="async" />
             } @else {
-              <video [src]="media.url" [poster]="media.posterUrl || ''" controls playsinline preload="metadata" [attr.aria-label]="media.title || title || 'Detay videosu'"></video>
+              <video [src]="media.url" [poster]="media.posterUrl || ''" controls playsinline preload="metadata" [attr.aria-label]="media.title || title || t().mediaLightbox.videoAlt"></video>
             }
           </div>
         }
 
         @if (items.length > 1) {
-          <button type="button" class="nav previous" (click)="previous(); $event.stopPropagation()" aria-label="Önceki medya">‹</button>
-          <button type="button" class="nav next" (click)="next(); $event.stopPropagation()" aria-label="Sonraki medya">›</button>
+          <button type="button" class="nav previous" (click)="previous(); $event.stopPropagation()" [attr.aria-label]="t().mediaLightbox.prevAria">‹</button>
+          <button type="button" class="nav next" (click)="next(); $event.stopPropagation()" [attr.aria-label]="t().mediaLightbox.nextAria">›</button>
           <div class="count" aria-live="polite" aria-atomic="true">{{ normalizedIndex() + 1 }} / {{ items.length }}</div>
         }
       </div>
@@ -51,6 +52,8 @@ export type DetailMediaItem = {
 })
 export class DetailMediaLightboxComponent implements OnChanges, OnDestroy {
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   @Input() open = false;
   @Input() items: DetailMediaItem[] = [];
   @Input() index = 0;

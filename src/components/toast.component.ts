@@ -1,6 +1,7 @@
 import { Component, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ToastService } from "../services/toast.service";
+import { UiService } from "../services/ui.service";
 
 @Component({
   selector: "app-toast",
@@ -72,7 +73,7 @@ import { ToastService } from "../services/toast.service";
           <button
             type="button"
             (click)="toastService.remove(toast.id)"
-            aria-label="Bildirimi kapat"
+            [attr.aria-label]="t().toast.closeAria"
             class="text-slate-400 hover:text-slate-600"
           >
             <svg
@@ -113,4 +114,6 @@ import { ToastService } from "../services/toast.service";
 })
 export class ToastComponent {
   toastService = inject(ToastService);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
 }

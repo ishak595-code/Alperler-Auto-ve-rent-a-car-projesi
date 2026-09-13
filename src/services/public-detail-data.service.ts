@@ -3,6 +3,7 @@ import { Vehicle } from "../models/car.model";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import type { CatalogBlogPost } from "./catalog.service";
 import { PublicCatalogMediaService } from "./public-catalog-media.service";
+import { UiService } from "./ui.service";
 
 export type DetailKind = "RENTAL" | "SALE" | "TOUR";
 export type BlogDetailMediaItem = { kind: "IMAGE" | "VIDEO"; url: string; posterUrl?: string; title: string };
@@ -16,6 +17,7 @@ export interface BlogDetailPost extends CatalogBlogPost {
 @Injectable({ providedIn: "root" })
 export class PublicDetailDataService {
   private readonly media = inject(PublicCatalogMediaService);
+  private readonly ui = inject(UiService);
   private readonly storagePrefix = `${SUPABASE_PROJECT_URL}/storage/v1/object/public/catalog-media/`;
   private readonly uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   private readonly numericPattern = /^\d+$/;
@@ -136,10 +138,10 @@ export class PublicDetailDataService {
     const cover = imageMedia.find((item) => item.isCover) || imageMedia[0];
     const fallbackCover = this.mediaUrl(String(row["cover_image"] || ""));
     const media: BlogDetailMediaItem[] = [
-      ...imageMedia.map((item) => ({ kind: "IMAGE" as const, url: item.url, title: item.altText || String(row["title"] || "Blog görseli") })),
-      ...videoMedia.map((item) => ({ kind: "VIDEO" as const, url: item.url, posterUrl: item.posterUrl || cover?.url || fallbackCover || undefined, title: item.altText || String(row["title"] || "Blog videosu") })),
+      ...imageMedia.map((item) => ({ kind: "IMAGE" as const, url: item.url, title: item.altText || String(row["title"] || this.ui.translations().blogDetail.mediaTitle) })),
+      ...videoMedia.map((item) => ({ kind: "VIDEO" as const, url: item.url, posterUrl: item.posterUrl || cover?.url || fallbackCover || undefined, title: item.altText || String(row["title"] || this.ui.translations().blogDetail.videoTitle) })),
     ];
-    if (!media.length && fallbackCover) media.push({ kind: "IMAGE", url: fallbackCover, title: String(row["title"] || "Blog görseli") });
+    if (!media.length && fallbackCover) media.push({ kind: "IMAGE", url: fallbackCover, title: String(row["title"] || this.ui.translations().blogDetail.mediaTitle) });
     const ownerId = String(row["id"] || "");
     return {
       id: ownerId,

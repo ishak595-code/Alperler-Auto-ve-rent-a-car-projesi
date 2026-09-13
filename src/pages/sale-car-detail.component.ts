@@ -38,7 +38,7 @@ type FactRow = { label: string; value: string };
               @if (media.kind === 'IMAGE') {
                 <button type="button" class="media-open" (click)="openLightbox()" [attr.aria-label]="t().saleDetail.enlargeAria"><img [src]="media.url" [alt]="media.title || (item.brand + ' ' + item.model)" loading="eager" decoding="async" (error)="mediaFailed(media.url)" /></button>
               } @else {
-                <video [src]="media.url" [poster]="media.posterUrl || item.image || ''" controls playsinline preload="metadata" [attr.aria-label]="media.title || (item.brand + ' ' + item.model + ' videosu')" (error)="mediaFailed(media.url)"></video>
+                <video [src]="media.url" [poster]="media.posterUrl || item.image || ''" controls playsinline preload="metadata" [attr.aria-label]="media.title || videoTitle(item)" (error)="mediaFailed(media.url)"></video>
                 <button type="button" class="video-expand" (click)="openLightbox()" [attr.aria-label]="t().saleDetail.videoFullscreenAria"><mat-icon aria-hidden="true">fullscreen</mat-icon></button>
               }
               @if (item.badge) { <span class="listing-badge">{{ badgeLabel(item.badge) }}</span> }
@@ -63,7 +63,7 @@ type FactRow = { label: string; value: string };
           @if ((item.viewers || 0) > 0 || (item.favCount || 0) > 0) {
             <div class="social-proof" [attr.aria-label]="t().saleDetail.interestAria">
               @if ((item.viewers || 0) > 0) { <span><mat-icon aria-hidden="true">visibility</mat-icon>{{ viewsLabel(item.viewers) }}</span> }
-              @if ((item.favCount || 0) > 0) { <span><mat-icon aria-hidden="true">favorite</mat-icon>{{ item.favCount }} favori</span> }
+              @if ((item.favCount || 0) > 0) { <span><mat-icon aria-hidden="true">favorite</mat-icon>{{ favCountLabel(item.favCount) }}</span> }
             </div>
           }
         </section>
@@ -279,7 +279,7 @@ export class SaleCarDetailComponent implements OnInit {
     for (const video of item.videos || []) {
       if (!video?.url || failed.has(video.url) || seen.has(video.url)) continue;
       seen.add(video.url);
-      rows.push({ kind: "VIDEO", url: video.url, posterUrl: video.posterUrl || item.image, title: video.title || `${item.brand || ""} ${item.model || ""} videosu`.trim() });
+      rows.push({ kind: "VIDEO", url: video.url, posterUrl: video.posterUrl || item.image, title: video.title || this.videoTitle(item) });
     }
     return rows.slice(0, 40);
   });
@@ -390,6 +390,14 @@ export class SaleCarDetailComponent implements OnInit {
   hasTramerDetail(item: Car): boolean { return String(item.tramerStatus || "UNKNOWN") !== "UNKNOWN" || item.tramerAmount != null || Boolean(item.tramerVerifiedAt || item.tramerSourceName); }
   tramerDetail(item: Car): string { const text = String(item.tramer || "").trim(); if (text && !/^belirtilmedi/i.test(text)) return text; if (item.tramerAmount != null) return this.t().saleDetail.tramerAmountText.replace("{amount}", Number(item.tramerAmount).toLocaleString("tr-TR")); return this.tramerStatusLabel(item); }
   mapHref(item: Car): string { const record = item as Car & { mapUrl?: string; latitude?: number; longitude?: number }; if (record.mapUrl && /^https:\/\//i.test(record.mapUrl)) return record.mapUrl; if (Number.isFinite(Number(record.latitude)) && Number.isFinite(Number(record.longitude))) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${record.latitude},${record.longitude}`)}`; const query = String(item.location || "").trim(); return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : ""; }
+  galleryAria(item: Car): string { return String(this.t().saleDetail.galleryAria || "").replace("{brand}", String(item.brand || "")).replace("{model}", String(item.model || "")); }
+  stockLabel(item: Car): string { return String(this.t().saleDetail.stockNo || "").replace("{id}", String(item.cloudStockCode || item.id)); }
+  viewsLabel(n: number): string { return String(this.t().saleDetail.views || "").replace("{n}", String(n)); }
+  favCountLabel(n: number): string { return String(this.t().saleDetail.favCount || "").replace("{n}", String(n)); }
+  videoTitle(item: Car): string {
+    const raw = String(this.t().saleDetail.videoTitle || "").replace("{brand}", String(item.brand || "")).replace("{model}", String(item.model || "")).replace(/\s+/g, " ").trim();
+    return raw || this.t().saleDetail.mediaTitle;
+  }
   badgeLabel(value: string | null | undefined): string { return this.ui.listingBadgeLabel(value); }
   inquire(item: Car): void { if (item.availability === "Satıldı") return; this.carService.setBookingRequest({ type: "SALE_INQUIRY", item, itemName: `${item.brand || ""} ${item.model || ""}`.trim(), image: item.image || item.images?.[0], basePrice: Number(item.price || 0) }); void this.router.navigate(["/contact"]); }
   async share(item: Car): Promise<void> { const payload = { title: `${item.brand || ""} ${item.model || ""} | Alperler Auto`.trim(), text: this.t().saleDetail.shareText, url: window.location.href }; try { if (navigator.share) await navigator.share(payload); else await navigator.clipboard?.writeText(window.location.href); } catch { /* kullanıcı paylaşımı iptal etti */ } }

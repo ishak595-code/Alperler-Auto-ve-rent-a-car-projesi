@@ -138,7 +138,7 @@ export class TourDetailComponent implements OnInit {
     const item = this.tour(); if (!item) return [];
     const failed = new Set(this.failedMedia()); const seen = new Set<string>(); const rows: DetailMediaItem[] = [];
     for (const url of this.detailData.mediaUrls(item)) if (url && !failed.has(url) && !seen.has(url)) { seen.add(url); rows.push({ kind: "IMAGE", url, title: item.title || this.t().tourDetail.mediaTitle }); }
-    for (const video of item.videos || []) if (video?.url && !failed.has(video.url) && !seen.has(video.url)) { seen.add(video.url); rows.push({ kind: "VIDEO", url: video.url, posterUrl: video.posterUrl || item.image, title: video.title || item.title || "Tur videosu" }); }
+    for (const video of item.videos || []) if (video?.url && !failed.has(video.url) && !seen.has(video.url)) { seen.add(video.url); rows.push({ kind: "VIDEO", url: video.url, posterUrl: video.posterUrl || item.image, title: video.title || String(this.t().tourDetail.videoTitle || "").replace("{title}", String(item.title || this.t().tourDetail.mediaTitle || "")).trim() }); }
     return rows.slice(0, 30);
   });
   readonly activeMedia = computed(() => this.mediaItems()[Math.min(this.currentSlide(), Math.max(0, this.mediaItems().length - 1))] || null);

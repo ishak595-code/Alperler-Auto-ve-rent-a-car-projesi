@@ -44,7 +44,7 @@ import { UiService } from "../services/ui.service";
                 <div class="mx-auto mt-5 max-w-md rounded-xl border border-emerald-200 bg-white p-4 text-left">
                   <div class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ t().appointmentPage.referenceLabel }}</div>
                   <div class="mt-1 break-all font-mono text-sm font-black text-slate-900">{{ bookingReference() }}</div>
-                  <div class="mt-4 text-xs font-bold uppercase tracking-wider text-slate-500">Bildirim Durumu</div>
+                  <div class="mt-4 text-xs font-bold uppercase tracking-wider text-slate-500">{{ t().appointmentPage.notificationStatus }}</div>
                   <p class="mt-1 text-sm font-medium text-slate-700">{{ deliveryMessage() }}</p>
                 </div>
                 <button type="button" (click)="goHome()" class="mt-8 min-h-12 rounded-xl bg-slate-900 px-8 py-3 font-bold text-white transition-colors hover:bg-prestige-red hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light">{{ t().appointmentPage.goHome }}</button>
@@ -73,11 +73,11 @@ import { UiService } from "../services/ui.service";
                   </label>
                   <label class="block">
                     <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">{{ t().appointmentPage.phone }}</span>
-                    <input type="tel" inputmode="tel" autocomplete="tel" formControlName="phone" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-prestige-red-light" placeholder="05XX XXX XX XX" />
+                    <input type="tel" inputmode="tel" autocomplete="tel" formControlName="phone" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-prestige-red-light" [placeholder]="t().appointmentPage.phonePlaceholder" />
                   </label>
                   <label class="block md:col-span-2">
                     <span class="mb-2 block text-sm font-bold uppercase tracking-wider text-slate-700">{{ t().appointmentPage.email }}</span>
-                    <input type="email" inputmode="email" autocomplete="email" formControlName="email" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-prestige-red-light" placeholder="ornek@email.com" />
+                    <input type="email" inputmode="email" autocomplete="email" formControlName="email" class="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-prestige-red-light" [placeholder]="t().appointmentPage.emailPlaceholder" />
                     <span class="mt-1 block text-xs text-slate-500">{{ t().appointmentPage.emailHint }}</span>
                   </label>
                 </div>
@@ -105,7 +105,7 @@ import { UiService } from "../services/ui.service";
                 <button type="submit" [disabled]="isSubmitting()" class="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-4 font-bold uppercase tracking-wider text-white shadow-xl transition-colors hover:bg-prestige-red hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light focus-visible:ring-offset-2 sm:px-8">
                   @if (isSubmitting()) {
                     <mat-icon class="animate-spin">progress_activity</mat-icon>
-                    Kaydediliyor...
+                    {{ t().appointmentPage.saving }}
                   } @else {
                     <mat-icon>event_available</mat-icon>
                     {{ t().appointmentPage.submit }}

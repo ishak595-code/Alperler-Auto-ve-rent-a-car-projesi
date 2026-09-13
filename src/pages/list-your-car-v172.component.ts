@@ -42,7 +42,7 @@ import {
             <div class="mt-6 grid gap-3 sm:grid-cols-3">
               <div class="hero-stat"><strong>1</strong><span>{{ t().listYourCar.statSecure }}</span></div>
               <div class="hero-stat"><strong>A-E</strong><span>{{ t().listYourCar.statCondition }}</span></div>
-              <div class="hero-stat"><strong>4</strong><span>Teklif modeli</span></div>
+              <div class="hero-stat"><strong>4</strong><span>{{ t().listYourCar.statOffers }}</span></div>
             </div>
           </div>
           <aside class="rounded-[2rem] border border-amber-300/20 bg-amber-300/10 p-6 shadow-2xl shadow-black/20">
@@ -76,23 +76,23 @@ import {
               <section class="panel">
                 <div class="section-head"><span>01</span><div><h2>{{ t().listYourCar.sectionIntentTitle }}</h2><p>{{ t().listYourCar.sectionIntentHint }}</p></div></div>
                 <div class="mt-5 grid gap-3 md:grid-cols-2">
-                  <button type="button" (click)="intent.set('sell')" [class.choice-active]="intent()==='sell'" class="choice-card"><strong>{{ t().listYourCar.intentSellTitle }}</strong><span>{{ t().listYourCar.intentSellHint }} değerlendirilebilir.</span></button>
-                  <button type="button" (click)="intent.set('rent')" [class.choice-active]="intent()==='rent'" class="choice-card"><strong>{{ t().listYourCar.intentRentTitle }}</strong><span>{{ t().listYourCar.intentRentHint }} değerlendirilebilir.</span></button>
+                  <button type="button" (click)="intent.set('sell')" [class.choice-active]="intent()==='sell'" class="choice-card"><strong>{{ t().listYourCar.intentSellTitle }}</strong><span>{{ t().listYourCar.intentSellHint }}</span></button>
+                  <button type="button" (click)="intent.set('rent')" [class.choice-active]="intent()==='rent'" class="choice-card"><strong>{{ t().listYourCar.intentRentTitle }}</strong><span>{{ t().listYourCar.intentRentHint }}</span></button>
                 </div>
               </section>
 
               <section class="panel">
                 <div class="section-head"><span>02</span><div><h2>{{ t().listYourCar.sectionVehicleTitle }}</h2><p>{{ t().listYourCar.sectionVehicleHint }}</p></div></div>
                 <div class="form-grid mt-5">
-                  <label><span>{{ t().listYourCar.brand }}</span><input [ngModel]="carBrand()" (ngModelChange)="carBrand.set($event)" maxlength="100" autocomplete="off" placeholder="Örn. Toyota" /></label>
-                  <label><span>{{ t().listYourCar.model }}</span><input [ngModel]="carModel()" (ngModelChange)="carModel.set($event)" maxlength="100" autocomplete="off" placeholder="Örn. Corolla" /></label>
+                  <label><span>{{ t().listYourCar.brand }}</span><input [ngModel]="carBrand()" (ngModelChange)="carBrand.set($event)" maxlength="100" autocomplete="off" [placeholder]="t().listYourCar.phBrand" /></label>
+                  <label><span>{{ t().listYourCar.model }}</span><input [ngModel]="carModel()" (ngModelChange)="carModel.set($event)" maxlength="100" autocomplete="off" [placeholder]="t().listYourCar.phModel" /></label>
                   <label><span>{{ t().listYourCar.modelYear }}</span><input [ngModel]="modelYear()" (ngModelChange)="modelYear.set(toOptionalNumber($event))" type="number" min="1950" [max]="maxModelYear" inputmode="numeric" placeholder="2022" /></label>
                   <label><span>{{ t().listYourCar.km }}</span><input [ngModel]="km()" (ngModelChange)="km.set(toOptionalNumber($event))" type="number" min="0" max="5000000" inputmode="numeric" placeholder="65000" /></label>
-                  <label><span>{{ t().listYourCar.fuel }}</span><select [ngModel]="fuelType()" (ngModelChange)="fuelType.set($event)"><option value="">{{ t().listYourCar.select }}</option><option value="GASOLINE">{{ t().listYourCar.gasoline }}</option><option value="DIESEL">{{ t().listYourCar.diesel }}</option><option value="LPG">LPG</option><option value="HYBRID">{{ t().listYourCar.hybrid }}</option><option value="ELECTRIC">{{ t().listYourCar.electric }}</option><option value="OTHER">Diğer</option></select></label>
-                  <label><span>{{ t().listYourCar.transmission }}</span><select [ngModel]="transmission()" (ngModelChange)="transmission.set($event)"><option value="">{{ t().listYourCar.select }}</option><option value="AUTOMATIC">{{ t().listYourCar.automatic }}</option><option value="MANUAL">{{ t().listYourCar.manual }}</option><option value="SEMI_AUTOMATIC">Yarı otomatik</option><option value="OTHER">Diğer</option></select></label>
-                  <label><span>{{ t().listYourCar.bodyType }}</span><select [ngModel]="bodyType()" (ngModelChange)="bodyType.set($event)"><option value="">{{ t().listYourCar.preferNot }}</option><option>Sedan</option><option>Hatchback</option><option>SUV</option><option>Station Wagon</option><option>Coupe</option><option>Pickup</option><option>Van</option><option>Minibüs</option><option>Diğer</option></select></label>
-                  <label><span>{{ t().listYourCar.color }}</span><input [ngModel]="exteriorColor()" (ngModelChange)="exteriorColor.set($event)" maxlength="80" placeholder="Örn. Beyaz" /></label>
-                  <label><span>{{ t().listYourCar.askingPrice }}</span><input [ngModel]="askingPrice()" (ngModelChange)="askingPrice.set(toOptionalNumber($event))" type="number" min="0" inputmode="decimal" placeholder="TL" /><small>Bu tutar resmi değerleme değildir.</small></label>
+                  <label><span>{{ t().listYourCar.fuel }}</span><select [ngModel]="fuelType()" (ngModelChange)="fuelType.set($event)"><option value="">{{ t().listYourCar.select }}</option><option value="GASOLINE">{{ t().listYourCar.gasoline }}</option><option value="DIESEL">{{ t().listYourCar.diesel }}</option><option value="LPG">{{ t().listYourCar.lpg }}</option><option value="HYBRID">{{ t().listYourCar.hybrid }}</option><option value="ELECTRIC">{{ t().listYourCar.electric }}</option><option value="OTHER">{{ t().listYourCar.other }}</option></select></label>
+                  <label><span>{{ t().listYourCar.transmission }}</span><select [ngModel]="transmission()" (ngModelChange)="transmission.set($event)"><option value="">{{ t().listYourCar.select }}</option><option value="AUTOMATIC">{{ t().listYourCar.automatic }}</option><option value="MANUAL">{{ t().listYourCar.manual }}</option><option value="SEMI_AUTOMATIC">{{ t().listYourCar.semiAutomatic }}</option><option value="OTHER">{{ t().listYourCar.other }}</option></select></label>
+                  <label><span>{{ t().listYourCar.bodyType }}</span><select [ngModel]="bodyType()" (ngModelChange)="bodyType.set($event)"><option value="">{{ t().listYourCar.preferNot }}</option><option>Sedan</option><option>Hatchback</option><option>SUV</option><option>Station Wagon</option><option>Coupe</option><option>Pickup</option><option>Van</option><option>{{ t().listYourCar.bodyMinibus }}</option><option>{{ t().listYourCar.other }}</option></select></label>
+                  <label><span>{{ t().listYourCar.color }}</span><input [ngModel]="exteriorColor()" (ngModelChange)="exteriorColor.set($event)" maxlength="80" [placeholder]="t().listYourCar.phColor" /></label>
+                  <label><span>{{ t().listYourCar.askingPrice }}</span><input [ngModel]="askingPrice()" (ngModelChange)="askingPrice.set(toOptionalNumber($event))" type="number" min="0" inputmode="decimal" [placeholder]="t().listYourCar.phCurrency" /><small>{{ t().listYourCar.askingPriceHint }}</small></label>
                   @if (intent()==='rent') {<label class="checkbox-field"><input type="checkbox" [ngModel]="withDriver()" (ngModelChange)="withDriver.set($event)" /><span>{{ t().listYourCar.withDriver }}</span></label>}
                 </div>
               </section>
@@ -102,27 +102,27 @@ import {
                 <div class="form-grid mt-5">
                   <label><span>{{ t().listYourCar.province }}</span><select [ngModel]="provinceCode()" (ngModelChange)="onProvinceChange($event)" [disabled]="geo.loading()"><option value="">{{ geo.loading() ? t().listYourCar.provinceLoading : t().listYourCar.provinceSelect }}</option>@for(province of geo.provinces();track province.code){<option [value]="province.code">{{ province.name }}</option>}</select></label>
                   <label><span>{{ t().listYourCar.district }}</span><select [ngModel]="districtCode()" (ngModelChange)="onDistrictChange($event)" [disabled]="!provinceCode()"><option value="">{{ t().listYourCar.districtSelect }}</option>@for(district of districts();track district.code){<option [value]="district.code">{{ district.name }}</option>}</select></label>
-                  <label class="md:col-span-2"><span>{{ t().listYourCar.preferredBranch }}</span><select [ngModel]="preferredBranchId()" (ngModelChange)="preferredBranchId.set($event)"><option value="">{{ t().listYourCar.noBranchPref }}</option>@for(branch of availableBranches();track branch.cloudId || branch.id){<option [value]="branch.cloudId">{{ branch.name }} - {{ branch.city }} / {{ branch.district }}</option>}</select><small>Bölgenize uygun, hizmet veren şubeler gösterilir.</small></label>
+                  <label class="md:col-span-2"><span>{{ t().listYourCar.preferredBranch }}</span><select [ngModel]="preferredBranchId()" (ngModelChange)="preferredBranchId.set($event)"><option value="">{{ t().listYourCar.noBranchPref }}</option>@for(branch of availableBranches();track branch.cloudId || branch.id){<option [value]="branch.cloudId">{{ branch.name }} - {{ branch.city }} / {{ branch.district }}</option>}</select><small>{{ t().listYourCar.branchHint }}</small></label>
                 </div>
               </section>
 
               <section class="panel">
                 <div class="section-head"><span>04</span><div><h2>{{ t().listYourCar.sectionOwnershipTitle }}</h2><p>{{ t().listYourCar.sectionOwnershipHint }}</p></div></div>
                 <div class="form-grid mt-5">
-                  <label><span>{{ t().listYourCar.ownership }}</span><select [ngModel]="ownershipStatus()" (ngModelChange)="ownershipStatus.set($event)"><option value="">{{ t().listYourCar.select }}</option><option value="OWNER">{{ t().listYourCar.ownerSelf }}</option><option value="AUTHORIZED_SELLER">Satış için yetkiliyim</option><option value="COMPANY_VEHICLE">Şirket aracı</option><option value="OTHER">Diğer</option></select></label>
+                  <label><span>{{ t().listYourCar.ownership }}</span><select [ngModel]="ownershipStatus()" (ngModelChange)="ownershipStatus.set($event)"><option value="">{{ t().listYourCar.select }}</option><option value="OWNER">{{ t().listYourCar.ownerSelf }}</option><option value="AUTHORIZED_SELLER">{{ t().listYourCar.ownerAuthorized }}</option><option value="COMPANY_VEHICLE">{{ t().listYourCar.ownerCompany }}</option><option value="OTHER">{{ t().listYourCar.other }}</option></select></label>
                   <label class="checkbox-field"><input type="checkbox" [ngModel]="expertReportAvailable()" (ngModelChange)="expertReportAvailable.set($event)" /><span>{{ t().listYourCar.expertReport }}</span></label>
-                  <label class="md:col-span-2"><span>{{ t().listYourCar.damageDeclaration }}</span><textarea [ngModel]="damageDeclaration()" (ngModelChange)="damageDeclaration.set($event)" maxlength="2000" rows="4" placeholder="Bildiğiniz tüm önemli durumları açıkça yazın."></textarea></label>
+                  <label class="md:col-span-2"><span>{{ t().listYourCar.damageDeclaration }}</span><textarea [ngModel]="damageDeclaration()" (ngModelChange)="damageDeclaration.set($event)" maxlength="2000" rows="4" [placeholder]="t().listYourCar.phDamage"></textarea></label>
                 </div>
               </section>
 
               <section class="panel">
                 <div class="section-head"><span>05</span><div><h2>{{ t().listYourCar.sectionIdentityTitle }}</h2><p>{{ t().listYourCar.sectionIdentityHint }}</p></div></div>
                 <details class="mt-5 rounded-2xl border border-white/10 bg-white/[.03] p-4">
-                  <summary class="cursor-pointer font-black text-emerald-300">Plaka, VIN ve ruhsat bilgisini ekle</summary>
+                  <summary class="cursor-pointer font-black text-emerald-300">{{ t().listYourCar.identitySummary }}</summary>
                   <div class="form-grid mt-5">
-                    <label><span>{{ t().listYourCar.plate }}</span><input [ngModel]="licensePlate()" (ngModelChange)="licensePlate.set($event)" maxlength="20" autocomplete="off" placeholder="34 ABC 123" /></label>
-                    <label><span>{{ t().listYourCar.vin }}</span><input [ngModel]="vin()" (ngModelChange)="vin.set($event)" maxlength="30" autocomplete="off" placeholder="17 haneli VIN" /></label>
-                    <label class="md:col-span-2"><span>{{ t().listYourCar.registration }}</span><input [ngModel]="registrationReference()" (ngModelChange)="registrationReference.set($event)" maxlength="80" autocomplete="off" placeholder="İsteğe bağlı" /></label>
+                    <label><span>{{ t().listYourCar.plate }}</span><input [ngModel]="licensePlate()" (ngModelChange)="licensePlate.set($event)" maxlength="20" autocomplete="off" [placeholder]="t().listYourCar.phPlate" /></label>
+                    <label><span>{{ t().listYourCar.vin }}</span><input [ngModel]="vin()" (ngModelChange)="vin.set($event)" maxlength="30" autocomplete="off" [placeholder]="t().listYourCar.phVin" /></label>
+                    <label class="md:col-span-2"><span>{{ t().listYourCar.registration }}</span><input [ngModel]="registrationReference()" (ngModelChange)="registrationReference.set($event)" maxlength="80" autocomplete="off" [placeholder]="t().listYourCar.phRegistration" /></label>
                     <label class="checkbox-field md:col-span-2"><input type="checkbox" [ngModel]="ownershipConfirmed()" (ngModelChange)="ownershipConfirmed.set($event)" /><span>{{ t().listYourCar.ownershipConfirmed }}</span></label>
                   </div>
                 </details>
@@ -147,8 +147,8 @@ import {
                 <div class="form-grid mt-5">
                   <label><span>{{ t().listYourCar.fullName }}</span><input [ngModel]="name()" (ngModelChange)="name.set($event)" maxlength="160" autocomplete="name" /></label>
                   <label><span>{{ t().listYourCar.phone }}</span><input [ngModel]="phone()" (ngModelChange)="phone.set($event)" maxlength="24" autocomplete="tel" inputmode="tel" placeholder="+90 ..." /></label>
-                  <label class="md:col-span-2"><span>{{ t().listYourCar.email }}</span><input [ngModel]="email()" (ngModelChange)="email.set($event)" maxlength="160" type="email" autocomplete="email" placeholder="Teklif ve randevu bildirimleri için önerilir" /></label>
-                  <label class="md:col-span-2"><span>{{ t().listYourCar.notes }}</span><textarea [ngModel]="notes()" (ngModelChange)="notes.set($event)" maxlength="4000" rows="4" placeholder="Araçla veya talebinle ilgili ek bilgi"></textarea></label>
+                  <label class="md:col-span-2"><span>{{ t().listYourCar.email }}</span><input [ngModel]="email()" (ngModelChange)="email.set($event)" maxlength="160" type="email" autocomplete="email" [placeholder]="t().listYourCar.phEmail" /></label>
+                  <label class="md:col-span-2"><span>{{ t().listYourCar.notes }}</span><textarea [ngModel]="notes()" (ngModelChange)="notes.set($event)" maxlength="4000" rows="4" [placeholder]="t().listYourCar.phNotes"></textarea></label>
                 </div>
               </section>
 
@@ -165,9 +165,9 @@ import {
             <aside class="space-y-4 lg:sticky lg:top-24">
               <section class="rounded-[1.75rem] border border-white/10 bg-white/[.04] p-5">
                 <p class="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300">{{ t().listYourCar.summaryTitle }}</p>
-                <dl class="mt-4 space-y-3 text-sm"><div><dt>{{ t().listYourCar.summaryIntent }}</dt><dd>{{ intent()==='sell' ? t().listYourCar.summarySell : t().listYourCar.summaryRent }}</dd></div><div><dt>{{ t().listYourCar.summaryVehicle }}</dt><dd>{{ carBrand() || '-' }} {{ carModel() || '' }}</dd></div><div><dt>{{ t().listYourCar.summaryLocation }}</dt><dd>{{ selectedLocationLabel() }}</dd></div><div><dt>Beklenti</dt><dd>{{ askingPrice() ? (askingPrice() | number:'1.0-0') + ' TL' : 'Belirtilmedi' }}</dd></div><div><dt>Dosya</dt><dd>{{ files().length }} adet</dd></div></dl>
+                <dl class="mt-4 space-y-3 text-sm"><div><dt>{{ t().listYourCar.summaryIntent }}</dt><dd>{{ intent()==='sell' ? t().listYourCar.summarySell : t().listYourCar.summaryRent }}</dd></div><div><dt>{{ t().listYourCar.summaryVehicle }}</dt><dd>{{ carBrand() || '-' }} {{ carModel() || '' }}</dd></div><div><dt>{{ t().listYourCar.summaryLocation }}</dt><dd>{{ selectedLocationLabel() }}</dd></div><div><dt>{{ t().listYourCar.summaryExpectation }}</dt><dd>{{ askingPrice() ? (askingPrice() | number:'1.0-0') + ' ' + t().listYourCar.phCurrency : t().listYourCar.summaryNotSpecified }}</dd></div><div><dt>{{ t().listYourCar.summaryFiles }}</dt><dd>{{ t().listYourCar.summaryFileCount.replace('{n}', '' + files().length) }}</dd></div></dl>
               </section>
-              <section class="rounded-[1.75rem] border border-blue-300/20 bg-blue-300/10 p-5"><strong class="text-sm text-prestige-red-light">{{ t().listYourCar.processTitle }}</strong><ol class="mt-4 space-y-3 text-xs leading-5 text-blue-50/80"><li><b>1.</b> Başvuru ve belgeleriniz alınır.</li><li><b>2.</b> Uzman ekip piyasa bandı ve A-E kondisyon sınıfı oluşturur.</li><li><b>3.</b> Gerekirse ekspertiz veya görüşme randevusu atanır.</li><li><b>4.</b> Uzman değerlemesi tamamlandığında resmi teklif aşamasına geçilir.</li></ol></section>
+              <section class="rounded-[1.75rem] border border-blue-300/20 bg-blue-300/10 p-5"><strong class="text-sm text-prestige-red-light">{{ t().listYourCar.processTitle }}</strong><ol class="mt-4 space-y-3 text-xs leading-5 text-blue-50/80"><li><b>1.</b> {{ t().listYourCar.processStep1 }}</li><li><b>2.</b> {{ t().listYourCar.processStep2 }}</li><li><b>3.</b> {{ t().listYourCar.processStep3 }}</li><li><b>4.</b> {{ t().listYourCar.processStep4 }}</li></ol></section>
             </aside>
           </div>
         }
@@ -212,7 +212,7 @@ export class ListYourCarV172Component implements OnInit {
     const identityEntered=Boolean(this.licensePlate().trim()||this.vin().trim()||this.registrationReference().trim());
     return this.name().trim().length>=2&&/^[+0-9()\s-]{7,24}$/.test(this.phone().trim())&&this.carBrand().trim().length>=1&&this.carModel().trim().length>=1&&year!==null&&Number.isInteger(year)&&year>=1950&&year<=this.maxModelYear&&mileage!==null&&Number.isFinite(mileage)&&mileage>=0&&mileage<=5_000_000&&Boolean(this.fuelType())&&Boolean(this.transmission())&&Boolean(this.provinceCode())&&Boolean(this.districtCode())&&Boolean(this.ownershipStatus())&&this.termsAccepted()&&this.privacyAccepted()&&(!identityEntered||this.ownershipConfirmed())&&!this.geo.error();
   });
-  readonly selectedLocationLabel=computed(()=>{const province=this.geo.province(this.provinceCode())?.name;const district=this.geo.district(this.districtCode())?.name;return [province,district].filter(Boolean).join(" / ")||"Seçilmedi";});
+  readonly selectedLocationLabel=computed(()=>{const province=this.geo.province(this.provinceCode())?.name;const district=this.geo.district(this.districtCode())?.name;return [province,district].filter(Boolean).join(" / ")|| this.t().listYourCar.notSelected;});
 
   async ngOnInit(){
     const [,branches]=await Promise.allSettled([this.geo.ensureLoaded(),this.branchSource.list()]);
@@ -240,5 +240,5 @@ export class ListYourCarV172Component implements OnInit {
   reset(){this.service.resetSubmissionKey();this.intent.set("sell");this.name.set("");this.phone.set("");this.email.set("");this.carBrand.set("");this.carModel.set("");this.modelYear.set(null);this.km.set(null);this.askingPrice.set(null);this.withDriver.set(false);this.fuelType.set("");this.transmission.set("");this.bodyType.set("");this.exteriorColor.set("");this.provinceCode.set("");this.districtCode.set("");this.preferredBranchId.set("");this.ownershipStatus.set("");this.damageDeclaration.set("");this.expertReportAvailable.set(false);this.licensePlate.set("");this.vin.set("");this.registrationReference.set("");this.ownershipConfirmed.set(false);this.notes.set("");this.termsAccepted.set(false);this.privacyAccepted.set(false);this.files.set([]);this.errorMessage.set("");this.reference.set("");this.success.set(false);}
   goBack(){if(typeof window!=="undefined"&&window.history.length>1)this.location.back();else void this.router.navigate(["/"]);}
   formatBytes(bytes:number){if(bytes<1024*1024)return `${Math.max(1,Math.round(bytes/1024))} KB`;return `${(bytes/1024/1024).toFixed(1)} MB`;}
-  private humanError(error:unknown){const code=error instanceof Error?error.message:"";if(code.includes("RATE_LIMITED"))return this.t().listYourCar.rateLimited;if(code.includes("INVALID_GEO"))return "İl ve ilçe eşleşmesi doğrulanamadı. Konumu yeniden seçin.";if(code.includes("BRANCH_NOT_FOUND"))return "Seçilen şube artık hizmet vermiyor. Şube tercihini yenileyin.";if(code.includes("PRIVATE_IDENTITY_SAVE_FAILED"))return "{{ t().listYourCar.sectionIdentityTitle }} kaydedilemedi. Başvurunuz tamamlanmadı. Lütfen tekrar deneyin.";if(code.includes("CONSENT_REQUIRED"))return "Başvuru koşulları ve kişisel veri onayı zorunludur.";return "Başvuru tamamlanamadı. Bilgileri kontrol edip tekrar deneyin.";}
+  private humanError(error:unknown){const code=error instanceof Error?error.message:"";const L=this.t().listYourCar;if(code.includes("RATE_LIMITED"))return L.rateLimited;if(code.includes("INVALID_GEO"))return L.errInvalidGeo;if(code.includes("BRANCH_NOT_FOUND"))return L.errBranchNotFound;if(code.includes("PRIVATE_IDENTITY_SAVE_FAILED"))return L.errIdentitySave;if(code.includes("CONSENT_REQUIRED"))return L.errConsent;return L.errGeneric;}
 }

@@ -85,21 +85,21 @@ type FactRow = { label: string; value: string };
 
               @if (technicalRows().length) {
                 <section class="expand-section">
-                  <button type="button" class="expand-button" (click)="techOpen.update(v => !v)" [attr.aria-expanded]="techOpen()" aria-controls="sale-tech-specs"><span><mat-icon aria-hidden="true">settings_suggest</mat-icon>{{ techOpen() ? 'Performans Bilgilerini Gizle' : 'Performans ve Tüketim Bilgilerini Gör' }}</span><mat-icon aria-hidden="true">{{ techOpen() ? 'expand_less' : 'expand_more' }}</mat-icon></button>
+                  <button type="button" class="expand-button" (click)="techOpen.update(v => !v)" [attr.aria-expanded]="techOpen()" aria-controls="sale-tech-specs"><span><mat-icon aria-hidden="true">settings_suggest</mat-icon>{{ techOpen() ? t().saleDetail.hidePerformance : t().saleDetail.showPerformance }}</span><mat-icon aria-hidden="true">{{ techOpen() ? 'expand_less' : 'expand_more' }}</mat-icon></button>
                   @if (techOpen()) { <dl id="sale-tech-specs" class="spec-grid">@for (row of technicalRows(); track row.label) { <div><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div> }</dl> }
                 </section>
               }
 
               @if (features().length) {
                 <section class="expand-section">
-                  <button type="button" class="expand-button blue" (click)="featuresOpen.update(v => !v)" [attr.aria-expanded]="featuresOpen()" aria-controls="sale-features"><span><mat-icon aria-hidden="true">checklist</mat-icon>{{ featuresOpen() ? 'Donanımı Gizle' : 'Konfor ve Donanımı Gör' }}</span><mat-icon aria-hidden="true">{{ featuresOpen() ? 'expand_less' : 'expand_more' }}</mat-icon></button>
+                  <button type="button" class="expand-button blue" (click)="featuresOpen.update(v => !v)" [attr.aria-expanded]="featuresOpen()" aria-controls="sale-features"><span><mat-icon aria-hidden="true">checklist</mat-icon>{{ featuresOpen() ? t().saleDetail.hideFeatures : t().saleDetail.showFeatures }}</span><mat-icon aria-hidden="true">{{ featuresOpen() ? 'expand_less' : 'expand_more' }}</mat-icon></button>
                   @if (featuresOpen()) { <ul id="sale-features" class="feature-grid">@for (feature of features(); track feature) { <li><mat-icon aria-hidden="true">check_circle</mat-icon>{{ feature }}</li> }</ul> }
                 </section>
               }
 
               <section class="expertise" aria-labelledby="expertise-title">
                 <h3 id="expertise-title"><mat-icon aria-hidden="true">verified</mat-icon>{{ t().saleDetail.expertiseTitle }}</h3>
-                <dl class="truth-list" aria-label="Hasar ve tramer bilgileri">
+                <dl class="truth-list" [attr.aria-label]="t().saleDetail.damageAria">
                   @for (row of expertiseRows(item); track row.label) { <div><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div> }
                 </dl>
                 <app-expertise-graphic [data]="item.damageExpertise"></app-expertise-graphic>
@@ -109,11 +109,11 @@ type FactRow = { label: string; value: string };
           }
 
           @if (activeTab() === 'desc') {
-            <article class="description-panel"><h3>{{ aboutTitle(item) }}</h3><p>{{ item.description || t().saleDetail.descFallback }}</p>@if (features().length) { <h4>Öne çıkan donanımlar</h4><ul>@for (feature of features().slice(0, 12); track feature) { <li>{{ feature }}</li> }</ul> }</article>
+            <article class="description-panel"><h3>{{ aboutTitle(item) }}</h3><p>{{ item.description || t().saleDetail.descFallback }}</p>@if (features().length) { <h4>{{ t().saleDetail.featuredFeatures }}</h4><ul>@for (feature of features().slice(0, 12); track feature) { <li>{{ feature }}</li> }</ul> }</article>
           }
 
           @if (activeTab() === 'loc') {
-            <div class="location-panel"><div class="location-map"><mat-icon aria-hidden="true">location_on</mat-icon><strong>{{ display(item.location, t().saleDetail.locationFallback) }}</strong>@if (mapHref(item)) { <a [href]="mapHref(item)" target="_blank" rel="noopener noreferrer"><mat-icon aria-hidden="true">map</mat-icon>Haritada aç</a> }</div><div class="dealer-card"><span class="dealer-icon"><mat-icon aria-hidden="true">storefront</mat-icon></span><div><strong>{{ carService.getConfig()().companyName }}</strong><p>{{ item.location || 'Araç konumu için ekibimizden bilgi alabilirsiniz.' }}</p></div></div></div>
+            <div class="location-panel"><div class="location-map"><mat-icon aria-hidden="true">location_on</mat-icon><strong>{{ display(item.location, t().saleDetail.locationFallback) }}</strong>@if (mapHref(item)) { <a [href]="mapHref(item)" target="_blank" rel="noopener noreferrer"><mat-icon aria-hidden="true">map</mat-icon>{{ t().tourDetail.openMap }}</a> }</div><div class="dealer-card"><span class="dealer-icon"><mat-icon aria-hidden="true">storefront</mat-icon></span><div><strong>{{ carService.getConfig()().companyName }}</strong><p>{{ item.location || t().saleDetail.dealerHint }}</p></div></div></div>
           }
         </section>
 
@@ -323,21 +323,21 @@ export class SaleCarDetailComponent implements OnInit {
     if (!item) return [] as FactRow[];
     const specs = item.technicalSpecs;
     const rows: Array<[string, unknown]> = [
-      ["Maksimum hız", specs?.maxSpeed || item.maxSpeed],
-      ["0-100 km/s", specs?.acceleration || item.acceleration],
-      ["Motor hacmi", specs?.engineVolume || item.engineVolume],
-      ["Motor gücü", specs?.enginePower || item.enginePower],
-      ["Tork", specs?.torque || item.torque],
-      ["Çekiş", specs?.drivetrain || item.drivetrain],
-      ["Silindir", specs?.cylinders || (item.cylinderCount ? `${item.cylinderCount} silindir` : "")],
-      ["Şehir içi tüketim", specs?.cityFuel || item.cityFuelConsumption],
-      ["Uzun yol tüketim", specs?.highwayFuel || item.highwayFuelConsumption],
-      ["Ortalama tüketim", specs?.combinedFuel || item.fuelConsumption],
-      ["Depo", specs?.tankCapacity || item.fuelTankCapacity],
-      ["Bagaj", specs?.trunkCapacity || item.trunkVolume],
-      ["Jant / Lastik", specs?.wheels || item.wheelSize],
-      ["Boyutlar", specs?.dimensions || [item.length, item.width, item.height].filter(Boolean).join(" × ")],
-      ["Ağırlık", specs?.weight || item.weight],
+      [this.t().saleDetail.specMaxSpeed, specs?.maxSpeed || item.maxSpeed],
+      [this.t().saleDetail.specAccel, specs?.acceleration || item.acceleration],
+      [this.t().saleDetail.specEngineVolume, specs?.engineVolume || item.engineVolume],
+      [this.t().saleDetail.specEnginePower, specs?.enginePower || item.enginePower],
+      [this.t().saleDetail.specTorque, specs?.torque || item.torque],
+      [this.t().saleDetail.specDrivetrain, specs?.drivetrain || item.drivetrain],
+      [this.t().saleDetail.specCylinders, specs?.cylinders || (item.cylinderCount ? `${item.cylinderCount} silindir` : "")],
+      [this.t().saleDetail.specCityFuel, specs?.cityFuel || item.cityFuelConsumption],
+      [this.t().saleDetail.specHighwayFuel, specs?.highwayFuel || item.highwayFuelConsumption],
+      [this.t().saleDetail.specCombinedFuel, specs?.combinedFuel || item.fuelConsumption],
+      [this.t().saleDetail.specTank, specs?.tankCapacity || item.fuelTankCapacity],
+      [this.t().saleDetail.specTrunk, specs?.trunkCapacity || item.trunkVolume],
+      [this.t().saleDetail.specWheels, specs?.wheels || item.wheelSize],
+      [this.t().saleDetail.specDimensions, specs?.dimensions || [item.length, item.width, item.height].filter(Boolean).join(" × ")],
+      [this.t().saleDetail.specWeight, specs?.weight || item.weight],
     ];
     return rows.filter(([, value]) => String(value ?? "").trim() && String(value) !== "-").map(([label, value]) => ({ label, value: String(value) }));
   });
@@ -380,15 +380,15 @@ export class SaleCarDetailComponent implements OnInit {
   expertiseRows(item: Car): FactRow[] {
     const rows: FactRow[] = [
       { label: this.t().saleDetail.damageStatus, value: item.damageStatus || (item.isDamageFree ? this.t().saleDetail.damageFree : this.t().saleDetail.notSpecified) },
-      { label: "Tramer Durumu", value: this.tramerStatusLabel(item) },
+      { label: this.t().saleDetail.tramerStatus, value: this.tramerStatusLabel(item) },
     ];
     if (item.tramerAmount != null) rows.push({ label: this.t().saleDetail.tramerAmount, value: `${Number(item.tramerAmount).toLocaleString("tr-TR")} TL` });
     if (item.tramerVerifiedAt) rows.push({ label: this.t().saleDetail.tramerVerifiedAt, value: this.formatDate(item.tramerVerifiedAt) });
     return rows;
   }
-  tramerStatusLabel(item: Car): string { const map: Record<string, string> = { UNKNOWN: "Bilgi paylaşılmamış", DECLARED_CLEAN: "Beyan: kayıt yok", DECLARED_RECORD: "Beyan: kayıt var", VERIFIED_CLEAN: "Doğrulandı: kayıt yok", VERIFIED_RECORD: "Doğrulandı: kayıt var" }; return map[String(item.tramerStatus || "UNKNOWN")] || this.t().saleDetail.notSpecified; }
+  tramerStatusLabel(item: Car): string { const map: Record<string, string> = { UNKNOWN: this.t().saleDetail.tramerUnknown, DECLARED_CLEAN: this.t().saleDetail.tramerDeclaredClean, DECLARED_RECORD: this.t().saleDetail.tramerDeclaredRecord, VERIFIED_CLEAN: this.t().saleDetail.tramerVerifiedClean, VERIFIED_RECORD: this.t().saleDetail.tramerVerifiedRecord }; return map[String(item.tramerStatus || "UNKNOWN")] || this.t().saleDetail.notSpecified; }
   hasTramerDetail(item: Car): boolean { return String(item.tramerStatus || "UNKNOWN") !== "UNKNOWN" || item.tramerAmount != null || Boolean(item.tramerVerifiedAt || item.tramerSourceName); }
-  tramerDetail(item: Car): string { const text = String(item.tramer || "").trim(); if (text && !/^belirtilmedi/i.test(text)) return text; if (item.tramerAmount != null) return `Bildirilen tramer tutarı ${Number(item.tramerAmount).toLocaleString("tr-TR")} TL.`; return this.tramerStatusLabel(item); }
+  tramerDetail(item: Car): string { const text = String(item.tramer || "").trim(); if (text && !/^belirtilmedi/i.test(text)) return text; if (item.tramerAmount != null) return this.t().saleDetail.tramerAmountText.replace("{amount}", Number(item.tramerAmount).toLocaleString("tr-TR")); return this.tramerStatusLabel(item); }
   mapHref(item: Car): string { const record = item as Car & { mapUrl?: string; latitude?: number; longitude?: number }; if (record.mapUrl && /^https:\/\//i.test(record.mapUrl)) return record.mapUrl; if (Number.isFinite(Number(record.latitude)) && Number.isFinite(Number(record.longitude))) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${record.latitude},${record.longitude}`)}`; const query = String(item.location || "").trim(); return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : ""; }
   inquire(item: Car): void { if (item.availability === "Satıldı") return; this.carService.setBookingRequest({ type: "SALE_INQUIRY", item, itemName: `${item.brand || ""} ${item.model || ""}`.trim(), image: item.image || item.images?.[0], basePrice: Number(item.price || 0) }); void this.router.navigate(["/contact"]); }
   async share(item: Car): Promise<void> { const payload = { title: `${item.brand || ""} ${item.model || ""} | Alperler Auto`.trim(), text: this.t().saleDetail.shareText, url: window.location.href }; try { if (navigator.share) await navigator.share(payload); else await navigator.clipboard?.writeText(window.location.href); } catch { /* kullanıcı paylaşımı iptal etti */ } }

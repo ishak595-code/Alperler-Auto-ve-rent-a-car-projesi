@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CustomerSavedCardsV225Service, SavedCardV225 } from '../services/customer-saved-cards-v225.service';
 import { CustomerDocument, CustomerDocumentType, CustomerWalletService } from '../services/customer-wallet.service';
+import { UiService } from '../services/ui.service';
 
 interface DocumentSlot { type:CustomerDocumentType; title:string; description:string; icon:string; }
 
@@ -15,68 +16,68 @@ interface DocumentSlot { type:CustomerDocumentType; title:string; description:st
     <main class="wallet-page">
       <section class="shell">
         <header class="topbar">
-          <div><p>ALPERLER HESABIM</p><h1>Cüzdan ve Belgeler</h1><span>Ödeme kartlarınızı ve rezervasyonlarda kullanacağınız belgeleri tek yerden yönetin.</span></div>
-          <nav aria-label="Cüzdan gezinme"><a routerLink="/account">Hesabıma Dön</a><a routerLink="/">Ana Sayfa</a></nav>
+          <div><p>{{ t().accountWallet.eyebrow }}</p><h1>{{ t().accountWallet.title }}</h1><span>{{ t().accountWallet.subtitle }}</span></div>
+          <nav [attr.aria-label]="t().accountWallet.navAria"><a routerLink="/account">{{ t().accountWallet.backAccount }}</a><a routerLink="/">{{ t().accountWallet.home }}</a></nav>
         </header>
 
         @if(message()){<p class="notice ok" role="status">{{message()}}</p>}
         @if(error()){<p class="notice error" role="alert">{{error()}}</p>}
 
         <section class="card-section" aria-labelledby="saved-cards-title">
-          <header class="section-head"><div><p>ÖDEME CÜZDANI</p><h2 id="saved-cards-title">Kayıtlı kartlarım</h2><span>Kartlarınızı sonraki ödemelerde daha hızlı kullanmak için güvenle ekleyebilirsiniz.</span></div><button type="button" class="primary" (click)="toggleCardForm()" [disabled]="!cards.available()">{{cardFormOpen()?'Kapat':'Yeni Kart Ekle'}}</button></header>
-          <div class="privacy-note"><strong>Güvenli kart saklama</strong><span>Kart bilgileriniz güvenli ödeme kuruluşunda korunur. Cüzdanda yalnız kartın tanınması için gereken sınırlı bilgiler gösterilir.</span></div>
+          <header class="section-head"><div><p>{{ t().accountWallet.cardsEyebrow }}</p><h2 id="saved-cards-title">{{ t().accountWallet.cardsTitle }}</h2><span>{{ t().accountWallet.cardsHint }}</span></div><button type="button" class="primary" (click)="toggleCardForm()" [disabled]="!cards.available()">{{cardFormOpen()?t().accountWallet.close:t().accountWallet.addCard}}</button></header>
+          <div class="privacy-note"><strong>{{ t().accountWallet.privacyTitle }}</strong><span>{{ t().accountWallet.privacyBody }}</span></div>
 
           @if(cards.loading()){
-            <p class="loading" role="status">Kartlarınız hazırlanıyor...</p>
+            <p class="loading" role="status">{{ t().accountWallet.cardsLoading }}</p>
           } @else if(!cards.available()) {
-            <div class="empty-card"><strong>Kayıtlı kart özelliği şu anda aktif değil.</strong><span>Rezervasyon sırasında sunulan diğer ödeme seçeneklerini kullanabilirsiniz.</span></div>
+            <div class="empty-card"><strong>{{ t().accountWallet.cardsUnavailableTitle }}</strong><span>{{ t().accountWallet.cardsUnavailableBody }}</span></div>
           } @else {
             @if(cardFormOpen()){
               <form class="card-form" (ngSubmit)="addCard()" novalidate>
-                <label><span>Kart adı</span><input [(ngModel)]="cardForm.alias" name="cardAlias" maxlength="80" autocomplete="off" placeholder="Örn. Kişisel kartım" /></label>
-                <label><span>Kart üzerindeki ad soyad</span><input [(ngModel)]="cardForm.holder" name="cardHolder" maxlength="100" autocomplete="cc-name" required /></label>
-                <label class="wide"><span>Kart numarası</span><input [(ngModel)]="cardForm.number" name="cardNumber" maxlength="23" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000" required /></label>
-                <label><span>Son kullanma ayı</span><input [(ngModel)]="cardForm.month" name="expireMonth" maxlength="2" inputmode="numeric" autocomplete="cc-exp-month" placeholder="AA" required /></label>
-                <label><span>Son kullanma yılı</span><input [(ngModel)]="cardForm.year" name="expireYear" maxlength="4" inputmode="numeric" autocomplete="cc-exp-year" placeholder="YYYY" required /></label>
-                <p class="form-help wide">Kart güvenlik kodu bu işlem için istenmez. Kartınızı eklediğinizde yalnız ödeme kuruluşunun oluşturduğu güvenli kayıt kullanılır.</p>
-                <button type="submit" class="primary wide" [disabled]="cards.working()">{{cards.working()?'Kart ekleniyor...':'Kartı Güvenle Kaydet'}}</button>
+                <label><span>{{ t().accountWallet.cardAlias }}</span><input [(ngModel)]="cardForm.alias" name="cardAlias" maxlength="80" autocomplete="off" [placeholder]="t().accountWallet.cardAliasPh" /></label>
+                <label><span>{{ t().accountWallet.cardHolder }}</span><input [(ngModel)]="cardForm.holder" name="cardHolder" maxlength="100" autocomplete="cc-name" required /></label>
+                <label class="wide"><span>{{ t().accountWallet.cardNumber }}</span><input [(ngModel)]="cardForm.number" name="cardNumber" maxlength="23" inputmode="numeric" autocomplete="cc-number" [placeholder]="t().accountWallet.cardNumberPh" required /></label>
+                <label><span>{{ t().accountWallet.expMonth }}</span><input [(ngModel)]="cardForm.month" name="expireMonth" maxlength="2" inputmode="numeric" autocomplete="cc-exp-month" [placeholder]="t().accountWallet.expMonthPh" required /></label>
+                <label><span>{{ t().accountWallet.expYear }}</span><input [(ngModel)]="cardForm.year" name="expireYear" maxlength="4" inputmode="numeric" autocomplete="cc-exp-year" [placeholder]="t().accountWallet.expYearPh" required /></label>
+                <p class="form-help wide">{{ t().accountWallet.formHelp }}</p>
+                <button type="submit" class="primary wide" [disabled]="cards.working()">{{cards.working()?t().accountWallet.addingCard:t().accountWallet.saveCard}}</button>
               </form>
             }
             <div class="saved-grid">
               @for(card of cards.cards();track card.id){
                 <article class="saved-card">
-                  <div class="card-brand"><span aria-hidden="true">▰</span><div><small>{{card.brand}}</small><strong>•••• {{card.last4}}</strong></div>@if(card.isDefault){<b>Varsayılan</b>}</div>
-                  <div class="card-meta"><span>{{card.label}}</span>@if(card.expiryMonth&&card.expiryYear){<time>Son kullanma {{two(card.expiryMonth)}}/{{String(card.expiryYear).slice(-2)}}</time>}</div>
-                  <div class="card-actions">@if(!card.isDefault){<button type="button" (click)="makeDefault(card)" [disabled]="cards.working()">Varsayılan Yap</button>}<button type="button" class="remove" (click)="removeCard(card)" [disabled]="cards.working()">Kartı Kaldır</button></div>
+                  <div class="card-brand"><span aria-hidden="true">▰</span><div><small>{{card.brand}}</small><strong>•••• {{card.last4}}</strong></div>@if(card.isDefault){<b>{{ t().accountWallet.default }}</b>}</div>
+                  <div class="card-meta"><span>{{card.label}}</span>@if(card.expiryMonth&&card.expiryYear){<time>{{ t().accountWallet.expiry.replace("{mm}", two(card.expiryMonth)).replace("{yy}", String(card.expiryYear).slice(-2)) }}</time>}</div>
+                  <div class="card-actions">@if(!card.isDefault){<button type="button" (click)="makeDefault(card)" [disabled]="cards.working()">{{ t().accountWallet.makeDefault }}</button>}<button type="button" class="remove" (click)="removeCard(card)" [disabled]="cards.working()">{{ t().accountWallet.removeCard }}</button></div>
                 </article>
               } @empty {
-                <div class="empty-card"><strong>Henüz kayıtlı kartınız yok.</strong><span>İsterseniz bir kart ekleyip sonraki ödemelerinizi hızlandırabilirsiniz.</span></div>
+                <div class="empty-card"><strong>{{ t().accountWallet.emptyCardsTitle }}</strong><span>{{ t().accountWallet.emptyCardsBody }}</span></div>
               }
             </div>
           }
         </section>
 
         <section class="documents" aria-labelledby="documents-title">
-          <header class="section-head"><div><p>BELGELERİM</p><h2 id="documents-title">Kimlik ve ehliyet</h2><span>Rezervasyon doğrulamasında gereken belgeleri bir kez yükleyip durumlarını buradan takip edin.</span></div></header>
+          <header class="section-head"><div><p>{{ t().accountWallet.docsEyebrow }}</p><h2 id="documents-title">{{ t().accountWallet.docsTitle }}</h2><span>{{ t().accountWallet.docsHint }}</span></div></header>
           @if(wallet.loading()){
-            <p class="loading" role="status">Belgeleriniz hazırlanıyor...</p>
+            <p class="loading" role="status">{{ t().accountWallet.docsLoading }}</p>
           } @else if(!wallet.hasActiveConsent()){
-            <section class="consent-card"><div><p>GİZLİLİK ONAYI</p><h3>{{wallet.terms()?.title||'Belge Kullanım Onayı'}}</h3><span>Kimlik veya ehliyet yüklemeden önce belge kullanım koşullarını onaylamanız gerekir.</span></div>@if(wallet.terms();as terms){<pre>{{terms.body}}</pre>}<button type="button" class="primary" (click)="acceptTerms()" [disabled]="working()||!wallet.terms()">{{working()?'Onaylanıyor...':'Koşulları Kabul Et'}}</button></section>
+            <section class="consent-card"><div><p>{{ t().accountWallet.consentEyebrow }}</p><h3>{{wallet.terms()?.title||t().accountWallet.consentTitleFallback}}</h3><span>{{ t().accountWallet.consentHint }}</span></div>@if(wallet.terms();as terms){<pre>{{terms.body}}</pre>}<button type="button" class="primary" (click)="acceptTerms()" [disabled]="working()||!wallet.terms()">{{working()?t().accountWallet.accepting:t().accountWallet.acceptTerms}}</button></section>
           } @else {
-            <div class="privacy-note"><strong>Özel erişim</strong><span>Belgeleriniz yalnız doğrulama yetkisi olan ekip tarafından rezervasyon işlemleri için görüntülenebilir.</span></div>
-            <section class="slot-grid" aria-label="Kimlik ve ehliyet belge alanları">
+            <div class="privacy-note"><strong>{{ t().accountWallet.privateTitle }}</strong><span>{{ t().accountWallet.privateBody }}</span></div>
+            <section class="slot-grid" [attr.aria-label]="t().accountWallet.slotsAria">
               @for(slot of slots;track slot.type){
                 <article class="slot-card"><header><span class="slot-icon" aria-hidden="true">{{slot.icon}}</span><div><h3>{{slot.title}}</h3><p>{{slot.description}}</p></div></header>
                   @if(documentFor(slot.type);as doc){
                     <div class="document-state"><div><small>DURUM</small><strong [class.verified]="doc.verification_status==='VERIFIED'">{{statusLabel(doc.verification_status)}}</strong></div><span>{{doc.original_name}}</span><time>{{doc.created_at|date:'dd.MM.yyyy HH:mm'}}</time>@if(doc.rejection_reason){<p class="rejection">{{doc.rejection_reason}}</p>}</div>
-                    <div class="document-actions"><button type="button" (click)="openDocument(doc)">Görüntüle</button><label class="replace" [class.disabled]="workingType()===slot.type"><span>{{workingType()===slot.type?'Yükleniyor...':'Yeni Fotoğraf Yükle'}}</span><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" [disabled]="workingType()===slot.type" [attr.aria-label]="slot.title+' için yeni fotoğraf çek veya seç'" (change)="upload(slot.type,$event,doc)" /></label><button type="button" class="remove" (click)="removeDocument(doc)" [disabled]="workingType()===slot.type">Kaldır</button></div>
+                    <div class="document-actions"><button type="button" (click)="openDocument(doc)">{{ t().accountWallet.view }}</button><label class="replace" [class.disabled]="workingType()===slot.type"><span>{{workingType()===slot.type?t().accountWallet.uploading:t().accountWallet.replacePhoto}}</span><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" [disabled]="workingType()===slot.type" [attr.aria-label]="t().accountWallet.replaceAria.replace('{title}', slot.title)" (change)="upload(slot.type,$event,doc)" /></label><button type="button" class="remove" (click)="removeDocument(doc)" [disabled]="workingType()===slot.type">{{ t().accountWallet.remove }}</button></div>
                   } @else {
-                    <div class="empty-state"><strong>Henüz yüklenmedi</strong><span>Telefonunuzun kamerasıyla fotoğraf çekebilir veya galeriden görsel seçebilirsiniz.</span></div><label class="capture" [class.disabled]="workingType()===slot.type"><span>{{workingType()===slot.type?'Yükleniyor...':'Fotoğraf Çek veya Görsel Seç'}}</span><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" [disabled]="workingType()===slot.type" [attr.aria-label]="slot.title+' fotoğrafı çek veya seç'" (change)="upload(slot.type,$event)" /></label>
+                    <div class="empty-state"><strong>{{ t().accountWallet.emptyDocTitle }}</strong><span>{{ t().accountWallet.emptyDocHint }}</span></div><label class="capture" [class.disabled]="workingType()===slot.type"><span>{{workingType()===slot.type?t().accountWallet.uploading:t().accountWallet.capture}}</span><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" [disabled]="workingType()===slot.type" [attr.aria-label]="t().accountWallet.captureAria.replace('{title}', slot.title)" (change)="upload(slot.type,$event)" /></label>
                   }
                 </article>
               }
             </section>
-            <section class="review-info"><div><p>DOĞRULAMA SÜRECİ</p><h3>Belgeniz yüklendiğinde ne olur?</h3></div><ol><li><strong>1</strong><span>Belge hesabınıza eklenir.</span></li><li><strong>2</strong><span>Yetkili ekip rezervasyonla birlikte kontrol eder.</span></li><li><strong>3</strong><span>Sonuç cüzdanınızda görünür; gerekirse yeniden yükleme notu alırsınız.</span></li></ol></section>
+            <section class="review-info"><div><p>{{ t().accountWallet.reviewEyebrow }}</p><h3>{{ t().accountWallet.reviewTitle }}</h3></div><ol><li><strong>1</strong><span>{{ t().accountWallet.review1 }}</span></li><li><strong>2</strong><span>{{ t().accountWallet.review2 }}</span></li><li><strong>3</strong><span>{{ t().accountWallet.review3 }}</span></li></ol></section>
           }
         </section>
       </section>
@@ -87,6 +88,8 @@ interface DocumentSlot { type:CustomerDocumentType; title:string; description:st
   `]
 })
 export class AccountWalletComponent implements OnInit {
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   readonly wallet=inject(CustomerWalletService);
   readonly cards=inject(CustomerSavedCardsV225Service);
   readonly working=signal(false);
@@ -96,33 +99,33 @@ export class AccountWalletComponent implements OnInit {
   readonly cardFormOpen=signal(false);
   readonly String=String;
   cardForm={alias:'',holder:'',number:'',month:'',year:''};
-  readonly slots:DocumentSlot[]=[
-    {type:'IDENTITY_FRONT',title:'Kimlik Ön Yüz',description:'Kimliğinizin fotoğraflı ön yüzünü net ve tam kadraj yükleyin.',icon:'ID'},
-    {type:'IDENTITY_BACK',title:'Kimlik Arka Yüz',description:'Kimliğinizin arka yüzündeki bilgilerin tamamı görünür olmalı.',icon:'ID'},
-    {type:'DRIVING_LICENSE_FRONT',title:'Ehliyet Ön Yüz',description:'Sürücü belgenizin ön yüzünü yansıma ve bulanıklık olmadan yükleyin.',icon:'E'},
-    {type:'DRIVING_LICENSE_BACK',title:'Ehliyet Arka Yüz',description:'Sürücü belgenizin arka yüzünü tam kadraj yükleyin.',icon:'E'},
-  ];
+  get slots():DocumentSlot[]{const W=this.t().accountWallet;return[
+    {type:'IDENTITY_FRONT',title:W.slotIdFront,description:W.slotIdFrontDesc,icon:'ID'},
+    {type:'IDENTITY_BACK',title:W.slotIdBack,description:W.slotIdBackDesc,icon:'ID'},
+    {type:'DRIVING_LICENSE_FRONT',title:W.slotLicenseFront,description:W.slotLicenseFrontDesc,icon:'E'},
+    {type:'DRIVING_LICENSE_BACK',title:W.slotLicenseBack,description:W.slotLicenseBackDesc,icon:'E'},
+  ];}
 
   async ngOnInit():Promise<void>{
     const results=await Promise.allSettled([this.wallet.refresh(),this.cards.refresh()]);
-    if(results[0].status==='rejected')this.error.set('Belgeleriniz şu anda yüklenemedi. Biraz sonra yeniden deneyin.');
-    if(results[1].status==='rejected'&&!this.error())this.error.set('Kayıtlı kartlarınız şu anda yüklenemedi. Biraz sonra yeniden deneyin.');
+    if(results[0].status==='rejected')this.error.set(this.t().accountWallet.errDocsLoad);
+    if(results[1].status==='rejected'&&!this.error())this.error.set(this.t().accountWallet.errCardsLoad);
   }
 
   toggleCardForm():void{this.cardFormOpen.update(v=>!v);this.clearMessages();if(!this.cardFormOpen())this.resetCardForm();}
-  async addCard():Promise<void>{this.clearMessages();try{await this.cards.add({cardAlias:this.cardForm.alias.trim()||'Kartım',cardHolderName:this.cardForm.holder.trim(),cardNumber:this.cardForm.number,expireMonth:this.cardForm.month,expireYear:this.cardForm.year});this.resetCardForm();this.cardFormOpen.set(false);this.message.set('Kartınız cüzdanınıza eklendi.');}catch(e){this.error.set(this.messageOf(e));}}
-  async removeCard(card:SavedCardV225):Promise<void>{this.clearMessages();try{await this.cards.remove(card.id);this.message.set('Kart cüzdanınızdan kaldırıldı.');}catch(e){this.error.set(this.messageOf(e));}}
-  async makeDefault(card:SavedCardV225):Promise<void>{this.clearMessages();try{await this.cards.makeDefault(card.id);this.message.set('Varsayılan kartınız güncellendi.');}catch(e){this.error.set(this.messageOf(e));}}
+  async addCard():Promise<void>{this.clearMessages();try{await this.cards.add({cardAlias:this.cardForm.alias.trim()||this.t().accountWallet.defaultAlias,cardHolderName:this.cardForm.holder.trim(),cardNumber:this.cardForm.number,expireMonth:this.cardForm.month,expireYear:this.cardForm.year});this.resetCardForm();this.cardFormOpen.set(false);this.message.set(this.t().accountWallet.msgCardAdded);}catch(e){this.error.set(this.messageOf(e));}}
+  async removeCard(card:SavedCardV225):Promise<void>{this.clearMessages();try{await this.cards.remove(card.id);this.message.set(this.t().accountWallet.msgCardRemoved);}catch(e){this.error.set(this.messageOf(e));}}
+  async makeDefault(card:SavedCardV225):Promise<void>{this.clearMessages();try{await this.cards.makeDefault(card.id);this.message.set(this.t().accountWallet.msgDefaultUpdated);}catch(e){this.error.set(this.messageOf(e));}}
   two(value:number):string{return String(value).padStart(2,'0');}
 
   documentFor(type:CustomerDocumentType):CustomerDocument|null{return this.wallet.documents().find(document=>document.document_type===type)||null;}
-  statusLabel(status:CustomerDocument['verification_status']):string{if(status==='VERIFIED')return'Doğrulandı';if(status==='REJECTED')return'Yeniden Yükleme Gerekli';if(status==='EXPIRED')return'Süresi Doldu';return'İnceleniyor';}
-  async acceptTerms():Promise<void>{if(this.working())return;this.working.set(true);this.clearMessages();try{await this.wallet.acceptTerms();this.message.set('Belge alanınız açıldı. Belgelerinizi ekleyebilirsiniz.');}catch{this.error.set('Belge onayı şu anda tamamlanamadı.');}finally{this.working.set(false);}}
-  async upload(type:CustomerDocumentType,event:Event,previous?:CustomerDocument):Promise<void>{const input=event.target as HTMLInputElement;const file=input.files?.[0];input.value='';if(!file||this.workingType())return;this.workingType.set(type);this.clearMessages();try{await this.wallet.uploadDocument(file,type);if(previous)await this.wallet.deleteDocument(previous).catch(()=>undefined);await this.wallet.refresh();this.message.set(`${this.slotTitle(type)} başarıyla yüklendi.`);}catch(error){const detail=error instanceof Error?error.message:'';this.error.set(detail.includes('DOCUMENT_SIZE_INVALID')?'Belge dosyası en fazla 10 MB olabilir.':detail.includes('DOCUMENT_TYPE_INVALID')?'Lütfen JPEG, PNG veya WebP formatında bir görsel seçin.':'Belge yüklenemedi. Görüntüyü kontrol edip tekrar deneyin.');}finally{this.workingType.set(null);}}
-  async openDocument(document:CustomerDocument):Promise<void>{this.clearMessages();try{await this.wallet.openDocument(document);}catch{this.error.set('Belge şu anda görüntülenemedi.');}}
-  async removeDocument(document:CustomerDocument):Promise<void>{if(this.workingType())return;this.workingType.set(document.document_type);this.clearMessages();try{await this.wallet.deleteDocument(document);this.message.set(`${this.slotTitle(document.document_type)} kaldırıldı.`);}catch{this.error.set('Belge kaldırılamadı. Lütfen tekrar deneyin.');}finally{this.workingType.set(null);}}
+  statusLabel(status:CustomerDocument['verification_status']):string{const W=this.t().accountWallet;if(status==='VERIFIED')return W.statusVerified;if(status==='REJECTED')return W.statusRejected;if(status==='EXPIRED')return W.statusExpired;return W.statusPending;}
+  async acceptTerms():Promise<void>{if(this.working())return;this.working.set(true);this.clearMessages();try{await this.wallet.acceptTerms();this.message.set(this.t().accountWallet.msgTermsAccepted);}catch{this.error.set(this.t().accountWallet.errTerms);}finally{this.working.set(false);}}
+  async upload(type:CustomerDocumentType,event:Event,previous?:CustomerDocument):Promise<void>{const input=event.target as HTMLInputElement;const file=input.files?.[0];input.value='';if(!file||this.workingType())return;this.workingType.set(type);this.clearMessages();try{await this.wallet.uploadDocument(file,type);if(previous)await this.wallet.deleteDocument(previous).catch(()=>undefined);await this.wallet.refresh();this.message.set(this.t().accountWallet.msgUploaded.replace('{title}', this.slotTitle(type)));}catch(error){const detail=error instanceof Error?error.message:'';this.error.set(detail.includes('DOCUMENT_SIZE_INVALID')?this.t().accountWallet.errSize:detail.includes('DOCUMENT_TYPE_INVALID')?this.t().accountWallet.errType:this.t().accountWallet.errUpload);}finally{this.workingType.set(null);}}
+  async openDocument(document:CustomerDocument):Promise<void>{this.clearMessages();try{await this.wallet.openDocument(document);}catch{this.error.set(this.t().accountWallet.errOpen);}}
+  async removeDocument(document:CustomerDocument):Promise<void>{if(this.workingType())return;this.workingType.set(document.document_type);this.clearMessages();try{await this.wallet.deleteDocument(document);this.message.set(this.t().accountWallet.msgRemoved.replace('{title}', this.slotTitle(document.document_type)));}catch{this.error.set(this.t().accountWallet.errRemove);}finally{this.workingType.set(null);}}
   private resetCardForm():void{this.cardForm={alias:'',holder:'',number:'',month:'',year:''};}
   private slotTitle(type:CustomerDocumentType):string{return this.slots.find(slot=>slot.type===type)?.title||'Belge';}
   private clearMessages():void{this.message.set('');this.error.set('');}
-  private messageOf(error:unknown):string{return error instanceof Error?error.message:'İşlem tamamlanamadı. Lütfen tekrar deneyin.';}
+  private messageOf(error:unknown):string{return error instanceof Error?error.message:this.t().accountWallet.errGeneric;}
 }

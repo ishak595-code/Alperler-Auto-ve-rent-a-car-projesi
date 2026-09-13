@@ -6,6 +6,7 @@ import { AccountFavoritesV213Component } from '../components/account-favorites-v
 import { AccountProfileSettingsV241Component } from '../components/account-profile-settings-v241.component';
 import { AccountReferralV241Component } from '../components/account-referral-v241.component';
 import { AccountDashboardV150Component } from './account-dashboard-v150.component';
+import { UiService } from '../services/ui.service';
 
 type AccountSection = 'overview' | 'favorites' | 'profile' | 'referral';
 
@@ -16,15 +17,15 @@ type AccountSection = 'overview' | 'favorites' | 'profile' | 'referral';
   template:`
     <main class="account-shell">
       <div class="account-toolbar">
-        <a routerLink="/" class="home-link" aria-label="Ana sayfaya dön"><span aria-hidden="true">←</span><span>Ana Sayfa</span></a>
+        <a routerLink="/" class="home-link" [attr.aria-label]="t().accountShell.homeAria"><span aria-hidden="true">←</span><span>{{ t().accountShell.home }}</span></a>
       </div>
 
-      <nav class="account-shortcuts" aria-label="Hesap bölümleri">
-        <a routerLink="/account" [attr.aria-current]="section()==='overview' ? 'page' : null" [class.active]="section()==='overview'">Genel Bakış</a>
-        <a routerLink="/account" [queryParams]="{section:'favorites'}" [attr.aria-current]="section()==='favorites' ? 'page' : null" [class.active]="section()==='favorites'">Favorilerim</a>
-        <a routerLink="/account" [queryParams]="{section:'profile'}" [attr.aria-current]="section()==='profile' ? 'page' : null" [class.active]="section()==='profile'">Profil Ayarları</a>
-        <a routerLink="/account/wallet">Cüzdan ve Belgeler</a>
-        <a routerLink="/account" [queryParams]="{section:'referral'}" [attr.aria-current]="section()==='referral' ? 'page' : null" [class.active]="section()==='referral'">Arkadaşını Davet Et · Sen de Kazan</a>
+      <nav class="account-shortcuts" [attr.aria-label]="t().accountShell.navAria">
+        <a routerLink="/account" [attr.aria-current]="section()==='overview' ? 'page' : null" [class.active]="section()==='overview'">{{ t().accountShell.overview }}</a>
+        <a routerLink="/account" [queryParams]="{section:'favorites'}" [attr.aria-current]="section()==='favorites' ? 'page' : null" [class.active]="section()==='favorites'">{{ t().accountShell.favorites }}</a>
+        <a routerLink="/account" [queryParams]="{section:'profile'}" [attr.aria-current]="section()==='profile' ? 'page' : null" [class.active]="section()==='profile'">{{ t().accountShell.profile }}</a>
+        <a routerLink="/account/wallet">{{ t().accountShell.wallet }}</a>
+        <a routerLink="/account" [queryParams]="{section:'referral'}" [attr.aria-current]="section()==='referral' ? 'page' : null" [class.active]="section()==='referral'">{{ t().accountShell.referral }}</a>
       </nav>
 
       <section class="account-content" aria-live="polite">
@@ -35,11 +36,11 @@ type AccountSection = 'overview' | 'favorites' | 'profile' | 'referral';
           @default {
             <app-account-dashboard-v150></app-account-dashboard-v150>
             <div class="overview-extras">
-              <nav class="quick-actions" aria-label="Hızlı işlemler">
-                <a routerLink="/fleet"><small>KİRALAMA</small><strong>Araç Bul</strong><span>Uygun kiralık araçları incele</span></a>
-                <a routerLink="/sales"><small>SATIŞ</small><strong>Araç İncele</strong><span>Satılık araçları görüntüle</span></a>
-                <a routerLink="/tours"><small>TUR</small><strong>Tur Keşfet</strong><span>Rota ve tur seçeneklerini aç</span></a>
-                <a routerLink="/appointment"><small>RANDEVU</small><strong>Randevu Al</strong><span>İşleminiz için randevu oluştur</span></a>
+              <nav class="quick-actions" [attr.aria-label]="t().accountShell.quickAria">
+                <a routerLink="/fleet"><small>{{ t().accountShell.rentKicker }}</small><strong>{{ t().accountShell.rentTitle }}</strong><span>{{ t().accountShell.rentHint }}</span></a>
+                <a routerLink="/sales"><small>{{ t().accountShell.saleKicker }}</small><strong>{{ t().accountShell.saleTitle }}</strong><span>{{ t().accountShell.saleHint }}</span></a>
+                <a routerLink="/tours"><small>{{ t().accountShell.tourKicker }}</small><strong>{{ t().accountShell.tourTitle }}</strong><span>{{ t().accountShell.tourHint }}</span></a>
+                <a routerLink="/appointment"><small>{{ t().accountShell.apptKicker }}</small><strong>{{ t().accountShell.apptTitle }}</strong><span>{{ t().accountShell.apptHint }}</span></a>
               </nav>
             </div>
           }
@@ -53,6 +54,8 @@ type AccountSection = 'overview' | 'favorites' | 'profile' | 'referral';
 })
 export class AccountShellComponent {
   private readonly route=inject(ActivatedRoute);
+  private readonly ui=inject(UiService);
+  readonly t=this.ui.translations;
   private readonly requestedSection=toSignal(this.route.queryParamMap.pipe(map((params)=>params.get('section')||'overview')),{initialValue:'overview'});
   readonly section=computed<AccountSection>(()=>{
     const value=this.requestedSection();

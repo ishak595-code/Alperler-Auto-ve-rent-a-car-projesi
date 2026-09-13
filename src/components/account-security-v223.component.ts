@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CustomerAuthService } from '../services/customer-auth.service';
+import { UiService } from '../services/ui.service';
 
 @Component({
   selector: 'app-account-security-v223',
@@ -11,12 +12,12 @@ import { CustomerAuthService } from '../services/customer-auth.service';
       <div class="security-card">
         <header>
           <div>
-            <p class="eyebrow">HESAP GÜVENLİĞİ</p>
-            <h2 id="account-security-title">Parolanızı güvenle yönetin</h2>
-            <span>Güçlü ve size özel bir parola belirleyerek hesabınızı koruyun. Parolanızı dilediğiniz zaman buradan yenileyebilirsiniz.</span>
+            <p class="eyebrow">{{ t().accountSecurity.kicker }}</p>
+            <h2 id="account-security-title">{{ t().accountSecurity.title }}</h2>
+            <span>{{ t().accountSecurity.subtitle }}</span>
           </div>
           <button type="button" class="toggle" (click)="toggle()" [attr.aria-expanded]="open()" aria-controls="account-password-form">
-            {{ open() ? 'Kapat' : 'Parolayı Değiştir' }}
+            {{ open() ? t().accountSecurity.close : t().accountSecurity.changePassword }}
           </button>
         </header>
 
@@ -26,15 +27,15 @@ import { CustomerAuthService } from '../services/customer-auth.service';
         @if (open()) {
           <form id="account-password-form" (ngSubmit)="save()" novalidate>
             <label>
-              <span>Yeni parola</span>
+              <span>{{ t().accountSecurity.newPassword }}</span>
               <input [(ngModel)]="newPassword" name="accountNewPassword" type="password" autocomplete="new-password" minlength="10" required />
             </label>
             <label>
-              <span>Yeni parola tekrar</span>
+              <span>{{ t().accountSecurity.confirmPassword }}</span>
               <input [(ngModel)]="confirmPassword" name="accountConfirmPassword" type="password" autocomplete="new-password" minlength="10" required />
             </label>
-            <p class="hint">En az 10 karakter, bir büyük harf, bir küçük harf ve bir rakam kullanın. Veri sızıntılarında görülen parolalar kabul edilmez. Daha önce başka hesaplarda kullandığınız parolaları tercih etmeyin.</p>
-            <button type="submit" class="primary" [disabled]="saving()">{{ saving() ? 'Güncelleniyor…' : 'Yeni Parolayı Kaydet' }}</button>
+            <p class="hint">{{ t().accountSecurity.hint }}</p>
+            <button type="submit" class="primary" [disabled]="saving()">{{ saving() ? t().accountSecurity.saving : t().accountSecurity.save }}</button>
           </form>
         }
       </div>
@@ -46,6 +47,8 @@ import { CustomerAuthService } from '../services/customer-auth.service';
 })
 export class AccountSecurityV223Component {
   private readonly auth = inject(CustomerAuthService);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   readonly open = signal(false);
   readonly saving = signal(false);
   readonly message = signal<string | null>(null);
@@ -65,22 +68,22 @@ export class AccountSecurityV223Component {
     this.error.set(null);
     this.message.set(null);
     if (!this.newPassword || !this.confirmPassword) {
-      this.error.set('Yeni parola alanlarını doldurun.');
+      this.error.set(this.t().accountSecurity.errEmpty);
       return;
     }
     if (this.newPassword !== this.confirmPassword) {
-      this.error.set('Yeni parolalar birbiriyle eşleşmiyor.');
+      this.error.set(this.t().accountSecurity.errMismatch);
       return;
     }
     this.saving.set(true);
     try {
       if (!(await this.auth.changePassword(this.newPassword))) {
-        this.error.set(this.auth.lastError() || 'Yeni parola kaydedilemedi.');
+        this.error.set(this.auth.lastError() || this.t().accountSecurity.errSave);
         return;
       }
       this.clearFields();
       this.open.set(false);
-      this.message.set('Parolanız güvenli şekilde güncellendi.');
+      this.message.set(this.t().accountSecurity.msgUpdated);
     } finally {
       this.saving.set(false);
     }

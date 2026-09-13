@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CustomerAccountService } from '../services/customer-account.service';
+import { UiService } from '../services/ui.service';
 import { AccountSecurityV223Component } from './account-security-v223.component';
 
 @Component({
@@ -12,32 +13,32 @@ import { AccountSecurityV223Component } from './account-security-v223.component'
     <section class="profile-settings" aria-labelledby="profile-settings-title">
       <header class="section-head">
         <div>
-          <p>PROFİL AYARLARI</p>
-          <h2 id="profile-settings-title">Bilgilerim</h2>
-          <span>Rezervasyonlarda kullanacağınız iletişim ve adres bilgilerinizi güncel tutun.</span>
+          <p>{{ t().accountProfile.kicker }}</p>
+          <h2 id="profile-settings-title">{{ t().accountProfile.titleAlt }}</h2>
+          <span>{{ t().accountProfile.subtitleAlt }}</span>
         </div>
       </header>
       @if(message()){<p class="notice success" role="status">{{message()}}</p>}
       @if(error()){<p class="notice error" role="alert">{{error()}}</p>}
       @if(loading()){
-        <p class="loading" role="status">Profiliniz hazırlanıyor...</p>
+        <p class="loading" role="status">{{ t().accountProfile.loadingAlt }}</p>
       } @else {
         <div class="profile-card">
           <div class="avatar-editor">
-            <div class="avatar">@if(account.profile()?.avatar_url){<img [src]="account.profile()?.avatar_url" alt="Profil fotoğrafı" />}@else{<span>{{initials()}}</span>}</div>
-            <div><label class="file-button"><span>Fotoğraf Değiştir</span><input type="file" accept="image/jpeg,image/png,image/webp" (change)="uploadAvatar($event)" [disabled]="saving()" /></label>@if(account.profile()?.avatar_url){<button type="button" class="text-button" (click)="removeAvatar()" [disabled]="saving()">Fotoğrafı Kaldır</button>}</div>
+            <div class="avatar">@if(account.profile()?.avatar_url){<img [src]="account.profile()?.avatar_url" [attr.alt]="t().accountProfile.avatarAlt" />}@else{<span>{{initials()}}</span>}</div>
+            <div><label class="file-button"><span>{{ t().accountProfile.avatarChange }}</span><input type="file" accept="image/jpeg,image/png,image/webp" (change)="uploadAvatar($event)" [disabled]="saving()" /></label>@if(account.profile()?.avatar_url){<button type="button" class="text-button" (click)="removeAvatar()" [disabled]="saving()">{{ t().accountProfile.avatarRemove }}</button>}</div>
           </div>
           <form (ngSubmit)="save()" novalidate>
-            <label><span>Ad Soyad</span><input [(ngModel)]="form.full_name" name="profileFullNameV225" maxlength="160" autocomplete="name" /></label>
-            <label><span>Telefon</span><input [(ngModel)]="form.phone" name="profilePhoneV225" maxlength="40" autocomplete="tel" /></label>
-            <label><span>Doğum Tarihi</span><input [(ngModel)]="form.birth_date" name="profileBirthDateV225" type="date" /></label>
-            <label><span>Şehir</span><input [(ngModel)]="form.city" name="profileCityV225" maxlength="100" autocomplete="address-level2" /></label>
-            <label><span>İlçe</span><input [(ngModel)]="form.district" name="profileDistrictV225" maxlength="100" autocomplete="address-level3" /></label>
-            <label><span>Posta Kodu</span><input [(ngModel)]="form.postal_code" name="profilePostalV225" maxlength="30" autocomplete="postal-code" /></label>
-            <label class="wide"><span>Adres</span><input [(ngModel)]="form.address_line" name="profileAddressV225" maxlength="240" autocomplete="street-address" /></label>
-            <label><span>Dil</span><select [(ngModel)]="form.preferred_locale" name="profileLocaleV225"><option value="tr">Türkçe</option><option value="en">English</option><option value="de">Deutsch</option><option value="ku">Kurdî</option><option value="ar">العربية</option></select></label>
-            <label class="consent"><input type="checkbox" [(ngModel)]="form.marketing_consent" name="profileMarketingV225" /><span>Kampanya ve fırsat bildirimlerini almak istiyorum.</span></label>
-            <button type="submit" class="primary wide" [disabled]="saving()">{{saving()?'Kaydediliyor...':'Değişiklikleri Kaydet'}}</button>
+            <label><span>{{ t().accountProfile.fullName }}</span><input [(ngModel)]="form.full_name" name="profileFullNameV225" maxlength="160" autocomplete="name" /></label>
+            <label><span>{{ t().accountProfile.phone }}</span><input [(ngModel)]="form.phone" name="profilePhoneV225" maxlength="40" autocomplete="tel" /></label>
+            <label><span>{{ t().accountProfile.birthDate }}</span><input [(ngModel)]="form.birth_date" name="profileBirthDateV225" type="date" /></label>
+            <label><span>{{ t().accountProfile.city }}</span><input [(ngModel)]="form.city" name="profileCityV225" maxlength="100" autocomplete="address-level2" /></label>
+            <label><span>{{ t().accountProfile.district }}</span><input [(ngModel)]="form.district" name="profileDistrictV225" maxlength="100" autocomplete="address-level3" /></label>
+            <label><span>{{ t().accountProfile.postalCode }}</span><input [(ngModel)]="form.postal_code" name="profilePostalV225" maxlength="30" autocomplete="postal-code" /></label>
+            <label class="wide"><span>{{ t().accountProfile.address }}</span><input [(ngModel)]="form.address_line" name="profileAddressV225" maxlength="240" autocomplete="street-address" /></label>
+            <label><span>{{ t().accountProfile.language }}</span><select [(ngModel)]="form.preferred_locale" name="profileLocaleV225"><option value="tr">{{ t().accountProfile.localeTr }}</option><option value="en">{{ t().accountProfile.localeEn }}</option><option value="de">{{ t().accountProfile.localeDe }}</option><option value="ku">{{ t().accountProfile.localeKu }}</option><option value="ar">{{ t().accountProfile.localeAr }}</option></select></label>
+            <label class="consent"><input type="checkbox" [(ngModel)]="form.marketing_consent" name="profileMarketingV225" /><span>{{ t().accountProfile.marketing }}</span></label>
+            <button type="submit" class="primary wide" [disabled]="saving()">{{saving()?t().accountProfile.saving:t().accountProfile.saveChanges}}</button>
           </form>
         </div>
       }
@@ -45,11 +46,11 @@ import { AccountSecurityV223Component } from './account-security-v223.component'
 
     <section class="security-launch" aria-labelledby="profile-security-title">
       <div>
-        <p>HESAP GÜVENLİĞİ</p>
-        <h2 id="profile-security-title">Güvenlik ayarları</h2>
-        <span>Parola ve oturum güvenliği seçeneklerini yalnız ihtiyaç duyduğunuzda açın.</span>
+        <p>{{ t().accountProfile.securityKicker }}</p>
+        <h2 id="profile-security-title">{{ t().accountProfile.securityTitleAlt }}</h2>
+        <span>{{ t().accountProfile.securityHintAlt }}</span>
       </div>
-      <button type="button" (click)="toggleSecurity()" [attr.aria-expanded]="securityOpen()" aria-controls="profile-security-panel">{{securityOpen()?'Güvenlik Ayarlarını Kapat':'Güvenlik Ayarlarını Aç'}}</button>
+      <button type="button" (click)="toggleSecurity()" [attr.aria-expanded]="securityOpen()" aria-controls="profile-security-panel">{{securityOpen()?t().accountProfile.securityClose:t().accountProfile.securityOpen}}</button>
     </section>
     @if(securityOpen()){
       <div id="profile-security-panel"><app-account-security-v223 /></div>
@@ -61,6 +62,8 @@ import { AccountSecurityV223Component } from './account-security-v223.component'
 })
 export class AccountProfileSettingsV225Component implements OnInit {
   readonly account=inject(CustomerAccountService);
+  private readonly ui=inject(UiService);
+  readonly t=this.ui.translations;
   readonly loading=signal(true);
   readonly saving=signal(false);
   readonly message=signal('');
@@ -68,12 +71,12 @@ export class AccountProfileSettingsV225Component implements OnInit {
   readonly securityOpen=signal(false);
   form={full_name:'',phone:'',birth_date:'',address_line:'',district:'',city:'',postal_code:'',preferred_locale:'tr',marketing_consent:false};
 
-  async ngOnInit():Promise<void>{try{await this.account.refresh();this.readProfile();}catch{this.error.set('Profiliniz şu anda yüklenemedi. Lütfen tekrar deneyin.');}finally{this.loading.set(false);}}
+  async ngOnInit():Promise<void>{try{await this.account.refresh();this.readProfile();}catch{this.error.set(this.t().accountProfile.errLoadRetry);}finally{this.loading.set(false);}}
   toggleSecurity():void{this.securityOpen.update(value=>!value);}
   initials():string{const value=this.form.full_name||this.account.profile()?.email||'A';return value.split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]?.toUpperCase()||'').join('')||'A';}
-  async save():Promise<void>{if(this.saving())return;this.clearMessages();this.saving.set(true);try{await this.account.updateProfile({...this.form,country:'TR'});this.readProfile();this.message.set('Profil bilgileriniz güncellendi.');}catch{this.error.set('Profil bilgileriniz kaydedilemedi. Lütfen tekrar deneyin.');}finally{this.saving.set(false);}}
-  async uploadAvatar(event:Event):Promise<void>{const input=event.target as HTMLInputElement;const file=input.files?.[0];input.value='';if(!file||this.saving())return;this.clearMessages();this.saving.set(true);try{await this.account.uploadAvatar(file);this.message.set('Profil fotoğrafınız güncellendi.');}catch(e){const code=e instanceof Error?e.message:'';this.error.set(code.includes('AVATAR_SIZE_INVALID')?'Profil fotoğrafı en fazla 2 MB olabilir.':code.includes('AVATAR_TYPE_INVALID')?'JPEG, PNG veya WebP formatında bir fotoğraf seçin.':'Profil fotoğrafı güncellenemedi.');}finally{this.saving.set(false);}}
-  async removeAvatar():Promise<void>{if(this.saving())return;this.clearMessages();this.saving.set(true);try{await this.account.removeAvatar();this.message.set('Profil fotoğrafınız kaldırıldı.');}catch{this.error.set('Profil fotoğrafı kaldırılamadı.');}finally{this.saving.set(false);}}
+  async save():Promise<void>{if(this.saving())return;this.clearMessages();this.saving.set(true);try{await this.account.updateProfile({...this.form,country:'TR'});this.readProfile();this.message.set(this.t().accountProfile.msgUpdated);}catch{this.error.set(this.t().accountProfile.errSaveRetry);}finally{this.saving.set(false);}}
+  async uploadAvatar(event:Event):Promise<void>{const input=event.target as HTMLInputElement;const file=input.files?.[0];input.value='';if(!file||this.saving())return;this.clearMessages();this.saving.set(true);try{await this.account.uploadAvatar(file);this.message.set(this.t().accountProfile.msgAvatarUpdated);}catch(e){const code=e instanceof Error?e.message:'';this.error.set(code.includes('AVATAR_SIZE_INVALID')?this.t().accountProfile.errAvatarSize:code.includes('AVATAR_TYPE_INVALID')?this.t().accountProfile.errAvatarType:this.t().accountProfile.errAvatarUpdate);}finally{this.saving.set(false);}}
+  async removeAvatar():Promise<void>{if(this.saving())return;this.clearMessages();this.saving.set(true);try{await this.account.removeAvatar();this.message.set(this.t().accountProfile.msgAvatarRemoved);}catch{this.error.set(this.t().accountProfile.errAvatarRemove);}finally{this.saving.set(false);}}
   private readProfile():void{const p=this.account.profile();this.form={full_name:p?.full_name||'',phone:p?.phone||'',birth_date:p?.birth_date||'',address_line:p?.address_line||'',district:p?.district||'',city:p?.city||'',postal_code:p?.postal_code||'',preferred_locale:p?.preferred_locale||'tr',marketing_consent:Boolean(p?.marketing_consent)};}
   private clearMessages():void{this.message.set('');this.error.set('');}
 }

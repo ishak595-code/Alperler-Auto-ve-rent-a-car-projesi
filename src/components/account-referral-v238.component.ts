@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CustomerAccountService } from '../services/customer-account.service';
+import { UiService } from '../services/ui.service';
 
 @Component({
   selector:'app-account-referral-v238',
@@ -11,45 +12,45 @@ import { CustomerAccountService } from '../services/customer-account.service';
     <section class="referral-card" aria-labelledby="account-referral-title">
       <header class="referral-head">
         <div>
-<p>ARKADAŞINI DAVET ET</p>
-<h2 id="account-referral-title">Sen de kazan, arkadaşın da kazansın</h2>
-<span>Kişisel davet bağlantınızı paylaşın. Arkadaşınız uygun kiralama, araç satın alma veya tur işlemini tamamladığında ödüller hesabınıza işlenir.</span>
+<p>{{ t().accountReferral.kicker }}</p>
+<h2 id="account-referral-title">{{ t().accountReferral.title }}</h2>
+<span>{{ t().accountReferral.subtitle }}</span>
         </div>
-        <a routerLink="/campaigns" class="campaign-link">Kampanyalı Araçları ve Fırsatları Gör</a>
+        <a routerLink="/campaigns" class="campaign-link">{{ t().accountReferral.campaignsLong }}</a>
       </header>
 
       @if(account.referralSummary(); as referral){
         @if(account.loyaltySettings(); as settings){
 <div class="referral-body">
   <div class="invite-box">
-    <span class="invite-label">KİŞİSEL DAVET KODUNUZ</span>
+    <span class="invite-label">{{ t().accountReferral.codeLabel }}</span>
     <strong>{{referral.code}}</strong>
-    <label class="invite-link"><span>Davet bağlantısı</span><input [value]="referralLink()" readonly aria-label="Kişisel davet bağlantısı" /></label>
+    <label class="invite-link"><span>{{ t().accountReferral.linkLabel }}</span><input [value]="referralLink()" readonly [attr.aria-label]="t().accountReferral.linkAria" /></label>
     <div class="invite-actions">
-      <button type="button" (click)="copyReferralLink()">Davet Linkini Kopyala</button>
-      <button type="button" class="secondary" (click)="shareReferralLink()">Paylaş</button>
+      <button type="button" (click)="copyReferralLink()">{{ t().accountReferral.copyLong }}</button>
+      <button type="button" class="secondary" (click)="shareReferralLink()">{{ t().accountReferral.share }}</button>
     </div>
     @if(notice()){<p class="notice" role="status">{{notice()}}</p>}
     @if(error()){<p class="error" role="alert">{{error()}}</p>}
   </div>
 
-  <div class="reward-grid" aria-label="Davet ödülleri">
-    <article><span>KİRALAMA</span><strong>+{{settings.referral_rental_inviter_points | number:'1.0-0'}} puan</strong><p>Arkadaşınız +{{settings.referral_rental_invitee_points | number:'1.0-0'}} puan@if(settings.referral_checkout_discount_enabled && settings.referral_rental_invitee_discount>0){ ve {{discountText(settings.referral_rental_invitee_discount)}} davet avantajı} alabilir.</p></article>
-    <article><span>ARAÇ SATIŞI</span><strong>+{{settings.referral_sale_inviter_points | number:'1.0-0'}} puan</strong><p>Arkadaşınız +{{settings.referral_sale_invitee_points | number:'1.0-0'}} puan@if(settings.referral_checkout_discount_enabled && settings.referral_sale_invitee_discount>0){ ve {{discountText(settings.referral_sale_invitee_discount)}} davet avantajı} alabilir.</p></article>
-    <article><span>TUR</span><strong>+{{settings.referral_tour_inviter_points | number:'1.0-0'}} puan</strong><p>Arkadaşınız +{{settings.referral_tour_invitee_points | number:'1.0-0'}} puan@if(settings.referral_checkout_discount_enabled && settings.referral_tour_invitee_discount>0){ ve {{discountText(settings.referral_tour_invitee_discount)}} davet avantajı} alabilir.</p></article>
+  <div class="reward-grid" [attr.aria-label]="t().accountReferral.rewardsAria">
+    <article><span>{{ t().accountReferral.rental }}</span><strong>{{ pointsPlus(settings.referral_rental_inviter_points) }}</strong><p>{{ inviteeText(settings.referral_rental_invitee_points, settings.referral_rental_invitee_discount) }}</p></article>
+    <article><span>{{ t().accountReferral.sale }}</span><strong>{{ pointsPlus(settings.referral_sale_inviter_points) }}</strong><p>{{ inviteeText(settings.referral_sale_invitee_points, settings.referral_sale_invitee_discount) }}</p></article>
+    <article><span>{{ t().accountReferral.tour }}</span><strong>{{ pointsPlus(settings.referral_tour_inviter_points) }}</strong><p>{{ inviteeText(settings.referral_tour_invitee_points, settings.referral_tour_invitee_discount) }}</p></article>
   </div>
 
-  <p class="stack-note">{{settings.allow_campaign_referral_stack?'Uygun kampanyalarda davet avantajı kampanyalı fiyatla birlikte kullanılabilir.':'Davet avantajı ile kampanya indirimi aynı işlemde birlikte kullanılamaz.'}}</p>
+  <p class="stack-note">{{settings.allow_campaign_referral_stack?t().accountReferral.stackOn:t().accountReferral.stackOff}}</p>
   <div class="referral-stats">
-    <div><span>Kayıt olan</span><strong>{{referral.registered}}</strong></div>
-    <div><span>Bekleyen</span><strong>{{referral.pending}}</strong></div>
-    <div><span>Ödüllenen</span><strong>{{referral.rewarded}}</strong></div>
-    <div><span>Kazanılan puan</span><strong>{{referral.pointsEarned | number:'1.0-0'}}</strong></div>
+    <div><span>{{ t().accountReferral.registered }}</span><strong>{{referral.registered}}</strong></div>
+    <div><span>{{ t().accountReferral.pending }}</span><strong>{{referral.pending}}</strong></div>
+    <div><span>{{ t().accountReferral.rewarded }}</span><strong>{{referral.rewarded}}</strong></div>
+    <div><span>{{ t().accountReferral.pointsEarned }}</span><strong>{{referral.pointsEarned | number:'1.0-0'}}</strong></div>
   </div>
-  @if(account.nextReferralMilestone(); as milestone){<div class="milestone"><span>Sonraki davet ödülü</span><strong>{{milestone.remaining}} başarılı davet sonra +{{milestone.bonus | number:'1.0-0'}} bonus puan</strong></div>}
+  @if(account.nextReferralMilestone(); as milestone){<div class="milestone"><span>{{ t().accountReferral.milestoneNext }}</span><strong>{{ milestoneText(milestone.remaining, milestone.bonus) }}</strong></div>}
 </div>
-        } @else { <p class="loading" role="status">Davet programı ayarları şu anda yüklenemedi.</p> }
-      } @else { <p class="loading" role="status">Davet kodunuz hazırlanıyor. Profilinizi yenileyip tekrar deneyin.</p> }
+        } @else { <p class="loading" role="status">{{ t().accountReferral.settingsFail }}</p> }
+      } @else { <p class="loading" role="status">{{ t().accountReferral.codeLoading }}</p> }
     </section>
   `,
   styles:[`
@@ -58,11 +59,17 @@ import { CustomerAccountService } from '../services/customer-account.service';
 })
 export class AccountReferralV238Component implements OnInit {
   readonly account=inject(CustomerAccountService);
+  private readonly ui=inject(UiService);
+  readonly t=this.ui.translations;
   readonly notice=signal('');
   readonly error=signal('');
   async ngOnInit():Promise<void>{if(!this.account.referralSummary()||!this.account.loyaltySettings())await this.account.refresh().catch(()=>undefined);}
   referralLink():string{return this.account.referralLink();}
-  discountText(value:number):string{const settings=this.account.loyaltySettings();if(!settings||!settings.referral_checkout_discount_enabled||value<=0)return'';const formatted=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:2}).format(value);return settings.referral_checkout_discount_mode==='PERCENT'?`%${formatted}`:`${formatted} TL`;}
-  async copyReferralLink():Promise<void>{this.notice.set('');this.error.set('');const link=this.referralLink();if(!link){this.error.set('Davet bağlantısı şu anda hazırlanamadı.');return;}try{await navigator.clipboard.writeText(link);this.notice.set('Davet bağlantısı kopyalandı.');}catch{this.error.set('Davet bağlantısı kopyalanamadı. Bağlantıyı alandan seçip kopyalayabilirsiniz.');}}
-  async shareReferralLink():Promise<void>{this.notice.set('');this.error.set('');const link=this.referralLink();if(!link){this.error.set('Davet bağlantısı şu anda hazırlanamadı.');return;}if(typeof navigator.share==='function'){try{await navigator.share({title:'Alperler Rent A Car',text:'Alperler Rent A Car davet bağlantımla katıl, uygun işlemlerde sen de avantaj kazan.',url:link});this.notice.set('Davet bağlantısı paylaşım için hazırlandı.');return;}catch(e){if(e instanceof DOMException&&e.name==='AbortError')return;}}await this.copyReferralLink();}
+  private numberLocale():string{const map:Record<string,string>={TR:'tr-TR',EN:'en-GB',DE:'de-DE',FR:'fr-FR',ES:'es-ES',RU:'ru-RU',KU:'tr-TR',ZH:'zh-CN',AR:'ar'};return map[this.ui.currentLang()]||'tr-TR';}
+  pointsPlus(n:number):string{return this.t().accountReferral.pointsPlus.replace('{n}', new Intl.NumberFormat(this.numberLocale(),{maximumFractionDigits:0}).format(n||0));}
+  milestoneText(remaining:number,bonus:number):string{return this.t().accountReferral.milestone.replace('{n}',String(remaining)).replace('{bonus}', new Intl.NumberFormat(this.numberLocale(),{maximumFractionDigits:0}).format(bonus||0));}
+  discountText(value:number):string{const settings=this.account.loyaltySettings();const R=this.t().accountReferral;if(!settings||!settings.referral_checkout_discount_enabled||value<=0)return'';const formatted=new Intl.NumberFormat(this.numberLocale(),{maximumFractionDigits:2}).format(value);return settings.referral_checkout_discount_mode==='PERCENT'?R.percent.replace('{n}',formatted):R.amountTl.replace('{n}',formatted);}
+  inviteeText(points:number,discount:number):string{const R=this.t().accountReferral;const pts=new Intl.NumberFormat(this.numberLocale(),{maximumFractionDigits:0}).format(points);const offer=this.discountText(discount);return offer?R.inviteeCanDiscount.replace('{n}',pts).replace('{discount}',offer):R.inviteeCan.replace('{n}',pts);}
+  async copyReferralLink():Promise<void>{this.notice.set('');this.error.set('');const link=this.referralLink();const R=this.t().accountReferral;if(!link){this.error.set(R.errLinkLong);return;}try{await navigator.clipboard.writeText(link);this.notice.set(R.msgCopied);}catch{this.error.set(R.errCopyLong);}}
+  async shareReferralLink():Promise<void>{this.notice.set('');this.error.set('');const link=this.referralLink();const R=this.t().accountReferral;if(!link){this.error.set(R.errLinkLong);return;}if(typeof navigator.share==='function'){try{await navigator.share({title:R.shareTitle,text:R.shareTextLong,url:link});this.notice.set(R.msgShareReady);return;}catch(e){if(e instanceof DOMException&&e.name==='AbortError')return;}}await this.copyReferralLink();}
 }

@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CustomerAccountService } from '../services/customer-account.service';
+import { UiService } from '../services/ui.service';
 
 @Component({
   selector:'app-account-referral-v241',
@@ -10,30 +11,30 @@ import { CustomerAccountService } from '../services/customer-account.service';
   template:`
     <section class="referral" aria-labelledby="referral-v241-title">
       <button type="button" class="summary" (click)="toggle()" [attr.aria-expanded]="open()" aria-controls="referral-v241-panel">
-        <span><small>ARKADAŞINI DAVET ET</small><strong id="referral-v241-title">Sen de kazan, arkadaşın da kazansın</strong><em>{{summaryText()}}</em></span><b aria-hidden="true">{{open()?'−':'+'}}</b>
+        <span><small>{{ t().accountReferral.kicker }}</small><strong id="referral-v241-title">{{ t().accountReferral.title }}</strong><em>{{summaryText()}}</em></span><b aria-hidden="true">{{open()?'−':'+'}}</b>
       </button>
       @if(open()){
         <div id="referral-v241-panel" class="body">
-          @if(loading()){<p class="state" role="status">Davet bilgileriniz hazırlanıyor...</p>}
+          @if(loading()){<p class="state" role="status">{{ t().accountReferral.loading }}</p>}
           @else if(account.referralSummary(); as referral){
             <div class="invite">
-              <span>KİŞİSEL DAVET KODUNUZ</span><strong>{{referral.code}}</strong>
-              <label><span>Davet bağlantısı</span><input [value]="referralLink()" readonly aria-label="Kişisel davet bağlantısı" /></label>
-              <div class="actions"><button type="button" (click)="copyReferralLink()">Linki Kopyala</button><button type="button" class="secondary" (click)="shareReferralLink()">Paylaş</button></div>
+              <span>{{ t().accountReferral.codeLabel }}</span><strong>{{referral.code}}</strong>
+              <label><span>{{ t().accountReferral.linkLabel }}</span><input [value]="referralLink()" readonly [attr.aria-label]="t().accountReferral.linkAria" /></label>
+              <div class="actions"><button type="button" (click)="copyReferralLink()">{{ t().accountReferral.copy }}</button><button type="button" class="secondary" (click)="shareReferralLink()">{{ t().accountReferral.share }}</button></div>
               @if(notice()){<p class="notice" role="status" aria-live="polite">{{notice()}}</p>}
               @if(error()){<p class="error" role="alert" aria-live="assertive">{{error()}}</p>}
             </div>
             @if(account.loyaltySettings(); as settings){
               <div class="rewards">
-                <article><small>KİRALAMA</small><strong>+{{settings.referral_rental_inviter_points | number:'1.0-0'}} puan</strong></article>
-                <article><small>ARAÇ SATIŞI</small><strong>+{{settings.referral_sale_inviter_points | number:'1.0-0'}} puan</strong></article>
-                <article><small>TUR</small><strong>+{{settings.referral_tour_inviter_points | number:'1.0-0'}} puan</strong></article>
+                <article><small>{{ t().accountReferral.rental }}</small><strong>{{ pointsPlus(settings.referral_rental_inviter_points) }}</strong></article>
+                <article><small>{{ t().accountReferral.sale }}</small><strong>{{ pointsPlus(settings.referral_sale_inviter_points) }}</strong></article>
+                <article><small>{{ t().accountReferral.tour }}</small><strong>{{ pointsPlus(settings.referral_tour_inviter_points) }}</strong></article>
               </div>
             }
-            <div class="stats"><div><span>Kayıt olan</span><strong>{{referral.registered}}</strong></div><div><span>Bekleyen</span><strong>{{referral.pending}}</strong></div><div><span>Ödüllenen</span><strong>{{referral.rewarded}}</strong></div><div><span>Kazanılan puan</span><strong>{{referral.pointsEarned | number:'1.0-0'}}</strong></div></div>
-            @if(account.nextReferralMilestone(); as milestone){<p class="milestone">{{milestone.remaining}} başarılı davet sonra +{{milestone.bonus | number:'1.0-0'}} bonus puan</p>}
-            <a routerLink="/campaigns" class="campaign">Kampanyaları ve fırsatları gör</a>
-          } @else {<p class="state">Davet kodunuz şu anda hazırlanamadı. Bölümü kapatıp yeniden açarak tekrar deneyebilirsiniz.</p>}
+            <div class="stats"><div><span>{{ t().accountReferral.registered }}</span><strong>{{referral.registered}}</strong></div><div><span>{{ t().accountReferral.pending }}</span><strong>{{referral.pending}}</strong></div><div><span>{{ t().accountReferral.rewarded }}</span><strong>{{referral.rewarded}}</strong></div><div><span>{{ t().accountReferral.pointsEarned }}</span><strong>{{referral.pointsEarned | number:'1.0-0'}}</strong></div></div>
+            @if(account.nextReferralMilestone(); as milestone){<p class="milestone">{{ milestoneText(milestone.remaining, milestone.bonus) }}</p>}
+            <a routerLink="/campaigns" class="campaign">{{ t().accountReferral.campaigns }}</a>
+          } @else {<p class="state">{{ t().accountReferral.empty }}</p>}
         </div>
       }
     </section>
@@ -43,12 +44,15 @@ import { CustomerAccountService } from '../services/customer-account.service';
   `]
 })
 export class AccountReferralV241Component implements OnInit {
-  readonly account=inject(CustomerAccountService);readonly open=signal(false);readonly loading=signal(false);readonly notice=signal('');readonly error=signal('');
+  readonly account=inject(CustomerAccountService);private readonly ui=inject(UiService);readonly t=this.ui.translations;readonly open=signal(false);readonly loading=signal(false);readonly notice=signal('');readonly error=signal('');
   async ngOnInit():Promise<void>{if(!this.account.referralSummary())await this.refresh().catch(()=>undefined);}
   async toggle():Promise<void>{this.open.update(value=>!value);if(this.open()&&!this.account.referralSummary())await this.refresh();}
-  summaryText():string{const referral=this.account.referralSummary();return referral?`${referral.successfulReferrals} başarılı davet, ${referral.pointsEarned} puan kazanıldı`:'Kişisel davet kodunuzu ve ödüllerinizi görüntüleyin';}
+  summaryText():string{const referral=this.account.referralSummary();const R=this.t().accountReferral;return referral?R.summaryReady.replace('{n}',String(referral.successfulReferrals)).replace('{points}',String(referral.pointsEarned)):R.summaryIdle;}
+  pointsPlus(n:number):string{return this.t().accountReferral.pointsPlus.replace('{n}', new Intl.NumberFormat(this.numberLocale(),{maximumFractionDigits:0}).format(n||0));}
+  milestoneText(remaining:number,bonus:number):string{return this.t().accountReferral.milestone.replace('{n}',String(remaining)).replace('{bonus}', new Intl.NumberFormat(this.numberLocale(),{maximumFractionDigits:0}).format(bonus||0));}
+  private numberLocale():string{const map:Record<string,string>={TR:'tr-TR',EN:'en-GB',DE:'de-DE',FR:'fr-FR',ES:'es-ES',RU:'ru-RU',KU:'tr-TR',ZH:'zh-CN',AR:'ar'};return map[this.ui.currentLang()]||'tr-TR';}
   referralLink():string{return this.account.referralLink();}
-  async copyReferralLink():Promise<void>{this.notice.set('');this.error.set('');const link=this.referralLink();if(!link){this.error.set('Davet bağlantısı hazırlanamadı.');return;}try{await navigator.clipboard.writeText(link);this.notice.set('Davet bağlantısı kopyalandı.');}catch{this.error.set('Bağlantı otomatik kopyalanamadı. Alandan seçerek kopyalayabilirsiniz.');}}
-  async shareReferralLink():Promise<void>{this.notice.set('');this.error.set('');const link=this.referralLink();if(!link){this.error.set('Davet bağlantısı hazırlanamadı.');return;}if(typeof navigator.share==='function'){try{await navigator.share({title:'Alperler Rent A Car',text:'Alperler Rent A Car davet bağlantımla katıl.',url:link});return;}catch(e){if(e instanceof DOMException&&e.name==='AbortError')return;}}await this.copyReferralLink();}
-  private async refresh():Promise<void>{if(this.loading())return;this.loading.set(true);this.error.set('');try{await this.account.refresh();}catch{this.error.set('Davet bilgileri şu anda yüklenemedi.');}finally{this.loading.set(false);}}
+  async copyReferralLink():Promise<void>{this.notice.set('');this.error.set('');const link=this.referralLink();const R=this.t().accountReferral;if(!link){this.error.set(R.errLink);return;}try{await navigator.clipboard.writeText(link);this.notice.set(R.msgCopied);}catch{this.error.set(R.errCopy);}}
+  async shareReferralLink():Promise<void>{this.notice.set('');this.error.set('');const link=this.referralLink();const R=this.t().accountReferral;if(!link){this.error.set(R.errLink);return;}if(typeof navigator.share==='function'){try{await navigator.share({title:R.shareTitle,text:R.shareText,url:link});return;}catch(e){if(e instanceof DOMException&&e.name==='AbortError')return;}}await this.copyReferralLink();}
+  private async refresh():Promise<void>{if(this.loading())return;this.loading.set(true);this.error.set('');try{await this.account.refresh();}catch{this.error.set(this.t().accountReferral.errLoad);}finally{this.loading.set(false);}}
 }

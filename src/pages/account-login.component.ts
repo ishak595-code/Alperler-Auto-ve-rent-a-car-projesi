@@ -29,7 +29,7 @@ type AccountMode='login'|'register'|'recovery';
 
           <form (ngSubmit)="submit()">
             @if(mode()==='register'){<label><span>{{ t().accountAuth.fullName }}</span><input name="fullName" [(ngModel)]="fullName" autocomplete="name" required [placeholder]="t().accountAuth.fullNamePh" /></label>}
-            @if(mode()!=='recovery'){<label><span>{{ t().accountAuth.email }}</span><input name="email" [(ngModel)]="email" type="email" autocomplete="email" inputmode="email" required placeholder="ornek@email.com" /></label>}
+            @if(mode()!=='recovery'){<label><span>{{ t().accountAuth.email }}</span><input name="email" [(ngModel)]="email" type="email" autocomplete="email" inputmode="email" required [placeholder]="t().accountAuth.emailPh" /></label>}
             <label><span>{{mode()==='recovery'?t().accountAuth.newPassword:t().accountAuth.password}}</span><input name="password" [(ngModel)]="password" type="password" [attr.autocomplete]="mode()==='login'?'current-password':'new-password'" required [placeholder]="mode()==='login'?t().accountAuth.passwordPhLogin:t().accountAuth.passwordPhNew" /></label>
             @if(mode()==='register'||mode()==='recovery'){<small class="password-note">{{ t().accountAuth.passwordNote }}</small>}
             @if(mode()==='recovery'){<label><span>{{ t().accountAuth.confirmPassword }}</span><input name="confirmPassword" [(ngModel)]="confirmPassword" type="password" autocomplete="new-password" required [placeholder]="t().accountAuth.confirmPasswordPh" /></label>}

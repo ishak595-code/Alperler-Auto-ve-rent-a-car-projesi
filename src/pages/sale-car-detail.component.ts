@@ -9,6 +9,7 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
 import { CarService } from "../services/car.service";
 import { PublicDetailDataService } from "../services/public-detail-data.service";
 import { SeoService } from "../services/seo.service";
+import { UiService } from "../services/ui.service";
 
 type ListingRow = { label: string; value: string; important?: boolean };
 type FactRow = { label: string; value: string };
@@ -22,61 +23,61 @@ type FactRow = { label: string; value: string };
       @if (car(); as item) {
         <header class="sale-header">
           <div class="header-left">
-            <button type="button" class="header-button" (click)="goBack()" aria-label="Satılık araçlardan geri dön"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
-            <div><span>SATILIK ARAÇ</span><h1>{{ item.brand }} {{ item.model }}</h1></div>
+            <button type="button" class="header-button" (click)="goBack()" [attr.aria-label]="t().saleDetail.backAria"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
+            <div><span>{{ t().saleDetail.badge }}</span><h1>{{ item.brand }} {{ item.model }}</h1></div>
           </div>
           <div class="header-actions">
-            <button type="button" class="header-button" (click)="share(item)" aria-label="Aracı paylaş"><mat-icon aria-hidden="true">share</mat-icon></button>
-            <button type="button" class="header-button" (click)="toggleFav(item.id)" [attr.aria-label]="isFav(item.id) ? 'Favorilerden çıkar' : 'Favorilere ekle'"><mat-icon aria-hidden="true" [class.favorite]="isFav(item.id)">{{ isFav(item.id) ? 'favorite' : 'favorite_border' }}</mat-icon></button>
+            <button type="button" class="header-button" (click)="share(item)" [attr.aria-label]="t().saleDetail.shareAria"><mat-icon aria-hidden="true">share</mat-icon></button>
+            <button type="button" class="header-button" (click)="toggleFav(item.id)" [attr.aria-label]="isFav(item.id) ? t().saleDetail.removeFavAria : t().saleDetail.addFavAria"><mat-icon aria-hidden="true" [class.favorite]="isFav(item.id)">{{ isFav(item.id) ? 'favorite' : 'favorite_border' }}</mat-icon></button>
           </div>
         </header>
 
-        <section class="media-area" [attr.aria-label]="item.brand + ' ' + item.model + ' fotoğraf ve video galerisi'" (touchstart)="touchStart($event)" (touchend)="touchEnd($event)">
+        <section class="media-area" [attr.aria-label]="galleryAria(item)" (touchstart)="touchStart($event)" (touchend)="touchEnd($event)">
           @if (activeMedia(); as media) {
             <div class="media-frame">
               @if (media.kind === 'IMAGE') {
-                <button type="button" class="media-open" (click)="openLightbox()" aria-label="Araç görselini büyüt"><img [src]="media.url" [alt]="media.title || (item.brand + ' ' + item.model)" loading="eager" decoding="async" (error)="mediaFailed(media.url)" /></button>
+                <button type="button" class="media-open" (click)="openLightbox()" [attr.aria-label]="t().saleDetail.enlargeAria"><img [src]="media.url" [alt]="media.title || (item.brand + ' ' + item.model)" loading="eager" decoding="async" (error)="mediaFailed(media.url)" /></button>
               } @else {
                 <video [src]="media.url" [poster]="media.posterUrl || item.image || ''" controls playsinline preload="metadata" [attr.aria-label]="media.title || (item.brand + ' ' + item.model + ' videosu')" (error)="mediaFailed(media.url)"></video>
-                <button type="button" class="video-expand" (click)="openLightbox()" aria-label="Videoyu tam ekran aç"><mat-icon aria-hidden="true">fullscreen</mat-icon></button>
+                <button type="button" class="video-expand" (click)="openLightbox()" [attr.aria-label]="t().saleDetail.videoFullscreenAria"><mat-icon aria-hidden="true">fullscreen</mat-icon></button>
               }
               @if (item.badge) { <span class="listing-badge">{{ item.badge }}</span> }
               <div class="media-controls">
                 <span>{{ currentSlide() + 1 }} / {{ mediaItems().length }}</span>
                 @if (mediaItems().length > 1) {
-                  <div><button type="button" (click)="previousMedia()" aria-label="Önceki medya"><mat-icon aria-hidden="true">chevron_left</mat-icon></button><button type="button" (click)="nextMedia()" aria-label="Sonraki medya"><mat-icon aria-hidden="true">chevron_right</mat-icon></button></div>
+                  <div><button type="button" (click)="previousMedia()" [attr.aria-label]="t().saleDetail.prevMediaAria"><mat-icon aria-hidden="true">chevron_left</mat-icon></button><button type="button" (click)="nextMedia()" [attr.aria-label]="t().saleDetail.nextMediaAria"><mat-icon aria-hidden="true">chevron_right</mat-icon></button></div>
                 }
               </div>
             </div>
           } @else {
-            <div class="media-empty" role="status"><mat-icon aria-hidden="true">directions_car</mat-icon><strong>Araç görsellerine şu anda ulaşılamıyor</strong></div>
+            <div class="media-empty" role="status"><mat-icon aria-hidden="true">directions_car</mat-icon><strong>{{ t().saleDetail.mediaEmpty }}</strong></div>
           }
         </section>
 
         <section class="listing-head" aria-labelledby="listing-title">
           <div class="listing-title-block">
-            <p class="listing-no">Araç No {{ item.cloudStockCode || item.id }}</p>
+            <p class="listing-no">{{ stockLabel(item) }}</p>
             <h2 id="listing-title">{{ item.brand }} @if (item.series) { <span>{{ item.series }}</span> } {{ item.model }}</h2>
           </div>
           <strong class="listing-price">{{ item.price | turkishCurrency }}</strong>
           @if ((item.viewers || 0) > 0 || (item.favCount || 0) > 0) {
-            <div class="social-proof" aria-label="Araç ilgi bilgileri">
-              @if ((item.viewers || 0) > 0) { <span><mat-icon aria-hidden="true">visibility</mat-icon>{{ item.viewers }} görüntülenme</span> }
+            <div class="social-proof" [attr.aria-label]="t().saleDetail.interestAria">
+              @if ((item.viewers || 0) > 0) { <span><mat-icon aria-hidden="true">visibility</mat-icon>{{ viewsLabel(item.viewers) }}</span> }
               @if ((item.favCount || 0) > 0) { <span><mat-icon aria-hidden="true">favorite</mat-icon>{{ item.favCount }} favori</span> }
             </div>
           }
         </section>
 
-        <nav class="sale-tabs" aria-label="Araç detay bölümleri">
-          <button type="button" (click)="activeTab.set('info')" [class.active]="activeTab() === 'info'" [attr.aria-pressed]="activeTab() === 'info'"><mat-icon aria-hidden="true">list_alt</mat-icon><span>İLAN BİLGİLERİ</span></button>
-          <button type="button" (click)="activeTab.set('desc')" [class.active]="activeTab() === 'desc'" [attr.aria-pressed]="activeTab() === 'desc'"><mat-icon aria-hidden="true">description</mat-icon><span>AÇIKLAMA</span></button>
-          <button type="button" (click)="activeTab.set('loc')" [class.active]="activeTab() === 'loc'" [attr.aria-pressed]="activeTab() === 'loc'"><mat-icon aria-hidden="true">location_on</mat-icon><span>KONUM</span></button>
+        <nav class="sale-tabs" [attr.aria-label]="t().saleDetail.tabsAria">
+          <button type="button" (click)="activeTab.set('info')" [class.active]="activeTab() === 'info'" [attr.aria-pressed]="activeTab() === 'info'"><mat-icon aria-hidden="true">list_alt</mat-icon><span>{{ t().saleDetail.tabInfo }}</span></button>
+          <button type="button" (click)="activeTab.set('desc')" [class.active]="activeTab() === 'desc'" [attr.aria-pressed]="activeTab() === 'desc'"><mat-icon aria-hidden="true">description</mat-icon><span>{{ t().saleDetail.tabDesc }}</span></button>
+          <button type="button" (click)="activeTab.set('loc')" [class.active]="activeTab() === 'loc'" [attr.aria-pressed]="activeTab() === 'loc'"><mat-icon aria-hidden="true">location_on</mat-icon><span>{{ t().saleDetail.tabLocation }}</span></button>
         </nav>
 
         <section class="tab-content">
           @if (activeTab() === 'info') {
             <div class="info-panel">
-              <dl class="listing-table" aria-label="Satılık araç bilgileri">
+              <dl class="listing-table" [attr.aria-label]="t().saleDetail.listingAria">
                 @for (row of listingRows(); track row.label) {
                   <div><dt>{{ row.label }}</dt><dd [class.important]="row.important">{{ row.value }}</dd></div>
                 }
@@ -97,36 +98,36 @@ type FactRow = { label: string; value: string };
               }
 
               <section class="expertise" aria-labelledby="expertise-title">
-                <h3 id="expertise-title"><mat-icon aria-hidden="true">verified</mat-icon>Ekspertiz ve Hasar Geçmişi</h3>
+                <h3 id="expertise-title"><mat-icon aria-hidden="true">verified</mat-icon>{{ t().saleDetail.expertiseTitle }}</h3>
                 <dl class="truth-list" aria-label="Hasar ve tramer bilgileri">
                   @for (row of expertiseRows(item); track row.label) { <div><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div> }
                 </dl>
                 <app-expertise-graphic [data]="item.damageExpertise"></app-expertise-graphic>
-                @if (hasTramerDetail(item)) { <div class="tramer-summary"><div><strong>Tramer bilgisi</strong>@if (item.tramerSourceName) { <span>Doğrulama kaynağı: {{ item.tramerSourceName }}</span> }</div><p>{{ tramerDetail(item) }}</p></div> }
+                @if (hasTramerDetail(item)) { <div class="tramer-summary"><div><strong>{{ t().saleDetail.tramerInfo }}</strong>@if (item.tramerSourceName) { <span>{{ tramerSourceLabel(item.tramerSourceName) }}</span> }</div><p>{{ tramerDetail(item) }}</p></div> }
               </section>
             </div>
           }
 
           @if (activeTab() === 'desc') {
-            <article class="description-panel"><h3>{{ item.brand }} {{ item.model }} Hakkında</h3><p>{{ item.description || 'Bu araç için ayrıntılı açıklama henüz paylaşılmamış.' }}</p>@if (features().length) { <h4>Öne çıkan donanımlar</h4><ul>@for (feature of features().slice(0, 12); track feature) { <li>{{ feature }}</li> }</ul> }</article>
+            <article class="description-panel"><h3>{{ aboutTitle(item) }}</h3><p>{{ item.description || t().saleDetail.descFallback }}</p>@if (features().length) { <h4>Öne çıkan donanımlar</h4><ul>@for (feature of features().slice(0, 12); track feature) { <li>{{ feature }}</li> }</ul> }</article>
           }
 
           @if (activeTab() === 'loc') {
-            <div class="location-panel"><div class="location-map"><mat-icon aria-hidden="true">location_on</mat-icon><strong>{{ display(item.location, 'Konum bilgisi için bizimle iletişime geçin') }}</strong>@if (mapHref(item)) { <a [href]="mapHref(item)" target="_blank" rel="noopener noreferrer"><mat-icon aria-hidden="true">map</mat-icon>Haritada aç</a> }</div><div class="dealer-card"><span class="dealer-icon"><mat-icon aria-hidden="true">storefront</mat-icon></span><div><strong>{{ carService.getConfig()().companyName }}</strong><p>{{ item.location || 'Araç konumu için ekibimizden bilgi alabilirsiniz.' }}</p></div></div></div>
+            <div class="location-panel"><div class="location-map"><mat-icon aria-hidden="true">location_on</mat-icon><strong>{{ display(item.location, t().saleDetail.locationFallback) }}</strong>@if (mapHref(item)) { <a [href]="mapHref(item)" target="_blank" rel="noopener noreferrer"><mat-icon aria-hidden="true">map</mat-icon>Haritada aç</a> }</div><div class="dealer-card"><span class="dealer-icon"><mat-icon aria-hidden="true">storefront</mat-icon></span><div><strong>{{ carService.getConfig()().companyName }}</strong><p>{{ item.location || 'Araç konumu için ekibimizden bilgi alabilirsiniz.' }}</p></div></div></div>
           }
         </section>
 
-        <nav class="bottom-actions" aria-label="Satılık araç işlemleri">
-          <button type="button" class="phone" (click)="callPhone()" [attr.aria-disabled]="!phoneHref()" aria-label="Telefonla ara"><span class="phone-symbol" aria-hidden="true">☎</span><span>Ara</span></button>
-          <button type="button" class="inquiry" (click)="inquire(item)" [attr.aria-disabled]="item.availability === 'Satıldı'" aria-label="Satış talebi gönder"><mat-icon aria-hidden="true">request_quote</mat-icon><span>Satış Talebi Gönder</span></button>
-          <button type="button" class="whatsapp" (click)="whatsapp()" [attr.aria-disabled]="!whatsappPhone()" aria-label="WhatsApp ile bilgi al"><mat-icon aria-hidden="true">chat</mat-icon><span>WhatsApp</span></button>
+        <nav class="bottom-actions" [attr.aria-label]="t().saleDetail.actionsAria">
+          <button type="button" class="phone" (click)="callPhone()" [attr.aria-disabled]="!phoneHref()" [attr.aria-label]="t().saleDetail.callAria"><span class="phone-symbol" aria-hidden="true">☎</span><span>{{ t().saleDetail.call }}</span></button>
+          <button type="button" class="inquiry" (click)="inquire(item)" [attr.aria-disabled]="item.availability === 'Satıldı'" [attr.aria-label]="t().saleDetail.inquiryAria"><mat-icon aria-hidden="true">request_quote</mat-icon><span>{{ t().saleDetail.inquiry }}</span></button>
+          <button type="button" class="whatsapp" (click)="whatsapp()" [attr.aria-disabled]="!whatsappPhone()" [attr.aria-label]="t().saleDetail.whatsappAria"><mat-icon aria-hidden="true">chat</mat-icon><span>{{ t().saleDetail.whatsapp }}</span></button>
         </nav>
 
-        <app-detail-media-lightbox [open]="lightboxOpen()" [items]="mediaItems()" [index]="currentSlide()" [title]="item.brand + ' ' + item.model + ' fotoğraf ve video galerisi'" (closed)="lightboxOpen.set(false)" (indexChange)="currentSlide.set($event)" />
+        <app-detail-media-lightbox [open]="lightboxOpen()" [items]="mediaItems()" [index]="currentSlide()" [title]="galleryAria(item)" (closed)="lightboxOpen.set(false)" (indexChange)="currentSlide.set($event)" />
       } @else if (loading()) {
-        <section class="state" role="status"><div class="spinner"></div><strong>Araç bilgileri hazırlanıyor</strong></section>
+        <section class="state" role="status"><div class="spinner"></div><strong>{{ t().saleDetail.loading }}</strong></section>
       } @else {
-        <section class="state error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><strong>Araç bilgilerine şu anda ulaşılamıyor</strong><span>Lütfen kısa bir süre sonra yeniden deneyin.</span><button type="button" (click)="reload()">Tekrar Dene</button></section>
+        <section class="state error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><strong>{{ t().saleDetail.errorTitle }}</strong><span>{{ t().saleDetail.errorHint }}</span><button type="button" (click)="reload()">Tekrar Dene</button></section>
       }
     </main>
   `,
@@ -249,6 +250,8 @@ export class SaleCarDetailComponent implements OnInit {
   private readonly detailData = inject(PublicDetailDataService);
   readonly carService = inject(CarService);
   private readonly seo = inject(SeoService);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   private readonly routeId = this.route.snapshot.paramMap.get("id") || "";
   private touchX = 0;
 
@@ -271,7 +274,7 @@ export class SaleCarDetailComponent implements OnInit {
     for (const url of this.detailData.mediaUrls(item)) {
       if (!url || failed.has(url) || seen.has(url)) continue;
       seen.add(url);
-      rows.push({ kind: "IMAGE", url, title: `${item.brand || ""} ${item.model || ""}`.trim() || "Araç görseli" });
+      rows.push({ kind: "IMAGE", url, title: `${item.brand || ""} ${item.model || ""}`.trim() || this.t().saleDetail.mediaTitle });
     }
     for (const video of item.videos || []) {
       if (!video?.url || failed.has(video.url) || seen.has(video.url)) continue;
@@ -288,23 +291,23 @@ export class SaleCarDetailComponent implements OnInit {
     if (!item) return [];
     const model = [item.series, item.model].map((value) => String(value || "").trim()).filter(Boolean).join(" ");
     return [
-      { label: "İlan No", value: this.display(item.cloudStockCode || item.id), important: true },
-      { label: "İlan Tarihi", value: this.listingDate(item) },
-      { label: "Marka", value: this.display(item.brand) },
-      { label: "Seri / Model", value: model || "Belirtilmedi" },
-      { label: "Yıl", value: this.display(item.year), important: true },
-      { label: "Kilometre", value: item.km != null && Number.isFinite(Number(item.km)) ? `${Number(item.km).toLocaleString("tr-TR")} km` : "Belirtilmedi", important: true },
-      { label: "Yakıt", value: this.display(item.fuel) },
-      { label: "Vites", value: this.display(item.transmission) },
+      { label: this.t().saleDetail.labelListingNo, value: this.display(item.cloudStockCode || item.id), important: true },
+      { label: this.t().saleDetail.labelListingDate, value: this.listingDate(item) },
+      { label: this.t().saleDetail.labelBrand, value: this.display(item.brand) },
+      { label: this.t().saleDetail.labelSeriesModel, value: model || this.t().saleDetail.notSpecified },
+      { label: this.t().saleDetail.labelYear, value: this.display(item.year), important: true },
+      { label: this.t().saleDetail.labelKm, value: item.km != null && Number.isFinite(Number(item.km)) ? String(this.t().saleDetail.kmValue||"").replace("{n}", Number(item.km).toLocaleString("tr-TR")) : this.t().saleDetail.notSpecified, important: true },
+      { label: this.t().saleDetail.labelFuel, value: this.display(item.fuel) },
+      { label: this.t().saleDetail.labelTransmission, value: this.display(item.transmission) },
       { label: "Kasa Tipi", value: this.display(item.type) },
       { label: "Renk", value: this.display(item.color) },
-      { label: "Koltuk", value: item.seats ? `${item.seats} kişi` : "Belirtilmedi" },
-      { label: "Kapı", value: item.doors ? `${item.doors}` : "Belirtilmedi" },
-      { label: "Çekiş", value: this.display(item.drivetrain) },
-      { label: "Motor Gücü", value: this.display(item.enginePower) },
+      { label: this.t().saleDetail.labelSeats, value: item.seats ? String(this.t().saleDetail.people||"").replace("{n}", String(item.seats)) : this.t().saleDetail.notSpecified },
+      { label: this.t().saleDetail.labelDoors, value: item.doors ? `${item.doors}` : "Belirtilmedi" },
+      { label: this.t().saleDetail.labelDrivetrain, value: this.display(item.drivetrain) },
+      { label: this.t().saleDetail.labelEnginePower, value: this.display(item.enginePower) },
       { label: "Motor Hacmi", value: this.display(item.engineVolume) },
       { label: "Garanti", value: this.display(item.warranty || (item.hasWarranty ? "Var" : "")) },
-      { label: "Durum", value: this.display(item.availability || "Satışta") },
+      { label: this.t().saleDetail.labelStatus, value: this.display(item.availability || this.t().saleDetail.statusForSale) },
     ];
   });
 
@@ -364,7 +367,7 @@ export class SaleCarDetailComponent implements OnInit {
   }
 
   display(value: unknown, fallback = "Belirtilmedi"): string { return this.detailData.display(value, fallback); }
-  listingDate(item: Car): string { return this.formatDate(item.createdAt || item.updatedAt || "") || "Tarih bilgisi paylaşılmamış"; }
+  listingDate(item: Car): string { return this.formatDate(item.createdAt || item.updatedAt || "") || this.t().saleDetail.dateUnknown; }
   formatDate(value: string): string { const date = new Date(value); return value && !Number.isNaN(date.getTime()) ? new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" }).format(date) : ""; }
   previousMedia(): void { const length = this.mediaItems().length; if (length > 1) this.currentSlide.update((index) => (index - 1 + length) % length); }
   nextMedia(): void { const length = this.mediaItems().length; if (length > 1) this.currentSlide.update((index) => (index + 1) % length); }
@@ -376,19 +379,19 @@ export class SaleCarDetailComponent implements OnInit {
   isFav(id: string | number): boolean { return this.carService.isFavorite(id); }
   expertiseRows(item: Car): FactRow[] {
     const rows: FactRow[] = [
-      { label: "Hasar Durumu", value: item.damageStatus || (item.isDamageFree ? "Hatasız ve Boyasız" : "Belirtilmedi") },
+      { label: this.t().saleDetail.damageStatus, value: item.damageStatus || (item.isDamageFree ? this.t().saleDetail.damageFree : this.t().saleDetail.notSpecified) },
       { label: "Tramer Durumu", value: this.tramerStatusLabel(item) },
     ];
-    if (item.tramerAmount != null) rows.push({ label: "Tramer Tutarı", value: `${Number(item.tramerAmount).toLocaleString("tr-TR")} TL` });
-    if (item.tramerVerifiedAt) rows.push({ label: "Doğrulama Tarihi", value: this.formatDate(item.tramerVerifiedAt) });
+    if (item.tramerAmount != null) rows.push({ label: this.t().saleDetail.tramerAmount, value: `${Number(item.tramerAmount).toLocaleString("tr-TR")} TL` });
+    if (item.tramerVerifiedAt) rows.push({ label: this.t().saleDetail.tramerVerifiedAt, value: this.formatDate(item.tramerVerifiedAt) });
     return rows;
   }
-  tramerStatusLabel(item: Car): string { const map: Record<string, string> = { UNKNOWN: "Bilgi paylaşılmamış", DECLARED_CLEAN: "Beyan: kayıt yok", DECLARED_RECORD: "Beyan: kayıt var", VERIFIED_CLEAN: "Doğrulandı: kayıt yok", VERIFIED_RECORD: "Doğrulandı: kayıt var" }; return map[String(item.tramerStatus || "UNKNOWN")] || "Belirtilmedi"; }
+  tramerStatusLabel(item: Car): string { const map: Record<string, string> = { UNKNOWN: "Bilgi paylaşılmamış", DECLARED_CLEAN: "Beyan: kayıt yok", DECLARED_RECORD: "Beyan: kayıt var", VERIFIED_CLEAN: "Doğrulandı: kayıt yok", VERIFIED_RECORD: "Doğrulandı: kayıt var" }; return map[String(item.tramerStatus || "UNKNOWN")] || this.t().saleDetail.notSpecified; }
   hasTramerDetail(item: Car): boolean { return String(item.tramerStatus || "UNKNOWN") !== "UNKNOWN" || item.tramerAmount != null || Boolean(item.tramerVerifiedAt || item.tramerSourceName); }
   tramerDetail(item: Car): string { const text = String(item.tramer || "").trim(); if (text && !/^belirtilmedi/i.test(text)) return text; if (item.tramerAmount != null) return `Bildirilen tramer tutarı ${Number(item.tramerAmount).toLocaleString("tr-TR")} TL.`; return this.tramerStatusLabel(item); }
   mapHref(item: Car): string { const record = item as Car & { mapUrl?: string; latitude?: number; longitude?: number }; if (record.mapUrl && /^https:\/\//i.test(record.mapUrl)) return record.mapUrl; if (Number.isFinite(Number(record.latitude)) && Number.isFinite(Number(record.longitude))) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${record.latitude},${record.longitude}`)}`; const query = String(item.location || "").trim(); return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : ""; }
   inquire(item: Car): void { if (item.availability === "Satıldı") return; this.carService.setBookingRequest({ type: "SALE_INQUIRY", item, itemName: `${item.brand || ""} ${item.model || ""}`.trim(), image: item.image || item.images?.[0], basePrice: Number(item.price || 0) }); void this.router.navigate(["/contact"]); }
-  async share(item: Car): Promise<void> { const payload = { title: `${item.brand || ""} ${item.model || ""} | Alperler Auto`.trim(), text: "Bu satılık aracı inceleyin.", url: window.location.href }; try { if (navigator.share) await navigator.share(payload); else await navigator.clipboard?.writeText(window.location.href); } catch { /* kullanıcı paylaşımı iptal etti */ } }
+  async share(item: Car): Promise<void> { const payload = { title: `${item.brand || ""} ${item.model || ""} | Alperler Auto`.trim(), text: this.t().saleDetail.shareText, url: window.location.href }; try { if (navigator.share) await navigator.share(payload); else await navigator.clipboard?.writeText(window.location.href); } catch { /* kullanıcı paylaşımı iptal etti */ } }
   phoneHref(): string { const phone = String(this.carService.getConfig()().phone || "").replace(/[^+\d]/g, ""); return phone ? `tel:${phone}` : ""; }
   callPhone(): void { const href = this.phoneHref(); if (href) this.launchExternal(href, false); }
   whatsappPhone(): string { return String(this.carService.getConfig()().whatsapp || this.carService.getConfig()().phone || "").replace(/\D/g, ""); }

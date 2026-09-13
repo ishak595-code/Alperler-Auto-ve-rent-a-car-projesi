@@ -3,6 +3,7 @@ import { Component, OnInit, inject, signal } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { Router } from "@angular/router";
 import { PublicFaqV217, PublicFaqV217Service } from "../services/public-faq-v217.service";
+import { UiService } from "../services/ui.service";
 
 @Component({
   selector: "app-faq",
@@ -17,30 +18,30 @@ import { PublicFaqV217, PublicFaqV217Service } from "../services/public-faq-v217
               type="button"
               (click)="goBack()"
               class="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors shrink-0"
-              aria-label="Geri dön"
+              [attr.aria-label]="t().faqPage.backAria"
             >
               <mat-icon aria-hidden="true">arrow_back</mat-icon>
             </button>
-            <h1 class="text-lg font-bold text-white">Sıkça Sorulan Sorular</h1>
+            <h1 class="text-lg font-bold text-white">{{ t().faqPage.title }}</h1>
           </div>
         </div>
       </header>
 
       <section class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12" aria-labelledby="faq-title">
         <div class="text-center mb-12">
-          <h2 id="faq-title" class="text-2xl font-bold text-white">Merak ettiklerinizin yanıtları</h2>
-          <p class="text-slate-400 mt-3">Kiralama, satış ve hizmet süreçleriyle ilgili güncel bilgileri burada bulabilirsiniz.</p>
+          <h2 id="faq-title" class="text-2xl font-bold text-white">{{ t().faqPage.heading }}</h2>
+          <p class="text-slate-400 mt-3">{{ t().faqPage.subtitle }}</p>
         </div>
 
         @if (loading()) {
-          <div class="rounded-xl border border-slate-800 bg-slate-900 p-6 text-center" role="status">Sorular hazırlanıyor...</div>
+          <div class="rounded-xl border border-slate-800 bg-slate-900 p-6 text-center" role="status">{{ t().faqPage.loading }}</div>
         } @else if (loadError()) {
           <div class="rounded-xl border border-red-900/60 bg-slate-900 p-6 text-center" role="alert">
-            <p>FAQ bilgilerine şu anda ulaşılamıyor.</p>
-            <button type="button" (click)="reload()" class="mt-4 rounded-lg bg-prestige-red px-4 py-2 font-bold text-white">Tekrar dene</button>
+            <p>{{ t().faqPage.error }}</p>
+            <button type="button" (click)="reload()" class="mt-4 rounded-lg bg-prestige-red px-4 py-2 font-bold text-white">{{ t().faqPage.retry }}</button>
           </div>
         } @else if (faqs().length === 0) {
-          <div class="rounded-xl border border-slate-800 bg-slate-900 p-6 text-center" role="status">Henüz yayınlanmış soru bulunmuyor.</div>
+          <div class="rounded-xl border border-slate-800 bg-slate-900 p-6 text-center" role="status">{{ t().faqPage.empty }}</div>
         } @else {
           <div class="space-y-4">
             @for (faq of faqs(); track faq.id) {
@@ -81,6 +82,8 @@ export class FaqComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly openIds = signal<ReadonlySet<string>>(new Set());
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
 
   readonly faqs = signal<PublicFaqV217[]>([]);
   readonly loading = signal(true);

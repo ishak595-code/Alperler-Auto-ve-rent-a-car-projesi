@@ -169,6 +169,9 @@ export class FavoritesV217Component implements OnInit {
   }
 
   iconFor(type:FavoriteEntityTypeV217){return type==='TOUR'?'landscape':type==='BLOG'?'article':'directions_car';}
+  countLabel(){return String(this.t().favoritesPage.count||'').replace('{n}', String(this.items().length));}
+  openDetailAria(title:string){return String(this.t().favoritesPage.openDetailAria||'').replace('{title}', String(title||''));}
+  removeAria(title:string){return String(this.t().favoritesPage.removeAria||'').replace('{title}', String(title||''));}
 
   private async load(append:boolean){
     this.loading.set(true);

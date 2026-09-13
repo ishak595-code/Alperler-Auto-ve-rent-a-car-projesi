@@ -2415,6 +2415,10 @@ export class UiService {
           percent: "%{n}",
           amountTl: "{n} TL",
         },
+        accountCallback: {
+          title: "Giriş tamamlanıyor",
+          body: "Hesabınız güvenli şekilde hazırlanıyor…",
+        },
       },
     EN: {
       nav: {
@@ -4601,6 +4605,10 @@ export class UiService {
           percent: "{n}%",
           amountTl: "{n} TL",
         },
+        accountCallback: {
+          title: "Completing sign-in",
+          body: "Preparing your account securely…",
+        },
       },
     DE: {
       nav: {
@@ -6695,6 +6703,10 @@ export class UiService {
           codeLoading: "Ihr Einladungscode wird vorbereitet. Aktualisieren Sie Ihr Profil und versuchen Sie es erneut.",
           percent: "{n} %",
           amountTl: "{n} TL",
+        },
+        accountCallback: {
+          title: "Anmeldung wird abgeschlossen",
+          body: "Ihr Konto wird sicher vorbereitet…",
         },
       },
     FR: {
@@ -8794,6 +8806,10 @@ export class UiService {
           percent: "{n} %",
           amountTl: "{n} TL",
         },
+        accountCallback: {
+          title: "Connexion en cours",
+          body: "Votre compte est préparé en toute sécurité…",
+        },
       },
     ES: {
       nav: {
@@ -10889,6 +10905,10 @@ export class UiService {
           percent: "{n} %",
           amountTl: "{n} TL",
         },
+        accountCallback: {
+          title: "Completando el acceso",
+          body: "Preparando su cuenta de forma segura…",
+        },
       },
     RU: {
       nav: {
@@ -12981,6 +13001,10 @@ export class UiService {
           percent: "{n} %",
           amountTl: "{n} TL",
         },
+        accountCallback: {
+          title: "Завершение входа",
+          body: "Ваш аккаунт безопасно подготавливается…",
+        },
       },
     KU: {
       nav: { home: "Malper", fleet: "Fîloya Wesayîtan", sales: "Firotina Destê Duyem", tours: "Tûr", earn: "Wesayîta Xwe Nirxîne", about: "Derbarê Me", contact: "Têkilî", blog: "Blog", corporate: "Korporatîf",
@@ -14899,6 +14923,10 @@ export class UiService {
           codeLoading: "Koda vexwendinê tê amadekirin. Profîlê nû bike û dîsa biceribîne.",
           percent: "%{n}",
           amountTl: "{n} TL",
+        },
+        accountCallback: {
+          title: "Têketin temam dibe",
+          body: "Hesabê we bi ewle tê amadekirin…",
         },
       },
     ZH: {
@@ -16987,6 +17015,10 @@ export class UiService {
           percent: "{n}%",
           amountTl: "{n} TL",
         },
+        accountCallback: {
+          title: "正在完成登录",
+          body: "正在安全地准备您的账户…",
+        },
       },
     AR: {
       nav: {
@@ -19073,6 +19105,10 @@ export class UiService {
           codeLoading: "جارٍ تجهيز رمز الدعوة. حدّث ملفك وحاول مجدداً.",
           percent: "{n}٪",
           amountTl: "{n} ل.ت",
+        },
+        accountCallback: {
+          title: "جارٍ إكمال تسجيل الدخول",
+          body: "يتم تجهيز حسابك بأمان…",
         },
       },
   };

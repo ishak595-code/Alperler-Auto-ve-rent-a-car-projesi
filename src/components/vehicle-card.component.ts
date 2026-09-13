@@ -66,17 +66,17 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
           @if (car.badge === "ACİL" || car.badge.includes("ACİL")) {
             <span
               class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded tracking-widest uppercase z-10 shadow-md motion-safe:animate-pulse"
-              >{{ car.badge }}</span
+              >{{ badgeLabel() }}</span
             >
           } @else if (car.badge === "FIRSAT" || car.badge.includes("FIRSAT")) {
             <span
               class="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2.5 py-1 rounded tracking-widest uppercase z-10 shadow-md"
-              >{{ car.badge }}</span
+              >{{ badgeLabel() }}</span
             >
           } @else {
             <span
               class="absolute top-2 left-2 bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded tracking-widest uppercase z-10 shadow-md"
-              >{{ car.badge }}</span
+              >{{ badgeLabel() }}</span
             >
           }
         }
@@ -383,6 +383,10 @@ export class VehicleCardComponent {
         // Ignore share cancellation.
       });
     }
+  }
+
+  badgeLabel(): string {
+    return this.uiService.listingBadgeLabel(this.car.badge);
   }
 
   imageAltText(): string {

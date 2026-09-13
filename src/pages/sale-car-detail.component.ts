@@ -41,7 +41,7 @@ type FactRow = { label: string; value: string };
                 <video [src]="media.url" [poster]="media.posterUrl || item.image || ''" controls playsinline preload="metadata" [attr.aria-label]="media.title || (item.brand + ' ' + item.model + ' videosu')" (error)="mediaFailed(media.url)"></video>
                 <button type="button" class="video-expand" (click)="openLightbox()" [attr.aria-label]="t().saleDetail.videoFullscreenAria"><mat-icon aria-hidden="true">fullscreen</mat-icon></button>
               }
-              @if (item.badge) { <span class="listing-badge">{{ item.badge }}</span> }
+              @if (item.badge) { <span class="listing-badge">{{ badgeLabel(item.badge) }}</span> }
               <div class="media-controls">
                 <span>{{ currentSlide() + 1 }} / {{ mediaItems().length }}</span>
                 @if (mediaItems().length > 1) {
@@ -299,15 +299,15 @@ export class SaleCarDetailComponent implements OnInit {
       { label: this.t().saleDetail.labelKm, value: item.km != null && Number.isFinite(Number(item.km)) ? String(this.t().saleDetail.kmValue||"").replace("{n}", Number(item.km).toLocaleString("tr-TR")) : this.t().saleDetail.notSpecified, important: true },
       { label: this.t().saleDetail.labelFuel, value: this.display(item.fuel) },
       { label: this.t().saleDetail.labelTransmission, value: this.display(item.transmission) },
-      { label: "Kasa Tipi", value: this.display(item.type) },
-      { label: "Renk", value: this.display(item.color) },
+      { label: this.t().saleDetail.labelBody, value: this.display(item.type) },
+      { label: this.t().saleDetail.labelColor, value: this.display(item.color) },
       { label: this.t().saleDetail.labelSeats, value: item.seats ? String(this.t().saleDetail.people||"").replace("{n}", String(item.seats)) : this.t().saleDetail.notSpecified },
-      { label: this.t().saleDetail.labelDoors, value: item.doors ? `${item.doors}` : "Belirtilmedi" },
+      { label: this.t().saleDetail.labelDoors, value: item.doors ? `${item.doors}` : this.t().saleDetail.notSpecified },
       { label: this.t().saleDetail.labelDrivetrain, value: this.display(item.drivetrain) },
       { label: this.t().saleDetail.labelEnginePower, value: this.display(item.enginePower) },
-      { label: "Motor Hacmi", value: this.display(item.engineVolume) },
-      { label: "Garanti", value: this.display(item.warranty || (item.hasWarranty ? "Var" : "")) },
-      { label: this.t().saleDetail.labelStatus, value: this.display(item.availability || this.t().saleDetail.statusForSale) },
+      { label: this.t().saleDetail.labelEngineVolume, value: this.display(item.engineVolume) },
+      { label: this.t().saleDetail.labelWarranty, value: this.display(item.warranty || (item.hasWarranty ? this.t().saleDetail.warrantyYes : "")) },
+      { label: this.t().saleDetail.labelStatus, value: this.display(this.ui.listingStatusLabel(item.availability, { sold: item.availability === "Satıldı", variant: "detail" })) },
     ];
   });
 
@@ -329,7 +329,7 @@ export class SaleCarDetailComponent implements OnInit {
       [this.t().saleDetail.specEnginePower, specs?.enginePower || item.enginePower],
       [this.t().saleDetail.specTorque, specs?.torque || item.torque],
       [this.t().saleDetail.specDrivetrain, specs?.drivetrain || item.drivetrain],
-      [this.t().saleDetail.specCylinders, specs?.cylinders || (item.cylinderCount ? `${item.cylinderCount} silindir` : "")],
+      [this.t().saleDetail.specCylinders, specs?.cylinders || (item.cylinderCount ? String(this.t().saleDetail.cylindersUnit||"").replace("{n}", String(item.cylinderCount)) : "")],
       [this.t().saleDetail.specCityFuel, specs?.cityFuel || item.cityFuelConsumption],
       [this.t().saleDetail.specHighwayFuel, specs?.highwayFuel || item.highwayFuelConsumption],
       [this.t().saleDetail.specCombinedFuel, specs?.combinedFuel || item.fuelConsumption],
@@ -366,7 +366,7 @@ export class SaleCarDetailComponent implements OnInit {
     }
   }
 
-  display(value: unknown, fallback = "Belirtilmedi"): string { return this.detailData.display(value, fallback); }
+  display(value: unknown, fallback?: string): string { return this.detailData.display(value, fallback ?? this.t().saleDetail.notSpecified); }
   listingDate(item: Car): string { return this.formatDate(item.createdAt || item.updatedAt || "") || this.t().saleDetail.dateUnknown; }
   formatDate(value: string): string { const date = new Date(value); return value && !Number.isNaN(date.getTime()) ? new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" }).format(date) : ""; }
   previousMedia(): void { const length = this.mediaItems().length; if (length > 1) this.currentSlide.update((index) => (index - 1 + length) % length); }
@@ -390,6 +390,7 @@ export class SaleCarDetailComponent implements OnInit {
   hasTramerDetail(item: Car): boolean { return String(item.tramerStatus || "UNKNOWN") !== "UNKNOWN" || item.tramerAmount != null || Boolean(item.tramerVerifiedAt || item.tramerSourceName); }
   tramerDetail(item: Car): string { const text = String(item.tramer || "").trim(); if (text && !/^belirtilmedi/i.test(text)) return text; if (item.tramerAmount != null) return this.t().saleDetail.tramerAmountText.replace("{amount}", Number(item.tramerAmount).toLocaleString("tr-TR")); return this.tramerStatusLabel(item); }
   mapHref(item: Car): string { const record = item as Car & { mapUrl?: string; latitude?: number; longitude?: number }; if (record.mapUrl && /^https:\/\//i.test(record.mapUrl)) return record.mapUrl; if (Number.isFinite(Number(record.latitude)) && Number.isFinite(Number(record.longitude))) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${record.latitude},${record.longitude}`)}`; const query = String(item.location || "").trim(); return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : ""; }
+  badgeLabel(value: string | null | undefined): string { return this.ui.listingBadgeLabel(value); }
   inquire(item: Car): void { if (item.availability === "Satıldı") return; this.carService.setBookingRequest({ type: "SALE_INQUIRY", item, itemName: `${item.brand || ""} ${item.model || ""}`.trim(), image: item.image || item.images?.[0], basePrice: Number(item.price || 0) }); void this.router.navigate(["/contact"]); }
   async share(item: Car): Promise<void> { const payload = { title: `${item.brand || ""} ${item.model || ""} | Alperler Auto`.trim(), text: this.t().saleDetail.shareText, url: window.location.href }; try { if (navigator.share) await navigator.share(payload); else await navigator.clipboard?.writeText(window.location.href); } catch { /* kullanıcı paylaşımı iptal etti */ } }
   phoneHref(): string { const phone = String(this.carService.getConfig()().phone || "").replace(/[^+\d]/g, ""); return phone ? `tel:${phone}` : ""; }

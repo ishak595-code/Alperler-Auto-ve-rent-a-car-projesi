@@ -52,9 +52,9 @@ type DriverMode = "with" | "without" | "";
         </section>
 
         @if(activeCampaign();as offer){
-          <section class="campaign-strip" aria-label="Bu araca ait aktif kampanya">
+          <section class="campaign-strip" [attr.aria-label]="t().carDetail.campaignStripAria">
             <div class="campaign-copy">
-              <div class="campaign-badges"><span class="campaign-kicker">{{offer.badge||'FIRSAT'}}</span>@if(discountLabel(offer)){<span class="discount-badge">{{discountLabel(offer)}}</span>}</div>
+              <div class="campaign-badges"><span class="campaign-kicker">{{ campaignBadge(offer) }}</span>@if(discountLabel(offer)){<span class="discount-badge">{{discountLabel(offer)}}</span>}</div>
               <h2>{{offer.title}}</h2>
               @if(offer.shortDescription||offer.description){<p>{{offer.shortDescription||offer.description}}</p>}
               @if(campaignBenefits(offer).length){<ul>@for(benefit of campaignBenefits(offer);track benefit){<li><mat-icon aria-hidden="true">check_circle</mat-icon>{{benefit}}</li>}</ul>}
@@ -62,7 +62,7 @@ type DriverMode = "with" | "without" | "";
             <div class="campaign-value">
               <span class="proof" [class.hot]="campaignProof(offer).activeViewers15m>0||campaignProof(offer).recentViewers24h>1"><span class="live-dot" aria-hidden="true"></span><mat-icon aria-hidden="true">visibility</mat-icon>{{campaignProofLabel(offer)}}</span>
               @if(offer.endsAt){<span><mat-icon aria-hidden="true">schedule</mat-icon>{{campaignCountdown(offer.endsAt)}}</span>}
-              @if(offer.oldPrice&&offer.newPrice&&offer.oldPrice>offer.newPrice){<div class="price-offer"><small>{{offer.oldPrice|turkishCurrency}}</small><strong>{{offer.newPrice|turkishCurrency}}</strong><em>{{campaignPriceSuffix(offer)}}</em></div>}@else if(offer.discountPercent){<strong>%{{offer.discountPercent}} avantaj</strong>}
+              @if(offer.oldPrice&&offer.newPrice&&offer.oldPrice>offer.newPrice){<div class="price-offer"><small>{{offer.oldPrice|turkishCurrency}}</small><strong>{{offer.newPrice|turkishCurrency}}</strong><em>{{campaignPriceSuffix(offer)}}</em></div>}@else if(offer.discountPercent){<strong>{{ campaignAdvantage(offer.discountPercent) }}</strong>}
             </div>
           </section>
         }
@@ -175,7 +175,7 @@ export class CarDetailComponent implements OnInit {
   readonly features = computed(() => { const car=this.vehicle(); if(!car)return[]; const detailed=car.detailedFeatures?[...(car.detailedFeatures.interior||[]),...(car.detailedFeatures.exterior||[]),...(car.detailedFeatures.multimedia||[]),...(car.detailedFeatures.safety||[])]:[]; return [...new Set([...(car.features||[]),...detailed].map(v=>String(v||"").trim()).filter(Boolean))]; });
   readonly technicalRows = computed(() => {
     const car=this.vehicle(); if(!car)return[] as {label:string;value:string}[]; const specs=car.technicalSpecs;
-    const rows:Array<[string,unknown]>=[[this.t().saleDetail.specMaxSpeed,specs?.maxSpeed||car.maxSpeed],[this.t().saleDetail.specAccel,specs?.acceleration||car.acceleration],[this.t().saleDetail.specEngineVolume,specs?.engineVolume||car.engineVolume],[this.t().saleDetail.specEnginePower,specs?.enginePower||car.enginePower],[this.t().saleDetail.specTorque,specs?.torque||car.torque],[this.t().saleDetail.specDrivetrain,specs?.drivetrain||car.drivetrain],[this.t().saleDetail.specCylinders,specs?.cylinders||(car.cylinderCount?`${car.cylinderCount} silindir`:"")],[this.t().saleDetail.specCityFuel,specs?.cityFuel||car.cityFuelConsumption],[this.t().saleDetail.specHighwayFuel,specs?.highwayFuel||car.highwayFuelConsumption],[this.t().saleDetail.specCombinedFuel,specs?.combinedFuel||car.fuelConsumption],[this.t().saleDetail.specTank,specs?.tankCapacity||car.fuelTankCapacity],[this.t().saleDetail.specTrunk,specs?.trunkCapacity||car.trunkVolume],[this.t().saleDetail.specWheels,specs?.wheels||car.wheelSize],[this.t().saleDetail.specDimensions,specs?.dimensions||[car.length,car.width,car.height].filter(Boolean).join(" × ")],[this.t().saleDetail.specWeight,specs?.weight||car.weight]];
+    const rows:Array<[string,unknown]>=[[this.t().saleDetail.specMaxSpeed,specs?.maxSpeed||car.maxSpeed],[this.t().saleDetail.specAccel,specs?.acceleration||car.acceleration],[this.t().saleDetail.specEngineVolume,specs?.engineVolume||car.engineVolume],[this.t().saleDetail.specEnginePower,specs?.enginePower||car.enginePower],[this.t().saleDetail.specTorque,specs?.torque||car.torque],[this.t().saleDetail.specDrivetrain,specs?.drivetrain||car.drivetrain],[this.t().saleDetail.specCylinders,specs?.cylinders||(car.cylinderCount?String(this.t().saleDetail.cylindersUnit||"").replace("{n}", String(car.cylinderCount)):"")],[this.t().saleDetail.specCityFuel,specs?.cityFuel||car.cityFuelConsumption],[this.t().saleDetail.specHighwayFuel,specs?.highwayFuel||car.highwayFuelConsumption],[this.t().saleDetail.specCombinedFuel,specs?.combinedFuel||car.fuelConsumption],[this.t().saleDetail.specTank,specs?.tankCapacity||car.fuelTankCapacity],[this.t().saleDetail.specTrunk,specs?.trunkCapacity||car.trunkVolume],[this.t().saleDetail.specWheels,specs?.wheels||car.wheelSize],[this.t().saleDetail.specDimensions,specs?.dimensions||[car.length,car.width,car.height].filter(Boolean).join(" × ")],[this.t().saleDetail.specWeight,specs?.weight||car.weight]];
     return rows.filter(([,v])=>String(v??"").trim()&&String(v)!=="-").map(([label,value])=>({label,value:String(value)}));
   });
 
@@ -201,7 +201,9 @@ export class CarDetailComponent implements OnInit {
   campaignProofLabel(offer:CampaignRecord):string{const proof=this.campaignProof(offer);const C=this.t().carDetail;if(proof.activeViewers15m>0)return C.proofViewers15m.replace("{n}", String(proof.activeViewers15m));if(proof.recentViewers24h>0)return C.proofViewers24h.replace("{n}", String(proof.recentViewers24h));if(proof.uniqueViewersTotal>0)return C.proofViewersTotal.replace("{n}", String(proof.uniqueViewersTotal));if(proof.pageViewsTotal>0)return C.proofViews.replace("{n}", String(proof.pageViewsTotal));return C.proofNew;}
   campaignBenefits(offer:CampaignRecord):string[]{const value=offer.metadata?.["benefits"];return Array.isArray(value)?value.map(v=>String(v||"").trim()).filter(Boolean).slice(0,5):[];}
   campaignPriceSuffix(offer:CampaignRecord):string{return String(offer.metadata?.["priceSuffix"]||offer.metadata?.["priceLabel"]||this.t().carDetail.campaignPrice);}
-  discountLabel(offer:CampaignRecord):string{if(offer.discountPercent)return`%${offer.discountPercent} AVANTAJ`;if(offer.oldPrice&&offer.newPrice&&offer.oldPrice>offer.newPrice)return`%${Math.round((offer.oldPrice-offer.newPrice)/offer.oldPrice*100)} AVANTAJ`;return"";}
+  discountLabel(offer:CampaignRecord):string{const fmt=(n:number)=>String(this.t().catalogCampaign?.advantagePct||"%{n} AVANTAJ").replace("{n}", String(n));if(offer.discountPercent)return fmt(offer.discountPercent);if(offer.oldPrice&&offer.newPrice&&offer.oldPrice>offer.newPrice)return fmt(Math.round((offer.oldPrice-offer.newPrice)/offer.oldPrice*100));return"";}
+  campaignBadge(offer:CampaignRecord):string{return this.ui.listingBadgeLabel(offer.badge) || this.t().vehicleListItem.deal;}
+  campaignAdvantage(n:number):string{return String(this.t().catalogCampaign?.advantagePct||"%{n} AVANTAJ").replace("{n}", String(n));}
   campaignCountdown(value:string):string{const remaining=new Date(value).getTime()-Date.now();if(!Number.isFinite(remaining)||remaining<=0)return this.t().carDetail.countdownEnded;const hours=Math.floor(remaining/3_600_000),days=Math.floor(hours/24);const C=this.t().carDetail;return days>1?C.countdownDays.replace("{n}", String(days)):days===1?C.countdownDay:C.countdownHours.replace("{n}", String(Math.max(1,hours)));}
   dailyDisplayPrice(car:Car):number{return this.unitCampaignPrice(Number(car.price||0),"daily");}
   hourlyDisplayPrice(car:Car):number{return this.unitCampaignPrice(Number(car.hourlyPrice||0),"hourly");}

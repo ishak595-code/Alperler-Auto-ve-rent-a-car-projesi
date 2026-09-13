@@ -10,7 +10,7 @@ import { UiService } from '../services/ui.service';
   template:`
     <a [routerLink]="['/sales',car.id]" [attr.aria-label]="ariaLabel" class="card">
       <article>
-        <div class="media"><img [src]="cover" (error)="imageError($event)" [alt]="title" loading="lazy" decoding="async"/><div class="shade"></div>@if(car.cloudStockCode){<span class="stock">{{ stockLabel() }}</span>}<span class="status" [class.sold]="isSold">{{statusLabel}}</span>@if(car.badge){<span class="badge">{{car.badge}}</span>}</div>
+        <div class="media"><img [src]="cover" (error)="imageError($event)" [alt]="title" loading="lazy" decoding="async"/><div class="shade"></div>@if(car.cloudStockCode){<span class="stock">{{ stockLabel() }}</span>}<span class="status" [class.sold]="isSold">{{statusLabel}}</span>@if(car.badge){<span class="badge">{{ badgeLabel() }}</span>}</div>
         <div class="body"><h2>{{title}}</h2><div class="facts" [attr.aria-label]="t().saleCard.factsAria">@if(car.year){<span>{{car.year}}</span>}@if(car.km!=null){<span>{{car.km|number}} km</span>}@if(car.fuel){<span>{{car.fuel}}</span>}@if(car.transmission){<span>{{car.transmission}}</span>}@if(car.type){<span>{{car.type}}</span>}@if(car.color){<span>{{car.color}}</span>}</div>
           <div class="trust">@if(warrantyLabel){<span>✓ {{warrantyLabel}}</span>}@if(damageLabel){<span [class.attention]="!damageFree">{{damageFree?'✓':'•'}} {{damageLabel}}</span>}<span class="tramer" [class.verified]="tramerVerified">{{tramerLabel}}</span></div>
           <div class="location"><div><strong>{{branchLabel||t().saleCard.branchFallback}}</strong><span>{{car.location||t().saleCard.locationFallback}}</span></div><b>{{car.price|turkishCurrency}}</b></div>
@@ -29,13 +29,14 @@ export class SaleVehicleCardV168Component{
   get cover():string{return this.car.image||this.car.images?.[0]||'/vehicle-placeholder.svg';}
   get title():string{return this.car.title?.trim()||[this.car.year,this.car.brand,this.car.series,this.car.model].filter(Boolean).join(' ')||this.t().saleCard.saleVehicle;}
   get isSold():boolean{return this.car.availability==='Satıldı'||this.car.isAvailable===false;}
-  get statusLabel():string{return this.isSold?this.t().saleCard.sold:this.car.availability||this.t().saleCard.forSale;}
+  get statusLabel():string{return this.ui.listingStatusLabel(this.car.availability,{sold:this.isSold,variant:'card'});}
   get damageFree():boolean{const t=String(this.car.damageStatus||'').toLocaleLowerCase('tr-TR');return this.car.isDamageFree===true||/hasarsız|hatasız|boyasız|değişensiz/.test(t)&&!/lokal|boyalı|değişen|hasar/.test(t);}
   get damageLabel():string{return String(this.car.damageStatus||'').trim();}
   get warrantyLabel():string{return String(this.car.warranty||'').trim()||(this.car.hasWarranty?this.t().saleCard.warrantyPresent:'');}
   get tramerVerified():boolean{return this.car.tramerStatus==='VERIFIED_CLEAN'||this.car.tramerStatus==='VERIFIED_RECORD';}
   get tramerLabel():string{const sc=this.t().saleCard;const s=this.car.tramerStatus||'UNKNOWN';if(s==='UNKNOWN')return sc.tramerUnknown;if(s==='DECLARED_CLEAN')return sc.tramerDeclaredClean;if(s==='VERIFIED_CLEAN')return sc.tramerVerifiedClean;const amount=Number(this.car.tramerAmount||0);const money=amount>0?new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY',maximumFractionDigits:0}).format(amount):sc.amountUnknown;return`${s==='VERIFIED_RECORD'?sc.tramerVerified:sc.tramerDeclared}: ${money}`;}
   stockLabel():string{return String(this.t().saleCard.stock||'').replace('{code}', String(this.car.cloudStockCode||''));}
+  badgeLabel():string{return this.ui.listingBadgeLabel(this.car.badge);}
   get ariaLabel():string{const sc=this.t().saleCard;const stock=this.car.cloudStockCode?String(sc.stockPart||'').replace('{code}', String(this.car.cloudStockCode)):'';const km=this.car.km??sc.kmUnknown;return String(sc.aria||'').replace('{title}', this.title).replace('{stock}', stock).replace('{km}', String(km)).replace('{price}', String(this.car.price??'')).replace('{tramer}', this.tramerLabel).replace('{status}', this.statusLabel);}
   imageError(event:Event):void{const img=event.target as HTMLImageElement;img.onerror=null;img.src='/vehicle-placeholder.svg';}
 }

@@ -13,7 +13,7 @@ import { UiService } from "../services/ui.service";
         <div class="relative h-[148px] w-full overflow-hidden rounded-xl bg-[#101A2E] sm:h-[168px]">
           <img [src]="car.images?.[0]||car.image||'/vehicle-placeholder.svg'" (error)="handleImageError($event)" [alt]="displayTitle" loading="lazy" decoding="async" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.035]" />
           <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#050A18]/65 via-transparent to-transparent" aria-hidden="true"></div>
-          @if(car.badge){<span class="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wide shadow-lg" [ngClass]="badgeTone(car.badge)">{{car.badge}}</span>}
+          @if(car.badge){<span class="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wide shadow-lg" [ngClass]="badgeTone(car.badge)">{{badgeLabel()}}</span>}
           @if(car.isCampaign||car.discountRate){<span class="absolute bottom-2 left-2 rounded-full bg-[#EABF35] px-2.5 py-1 text-[9px] font-black uppercase text-[#111827] shadow-lg">@if(car.discountRate){{{discountLabel()}}}@else{{{t().vehicleListItem.deal}}}</span>}
           <span class="absolute bottom-2 right-2 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-[#0B1224]/95 text-[#C6A15B] shadow-lg transition-transform group-hover:translate-x-0.5" aria-hidden="true">→</span>
         </div>
@@ -71,6 +71,7 @@ export class VehicleListItemComponent {
     const formatted=new Intl.NumberFormat(this.numberLocale()).format(Number(this.car.km||0));
     return String(this.t().vehicleListItem.km||"").replace("{n}", formatted);
   }
+  badgeLabel():string{return this.ui.listingBadgeLabel(this.car.badge);}
   badgeTone(label:string):string{const normalized=String(label||"").toLocaleUpperCase("tr-TR");if(/FIRSAT|İNDİRİM|INDIRIM|KAMPANYA|AVANTAJ/.test(normalized))return"bg-[#EABF35] text-[#111827]";if(/YENİ|YENI|POPÜLER|POPULAR/.test(normalized))return"bg-prestige-red text-white";return"border border-[#334155] bg-[#101A2E]/95 text-[#CBD5E1]";}
   handleImageError(event:Event):void{const image=event.target as HTMLImageElement;image.onerror=null;image.src="/vehicle-placeholder.svg";}
   private numberLocale():string{

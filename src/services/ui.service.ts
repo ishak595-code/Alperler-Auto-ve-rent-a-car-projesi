@@ -158,6 +158,50 @@ export class UiService {
     return value;
   }
 
+  /** Known vehicle listing badge chrome (ACIL / FIRSAT / ...). Unknown freeform admin badges stay live. */
+  listingBadgeLabel(value: string | null | undefined): string {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const badges = (this.translations() as any).listingBadges as Record<string, string> | undefined;
+    if (!badges) return raw;
+    if (badges[raw]) return badges[raw];
+    const norm = raw.toLocaleUpperCase("tr-TR");
+    for (const [key, label] of Object.entries(badges)) {
+      if (String(key).toLocaleUpperCase("tr-TR") === norm) return label;
+    }
+    return raw;
+  }
+
+  /** Sale availability tokens written by catalog mapping (Satildi / Satista / ...). Custom metadata stays live. */
+  listingStatusLabel(
+    value: string | null | undefined,
+    opts?: { sold?: boolean; variant?: "card" | "detail" },
+  ): string {
+    const t = this.translations() as any;
+    const raw = String(value || "").trim();
+    const sold = opts?.sold === true || raw === "Satıldı";
+    const variant = opts?.variant || "detail";
+    if (sold) {
+      return variant === "card"
+        ? String(t.saleCard?.sold || t.vehicleCard?.soldUpper || t.listingStatus?.["Satıldı"] || raw)
+        : String(t.saleDetail?.statusSold || t.vehicleCard?.sold || t.listingStatus?.["Satıldı"] || raw);
+    }
+    if (!raw || raw === "Satışta") {
+      return variant === "card"
+        ? String(t.saleCard?.forSale || t.listingStatus?.["Satışta"] || raw)
+        : String(t.saleDetail?.statusForSale || t.listingStatus?.["Satışta"] || raw);
+    }
+    const map = t.listingStatus as Record<string, string> | undefined;
+    if (map?.[raw]) return map[raw];
+    const norm = raw.toLocaleLowerCase("tr-TR");
+    if (map) {
+      for (const [key, label] of Object.entries(map)) {
+        if (String(key).toLocaleLowerCase("tr-TR") === norm) return label;
+      }
+    }
+    return raw;
+  }
+
   // --- TRANSLATIONS ---
   private dictionary: Partial<Record<Language, any>> = {
     TR: {
@@ -1444,8 +1488,12 @@ export class UiService {
           labelDrivetrain: "Çekiş",
           labelEnginePower: "Motor Gücü",
           labelEngineVolume: "Motor Hacmi",
+          labelWarranty: "Garanti",
           labelStatus: "Durum",
           statusForSale: "Satışta",
+          statusSold: "Satıldı",
+          warrantyYes: "Var",
+          cylindersUnit: "{n} silindir",
           people: "{n} kişi",
           kmValue: "{n} km",
           dateUnknown: "Tarih bilgisi paylaşılmamış",
@@ -1488,6 +1536,7 @@ export class UiService {
         carDetail: {
           backAria: "Kiralık araçlara geri dön",
           badge: "KİRALIK ARAÇ",
+          campaignStripAria: "Bu araca ait aktif kampanya",
           shareAria: "Aracı paylaş",
           addFavAria: "Favorilere ekle",
           removeFavAria: "Favorilerden çıkar",
@@ -1692,6 +1741,23 @@ export class UiService {
           summaryFileCount: "{n} adet",
         },
 
+        listingBadges: {
+          "ACİL": "ACİL",
+          "FIRSAT": "FIRSAT",
+          "YENİ": "YENİ",
+          "POPÜLER": "POPÜLER",
+          "PREMIUM": "PREMIUM",
+          "UYGUN FİYAT": "UYGUN FİYAT",
+          "YENİ GİRİŞ": "YENİ GİRİŞ",
+        },
+        listingStatus: {
+          "Satıldı": "Satıldı",
+          "Satışta": "Satışta",
+          "Rezerve": "Rezerve",
+          "Kirada": "Kirada",
+          "Bakımda": "Bakımda",
+          "Kontrolde / bakımda": "Kontrolde / bakımda",
+        },
         vehicleCard: {
           seats: "{n} Kişilik",
           insured: "%100 Kaskolu & Yol Yardım",
@@ -4276,8 +4342,12 @@ export class UiService {
           labelDrivetrain: "Drivetrain",
           labelEnginePower: "Engine Power",
           labelEngineVolume: "Engine Volume",
+          labelWarranty: "Warranty",
           labelStatus: "Status",
           statusForSale: "For sale",
+          statusSold: "Sold",
+          warrantyYes: "Yes",
+          cylindersUnit: "{n} cylinders",
           people: "{n} people",
           kmValue: "{n} km",
           dateUnknown: "Date not shared",
@@ -4320,6 +4390,7 @@ export class UiService {
         carDetail: {
           backAria: "Go back to rental vehicles",
           badge: "RENTAL VEHICLE",
+          campaignStripAria: "Active campaign for this vehicle",
           shareAria: "Share vehicle",
           addFavAria: "Add to favorites",
           removeFavAria: "Remove from favorites",
@@ -4524,6 +4595,23 @@ export class UiService {
           summaryFileCount: "{n} files",
         },
 
+        listingBadges: {
+          "ACİL": "URGENT",
+          "FIRSAT": "DEAL",
+          "YENİ": "NEW",
+          "POPÜLER": "POPULAR",
+          "PREMIUM": "PREMIUM",
+          "UYGUN FİYAT": "GREAT PRICE",
+          "YENİ GİRİŞ": "JUST IN",
+        },
+        listingStatus: {
+          "Satıldı": "Sold",
+          "Satışta": "For sale",
+          "Rezerve": "Reserved",
+          "Kirada": "Rented",
+          "Bakımda": "In service",
+          "Kontrolde / bakımda": "Under inspection",
+        },
         vehicleCard: {
           seats: "{n} Seats",
           insured: "100% Comprehensive & Roadside",
@@ -6355,8 +6443,12 @@ export class UiService {
           labelDrivetrain: "Antrieb",
           labelEnginePower: "Motorleistung",
           labelEngineVolume: "Hubraum",
+          labelWarranty: "Garantie",
           labelStatus: "Status",
           statusForSale: "Im Verkauf",
+          statusSold: "Verkauft",
+          warrantyYes: "Ja",
+          cylindersUnit: "{n} Zylinder",
           people: "{n} Personen",
           kmValue: "{n} km",
           dateUnknown: "Datum nicht mitgeteilt",
@@ -6399,6 +6491,7 @@ export class UiService {
         carDetail: {
           backAria: "Zurück zu Mietfahrzeugen",
           badge: "MIETFAHRZEUG",
+          campaignStripAria: "Aktive Kampagne für dieses Fahrzeug",
           shareAria: "Fahrzeug teilen",
           addFavAria: "Zu Favoriten hinzufügen",
           removeFavAria: "Aus Favoriten entfernen",
@@ -6603,6 +6696,23 @@ export class UiService {
           summaryFileCount: "{n} Dateien",
         },
 
+        listingBadges: {
+          "ACİL": "DRINGEND",
+          "FIRSAT": "ANGEBOT",
+          "YENİ": "NEU",
+          "POPÜLER": "BELIEBT",
+          "PREMIUM": "PREMIUM",
+          "UYGUN FİYAT": "GÜNSTIG",
+          "YENİ GİRİŞ": "NEU EINGETROFFEN",
+        },
+        listingStatus: {
+          "Satıldı": "Verkauft",
+          "Satışta": "Zu verkaufen",
+          "Rezerve": "Reserviert",
+          "Kirada": "Vermietet",
+          "Bakımda": "In Wartung",
+          "Kontrolde / bakımda": "In Prüfung",
+        },
         vehicleCard: {
           seats: "{n} Sitze",
           insured: "100% Kasko & Pannenhilfe",
@@ -8882,8 +8992,12 @@ export class UiService {
           labelDrivetrain: "Transmission",
           labelEnginePower: "Puissance moteur",
           labelEngineVolume: "Cylindrée",
+          labelWarranty: "Garantie",
           labelStatus: "Statut",
           statusForSale: "En vente",
+          statusSold: "Vendu",
+          warrantyYes: "Oui",
+          cylindersUnit: "{n} cylindres",
           people: "{n} personnes",
           kmValue: "{n} km",
           dateUnknown: "Date non communiquée",
@@ -8926,6 +9040,7 @@ export class UiService {
         carDetail: {
           backAria: "Retour aux véhicules de location",
           badge: "VÉHICULE DE LOCATION",
+          campaignStripAria: "Campagne active pour ce véhicule",
           shareAria: "Partager le véhicule",
           addFavAria: "Ajouter aux favoris",
           removeFavAria: "Retirer des favoris",
@@ -9130,6 +9245,23 @@ export class UiService {
           summaryFileCount: "{n} fichiers",
         },
 
+        listingBadges: {
+          "ACİL": "URGENT",
+          "FIRSAT": "BON PLAN",
+          "YENİ": "NOUVEAU",
+          "POPÜLER": "POPULAIRE",
+          "PREMIUM": "PREMIUM",
+          "UYGUN FİYAT": "BON PRIX",
+          "YENİ GİRİŞ": "NOUVEAUTÉ",
+        },
+        listingStatus: {
+          "Satıldı": "Vendu",
+          "Satışta": "En vente",
+          "Rezerve": "Réservé",
+          "Kirada": "Loué",
+          "Bakımda": "En entretien",
+          "Kontrolde / bakımda": "En contrôle",
+        },
         vehicleCard: {
           seats: "{n} places",
           insured: "100 % tous risques & assistance",
@@ -11410,8 +11542,12 @@ export class UiService {
           labelDrivetrain: "Tracción",
           labelEnginePower: "Potencia del motor",
           labelEngineVolume: "Cilindrada",
+          labelWarranty: "Garantía",
           labelStatus: "Estado",
           statusForSale: "En venta",
+          statusSold: "Vendido",
+          warrantyYes: "Sí",
+          cylindersUnit: "{n} cilindros",
           people: "{n} personas",
           kmValue: "{n} km",
           dateUnknown: "Fecha no compartida",
@@ -11454,6 +11590,7 @@ export class UiService {
         carDetail: {
           backAria: "Volver a vehículos de alquiler",
           badge: "VEHÍCULO DE ALQUILER",
+          campaignStripAria: "Campaña activa para este vehículo",
           shareAria: "Compartir vehículo",
           addFavAria: "Añadir a favoritos",
           removeFavAria: "Quitar de favoritos",
@@ -11658,6 +11795,23 @@ export class UiService {
           summaryFileCount: "{n} archivos",
         },
 
+        listingBadges: {
+          "ACİL": "URGENTE",
+          "FIRSAT": "OFERTA",
+          "YENİ": "NUEVO",
+          "POPÜLER": "POPULAR",
+          "PREMIUM": "PREMIUM",
+          "UYGUN FİYAT": "BUEN PRECIO",
+          "YENİ GİRİŞ": "RECIÉN LLEGADO",
+        },
+        listingStatus: {
+          "Satıldı": "Vendido",
+          "Satışta": "En venta",
+          "Rezerve": "Reservado",
+          "Kirada": "Alquilado",
+          "Bakımda": "En mantenimiento",
+          "Kontrolde / bakımda": "En revisión",
+        },
         vehicleCard: {
           seats: "{n} plazas",
           insured: "100% a todo riesgo y asistencia",
@@ -13936,8 +14090,12 @@ export class UiService {
           labelDrivetrain: "Привод",
           labelEnginePower: "Мощность двигателя",
           labelEngineVolume: "Объём двигателя",
+          labelWarranty: "Гарантия",
           labelStatus: "Статус",
           statusForSale: "В продаже",
+          statusSold: "Продано",
+          warrantyYes: "Есть",
+          cylindersUnit: "{n} цилиндра",
           people: "{n} чел.",
           kmValue: "{n} км",
           dateUnknown: "Дата не указана",
@@ -13980,6 +14138,7 @@ export class UiService {
         carDetail: {
           backAria: "Назад к авто в аренду",
           badge: "АВТО В АРЕНДУ",
+          campaignStripAria: "Активная кампания для этого автомобиля",
           shareAria: "Поделиться авто",
           addFavAria: "Добавить в избранное",
           removeFavAria: "Убрать из избранного",
@@ -14184,6 +14343,23 @@ export class UiService {
           summaryFileCount: "{n} шт.",
         },
 
+        listingBadges: {
+          "ACİL": "СРОЧНО",
+          "FIRSAT": "ВЫГОДА",
+          "YENİ": "НОВОЕ",
+          "POPÜLER": "ПОПУЛЯРНО",
+          "PREMIUM": "PREMIUM",
+          "UYGUN FİYAT": "ВЫГОДНАЯ ЦЕНА",
+          "YENİ GİRİŞ": "НОВИНКА",
+        },
+        listingStatus: {
+          "Satıldı": "Продано",
+          "Satışta": "В продаже",
+          "Rezerve": "Зарезервировано",
+          "Kirada": "В аренде",
+          "Bakımda": "На обслуживании",
+          "Kontrolde / bakımda": "На проверке",
+        },
         vehicleCard: {
           seats: "{n} мест",
           insured: "100% каско и помощь на дороге",
@@ -16420,8 +16596,12 @@ export class UiService {
           labelDrivetrain: "Kişandin",
           labelEnginePower: "Hêza motorê",
           labelEngineVolume: "Qebareya motorê",
+          labelWarranty: "Garantî",
           labelStatus: "Rewş",
           statusForSale: "Di firotinê de",
+          statusSold: "Hate firotin",
+          warrantyYes: "Heye",
+          cylindersUnit: "{n} silindir",
           people: "{n} kes",
           kmValue: "{n} km",
           dateUnknown: "Dîrok nehatiye parvekirin",
@@ -16464,6 +16644,7 @@ export class UiService {
         carDetail: {
           backAria: "Vegere wesayîtên kirê",
           badge: "WESAYÎTA KIRÊ",
+          campaignStripAria: "Kampanyaya çalak a vê otomobîlê",
           shareAria: "Wesayîtê parve bike",
           addFavAria: "Bike favorî",
           removeFavAria: "Ji favoriyan derxe",
@@ -16668,6 +16849,23 @@ export class UiService {
           summaryFileCount: "{n} heb",
         },
 
+        listingBadges: {
+          "ACİL": "ACÎL",
+          "FIRSAT": "FIRSET",
+          "YENİ": "NÛ",
+          "POPÜLER": "POPULER",
+          "PREMIUM": "PREMIUM",
+          "UYGUN FİYAT": "BIHAYÎ",
+          "YENİ GİRİŞ": "KETINA NÛ",
+        },
+        listingStatus: {
+          "Satıldı": "Hate firotin",
+          "Satışta": "Ji bo firotinê",
+          "Rezerve": "Reserve",
+          "Kirada": "Di kirê de",
+          "Bakımda": "Di lênêrînê de",
+          "Kontrolde / bakımda": "Di kontrolê de",
+        },
         vehicleCard: {
           seats: "{n} Kes",
           insured: "%100 Kasko û Alîkariya Rê",
@@ -18809,8 +19007,12 @@ export class UiService {
           labelDrivetrain: "驱动",
           labelEnginePower: "发动机功率",
           labelEngineVolume: "排量",
+          labelWarranty: "保修",
           labelStatus: "状态",
           statusForSale: "在售",
+          statusSold: "已售",
+          warrantyYes: "有",
+          cylindersUnit: "{n} 缸",
           people: "{n} 人",
           kmValue: "{n} 公里",
           dateUnknown: "未提供日期",
@@ -18853,6 +19055,7 @@ export class UiService {
         carDetail: {
           backAria: "返回租赁车辆",
           badge: "租赁车辆",
+          campaignStripAria: "本车当前优惠活动",
           shareAria: "分享车辆",
           addFavAria: "加入收藏",
           removeFavAria: "移出收藏",
@@ -19057,6 +19260,23 @@ export class UiService {
           summaryFileCount: "{n} 个",
         },
 
+        listingBadges: {
+          "ACİL": "紧急",
+          "FIRSAT": "特惠",
+          "YENİ": "全新",
+          "POPÜLER": "热门",
+          "PREMIUM": "高端",
+          "UYGUN FİYAT": "实惠价",
+          "YENİ GİRİŞ": "新品上架",
+        },
+        listingStatus: {
+          "Satıldı": "已售",
+          "Satışta": "在售",
+          "Rezerve": "已预订",
+          "Kirada": "已租出",
+          "Bakımda": "维护中",
+          "Kontrolde / bakımda": "检测中",
+        },
         vehicleCard: {
           seats: "{n} 座",
           insured: "100% 全险与道路救援",
@@ -21327,8 +21547,12 @@ export class UiService {
           labelDrivetrain: "نظام الدفع",
           labelEnginePower: "قوة المحرك",
           labelEngineVolume: "سعة المحرك",
+          labelWarranty: "الضمان",
           labelStatus: "الحالة",
           statusForSale: "معروضة للبيع",
+          statusSold: "تم البيع",
+          warrantyYes: "نعم",
+          cylindersUnit: "{n} أسطوانات",
           people: "{n} أشخاص",
           kmValue: "{n} كم",
           dateUnknown: "لم تتم مشاركة التاريخ",
@@ -21371,6 +21595,7 @@ export class UiService {
         carDetail: {
           backAria: "الرجوع إلى سيارات الإيجار",
           badge: "سيارة إيجار",
+          campaignStripAria: "حملة نشطة لهذه السيارة",
           shareAria: "مشاركة السيارة",
           addFavAria: "إضافة إلى المفضلة",
           removeFavAria: "إزالة من المفضلة",
@@ -21575,6 +21800,23 @@ export class UiService {
           summaryFileCount: "{n} ملفات",
         },
 
+        listingBadges: {
+          "ACİL": "عاجل",
+          "FIRSAT": "صفقة",
+          "YENİ": "جديد",
+          "POPÜLER": "شائع",
+          "PREMIUM": "بريميوم",
+          "UYGUN FİYAT": "سعر مناسب",
+          "YENİ GİRİŞ": "وصل حديثاً",
+        },
+        listingStatus: {
+          "Satıldı": "تم البيع",
+          "Satışta": "للبيع",
+          "Rezerve": "محجوز",
+          "Kirada": "مؤجّر",
+          "Bakımda": "في الصيانة",
+          "Kontrolde / bakımda": "قيد الفحص",
+        },
         vehicleCard: {
           seats: "{n} مقاعد",
           insured: "تأمين شامل 100٪ ومساعدة على الطريق",

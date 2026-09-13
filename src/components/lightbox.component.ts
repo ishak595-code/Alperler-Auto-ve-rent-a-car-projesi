@@ -6,9 +6,11 @@ import {
   HostListener,
   OnInit,
   OnDestroy,
+  inject,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
+import { UiService } from "../services/ui.service";
 
 @Component({
   selector: "app-lightbox",
@@ -22,7 +24,7 @@ import { MatIconModule } from "@angular/material/icon";
       <!-- Close Button -->
       <button
         (click)="close.emit(); $event.stopPropagation()"
-        aria-label="Kapat"
+        [attr.aria-label]="t().lightbox.closeAria"
         class="absolute top-4 right-4 text-white hover:text-prestige-red-light transition-colors z-50 p-2 bg-black/50 rounded-full"
       >
         <mat-icon class="text-3xl">close</mat-icon>
@@ -37,7 +39,7 @@ import { MatIconModule } from "@angular/material/icon";
         <button
           *ngIf="items().length > 1"
           (click)="prev($event)"
-          aria-label="Önceki Görsel"
+          [attr.aria-label]="t().lightbox.prevAria"
           class="absolute left-0 md:-left-16 top-1/2 -translate-y-1/2 text-white hover:text-prestige-red-light transition-all p-4 z-50"
         >
           <mat-icon class="text-5xl">chevron_left</mat-icon>
@@ -72,7 +74,7 @@ import { MatIconModule } from "@angular/material/icon";
         <button
           *ngIf="items().length > 1"
           (click)="next($event)"
-          aria-label="Sonraki Görsel"
+          [attr.aria-label]="t().lightbox.nextAria"
           class="absolute right-0 md:-right-16 top-1/2 -translate-y-1/2 text-white hover:text-prestige-red-light transition-all p-4 z-50"
         >
           <mat-icon class="text-5xl">chevron_right</mat-icon>
@@ -85,7 +87,7 @@ import { MatIconModule } from "@angular/material/icon";
           {{ currentIndex() + 1 }} / {{ items().length }}
         </p>
         <p class="text-slate-400 text-sm mt-1" *ngIf="items().length > 1">
-          Klavye ok tuşlarını kullanabilirsiniz
+          {{ t().lightbox.keyboardHint }}
         </p>
       </div>
 
@@ -133,6 +135,8 @@ import { MatIconModule } from "@angular/material/icon";
   ],
 })
 export class LightboxComponent implements OnInit, OnDestroy {
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   items = input.required<{ url: string; type: "image" | "video" }[]>();
   initialIndex = input<number>(0);
   close = output<void>();

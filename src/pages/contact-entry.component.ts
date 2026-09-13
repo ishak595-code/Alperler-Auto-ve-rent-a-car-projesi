@@ -2,6 +2,7 @@ import { Component, inject, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { CarService } from "../services/car.service";
 import { ContactComponent } from "./contact.component";
+import { UiService } from "../services/ui.service";
 
 @Component({
   selector: "app-contact-entry",
@@ -9,7 +10,7 @@ import { ContactComponent } from "./contact.component";
   imports: [ContactComponent],
   template: `
     @if (redirecting()) {
-      <main class="redirect-state" role="status">Rezervasyon ekranı açılıyor...</main>
+      <main class="redirect-state" role="status">{{ t().contactEntry.redirecting }}</main>
     } @else {
       <app-contact />
     }
@@ -21,6 +22,8 @@ import { ContactComponent } from "./contact.component";
 export class ContactEntryComponent {
   private readonly carService = inject(CarService);
   private readonly router = inject(Router);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   readonly redirecting = signal(false);
 
   constructor() {

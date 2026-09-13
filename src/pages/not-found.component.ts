@@ -1,6 +1,7 @@
-import { Component } from "@angular/core";
+import { Component, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
+import { UiService } from "../services/ui.service";
 
 @Component({
   selector: "app-not-found",
@@ -11,10 +12,9 @@ import { RouterLink } from "@angular/router";
       class="min-h-[70vh] flex flex-col justify-center items-center px-4 text-center"
     >
       <h1 class="text-9xl font-black text-prestige-red drop-shadow-lg mb-4">404</h1>
-      <h2 class="text-3xl font-bold text-slate-900 mb-6">Sayfa Bulunamadı</h2>
+      <h2 class="text-3xl font-bold text-slate-900 mb-6">{{ t().pageNotFound.title }}</h2>
       <p class="text-slate-500 max-w-md mx-auto mb-8 leading-relaxed">
-        Aradığınız sayfaya ulaşılamıyor. URL'yi yanlış yazmış olabilirsiniz veya
-        sayfa kaldırılmış olabilir.
+        {{ t().pageNotFound.body }}
       </p>
       <a
         routerLink="/"
@@ -33,9 +33,12 @@ import { RouterLink } from "@angular/router";
             d="M10 19l-7-7m0 0l7-7m-7 7h18"
           />
         </svg>
-        Ana Sayfaya Dön
+        {{ t().pageNotFound.home }}
       </a>
     </div>
   `,
 })
-export class NotFoundComponent {}
+export class NotFoundComponent {
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
+}

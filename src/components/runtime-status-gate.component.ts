@@ -4,6 +4,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { NavigationEnd, Router } from "@angular/router";
 import { filter } from "rxjs/operators";
 import { RuntimeControlsService } from "../services/runtime-controls.service";
+import { UiService } from "../services/ui.service";
 
 @Component({
   selector: "app-runtime-status-gate",
@@ -16,19 +17,19 @@ import { RuntimeControlsService } from "../services/runtime-controls.service";
           <div aria-hidden="true" class="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-prestige-red/20 blur-3xl"></div>
           <div class="relative">
             <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-prestige-red-light/25 bg-prestige-red/10 text-prestige-red-light"><mat-icon aria-hidden="true">engineering</mat-icon></div>
-            <p class="mt-6 text-xs font-black uppercase tracking-[.2em] text-prestige-red-light">Alperler Auto sistem durumu</p>
+            <p class="mt-6 text-xs font-black uppercase tracking-[.2em] text-prestige-red-light">{{ t().runtimeStatus.systemStatus }}</p>
             <h1 id="maintenance-title" class="mt-2 font-serif text-3xl font-black leading-tight sm:text-4xl">{{ controls.controls().maintenanceTitle }}</h1>
             <p id="maintenance-description" class="mt-4 text-sm leading-7 text-slate-300 sm:text-base">{{ controls.controls().maintenanceMessage }}</p>
             @if (controls.controls().statusMessage) { <p class="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-bold text-slate-200">{{ controls.controls().statusMessage }}</p> }
             <button type="button" (click)="retry()" [disabled]="controls.loading()" class="mt-7 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 font-black text-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light disabled:opacity-60">
-              <mat-icon aria-hidden="true">refresh</mat-icon>{{ controls.loading() ? 'Kontrol ediliyor…' : 'Durumu Yeniden Kontrol Et' }}
+              <mat-icon aria-hidden="true">refresh</mat-icon>{{ controls.loading() ? t().runtimeStatus.checking : t().runtimeStatus.recheck }}
             </button>
           </div>
         </div>
       </section>
     } @else if (!isAdminRoute() && controls.controls().readOnlyMode) {
       <div role="status" class="fixed inset-x-0 top-[72px] z-[89] border-y border-amber-300/30 bg-amber-100 px-4 py-2 text-center text-xs font-bold text-amber-950 shadow-sm md:top-[96px]">
-        Şu anda görüntüleme modu aktif. Rezervasyon ve yeni başvuru işlemleri kısa süreliğine durduruldu.
+        {{ t().runtimeStatus.readOnly }}
       </div>
     }
   `,
@@ -36,6 +37,8 @@ import { RuntimeControlsService } from "../services/runtime-controls.service";
 export class RuntimeStatusGateComponent {
   readonly controls = inject(RuntimeControlsService);
   private readonly router = inject(Router);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   readonly isAdminRoute = signal(false);
 
   constructor() {

@@ -6,6 +6,7 @@ import { CampaignProof, CampaignRecord, CampaignService } from '../services/camp
 import { CommercialOfferContextService } from '../services/commercial-offer-context.service';
 import { PublicDetailDataService } from '../services/public-detail-data.service';
 import { TurkishCurrencyPipe } from '../pipes/turkish-currency.pipe';
+import { UiService } from '../services/ui.service';
 
 type CampaignTargetKind = 'TOUR' | 'SALE';
 
@@ -15,19 +16,19 @@ type CampaignTargetKind = 'TOUR' | 'SALE';
   imports: [CommonModule, MatIconModule, TurkishCurrencyPipe],
   template: `
     @if (campaign(); as offer) {
-      <section class="campaign-context" aria-label="Bu içerikte kullanılan kampanya">
+      <section class="campaign-context" [attr.aria-label]="t().catalogCampaign.sectionAria">
         <div class="copy">
           <div class="badges">
-            <span class="campaign-badge">{{ offer.badge || 'KAMPANYA' }}</span>
+            <span class="campaign-badge">{{ offer.badge || t().catalogCampaign.badgeFallback }}</span>
             @if (discountLabel(offer)) { <span class="discount-badge">{{ discountLabel(offer) }}</span> }
           </div>
-          <p class="eyebrow">AKTİF KAMPANYA</p>
+          <p class="eyebrow">{{ t().catalogCampaign.eyebrow }}</p>
           <h2>{{ offer.title }}</h2>
           @if (offer.shortDescription || offer.description) {
             <p class="description">{{ offer.shortDescription || offer.description }}</p>
           }
           @if (benefits(offer).length) {
-            <ul class="benefits" aria-label="Kampanya avantajları">
+            <ul class="benefits" [attr.aria-label]="t().catalogCampaign.benefitsAria">
               @for (benefit of benefits(offer); track benefit) {
                 <li><mat-icon aria-hidden="true">check_circle</mat-icon><span>{{ benefit }}</span></li>
               }
@@ -46,11 +47,11 @@ type CampaignTargetKind = 'TOUR' | 'SALE';
             <div class="countdown"><mat-icon aria-hidden="true">schedule</mat-icon><span>{{ countdown(offer.endsAt) }}</span></div>
           }
           @if (offer.oldPrice && offer.newPrice && offer.oldPrice > offer.newPrice) {
-            <div class="price"><small>{{ offer.oldPrice | turkishCurrency }}</small><strong>{{ offer.newPrice | turkishCurrency }}</strong><span>{{ (offer.oldPrice - offer.newPrice) | turkishCurrency }} avantaj</span></div>
+            <div class="price"><small>{{ offer.oldPrice | turkishCurrency }}</small><strong>{{ offer.newPrice | turkishCurrency }}</strong><span>{{ savingsLabel(offer) }}</span></div>
           } @else if (offer.newPrice != null) {
-            <div class="price"><strong>{{ offer.newPrice | turkishCurrency }}</strong><span>Kampanya fiyatı</span></div>
+            <div class="price"><strong>{{ offer.newPrice | turkishCurrency }}</strong><span>{{ t().catalogCampaign.campaignPrice }}</span></div>
           } @else if (offer.discountPercent) {
-            <div class="price"><strong>%{{ offer.discountPercent }}</strong><span>fiyat avantajı</span></div>
+            <div class="price"><strong>%{{ offer.discountPercent }}</strong><span>{{ t().catalogCampaign.priceAdvantage }}</span></div>
           }
         </div>
       </section>
@@ -66,10 +67,11 @@ export class CatalogCampaignContextComponent implements OnInit {
   private readonly campaigns = inject(CampaignService);
   private readonly commercialOffer = inject(CommercialOfferContextService);
   private readonly detailData = inject(PublicDetailDataService);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   private readonly campaignId = this.route.snapshot.queryParamMap.get('campaign') || '';
   private readonly routeId = this.route.snapshot.paramMap.get('id') || '';
   private readonly resolvedTargetId = signal('');
-
   readonly campaign = computed<CampaignRecord | null>(() => {
     if (!this.routeId) return null;
     const expectedTarget = this.targetKind === 'TOUR' ? 'TOUR' : 'VEHICLE';
@@ -100,12 +102,13 @@ export class CatalogCampaignContextComponent implements OnInit {
   }
 
   proofLabel(item: CampaignRecord): string {
+    const c = this.t().catalogCampaign;
     const proof = this.proofFor(item);
-    if (proof.activeViewers15m > 0) return `${proof.activeViewers15m} kişi son 15 dakikada inceledi`;
-    if (proof.recentViewers24h > 0) return `${proof.recentViewers24h} kişi son 24 saatte inceledi`;
-    if (proof.uniqueViewersTotal > 0) return `${proof.uniqueViewersTotal} kişi inceledi`;
-    if (proof.pageViewsTotal > 0) return `${proof.pageViewsTotal} görüntülenme`;
-    return 'Yeni kampanya';
+    if (proof.activeViewers15m > 0) return String(c.proofActive || '').replace('{n}', String(proof.activeViewers15m));
+    if (proof.recentViewers24h > 0) return String(c.proofDay || '').replace('{n}', String(proof.recentViewers24h));
+    if (proof.uniqueViewersTotal > 0) return String(c.proofTotal || '').replace('{n}', String(proof.uniqueViewersTotal));
+    if (proof.pageViewsTotal > 0) return String(c.proofViews || '').replace('{n}', String(proof.pageViewsTotal));
+    return c.proofNew;
   }
 
   benefits(item: CampaignRecord): string[] {
@@ -118,21 +121,28 @@ export class CatalogCampaignContextComponent implements OnInit {
   }
 
   discountLabel(item: CampaignRecord): string {
-    if (item.discountPercent) return `%${item.discountPercent} İNDİRİM`;
+    const c = this.t().catalogCampaign;
+    if (item.discountPercent) return String(c.discountPct || '').replace('{n}', String(item.discountPercent));
     if (item.oldPrice && item.newPrice && item.oldPrice > item.newPrice) {
       const percent = Math.round(((item.oldPrice - item.newPrice) / item.oldPrice) * 100);
-      return percent > 0 ? `%${percent} AVANTAJ` : '';
+      return percent > 0 ? String(c.advantagePct || '').replace('{n}', String(percent)) : '';
     }
     return '';
   }
 
+  savingsLabel(item: CampaignRecord): string {
+    const amount = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(Math.max(0, (item.oldPrice || 0) - (item.newPrice || 0)));
+    return String(this.t().catalogCampaign.savings || '').replace('{amount}', amount);
+  }
+
   countdown(value: string): string {
+    const c = this.t().catalogCampaign;
     const remaining = new Date(value).getTime() - Date.now();
-    if (!Number.isFinite(remaining) || remaining <= 0) return 'Süre doldu';
+    if (!Number.isFinite(remaining) || remaining <= 0) return c.ended;
     const hours = Math.floor(remaining / 3_600_000);
     const days = Math.floor(hours / 24);
-    if (days > 1) return `${days} gün kaldı`;
-    if (days === 1) return '1 gün kaldı';
-    return `${Math.max(1, hours)} saat kaldı`;
+    if (days > 1) return String(c.daysLeft || '').replace('{n}', String(days));
+    if (days === 1) return c.oneDayLeft;
+    return String(c.hoursLeft || '').replace('{n}', String(Math.max(1, hours)));
   }
 }

@@ -6,6 +6,7 @@ import {
   CatalogMediaItem,
   CatalogMediaService,
 } from "../services/catalog-media.service";
+import { UiService } from "../services/ui.service";
 
 @Component({
   selector: "app-catalog-video-panel",
@@ -17,11 +18,11 @@ import {
         <div class="mx-auto max-w-6xl">
           <div class="mb-5 flex items-end justify-between gap-4">
             <div>
-              <p class="text-[10px] font-black uppercase tracking-[.2em] text-blue-400">Doğrulanmış medya</p>
-              <h2 id="catalog-video-title" class="mt-1 text-2xl font-black sm:text-3xl">Video Galerisi</h2>
-              <p class="mt-1 text-sm text-slate-400">Yüklenen veya kaynak bilgisiyle doğrulanan videolar.</p>
+              <p class="text-[10px] font-black uppercase tracking-[.2em] text-blue-400">{{ t().catalogVideo.kicker }}</p>
+              <h2 id="catalog-video-title" class="mt-1 text-2xl font-black sm:text-3xl">{{ t().catalogVideo.title }}</h2>
+              <p class="mt-1 text-sm text-slate-400">{{ t().catalogVideo.subtitle }}</p>
             </div>
-            <span class="rounded-full border border-slate-700 px-3 py-1 text-xs font-bold text-slate-300">{{ videos().length }} video</span>
+            <span class="rounded-full border border-slate-700 px-3 py-1 text-xs font-bold text-slate-300">{{ videoCountLabel() }}</span>
           </div>
           <div class="grid gap-5 lg:grid-cols-2">
             @for (video of videos(); track video.id) {
@@ -33,13 +34,13 @@ import {
                   playsinline
                   preload="metadata"
                   class="aspect-video w-full bg-black object-contain"
-                  [attr.aria-label]="video.altText || 'Video'"
+                  [attr.aria-label]="video.altText || t().catalogVideo.videoFallback"
                 ></video>
                 <div class="p-4">
-                  <strong class="block text-sm text-white">{{ video.altText || 'Araç / tur videosu' }}</strong>
+                  <strong class="block text-sm text-white">{{ video.altText || t().catalogVideo.itemFallback }}</strong>
                   @if (video.sourceName || video.attribution || video.license) {
                     <p class="mt-2 text-xs leading-relaxed text-slate-400">
-                      {{ video.sourceName || 'Kaynak' }}
+                      {{ video.sourceName || t().catalogVideo.sourceFallback }}
                       @if (video.attribution) { · {{ video.attribution }} }
                       @if (video.license) { · {{ video.license }} }
                     </p>
@@ -58,12 +59,18 @@ export class CatalogVideoPanelComponent implements OnChanges {
   @Input({ required: true }) entityId = "";
 
   private readonly media = inject(CatalogMediaService);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   readonly videos = signal<CatalogMediaItem[]>([]);
 
   ngOnChanges(changes: SimpleChanges): void {
     if ((changes["entityId"] || changes["entityType"]) && this.entityId) {
       void this.load();
     }
+  }
+
+  videoCountLabel(): string {
+    return String(this.t().catalogVideo.count || "").replace("{n}", String(this.videos().length));
   }
 
   private async load(): Promise<void> {

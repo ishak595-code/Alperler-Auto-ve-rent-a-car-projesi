@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { UiService } from '../services/ui.service';
 
 export interface IyzicoBuyerDetails {
   identityNumber: string;
@@ -17,20 +18,20 @@ export interface IyzicoBuyerDetails {
   imports: [CommonModule, FormsModule, MatDialogModule],
   template: `
     <section class="dialog" aria-labelledby="iyzico-buyer-title">
-      <h2 id="iyzico-buyer-title">iyzico ödeme bilgileri</h2>
-      <p class="intro">iyzico, ödeme güvenliği ve yasal ödeme kaydı için bu bilgileri ister. Kart bilgileriniz Alperler Rent A Car sistemine gelmez.</p>
+      <h2 id="iyzico-buyer-title">{{ t().iyzicoBuyer.title }}</h2>
+      <p class="intro">{{ t().iyzicoBuyer.intro }}</p>
       <form (ngSubmit)="submit()" novalidate>
-        <label><span>Kimlik / pasaport numarası</span><input name="identityNumber" [(ngModel)]="model.identityNumber" autocomplete="off" inputmode="text" maxlength="50" required /></label>
-        <label><span>Fatura adresi</span><textarea name="billingAddress" [(ngModel)]="model.billingAddress" rows="3" autocomplete="street-address" maxlength="500" required></textarea></label>
+        <label><span>{{ t().iyzicoBuyer.identity }}</span><input name="identityNumber" [(ngModel)]="model.identityNumber" autocomplete="off" inputmode="text" maxlength="50" required /></label>
+        <label><span>{{ t().iyzicoBuyer.billingAddress }}</span><textarea name="billingAddress" [(ngModel)]="model.billingAddress" rows="3" autocomplete="street-address" maxlength="500" required></textarea></label>
         <div class="grid">
-          <label><span>Şehir</span><input name="city" [(ngModel)]="model.city" autocomplete="address-level2" maxlength="100" required /></label>
-          <label><span>Ülke</span><input name="country" [(ngModel)]="model.country" autocomplete="country-name" maxlength="100" required /></label>
-          <label><span>Posta kodu</span><input name="zipCode" [(ngModel)]="model.zipCode" autocomplete="postal-code" maxlength="20" required /></label>
+          <label><span>{{ t().iyzicoBuyer.city }}</span><input name="city" [(ngModel)]="model.city" autocomplete="address-level2" maxlength="100" required /></label>
+          <label><span>{{ t().iyzicoBuyer.country }}</span><input name="country" [(ngModel)]="model.country" autocomplete="country-name" maxlength="100" required /></label>
+          <label><span>{{ t().iyzicoBuyer.zipCode }}</span><input name="zipCode" [(ngModel)]="model.zipCode" autocomplete="postal-code" maxlength="20" required /></label>
         </div>
         @if(error){<p class="error" role="alert">{{error}}</p>}
-        <div class="actions"><button type="button" class="secondary" (click)="cancel()">Vazgeç</button><button type="submit" class="primary">Ödemeye Devam Et</button></div>
+        <div class="actions"><button type="button" class="secondary" (click)="cancel()">{{ t().iyzicoBuyer.cancel }}</button><button type="submit" class="primary">{{ t().iyzicoBuyer.continue }}</button></div>
       </form>
-      <p class="privacy">Bu alanlar ödeme oturumu oluşturulurken iyzico’ya aktarılır. Uygulamanın ödeme işlem geçmişine kimlik veya açık adres kopyası yazılmaz.</p>
+      <p class="privacy">{{ t().iyzicoBuyer.privacy }}</p>
     </section>
   `,
   styles: [`
@@ -40,11 +41,13 @@ export interface IyzicoBuyerDetails {
 export class IyzicoBuyerDetailsDialogComponent {
   private readonly ref = inject(MatDialogRef<IyzicoBuyerDetailsDialogComponent, IyzicoBuyerDetails | null>);
   private readonly data = inject<Partial<IyzicoBuyerDetails>>(MAT_DIALOG_DATA, { optional: true }) || {};
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   model: IyzicoBuyerDetails = {
     identityNumber: String(this.data.identityNumber || ''),
     billingAddress: String(this.data.billingAddress || ''),
     city: String(this.data.city || ''),
-    country: String(this.data.country || 'Türkiye'),
+    country: String(this.data.country || this.t().iyzicoBuyer.defaultCountry),
     zipCode: String(this.data.zipCode || ''),
   };
   error = '';
@@ -58,7 +61,7 @@ export class IyzicoBuyerDetailsDialogComponent {
       zipCode: this.model.zipCode.replace(/\s+/g, '').trim(),
     };
     if (result.identityNumber.length < 5 || !result.billingAddress || !result.city || !result.country || !result.zipCode) {
-      this.error = 'iyzico için kimlik/pasaport numarası, fatura adresi, şehir, ülke ve posta kodunu tamamlayın.';
+      this.error = this.t().iyzicoBuyer.error;
       return;
     }
     this.ref.close(result);

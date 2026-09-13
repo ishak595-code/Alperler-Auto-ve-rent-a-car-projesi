@@ -3,6 +3,7 @@ import { NavigationStart, Router } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { BookingSuccessExperienceService } from '../services/booking-success-experience.service';
 import { CustomerAuthService } from '../services/customer-auth.service';
+import { UiService } from '../services/ui.service';
 
 @Component({
   selector: 'app-booking-success-overlay',
@@ -12,19 +13,19 @@ import { CustomerAuthService } from '../services/customer-auth.service';
       <div class="overlay" role="dialog" aria-modal="true" aria-labelledby="booking-success-title" aria-describedby="booking-success-description">
         <section class="card">
           <div class="icon" aria-hidden="true">✓</div>
-          <p class="eyebrow">TALEBİNİZ ALINDI</p>
-          <h2 id="booking-success-title">Talebiniz başarıyla gönderildi</h2>
-          <p id="booking-success-description">Talebinizi oluşturduğunuz için teşekkür ederiz. Ekibimiz bilgilerinizi inceleyerek en kısa süre içerisinde sizinle iletişime geçecektir.</p>
+          <p class="eyebrow">{{ t().bookingSuccess.eyebrow }}</p>
+          <h2 id="booking-success-title">{{ t().bookingSuccess.title }}</h2>
+          <p id="booking-success-description">{{ t().bookingSuccess.body }}</p>
           @if (result.itemName) {<strong class="item">{{ result.itemName }}</strong>}
-          <div class="reference"><span>Referans numaranız</span><strong>{{ result.reference }}</strong></div>
+          <div class="reference"><span>{{ t().bookingSuccess.reference }}</span><strong>{{ result.reference }}</strong></div>
           @if (auth.isLoggedIn()) {
-            <p class="account-note">Talebinizin güncel durumunu Hesabım bölümünden takip edebilir, uygun işlemleri hesabınızdan iptal edebilirsiniz.</p>
+            <p class="account-note">{{ t().bookingSuccess.accountNoteLoggedIn }}</p>
           } @else {
-            <p class="account-note">Bir sonraki işlemlerinizde taleplerinizi hesabınızdan takip etmek için müşteri hesabınızla giriş yapabilirsiniz.</p>
+            <p class="account-note">{{ t().bookingSuccess.accountNoteGuest }}</p>
           }
           <div class="actions">
-            @if (auth.isLoggedIn()) {<button type="button" class="primary" (click)="goAccount()">Hesabımda Takip Et</button>}
-            <button type="button" [class.primary]="!auth.isLoggedIn()" class="secondary" (click)="goHome()">Ana Sayfaya Dön</button>
+            @if (auth.isLoggedIn()) {<button type="button" class="primary" (click)="goAccount()">{{ t().bookingSuccess.trackAccount }}</button>}
+            <button type="button" [class.primary]="!auth.isLoggedIn()" class="secondary" (click)="goHome()">{{ t().bookingSuccess.home }}</button>
           </div>
         </section>
       </div>
@@ -38,6 +39,8 @@ export class BookingSuccessOverlayComponent implements OnDestroy {
   readonly experience = inject(BookingSuccessExperienceService);
   readonly auth = inject(CustomerAuthService);
   private readonly router = inject(Router);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   private readonly navigationSub: Subscription;
 
   constructor() {

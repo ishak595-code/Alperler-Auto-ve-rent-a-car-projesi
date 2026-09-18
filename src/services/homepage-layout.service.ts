@@ -36,11 +36,24 @@ export interface PublicHomepagePlacement {
 type HomepageSelectionMode = 'PLACEMENT' | 'LATEST';
 type HomepageRenderer = 'BRANCHES' | 'PARTNER' | 'PROMO' | 'DEFAULT';
 
+interface HomepageSnapshot {
+  version: 1;
+  savedAt: string;
+  sections: PublicHomepageSection[];
+  placements: PublicHomepagePlacement[];
+  vehicles: Record<string, Vehicle[]>;
+  tours: Record<string, TourCardV217[]>;
+  blogs: Record<string, BlogCardV217[]>;
+  campaigns: Record<string, CampaignRecord[]>;
+  branches: Record<string, BranchCardV217[]>;
+}
+
 @Injectable({ providedIn: 'root' })
 export class HomepageLayoutService {
   private readonly destroyRef = inject(DestroyRef);
   private readonly realtime = inject(PublicContentRealtimeService);
   private readonly catalog = inject(ScalablePublicCatalogV217Service);
+  private readonly snapshotKey = 'alperler.homepage.last-known-good.v1';
 
   private readonly _sections = signal<PublicHomepageSection[]>([]);
   private readonly _placements = signal<PublicHomepagePlacement[]>([]);
@@ -74,9 +87,7 @@ export class HomepageLayoutService {
     );
     this.destroyRef.onDestroy(unwatch);
     this.destroyRef.onDestroy(() => {
-      if (this.refreshTimer !== undefined && typeof window !== 'undefined') {
-        window.clearTimeout(this.refreshTimer);
-      }
+      if (this.refreshTimer !== undefined && typeof window !== 'undefined') window.clearTimeout(this.refreshTimer);
     });
   }
 
@@ -94,15 +105,9 @@ export class HomepageLayoutService {
         ]);
 
         const now = this._clock();
-        const rawPlacements = placementRows
-          .map((row) => this.placement(row))
-          .filter((placement) =>
-            placement.id &&
-            placement.sectionKey &&
-            placement.entityId &&
-            placement.isActive &&
-            this.inside(placement, now),
-          );
+        const rawPlacements = placementRows.map((row) => this.placement(row)).filter((placement) =>
+          placement.id && placement.sectionKey && placement.entityId && placement.isActive && this.inside(placement, now),
+        );
         const sections = sectionRows
           .map((row) => this.section(row))
           .filter((section) => section.sectionKey && section.isEnabled)
@@ -115,131 +120,127 @@ export class HomepageLayoutService {
         const branchMap: Record<string, BranchCardV217[]> = {};
         const validPlacementIds = new Set<string>();
 
-        await Promise.all(
-          sections.map(async (section) => {
-            const mode = this.mode(section.settings);
-            const placements = this.placementsForSection(rawPlacements, section, mode);
-            const limit = this.sectionLimit(section, placements, mode);
+        await Promise.all(sections.map(async (section) => {
+          const mode = this.mode(section.settings);
+          const placements = this.placementsForSection(rawPlacements, section, mode);
+          const limit = this.sectionLimit(section, placements, mode);
 
-            try {
-              if (this.renderer(section) === 'BRANCHES') {
-                branchMap[section.sectionKey] = await this.catalog.listBranches(limit);
-                return;
-              }
-
-              if (section.sectionType === 'VEHICLES') {
-                const category = String(section.settings['category'] || 'RENTAL').toUpperCase() === 'SALE' ? 'SALE' : 'RENTAL';
-                let rows: Vehicle[];
-                if (mode === 'PLACEMENT') {
-                  rows = await this.catalog.vehiclesByIdentifiers(
-                    placements.map((placement) => placement.entityId),
-                    category,
-                  );
-                  this.markResolved(
-                    placements,
-                    rows,
-                    (item) => [
-                      String(item.id),
-                      String(item.cloudId || ''),
-                      String(item.cloudStockCode || ''),
-                      String(item.cloudSlug || ''),
-                    ],
-                    validPlacementIds,
-                  );
-                } else {
-                  rows = (await this.catalog.listVehicles({
-                    category,
-                    page: 0,
-                    pageSize: limit,
-                    sortBy: 'recommended',
-                  })).items;
-                }
-                vehicleMap[section.sectionKey] = rows.slice(0, limit);
-                return;
-              }
-
-              if (section.sectionType === 'TOURS') {
-                let rows: TourCardV217[];
-                if (mode === 'PLACEMENT') {
-                  rows = await this.catalog.toursByIdentifiers(placements.map((placement) => placement.entityId));
-                  this.markResolved(
-                    placements,
-                    rows,
-                    (item) => [String(item.id), String(item.cloudId || ''), String(item.cloudSlug || '')],
-                    validPlacementIds,
-                  );
-                } else {
-                  rows = (await this.catalog.listTours({ page: 0, pageSize: limit, sortBy: 'featured' })).items;
-                }
-                tourMap[section.sectionKey] = rows.slice(0, limit);
-                return;
-              }
-
-              if (section.sectionType === 'BLOG') {
-                let rows: BlogCardV217[];
-                if (mode === 'PLACEMENT') {
-                  rows = await this.catalog.blogsByIdentifiers(placements.map((placement) => placement.entityId));
-                  this.markResolved(
-                    placements,
-                    rows,
-                    (item) => [item.id, item.cloudId, String(item.cloudSlug || '')],
-                    validPlacementIds,
-                  );
-                } else {
-                  rows = (await this.catalog.listBlogs({ page: 0, pageSize: limit })).items;
-                }
-                blogMap[section.sectionKey] = rows.slice(0, limit);
-                return;
-              }
-
-              if (section.sectionType === 'CAMPAIGN') {
-                let rows: CampaignRecord[];
-                if (mode === 'PLACEMENT') {
-                  rows = await this.catalog.campaignsByIdentifiers(placements.map((placement) => placement.entityId));
-                  this.markResolved(
-                    placements,
-                    rows,
-                    (item) => [item.id, item.slug],
-                    validPlacementIds,
-                  );
-                } else {
-                  rows = await this.catalog.latestCampaigns(limit);
-                }
-                campaignMap[section.sectionKey] = rows.slice(0, limit);
-              }
-            } catch (error) {
-              console.error('Homepage section load failed', section.sectionKey, error);
-              vehicleMap[section.sectionKey] = [];
-              tourMap[section.sectionKey] = [];
-              blogMap[section.sectionKey] = [];
-              campaignMap[section.sectionKey] = [];
-              branchMap[section.sectionKey] = [];
+          try {
+            if (this.renderer(section) === 'BRANCHES') {
+              branchMap[section.sectionKey] = await this.catalog.listBranches(limit);
+              return;
             }
-          }),
-        );
+
+            if (section.sectionType === 'VEHICLES') {
+              const category = String(section.settings['category'] || 'RENTAL').toUpperCase() === 'SALE' ? 'SALE' : 'RENTAL';
+              let rows: Vehicle[];
+              if (mode === 'PLACEMENT') {
+                rows = await this.catalog.vehiclesByIdentifiers(placements.map((placement) => placement.entityId), category);
+                this.markResolved(placements, rows, (item) => [String(item.id), String(item.cloudId || ''), String(item.cloudStockCode || ''), String(item.cloudSlug || '')], validPlacementIds);
+              } else {
+                rows = (await this.catalog.listVehicles({ category, page: 0, pageSize: limit, sortBy: 'recommended' })).items;
+              }
+              vehicleMap[section.sectionKey] = rows.slice(0, limit);
+              return;
+            }
+
+            if (section.sectionType === 'TOURS') {
+              let rows: TourCardV217[];
+              if (mode === 'PLACEMENT') {
+                rows = await this.catalog.toursByIdentifiers(placements.map((placement) => placement.entityId));
+                this.markResolved(placements, rows, (item) => [String(item.id), String(item.cloudId || ''), String(item.cloudSlug || '')], validPlacementIds);
+              } else {
+                rows = (await this.catalog.listTours({ page: 0, pageSize: limit, sortBy: 'featured' })).items;
+              }
+              tourMap[section.sectionKey] = rows.slice(0, limit);
+              return;
+            }
+
+            if (section.sectionType === 'BLOG') {
+              let rows: BlogCardV217[];
+              if (mode === 'PLACEMENT') {
+                rows = await this.catalog.blogsByIdentifiers(placements.map((placement) => placement.entityId));
+                this.markResolved(placements, rows, (item) => [item.id, item.cloudId, String(item.cloudSlug || '')], validPlacementIds);
+              } else {
+                rows = (await this.catalog.listBlogs({ page: 0, pageSize: limit })).items;
+              }
+              blogMap[section.sectionKey] = rows.slice(0, limit);
+              return;
+            }
+
+            if (section.sectionType === 'CAMPAIGN') {
+              let rows: CampaignRecord[];
+              if (mode === 'PLACEMENT') {
+                rows = await this.catalog.campaignsByIdentifiers(placements.map((placement) => placement.entityId));
+                this.markResolved(placements, rows, (item) => [item.id, item.slug], validPlacementIds);
+              } else {
+                rows = await this.catalog.latestCampaigns(limit);
+              }
+              campaignMap[section.sectionKey] = rows.slice(0, limit);
+            }
+          } catch (error) {
+            console.error('Homepage section load failed', section.sectionKey, error);
+            // A failed section must not erase the layout or other successfully loaded sections.
+            // It remains absent from the fresh content maps and is resolved from the last good snapshot below.
+          }
+        }));
 
         const validPlacements = rawPlacements.filter((placement) => validPlacementIds.has(placement.id));
-        const visibleSections = sections.filter((section) => {
+        const completeSnapshot: HomepageSnapshot = {
+          version: 1,
+          savedAt: new Date().toISOString(),
+          sections,
+          placements: validPlacements,
+          vehicles: vehicleMap,
+          tours: tourMap,
+          blogs: blogMap,
+          campaigns: campaignMap,
+          branches: branchMap,
+        };
+
+        // Only replace the live state when every configured section resolved successfully.
+        // This prevents a partial backend outage from publishing a partially empty homepage.
+        const allContentSectionsResolved = sections.every((section) => {
           const renderer = this.renderer(section);
           if (renderer === 'PARTNER' || renderer === 'PROMO') return true;
-          if (renderer === 'BRANCHES') return (branchMap[section.sectionKey] || []).length > 0;
-          if (section.sectionType === 'VEHICLES') return (vehicleMap[section.sectionKey] || []).length > 0;
-          if (section.sectionType === 'TOURS') return (tourMap[section.sectionKey] || []).length > 0;
-          if (section.sectionType === 'BLOG') return (blogMap[section.sectionKey] || []).length > 0;
-          if (section.sectionType === 'CAMPAIGN') return (campaignMap[section.sectionKey] || []).length > 0;
-          return false;
+          if (renderer === 'BRANCHES') return Object.prototype.hasOwnProperty.call(branchMap, section.sectionKey);
+          if (section.sectionType === 'VEHICLES') return Object.prototype.hasOwnProperty.call(vehicleMap, section.sectionKey);
+          if (section.sectionType === 'TOURS') return Object.prototype.hasOwnProperty.call(tourMap, section.sectionKey);
+          if (section.sectionType === 'BLOG') return Object.prototype.hasOwnProperty.call(blogMap, section.sectionKey);
+          if (section.sectionType === 'CAMPAIGN') return Object.prototype.hasOwnProperty.call(campaignMap, section.sectionKey);
+          return true;
         });
 
-        this._vehicles.set(vehicleMap);
-        this._tours.set(tourMap);
-        this._blogs.set(blogMap);
-        this._campaigns.set(campaignMap);
-        this._branches.set(branchMap);
-        this._placements.set(validPlacements);
-        this._sections.set(visibleSections);
-        this._loaded.set(true);
+        if (allContentSectionsResolved) {
+          this.applySnapshot(completeSnapshot);
+          this.saveSnapshot(completeSnapshot);
+        } else {
+          const cached = this.readSnapshot();
+          if (cached) {
+            this.applySnapshot(cached);
+            this._error.set('HOMEPAGE_USING_LAST_KNOWN_GOOD');
+          } else {
+            // No cache exists yet. Keep the DB-defined layout visible even if a content query fails.
+            // Individual sections can show their normal empty/loading state without deleting the layout itself.
+            this._sections.set(sections);
+            this._placements.set(validPlacements);
+            this._vehicles.set(vehicleMap);
+            this._tours.set(tourMap);
+            this._blogs.set(blogMap);
+            this._campaigns.set(campaignMap);
+            this._branches.set(branchMap);
+            this._error.set('HOMEPAGE_PARTIAL_CONTENT');
+          }
+          this._loaded.set(true);
+        }
       } catch (error) {
-        this._error.set(error instanceof Error ? error.message : 'HOMEPAGE_LAYOUT_LOAD_FAILED');
+        const cached = this.readSnapshot();
+        if (cached) {
+          this.applySnapshot(cached);
+          this._error.set('HOMEPAGE_USING_LAST_KNOWN_GOOD');
+        } else {
+          this._error.set(error instanceof Error ? error.message : 'HOMEPAGE_LAYOUT_LOAD_FAILED');
+        }
         this._loaded.set(true);
       } finally {
         this._loading.set(false);
@@ -260,35 +261,56 @@ export class HomepageLayoutService {
     await this.load();
   }
 
-  vehiclesFor(key: string): Vehicle[] {
-    return this._vehicles()[key] || [];
-  }
-
-  toursFor(key: string): TourCardV217[] {
-    return this._tours()[key] || [];
-  }
-
-  blogsFor(key: string): BlogCardV217[] {
-    return this._blogs()[key] || [];
-  }
-
-  campaignsFor(key: string): CampaignRecord[] {
-    return this._campaigns()[key] || [];
-  }
-
-  branchesFor(key: string): BranchCardV217[] {
-    return this._branches()[key] || [];
-  }
+  vehiclesFor(key: string): Vehicle[] { return this._vehicles()[key] || []; }
+  toursFor(key: string): TourCardV217[] { return this._tours()[key] || []; }
+  blogsFor(key: string): BlogCardV217[] { return this._blogs()[key] || []; }
+  campaignsFor(key: string): CampaignRecord[] { return this._campaigns()[key] || []; }
+  branchesFor(key: string): BranchCardV217[] { return this._branches()[key] || []; }
 
   placementsFor(key: string): PublicHomepagePlacement[] {
-    return this._placements()
-      .filter((placement) => placement.sectionKey === key)
-      .sort((left, right) => left.sortOrder - right.sortOrder);
+    return this._placements().filter((placement) => placement.sectionKey === key).sort((left, right) => left.sortOrder - right.sortOrder);
   }
 
   selectionModeFor(key: string): HomepageSelectionMode {
     const section = this._sections().find((row) => row.sectionKey === key);
     return this.mode(section?.settings || {});
+  }
+
+  private applySnapshot(snapshot: HomepageSnapshot): void {
+    this._sections.set(snapshot.sections);
+    this._placements.set(snapshot.placements);
+    this._vehicles.set(snapshot.vehicles);
+    this._tours.set(snapshot.tours);
+    this._blogs.set(snapshot.blogs);
+    this._campaigns.set(snapshot.campaigns);
+    this._branches.set(snapshot.branches);
+    this._loaded.set(true);
+  }
+
+  private saveSnapshot(snapshot: HomepageSnapshot): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const serialized = JSON.stringify(snapshot);
+      // Do not allow a large catalog cache to break the homepage itself.
+      if (serialized.length > 4_500_000) return;
+      window.localStorage.setItem(this.snapshotKey, serialized);
+    } catch (error) {
+      console.warn('Homepage snapshot could not be persisted', error);
+    }
+  }
+
+  private readSnapshot(): HomepageSnapshot | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = window.localStorage.getItem(this.snapshotKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as HomepageSnapshot;
+      if (parsed?.version !== 1 || !Array.isArray(parsed.sections)) return null;
+      return parsed;
+    } catch (error) {
+      console.warn('Homepage snapshot could not be read', error);
+      return null;
+    }
   }
 
   private section(row: any): PublicHomepageSection {
@@ -318,54 +340,27 @@ export class HomepageLayoutService {
     };
   }
 
-  private placementsForSection(
-    rawPlacements: PublicHomepagePlacement[],
-    section: PublicHomepageSection,
-    mode: HomepageSelectionMode,
-  ): PublicHomepagePlacement[] {
+  private placementsForSection(rawPlacements: PublicHomepagePlacement[], section: PublicHomepageSection, mode: HomepageSelectionMode): PublicHomepagePlacement[] {
     if (mode === 'LATEST') return [];
-    return rawPlacements
-      .filter((placement) =>
-        placement.sectionKey === section.sectionKey &&
-        this.typeMatches(placement.entityType, section.sectionType),
-      )
-      .sort((left, right) => left.sortOrder - right.sortOrder);
+    return rawPlacements.filter((placement) => placement.sectionKey === section.sectionKey && this.typeMatches(placement.entityType, section.sectionType)).sort((left, right) => left.sortOrder - right.sortOrder);
   }
 
-  private sectionLimit(
-    section: PublicHomepageSection,
-    placements: PublicHomepagePlacement[],
-    mode: HomepageSelectionMode,
-  ): number {
+  private sectionLimit(section: PublicHomepageSection, placements: PublicHomepagePlacement[], mode: HomepageSelectionMode): number {
     const storedLimit = this.limit(section.maxItems, 1, 48);
-    const manualCount = placements.length;
-    const placementDriven = mode === 'PLACEMENT';
-    return placementDriven ? Math.max(1, manualCount) : storedLimit;
+    return mode === 'PLACEMENT' ? Math.max(1, placements.length) : storedLimit;
   }
 
-  private markResolved<T>(
-    placements: PublicHomepagePlacement[],
-    rows: T[],
-    keys: (item: T) => string[],
-    target: Set<string>,
-  ): void {
+  private markResolved<T>(placements: PublicHomepagePlacement[], rows: T[], keys: (item: T) => string[], target: Set<string>): void {
     for (const placement of placements) {
-      if (rows.some((row) => keys(row).some((key) => key && key === placement.entityId))) {
-        target.add(placement.id);
-      }
+      if (rows.some((row) => keys(row).some((key) => key && key === placement.entityId))) target.add(placement.id);
     }
   }
 
-  private typeMatches(
-    entity: PublicHomepagePlacement['entityType'],
-    section: PublicHomepageSection['sectionType'],
-  ): boolean {
-    return (
-      (section === 'VEHICLES' && entity === 'VEHICLE') ||
+  private typeMatches(entity: PublicHomepagePlacement['entityType'], section: PublicHomepageSection['sectionType']): boolean {
+    return (section === 'VEHICLES' && entity === 'VEHICLE') ||
       (section === 'TOURS' && entity === 'TOUR') ||
       (section === 'BLOG' && entity === 'BLOG') ||
-      (section === 'CAMPAIGN' && entity === 'CAMPAIGN')
-    );
+      (section === 'CAMPAIGN' && entity === 'CAMPAIGN');
   }
 
   private renderer(section: PublicHomepageSection): HomepageRenderer {
@@ -389,18 +384,12 @@ export class HomepageLayoutService {
   }
 
   private onRealtime(): void {
-    if (this.inFlight) {
-      this.dirty = true;
-      return;
-    }
+    if (this.inFlight) { this.dirty = true; return; }
     this.queue();
   }
 
   private queue(delay = 160): void {
-    if (typeof window === 'undefined') {
-      void this.refreshPublicState();
-      return;
-    }
+    if (typeof window === 'undefined') { void this.refreshPublicState(); return; }
     if (this.refreshTimer !== undefined) window.clearTimeout(this.refreshTimer);
     this.refreshTimer = window.setTimeout(() => {
       this.refreshTimer = undefined;

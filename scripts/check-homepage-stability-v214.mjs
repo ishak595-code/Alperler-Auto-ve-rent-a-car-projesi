@@ -33,7 +33,10 @@ expect(adminPage.includes('(change)="savePlacement(placement)"'), 'Admin must le
 expect(adminPage.includes('(click)="movePlacement(section.sectionKey,p,-1)"'), 'Admin must preserve manual showcase ordering controls.');
 expect(layout.includes("type HomepageSelectionMode = 'PLACEMENT' | 'LATEST';"), 'Homepage selection mode contract is missing.');
 expect(layout.includes("if (mode === 'LATEST') return [];"), 'LATEST must stay separate from manual placements.');
-expect(layout.includes("placementDriven ? Math.max(1, manualCount) : storedLimit"), 'Public manual section size must remain placement-driven.');
+expect(layout.includes("mode === 'PLACEMENT' ? Math.max(1, placements.length) : storedLimit"), 'Public manual section size must remain placement-driven.');
+expect(layout.includes('allContentSectionsResolved'), 'Homepage must distinguish complete snapshots from partial content failures.');
+expect(layout.includes('HOMEPAGE_USING_LAST_KNOWN_GOOD'), 'Homepage must preserve and serve the last known good snapshot after partial backend failures.');
+expect(layout.includes('saveSnapshot(completeSnapshot)'), 'Successful complete homepage loads must persist a reusable snapshot.');
 
 expect(dock.includes('window.requestAnimationFrame'), 'Mobile dock auto-hide must be requestAnimationFrame throttled.');
 expect(dock.includes('Math.abs(delta) < 12'), 'Mobile dock auto-hide must use a hysteresis threshold to prevent jitter.');

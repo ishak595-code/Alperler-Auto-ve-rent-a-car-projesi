@@ -58,7 +58,7 @@ import { AdminFirstAccessV239Service } from '../services/admin-first-access-v239
         @if(message()){<p class="success" role="status" aria-live="polite">{{message()}}</p>}
         <p class="security">
           {{firstAccessMode()
-            ? 'İlk kurulum e-posta doğrulamasıyla yapılır. Ham kurulum kodu veya service_role anahtarı tarayıcıya verilmez; bağlantı yalnız ana yönetici adresine gider.'
+            ? 'İlk kurulum e-posta doğrulamasıyla yapılır. Ham kurulum kodu veya sunucu yetki anahtarı tarayıcıya verilmez; bağlantı yalnız ana yönetici adresine gider.'
             : recoveryMode()
               ? 'Bu ekran yalnız Supabase Auth tarafından doğrulanan tek kullanımlık kurtarma oturumunda parola değiştirebilir.'
               : 'Parola e-posta gövdesinde gönderilmez. İlk yönetici kurulumu ve parola yenilemeleri güvenli e-posta bağlantısıyla yapılır.'}}

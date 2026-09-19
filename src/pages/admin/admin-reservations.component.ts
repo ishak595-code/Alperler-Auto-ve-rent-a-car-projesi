@@ -168,7 +168,7 @@ export class AdminReservationsComponent implements OnInit,OnDestroy {
   readonly filterOptions:Array<{value:"ALL"|BookingStatus;label:string}>=[{value:"ALL",label:"Tümü"},{value:"PENDING",label:"Bekleyen"},{value:"APPROVED",label:"Onaylı"},{value:"REJECTED",label:"Reddedilen"},{value:"COMPLETED",label:"Tamamlanan"},{value:"CANCELLED",label:"İptal"}];
   readonly filteredReservations=computed(()=>{let current=this.reservations();if(this.typeFilter())current=current.filter((record)=>record.type===this.typeFilter());if(this.filter()!=="ALL")current=current.filter((record)=>record.status===this.filter());const q=this.searchQuery().trim().toLocaleLowerCase("tr-TR");if(q)current=current.filter((record)=>`${record.customerName||""} ${record.customerPhone||""} ${record.customerEmail||""} ${record.itemName||""} ${record.pickupLocation||""} ${record.id}`.toLocaleLowerCase("tr-TR").includes(q));return current;});
 
-  ngOnInit():void{this.bookingService.startAdminListener();this.route.queryParams.subscribe((params)=>this.typeFilter.set(params["type"]||null));}
+  ngOnInit():void{this.bookingService.startAdminListener();this.route.queryParams.subscribe((params)=>{this.typeFilter.set(params["type"]||null);const q=typeof params["q"]==="string"?params["q"].trim():"";if(q)this.searchQuery.set(q);});}
   ngOnDestroy():void{this.bookingService.stopAdminListener();}
   retryConnection():void{this.bookingService.stopAdminListener();this.bookingService.startAdminListener();}
   pageTitle():string{switch(this.typeFilter()){case"RENTAL":return"Araç Kiralama Talepleri";case"TOUR":return"Tur Talepleri";case"SALE_INQUIRY":return"Satın Alma Talepleri";case"APPOINTMENT":return"Randevu Talepleri";default:return"Rezervasyon Yönetimi";}}

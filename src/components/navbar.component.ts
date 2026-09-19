@@ -18,11 +18,11 @@ import { NavigationConfigService } from "../services/navigation-config.service";
         <div class="navbar-row">
           <a routerLink="/" [attr.aria-label]="t().nav.homeAria" class="brand-link">
             @if (config().logoUrl) {
-              <img [src]="config().logoUrl" alt="Alperler Rent A Car" class="brand-logo" />
+              <img [src]="config().logoUrl" [alt]="brandLabel()" class="brand-logo" />
             } @else {
               <span class="brand-lockup">
                 <span class="brand-mark" aria-hidden="true">A</span>
-                <span class="brand-copy"><strong class="brand-name">Alperler Rent A Car</strong><small class="brand-sub">{{ t().nav.brandSub }}</small></span>
+                <span class="brand-copy"><strong class="brand-name">{{ brandLabel() }}</strong><small class="brand-sub">{{ t().nav.brandSub }}</small></span>
               </span>
             }
           </a>
@@ -64,7 +64,7 @@ import { NavigationConfigService } from "../services/navigation-config.service";
     @if (navigation.mobileMenuEnabled() && isMenuOpen()) {
       <nav id="mobile-navigation" [attr.aria-label]="t().nav.mobileNavAria" class="mobile-navigation">
         <div class="mobile-menu-shell">
-          <div class="mobile-menu-intro"><p class="menu-kicker">Alperler Rent A Car</p><p>{{ t().nav.mobileIntro }}</p></div>
+          <div class="mobile-menu-intro"><p class="menu-kicker">{{ brandLabel() }}</p><p>{{ t().nav.mobileIntro }}</p></div>
           <div class="mobile-menu-card">
             @for (item of navigation.itemsFor('MOBILE_MENU'); track item.id; let first=$first; let last=$last) {
               <a [id]="first ? 'mobile-menu-first-link' : null" [routerLink]="item.route" (click)="closeMenu(false)" class="menu-row" [class.last]="last" [attr.aria-label]="item.label"><mat-icon aria-hidden="true">{{ item.icon }}</mat-icon><span>{{ item.label }}</span></a>
@@ -114,6 +114,7 @@ export class NavbarComponent implements OnDestroy {
   closeMenu(restoreFocus=false):void{if(!this.isMenuOpen()){this.setDocumentMenuOpen(false);return;}this.isMenuOpen.set(false);this.mobileLanguageOpen.set(false);this.setDocumentMenuOpen(false);if(restoreFocus)this.focusElement("mobile-menu-trigger");}
   toggleLangMenu():void{if(!this.isMenuOpen())this.isLangMenuOpen.update(v=>!v);}closeLangMenu():void{this.isLangMenuOpen.set(false);}toggleMobileLanguage():void{this.mobileLanguageOpen.update(v=>!v);}setLang(lang:Language):void{this.uiService.setLanguage(lang);this.closeLangMenu();}setMobileLang(lang:Language):void{this.uiService.setLanguage(lang);this.mobileLanguageOpen.set(false);}
   async onGlobalSearch(event:Event):Promise<void>{const input=event.target as HTMLInputElement;const query=input.value.trim();if(!query)return;const vehicle=this.carService.getVehicleByAdId(query);if(vehicle)await this.router.navigate([vehicle.category==="SALE"?"/sales":"/fleet",vehicle.id]);else await this.router.navigate(["/fleet"],{queryParams:{search:query}});input.value="";this.closeMenu(false);}
+  brandLabel():string{return String(this.config().companyName || this.t().common.siteBrandFallback || "Alperler Rent A Car").trim();}
   langName(lang:Language):string{return({TR:"Türkçe",EN:"English",DE:"Deutsch",FR:"Français",KU:"Kurdî",ES:"Español",RU:"Русский",ZH:"中文",AR:"العربية"} as Record<Language,string>)[lang];}
   private setDocumentMenuOpen(open:boolean):void{if(typeof document==="undefined")return;if(open)document.documentElement.dataset["mobileMenuOpen"]="true";else delete document.documentElement.dataset["mobileMenuOpen"];}
   private focusElement(id:string):void{if(typeof window==="undefined"||typeof document==="undefined")return;window.requestAnimationFrame(()=>(document.getElementById(id) as HTMLElement|null)?.focus({preventScroll:true}));}

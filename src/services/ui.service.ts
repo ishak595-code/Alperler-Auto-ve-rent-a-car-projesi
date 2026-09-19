@@ -728,6 +728,7 @@ export class UiService {
         removeFromFav: "Favorilerden Çıkar",
          skipToContent: "İçeriğe geç",
          whatsappDefault: "Merhaba, detaylı bilgi almak istiyorum.",
+         siteBrandFallback: "Alperler Rent A Car",
        },
         dock: {
           ariaLabel: "Alt hızlı menü"
@@ -3628,6 +3629,7 @@ export class UiService {
         removeFromFav: "Remove from Favorites",
          skipToContent: "Skip to content",
          whatsappDefault: "Hello, I would like more information.",
+         siteBrandFallback: "Alperler Rent A Car",
        },
         dock: {
           ariaLabel: "Bottom quick menu"
@@ -5751,6 +5753,7 @@ export class UiService {
         removeFromFav: "Aus Favoriten entfernen",
          skipToContent: "Zum Inhalt springen",
          whatsappDefault: "Hallo, ich möchte nähere Informationen.",
+         siteBrandFallback: "Alperler Rent A Car",
        },
         dock: {
           ariaLabel: "Schnelles Menü unten"
@@ -8346,6 +8349,7 @@ export class UiService {
         removeFromFav: "Supprimer des Favoris",
          skipToContent: "Aller au contenu",
          whatsappDefault: "Bonjour, je souhaite plus d'informations.",
+         siteBrandFallback: "Alperler Rent A Car",
        },
         dock: {
           ariaLabel: "Menu rapide en bas"
@@ -10942,6 +10946,7 @@ export class UiService {
         removeFromFav: "Eliminar de Favoritos",
          skipToContent: "Saltar al contenido",
          whatsappDefault: "Hola, me gustaría obtener más información.",
+         siteBrandFallback: "Alperler Rent A Car",
        },
         dock: {
           ariaLabel: "Menú rápido inferior"
@@ -13536,6 +13541,7 @@ export class UiService {
         removeFromFav: "Удалить из избранного",
          skipToContent: "Перейти к содержимому",
          whatsappDefault: "Здравствуйте, хочу получить подробную информацию.",
+         siteBrandFallback: "Alperler Rent A Car",
        },
         dock: {
           ariaLabel: "Нижнее быстрое меню"
@@ -16088,6 +16094,7 @@ export class UiService {
       common: { close: "Bigire", favorites: "Favorî", menuToggle: "Menûyê Veke an Bigire", addToFav: "Bike Favorî", removeFromFav: "Ji Favoriyan Rake", searchPlaceholder: "Wesayît bigere...",
         skipToContent: "Here naverokê",
         whatsappDefault: "Silav, ez dixwazim agahiyên berfireh bistînim.",
+        siteBrandFallback: "Alperler Rent A Car",
 },
         dock: {
           ariaLabel: "Menûya bilez a jêrîn"
@@ -18545,6 +18552,7 @@ export class UiService {
         removeFromFav: "从收藏夹移除",
          skipToContent: "跳到正文",
          whatsappDefault: "您好，我想了解更多信息。",
+         siteBrandFallback: "Alperler Rent A Car",
        },
         dock: {
           ariaLabel: "底部快捷菜单"
@@ -21131,6 +21139,7 @@ export class UiService {
         removeFromFav: "إزالة من المفضلة",
          skipToContent: "تخطِّ إلى المحتوى",
          whatsappDefault: "مرحبًا، أود الحصول على معلومات مفصلة.",
+         siteBrandFallback: "Alperler Rent A Car",
        },
         dock: {
           ariaLabel: "القائمة السريعة السفلية"

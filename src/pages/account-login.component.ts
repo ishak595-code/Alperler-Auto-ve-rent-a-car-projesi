@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { CustomerAuthService, CustomerSocialProvider } from '../services/customer-auth.service';
 import { ProfileAdminBridgeService } from '../services/profile-admin-bridge.service';
+import { CarService } from '../services/car.service';
 import { UiService } from '../services/ui.service';
 
 type AccountMode='login'|'register'|'recovery';
@@ -12,7 +13,7 @@ type AccountMode='login'|'register'|'recovery';
   selector:'app-account-login',standalone:true,imports:[CommonModule,FormsModule,RouterLink],
   template:`
     <main class="page"><section class="shell">
-      <header class="topbar"><a routerLink="/" class="brand" [attr.aria-label]="t().accountAuth.homeAria"><span class="brand-mark" aria-hidden="true">A</span><span><strong>Alperler Rent A Car</strong><small>{{ t().accountAuth.brandSub }}</small></span></a><a routerLink="/" class="site-link">{{ t().accountAuth.backToSite }}</a></header>
+      <header class="topbar"><a routerLink="/" class="brand" [attr.aria-label]="t().accountAuth.homeAria"><span class="brand-mark" aria-hidden="true">A</span><span><strong>{{ brandLabel() }}</strong><small>{{ t().accountAuth.brandSub }}</small></span></a><a routerLink="/" class="site-link">{{ t().accountAuth.backToSite }}</a></header>
       <section class="auth-wrap" aria-labelledby="account-title">
         <div class="heading"><p>{{ adminReturnTarget() ? t().accountAuth.kickerAdmin : t().accountAuth.kicker }}</p><h1 id="account-title">{{ mode()==='recovery'?t().accountAuth.titleRecovery:mode()==='login'?t().accountAuth.titleLogin:t().accountAuth.titleRegister }}</h1><span>{{ mode()==='recovery'?t().accountAuth.copyRecovery:adminReturnTarget()?t().accountAuth.copyAdmin:mode()==='login'?t().accountAuth.copyLogin:t().accountAuth.copyRegister }}</span></div>
         <section class="card" [attr.aria-label]="adminReturnTarget() ? t().accountAuth.cardAriaAdmin : t().accountAuth.cardAriaCustomer">
@@ -53,6 +54,7 @@ export class AccountLoginComponent implements OnInit{
   private readonly router=inject(Router);
   private readonly route=inject(ActivatedRoute);
   private readonly ui=inject(UiService);
+  private readonly carService=inject(CarService);
   readonly t=this.ui.translations;
   readonly mode=signal<AccountMode>(this.auth.pendingReferral()?'register':'login');
   readonly working=signal(false);
@@ -74,6 +76,7 @@ export class AccountLoginComponent implements OnInit{
     if(this.auth.isLoggedIn())await this.finishSignedInNavigation();
   }
 
+  brandLabel():string{return String(this.carService.getConfig()().companyName||this.t().common.siteBrandFallback||'Alperler Rent A Car').trim();}
   setMode(mode:'login'|'register'):void{this.mode.set(mode);this.message.set(null);this.adminError.set(null);this.password='';this.confirmPassword='';}
 
   async submit():Promise<void>{

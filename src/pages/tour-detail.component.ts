@@ -24,7 +24,7 @@ import { TourDemandV170, TourDemandV170Service } from "../services/tour-demand-v
     <main class="tour-page">
       @if (tour(); as item) {
         <header class="topbar" [attr.inert]="reservationOpen() ? '' : null" [attr.aria-hidden]="reservationOpen() ? 'true' : null">
-          <div class="topbar-inner"><button type="button" class="icon-button" (click)="goBack()" [attr.aria-label]="t().tourDetail.backAria"><mat-icon aria-hidden="true">arrow_back</mat-icon></button><div class="topbar-copy"><span>ALPERLER TUR</span><h1>{{ item.title }}</h1></div></div>
+          <div class="topbar-inner"><button type="button" class="icon-button" (click)="goBack()" [attr.aria-label]="t().tourDetail.backAria"><mat-icon aria-hidden="true">arrow_back</mat-icon></button><div class="topbar-copy"><span>{{ t().tourDetail.kicker }}</span><h1>{{ item.title }}</h1></div></div>
         </header>
 
         <section class="gallery" [attr.aria-label]="galleryAria(item.title)" [attr.inert]="reservationOpen() ? '' : null" [attr.aria-hidden]="reservationOpen() ? 'true' : null" (touchstart)="touchStart($event)" (touchend)="touchEnd($event)">
@@ -163,7 +163,7 @@ export class TourDetailComponent implements OnInit {
       this.seo.updateSeoTags({
         title: String(this.t().tourDetail.seoTitle || "")
           .replace("{title}", title)
-          .replace("{company}", String(config.companyName || "Alperler Rent A Car"))
+          .replace("{company}", String(config.companyName || this.t().common.siteBrandFallback || "Alperler Rent A Car"))
           .replace(/\s+/g, " ")
           .trim(),
         description: String(this.t().tourDetail.seoDescription || "")

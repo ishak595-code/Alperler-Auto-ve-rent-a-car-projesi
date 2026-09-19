@@ -5,6 +5,7 @@ import { Router } from "@angular/router";
 import { CampaignProof, CampaignRecord, CampaignService } from "../services/campaign.service";
 import { CommercialOfferContextService } from "../services/commercial-offer-context.service";
 import { PublicDetailDataService } from "../services/public-detail-data.service";
+import { CarService } from "../services/car.service";
 import { UiService } from "../services/ui.service";
 
 @Component({
@@ -13,7 +14,7 @@ import { UiService } from "../services/ui.service";
   imports: [CommonModule, MatIconModule],
   template: `
     <main class="page">
-      <header class="topbar"><div class="topbar-inner"><button type="button" class="back" (click)="goBack()" [attr.aria-label]="t().campaignsPage.backAria"><mat-icon aria-hidden="true">arrow_back</mat-icon></button><div><p class="kicker">Alperler Rent A Car</p><h1>{{ t().campaignsPage.title }}</h1></div></div></header>
+      <header class="topbar"><div class="topbar-inner"><button type="button" class="back" (click)="goBack()" [attr.aria-label]="t().campaignsPage.backAria"><mat-icon aria-hidden="true">arrow_back</mat-icon></button><div><p class="kicker">{{ brandLabel() }}</p><h1>{{ t().campaignsPage.title }}</h1></div></div></header>
       <section class="content" aria-labelledby="offers-title">
         <div class="intro"><p class="kicker">{{ t().campaignsPage.kicker }}</p><h2 id="offers-title">{{ t().campaignsPage.introTitle }}</h2><p>{{ t().campaignsPage.introCopy }}</p></div>
         @if (error()) {
@@ -44,6 +45,7 @@ export class CampaignsComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly ui = inject(UiService);
+  private readonly carService = inject(CarService);
   readonly t = this.ui.translations;
   private readonly proofByCampaign = this.campaignService.proofByCampaign;
   readonly loading = signal(true);
@@ -68,6 +70,7 @@ export class CampaignsComponent implements OnInit {
     }
   }
 
+  brandLabel(): string { return String(this.carService.getConfig()().companyName || this.t().common.siteBrandFallback || "Alperler Rent A Car").trim(); }
   goBack(): void { if (typeof window !== "undefined" && window.history.length > 1) this.location.back(); else void this.router.navigate(["/"]); }
   async openCampaign(campaign: CampaignRecord): Promise<void> {
     this.commercialOffer.activateCampaign(campaign);

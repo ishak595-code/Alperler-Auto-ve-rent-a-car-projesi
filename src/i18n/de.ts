@@ -15,7 +15,7 @@ export default {
         appointment: "Termin",
         branches: "Filialen",
         branchPartner: "Franchise-Bewerbung",
-        search: "Katalog",
+        search: "Suche",
         account: "Profil",
         faq: "FAQ",
         legal: "Rechtliches",
@@ -125,7 +125,7 @@ export default {
        },
         dock: {
           ariaLabel: "Untere Schnellmenü",
-          items: { fleet: "Mieten", sales: "Kauf", search: "Katalog", campaigns: "Angebote", account: "Profil", home: "Start", appointment: "Termin", tours: "Touren", branches: "Filialen", contact: "Kontakt", about: "Über uns", blog: "Blog" }
+          items: { fleet: "Mieten", sales: "Kauf", search: "Suche", campaigns: "Angebote", account: "Profil", home: "Start", appointment: "Termin", tours: "Touren", branches: "Filialen", contact: "Kontakt", about: "Über uns", blog: "Blog" }
         },
         catalog: {
           backAria: "Zurück",
@@ -1345,7 +1345,8 @@ export default {
             tours: { title: "Touren", badge: "ENTDECKEN", description: "Regionale Routen und besondere Erlebnisse." },
             branches: { title: "Filialen", badge: "IN IHRER NÄHE", description: "Abhol- und Rückgabepunkte entdecken." },
             blog: { title: "Blog", badge: "REISEGUIDE", description: "Praktische Tipps zu Reisen und Fahrzeugwahl." },
-            partner: { title: "Fahrzeug bewerten", badge: "FAHRZEUGEIGNER", description: "Fahrzeug zur Verkaufs- oder Mietbewertung einreichen." },
+            partner: { title: "Fahrzeug bewerten", badge: "FAHRZEUGEIGNER", description: "Fahrzeug zur Verkaufs- oder Mietbewertung einreichen." , cta: "Mein Auto bewerten" },
+            closing_cta: { title: "Planen wir Ihre Reise gemeinsam", badge: "ALPERLER RENT A CAR", description: "Miete, besondere Anlässe und Routen an einem Ort planen.", cta: "Reservierung erstellen" },
           },
           byType: {
             CAMPAIGN: { title: "Aktive Angebote", badge: "JETZT ENTDECKEN", description: "Ausgewählte Angebote, die Ihrem Plan echten Vorteil bringen." },

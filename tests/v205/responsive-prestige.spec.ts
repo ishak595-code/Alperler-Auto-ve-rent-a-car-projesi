@@ -37,7 +37,7 @@ test("device class keeps the intended navigation and conversion hierarchy", asyn
     await expect(dock.locator("a.dock-action")).toHaveCount(5);
     await expect(dock.locator('a[href="/fleet"]')).toHaveAttribute("aria-label", "Kiralık");
     await expect(dock.locator('a[href="/sales"]')).toHaveAttribute("aria-label", "Satılık");
-    await expect(dock.locator('a[href="/search"]')).toHaveAttribute("aria-label", "Katalog");
+    await expect(dock.locator('a[href="/search"]')).toHaveAttribute("aria-label", "Arama");
     await expect(dock.locator('a[href="/campaigns"]')).toHaveAttribute("aria-label", "Fırsatlar");
     await expect(dock.locator('a[href="/account"]')).toHaveAttribute("aria-label", "Profil");
     await expect(dock.locator('a[href="/appointment"]')).toHaveCount(0);

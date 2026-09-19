@@ -15,7 +15,7 @@ export default {
         appointment: "预约",
         branches: "门店",
         branchPartner: "加盟申请",
-        search: "目录",
+        search: "搜索",
         account: "账户",
         faq: "常见问题",
         legal: "法律信息",
@@ -125,7 +125,7 @@ export default {
        },
         dock: {
           ariaLabel: "底部快捷菜单",
-          items: { fleet: "租车", sales: "购车", search: "目录", campaigns: "优惠", account: "账户", home: "首页", appointment: "预约", tours: "行程", branches: "门店", contact: "联系", about: "关于", blog: "博客" }
+          items: { fleet: "租车", sales: "购车", search: "搜索", campaigns: "优惠", account: "账户", home: "首页", appointment: "预约", tours: "行程", branches: "门店", contact: "联系", about: "关于", blog: "博客" }
         },
         catalog: {
           backAria: "返回",
@@ -1345,7 +1345,8 @@ export default {
             tours: { title: "行程", badge: "探索", description: "区域路线与特别体验。" },
             branches: { title: "门店", badge: "就在附近", description: "发现取还车点。" },
             blog: { title: "博客", badge: "出行指南", description: "出行与选车实用建议。" },
-            partner: { title: "评估您的车辆", badge: "车主", description: "提交车辆进行销售或租赁评估。" },
+            partner: { title: "评估您的车辆", badge: "车主", description: "提交车辆进行销售或租赁评估。" , cta: "评估我的车辆" },
+            closing_cta: { title: "一起规划您的旅程", badge: "ALPERLER RENT A CAR", description: "在一处规划租车、特殊日与路线。", cta: "创建预订" },
           },
           byType: {
             CAMPAIGN: { title: "进行中的优惠", badge: "别错过", description: "精选优惠为您的计划带来真实优势。" },

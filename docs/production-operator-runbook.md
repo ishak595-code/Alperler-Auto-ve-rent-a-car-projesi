@@ -202,6 +202,10 @@ Supabase Dashboard > Authentication > URL Configuration bölümünde:
 - Site URL gerçek production HTTPS domain olmalı.
 - Uygulamanın kullandığı auth dönüş adresleri Redirect URLs allow-listesinde olmalı.
 - Admin parola kurtarma dönüşü `/admin/login?recovery=1` akışını production domain üzerinde desteklemeli.
+- Müşteri parola kurtarma dönüşü `/account/login?recovery=1` (Auth `redirect_to`) olmalıdır; SPA bu rotayı sunar.
+- Tarayıcı `runtime-env.js` üretim/önizleme buildinde `APP_PUBLIC_ORIGIN` / `PUBLIC_APP_URL` (veya Vercel production host) enjekte eder; `redirectTo` localhost üretmez.
+- Supabase Auth → URL Configuration: Site URL = canlı HTTPS origin; Redirect URLs allow-list en azından `https://<prod-host>/account/login**`, `https://<prod-host>/admin/login**`, `https://<prod-host>/account/callback**` içermeli. E-posta şablonlarında literal `localhost` bırakılmamalı.
+
 - E-posta template'lerinde literal `localhost` adresi bırakılmamalı.
 
 Supabase Site URL, uygulama `redirectTo` vermediğinde varsayılan dönüş adresidir. `redirectTo` kullanıldığında hedef allow-list ile uyuşmalıdır.

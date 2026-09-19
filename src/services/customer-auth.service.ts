@@ -1,5 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY, supabaseAuthUrl } from '../supabase.config';
+import { publicAppUrl } from '../utils/public-app-origin';
 
 export type CustomerSocialProvider = 'google' | 'facebook' | 'apple';
 export interface CustomerUser { id:string; email?:string; email_confirmed_at?:string|null; user_metadata?:Record<string,unknown>; app_metadata?:Record<string,unknown>; }
@@ -68,7 +69,7 @@ export class CustomerAuthService {
 
   async resetPassword(email:string):Promise<boolean>{
     this._lastError.set(null);const cleanEmail=email.trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail))return this.fail('Önce geçerli e-posta adresinizi girin.');
-    try{const redirectTo=`${window.location.origin}/account/login?recovery=1`;const response=await fetch(`${supabaseAuthUrl('recover')}?redirect_to=${encodeURIComponent(redirectTo)}`,{method:'POST',headers:this.publicHeaders(),body:JSON.stringify({email:cleanEmail})});if(!response.ok)return this.fail(response.status===429?'Çok fazla yenileme isteği yapıldı. Birkaç dakika sonra tekrar deneyin.':'Parola yenileme isteği işlenemedi.');return true;}catch{return this.fail('Parola yenileme servisine ulaşılamıyor.');}
+    try{const redirectTo=publicAppUrl('/account/login?recovery=1');const response=await fetch(`${supabaseAuthUrl('recover')}?redirect_to=${encodeURIComponent(redirectTo)}`,{method:'POST',headers:this.publicHeaders(),body:JSON.stringify({email:cleanEmail})});if(!response.ok)return this.fail(response.status===429?'Çok fazla yenileme isteği yapıldı. Birkaç dakika sonra tekrar deneyin.':'Parola yenileme isteği işlenemedi.');return true;}catch{return this.fail('Parola yenileme servisine ulaşılamıyor.');}
   }
 
   async changePassword(password:string):Promise<boolean>{
@@ -115,7 +116,7 @@ export class CustomerAuthService {
     const response=await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/customer_profiles?user_id=eq.${encodeURIComponent(userId)}&select=status&limit=1`,{headers:this.userHeaders(token)}).catch(()=>null);if(!response?.ok)return false;const rows=await response.json() as Array<{status?:string}>;return String(rows[0]?.status||'ACTIVE')==='ACTIVE';
   }
   private savePayload(payload:AuthPayload):void{const accessToken=payload.access_token||'';const refreshToken=payload.refresh_token||'';if(!accessToken||!refreshToken)throw new Error('CUSTOMER_SESSION_MISSING');this.session={accessToken,refreshToken,expiresAt:payload.expires_at?Number(payload.expires_at)*1000:Date.now()+Math.max(60,Number(payload.expires_in||3600))*1000,user:payload.user||{id:''}};this.persist();}
-  private customerCallbackUrl(referral:string|null):string{const url=new URL(`${window.location.origin}/account/callback`);if(referral)url.searchParams.set('ref',referral);const campaign=this.pendingReferralCampaign();if(campaign)url.searchParams.set('campaign',campaign);return url.toString();}
+  private customerCallbackUrl(referral:string|null):string{const url=new URL(publicAppUrl('/account/callback'));if(referral)url.searchParams.set('ref',referral);const campaign=this.pendingReferralCampaign();if(campaign)url.searchParams.set('campaign',campaign);return url.toString();}
   private safeReturnUrl(value:string|null|undefined):string|null{const raw=String(value||'').trim();if(!raw.startsWith('/')||raw.startsWith('//')||raw.startsWith('/admin')||raw.startsWith('/branch-portal')||raw.startsWith('/account/login')||raw.startsWith('/account/callback'))return null;return raw.slice(0,1200);}
   private publishSession():void{this._user.set(this.session?.user||null);this._isLoggedIn.set(Boolean(this.session?.user?.id));}
   private persist():void{if(this.session)localStorage.setItem(this.storageKey,JSON.stringify(this.session));}

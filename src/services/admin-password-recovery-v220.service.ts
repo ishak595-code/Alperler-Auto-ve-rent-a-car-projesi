@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { SUPABASE_PUBLISHABLE_KEY, supabaseAuthUrl } from '../supabase.config';
+import { publicAppUrl } from '../utils/public-app-origin';
 
 export interface AdminRecoveryRequestV220 {
   ok: boolean;
@@ -15,7 +16,7 @@ export class AdminPasswordRecoveryV220Service {
     }
 
     try {
-      const redirectTo = `${window.location.origin}/admin/login?recovery=1`;
+      const redirectTo = publicAppUrl('/admin/login?recovery=1');
       const response = await fetch(
         `${supabaseAuthUrl('recover')}?redirect_to=${encodeURIComponent(redirectTo)}`,
         {

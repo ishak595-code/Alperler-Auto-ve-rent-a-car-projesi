@@ -57,19 +57,72 @@ export class FleetOperationsService {
     await this.rest('POST','vehicle_operations?on_conflict=vehicle_id',body,token,'resolution=merge-duplicates'); await this.refresh();
   }
 
+  requiresHandoverMedia(type:InspectionType):boolean{
+    return INSPECTION_TYPES_REQUIRING_MEDIA.includes(type);
+  }
+
+  async resolveBookingId(referenceOrId:string):Promise<string|null>{
+    const value=this.clean(referenceOrId,80);
+    if(!value)return null;
+    const token=await this.requiredToken();
+    const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+    const filter=uuid
+      ?`id=eq.${encodeURIComponent(value)}`
+      :`reference=eq.${encodeURIComponent(value)}`;
+    const rows=await this.rest<Array<{id:string}>>('GET',`bookings?${filter}&deleted_at=is.null&select=id&limit=1`,undefined,token);
+    return rows[0]?.id||null;
+  }
+
   async addInspection(input:FleetInspectionInput):Promise<void>{
     const token=await this.requiredToken();
     const photoPaths=Array.isArray(input.photoPaths)?input.photoPaths.map((p)=>String(p||'').trim()).filter(Boolean).slice(0,20):[];
-    if(INSPECTION_TYPES_REQUIRING_MEDIA.includes(input.inspectionType) && photoPaths.length===0){
-      throw new Error('Teslim öncesi, teslim ve iade kontrolleri için en az bir fotoğraf zorunludur.');
+    const requiresMedia=this.requiresHandoverMedia(input.inspectionType);
+    if(requiresMedia){
+      if(this.numberOrNull(input.odometerKm)==null){
+        throw new Error('Teslim öncesi, teslim ve iade kontrollerinde kilometre zorunludur.');
+      }
+      if(this.rangeOrNull(input.fuelPercent,0,100)==null){
+        throw new Error('Teslim öncesi, teslim ve iade kontrollerinde yakıt seviyesi (0–100) zorunludur.');
+      }
+      if(photoPaths.length===0){
+        throw new Error('Teslim öncesi, teslim ve iade kontrolleri için en az bir fotoğraf zorunludur.');
+      }
     }
-    const body={vehicle_id:input.vehicleId,booking_id:input.bookingId||null,inspection_type:input.inspectionType,odometer_km:this.numberOrNull(input.odometerKm),fuel_percent:this.rangeOrNull(input.fuelPercent,0,100),cleanliness_status:input.cleanlinessStatus||null,exterior_status:input.exteriorStatus||null,interior_status:input.interiorStatus||null,damage_notes:this.clean(input.damageNotes||'',5000)||null,photo_paths:photoPaths,checklist:{source:'ADMIN_FLEET_OPERATIONS',mediaRequired:INSPECTION_TYPES_REQUIRING_MEDIA.includes(input.inspectionType),mediaCount:photoPaths.length}};
+    const body={
+      vehicle_id:input.vehicleId,
+      booking_id:input.bookingId||null,
+      inspection_type:input.inspectionType,
+      odometer_km:this.numberOrNull(input.odometerKm),
+      fuel_percent:this.rangeOrNull(input.fuelPercent,0,100),
+      cleanliness_status:input.cleanlinessStatus||null,
+      exterior_status:input.exteriorStatus||null,
+      interior_status:input.interiorStatus||null,
+      damage_notes:this.clean(input.damageNotes||'',5000)||null,
+      photo_paths:photoPaths,
+      checklist:{
+        source:'ADMIN_FLEET_OPERATIONS',
+        mediaRequired:requiresMedia,
+        mediaCount:photoPaths.length,
+        bookingLinked:Boolean(input.bookingId),
+      },
+    };
     await this.rest('POST','vehicle_inspections',body,token);
-    const profile=this.profileFor(this._vehicles().find((v)=>v.id===input.vehicleId)!); profile.odometerKm=body.odometer_km??profile.odometerKm; profile.fuelPercent=body.fuel_percent??profile.fuelPercent; if(body.cleanliness_status)profile.cleanlinessStatus=body.cleanliness_status as FleetCleanliness; profile.lastInspectionAt=new Date().toISOString(); if(body.damage_notes)profile.damageNotes=body.damage_notes; await this.save(profile);
+    const vehicle=this._vehicles().find((v)=>v.id===input.vehicleId);
+    if(!vehicle)return;
+    const profile=this.profileFor(vehicle);
+    profile.odometerKm=body.odometer_km??profile.odometerKm;
+    profile.fuelPercent=body.fuel_percent??profile.fuelPercent;
+    if(body.cleanliness_status)profile.cleanlinessStatus=body.cleanliness_status as FleetCleanliness;
+    profile.lastInspectionAt=new Date().toISOString();
+    if(body.damage_notes)profile.damageNotes=body.damage_notes;
+    if(input.inspectionType==='HANDOVER')profile.operationalStatus='RENTED';
+    if(input.inspectionType==='RETURN')profile.operationalStatus='CLEANING';
+    if(input.inspectionType==='PRE_RENTAL')profile.operationalStatus='READY';
+    await this.save(profile);
   }
 
-
   async uploadInspectionMedia(vehicleId:string, file:File):Promise<string>{
+    // vehicle-media bucket accepts images only; no speculative migrations for video.
     const reason=mediaRejectionReason(file,{video:false});
     if(reason) throw new Error(reason);
     const token=await this.requiredToken();
@@ -93,7 +146,7 @@ export class FleetOperationsService {
     });
     if(!response.ok){
       const payload=await response.json().catch(()=>({}));
-      throw new Error(describeStorageError(response.status,payload,'Kontrol medyası yüklenemedi'));
+      throw new Error(describeStorageError(response.status,payload,'Kontrol fotoğrafı yüklenemedi'));
     }
     return `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${this.mediaBucket}/${encoded}`;
   }

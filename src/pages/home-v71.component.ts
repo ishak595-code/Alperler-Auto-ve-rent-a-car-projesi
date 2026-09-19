@@ -84,7 +84,7 @@ interface PlannerDurationChoice { value: RentalDuration; label: string; enabled:
       }
     </main>
   `,
-  styles: [`
+  styles: [`:host, .page, .hero{overflow-x:clip;overflow-wrap:anywhere;}
     .home-root,.home-root *{box-sizing:border-box}
     .hero{position:relative;isolation:isolate;overflow:hidden;background:var(--alper-bg,#06080D) center/cover no-repeat;color:var(--alper-text,#F8F6F1)}
     .hero-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,color-mix(in srgb,var(--alper-bg,#020617) 97%,transparent),color-mix(in srgb,var(--alper-bg,#020617) 88%,transparent) 52%,color-mix(in srgb,var(--alper-bg,#020617) 67%,transparent)),radial-gradient(circle at 85% 12%,color-mix(in srgb,var(--alper-blue,#9E1B24) 28%,transparent),transparent 32%)}

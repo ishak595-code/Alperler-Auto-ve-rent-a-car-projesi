@@ -183,6 +183,36 @@ body.theme-corporate .text-slate-900 {
   color: #0c4a6e !important;
 }
 
+/* Elegant light prestige — used when ThemeService selects theme-light.
+   Admin live premiumPalette still overrides --alper-* at runtime. */
+body.theme-light {
+  background-color: var(--alper-bg, #F7F4EE) !important;
+  color: var(--alper-text, #1A1714) !important;
+}
+body.theme-light .bg-white {
+  background-color: var(--alper-card, #FFFFFF) !important;
+  color: var(--alper-text, #1A1714) !important;
+}
+body.theme-light .bg-slate-50 {
+  background-color: var(--alper-list, #F1EDE4) !important;
+}
+body.theme-light .text-slate-900 {
+  color: var(--alper-text, #1A1714) !important;
+}
+body.theme-light .text-slate-600 {
+  color: var(--alper-muted, #5C564C) !important;
+}
+body.theme-light .border-slate-200 {
+  border-color: var(--alper-border, #E2D9C8) !important;
+}
+body.theme-light .text-blue-600 {
+  color: var(--alper-blue, #9E1B24) !important;
+}
+body.theme-light .bg-blue-600 {
+  background-color: var(--alper-blue, #9E1B24) !important;
+}
+
+
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out forwards;
 }

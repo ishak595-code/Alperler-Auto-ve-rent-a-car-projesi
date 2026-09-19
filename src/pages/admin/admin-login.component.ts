@@ -45,19 +45,14 @@ type AdminLoginModeV239 = "login" | "first-access" | "forgot" | "set-password";
           @if (mode() === 'first-access') {
             <form (submit)="onFirstAccessSetup($event)" class="space-y-5" aria-describedby="admin-first-access-help">
               <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-relaxed text-amber-950">
-                Ana yönetici hesabı: <strong>{{ authService.getPrimaryAdminEmail() }}</strong>
+                Ana yönetici hesabı: <strong>{{ firstAccessService.primaryEmail() }}</strong>
               </div>
               <label class="block">
-                <span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Tek kullanımlık kurulum kodu</span>
-                <input type="text" [(ngModel)]="setupCode" name="setupCode" inputmode="numeric" autocomplete="one-time-code" maxlength="12" pattern="[0-9]*" aria-describedby="admin-first-access-help" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 font-mono text-lg font-black tracking-widest text-slate-950 outline-none transition focus:border-slate-500 focus:bg-white" />
+                <span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Ana yönetici e-postası</span>
+                <input type="email" [ngModel]="firstAccessService.primaryEmail()" name="primaryAdminEmail" autocomplete="username" readonly aria-readonly="true" aria-describedby="admin-first-access-help" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 font-bold text-slate-950 outline-none" />
               </label>
-              <label class="block">
-                <span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Yeni yönetici şifresi</span>
-                <div class="relative"><input [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" name="firstAccessPassword" autocomplete="new-password" minlength="12" aria-describedby="admin-first-access-help" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 pr-16 font-bold text-slate-950 outline-none transition focus:border-slate-500 focus:bg-white" /><button type="button" (click)="showPassword.update(v => !v)" [attr.aria-label]="showPassword() ? 'Şifreyi gizle' : 'Şifreyi göster'" class="absolute inset-y-0 right-0 flex min-w-14 items-center justify-center px-3 text-xs font-black text-slate-500">{{ showPassword() ? 'Gizle' : 'Göster' }}</button></div>
-              </label>
-              <label class="block"><span class="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Yeni şifre tekrar</span><input type="password" [(ngModel)]="confirmPassword" name="firstAccessConfirmPassword" autocomplete="new-password" minlength="12" class="min-h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 font-bold text-slate-950 outline-none transition focus:border-slate-500 focus:bg-white" /></label>
-              <div id="admin-first-access-help" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs font-semibold leading-relaxed text-slate-700">E-posta bağlantısına tıklamanız gerekmez. Kurulum kodu 12 rakamdır. Şifre en az 12 karakter olmalı ve büyük harf, küçük harf, rakam ve özel karakter içermelidir.</div>
-              <button type="submit" [disabled]="isLoading()" class="min-h-14 w-full rounded-xl bg-slate-950 px-5 font-black text-white transition hover:bg-slate-800 disabled:opacity-50">{{ isLoading() ? 'Güvenli kurulum yapılıyor...' : 'Yönetici Şifremi Oluştur' }}</button>
+              <div id="admin-first-access-help" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs font-semibold leading-relaxed text-slate-700">Kurulum e-postası yalnız bu adrese gönderilir. Bağlantıyı açtıktan sonra en az 12 karakterlik güçlü bir parola belirleyin (büyük harf, küçük harf, rakam ve özel karakter). service_role veya 12 haneli kurulum kodu gerekmez.</div>
+              <button type="submit" [disabled]="isLoading()" class="min-h-14 w-full rounded-xl bg-slate-950 px-5 font-black text-white transition hover:bg-slate-800 disabled:opacity-50">{{ isLoading() ? 'Kurulum e-postası gönderiliyor...' : 'Kurulum E-postasını Gönder' }}</button>
               <button type="button" (click)="setMode('login')" class="min-h-12 w-full rounded-xl border border-slate-200 font-bold text-slate-600 transition hover:bg-slate-50">Giriş Ekranına Dön</button>
             </form>
           } @else if (mode() === 'forgot') {
@@ -80,7 +75,7 @@ type AdminLoginModeV239 = "login" | "first-access" | "forgot" | "set-password";
               <button type="submit" [disabled]="isLoading()" class="min-h-14 w-full rounded-xl bg-slate-950 px-5 font-black text-white shadow-lg transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-600">{{ isLoading() ? 'Kontrol ediliyor...' : 'Güvenli Giriş Yap' }}</button>
             </form>
             <div class="mt-4 grid gap-2 text-xs font-black sm:grid-cols-2"><button type="button" (click)="doFirstAccess()" [disabled]="isLoading()" class="min-h-11 rounded-xl border border-amber-200 bg-amber-50 px-3 text-amber-950 transition hover:bg-amber-100 disabled:opacity-50">İlk Yönetici Kurulumu</button><button type="button" (click)="setMode('forgot')" class="min-h-11 rounded-xl px-3 text-slate-700 hover:bg-slate-50 hover:underline">Şifremi unuttum</button></div>
-            <p class="mt-3 text-xs leading-relaxed text-slate-500">İlk kurulum doğrudan bu ekranın içinde yapılır. E-posta bağlantısına tıklamanız gerekmez.</p>
+            <p class="mt-3 text-xs leading-relaxed text-slate-500">İlk kurulum ana yönetici e-postasına gönderilen güvenli bağlantıyla tamamlanır.</p>
           }
         </div>
       </section>
@@ -97,7 +92,6 @@ export class AdminLoginComponent implements OnInit {
   password = "";
   confirmPassword = "";
   resetEmail = this.authService.getPrimaryAdminEmail();
-  setupCode = "";
   readonly mode = signal<AdminLoginModeV239>("login");
   readonly errorMsg = signal("");
   readonly successMsg = signal("");
@@ -112,7 +106,7 @@ export class AdminLoginComponent implements OnInit {
   }
 
   description(): string {
-    if (this.mode() === "first-access") return "E-posta bağlantısı gerekmez. Tek kullanımlık kurulum kodunu ve yeni şifrenizi bu ekranda girin.";
+    if (this.mode() === "first-access") return "Kurulum e-postası yalnız kayıtlı ana yönetici adresine gönderilir. Bağlantıya tıklayınca yeni parolanızı belirlersiniz.";
     if (this.mode() === "forgot") return "Yenileme isteği kayıtlı yönetici e-posta adresi için güvenli biçimde işlenir.";
     if (this.mode() === "set-password") return "Geçerli yenileme oturumuyla yeni şifrenizi belirleyin.";
     return "Yalnızca aktif ve yetkili yönetici hesapları giriş yapabilir.";
@@ -137,7 +131,6 @@ export class AdminLoginComponent implements OnInit {
     this.password = "";
     this.confirmPassword = "";
     this.showPassword.set(false);
-    if (mode !== "first-access") this.setupCode = "";
     this.username = this.authService.getPrimaryAdminEmail();
     this.resetEmail = this.authService.getPrimaryAdminEmail();
     setTimeout(() => document.getElementById("admin-login-heading")?.focus(), 0);
@@ -160,36 +153,14 @@ export class AdminLoginComponent implements OnInit {
   async onFirstAccessSetup(event: Event): Promise<void> {
     event.preventDefault();
     this.errorMsg.set(""); this.successMsg.set("");
-    const cleanCode = this.setupCode.replace(/\s+/g, "");
-    if (!/^\d{12}$/.test(cleanCode)) { this.errorMsg.set("Kurulum kodu 12 rakam olmalı."); return; }
-    if (this.password !== this.confirmPassword) { this.errorMsg.set("Yeni şifreler birbiriyle eşleşmiyor."); return; }
-    const validation = this.validateFirstAccessPassword(this.password);
-    if (validation) { this.errorMsg.set(validation); return; }
-
-    const passwordForLogin = this.password;
     this.isLoading.set(true);
-    const result = await this.firstAccessService.complete(cleanCode, this.password, this.confirmPassword);
+    const result = await this.firstAccessService.requestSetupEmail();
+    this.isLoading.set(false);
     if (!result.ok) {
-      this.isLoading.set(false);
       this.errorMsg.set(result.message);
       return;
     }
-
-    const loggedIn = await this.authService.login(this.authService.getPrimaryAdminEmail(), passwordForLogin);
-    this.isLoading.set(false);
-    this.setupCode = "";
-    this.confirmPassword = "";
-    if (loggedIn) {
-      this.password = "";
-      this.successMsg.set("Yönetici şifreniz oluşturuldu. Yönetim paneli açılıyor.");
-      setTimeout(() => void this.router.navigate(["/admin/dashboard"]), 250);
-      return;
-    }
-
-    this.successMsg.set("Yönetici şifreniz oluşturuldu. Yeni şifrenizle normal giriş yapabilirsiniz.");
-    this.mode.set("login");
-    this.username = this.authService.getPrimaryAdminEmail();
-    setTimeout(() => document.getElementById("admin-login-heading")?.focus(), 0);
+    this.successMsg.set(result.message);
   }
 
   async onSetPassword(event: Event): Promise<void> {
@@ -211,7 +182,7 @@ export class AdminLoginComponent implements OnInit {
     const success = await this.authService.resetPassword(email);
     this.isLoading.set(false);
     if (!success) { this.syncError("Şifre yenileme isteği işlenemedi."); return; }
-    this.successMsg.set("Yenileme isteği e-posta servisine iletildi. İlk kurulum için e-posta yerine İlk Yönetici Kurulumu seçeneğini kullanabilirsiniz.");
+    this.successMsg.set("Yenileme isteği e-posta servisine iletildi. En yeni bağlantıyı aynı cihaz ve tarayıcıda açın.");
   }
 
   private validateFirstAccessPassword(password: string): string | null {

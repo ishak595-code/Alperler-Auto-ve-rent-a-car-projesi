@@ -1,38 +1,39 @@
-import { Injectable } from "@angular/core";
-import { SUPABASE_PUBLISHABLE_KEY, supabaseFunctionUrl } from "../supabase.config";
+import { Injectable, inject } from "@angular/core";
+import { PRIMARY_ADMIN_EMAIL } from "../supabase.config";
+import { AdminPasswordRecoveryV220Service } from "./admin-password-recovery-v220.service";
 
 export interface AdminFirstAccessResultV239 {
   ok: boolean;
   message: string;
 }
 
+/**
+ * Owner first-access no longer uses a hashed 12-digit setup code.
+ * It reuses the same Supabase Auth recover email path as password recovery,
+ * always locked to PRIMARY_ADMIN_EMAIL (never an arbitrary address from the client).
+ */
 @Injectable({ providedIn: "root" })
 export class AdminFirstAccessV239Service {
-  async complete(setupCode: string, password: string, confirmPassword: string): Promise<AdminFirstAccessResultV239> {
-    const cleanCode = String(setupCode || "").replace(/\s+/g, "");
-    if (!/^\d{12}$/.test(cleanCode)) {
-      return { ok: false, message: "Kurulum kodu 12 rakam olmalı." };
-    }
-    if (password !== confirmPassword) {
-      return { ok: false, message: "Yeni şifreler birbiriyle eşleşmiyor." };
-    }
+  private readonly recovery = inject(AdminPasswordRecoveryV220Service);
 
-    try {
-      const response = await fetch(supabaseFunctionUrl("admin-first-access-v239"), {
-        method: "POST",
-        headers: {
-          apikey: SUPABASE_PUBLISHABLE_KEY,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ setupCode: cleanCode, password, confirmPassword }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; message?: string };
+  /** Locked primary-admin email used for first-access setup mail. */
+  primaryEmail(): string {
+    return PRIMARY_ADMIN_EMAIL;
+  }
+
+  async requestSetupEmail(): Promise<AdminFirstAccessResultV239> {
+    const email = PRIMARY_ADMIN_EMAIL.trim().toLowerCase();
+    const result = await this.recovery.request(email);
+    if (result.ok) {
       return {
-        ok: response.ok && payload.ok === true,
-        message: String(payload.message || (response.ok ? "Yönetici şifresi oluşturuldu." : "İlk yönetici kurulumu tamamlanamadı.")),
+        ok: true,
+        message:
+          `Kurulum bağlantısı ${email} adresine gönderildi. En yeni e-postadaki bağlantıyı aynı cihaz ve tarayıcıda açın; ardından yeni yönetici parolanızı belirleyin.`,
       };
-    } catch {
-      return { ok: false, message: "İlk yönetici kurulum servisine şu anda ulaşılamıyor." };
     }
+    return {
+      ok: false,
+      message: String(result.message || "İlk yönetici kurulum e-postası gönderilemedi."),
+    };
   }
 }

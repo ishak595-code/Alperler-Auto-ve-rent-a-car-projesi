@@ -18,29 +18,27 @@ import { AdminFirstAccessV239Service } from '../services/admin-first-access-v239
         <h1 id="admin-login-title" tabindex="-1">{{firstAccessMode() ? 'İlk Yönetici Kurulumu' : recoveryMode() ? 'Yeni Parola' : 'Admin Paneli'}}</h1>
         <p class="intro">
           {{firstAccessMode()
-            ? 'E-posta bağlantısı gerekmez. Tek kullanımlık kurulum kodunu ve yeni yönetici parolanızı bu ekranda girin.'
+            ? 'Kurulum e-postası yalnız kayıtlı ana yönetici adresine gönderilir. Bağlantıya tıklayınca bu ekranda yeni parolanızı belirlersiniz.'
             : recoveryMode()
               ? 'Yönetici kurtarma oturumu doğrulandı. Yeni parolanızı belirleyip güvenli yönetim oturumuna devam edin.'
               : 'Yalnız yönetim yetkisi tanımlı, doğrulanmış hesaplar giriş yapabilir.'}}
         </p>
 
         @if(firstAccessMode()) {
-          <form (ngSubmit)="completeFirstAccess()" novalidate aria-describedby="admin-first-access-help">
+          <form (ngSubmit)="sendFirstAccessEmail()" novalidate aria-describedby="admin-first-access-help">
             <label>
-              <span>Tek kullanımlık kurulum kodu</span>
-              <input name="setupCode" [(ngModel)]="setupCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" pattern="[0-9]*" aria-describedby="admin-first-access-help" required />
+              <span>Ana yönetici e-postası</span>
+              <input name="primaryAdminEmail" [ngModel]="primaryAdminEmail" type="email" autocomplete="username" readonly aria-readonly="true" aria-describedby="admin-first-access-help" />
             </label>
-            <label><span>Yeni yönetici parolası</span><input name="firstAccessPassword" [(ngModel)]="password" type="password" autocomplete="new-password" minlength="12" aria-describedby="admin-first-access-help" required /></label>
-            <label><span>Yeni parola tekrar</span><input name="firstAccessConfirmPassword" [(ngModel)]="confirmPassword" type="password" autocomplete="new-password" minlength="12" aria-describedby="admin-first-access-help" required /></label>
-            <p id="admin-first-access-help" class="password-note">Kurulum kodu 12 rakamdır. Parola en az 12 karakter olmalı ve büyük harf, küçük harf, rakam ve özel karakter içermelidir.</p>
-            <button type="submit" class="primary" [disabled]="working()">{{working()?'Güvenli kurulum yapılıyor…':'Yönetici Şifremi Oluştur'}}</button>
+            <p id="admin-first-access-help" class="password-note">E-posta {{primaryAdminEmail}} adresine gönderilir; başka bir adrese kurulum maili açılamaz. Gelen kutunuzdaki bağlantıyı açtıktan sonra en az 12 karakterlik güçlü bir parola belirleyin (büyük harf, küçük harf, rakam ve özel karakter).</p>
+            <button type="submit" class="primary" [disabled]="working()">{{working()?'Kurulum e-postası gönderiliyor…':'Kurulum E-postasını Gönder'}}</button>
           </form>
           <button type="button" class="recovery" (click)="cancelFirstAccess()" [disabled]="working()">Giriş ekranına dön</button>
         } @else if(recoveryMode()) {
-          <form (ngSubmit)="saveNewPassword()" novalidate>
-            <label><span>Yeni parola</span><input name="newPassword" [(ngModel)]="password" type="password" autocomplete="new-password" required /></label>
-            <label><span>Yeni parola tekrar</span><input name="confirmPassword" [(ngModel)]="confirmPassword" type="password" autocomplete="new-password" required /></label>
-            <p class="password-note">En az 10 karakter, bir büyük harf, bir küçük harf ve bir rakam kullanın.</p>
+          <form (ngSubmit)="saveNewPassword()" novalidate aria-describedby="admin-recovery-password-help">
+            <label><span>Yeni parola</span><input name="newPassword" [(ngModel)]="password" type="password" autocomplete="new-password" minlength="12" aria-describedby="admin-recovery-password-help" required /></label>
+            <label><span>Yeni parola tekrar</span><input name="confirmPassword" [(ngModel)]="confirmPassword" type="password" autocomplete="new-password" minlength="12" aria-describedby="admin-recovery-password-help" required /></label>
+            <p id="admin-recovery-password-help" class="password-note">Parola en az 12 karakter olmalı ve büyük harf, küçük harf, rakam ve özel karakter içermelidir.</p>
             <button type="submit" class="primary" [disabled]="working()">{{working()?'Kaydediliyor…':'Yeni Parolayı Kaydet'}}</button>
           </form>
           <button type="button" class="recovery" (click)="cancelRecovery()" [disabled]="working()">Giriş ekranına dön</button>
@@ -60,16 +58,16 @@ import { AdminFirstAccessV239Service } from '../services/admin-first-access-v239
         @if(message()){<p class="success" role="status" aria-live="polite">{{message()}}</p>}
         <p class="security">
           {{firstAccessMode()
-            ? 'İlk kurulum bu ekranın içinde tamamlanır. Kurulum kodu tek kullanımlıdır ve ham hali veritabanında saklanmaz.'
+            ? 'İlk kurulum e-posta doğrulamasıyla yapılır. Ham kurulum kodu veya service_role anahtarı tarayıcıya verilmez; bağlantı yalnız ana yönetici adresine gider.'
             : recoveryMode()
               ? 'Bu ekran yalnız Supabase Auth tarafından doğrulanan tek kullanımlık kurtarma oturumunda parola değiştirebilir.'
-              : 'Parola e-posta ile gönderilmez. İlk yönetici kurulumu tek kullanımlık kodla, sonraki parola yenilemeleri güvenli kurtarma oturumuyla yapılır.'}}
+              : 'Parola e-posta gövdesinde gönderilmez. İlk yönetici kurulumu ve parola yenilemeleri güvenli e-posta bağlantısıyla yapılır.'}}
         </p>
       </section>
     </main>
   `,
   styles: [`
-    :host{display:block}.page{min-height:100dvh;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at 50% 0,rgba(198,161,91,.08),transparent 32rem),#060a12;color:#f4f6f8;font-family:Inter,system-ui,sans-serif}.shell{width:min(100%,430px);border:1px solid #27364a;border-radius:24px;background:#0b1420;padding:clamp(20px,5vw,32px);box-shadow:0 28px 80px rgba(0,0,0,.38)}.brand{color:#f4f6f8;text-decoration:none;font:700 .82rem Georgia,serif;letter-spacing:.06em;text-transform:uppercase}.eyebrow{margin-top:2rem;color:#c6a15b;font-size:.62rem;font-weight:950;letter-spacing:.16em}h1{margin:.45rem 0 0;font:650 2.35rem/1.05 Georgia,serif}.intro,.security{color:#a2adba;line-height:1.65}.intro{font-size:.76rem;margin:.65rem 0 1.35rem}.security{margin:1.15rem 0 0;border-top:1px solid #27364a;padding-top:1rem;font-size:.63rem}form{display:grid;gap:.85rem}label{display:grid;gap:.35rem}label span{color:#a2adba;font-size:.64rem;font-weight:850}input{width:100%;min-height:50px;border:1px solid #27364a;border-radius:12px;background:#0e1724;padding:0 .8rem;color:#fff;font:inherit;outline:none}input:focus{border-color:#7899b8;box-shadow:0 0 0 3px rgba(120,153,184,.16)}button{min-height:48px;border-radius:11px;font:900 .76rem inherit}.primary{border:0;background:var(--alper-blue-light);color:#fff}.secondary-actions{display:grid;gap:.7rem;margin-top:.7rem}.first-access{width:100%;border:1px solid rgba(198,161,91,.55);background:rgba(198,161,91,.1);color:#f1d7a0}.recovery{width:100%;border:1px solid #27364a;background:transparent;color:#a2adba}.primary:disabled,.first-access:disabled,.recovery:disabled{opacity:.55}.password-note{margin:-.2rem 0 0;color:#9aa9bd;font-size:.61rem;line-height:1.5}.error,.success{margin:.8rem 0 0;border-radius:10px;padding:.75rem;font-size:.68rem;line-height:1.5}.error{border:1px solid rgba(248,113,113,.28);background:rgba(127,29,29,.15);color:#fecaca}.success{border:1px solid rgba(52,211,153,.24);background:rgba(6,78,59,.14);color:#a7f3d0}a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #7899b8;outline-offset:3px}
+    :host{display:block}.page{min-height:100dvh;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at 50% 0,rgba(198,161,91,.08),transparent 32rem),#060a12;color:#f4f6f8;font-family:Inter,system-ui,sans-serif}.shell{width:min(100%,430px);border:1px solid #27364a;border-radius:24px;background:#0b1420;padding:clamp(20px,5vw,32px);box-shadow:0 28px 80px rgba(0,0,0,.38)}.brand{color:#f4f6f8;text-decoration:none;font:700 .82rem Georgia,serif;letter-spacing:.06em;text-transform:uppercase}.eyebrow{margin-top:2rem;color:#c6a15b;font-size:.62rem;font-weight:950;letter-spacing:.16em}h1{margin:.45rem 0 0;font:650 2.35rem/1.05 Georgia,serif}.intro,.security{color:#a2adba;line-height:1.65}.intro{font-size:.76rem;margin:.65rem 0 1.35rem}.security{margin:1.15rem 0 0;border-top:1px solid #27364a;padding-top:1rem;font-size:.63rem}form{display:grid;gap:.85rem}label{display:grid;gap:.35rem}label span{color:#a2adba;font-size:.64rem;font-weight:850}input{width:100%;min-height:50px;border:1px solid #27364a;border-radius:12px;background:#0e1724;padding:0 .8rem;color:#fff;font:inherit;outline:none}input:focus{border-color:#7899b8;box-shadow:0 0 0 3px rgba(120,153,184,.16)}input[readonly]{opacity:.92;cursor:default;color:#d7dee8}button{min-height:48px;border-radius:11px;font:900 .76rem inherit}.primary{border:0;background:var(--alper-blue-light);color:#fff}.secondary-actions{display:grid;gap:.7rem;margin-top:.7rem}.first-access{width:100%;border:1px solid rgba(198,161,91,.55);background:rgba(198,161,91,.1);color:#f1d7a0}.recovery{width:100%;border:1px solid #27364a;background:transparent;color:#a2adba}.primary:disabled,.first-access:disabled,.recovery:disabled{opacity:.55}.password-note{margin:-.2rem 0 0;color:#9aa9bd;font-size:.61rem;line-height:1.5}.error,.success{margin:.8rem 0 0;border-radius:10px;padding:.75rem;font-size:.68rem;line-height:1.5}.error{border:1px solid rgba(248,113,113,.28);background:rgba(127,29,29,.15);color:#fecaca}.success{border:1px solid rgba(52,211,153,.24);background:rgba(6,78,59,.14);color:#a7f3d0}a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #7899b8;outline-offset:3px}
   `],
 })
 export class AdminLoginV218Component implements OnInit {
@@ -83,10 +81,12 @@ export class AdminLoginV218Component implements OnInit {
   readonly message=signal<string|null>(null);
   readonly recoveryMode=signal(false);
   readonly firstAccessMode=signal(false);
-  email='';password='';confirmPassword='';setupCode='';
+  email='';password='';confirmPassword='';
+  primaryAdminEmail='';
 
   async ngOnInit():Promise<void>{
     await this.auth.waitUntilReady();
+    this.primaryAdminEmail=this.firstAccess.primaryEmail();
     this.email=this.auth.getPrimaryAdminEmail();
     const requestedRecovery=this.route.snapshot.queryParamMap.get('recovery')==='1';
     if(requestedRecovery){
@@ -102,33 +102,25 @@ export class AdminLoginV218Component implements OnInit {
 
   openFirstAccess():void{
     if(this.working())return;
-    this.firstAccessMode.set(true);this.recoveryMode.set(false);this.error.set(null);this.message.set(null);this.password='';this.confirmPassword='';this.setupCode='';
+    this.firstAccessMode.set(true);this.recoveryMode.set(false);this.error.set(null);this.message.set(null);this.password='';this.confirmPassword='';
+    this.primaryAdminEmail=this.firstAccess.primaryEmail();
     queueMicrotask(()=>document.getElementById('admin-login-title')?.focus());
   }
 
   cancelFirstAccess():void{
     if(this.working())return;
-    this.firstAccessMode.set(false);this.setupCode='';this.password='';this.confirmPassword='';this.error.set(null);this.message.set(null);
+    this.firstAccessMode.set(false);this.password='';this.confirmPassword='';this.error.set(null);this.message.set(null);
     queueMicrotask(()=>document.getElementById('admin-login-title')?.focus());
   }
 
-  async completeFirstAccess():Promise<void>{
+  async sendFirstAccessEmail():Promise<void>{
     if(this.working()||!this.firstAccessMode())return;
     this.error.set(null);this.message.set(null);
-    const code=this.setupCode.replace(/\s+/g,'');
-    if(!/^\d{12}$/.test(code)){this.error.set('Kurulum kodu 12 rakam olmalı.');return;}
-    if(!this.password||!this.confirmPassword){this.error.set('Yeni parola alanlarını doldurun.');return;}
-    if(this.password!==this.confirmPassword){this.error.set('Yeni parolalar birbiriyle eşleşmiyor.');return;}
-    if(this.password.length<12||!/[a-zçğıöşü]/.test(this.password)||!/[A-ZÇĞİÖŞÜ]/.test(this.password)||!/[0-9]/.test(this.password)||! /[^A-Za-z0-9ÇĞİÖŞÜçğıöşü]/.test(this.password)){
-      this.error.set('Parola en az 12 karakter olmalı ve büyük harf, küçük harf, rakam ve özel karakter içermelidir.');return;
-    }
     this.working.set(true);
     try{
-      const result=await this.firstAccess.complete(code,this.password,this.confirmPassword);
-      if(!result.ok){this.error.set(result.message||'İlk yönetici kurulumu tamamlanamadı.');return;}
-      this.firstAccessMode.set(false);this.setupCode='';this.password='';this.confirmPassword='';this.email=this.auth.getPrimaryAdminEmail();
-      this.message.set('Yönetici şifresi oluşturuldu. Yeni şifrenizle giriş yapabilirsiniz.');
-      queueMicrotask(()=>document.getElementById('admin-login-title')?.focus());
+      const result=await this.firstAccess.requestSetupEmail();
+      if(!result.ok){this.error.set(result.message||'İlk yönetici kurulum e-postası gönderilemedi.');return;}
+      this.message.set(result.message);
     }finally{this.working.set(false);}
   }
 
@@ -165,6 +157,9 @@ export class AdminLoginV218Component implements OnInit {
     this.error.set(null);this.message.set(null);
     if(!this.password||!this.confirmPassword){this.error.set('Yeni parola alanlarını doldurun.');return;}
     if(this.password!==this.confirmPassword){this.error.set('Yeni parolalar birbiriyle eşleşmiyor.');return;}
+    if(this.password.length<12||!/[a-zçğıöşü]/.test(this.password)||!/[A-ZÇĞİÖŞÜ]/.test(this.password)||!/[0-9]/.test(this.password)||!/[^A-Za-z0-9ÇĞİÖŞÜçğıöşü]/.test(this.password)){
+      this.error.set('Parola en az 12 karakter olmalı ve büyük harf, küçük harf, rakam ve özel karakter içermelidir.');return;
+    }
     this.working.set(true);
     try{
       if(!await this.auth.changeCurrentPassword(this.password)){

@@ -30,6 +30,9 @@ assert(migration.includes("surface = 'MOBILE_MENU'")&&migration.includes("item_k
 assert(navbar.includes('routerLink="/admin/login"')&&navbar.includes('t().nav.adminLogin'),'hamburger admin login entry missing');
 assert(ui.includes('adminLogin: "Yönetici Girişi"'),'TR dictionary must keep nav.adminLogin');
 assert((adminLogin.includes('İlk giriş / Şifremi oluştur')||adminLogin.includes('İlk Yönetici Kurulumu'))&&adminLogin.includes('doFirstAccess()'),'secure first admin access action missing');
+assert(adminLogin.includes('requestSetupEmail')||adminLogin.includes('Kurulum E-postasını Gönder'),'legacy admin login first-access must use email setup path');
+assert(!adminLogin.includes('Tek kullanımlık kurulum kodu'),'legacy admin login must not keep the retired setup-code field');
 assert(adminAuth.includes('`${this.adminLoginRedirect()}?recovery=1`'),'admin password recovery does not return to admin password-set flow');
+assert(adminAuth.includes('password.length < 12')||adminAuth.includes('Şifre en az 12 karakter olmalı.'),'admin password strength must require 12+ characters');
 for(const forbidden of ['passwordlessAdmin','bypassAdmin','skipAdminAuth','adminWithoutPassword']) assert(!navbar.includes(forbidden)&&!adminLogin.includes(forbidden)&&!adminAuth.includes(forbidden),`unsafe admin bypass marker present: ${forbidden}`);
 if(!process.exitCode)console.log('V238 profile/navigation integrity guard passed.');

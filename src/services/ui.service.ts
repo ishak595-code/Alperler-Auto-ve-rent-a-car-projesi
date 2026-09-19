@@ -220,6 +220,17 @@ export class UiService {
         contact: "İletişim",
         blog: "Blog",
         corporate: "Kurumsal",
+        campaigns: "Kampanyalar",
+        appointment: "Randevu",
+        branches: "Şubeler",
+        branchPartner: "Bayilik Başvurusu",
+        search: "Katalog",
+        account: "Profil",
+        faq: "Sık Sorulan Sorular",
+        legal: "Yasal Bilgilendirmeler",
+        fleetShort: "Kiralık",
+        salesShort: "Satılık",
+        campaignsShort: "Fırsatlar",
          brandSub: "Kiralama • Satış • Tur",
          mainAria: "Ana navigasyon",
          homeAria: "Alperler Rent A Car ana sayfa",
@@ -424,8 +435,11 @@ export class UiService {
       footer: {
         rights: "Tüm Hakları Saklıdır.",
         support: "7/24 Canlı Destek",
+        servicesTitle: "Hizmetlerimiz",
         corporate: "Kurumsal",
+        corporateTitle: "Alperler Auto",
         legal: "Yasal",
+        legalTitle: "Yasal",
         newsletter: "Bülten Aboneliği",
         newsletterSub:
           "Kampanyalardan ve yeni araçlardan haberdar olmak için ücretsiz abone olun.",
@@ -733,10 +747,25 @@ export class UiService {
         removeFromFav: "Favorilerden Çıkar",
          skipToContent: "İçeriğe geç",
          whatsappDefault: "Merhaba, detaylı bilgi almak istiyorum.",
+         whatsappFabAria: "WhatsApp ile yazın",
          siteBrandFallback: "Alperler Rent A Car",
        },
         dock: {
-          ariaLabel: "Alt hızlı menü"
+          ariaLabel: "Alt hızlı menü",
+          items: {
+            fleet: "Kiralık",
+            sales: "Satılık",
+            search: "Katalog",
+            campaigns: "Fırsatlar",
+            account: "Profil",
+            home: "Ana Sayfa",
+            appointment: "Randevu",
+            tours: "Turlar",
+            branches: "Şubeler",
+            contact: "İletişim",
+            about: "Hakkımızda",
+            blog: "Blog",
+          }
         },
         catalog: {
           backAria: "Geri dön",
@@ -1344,6 +1373,16 @@ export class UiService {
         },
         prefooter: {
           trustAria: "Hizmet güven bilgileri",
+          badge: "Size Uygun Sonraki Adım",
+          title: "Planınızı Birlikte Netleştirelim",
+          description: "Araç kiralama, ikinci el araç, tur, transfer, randevu veya aracınızı değerlendirme konusunda hangi adımın size uygun olduğunu birlikte netleştirin.",
+          primaryLabel: "Bize Ulaşın",
+          secondaryLabel: "Randevu Oluştur",
+          trustItems: [
+            "Kiralama, satış, tur ve transfer tek ekipte",
+            "WhatsApp ve telefon desteği",
+            "Güncel filo ve şube seçenekleriyle ihtiyacınıza net cevap",
+          ],
         },
         loyaltyPanel: {
           panelAria: "Sadakat puanı kullanımı",
@@ -1925,6 +1964,106 @@ export class UiService {
           branchCardCtaLabel: "Şubeyi Keşfet",
           partnerCtaTitle: "Kendi bölgenizde Alperler Auto ile büyümek ister misiniz?",
           partnerCtaLabel: "Bayilik Başvurusu",
+          defaultDescription: "Planınıza ekstra avantaj katacak seçili fırsatlar burada. Süre dolmadan size uyan kampanyayı yakalayın, gerçek fiyat avantajını görün ve tek dokunuşla detayına geçin.",
+          sections: {
+            campaigns: {
+              title: "Aktif Fırsatlar",
+              badge: "KAÇIRMADAN İNCELE",
+              description: "Planınıza ekstra avantaj katacak seçili fırsatlar burada. Süre dolmadan size uyan kampanyayı yakalayın, gerçek fiyat avantajını görün ve tek dokunuşla detayına geçin.",
+            },
+            services: {
+              title: "Hizmetlerimiz",
+              badge: "ALPERLER AUTO",
+              description: "Kiralama, satış, tur ve transfer — ihtiyacınıza uygun adımı tek yerden planlayın.",
+            },
+            "why-us": {
+              title: "Neden Biz",
+              badge: "GÜVENİNİZİ KAZANDIK",
+              description: "Net fiyat, yerel ekip ve bakımlı filo ile yolculuğunuzu güvenle planlayın.",
+            },
+            why_us: {
+              title: "Neden Biz",
+              badge: "GÜVENİNİZİ KAZANDIK",
+              description: "Net fiyat, yerel ekip ve bakımlı filo ile yolculuğunuzu güvenle planlayın.",
+            },
+            kirala: {
+              title: "Kirala",
+              badge: "HIZLI KİRALAMA",
+              description: "Size uygun aracı seçin, tarihleri netleştirin ve dakikalar içinde yola çıkın.",
+            },
+            rent: {
+              title: "Kirala",
+              badge: "HIZLI KİRALAMA",
+              description: "Size uygun aracı seçin, tarihleri netleştirin ve dakikalar içinde yola çıkın.",
+            },
+            featured: {
+              title: "Öne Çıkan Araçlar",
+              badge: "KİRALIK ARAÇLAR",
+              description: "Bakımlı, net fiyatlı ve hemen kullanılabilir seçenekler.",
+            },
+            rental: {
+              title: "Kiralık Araçlar",
+              badge: "KİRALIK",
+              description: "Günlük iş veya tatil planınız için bakımlı araçlar.",
+            },
+            sales: {
+              title: "Satılık Araçlar",
+              badge: "İKİNCİ EL",
+              description: "Şeffaf geçmişli, ekspertizli ikinci el seçenekler.",
+            },
+            tours: {
+              title: "Turlar",
+              badge: "KEŞFET",
+              description: "Bölgesel rotalar ve özel gün deneyimleri.",
+            },
+            branches: {
+              title: "Şubeler",
+              badge: "YAKININIZDA",
+              description: "Teslim alma ve iade noktalarını keşfedin.",
+            },
+            blog: {
+              title: "Blog",
+              badge: "YOL REHBERİ",
+              description: "Seyahat ve araç seçimi için pratik öneriler.",
+            },
+            partner: {
+              title: "Aracını Değerlendir",
+              badge: "ARAÇ SAHİPLERİ",
+              description: "Aracınızı satış veya kiralama için değerlendirmeye gönderin.",
+            },
+          },
+          byType: {
+            CAMPAIGN: {
+              title: "Aktif Fırsatlar",
+              badge: "KAÇIRMADAN İNCELE",
+              description: "Planınıza ekstra avantaj katacak seçili fırsatlar burada. Süre dolmadan size uyan kampanyayı yakalayın, gerçek fiyat avantajını görün ve tek dokunuşla detayına geçin.",
+            },
+            VEHICLES_RENTAL: {
+              title: "Kiralık Araçlar",
+              badge: "KİRALIK",
+              description: "Günlük iş veya tatil planınız için bakımlı araçlar.",
+            },
+            VEHICLES_SALE: {
+              title: "Satılık Araçlar",
+              badge: "İKİNCİ EL",
+              description: "Şeffaf geçmişli, ekspertizli ikinci el seçenekler.",
+            },
+            TOURS: {
+              title: "Turlar",
+              badge: "KEŞFET",
+              description: "Bölgesel rotalar ve özel gün deneyimleri.",
+            },
+            BLOG: {
+              title: "Blog",
+              badge: "YOL REHBERİ",
+              description: "Seyahat ve araç seçimi için pratik öneriler.",
+            },
+            CUSTOM: {
+              title: "Hizmetlerimiz",
+              badge: "ALPERLER AUTO",
+              description: "Kiralama, satış, tur ve transfer — ihtiyacınıza uygun adımı tek yerden planlayın.",
+            },
+          },
         },
         campaignsPage: {
           backAria: "Kampanyalardan geri dön",
@@ -3018,6 +3157,92 @@ export class UiService {
     }
   }
 
+
+
+  /** Public chrome label for nav/dock itemKey. Prefer UiService; fallback to admin/DB label. */
+  publicNavLabel(itemKey: string, fallback: string, surface: "MOBILE_MENU" | "MOBILE_DOCK" = "MOBILE_MENU"): string {
+    const t = this.translations() as any;
+    const key = String(itemKey || "").trim();
+    if (!key) return fallback;
+    if (surface === "MOBILE_DOCK") {
+      const dockLabel = t?.dock?.items?.[key];
+      if (typeof dockLabel === "string" && dockLabel.trim()) return dockLabel.trim();
+    }
+    const nav = t?.nav || {};
+    const map: Record<string, unknown> = {
+      home: nav.home,
+      fleet: surface === "MOBILE_DOCK" ? (nav.fleetShort || nav.fleet) : nav.fleet,
+      sales: surface === "MOBILE_DOCK" ? (nav.salesShort || nav.sales) : nav.sales,
+      tours: nav.tours,
+      earn: nav.earn,
+      "list-car": nav.earn,
+      about: nav.about,
+      contact: nav.contact,
+      blog: nav.blog,
+      corporate: nav.corporate,
+      campaigns: surface === "MOBILE_DOCK" ? (nav.campaignsShort || nav.campaigns) : nav.campaigns,
+      appointment: nav.appointment,
+      branches: nav.branches,
+      "branch-partner": nav.branchPartner,
+      search: nav.search,
+      account: nav.account,
+      faq: nav.faq,
+      legal: nav.legal,
+    };
+    const mapped = map[key];
+    if (typeof mapped === "string" && mapped.trim()) return mapped.trim();
+    return fallback;
+  }
+
+  /** Homepage section chrome: when lang!==TR prefer UiService keys over admin TR leftovers. */
+  publicSectionChrome(
+    sectionKey: string,
+    sectionType: string,
+    kind: "title" | "badge" | "description",
+    adminValue: string,
+    category?: string,
+  ): string {
+    const lang = this.currentLang();
+    const t = this.translations() as any;
+    const hs = t?.homeSection || {};
+    const byKey = hs?.sections?.[sectionKey];
+    let typeKey = String(sectionType || "").toUpperCase();
+    if (typeKey === "VEHICLES") {
+      typeKey = String(category || "").toUpperCase() === "SALE" ? "VEHICLES_SALE" : "VEHICLES_RENTAL";
+    }
+    const byType = hs?.byType?.[typeKey];
+    const fromKey = byKey && typeof byKey[kind] === "string" ? String(byKey[kind]).trim() : "";
+    const fromType = byType && typeof byType[kind] === "string" ? String(byType[kind]).trim() : "";
+    const packValue = fromKey || fromType;
+    const admin = String(adminValue || "").trim();
+    if (lang !== "TR") {
+      if (packValue) return packValue;
+      return admin; // unknown custom chrome without pack key
+    }
+    return admin || packValue;
+  }
+
+  /** Prefooter chrome: admin TR stays live only for TR; other langs use UiService. */
+  publicPrefooterChrome(): {
+    badge: string;
+    title: string;
+    description: string;
+    primaryLabel: string;
+    secondaryLabel: string;
+    trustItems: string[];
+  } {
+    const t = this.translations() as any;
+    const pf = t?.prefooter || {};
+    const packTrust = Array.isArray(pf.trustItems) ? pf.trustItems.map(String).filter(Boolean) : [];
+    return {
+      badge: String(pf.badge || ""),
+      title: String(pf.title || ""),
+      description: String(pf.description || ""),
+      primaryLabel: String(pf.primaryLabel || ""),
+      secondaryLabel: String(pf.secondaryLabel || ""),
+      trustItems: packTrust,
+    };
+  }
 
   private carService = inject(CarService);
 

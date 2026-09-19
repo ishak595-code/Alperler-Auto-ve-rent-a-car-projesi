@@ -12,9 +12,9 @@ import { UiService } from '../services/ui.service';
     @if(visible()){
       <section class="prefooter" aria-labelledby="prefooter-v174-title">
         <div class="shell">
-          <div class="copy"><p>{{settings().badge}}</p><h2 id="prefooter-v174-title">{{settings().title}}</h2><span>{{settings().description}}</span></div>
-          <div class="actions"><a class="primary" [routerLink]="settings().primaryRoute">{{settings().primaryLabel}} <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>@if(settings().secondaryLabel&&settings().secondaryRoute){<a class="secondary" [routerLink]="settings().secondaryRoute">{{settings().secondaryLabel}}</a>}</div>
-          @if(settings().trustItems.length){<ul class="trust" [attr.aria-label]="t().prefooter.trustAria">@for(item of settings().trustItems;track item){<li><mat-icon aria-hidden="true">check_circle</mat-icon><span>{{item}}</span></li>}</ul>}
+          <div class="copy"><p>{{chrome().badge}}</p><h2 id="prefooter-v174-title">{{chrome().title}}</h2><span>{{chrome().description}}</span></div>
+          <div class="actions"><a class="primary" [routerLink]="settings().primaryRoute">{{chrome().primaryLabel}} <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>@if(chrome().secondaryLabel&&settings().secondaryRoute){<a class="secondary" [routerLink]="settings().secondaryRoute">{{chrome().secondaryLabel}}</a>}</div>
+          @if(chrome().trustItems.length){<ul class="trust" [attr.aria-label]="t().prefooter.trustAria">@for(item of chrome().trustItems;track item){<li><mat-icon aria-hidden="true">check_circle</mat-icon><span>{{item}}</span></li>}</ul>}
         </div>
       </section>
     }
@@ -26,5 +26,6 @@ import { UiService } from '../services/ui.service';
 export class CustomerPrefooterV174Component{
   private readonly footer=inject(FooterSettingsService);private readonly router=inject(Router);private readonly ui=inject(UiService);readonly t=this.ui.translations;private readonly path=signal(this.router.url.split('?')[0]);readonly settings=this.footer.prefooter;
   readonly visible=computed(()=>{const cfg=this.settings();if(!cfg.isEnabled)return false;const home=this.path()==='/';return home?cfg.showOnHome:cfg.showOnInner;});
+  readonly chrome=computed(()=>{const admin=this.settings();const pack=this.ui.publicPrefooterChrome();if(this.ui.currentLang()==='TR')return{badge:admin.badge,title:admin.title,description:admin.description,primaryLabel:admin.primaryLabel,secondaryLabel:admin.secondaryLabel,trustItems:admin.trustItems};return{badge:pack.badge||admin.badge,title:pack.title||admin.title,description:pack.description||admin.description,primaryLabel:pack.primaryLabel||admin.primaryLabel,secondaryLabel:pack.secondaryLabel||admin.secondaryLabel,trustItems:(pack.trustItems&&pack.trustItems.length)?pack.trustItems:admin.trustItems};});
   constructor(){this.router.events.pipe(filter(event=>event instanceof NavigationEnd)).subscribe(()=>this.path.set(this.router.url.split('?')[0]));}
 }

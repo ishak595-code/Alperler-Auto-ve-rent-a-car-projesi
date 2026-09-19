@@ -25,11 +25,11 @@ import { UiService } from "../services/ui.service";
             [class.dock-primary]="isPrimary(item)"
             [class.dock-active]="isCurrent(item.route)"
             [attr.aria-current]="isCurrent(item.route) ? 'page' : null"
-            [attr.aria-label]="item.label"
+            [attr.aria-label]="dockLabel(item)"
             [attr.data-dock-item]="item.itemKey"
           >
             <span class="dock-icon-shell" aria-hidden="true"><mat-icon>{{ item.icon }}</mat-icon></span>
-            <span class="dock-label">{{ item.label }}</span>
+            <span class="dock-label">{{ dockLabel(item) }}</span>
           </a>
         }
       </nav>
@@ -85,6 +85,8 @@ export class CustomerMobileDockComponent {
   isCurrent(route: string): boolean {
     return isDockItemCurrent(this.currentUrl(), route);
   }
+
+  dockLabel(item: NavigationItem): string { return this.ui.publicNavLabel(item.itemKey, item.label, "MOBILE_DOCK"); }
 
   isPrimary(item: NavigationItem): boolean {
     return item.itemKey === "search";

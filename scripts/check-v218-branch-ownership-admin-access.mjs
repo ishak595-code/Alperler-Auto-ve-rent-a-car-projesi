@@ -56,8 +56,10 @@ requireText(adminLogin,"queryParamMap.get('recovery')==='1'",'admin login must r
 requireText(adminRecovery,"/admin/login?recovery=1",'admin recovery email must return to the dedicated admin surface');
 forbidText(adminRecovery,'/account/login','admin recovery must never route through customer account recovery');
 requireText(adminLogin,'AdminFirstAccessV239Service','admin UI must support only the dedicated owner first-access service');
-requireText(adminLogin,'this.firstAccess.complete(code','owner first access must pass through the dedicated V239 service');
-requireText(adminLogin,'Tek kullanımlık kurulum kodu','owner first access must require the one-time setup code');
+requireText(adminLogin,'this.firstAccess.requestSetupEmail','owner first access must request the primary-admin setup email');
+requireText(adminLogin,'Kurulum E-postasını Gönder','owner first access must offer the setup email action');
 requireText(adminLogin,'İlk Yönetici Kurulumu','owner first access must be explicitly separated from normal login');
+forbidText(adminLogin,'Tek kullanımlık kurulum kodu','owner first access must not expose the retired setup-code field');
+forbidText(adminLogin,'this.firstAccess.complete','owner first access must not call the retired setup-code complete path');
 for(const forbidden of ['registerPrimaryAdmin','signup','Kayıt Ol','signInWithProvider','loginWithGoogle'])forbidText(adminLogin,forbidden,`admin login must not expose generic registration/social path: ${forbidden}`);
-console.log('V218 branch/admin invariant passed with dedicated V239 owner first access.');
+console.log('V218 branch/admin invariant passed with email-first V239 owner first access.');

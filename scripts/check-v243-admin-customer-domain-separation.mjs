@@ -9,6 +9,7 @@ const operations=read('src/services/admin-operations.service.ts');
 const partner=read('api/partner.ts');
 const adminSettings=read('src/pages/admin/admin-settings-v241.component.ts');
 const accountShell=read('src/pages/account-shell.component.ts');
+const ui=read('src/services/ui.service.ts');
 const profileUi=read('src/components/account-profile-settings-v241.component.ts');
 const migration=read('supabase/migrations/20260903172000_v243_admin_customer_domain_separation.sql');
 const serviceWorker=read('public/service-worker.js');
@@ -47,7 +48,8 @@ assert(adminSettings.includes("saveSection('brand')")&&adminSettings.includes("s
 assert(adminSettings.includes('this.openPanel.set(null)'),'admin panel does not collapse after successful save');
 
 assert(accountShell.includes("type AccountSection = 'overview' | 'favorites' | 'profile' | 'referral'"),'customer referral does not own a top-level account section');
-assert(accountShell.includes("[queryParams]=\"{section:'referral'}\"")&&accountShell.includes('Arkadaşını Davet Et · Sen de Kazan'),'referral is not promoted into the canonical customer top navigation');
+assert(accountShell.includes("[queryParams]=\"{section:'referral'}\"")&&accountShell.includes('t().accountShell.referral'),'referral is not promoted into the canonical customer top navigation');
+assert(ui.includes('referral: "Arkadaşını Davet Et · Sen de Kazan"'),'TR dictionary must keep accountShell.referral');
 assert(accountShell.includes("@case ('referral') { <app-account-referral-v241>"),'referral section does not render its canonical component');
 const defaultBlock=accountShell.slice(accountShell.indexOf('@default {'),accountShell.indexOf('</section>',accountShell.indexOf('@default {')));
 assert(!defaultBlock.includes('app-account-referral-v241'),'referral still duplicates inside overview');

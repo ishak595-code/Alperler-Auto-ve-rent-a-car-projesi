@@ -7,6 +7,7 @@ const operations=read('src/services/admin-operations.service.ts');
 const partner=read('api/partner.ts');
 const profileService=read('src/services/customer-profile-v241.service.ts');
 const profileUi=read('src/components/account-profile-settings-v241.component.ts');
+const ui=read('src/services/ui.service.ts');
 const referral=read('src/components/account-referral-v241.component.ts');
 const accountShell=read('src/pages/account-shell.component.ts');
 const adminSettings=read('src/pages/admin/admin-settings-v241.component.ts');
@@ -31,7 +32,8 @@ assert(!profileService.includes('SERVICE_ROLE'),'server credential leaked into c
 
 assert(profileUi.includes("type ProfilePanelV241='avatar'|'info'|'security'|null"),'customer profile is not a one-open-panel accordion');
 assert(profileUi.includes('readonly profileSaving=signal(false)')&&profileUi.includes('readonly avatarSaving=signal(false)'),'avatar and text saves are not independent');
-assert(profileUi.includes("this.openPanel.set(null)")&&profileUi.includes('Profil bilgileriniz kaydedildi.'),'profile save does not collapse after success');
+assert(profileUi.includes("this.openPanel.set(null)")&&profileUi.includes('t().accountProfile.msgSaved'),'profile save does not collapse after success');
+assert(ui.includes('msgSaved: "Profil bilgileriniz kaydedildi."'),'TR dictionary must keep accountProfile.msgSaved');
 assert(profileUi.includes('async logout()'),'logout is not owned by profile settings');
 assert(profileUi.includes('aria-expanded'),'profile accordion is not exposed accessibly');
 assert(profileUi.includes('type="file"'),'customer avatar is no longer file-driven');

@@ -25,7 +25,7 @@ import { UiService } from "../services/ui.service";
             [class.dock-primary]="isPrimary(item)"
             [class.dock-active]="isCurrent(item.route)"
             [attr.aria-current]="isCurrent(item.route) ? 'page' : null"
-            [attr.aria-label]="dockLabel(item)"
+            [attr.aria-label]="item.label"
             [attr.data-dock-item]="item.itemKey"
           >
             <span class="dock-icon-shell" aria-hidden="true"><mat-icon>{{ item.icon }}</mat-icon></span>

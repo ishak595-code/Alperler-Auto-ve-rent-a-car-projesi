@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { AuthService } from './auth.service';
+import { describeStorageError, mediaExtension, mediaRejectionReason, resolveMediaType } from './media-file.util';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
 
 export type FleetOperationalStatus = 'READY'|'RESERVED'|'RENTED'|'CLEANING'|'MAINTENANCE'|'INSPECTION_HOLD'|'OUT_OF_SERVICE';
@@ -19,12 +20,15 @@ export interface FleetOperationProfile {
 export interface FleetInspectionInput {
   vehicleId:string; bookingId?:string|null; inspectionType:InspectionType; odometerKm?:number|null; fuelPercent?:number|null;
   cleanlinessStatus?:Exclude<FleetCleanliness,'UNKNOWN'>|null; exteriorStatus?:'OK'|'DAMAGE_NOTED'|'REQUIRES_SERVICE'|null;
-  interiorStatus?:'OK'|'DAMAGE_NOTED'|'REQUIRES_CLEANING'|null; damageNotes?:string;
+  interiorStatus?:'OK'|'DAMAGE_NOTED'|'REQUIRES_CLEANING'|null; damageNotes?:string; photoPaths?:string[];
 }
+
+export const INSPECTION_TYPES_REQUIRING_MEDIA:InspectionType[]=['PRE_RENTAL','HANDOVER','RETURN'];
 
 @Injectable({providedIn:'root'})
 export class FleetOperationsService {
   private readonly auth=inject(AuthService);
+  private readonly mediaBucket='vehicle-media';
   private readonly operationSelect='vehicle_id,operational_status,odometer_km,fuel_percent,cleanliness_status,last_inspection_at,last_service_at,next_service_at,next_service_km,insurance_expires_at,periodic_inspection_expires_at,damage_notes,internal_notes,gps_provider,gps_device_id,gps_status,gps_last_sync_at,last_known_latitude,last_known_longitude';
   private readonly _vehicles=signal<FleetVehicle[]>([]);
   private readonly _profiles=signal<Record<string,FleetOperationProfile>>({});
@@ -53,10 +57,98 @@ export class FleetOperationsService {
     await this.rest('POST','vehicle_operations?on_conflict=vehicle_id',body,token,'resolution=merge-duplicates'); await this.refresh();
   }
 
+  requiresHandoverMedia(type:InspectionType):boolean{
+    return INSPECTION_TYPES_REQUIRING_MEDIA.includes(type);
+  }
+
+  async resolveBookingId(referenceOrId:string):Promise<string|null>{
+    const value=this.clean(referenceOrId,80);
+    if(!value)return null;
+    const token=await this.requiredToken();
+    const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+    const filter=uuid
+      ?`id=eq.${encodeURIComponent(value)}`
+      :`reference=eq.${encodeURIComponent(value)}`;
+    const rows=await this.rest<Array<{id:string}>>('GET',`bookings?${filter}&deleted_at=is.null&select=id&limit=1`,undefined,token);
+    return rows[0]?.id||null;
+  }
+
   async addInspection(input:FleetInspectionInput):Promise<void>{
-    const token=await this.requiredToken(); const body={vehicle_id:input.vehicleId,booking_id:input.bookingId||null,inspection_type:input.inspectionType,odometer_km:this.numberOrNull(input.odometerKm),fuel_percent:this.rangeOrNull(input.fuelPercent,0,100),cleanliness_status:input.cleanlinessStatus||null,exterior_status:input.exteriorStatus||null,interior_status:input.interiorStatus||null,damage_notes:this.clean(input.damageNotes||'',5000)||null,checklist:{source:'ADMIN_FLEET_OPERATIONS'}};
+    const token=await this.requiredToken();
+    const photoPaths=Array.isArray(input.photoPaths)?input.photoPaths.map((p)=>String(p||'').trim()).filter(Boolean).slice(0,20):[];
+    const requiresMedia=this.requiresHandoverMedia(input.inspectionType);
+    if(requiresMedia){
+      if(this.numberOrNull(input.odometerKm)==null){
+        throw new Error('Teslim öncesi, teslim ve iade kontrollerinde kilometre zorunludur.');
+      }
+      if(this.rangeOrNull(input.fuelPercent,0,100)==null){
+        throw new Error('Teslim öncesi, teslim ve iade kontrollerinde yakıt seviyesi (0–100) zorunludur.');
+      }
+      if(photoPaths.length===0){
+        throw new Error('Teslim öncesi, teslim ve iade kontrolleri için en az bir fotoğraf zorunludur.');
+      }
+    }
+    const body={
+      vehicle_id:input.vehicleId,
+      booking_id:input.bookingId||null,
+      inspection_type:input.inspectionType,
+      odometer_km:this.numberOrNull(input.odometerKm),
+      fuel_percent:this.rangeOrNull(input.fuelPercent,0,100),
+      cleanliness_status:input.cleanlinessStatus||null,
+      exterior_status:input.exteriorStatus||null,
+      interior_status:input.interiorStatus||null,
+      damage_notes:this.clean(input.damageNotes||'',5000)||null,
+      photo_paths:photoPaths,
+      checklist:{
+        source:'ADMIN_FLEET_OPERATIONS',
+        mediaRequired:requiresMedia,
+        mediaCount:photoPaths.length,
+        bookingLinked:Boolean(input.bookingId),
+      },
+    };
     await this.rest('POST','vehicle_inspections',body,token);
-    const profile=this.profileFor(this._vehicles().find((v)=>v.id===input.vehicleId)!); profile.odometerKm=body.odometer_km??profile.odometerKm; profile.fuelPercent=body.fuel_percent??profile.fuelPercent; if(body.cleanliness_status)profile.cleanlinessStatus=body.cleanliness_status as FleetCleanliness; profile.lastInspectionAt=new Date().toISOString(); if(body.damage_notes)profile.damageNotes=body.damage_notes; await this.save(profile);
+    const vehicle=this._vehicles().find((v)=>v.id===input.vehicleId);
+    if(!vehicle)return;
+    const profile=this.profileFor(vehicle);
+    profile.odometerKm=body.odometer_km??profile.odometerKm;
+    profile.fuelPercent=body.fuel_percent??profile.fuelPercent;
+    if(body.cleanliness_status)profile.cleanlinessStatus=body.cleanliness_status as FleetCleanliness;
+    profile.lastInspectionAt=new Date().toISOString();
+    if(body.damage_notes)profile.damageNotes=body.damage_notes;
+    if(input.inspectionType==='HANDOVER')profile.operationalStatus='RENTED';
+    if(input.inspectionType==='RETURN')profile.operationalStatus='CLEANING';
+    if(input.inspectionType==='PRE_RENTAL')profile.operationalStatus='READY';
+    await this.save(profile);
+  }
+
+  async uploadInspectionMedia(vehicleId:string, file:File):Promise<string>{
+    // vehicle-media bucket accepts images only; no speculative migrations for video.
+    const reason=mediaRejectionReason(file,{video:false});
+    if(reason) throw new Error(reason);
+    const token=await this.requiredToken();
+    const mediaType=resolveMediaType(file);
+    const extension=mediaExtension(mediaType,file);
+    const safeVehicle=(vehicleId||'vehicle').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,64)||'vehicle';
+    const nonce=typeof crypto!=='undefined'&&'randomUUID' in crypto?crypto.randomUUID():`${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const objectPath=`inspections/${safeVehicle}/${Date.now()}-${nonce}.${extension}`;
+    const encoded=objectPath.split('/').map(encodeURIComponent).join('/');
+    const response=await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/${this.mediaBucket}/${encoded}`,{
+      method:'POST',
+      headers:{
+        apikey:SUPABASE_PUBLISHABLE_KEY,
+        authorization:`Bearer ${token}`,
+        'content-type':mediaType||file.type||'application/octet-stream',
+        'cache-control':'31536000',
+        'x-upsert':'false',
+      },
+      body:file,
+      cache:'no-store',
+    });
+    if(!response.ok){
+      const payload=await response.json().catch(()=>({}));
+      throw new Error(describeStorageError(response.status,payload,'Kontrol fotoğrafı yüklenemedi'));
+    }
+    return `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${this.mediaBucket}/${encoded}`;
   }
 
   private fromRow(row:any):FleetOperationProfile{return{vehicleId:String(row.vehicle_id),operationalStatus:row.operational_status as FleetOperationalStatus,odometerKm:row.odometer_km==null?null:Number(row.odometer_km),fuelPercent:row.fuel_percent==null?null:Number(row.fuel_percent),cleanlinessStatus:row.cleanliness_status as FleetCleanliness,lastInspectionAt:row.last_inspection_at||null,lastServiceAt:row.last_service_at||null,nextServiceAt:row.next_service_at||null,nextServiceKm:row.next_service_km==null?null:Number(row.next_service_km),insuranceExpiresAt:row.insurance_expires_at||null,periodicInspectionExpiresAt:row.periodic_inspection_expires_at||null,damageNotes:String(row.damage_notes||''),internalNotes:String(row.internal_notes||''),gpsProvider:String(row.gps_provider||''),gpsDeviceId:String(row.gps_device_id||''),gpsStatus:row.gps_status as FleetGpsStatus,gpsLastSyncAt:row.gps_last_sync_at||null,lastKnownLatitude:row.last_known_latitude==null?null:Number(row.last_known_latitude),lastKnownLongitude:row.last_known_longitude==null?null:Number(row.last_known_longitude)};}

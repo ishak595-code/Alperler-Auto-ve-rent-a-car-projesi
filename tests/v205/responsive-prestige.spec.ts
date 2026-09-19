@@ -3,6 +3,13 @@ import { expect, test } from "@playwright/test";
 const phoneProjects = new Set(["android-phone", "iphone-webkit", "android-landscape-phone"]);
 const tabletProjects = new Set(["ipad-mini-webkit", "android-tablet"]);
 
+/** Pin UI to TR so dock/menu aria contracts stay stable under CI navigator.languages → EN. */
+async function forceTurkishUi(page: import("@playwright/test").Page): Promise<void> {
+  await page.addInitScript(() => {
+    localStorage.setItem("alperler-language", "TR");
+  });
+}
+
 async function noHorizontalOverflow(page: import("@playwright/test").Page): Promise<boolean> {
   return page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2);
 }
@@ -16,9 +23,12 @@ async function settle(page: import("@playwright/test").Page): Promise<void> {
 }
 
 test("device class keeps the intended navigation and conversion hierarchy", async ({ page }, testInfo) => {
+  await forceTurkishUi(page);
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
+  // Presence: language-agnostic CSS selector (works in any locale).
   const dock = page.locator("nav.customer-command-dock");
+  // Turkish aria name/labels asserted only after forced TR above.
   const accessibleDock = page.getByRole("navigation", { name: "Alt hızlı menü" });
   const planner = page.locator("app-home-v71 .planner");
   const trust = page.locator("app-home-v71 .trust-row");
@@ -68,6 +78,7 @@ test("device class keeps the intended navigation and conversion hierarchy", asyn
 test("phone dock leaves the accessibility tree on downward scroll and returns on upward scroll", async ({ page }, testInfo) => {
   test.skip(!phoneProjects.has(testInfo.project.name), "Phone-class behavior only.");
 
+  await forceTurkishUi(page);
   await page.goto("/", { waitUntil: "domcontentloaded" });
   const dock = page.locator("nav.customer-command-dock");
   const accessibleDock = page.getByRole("navigation", { name: "Alt hızlı menü" });

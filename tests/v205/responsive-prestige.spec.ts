@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../helpers/fixtures";
+import { forceTurkishUi } from "../helpers/force-turkish-ui";
 
 const phoneProjects = new Set(["android-phone", "iphone-webkit", "android-landscape-phone"]);
 const tabletProjects = new Set(["ipad-mini-webkit", "android-tablet"]);
@@ -16,9 +17,12 @@ async function settle(page: import("@playwright/test").Page): Promise<void> {
 }
 
 test("device class keeps the intended navigation and conversion hierarchy", async ({ page }, testInfo) => {
+  await forceTurkishUi(page);
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
+  // Presence: language-agnostic CSS selector (works in any locale).
   const dock = page.locator("nav.customer-command-dock");
+  // Turkish aria name/labels asserted only after forced TR above.
   const accessibleDock = page.getByRole("navigation", { name: "Alt hızlı menü" });
   const planner = page.locator("app-home-v71 .planner");
   const trust = page.locator("app-home-v71 .trust-row");
@@ -33,7 +37,7 @@ test("device class keeps the intended navigation and conversion hierarchy", asyn
     await expect(dock.locator("a.dock-action")).toHaveCount(5);
     await expect(dock.locator('a[href="/fleet"]')).toHaveAttribute("aria-label", "Kiralık");
     await expect(dock.locator('a[href="/sales"]')).toHaveAttribute("aria-label", "Satılık");
-    await expect(dock.locator('a[href="/search"]')).toHaveAttribute("aria-label", "Ara");
+    await expect(dock.locator('a[href="/search"]')).toHaveAttribute("aria-label", "Katalog");
     await expect(dock.locator('a[href="/campaigns"]')).toHaveAttribute("aria-label", "Fırsatlar");
     await expect(dock.locator('a[href="/account"]')).toHaveAttribute("aria-label", "Profil");
     await expect(dock.locator('a[href="/appointment"]')).toHaveCount(0);
@@ -68,6 +72,7 @@ test("device class keeps the intended navigation and conversion hierarchy", asyn
 test("phone dock leaves the accessibility tree on downward scroll and returns on upward scroll", async ({ page }, testInfo) => {
   test.skip(!phoneProjects.has(testInfo.project.name), "Phone-class behavior only.");
 
+  await forceTurkishUi(page);
   await page.goto("/", { waitUntil: "domcontentloaded" });
   const dock = page.locator("nav.customer-command-dock");
   const accessibleDock = page.getByRole("navigation", { name: "Alt hızlı menü" });

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../helpers/fixtures";
 
 test("admin payment settings route exists and preserves the secure return target", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "android-phone", "One canonical secure-route smoke pass is sufficient.");

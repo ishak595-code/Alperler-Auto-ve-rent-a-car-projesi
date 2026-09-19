@@ -1,6 +1,10 @@
 import { Injectable, signal, computed, inject } from "@angular/core";
 import { Router } from "@angular/router";
 import { CarService } from "./car.service";
+import {
+  detectBrowserLanguage,
+  isSupportedLanguage,
+} from "../i18n/detect-browser-language";
 
 export type Language = "TR" | "EN" | "DE" | "FR" | "KU" | "ES" | "RU" | "ZH" | "AR";
 
@@ -46,14 +50,27 @@ export class UiService {
   currentLang = signal<Language>("TR");
 
   constructor() {
+    // Manual choice always wins (persisted). First visit: map navigator.languages → supported set.
+    let initial: Language = "TR";
     if (typeof localStorage !== "undefined") {
-      const saved = localStorage.getItem("alperler-language") as Language | null;
-      const supported: Language[] = ["TR", "EN", "DE", "FR", "KU", "ES", "RU", "ZH", "AR"];
-      if (saved && supported.includes(saved)) this.currentLang.set(saved);
+      const saved = localStorage.getItem("alperler-language");
+      if (isSupportedLanguage(saved)) {
+        initial = saved;
+      } else if (typeof navigator !== "undefined") {
+        const detected = detectBrowserLanguage(navigator.languages, navigator.language);
+        if (detected) {
+          initial = detected;
+          localStorage.setItem("alperler-language", detected);
+        }
+      }
+    } else if (typeof navigator !== "undefined") {
+      const detected = detectBrowserLanguage(navigator.languages, navigator.language);
+      if (detected) initial = detected;
     }
-    this.syncDocumentLanguage(this.currentLang());
-    // Prefetch saved/non-default locale so chrome does not linger on TR fallback.
-    void this.ensureLocaleLoaded(this.currentLang());
+    this.currentLang.set(initial);
+    this.syncDocumentLanguage(initial);
+    // Prefetch saved/detected non-TR locale so chrome does not linger on TR fallback.
+    void this.ensureLocaleLoaded(initial);
   }
 
   // --- ACTIONS ---
@@ -456,15 +473,42 @@ export class UiService {
         designed: "Tasarım ve Altyapı ❤️ ile Yüksekova'da Geliştirildi",
         footerText:
           "Yüksekova'nın güvenilir araç kiralama, ikinci el galeri ve turizm acentesi. Premium hizmet, güvenli yolculuklar.",
+        brandSummary: "Araç kiralama, ikinci el satış, transfer ve bölgesel tur hizmetlerini tek yerde planlayın.",
+        legalMoreLabel: "Diğer yasal metinler",
+        phoneLabel: "Ara",
+        whatsappLabel: "WhatsApp",
+        copyrightSuffix: "Tüm hakları saklıdır.",
+        homeLabel: "Ana sayfa",
+        contactLabel: "İletişim",
         links: {
-          kvkk: "KVKK Aydınlatma Metni",
-          privacy: "Gizlilik Politikası",
+          rentals: "Kiralık Araçlar",
+          sales: "Satılık Araçlar",
+          valuation: "Aracını Değerlendir",
+          tours: "Turlar",
+          campaigns: "Kampanyalar",
+          branches: "Şubelerimiz",
+          appointment: "Randevu",
+          about: "Hakkımızda",
+          blog: "Blog",
+          contact: "İletişim",
+          faq: "Sık Sorulan Sorular",
+          branchPartner: "Şube Başvurusu",
+          feedback: "Geri Bildirim Gönder",
+          rental: "Kiralama Koşulları",
+          insurance: "Sigorta ve Sorumluluk",
+          cancellation: "İade ve İptal",
+          kvkk: "KVKK Aydınlatma",
+          privacy: "Gizlilik",
+          salesTerms: "Satış ve İlan Koşulları",
+          tour: "Tur ve Transfer Koşulları",
+          partner: "Aracını Değerlendir Koşulları",
+          branch: "Şube ve Bayilik Koşulları",
+          commercial: "Bülten ve Ticari İleti",
+          termsGeneral: "Genel Kullanım Şartları",
           cookies: "Çerez Politikası",
           terms: "Kiralama Koşulları",
-          faq: "Sıkça Sorulan Sorular",
           distanceSelling: "Mesafeli Satış Sözleşmesi",
-          cancellation: "İade ve İptal Politikası",
-          insurance: "Araç Sigorta ve Sorumluluk",
+          admin: "Yönetici",
         },
         feedbackBtn: "Geri Bildirim Gönder",
          ariaSuffix: "alt bilgi",
@@ -1921,6 +1965,9 @@ export class UiService {
           loadFailedBody: "İçerik geçici olarak yüklenemedi. Lütfen sayfayı yenileyin veya birkaç dakika sonra tekrar deneyin.",
           retry: "Tekrar Dene",
           retryAria: "{title} bölümünü yeniden yükle",
+          emptyTitle: "{title} şu an burada yok",
+          emptyBody: "Bu bölümde henüz gösterilecek içerik yok. Tam listeye göz atabilir veya birazdan yeniden deneyebilirsiniz.",
+          emptyCta: "Seçeneklere göz at",
           partnerOwnersBadge: "Araç Sahipleri",
           partnerDescFallback: "Aracınızı satış veya kiralama filosu için değerlendirmeye gönderin.",
           partnerCtaFallback: "Aracımı Değerlendir",
@@ -3161,6 +3208,66 @@ export class UiService {
   }
 
 
+
+  /** Public footer link label by linkKey. Prefer UiService packs; admin/DB TR only for TR or unknown custom keys. */
+  publicFooterLinkLabel(linkKey: string, fallback: string): string {
+    const t = this.translations() as any;
+    const key = String(linkKey || "").trim().toLowerCase();
+    if (!key) return fallback;
+    const links = t?.footer?.links || {};
+    const nav = t?.nav || {};
+    const map: Record<string, unknown> = {
+      "services.rentals": links.rentals || nav.fleet,
+      "services.sales": links.sales || nav.sales,
+      "services.valuation": links.valuation || nav.earn,
+      "services.tours": links.tours || nav.tours,
+      "services.campaigns": links.campaigns || nav.campaigns,
+      "services.branches": links.branches || nav.branches,
+      "services.appointment": links.appointment || nav.appointment,
+      "corporate.about": links.about || nav.about,
+      "corporate.blog": links.blog || nav.blog,
+      "corporate.contact": links.contact || nav.contact,
+      "corporate.faq": links.faq || nav.faq,
+      "corporate.branch_partner": links.branchPartner || nav.branchPartner,
+      "corporate.feedback": links.feedback || t?.footer?.feedbackBtn,
+      "legal.rental": links.rental || links.terms,
+      "legal.insurance": links.insurance,
+      "legal.cancellation": links.cancellation,
+      "legal.kvkk": links.kvkk,
+      "legal.privacy": links.privacy,
+      "legal.sales": links.salesTerms,
+      "legal.tour": links.tour,
+      "legal.partner": links.partner,
+      "legal.branch": links.branch,
+      "legal.commercial": links.commercial,
+      "legal.terms": links.termsGeneral || links.terms,
+      "legal.cookies": links.cookies,
+      "legal.distance-selling": links.distanceSelling,
+      "bottom.admin": links.admin,
+    };
+    const mapped = map[key];
+    if (typeof mapped === "string" && mapped.trim()) return mapped.trim();
+    return fallback;
+  }
+
+  /** Footer chrome labels that admins often leave in TR — pack wins when lang !== TR. */
+  publicFooterSetting(
+    packKey:
+      | "brandSummary"
+      | "legalMoreLabel"
+      | "phoneLabel"
+      | "whatsappLabel"
+      | "copyrightSuffix"
+      | "homeLabel"
+      | "contactLabel"
+      | "footerText",
+    adminValue: string,
+  ): string {
+    const pack = String((this.translations() as any)?.footer?.[packKey] || "").trim();
+    const admin = String(adminValue || "").trim();
+    if (this.currentLang() !== "TR" && pack) return pack;
+    return admin || pack;
+  }
 
   /** Public chrome label for nav/dock itemKey. Prefer UiService packs; admin/DB TR only for TR or unknown custom keys. */
   publicNavLabel(itemKey: string, fallback: string, surface: "MOBILE_MENU" | "MOBILE_DOCK" = "MOBILE_MENU"): string {

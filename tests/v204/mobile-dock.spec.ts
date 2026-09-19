@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../helpers/fixtures";
+import { forceTurkishUi } from "../helpers/force-turkish-ui";
 
 async function settleFrames(page: import("@playwright/test").Page): Promise<void> {
   await page.evaluate(() => new Promise<void>((resolve) => {
@@ -11,9 +12,12 @@ async function scrollRange(page: import("@playwright/test").Page): Promise<numbe
 }
 
 test("mobile dock belongs only to home and stays TalkBack-safe", async ({ page }) => {
+  await forceTurkishUi(page);
   await page.goto("/");
 
+  // Presence: language-agnostic CSS selector (works in any locale).
   const dock = page.locator("nav.customer-command-dock");
+  // Turkish aria name/labels asserted only after forced TR above.
   const accessibleDock = page.getByRole("navigation", { name: "Alt hızlı menü" });
   await expect(dock).toHaveCount(1);
   await expect(dock).toBeVisible();
@@ -21,7 +25,7 @@ test("mobile dock belongs only to home and stays TalkBack-safe", async ({ page }
   await expect(dock.locator("a.dock-action")).toHaveCount(5);
   await expect(dock.locator('a[href="/fleet"]')).toHaveAttribute("aria-label", "Kiralık");
   await expect(dock.locator('a[href="/sales"]')).toHaveAttribute("aria-label", "Satılık");
-  await expect(dock.locator('a[href="/search"]')).toHaveAttribute("aria-label", "Ara");
+  await expect(dock.locator('a[href="/search"]')).toHaveAttribute("aria-label", "Katalog");
   await expect(dock.locator('a[href="/campaigns"]')).toHaveAttribute("aria-label", "Fırsatlar");
   await expect(dock.locator('a[href="/account"]')).toHaveAttribute("aria-label", "Profil");
   await expect(dock.locator('a[href="/appointment"]')).toHaveCount(0);

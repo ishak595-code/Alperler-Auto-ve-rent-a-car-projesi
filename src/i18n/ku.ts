@@ -8,7 +8,7 @@ export default {
         appointment: "Randevû",
         branches: "Şax",
         branchPartner: "Serlêdana Bayîtiyê",
-        search: "Katalog",
+        search: "Lêgerîn",
         account: "Profîl",
         faq: "Pirsên Berbelav",
         legal: "Agahiyên Yasayî",
@@ -89,7 +89,7 @@ export default {
           items: {
             fleet: "Kirê",
             sales: "Firotin",
-            search: "Katalog",
+            search: "Lêgerîn",
             campaigns: "Fersend",
             account: "Profîl",
             home: "Malper",
@@ -1319,7 +1319,8 @@ export default {
             tours: { title: "Tûr", badge: "KEŞF BIKE", description: "Rêyên herêmî û ezmûnên rojên taybet." },
             branches: { title: "Şax", badge: "NÊZÎKÎ WE", description: "Xalên standin û vegerandinê keşf bikin." },
             blog: { title: "Blog", badge: "RÊBERÊ RÊWÎTIYÊ", description: "Ji bo rêwîtî û hilbijartina wesayîtê pêşniyarên pratîk." },
-            partner: { title: "Wesayîta Xwe Binirxîne", badge: "XWEDIYÊN WESAYÎTAN", description: "Wesayîta xwe ji bo firotin an kirê bidin nirxandin." },
+            partner: { title: "Wesayîta Xwe Binirxîne", badge: "XWEDIYÊN WESAYÎTAN", description: "Wesayîta xwe ji bo firotin an kirê bidin nirxandin." , cta: "Wesayîta Min Binirxîne" },
+            closing_cta: { title: "Em Rêwîtiya We Bi Hev Re Plan Bikin", badge: "ALPERLER RENT A CAR", description: "Kirê, roja taybet û rêyan ji yek cihî ava bikin.", cta: "Rezervasyonê Çêke" },
           },
           byType: {
             CAMPAIGN: { title: "Fersendên Çalak", badge: "BÊYÎ KU WENDA BIKIN BINÊRIN", description: "Fersendên hilbijartî yên ku avantajê ekstra didin plana we. Berî ku dem biqede kampanyaya guncaw bigirin, avantajê rastîn ê bihayê bibînin û bi yek tikê hûrguliyan vekin." },

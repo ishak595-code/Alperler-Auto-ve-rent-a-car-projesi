@@ -17,7 +17,7 @@ export default {
         appointment: "Appointment",
         branches: "Branches",
         branchPartner: "Franchise Application",
-        search: "Catalog",
+        search: "Search",
         account: "Profile",
         faq: "FAQ",
         legal: "Legal Information",
@@ -723,7 +723,7 @@ export default {
           items: {
             fleet: "Rent",
             sales: "Buy",
-            search: "Catalog",
+            search: "Search",
             campaigns: "Offers",
             account: "Profile",
             home: "Home",
@@ -1950,7 +1950,8 @@ export default {
             tours: { title: "Tours", badge: "EXPLORE", description: "Regional routes and special-day experiences." },
             branches: { title: "Branches", badge: "NEAR YOU", description: "Discover pickup and return points." },
             blog: { title: "Blog", badge: "TRAVEL GUIDE", description: "Practical tips for travel and vehicle choice." },
-            partner: { title: "Value Your Car", badge: "CAR OWNERS", description: "Submit your car for sale or rental evaluation." },
+            partner: { title: "Value Your Car", badge: "CAR OWNERS", description: "Submit your car for sale or rental evaluation.", cta: "Value My Car" },
+            closing_cta: { title: "Let's Plan Your Journey Together", badge: "ALPERLER RENT A CAR", description: "Build rental, special-day and route plans from one place.", cta: "Create Reservation" },
           },
           byType: {
             CAMPAIGN: { title: "Active Offers", badge: "DON'T MISS OUT", description: "Selected offers that add real advantage to your plan. Catch the campaign that fits before it ends, see the real price benefit and open details in one tap." },

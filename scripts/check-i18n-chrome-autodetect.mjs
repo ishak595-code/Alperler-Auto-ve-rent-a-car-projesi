@@ -92,5 +92,11 @@ assert(mapLocale('pt-BR') === null, 'pt-BR unsupported → null');
 assert(detectLocale(['pt-BR', 'de-DE'], 'pt') === 'DE', 'navigator.languages prefers first supported');
 assert(detectLocale(['xx', 'yy'], 'tr-TR') === 'TR', 'falls back to navigator.language');
 
+
+assert(ui.includes('search: "Arama"'), 'TR dock/nav search must mean Search (Arama), not Catalog');
+assert(!/dock:\s*\{[\s\S]*?items:\s*\{[\s\S]*?search:\s*"Katalog"/m.test(ui), 'TR dock.items.search must not be Katalog');
+assert(en.includes('search: "Search"'), 'EN search chrome must be Search');
+assert(section.includes('publicSectionCta'), 'home section CTAs must use publicSectionCta');
+
 console.log('I18N chrome auto-detect + footer/dock/empty-state contract: PASS');
 

@@ -15,7 +15,7 @@ export default {
         appointment: "Rendez-vous",
         branches: "Agences",
         branchPartner: "Demande de franchise",
-        search: "Catalogue",
+        search: "Recherche",
         account: "Profil",
         faq: "FAQ",
         legal: "Informations légales",
@@ -126,7 +126,7 @@ export default {
        },
         dock: {
           ariaLabel: "Menu rapide du bas",
-          items: { fleet: "Location", sales: "Achat", search: "Catalogue", campaigns: "Offres", account: "Profil", home: "Accueil", appointment: "RDV", tours: "Tours", branches: "Agences", contact: "Contact", about: "À propos", blog: "Blog" }
+          items: { fleet: "Location", sales: "Achat", search: "Recherche", campaigns: "Offres", account: "Profil", home: "Accueil", appointment: "RDV", tours: "Tours", branches: "Agences", contact: "Contact", about: "À propos", blog: "Blog" }
         },
         catalog: {
           backAria: "Retour",
@@ -1346,7 +1346,8 @@ export default {
             tours: { title: "Tours", badge: "EXPLORER", description: "Itinéraires régionaux et expériences spéciales." },
             branches: { title: "Agences", badge: "PRÈS DE VOUS", description: "Découvrez les points de prise et de retour." },
             blog: { title: "Blog", badge: "GUIDE VOYAGE", description: "Conseils pratiques pour voyager et choisir un véhicule." },
-            partner: { title: "Estimer votre véhicule", badge: "PROPRIÉTAIRES", description: "Soumettez votre véhicule pour vente ou location." },
+            partner: { title: "Estimer votre véhicule", badge: "PROPRIÉTAIRES", description: "Soumettez votre véhicule pour vente ou location." , cta: "Faire évaluer ma voiture" },
+            closing_cta: { title: "Planifions votre voyage ensemble", badge: "ALPERLER RENT A CAR", description: "Location, jour spécial et itinéraires depuis un seul endroit.", cta: "Créer une réservation" },
           },
           byType: {
             CAMPAIGN: { title: "Offres actives", badge: "À NE PAS MANQUER", description: "Des offres sélectionnées pour un vrai avantage." },

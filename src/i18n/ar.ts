@@ -15,7 +15,7 @@ export default {
         appointment: "موعد",
         branches: "الفروع",
         branchPartner: "طلب الامتياز",
-        search: "الكتالوج",
+        search: "بحث",
         account: "الحساب",
         faq: "الأسئلة الشائعة",
         legal: "معلومات قانونية",
@@ -125,7 +125,7 @@ export default {
        },
         dock: {
           ariaLabel: "القائمة السريعة السفلية",
-          items: { fleet: "تأجير", sales: "بيع", search: "كتالوج", campaigns: "فرص", account: "حساب", home: "الرئيسية", appointment: "موعد", tours: "جولات", branches: "فروع", contact: "تواصل", about: "من نحن", blog: "مدونة" }
+          items: { fleet: "تأجير", sales: "بيع", search: "بحث", campaigns: "فرص", account: "حساب", home: "الرئيسية", appointment: "موعد", tours: "جولات", branches: "فروع", contact: "تواصل", about: "من نحن", blog: "مدونة" }
         },
         catalog: {
           backAria: "رجوع",
@@ -1345,7 +1345,8 @@ export default {
             tours: { title: "جولات", badge: "اكتشف", description: "مسارات إقليمية وتجارب خاصة." },
             branches: { title: "الفروع", badge: "بالقرب منكم", description: "اكتشفوا نقاط الاستلام والإرجاع." },
             blog: { title: "مدونة", badge: "دليل السفر", description: "نصائح عملية للسفر واختيار المركبة." },
-            partner: { title: "قيّموا مركبتكم", badge: "للملاك", description: "أرسلوا مركبتكم لتقييم البيع أو التأجير." },
+            partner: { title: "قيّموا مركبتكم", badge: "للملاك", description: "أرسلوا مركبتكم لتقييم البيع أو التأجير." , cta: "قيّموا سيارتي" },
+            closing_cta: { title: "لنخطط لرحلتكم معاً", badge: "ALPERLER RENT A CAR", description: "أجّروا ونظّموا اليوم الخاص والمسار من مكان واحد.", cta: "إنشاء حجز" },
           },
           byType: {
             CAMPAIGN: { title: "العروض النشطة", badge: "لا تفوّتوا", description: "عروض مختارة تضيف ميزة حقيقية لخطتكم." },

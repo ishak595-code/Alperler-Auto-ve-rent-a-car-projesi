@@ -67,6 +67,10 @@ export const routes: Routes = [
   { path: 'admin/login', loadComponent: () => import('./pages/admin-login-v218.component').then(m => m.AdminLoginV218Component) },
   { path: 'account/login', loadComponent: () => import('./pages/account-login.component').then(m => m.AccountLoginComponent) },
   { path: 'account/callback', loadComponent: () => import('./pages/account-callback.component').then(m => m.AccountCallbackComponent) },
+  // Auth email recovery aliases — preserve query; hash tokens are consumed by auth services on bootstrap.
+  { path: 'auth/recovery', redirectTo: '/account/login?recovery=1', pathMatch: 'full' },
+  { path: 'reset-password', redirectTo: '/account/login?recovery=1', pathMatch: 'full' },
+  { path: 'admin/reset-password', redirectTo: '/admin/login?recovery=1', pathMatch: 'full' },
   { path: 'account', canActivate: [customerGuard], loadComponent: () => import('./pages/account-shell.component').then(m => m.AccountShellComponent) },
   { path: 'account/wallet', canActivate: [customerGuard], loadComponent: () => import('./pages/account-wallet.component').then(m => m.AccountWalletComponent) },
   { path: 'branch-portal/login', loadComponent: () => import('./pages/branch-portal-login.component').then(m => m.BranchPortalLoginComponent) },

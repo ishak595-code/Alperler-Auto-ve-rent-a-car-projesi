@@ -15,7 +15,7 @@ export default {
         appointment: "Запись",
         branches: "Филиалы",
         branchPartner: "Заявка на франшизу",
-        search: "Каталог",
+        search: "Поиск",
         account: "Профиль",
         faq: "FAQ",
         legal: "Правовая информация",
@@ -125,7 +125,7 @@ export default {
        },
         dock: {
           ariaLabel: "Нижнее быстрое меню",
-          items: { fleet: "Аренда", sales: "Продажа", search: "Каталог", campaigns: "Выгоды", account: "Профиль", home: "Главная", appointment: "Запись", tours: "Туры", branches: "Филиалы", contact: "Контакты", about: "О нас", blog: "Блог" }
+          items: { fleet: "Аренда", sales: "Продажа", search: "Поиск", campaigns: "Выгоды", account: "Профиль", home: "Главная", appointment: "Запись", tours: "Туры", branches: "Филиалы", contact: "Контакты", about: "О нас", blog: "Блог" }
         },
         catalog: {
           backAria: "Назад",
@@ -1345,7 +1345,8 @@ export default {
             tours: { title: "Туры", badge: "ОТКРЫТЬ", description: "Региональные маршруты и особые впечатления." },
             branches: { title: "Филиалы", badge: "РЯДОМ С ВАМИ", description: "Пункты получения и возврата." },
             blog: { title: "Блог", badge: "ПУТЕВОДИТЕЛЬ", description: "Практичные советы по поездкам и выбору авто." },
-            partner: { title: "Оценить авто", badge: "ВЛАДЕЛЬЦАМ", description: "Отправьте авто на оценку для продажи или аренды." },
+            partner: { title: "Оценить авто", badge: "ВЛАДЕЛЬЦАМ", description: "Отправьте авто на оценку для продажи или аренды." , cta: "Оценить мой автомобиль" },
+            closing_cta: { title: "Давайте спланируем поездку вместе", badge: "ALPERLER RENT A CAR", description: "Аренда, особый день и маршруты в одном месте.", cta: "Создать бронь" },
           },
           byType: {
             CAMPAIGN: { title: "Активные предложения", badge: "НЕ ПРОПУСТИТЕ", description: "Отобранные предложения с реальной выгодой для вашего плана." },

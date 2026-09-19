@@ -15,7 +15,7 @@ export default {
         appointment: "Cita",
         branches: "Sucursales",
         branchPartner: "Solicitud de franquicia",
-        search: "Catálogo",
+        search: "Buscar",
         account: "Perfil",
         faq: "Preguntas frecuentes",
         legal: "Información legal",
@@ -125,7 +125,7 @@ export default {
        },
         dock: {
           ariaLabel: "Menú rápido inferior",
-          items: { fleet: "Alquiler", sales: "Venta", search: "Catálogo", campaigns: "Ofertas", account: "Perfil", home: "Inicio", appointment: "Cita", tours: "Tours", branches: "Sucursales", contact: "Contacto", about: "Nosotros", blog: "Blog" }
+          items: { fleet: "Alquiler", sales: "Venta", search: "Buscar", campaigns: "Ofertas", account: "Perfil", home: "Inicio", appointment: "Cita", tours: "Tours", branches: "Sucursales", contact: "Contacto", about: "Nosotros", blog: "Blog" }
         },
         catalog: {
           backAria: "Volver",
@@ -1345,7 +1345,8 @@ export default {
             tours: { title: "Tours", badge: "EXPLORAR", description: "Rutas regionales y experiencias especiales." },
             branches: { title: "Sucursales", badge: "CERCA DE USTED", description: "Descubra puntos de recogida y devolución." },
             blog: { title: "Blog", badge: "GUÍA DE VIAJE", description: "Consejos prácticos para viajar y elegir vehículo." },
-            partner: { title: "Valorar su vehículo", badge: "PROPIETARIOS", description: "Envíe su vehículo para evaluación de venta o alquiler." },
+            partner: { title: "Valorar su vehículo", badge: "PROPIETARIOS", description: "Envíe su vehículo para evaluación de venta o alquiler." , cta: "Valorar mi coche" },
+            closing_cta: { title: "Planifiquemos su viaje juntos", badge: "ALPERLER RENT A CAR", description: "Alquiler, día especial y rutas desde un solo lugar.", cta: "Crear reserva" },
           },
           byType: {
             CAMPAIGN: { title: "Ofertas activas", badge: "NO SE LO PIERDA", description: "Ofertas seleccionadas que aportan ventaja real a su plan." },

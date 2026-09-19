@@ -7,6 +7,7 @@ import {
   supabaseAuthUrl,
   supabaseFunctionUrl,
 } from "../supabase.config";
+import { publicAppUrl } from "../utils/public-app-origin";
 
 interface SupabaseUser {
   id: string;
@@ -313,7 +314,7 @@ export class AuthService {
     } catch { this.setError("password_safety_unavailable", "Şifre sızıntı denetimi şu anda tamamlanamadı. Güvenlik için biraz sonra tekrar deneyin."); return false; }
   }
 
-  private adminLoginRedirect(): string { return typeof window === "undefined" ? "/admin/login" : `${window.location.origin}/admin/login`; }
+  private adminLoginRedirect(): string { return publicAppUrl("/admin/login"); }
   private publicHeaders(): Record<string, string> { return { apikey: SUPABASE_PUBLISHABLE_KEY, "content-type": "application/json" }; }
   private userHeaders(accessToken: string): Record<string, string> { return { ...this.publicHeaders(), authorization: `Bearer ${accessToken}` }; }
   private clearError(): void { this._lastErrorCode.set(null); this._lastErrorMessage.set(null); }

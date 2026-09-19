@@ -15,6 +15,7 @@ import walletCardsApi from "./api/wallet-cards";
 import robotsApi from "./api/robots";
 import sitemapApi from "./api/sitemap";
 import socialPreviewApi from "./api/social-preview";
+import { configuredPublicOrigin, vercelDeploymentOrigin, vercelProductionOrigin } from "./api/_lib/public-origin";
 
 const __filename=fileURLToPath(import.meta.url);
 const __dirname=path.dirname(__filename);
@@ -47,6 +48,14 @@ app.use((req,res,next)=>{
   }
   next();
 });
+
+function buildRuntimeEnvJs():string{
+  const origin=configuredPublicOrigin()||vercelProductionOrigin()||vercelDeploymentOrigin()||"";
+  const env:Record<string,string>={NODE_ENV:process.env.NODE_ENV||"production"};
+  if(origin){env.APP_PUBLIC_ORIGIN=origin;env.PUBLIC_APP_URL=origin;}
+  return `window.process = Object.assign({}, window.process, { env: Object.assign({}, (window.process && window.process.env) || {}, ${JSON.stringify(env)}) });\n`;
+}
+
 app.get("/health",(_req,res)=>{res.setHeader("Cache-Control","no-store");res.status(200).json({ok:true,runtime:"node",service:"alperler-web"});});
 
 type WebHandler={fetch(request:Request):Promise<Response>};
@@ -146,6 +155,7 @@ app.get(["/","/fleet/:id","/sales/:id","/tour/:id","/blog/:id","/branches/:id"],
   await serveWebHandler(req,res,socialPreviewApi,{kind,...(req.params["id"]?{id:String(req.params["id"])}:{})});
 });
 
+app.get("/runtime-env.js",(_req,res)=>{res.setHeader("Content-Type","application/javascript; charset=utf-8");res.setHeader("Cache-Control","no-cache, no-store, max-age=0, must-revalidate");res.send(buildRuntimeEnvJs());});
 app.use(express.static(distPath,{index:false,setHeaders:(res,filePath)=>{
   if(filePath.endsWith(".js")||filePath.endsWith(".mjs"))res.setHeader("Content-Type","application/javascript; charset=utf-8");
   if(filePath.endsWith("runtime-env.js"))res.setHeader("Cache-Control","no-cache, no-store, max-age=0, must-revalidate");

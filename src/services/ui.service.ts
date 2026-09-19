@@ -241,7 +241,7 @@ export class UiService {
         appointment: "Randevu",
         branches: "Şubeler",
         branchPartner: "Bayilik Başvurusu",
-        search: "Katalog",
+        search: "Arama",
         account: "Profil",
         faq: "Sık Sorulan Sorular",
         legal: "Yasal Bilgilendirmeler",
@@ -802,7 +802,7 @@ export class UiService {
           items: {
             fleet: "Kiralık",
             sales: "Satılık",
-            search: "Katalog",
+            search: "Arama",
             campaigns: "Fırsatlar",
             account: "Profil",
             home: "Ana Sayfa",
@@ -2080,6 +2080,13 @@ export class UiService {
               title: "Aracını Değerlendir",
               badge: "ARAÇ SAHİPLERİ",
               description: "Aracınızı satış veya kiralama için değerlendirmeye gönderin.",
+              cta: "Aracımı Değerlendir",
+            },
+            closing_cta: {
+              title: "Yolculuğunuzu Birlikte Planlayalım",
+              badge: "ALPERLER RENT A CAR",
+              description: "Kiralama, özel gün aracı ve rota planınızı tek noktadan oluşturun.",
+              cta: "Rezervasyon Oluştur",
             },
           },
           byType: {
@@ -3309,7 +3316,7 @@ export class UiService {
   publicSectionChrome(
     sectionKey: string,
     sectionType: string,
-    kind: "title" | "badge" | "description",
+    kind: "title" | "badge" | "description" | "cta",
     adminValue: string,
     category?: string,
   ): string {
@@ -3331,6 +3338,40 @@ export class UiService {
       return admin; // unknown custom chrome without pack key
     }
     return admin || packValue;
+  }
+
+  /**
+   * Homepage / promo CTA label. Non-TR prefers pack `sections.*.cta` (or known TR→pack maps).
+   * Never leave admin Turkish leftovers like "Rezervasyon Oluştur" when lang ≠ TR.
+   */
+  publicSectionCta(
+    sectionKey: string,
+    sectionType: string,
+    adminValue: string,
+    category?: string,
+    fallbackPack?: string,
+  ): string {
+    const lang = this.currentLang();
+    const admin = String(adminValue || "").trim();
+    const packFallback = String(fallbackPack || "").trim();
+    const fromChrome = this.publicSectionChrome(sectionKey, sectionType, "cta", "", category);
+    if (lang === "TR") return admin || fromChrome || packFallback;
+
+    if (fromChrome) return fromChrome;
+    if (packFallback) return packFallback;
+
+    const t = this.translations() as any;
+    if (/^Rezervasyon\s+Oluştur$/i.test(admin) || /^Rezervasyon\s+Olustur$/i.test(admin)) {
+      return String(t?.checkout?.createBooking || "").trim() || admin;
+    }
+    if (/^Randevu\s+Oluştur$/i.test(admin) || /^Randevu\s+Olustur$/i.test(admin)) {
+      return String(t?.prefooter?.secondaryLabel || t?.nav?.appointment || "").trim() || admin;
+    }
+    if (/^Aracımı\s+Değerlendir$/i.test(admin) || /^Aracimi\s+Degerlendir$/i.test(admin)) {
+      return String(t?.homeSection?.partnerCtaFallback || "").trim() || admin;
+    }
+    // Unknown custom CTA without pack: keep admin (operator-authored) rather than inventing copy.
+    return admin;
   }
 
   /** Prefooter chrome: admin TR stays live only for TR; other langs use UiService. */

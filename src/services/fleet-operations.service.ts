@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { AuthService } from './auth.service';
+import { describeStorageError, mediaExtension, mediaRejectionReason, resolveMediaType } from './media-file.util';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
 
 export type FleetOperationalStatus = 'READY'|'RESERVED'|'RENTED'|'CLEANING'|'MAINTENANCE'|'INSPECTION_HOLD'|'OUT_OF_SERVICE';
@@ -19,8 +20,10 @@ export interface FleetOperationProfile {
 export interface FleetInspectionInput {
   vehicleId:string; bookingId?:string|null; inspectionType:InspectionType; odometerKm?:number|null; fuelPercent?:number|null;
   cleanlinessStatus?:Exclude<FleetCleanliness,'UNKNOWN'>|null; exteriorStatus?:'OK'|'DAMAGE_NOTED'|'REQUIRES_SERVICE'|null;
-  interiorStatus?:'OK'|'DAMAGE_NOTED'|'REQUIRES_CLEANING'|null; damageNotes?:string;
+  interiorStatus?:'OK'|'DAMAGE_NOTED'|'REQUIRES_CLEANING'|null; damageNotes?:string; photoPaths?:string[];
 }
+
+export const INSPECTION_TYPES_REQUIRING_MEDIA:InspectionType[]=['PRE_RENTAL','HANDOVER','RETURN'];
 
 @Injectable({providedIn:'root'})
 export class FleetOperationsService {
@@ -54,9 +57,44 @@ export class FleetOperationsService {
   }
 
   async addInspection(input:FleetInspectionInput):Promise<void>{
-    const token=await this.requiredToken(); const body={vehicle_id:input.vehicleId,booking_id:input.bookingId||null,inspection_type:input.inspectionType,odometer_km:this.numberOrNull(input.odometerKm),fuel_percent:this.rangeOrNull(input.fuelPercent,0,100),cleanliness_status:input.cleanlinessStatus||null,exterior_status:input.exteriorStatus||null,interior_status:input.interiorStatus||null,damage_notes:this.clean(input.damageNotes||'',5000)||null,checklist:{source:'ADMIN_FLEET_OPERATIONS'}};
+    const token=await this.requiredToken();
+    const photoPaths=Array.isArray(input.photoPaths)?input.photoPaths.map((p)=>String(p||'').trim()).filter(Boolean).slice(0,20):[];
+    if(INSPECTION_TYPES_REQUIRING_MEDIA.includes(input.inspectionType) && photoPaths.length===0){
+      throw new Error('Teslim öncesi, teslim ve iade kontrolleri için en az bir fotoğraf zorunludur.');
+    }
+    const body={vehicle_id:input.vehicleId,booking_id:input.bookingId||null,inspection_type:input.inspectionType,odometer_km:this.numberOrNull(input.odometerKm),fuel_percent:this.rangeOrNull(input.fuelPercent,0,100),cleanliness_status:input.cleanlinessStatus||null,exterior_status:input.exteriorStatus||null,interior_status:input.interiorStatus||null,damage_notes:this.clean(input.damageNotes||'',5000)||null,photo_paths:photoPaths,checklist:{source:'ADMIN_FLEET_OPERATIONS',mediaRequired:INSPECTION_TYPES_REQUIRING_MEDIA.includes(input.inspectionType),mediaCount:photoPaths.length}};
     await this.rest('POST','vehicle_inspections',body,token);
     const profile=this.profileFor(this._vehicles().find((v)=>v.id===input.vehicleId)!); profile.odometerKm=body.odometer_km??profile.odometerKm; profile.fuelPercent=body.fuel_percent??profile.fuelPercent; if(body.cleanliness_status)profile.cleanlinessStatus=body.cleanliness_status as FleetCleanliness; profile.lastInspectionAt=new Date().toISOString(); if(body.damage_notes)profile.damageNotes=body.damage_notes; await this.save(profile);
+  }
+
+
+  async uploadInspectionMedia(vehicleId:string, file:File):Promise<string>{
+    const reason=mediaRejectionReason(file,{video:false});
+    if(reason) throw new Error(reason);
+    const token=await this.requiredToken();
+    const mediaType=resolveMediaType(file);
+    const extension=mediaExtension(mediaType,file);
+    const safeVehicle=(vehicleId||'vehicle').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,64)||'vehicle';
+    const nonce=typeof crypto!=='undefined'&&'randomUUID' in crypto?crypto.randomUUID():`${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const objectPath=`inspections/${safeVehicle}/${Date.now()}-${nonce}.${extension}`;
+    const encoded=objectPath.split('/').map(encodeURIComponent).join('/');
+    const response=await fetch(`${SUPABASE_PROJECT_URL}/storage/v1/object/${this.mediaBucket}/${encoded}`,{
+      method:'POST',
+      headers:{
+        apikey:SUPABASE_PUBLISHABLE_KEY,
+        authorization:`Bearer ${token}`,
+        'content-type':mediaType||file.type||'application/octet-stream',
+        'cache-control':'31536000',
+        'x-upsert':'false',
+      },
+      body:file,
+      cache:'no-store',
+    });
+    if(!response.ok){
+      const payload=await response.json().catch(()=>({}));
+      throw new Error(describeStorageError(response.status,payload,'Kontrol medyası yüklenemedi'));
+    }
+    return `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${this.mediaBucket}/${encoded}`;
   }
 
   private fromRow(row:any):FleetOperationProfile{return{vehicleId:String(row.vehicle_id),operationalStatus:row.operational_status as FleetOperationalStatus,odometerKm:row.odometer_km==null?null:Number(row.odometer_km),fuelPercent:row.fuel_percent==null?null:Number(row.fuel_percent),cleanlinessStatus:row.cleanliness_status as FleetCleanliness,lastInspectionAt:row.last_inspection_at||null,lastServiceAt:row.last_service_at||null,nextServiceAt:row.next_service_at||null,nextServiceKm:row.next_service_km==null?null:Number(row.next_service_km),insuranceExpiresAt:row.insurance_expires_at||null,periodicInspectionExpiresAt:row.periodic_inspection_expires_at||null,damageNotes:String(row.damage_notes||''),internalNotes:String(row.internal_notes||''),gpsProvider:String(row.gps_provider||''),gpsDeviceId:String(row.gps_device_id||''),gpsStatus:row.gps_status as FleetGpsStatus,gpsLastSyncAt:row.gps_last_sync_at||null,lastKnownLatitude:row.last_known_latitude==null?null:Number(row.last_known_latitude),lastKnownLongitude:row.last_known_longitude==null?null:Number(row.last_known_longitude)};}

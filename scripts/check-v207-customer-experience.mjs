@@ -39,7 +39,9 @@ requireText(sources.dock, 'class="customer-command-dock"', "Mobile dock must rem
 requireText(sources.dock, '[routerLink]="item.route"', "Mobile dock destinations must remain native router links.");
 requireText(sources.dock, '[attr.aria-current]="isCurrent(item.route) ? \'page\' : null"', "Current mobile dock destination must expose aria-current=page.");
 requireText(sources.dock, "track item.id", "Mobile dock items must preserve stable DOM identity.");
-requireText(sources.dock, '[attr.aria-label]="item.label"', "Mobile dock items must preserve stable accessible names.");
+requireText(sources.dock, '[attr.aria-label]="dockLabel(item)"', "Mobile dock items must use localized dockLabel for accessible names.");
+requireText(sources.dock, 'dockLabel(item', "Mobile dock must expose dockLabel() helper for i18n chrome.");
+requireText(sources.dock, 'publicNavLabel', "Mobile dock labels must resolve through UiService.publicNavLabel.");
 for (const token of [
   "[attr.aria-hidden]=\"autoHidden() ? 'true' : null\"",
   "[attr.inert]=\"autoHidden() ? '' : null\"",

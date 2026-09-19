@@ -23,7 +23,9 @@ requireText(dock, "class=\"customer-command-dock\"", "Customer dock must remain 
 requireText(dock, "[routerLink]=\"item.route\"", "Customer dock actions must remain native router links.");
 requireText(dock, "[attr.aria-current]=\"isCurrent(item.route) ? 'page' : null\"", "Current dock destination must expose aria-current=page.");
 requireText(dock, "track item.id", "Dock items must keep stable DOM identity across route changes.");
-requireText(dock, "[attr.aria-label]=\"item.label\"", "Dock actions must keep stable accessible names.");
+requireText(dock, "[attr.aria-label]=\"dockLabel(item)\"", "Dock actions must use localized dockLabel for accessible names.");
+requireText(dock, "dockLabel(item", "Dock must expose dockLabel() helper for i18n chrome.");
+requireText(dock, "publicNavLabel", "Dock labels must resolve through UiService.publicNavLabel.");
 requireText(dock, "[attr.aria-hidden]=\"autoHidden() ? 'true' : null\"", "Auto-hidden dock must leave the accessibility tree.");
 requireText(dock, "[attr.inert]=\"autoHidden() ? '' : null\"", "Auto-hidden dock must leave sequential focus navigation.");
 requireText(dock, "visibility:hidden", "Auto-hidden dock must not remain visually or accessibility-visible.");

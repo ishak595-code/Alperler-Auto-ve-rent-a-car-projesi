@@ -1,5 +1,5 @@
-import { SUPABASE_PROJECT_URL, supabaseRestHeaders } from "./_lib/supabase-public";
-import { requestPublicOrigin } from "./_lib/public-origin";
+import { SUPABASE_PROJECT_URL, supabaseRestHeaders } from "./_lib/supabase-public.js";
+import { requestPublicOrigin } from "./_lib/public-origin.js";
 
 type PreviewKind = "home" | "fleet" | "sales" | "tour" | "blog" | "branch";
 type Row = Record<string, any>;

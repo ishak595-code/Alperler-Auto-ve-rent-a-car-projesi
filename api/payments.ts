@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { getPaymentConfig, isAllowedRequestOrigin } from "./_lib/integration-config";
-import { paymentCredentialAvailability, resolveIyzicoCredentials, resolvePaytrCredentials } from "./_lib/payment-provider-credentials";
+import { getPaymentConfig, isAllowedRequestOrigin } from "./_lib/integration-config.js";
+import { paymentCredentialAvailability, resolveIyzicoCredentials, resolvePaytrCredentials } from "./_lib/payment-provider-credentials.js";
 
 interface CreateSessionBody {
   bookingReference?: unknown; amount?: unknown; currency?: unknown; method?: unknown;

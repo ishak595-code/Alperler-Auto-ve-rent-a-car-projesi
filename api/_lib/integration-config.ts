@@ -1,4 +1,4 @@
-import { configuredPublicOrigin, normalizeHttpsOrigin, vercelDeploymentOrigin, vercelProductionOrigin } from './public-origin';
+import { configuredPublicOrigin, normalizeHttpsOrigin, vercelDeploymentOrigin, vercelProductionOrigin } from './public-origin.js';
 
 export type PaymentProvider = "none" | "paytr" | "iyzico";
 

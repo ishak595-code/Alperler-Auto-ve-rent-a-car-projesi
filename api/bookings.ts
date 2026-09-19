@@ -1,5 +1,5 @@
-import { getAppUrl, getPaymentConfig } from "./_lib/integration-config";
-import { clientIp, corsHeaders, guardOrigin, originDecision } from "./_lib/request-security";
+import { getAppUrl, getPaymentConfig } from "./_lib/integration-config.js";
+import { clientIp, corsHeaders, guardOrigin, originDecision } from "./_lib/request-security.js";
 
 const DEFAULT_SUPABASE_URL = "https://hrztrgjvgdnaurejnsgs.supabase.co";
 

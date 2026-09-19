@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { getPaymentConfig, isAllowedRequestOrigin } from './_lib/integration-config';
-import { resolveIyzicoCredentials } from './_lib/payment-provider-credentials';
+import { getPaymentConfig, isAllowedRequestOrigin } from './_lib/integration-config.js';
+import { resolveIyzicoCredentials } from './_lib/payment-provider-credentials.js';
 
 type Json = Record<string, unknown>;
 type AuthUser = { id: string; email?: string | null; email_confirmed_at?: string | null };

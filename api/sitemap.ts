@@ -1,5 +1,5 @@
-import { SUPABASE_PROJECT_URL, supabaseRestHeaders } from "./_lib/supabase-public";
-import { requestPublicOrigin } from "./_lib/public-origin";
+import { SUPABASE_PROJECT_URL, supabaseRestHeaders } from "./_lib/supabase-public.js";
+import { requestPublicOrigin } from "./_lib/public-origin.js";
 
 type DynamicRow = { id?: string; category?: string; slug?: string; seo_slug?: string; metadata?: Record<string, unknown> | null; updated_at?: string | null; };
 type SitemapEntry = { path: string; lastmod?: string | null; changefreq?: "daily" | "weekly" | "monthly"; priority?: number; };

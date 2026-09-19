@@ -1,5 +1,5 @@
-import { isAllowedRequestOrigin } from "./_lib/integration-config";
-import { getMailerConfig, sendConfiguredMail } from "./_lib/mailer";
+import { isAllowedRequestOrigin } from "./_lib/integration-config.js";
+import { getMailerConfig, sendConfiguredMail } from "./_lib/mailer.js";
 
 const SUPABASE_URL = "https://hrztrgjvgdnaurejnsgs.supabase.co";
 

@@ -28,6 +28,7 @@ export const INSPECTION_TYPES_REQUIRING_MEDIA:InspectionType[]=['PRE_RENTAL','HA
 @Injectable({providedIn:'root'})
 export class FleetOperationsService {
   private readonly auth=inject(AuthService);
+  private readonly mediaBucket='vehicle-media';
   private readonly operationSelect='vehicle_id,operational_status,odometer_km,fuel_percent,cleanliness_status,last_inspection_at,last_service_at,next_service_at,next_service_km,insurance_expires_at,periodic_inspection_expires_at,damage_notes,internal_notes,gps_provider,gps_device_id,gps_status,gps_last_sync_at,last_known_latitude,last_known_longitude';
   private readonly _vehicles=signal<FleetVehicle[]>([]);
   private readonly _profiles=signal<Record<string,FleetOperationProfile>>({});

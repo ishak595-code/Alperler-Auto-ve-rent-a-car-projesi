@@ -41,32 +41,39 @@
    framework's tablet breakpoint. Keep the hero and planner touch-first. */
 @media (min-width:640px) and (max-width:950px) and (max-height:500px) and (pointer:coarse) {
   app-home-v71 .hero h1 {
-    margin-top: .4rem !important;
-    font-size: clamp(1.85rem, 5.7vw, 2.45rem) !important;
-    line-height: .99 !important;
+    margin-top: .45rem !important;
+    font-size: clamp(1.9rem, 5.5vw, 2.5rem) !important;
+    line-height: 1.05 !important;
   }
 
   app-home-v71 .hero-copy {
     max-width: 48rem;
-    font-size: .76rem !important;
+    font-size: .95rem !important;
+    line-height: 1.5 !important;
   }
 
   app-home-v71 .planner {
-    padding: .72rem !important;
-    border-radius: 17px !important;
+    padding: 1rem !important;
+    border-radius: 18px !important;
   }
 
   app-home-v71 .planner h2 {
-    font-size: 1.28rem !important;
+    font-size: clamp(1.35rem, 3vw, 1.55rem) !important;
   }
 
   app-home-v71 .planner-head p:not(.planner-kicker) {
-    font-size: .65rem !important;
+    font-size: .9rem !important;
+    line-height: 1.45 !important;
   }
 
   app-home-v71 .field select,
   app-home-v71 .field input {
-    min-height: 44px !important;
+    min-height: 48px !important;
+    font-size: 1rem !important;
+  }
+
+  app-home-v71 .planner-action {
+    min-height: 52px !important;
   }
 
   #mobile-navigation a.menu-row[href="/fleet"] {

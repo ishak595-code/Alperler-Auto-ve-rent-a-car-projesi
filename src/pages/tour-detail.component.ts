@@ -159,7 +159,19 @@ export class TourDetailComponent implements OnInit {
 
   async reload(): Promise<void> {
     this.loading.set(true); this.loadError.set("");
-    try { const item = await this.detailData.load("TOUR", this.routeId) as Tour; this.tour.set(item); this.failedMedia.set([]); this.currentSlide.set(0); const config = this.carService.getConfig()(); this.seo.updateSeoTags({ title: `${item.title || "Tur"} | Alperler Rent A Car`, description: `${item.title || "Tur"} için rota, süre, kişi başı fiyat ve rezervasyon bilgileri.`, image: item.image || config.seoOgImage }); }
+    try { const item = await this.detailData.load("TOUR", this.routeId) as Tour; this.tour.set(item); this.failedMedia.set([]); this.currentSlide.set(0); const config = this.carService.getConfig()(); const title = String(item.title || this.t().tourDetail.titleFallback || "").trim();
+      this.seo.updateSeoTags({
+        title: String(this.t().tourDetail.seoTitle || "")
+          .replace("{title}", title)
+          .replace("{company}", String(config.companyName || "Alperler Rent A Car"))
+          .replace(/\s+/g, " ")
+          .trim(),
+        description: String(this.t().tourDetail.seoDescription || "")
+          .replace("{title}", title)
+          .replace(/\s+/g, " ")
+          .trim(),
+        image: item.image || config.seoOgImage,
+      }); }
     catch { this.tour.set(null); this.loadError.set("TOUR_DETAIL_UNAVAILABLE"); }
     finally { this.loading.set(false); }
   }
@@ -193,7 +205,20 @@ export class TourDetailComponent implements OnInit {
   goToReview(): void { if (!this.firstName.trim() || !this.lastName.trim() || !/^[+0-9()\s-]{7,24}$/.test(this.phone.trim()) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email.trim())) { this.reservationError.set(this.t().tourDetail.invalidContact); return; } this.setReservationStep(3); }
   async submitReservation(): Promise<void> { const item = this.tour(); if (!item || this.submitting()) return; this.submitting.set(true); this.reservationError.set(""); try { const record = await this.booking.create({ itemId: String(item.cloudId || item.id), image: item.image, startDate: this.tourDate, personCount: this.personCount(), customerName: `${this.firstName.trim()} ${this.lastName.trim()}`, customerEmail: this.email.trim(), customerPhone: this.phone.trim(), notes: this.notes.trim() }); this.reservationReference.set(record.id); this.reservationSuccess.set(true); } catch (error) { console.error("Tour booking failed", error); this.reservationError.set(this.t().tourDetail.submitFail); } finally { this.submitting.set(false); } }
   formattedTourDate(): string { if (!this.tourDate) return this.t().tourDetail.notSelected; const date = new Date(`${this.tourDate}T12:00:00`); return Number.isNaN(date.getTime()) ? this.tourDate : new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" }).format(date); }
-  whatsapp(): void { const item = this.tour(); if (!item) return; const config = this.carService.getConfig()(); const phone = String(config.whatsapp || config.phone || "").replace(/\D/g, ""); if (!phone) return; window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Merhaba, ${item.title || "tur"} hakkında bilgi almak istiyorum. ${window.location.href}`)}`, "_blank", "noopener,noreferrer"); }
+  whatsapp(): void {
+    const item = this.tour();
+    if (!item) return;
+    const config = this.carService.getConfig()();
+    const phone = String(config.whatsapp || config.phone || "").replace(/\D/g, "");
+    if (!phone) return;
+    const title = String(item.title || this.t().tourDetail.titleFallback || "").trim();
+    const message = String(this.t().tourDetail.whatsappPrefill || "")
+      .replace("{title}", title)
+      .replace("{url}", window.location.href)
+      .replace(/\s+/g, " ")
+      .trim();
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+  }
   goBack(): void { if (window.history.length > 1) this.location.back(); else void this.router.navigate(["/tours"]); }
   private itineraryText(value: unknown, index: number): string { if (typeof value === "string") return value.trim(); if (value && typeof value === "object") { const row = value as Record<string, unknown>; return String(row["title"] || row["name"] || row["description"] || row["label"] || `Program adımı ${index + 1}`).trim(); } return ""; }
 }

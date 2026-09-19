@@ -190,7 +190,22 @@ export class CarDetailComponent implements OnInit {
       const car=await this.detailData.load("RENTAL",this.routeId) as Car;
       this.vehicle.set(car); this.failedMedia.set([]); this.currentSlide.set(0);
       const config=this.carService.getConfig()();
-      this.seo.updateSeoTags({title:`${car.brand||"Araç"} ${car.model||""} Kiralama | ${config.companyName}`,description:`${car.brand||"Araç"} ${car.model||""} günlük/saatlik fiyat, konfor özellikleri ve kiralama koşulları.`,image:car.image||config.seoOgImage});
+      const brand = String(car.brand || this.t().carDetail.seoBrandFallback || "").trim();
+      const model = String(car.model || "").trim();
+      this.seo.updateSeoTags({
+        title: String(this.t().carDetail.seoTitle || "")
+          .replace("{brand}", brand)
+          .replace("{model}", model)
+          .replace("{company}", String(config.companyName || ""))
+          .replace(/\s+/g, " ")
+          .trim(),
+        description: String(this.t().carDetail.seoDescription || "")
+          .replace("{brand}", brand)
+          .replace("{model}", model)
+          .replace(/\s+/g, " ")
+          .trim(),
+        image: car.image || config.seoOgImage,
+      });
     } catch{this.vehicle.set(null);this.loadError.set("RENTAL_DETAIL_UNAVAILABLE");}
     finally{this.loading.set(false);}
   }
@@ -221,7 +236,20 @@ export class CarDetailComponent implements OnInit {
   reserve(car:Car):void{if(!this.selectedPeriodAvailable())return;const withDriver=this.resolveDriverPreference(car);let startDate:string|undefined,endDate:string|undefined,days:number|undefined,totalPrice=this.selectedUnitPrice(car);if(this.presetDuration==="hourly"){const start=this.selectedStart(),end=this.selectedEnd();if(start&&end){const hours=Math.max(1,Math.min(23,Math.ceil((end.getTime()-start.getTime())/3_600_000)));startDate=start.toISOString();endDate=end.toISOString();totalPrice=this.hourlyDisplayPrice(car)*hours;}}else{const count=this.rentalDays(this.presetStartDate,this.presetEndDate);if(count>0){days=count;startDate=this.presetStartDate;endDate=this.presetEndDate;totalPrice=this.dailyDisplayPrice(car)*count;}}this.carService.setBookingRequest({type:"RENTAL",item:car,itemName:`${car.brand||""} ${car.model||""}`.trim(),image:car.image||car.images?.[0],basePrice:this.selectedUnitPrice(car),totalPrice,startDate,endDate,days,rentalDuration:this.presetDuration,withDriver,pickupLocation:this.presetPickupLocation||undefined});const campaign=this.activeCampaign()?.id||this.campaignId;void this.router.navigate(["/contact"],{queryParams:{...(campaign?{campaign}:{})}});}
   toggleFav(id:string|number):void{this.carService.toggleFavorite(id);} isFav(id:string|number):boolean{return this.carService.isFavorite(id);}
   async share(car:Car):Promise<void>{const payload={title:`${car.brand||""} ${car.model||""} | Alperler Rent A Car`.trim(),text:this.t().carDetail.shareText,url:window.location.href};try{if(navigator.share)await navigator.share(payload);else await navigator.clipboard?.writeText(window.location.href);}catch{/* kullanıcı paylaşımı iptal etti */}}
-  whatsapp():void{const car=this.vehicle();if(!car)return;const config=this.carService.getConfig()();const phone=String(config.whatsapp||config.phone||"").replace(/\D/g,"");if(!phone)return;window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Merhaba, ${car.brand||""} ${car.model||""} kiralama hakkında bilgi almak istiyorum. ${window.location.href}`)}`,"_blank","noopener,noreferrer");}
+  whatsapp():void{
+    const car=this.vehicle();
+    if(!car)return;
+    const config=this.carService.getConfig()();
+    const phone=String(config.whatsapp||config.phone||"").replace(/\D/g,"");
+    if(!phone)return;
+    const message=String(this.t().carDetail.whatsappPrefill||"")
+      .replace("{brand}",String(car.brand||""))
+      .replace("{model}",String(car.model||""))
+      .replace("{url}",window.location.href)
+      .replace(/\s+/g," ")
+      .trim();
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`,"_blank","noopener,noreferrer");
+  }
   driverOptionLabel(option:Car["driverOption"]):string{return option==="WITH_DRIVER"?this.t().carDetail.withDriver:option==="WITHOUT_DRIVER"?this.t().carDetail.withoutDriver:this.t().carDetail.driverBoth;}galleryAria(car:Car){return String(this.t().carDetail.galleryAria||'').replace('{brand}',String(car.brand||'')).replace('{model}',String(car.model||''));}fullscreenAria(car:Car){return String(this.t().carDetail.fullscreenAria||'').replace('{brand}',String(car.brand||'')).replace('{model}',String(car.model||''));}stockLabel(car:Car){return String(this.t().carDetail.stockNo||'').replace('{id}', String(car.cloudStockCode||car.id));}peopleLabel(n:number){return String(this.t().carDetail.people||'').replace('{n}', String(n));}videoTitle(car:Car){const raw=String(this.t().carDetail.videoTitle||'').replace('{brand}',String(car.brand||'')).replace('{model}',String(car.model||'')).replace(/\s+/g,' ').trim();return raw||this.t().carDetail.mediaTitle;}
   goBack():void{if(window.history.length>1)this.location.back();else void this.router.navigate(["/fleet"]);}
   private resolveDriverPreference(car:Car):boolean{if(car.driverOption==="WITH_DRIVER")return true;if(car.driverOption==="WITHOUT_DRIVER")return false;if(this.presetDriverMode==="with")return true;return false;}

@@ -353,9 +353,26 @@ export class SaleCarDetailComponent implements OnInit {
       this.failedMedia.set([]);
       this.currentSlide.set(0);
       const config = this.carService.getConfig()();
+      const brand = String(item.brand || this.t().saleDetail.seoBrandFallback || "").trim();
+      const model = String(item.model || "").trim();
+      const year = item.year != null ? String(item.year) : "";
+      const kmPart = item.km != null
+        ? String(this.t().saleDetail.seoKmPart || "").replace("{km}", Number(item.km).toLocaleString("tr-TR"))
+        : "";
       this.seo.updateSeoTags({
-        title: `${item.brand || "Araç"} ${item.model || ""} Satılık | ${config.companyName}`,
-        description: `${item.year || ""} ${item.brand || ""} ${item.model || ""} satılık araç. ${item.km != null ? Number(item.km).toLocaleString("tr-TR") + " km." : ""} Fiyat, ekspertiz, açıklama ve konum bilgileri.`,
+        title: String(this.t().saleDetail.seoTitle || "")
+          .replace("{brand}", brand)
+          .replace("{model}", model)
+          .replace("{company}", String(config.companyName || ""))
+          .replace(/\s+/g, " ")
+          .trim(),
+        description: String(this.t().saleDetail.seoDescription || "")
+          .replace("{year}", year)
+          .replace("{brand}", brand)
+          .replace("{model}", model)
+          .replace("{kmPart}", kmPart)
+          .replace(/\s+/g, " ")
+          .trim(),
         image: item.image || config.seoOgImage,
       });
     } catch {
@@ -404,7 +421,19 @@ export class SaleCarDetailComponent implements OnInit {
   phoneHref(): string { const phone = String(this.carService.getConfig()().phone || "").replace(/[^+\d]/g, ""); return phone ? `tel:${phone}` : ""; }
   callPhone(): void { const href = this.phoneHref(); if (href) this.launchExternal(href, false); }
   whatsappPhone(): string { return String(this.carService.getConfig()().whatsapp || this.carService.getConfig()().phone || "").replace(/\D/g, ""); }
-  whatsapp(): void { const item = this.car(); if (!item) return; const phone = this.whatsappPhone(); if (!phone) return; this.launchExternal(`https://wa.me/${phone}?text=${encodeURIComponent(`Merhaba, ${item.brand || ""} ${item.model || ""} satılık araç hakkında bilgi almak istiyorum. ${window.location.href}`)}`, true); }
+  whatsapp(): void {
+    const item = this.car();
+    if (!item) return;
+    const phone = this.whatsappPhone();
+    if (!phone) return;
+    const message = String(this.t().saleDetail.whatsappPrefill || "")
+      .replace("{brand}", String(item.brand || ""))
+      .replace("{model}", String(item.model || ""))
+      .replace("{url}", window.location.href)
+      .replace(/\s+/g, " ")
+      .trim();
+    this.launchExternal(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, true);
+  }
   private launchExternal(url: string, newTab: boolean): void {
     if (!url) return;
     const anchor = document.createElement("a");

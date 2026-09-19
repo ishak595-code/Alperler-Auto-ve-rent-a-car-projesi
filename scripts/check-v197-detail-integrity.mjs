@@ -26,11 +26,14 @@ const removedRentalPath = 'src/pages/rental-detail-v167.component.ts';
 if (!fs.existsSync(canonicalRentalPath)) fail('canonical rental detail runtime is missing');
 if (fs.existsSync(removedRentalPath)) fail('deleted V167 rental detail renderer must not return');
 const rental = read(canonicalRentalPath);
-if (!rental.includes('<dt>Kapı</dt>') || !rental.includes('car.doors')) fail('canonical rental detail must surface the admin-entered door count');
+if (!rental.includes('t().carDetail.doors') || !rental.includes('car.doors')) fail('canonical rental detail must surface the admin-entered door count');
+const ui = read('src/services/ui.service.ts');
+if (!ui.includes('doors: "Kapı"')) fail('TR dictionary must keep carDetail.doors = Kapı');
 if (!rental.includes('car.luggage')) fail('rental detail must surface admin luggage capacity');
 if (!rental.includes('detailedFeatures') || !rental.includes('features = computed')) fail('rental detail must merge flat and categorized admin features');
 if (!rental.includes('car.cylinderCount') || !rental.includes('car.cityFuelConsumption') || !rental.includes('car.highwayFuelConsumption')) fail('rental performance facts must retain extended admin-entered specs');
-if (!rental.includes('Performans ve Tüketim')) fail('rental technical facts must use customer-facing language');
+if (!rental.includes('t().carDetail.performance')) fail('rental technical facts must use customer-facing language via i18n');
+if (!ui.includes('performance: "Performans ve Tüketim"')) fail('TR dictionary must keep carDetail.performance = Performans ve Tüketim');
 if (rental.includes('Rezervasyon Özeti') || rental.includes('Kiralama Özeti') || rental.includes('class="reservation-panel"')) fail('booking-owned rental summary must not be duplicated in canonical rental detail');
 if (rental.includes('{{loadError()}}') || rental.includes('{{ loadError() }}')) fail('canonical rental detail must never expose raw backend errors to customers');
 

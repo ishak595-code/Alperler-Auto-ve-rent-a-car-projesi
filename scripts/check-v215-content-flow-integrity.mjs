@@ -112,7 +112,7 @@ for (const marker of [
   'mapUrl: row["map_url"]',
 ]) if (!detailData.includes(marker)) failures.push(`TOUR_MAP_DATA_FLOW_MISSING ${marker}`);
 
-for (const marker of ['mapHref(item)', 'Haritada aç']) {
+for (const marker of ['mapHref(item)', 't().tourDetail.openMap']) {
   if (!tourUi.includes(marker)) failures.push(`TOUR_MAP_UI_MISSING ${marker}`);
 }
 

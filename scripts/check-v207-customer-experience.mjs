@@ -27,6 +27,7 @@ const paths = {
   blogList: "src/pages/blog-catalog-v217.component.ts",
   blogDetail: "src/pages/blog-detail.component.ts",
   bookingCheckout: "src/pages/booking-checkout.component.ts",
+  ui: 'src/services/ui.service.ts',
 };
 
 for (const file of Object.values(paths)) {
@@ -64,17 +65,23 @@ for (const token of [
 ]) requireText(defaultDock, token, `Canonical mobile dock destination missing: ${token}`);
 rejectText(defaultDock, "['appointment', 'Randevu', 'event_available', '/appointment']", "Appointment must not replace Profile in the mobile dock.");
 
-requireText(sources.bookingCheckout, "Rezervasyonu kontrol edin", "Booking checkout must keep the customer-facing reservation review heading.");
+requireText(sources.bookingCheckout, "checkout().reviewTitle", "Booking checkout must keep the customer-facing reservation review heading via i18n.");
+requireText(sources.ui, 'reviewTitle: "Rezervasyonu kontrol edin"', "TR dictionary must keep checkout.reviewTitle.");
 requireText(sources.bookingCheckout, '<dl class="review">', "Booking checkout must remain the single canonical owner of the reservation review data.");
-for (const token of ["<dt>Araç</dt>", "<dt>Zaman</dt>", "<dt>Şoför</dt>", "<dt>Teslim</dt>", "<dt>İade</dt>", "<dt>Toplam</dt>"]) {
+for (const token of ["checkout().reviewVehicle", "checkout().reviewTime", "checkout().reviewDriver", "checkout().reviewPickup", "checkout().reviewDropoff", "checkout().reviewTotal"]) {
   requireText(sources.bookingCheckout, token, `Booking checkout reservation review is incomplete: ${token}`);
+}
+for (const token of ['reviewVehicle: "Araç"', 'reviewTime: "Zaman"', 'reviewDriver: "Şoför"', 'reviewPickup: "Teslim"', 'reviewDropoff: "İade"', 'reviewTotal: "Toplam"']) {
+  requireText(sources.ui, token, `TR dictionary must keep checkout review label: ${token}`);
 }
 rejectText(sources.rentalDetail, "Rezervasyon Özeti", "Rental detail must not duplicate the booking reservation review.");
 rejectText(sources.rentalDetail, "Kiralama Özeti", "Rental detail must not contain a duplicate rental summary block.");
 rejectText(sources.rentalDetail, 'class="reservation-panel"', "Rental detail must not restore the duplicate reservation panel.");
 requireText(sources.homeVehicleCard, "@if(variant==='sale' && cardDescription)", "Homepage rental cards must not render the descriptive summary reserved for sale cards.");
-requireText(sources.rentalCard, "Aracı İncele", "Rental cards must use a direct customer CTA.");
-requireText(sources.rentalDetail, "<dt>Kapı</dt>", "Rental detail must surface the canonical door count when available.");
+requireText(sources.rentalCard, "t().rentalCard.inspect", "Rental cards must use a direct customer CTA via i18n.");
+requireText(sources.ui, 'inspect: "Aracı İncele"', "TR dictionary must keep rentalCard.inspect.");
+requireText(sources.rentalDetail, "t().carDetail.doors", "Rental detail must surface the canonical door count when available.");
+requireText(sources.ui, 'doors: "Kapı"', "TR dictionary must keep carDetail.doors.");
 requireText(sources.rentalDetail, "car.doors", "Rental detail door count must come from the canonical vehicle record.");
 requireText(sources.rentalDetail, "car.luggage", "Rental detail must retain luggage capacity from the canonical vehicle record.");
 
@@ -131,14 +138,21 @@ rejectText(sources.tourDetail, "{{ loadError() }}", "Tour detail must not print 
 rejectText(sources.blogDetail, "{{error()}}", "Blog detail must not print a raw backend error to customers.");
 rejectText(sources.blogDetail, "{{ error() }}", "Blog detail must not print a raw backend error to customers.");
 
-requireText(sources.rentalList, "ALPERLER KİRALAMA", "Rental catalogue must keep the customer-facing rental hero.");
-requireText(sources.saleList, "ALPERLER İKİNCİ EL", "Sale catalogue must keep the second-hand customer hero.");
-requireText(sources.tourList, "Doğa, kültür ve özel rotalar arasından size uygun deneyimi seçin.", "Tour catalogue must keep customer-oriented discovery copy.");
+requireText(sources.rentalList, "t().catalog.kicker", "Rental catalogue must keep the customer-facing rental hero via i18n.");
+requireText(sources.ui, 'kicker: "ALPERLER KİRALAMA"', "TR dictionary must keep catalog.kicker.");
+requireText(sources.saleList, "t().saleCatalog.kicker", "Sale catalogue must keep the second-hand customer hero via i18n.");
+requireText(sources.ui, 'kicker: "ALPERLER İKİNCİ EL"', "TR dictionary must keep saleCatalog.kicker.");
+requireText(sources.tourList, "t().tourCatalog.subtitle", "Tour catalogue must keep customer-oriented discovery copy via i18n.");
+requireText(sources.ui, "subtitle: \"Do\u011fa, k\u00fclt\u00fcr ve \u00f6zel rotalar aras\u0131ndan size uygun deneyimi se\u00e7in. Program\u0131, bulu\u015fma noktas\u0131n\u0131 ve dahil olan ayr\u0131cal\u0131klar\u0131 kar\u015f\u0131la\u015ft\u0131r\u0131n.\"", "TR dictionary must keep tourCatalog.subtitle.");
 requireText(sources.tourList, "filtersOpen=signal(false)", "Tour filters must stay closed until the customer opens them.");
-requireText(sources.blogList, "ALPERLER YOL REHBERİ", "Blog catalogue must keep editorial customer language.");
-requireText(sources.blogList, "Daha iyi bir yolculuk için doğru bilgiler", "Blog catalogue must keep a useful editorial introduction.");
-requireText(sources.saleDetail, "Performans ve Tüketim Bilgilerini Gör", "Sale detail must frame specifications as customer-useful performance information.");
-requireText(sources.rentalDetail, "Performans ve Tüketim", "Rental detail must frame specifications as customer-useful performance information.");
+requireText(sources.blogList, "t().blogCatalog.kicker", "Blog catalogue must keep editorial customer language via i18n.");
+requireText(sources.ui, 'kicker: "ALPERLER YOL REHBERİ"', "TR dictionary must keep blogCatalog.kicker.");
+requireText(sources.blogList, "t().blogCatalog.introTitle", "Blog catalogue must keep a useful editorial introduction via i18n.");
+requireText(sources.ui, 'introTitle: "Daha iyi bir yolculuk için doğru bilgiler"', "TR dictionary must keep blogCatalog.introTitle.");
+requireText(sources.saleDetail, "t().saleDetail.showPerformance", "Sale detail must frame specifications as customer-useful performance information.");
+requireText(sources.ui, 'showPerformance: "Performans ve Tüketim Bilgilerini Gör"', "TR dictionary must keep saleDetail.showPerformance.");
+requireText(sources.rentalDetail, "t().carDetail.performance", "Rental detail must frame specifications as customer-useful performance information.");
+requireText(sources.ui, 'performance: "Performans ve Tüketim"', "TR dictionary must keep carDetail.performance.");
 
 if (failures.length) {
   console.error("V207 customer experience integrity: FAIL");

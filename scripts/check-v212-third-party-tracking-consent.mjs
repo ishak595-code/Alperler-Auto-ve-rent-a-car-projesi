@@ -73,10 +73,20 @@ for (const forbidden of [
 ]) if (legal.includes(forbidden)) failures.push(`LEGAL_INLINE_CONSENT_UI_FORBIDDEN ${forbidden}`);
 
 for (const marker of [
-  'KVKK Aydınlatma Metni',
-  'Gizlilik Politikası',
-  'Çerez Politikası',
+  't().legalPage.docs',
+  'd.kvkk',
+  'd.privacy',
+  'd.cookies',
+  'type:"kvkk"',
+  'type:"privacy"',
+  'type:"cookies"',
 ]) if (!legal.includes(marker)) failures.push(`LEGAL_DOCUMENT_MUST_REMAIN_ACCESSIBLE ${marker}`);
+const ui = source('src/services/ui.service.ts');
+for (const marker of [
+  'kvkk: "KVKK Aydınlatma Metni"',
+  'privacy: "Gizlilik Politikası"',
+  'cookies: "Çerez Politikası"',
+]) if (!ui.includes(marker)) failures.push(`LEGAL_DOCUMENT_MUST_REMAIN_ACCESSIBLE ${marker}`);
 
 const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const handoff = String(packageJson.scripts?.['verify:handoff'] || '');

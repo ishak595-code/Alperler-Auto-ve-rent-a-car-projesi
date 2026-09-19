@@ -23,6 +23,26 @@ export interface FleetInspectionInput {
   interiorStatus?:'OK'|'DAMAGE_NOTED'|'REQUIRES_CLEANING'|null; damageNotes?:string; photoPaths?:string[];
 }
 
+/** Who currently holds a rental vehicle — derived from live bookings + latest handover inspection (no new columns). */
+export interface FleetActiveOccupancy {
+  vehicleId:string;
+  bookingId:string;
+  reference:string;
+  customerName:string;
+  customerPhone:string;
+  customerEmail:string;
+  startAt:string|null;
+  endAt:string|null;
+  totalPrice:number|null;
+  currency:string;
+  paymentStatus:string;
+  status:string;
+  source:'ACTIVE_BOOKING'|'HANDOVER_INSPECTION';
+  photoCount:number;
+  odometerKm:number|null;
+  fuelPercent:number|null;
+}
+
 export const INSPECTION_TYPES_REQUIRING_MEDIA:InspectionType[]=['PRE_RENTAL','HANDOVER','RETURN'];
 
 @Injectable({providedIn:'root'})
@@ -32,8 +52,10 @@ export class FleetOperationsService {
   private readonly operationSelect='vehicle_id,operational_status,odometer_km,fuel_percent,cleanliness_status,last_inspection_at,last_service_at,next_service_at,next_service_km,insurance_expires_at,periodic_inspection_expires_at,damage_notes,internal_notes,gps_provider,gps_device_id,gps_status,gps_last_sync_at,last_known_latitude,last_known_longitude';
   private readonly _vehicles=signal<FleetVehicle[]>([]);
   private readonly _profiles=signal<Record<string,FleetOperationProfile>>({});
+  private readonly _occupancy=signal<Record<string,FleetActiveOccupancy>>({});
   private readonly _loading=signal(false);
-  readonly vehicles=this._vehicles.asReadonly(); readonly profiles=this._profiles.asReadonly(); readonly loading=this._loading.asReadonly();
+  readonly vehicles=this._vehicles.asReadonly(); readonly profiles=this._profiles.asReadonly();
+  readonly occupancy=this._occupancy.asReadonly(); readonly loading=this._loading.asReadonly();
 
   async refresh():Promise<void>{
     this._loading.set(true);
@@ -43,9 +65,77 @@ export class FleetOperationsService {
         this.rest<any[]>('GET','vehicles?category=eq.RENTAL&select=id,stock_code,brand,model,model_year,cover_image,availability_status,mileage_km&order=brand.asc,model.asc',undefined,token),
         this.rest<any[]>('GET',`vehicle_operations?select=${this.operationSelect}&order=updated_at.desc`,undefined,token),
       ]);
-      this._vehicles.set(vehicleRows.map((row)=>({id:String(row.id),stockCode:String(row.stock_code||''),brand:String(row.brand||''),model:String(row.model||''),modelYear:row.model_year==null?undefined:Number(row.model_year),image:row.cover_image||undefined,availabilityStatus:String(row.availability_status||'AVAILABLE'),mileageKm:row.mileage_km==null?undefined:Number(row.mileage_km)})));
+      const vehicles=vehicleRows.map((row)=>({id:String(row.id),stockCode:String(row.stock_code||''),brand:String(row.brand||''),model:String(row.model||''),modelYear:row.model_year==null?undefined:Number(row.model_year),image:row.cover_image||undefined,availabilityStatus:String(row.availability_status||'AVAILABLE'),mileageKm:row.mileage_km==null?undefined:Number(row.mileage_km)}));
+      this._vehicles.set(vehicles);
       const profiles:Record<string,FleetOperationProfile>={}; for(const row of profileRows){const p=this.fromRow(row);profiles[p.vehicleId]=p;} this._profiles.set(profiles);
+      const occupancy=await this.loadOccupancy(vehicles.map((v)=>v.id),profiles,token);
+      this._occupancy.set(occupancy);
     }finally{this._loading.set(false);}
+  }
+
+  occupancyFor(vehicleId:string):FleetActiveOccupancy|null{
+    return this._occupancy()[vehicleId]||null;
+  }
+
+  /** Active rental / handover holder for a vehicle using existing bookings + inspections only. */
+  private async loadOccupancy(vehicleIds:string[],profiles:Record<string,FleetOperationProfile>,token:string):Promise<Record<string,FleetActiveOccupancy>>{
+    const result:Record<string,FleetActiveOccupancy>={};
+    if(!vehicleIds.length)return result;
+    const nowIso=new Date().toISOString();
+    // Prefer in-window APPROVED rentals; also surface RENTED ops with open-ended APPROVED bookings.
+    const bookingSelect='id,reference,vehicle_id,customer_name,customer_phone,customer_email,start_at,end_at,total_price,currency,payment_status,status';
+    const booked=await this.rest<any[]>('GET',`bookings?booking_type=eq.RENTAL&status=eq.APPROVED&deleted_at=is.null&vehicle_id=in.(${vehicleIds.join(',')})&select=${bookingSelect}&order=start_at.desc&limit=400`,undefined,token).catch(()=>[] as any[]);
+    for(const row of booked){
+      const vehicleId=String(row.vehicle_id||'');
+      if(!vehicleId||result[vehicleId])continue;
+      const startAt=row.start_at?String(row.start_at):null;
+      const endAt=row.end_at?String(row.end_at):null;
+      const started=!startAt||startAt<=nowIso;
+      const notEnded=!endAt||endAt>=nowIso;
+      const opsRented=profiles[vehicleId]?.operationalStatus==='RENTED';
+      if(!(started&&notEnded)&&!opsRented)continue;
+      if(!(started&&notEnded)&&opsRented&&endAt&&endAt<nowIso)continue;
+      result[vehicleId]={
+        vehicleId,bookingId:String(row.id),reference:String(row.reference||''),
+        customerName:String(row.customer_name||''),customerPhone:String(row.customer_phone||''),customerEmail:String(row.customer_email||''),
+        startAt,endAt,totalPrice:row.total_price==null?null:Number(row.total_price),currency:String(row.currency||'TRY'),
+        paymentStatus:String(row.payment_status||''),status:String(row.status||''),source:'ACTIVE_BOOKING',
+        photoCount:0,odometerKm:null,fuelPercent:null,
+      };
+    }
+    // Enrich / fill from latest HANDOVER inspection that linked a booking (photo_paths, km, fuel).
+    const rentedIds=vehicleIds.filter((id)=>profiles[id]?.operationalStatus==='RENTED'||result[id]);
+    if(rentedIds.length){
+      const inspections=await this.rest<any[]>('GET',`vehicle_inspections?inspection_type=eq.HANDOVER&booking_id=not.is.null&vehicle_id=in.(${rentedIds.join(',')})&select=vehicle_id,booking_id,odometer_km,fuel_percent,photo_paths,completed_at&order=completed_at.desc&limit=200`,undefined,token).catch(()=>[] as any[]);
+      const seen=new Set<string>();
+      for(const row of inspections){
+        const vehicleId=String(row.vehicle_id||'');
+        if(!vehicleId||seen.has(vehicleId))continue;
+        seen.add(vehicleId);
+        const photos=Array.isArray(row.photo_paths)?row.photo_paths:[];
+        const existing=result[vehicleId];
+        if(existing){
+          existing.photoCount=photos.length;
+          existing.odometerKm=row.odometer_km==null?existing.odometerKm:Number(row.odometer_km);
+          existing.fuelPercent=row.fuel_percent==null?existing.fuelPercent:Number(row.fuel_percent);
+          continue;
+        }
+        const bookingId=String(row.booking_id||'');
+        if(!bookingId)continue;
+        const bookingRows=await this.rest<any[]>('GET',`bookings?id=eq.${encodeURIComponent(bookingId)}&deleted_at=is.null&select=${bookingSelect}&limit=1`,undefined,token).catch(()=>[] as any[]);
+        const b=bookingRows[0];
+        if(!b)continue;
+        result[vehicleId]={
+          vehicleId,bookingId,reference:String(b.reference||''),
+          customerName:String(b.customer_name||''),customerPhone:String(b.customer_phone||''),customerEmail:String(b.customer_email||''),
+          startAt:b.start_at?String(b.start_at):null,endAt:b.end_at?String(b.end_at):null,
+          totalPrice:b.total_price==null?null:Number(b.total_price),currency:String(b.currency||'TRY'),
+          paymentStatus:String(b.payment_status||''),status:String(b.status||''),source:'HANDOVER_INSPECTION',
+          photoCount:photos.length,odometerKm:row.odometer_km==null?null:Number(row.odometer_km),fuelPercent:row.fuel_percent==null?null:Number(row.fuel_percent),
+        };
+      }
+    }
+    return result;
   }
 
   profileFor(vehicle:FleetVehicle):FleetOperationProfile{

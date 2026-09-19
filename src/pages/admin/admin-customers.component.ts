@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CustomerAdminService, AdminCustomerRow, AdminLoyaltySettings, AdminCustomerStatus } from '../../services/customer-admin.service';
 import { ToastService } from '../../services/toast.service';
 
@@ -86,10 +86,10 @@ import { ToastService } from '../../services/toast.service';
   `]
 })
 export class AdminCustomersComponent implements OnInit{
-  readonly service=inject(CustomerAdminService);private readonly toast=inject(ToastService);readonly selected=signal<AdminCustomerRow|null>(null);readonly working=signal(false);query='';statusFilter:'ALL'|AdminCustomerStatus='ALL';bookingReference='';settings:AdminLoyaltySettings|null=null;
+  readonly service=inject(CustomerAdminService);private readonly toast=inject(ToastService);private readonly route=inject(ActivatedRoute);readonly selected=signal<AdminCustomerRow|null>(null);readonly working=signal(false);query='';statusFilter:'ALL'|AdminCustomerStatus='ALL';bookingReference='';settings:AdminLoyaltySettings|null=null;
   readonly filtered=computed(()=>{const q=this.query.trim().toLocaleLowerCase('tr-TR');return this.service.customers().filter(c=>(this.statusFilter==='ALL'||c.status===this.statusFilter)&&(!q||[c.full_name,c.email,c.phone].some(v=>String(v||'').toLocaleLowerCase('tr-TR').includes(q))));});
   readonly activeCount=computed(()=>this.service.customers().filter(c=>c.status==='ACTIVE').length);readonly blockedCount=computed(()=>this.service.customers().filter(c=>c.status==='BLOCKED').length);readonly completedTotal=computed(()=>this.service.customers().reduce((sum,c)=>sum+c.completed_rentals,0));readonly referralTotal=computed(()=>this.service.customers().reduce((sum,c)=>sum+c.successful_referrals,0));readonly pointsTotal=computed(()=>this.service.customers().reduce((sum,c)=>sum+c.points_balance,0));
-  async ngOnInit(){await this.refresh();}
+  async ngOnInit(){const q=this.route.snapshot.queryParamMap.get('q');if(q)this.query=q.trim();await this.refresh();}
   async refresh(){try{await this.service.refresh();const source=this.service.settings();this.settings=source?{...source,benefits:{...source.benefits}}:null;const current=this.selected();if(current)this.selected.set(this.service.customers().find(c=>c.user_id===current.user_id)||null);}catch(e){this.toast.show(this.message(e),'error');}}
   select(c:AdminCustomerRow){this.selected.set(c);}
   async setStatus(status:AdminCustomerStatus){const c=this.selected();if(!c||c.status===status)return;if(status==='DELETED'&&!window.confirm('Bu müşteri hesabı arşivlenecek. Geçmiş işlemler silinmeyecek. Devam edilsin mi?'))return;this.working.set(true);try{await this.service.setCustomerStatus(c.user_id,status);const next=this.service.customers().find(x=>x.user_id===c.user_id);if(next)this.selected.set(next);this.toast.show(status==='ACTIVE'?'Müşteri hesabı aktifleştirildi.':status==='BLOCKED'?'Müşteri hesabı engellendi.':'Müşteri hesabı arşivlendi.','success');}catch(e){this.toast.show(this.message(e),'error');}finally{this.working.set(false);}}

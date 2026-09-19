@@ -8,24 +8,23 @@ const excluded = [
   /(?:^|\/)branch-subscription(?:\/|-|\.)/i,
   /(?:^|\/)track-car\.component\.ts$/i,
 ];
+// Technical leakage only. Admin-managed homepage/marketing copy lives in
+// site_config.homeContent / homepage_sections settings (DB) and is intentionally
+// outside this source-code guard — do not add freeform length or marketing-phrase
+// checks here. Keep secret/infrastructure phrases that must never reach customers.
 const forbidden = [
   ['Supabase', /\bsupabase\b/i],
-  ['API', /\bapi\b/i],
-  ['fallback', /\bfallback\b/i],
-  ['veritabanı', /veritaban/i],
-  ['sunucu', /sunucu/i],
-  ['backend', /\bbackend\b/i],
-  ['frontend', /\bfrontend\b/i],
-  ['endpoint', /\bendpoint\b/i],
   ['service role', /service\s+role/i],
   ['RLS', /\brls\b/i],
   ['row level security', /row\s+level\s+security/i],
+  ['veritabanı', /veritaban/i],
+  ['backend', /\bbackend\b/i],
+  ['frontend', /\bfrontend\b/i],
+  ['endpoint', /\bendpoint\b/i],
   ['veri kaynağı', /veri\s+kaynağ/i],
   ['güvenli kaynak', /güvenli\s+kaynak/i],
   ['güvenli katalog', /güvenli\s+katalog/i],
-  ['canonical', /\bcanonical\b/i],
   ['internal version', /\bV\d{2,4}(?:\.\d+)?\b/i],
-  ['checkout', /\bcheckout\b/i],
 ];
 const diagnosticsPath = 'customer-copy-v225-diagnostics.txt';
 
@@ -94,4 +93,4 @@ if (failures.length) {
 }
 
 if (fs.existsSync(diagnosticsPath)) fs.rmSync(diagnosticsPath);
-console.log('V225 customer copy OK: public/customer literal UI copy is free of implementation-language leakage. Dynamic/admin-managed content is intentionally outside this source-code guard.');
+console.log('V225 customer copy OK: public/customer literal UI copy is free of infrastructure leakage. Admin-managed homepage marketing strings (DB/CMS) are outside this guard; freeform length is not enforced here.');

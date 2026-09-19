@@ -144,31 +144,31 @@ app-tour-detail .action-bar{grid-template-columns:minmax(0,1fr) minmax(0,1.16fr)
 /* V204 canonical mobile home conversion geometry.
    This remains in the same responsive owner as the detail action system. */
 @media (max-width:767px){
-  app-home-v71 .hero-stage{padding:.82rem 0 1rem;gap:.72rem}
-  app-home-v71 .eyebrow{font-size:.57rem;letter-spacing:.12em}
-  app-home-v71 .hero h1{margin:.48rem 0 0;font-size:clamp(2rem,9vw,2.42rem);line-height:.98}
-  app-home-v71 .hero-copy{margin:.55rem 0 0;font-size:.78rem;line-height:1.48}
-  app-home-v71 .trust-row{flex-wrap:nowrap;gap:.35rem;margin-top:.62rem;overflow-x:auto;padding-bottom:2px;overscroll-behavior-inline:contain;scrollbar-width:none}
-  app-home-v71 .trust-row::-webkit-scrollbar{display:none}
-  app-home-v71 .trust-row span{flex:0 0 auto;padding:.34rem .5rem;font-size:.57rem}
-  app-home-v71 .planner{padding:.76rem;border-radius:18px;box-shadow:0 22px 52px rgba(2,6,23,.32)}
-  app-home-v71 .planner-head{gap:.5rem}
-  app-home-v71 .planner-icon{display:none}
-  app-home-v71 .planner h2{font-size:1.32rem;line-height:1.04}
-  app-home-v71 .planner-head p:not(.planner-kicker){margin:.32rem 0 0;font-size:.67rem;line-height:1.4}
-  app-home-v71 .field-grid{gap:.5rem;margin-top:.68rem}
-  app-home-v71 .field{gap:.24rem}
-  app-home-v71 .field>span{font-size:.56rem;letter-spacing:.04em}
+  /* Comfortable type scale: no sub-12px marketing copy. Touch targets ≥44px. */
+  app-home-v71 .hero-stage{padding:1rem 0 1.15rem;gap:.9rem}
+  app-home-v71 .eyebrow{font-size:.75rem;letter-spacing:.11em}
+  app-home-v71 .hero h1{margin:.55rem 0 0;font-size:clamp(2rem,8.5vw,2.5rem);line-height:1.06}
+  app-home-v71 .hero-copy{margin:.65rem 0 0;font-size:.95rem;line-height:1.55}
+  app-home-v71 .trust-row{flex-wrap:wrap;gap:.45rem;margin-top:.75rem;overflow-x:visible;padding-bottom:0}
+  app-home-v71 .trust-row span{flex:1 1 auto;max-width:100%;padding:.45rem .65rem;font-size:.8125rem;line-height:1.3}
+  app-home-v71 .planner{padding:1.05rem;border-radius:18px;box-shadow:0 22px 52px rgba(2,6,23,.32)}
+  app-home-v71 .planner-head{gap:.65rem}
+  app-home-v71 .planner-icon{display:grid;width:44px;height:44px}
+  app-home-v71 .planner h2{font-size:clamp(1.4rem,5.5vw,1.65rem);line-height:1.15}
+  app-home-v71 .planner-head p:not(.planner-kicker){margin:.4rem 0 0;font-size:.9375rem;line-height:1.5}
+  app-home-v71 .field-grid{gap:.7rem;margin-top:.9rem}
+  app-home-v71 .field{gap:.35rem}
+  app-home-v71 .field>span{font-size:.75rem;letter-spacing:.04em}
   app-home-v71 .field select,
-  app-home-v71 .field input{min-height:45px;border-radius:10px;padding-inline:.65rem;font-size:.75rem}
+  app-home-v71 .field input{min-height:48px;border-radius:12px;padding-inline:.8rem;font-size:1rem}
   app-home-v71 .date-grid,
-  app-home-v71 .time-grid{gap:.42rem}
+  app-home-v71 .time-grid{gap:.55rem}
   app-home-v71 .planner-summary,
-  app-home-v71 .planner-error{margin-top:.5rem;padding:.5rem .6rem;font-size:.62rem}
-  app-home-v71 .planner-action{min-height:48px;margin-top:.62rem;border-radius:10px;font-size:.76rem}
-  app-home-v71 .planner-note{margin:.38rem 0 0;font-size:.56rem;line-height:1.38}
-  app-dynamic-home-section .home-section{padding:1.35rem 0}
-  app-dynamic-home-section .section-head{margin-bottom:.72rem}
+  app-home-v71 .planner-error{margin-top:.6rem;padding:.65rem .75rem;font-size:.875rem;line-height:1.45}
+  app-home-v71 .planner-action{min-height:52px;margin-top:.75rem;border-radius:12px;font-size:1rem}
+  app-home-v71 .planner-note{margin:.5rem 0 0;font-size:.8125rem;line-height:1.5}
+  app-dynamic-home-section .home-section{padding:1.5rem 0}
+  app-dynamic-home-section .section-head{margin-bottom:.85rem}
 }
 @media (min-width:390px) and (max-width:767px){
   app-home-v71 .date-grid:not(.single-date),

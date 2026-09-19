@@ -19,7 +19,7 @@ type CampaignTargetKind = 'TOUR' | 'SALE';
       <section class="campaign-context" [attr.aria-label]="t().catalogCampaign.sectionAria">
         <div class="copy">
           <div class="badges">
-            <span class="campaign-badge">{{ offer.badge || t().catalogCampaign.badgeFallback }}</span>
+            <span class="campaign-badge">{{ badgeLabel(offer) }}</span>
             @if (discountLabel(offer)) { <span class="discount-badge">{{ discountLabel(offer) }}</span> }
           </div>
           <p class="eyebrow">{{ t().catalogCampaign.eyebrow }}</p>
@@ -145,4 +145,6 @@ export class CatalogCampaignContextComponent implements OnInit {
     if (days === 1) return c.oneDayLeft;
     return String(c.hoursLeft || '').replace('{n}', String(Math.max(1, hours)));
   }
+  badgeLabel(offer:{badge?:string|null}):string{return this.ui.listingBadgeLabel(offer?.badge)||this.t().catalogCampaign.badgeFallback;}
+
 }

@@ -7,7 +7,7 @@ import { ToastService } from '../../services/toast.service';
 
 type Period='today'|'week'|'month'|'year';
 type Currency='TRY'|'EUR'|'USD'|'CHF';
-type Locale='tr'|'en'|'de'|'fr';
+type Locale='tr'|'en'|'de'|'fr'|'es'|'ru'|'zh'|'ar'|'ku';
 type NotificationProvider='RESEND'|'TWILIO';
 
 @Component({selector:'app-admin-finance',standalone:true,imports:[CommonModule,FormsModule,RouterLink],template:`

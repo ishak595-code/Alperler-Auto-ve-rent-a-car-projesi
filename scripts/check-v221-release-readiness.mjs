@@ -58,7 +58,9 @@ for (const token of ['PAYMENT_CARD_KILL_SWITCH=false','Emergency-only server kil
 reject(envExample,'PAYMENT_CARD_ENABLED','Environment template must not require a legacy payment activation switch.');
 for (const token of ['createPaytr(','createIyzico(','iyzicoCallback(','iyzicoFraudNotification(','paytrCallback(','providerStatus()','IYZWSv2','IYZICO_RESULT_SIGNATURE_INVALID','IYZICO_FRAUD_RESULT_SIGNATURE_INVALID','payment_transactions?provider=eq.iyzico','payment_amount','total_amount','fraudStatus===0','"AUTHORIZED"','rejectedAfterReview','"REFUNDED"','/payment/detail','iyzico-fraud-notification']) must(paymentApi,token,`Payment gateway implementation missing ${token}`);
 for (const token of ['MatDialog','IyzicoBuyerDetailsDialogComponent','status.provider === \'iyzico\'']) must(paymentService,token,`iyzico customer preflight missing ${token}`);
-for (const token of ['Kimlik / pasaport numarası','Fatura adresi','Uygulamanın ödeme işlem geçmişine kimlik veya açık adres kopyası yazılmaz']) must(paymentDialog,token,`iyzico privacy/accessibility contract missing ${token}`);
+const ui = read('src/services/ui.service.ts');
+for (const token of ['t().iyzicoBuyer.identity','t().iyzicoBuyer.billingAddress','t().iyzicoBuyer.privacy']) must(paymentDialog,token,`iyzico privacy/accessibility contract missing ${token}`);
+for (const token of ['identity: "Kimlik / pasaport numarası"', 'billingAddress: "Fatura adresi"', 'privacy: "Bu alanlar ödeme oturumu oluşturulurken iyzico’ya aktarılır. Uygulamanın ödeme işlem geçmişine kimlik veya açık adres kopyası yazılmaz."']) must(ui,token,`TR dictionary must keep iyzicoBuyer label: ${token}`);
 const snapshots = paymentApi.match(/requestSnapshot:\{[^}]*\}/g) || [];
 for (const snapshot of snapshots) for (const sensitive of ['identityNumber','billingAddress','zipCode']) reject(snapshot,sensitive,`Sensitive iyzico field must not be persisted in transaction request snapshot: ${sensitive}`);
 for (const token of ['APP_PUBLIC_ORIGIN','PUBLIC_APP_URL','SITE_URL','VERCEL_PROJECT_PRODUCTION_URL','VERCEL_URL']) must(publicOrigin,token,`Portable public-origin source missing ${token}`);

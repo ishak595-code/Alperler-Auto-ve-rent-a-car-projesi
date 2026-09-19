@@ -16,6 +16,7 @@ const tourBooking = read('src/services/tour-booking-v170.service.ts');
 const detailData = read('src/services/public-detail-data.service.ts');
 const adminWorkspace = read('src/pages/admin/admin-catalog-workspace.component.ts');
 const pricingGuard = read('supabase/migrations/20260827221629_v201_campaign_normal_price_reference_guard.sql');
+const uiService = read('src/services/ui.service.ts');
 
 for (const contract of ['CarDetailComponent','SaleCarDetailComponent','TourDetailComponent','CatalogCampaignContextComponent','targetKind="SALE"','targetKind="TOUR"']) {
   must(shell, contract, `Canonical detail shell missing: ${contract}`);
@@ -25,35 +26,44 @@ for (const forbidden of ['RentalDetailV167Component','SaleDetailV1681Component',
 }
 
 for (const contract of [
-  'Konfor, kiralama koşulları ve araç bilgileri','Performans ve Tüketim','fixed-actions','activeCampaign','campaignProofLabel',
+  't().carDetail.aboutToggleTitle','t().carDetail.performance','fixed-actions','activeCampaign','campaignProofLabel',
   'proofByCampaign','car.transmission','car.fuel','car.seats','car.doors','car.luggage','car.type','selectedPeriodAvailable()',
   'for (const video of car.videos || [])','DetailMediaLightboxComponent','dailyMileageLimit','hourlyMileageLimit','minimumRentalHours',
   'deposit','minLicenseYears','technicalRows','features()','commercialOffer.activateCampaign(verified)',
 ]) must(rental, contract, `Rental approved UX/data contract missing: ${contract}`);
+for (const contract of [
+  'aboutToggleTitle: "Konfor, kiralama koşulları ve araç bilgileri"','performance: "Performans ve Tüketim"',
+]) must(uiService, contract, `Rental TR dictionary missing: ${contract}`);
 for (const forbidden of ['mobile-actions','class="primary-action"','class="whatsapp-action"','Özellikler, koşullar ve açıklama','Rezervasyon Özeti','Kiralama Özeti','class="reservation-panel"']) {
   mustNot(rental, forbidden, `Legacy or duplicate rental UX must not return: ${forbidden}`);
 }
 must(rental, 'offer.discountScope!=="UNIT"', 'Order-level campaign package prices must not replace rental unit price.');
 
 for (const contract of [
-  'İLAN BİLGİLERİ','AÇIKLAMA','KONUM',"activeTab.set('info')","activeTab.set('desc')","activeTab.set('loc')",
-  'bottom-actions','readonly listingRows = computed<ListingRow[]>','Performans ve Tüketim Bilgilerini Gör','Ekspertiz ve Hasar Geçmişi','DetailMediaLightboxComponent',
+  't().saleDetail.tabInfo','t().saleDetail.tabDesc','t().saleDetail.tabLocation',"activeTab.set('info')","activeTab.set('desc')","activeTab.set('loc')",
+  'bottom-actions','readonly listingRows = computed<ListingRow[]>','t().saleDetail.showPerformance','t().saleDetail.expertiseTitle','DetailMediaLightboxComponent',
   'for (const video of item.videos || [])','technicalRows','damageExpertise','tramerStatusLabel','tramerAmount','mapHref(item)',
-  'item.viewers','item.favCount','Konfor ve Donanımı Gör','(click)="callPhone()"','(click)="inquire(item)"','aria-label="Satış talebi gönder"','<span>Satış Talebi Gönder</span>','<span>WhatsApp</span>',
+  'item.viewers','item.favCount','t().saleDetail.showFeatures','(click)="callPhone()"','(click)="inquire(item)"','[attr.aria-label]="t().saleDetail.inquiryAria"','t().saleDetail.inquiry','t().saleDetail.whatsapp',
 ]) must(sale, contract, `Sale approved UX/live-schema contract missing: ${contract}`);
+for (const contract of [
+  'tabInfo: "İLAN BİLGİSİ"','tabDesc: "AÇIKLAMA"','tabLocation: "KONUM"','showPerformance: "Performans ve Tüketim Bilgilerini Gör"','showFeatures: "Konfor ve Donanımı Gör"','expertiseTitle: "Ekspertiz ve Hasar Geçmişi"','inquiry: "Satış Talebi"','inquiryAria: "Satış talebi gönder"','whatsapp: "WhatsApp"',
+]) must(uiService, contract, `Sale TR dictionary missing: ${contract}`);
 for (const forbidden of ['getTechnicalSpecs','class="core-facts"','[href]="phoneHref()"','Teknik Verileri Gör','Donanım ve Özellikleri Gör','<span>Bilgi Al</span>']) {
   mustNot(sale, forbidden, `Legacy sale UX/data contract must not return: ${forbidden}`);
 }
 
 for (const contract of [
   'readonly reservationOpen = signal(false)','@if (reservationOpen())','class="reservation-overlay"','(click)="openReservation()"',
-  'aria-label="Bu turu rezerve et"','focusAfterRender','Bu Turu Rezerve Et','Tur Hakkında','Tur Programı','Neler Dahil?','action-bar','map-panel','Buluşma ve rota','Haritada aç',
+  '[attr.aria-label]="t().tourDetail.reserveAria"','focusAfterRender','t().tourDetail.reserve','t().tourDetail.aboutTour','t().tourDetail.itinerary','t().tourDetail.scopeTitle','action-bar','map-panel','t().tourDetail.mapTitle','t().tourDetail.openMap',
   'TourBookingV170Service','TourDemandV170Service','onDateChange($event)','1_000_000_000',
   'DetailMediaLightboxComponent','for (const video of item.videos || [])','commercialOffer.activateCampaign(verified)',
   'new URL(record.mapUrl)','parsed.searchParams.get("q")','maps/search/?api=1&query=','Math.abs(latitude) <= 90','Math.abs(longitude) <= 180',
-  'aria-label="Tur detayına dön"','aria-label="İletişim bilgileri adımına devam et"','aria-label="Rezervasyon onay adımına devam et"',
-  'aria-label="Rezervasyon talebini gönder"','aria-label="Tur bilgilerini tekrar yükle"',
+  '[attr.aria-label]="t().tourDetail.returnToTourAria"','[attr.aria-label]="t().tourDetail.continueContactAria"','[attr.aria-label]="t().tourDetail.continueReviewAria"',
+  '[attr.aria-label]="t().tourDetail.submitAria"','[attr.aria-label]="t().tourDetail.retryAria"',
 ]) must(tour, contract, `Tour approved UX/flexible-demand/map/a11y contract missing: ${contract}`);
+for (const contract of [
+  'reserve: "Rezervasyon Talep Et"','reserveAria: "Bu turu rezerve et"','aboutTour: "Tur hakkında"','itinerary: "Güzergah"','scopeTitle: "Neler Dahil?"','mapTitle: "Buluşma ve rota"','openMap: "Haritada aç"','returnToTourAria: "Tur detayına dön"','continueContactAria: "İletişim bilgileri adımına devam et"','continueReviewAria: "Rezervasyon onay adımına devam et"','submitAria: "Rezervasyon talebini gönder"','retryAria: "Tur bilgilerini tekrar yükle"',
+]) must(uiService, contract, `Tour TR dictionary missing: ${contract}`);
 mustNot(tour, 'TARİHLİ REZERVASYON', 'Tour booking controls must not render as an always-open page section.');
 mustNot(tour, 'Ne zaman geleceksiniz?', 'Tour booking form must stay behind the explicit reservation action.');
 mustNot(tour, 'BookingService', 'Canonical tour must use the flexible-demand booking service.');
@@ -66,8 +76,9 @@ if (mapIndex < 0 || actionIndex < 0 || overlayIndex < 0 || mapIndex > actionInde
 
 for (const contract of [
   "queryParamMap.get('campaign')",'resolvedTargetId','new Set([this.routeId, this.resolvedTargetId()]','aliases.has(String(item.targetId || \'\').trim())',
-  'this.detailData.load(kind, this.routeId)','proofByCampaign','activeViewers15m','recentViewers24h','uniqueViewersTotal','AKTİF KAMPANYA','commercialOffer.activateCampaign(verified)',
+  'this.detailData.load(kind, this.routeId)','proofByCampaign','activeViewers15m','recentViewers24h','uniqueViewersTotal','t().catalogCampaign.eyebrow','commercialOffer.activateCampaign(verified)',
 ]) must(campaignContext, contract, `Campaign target context missing: ${contract}`);
+must(uiService, 'eyebrow: "AKTİF KAMPANYA"', 'Campaign TR dictionary must keep AKTİF KAMPANYA eyebrow');
 for (const forbidden of ['openReservation(', 'whatsapp(', 'router.navigate']) mustNot(campaignContext, forbidden, `Campaign context must never become a second CTA owner: ${forbidden}`);
 mustNot(campaignContext, 'KAMPANYADAN GELDİNİZ', 'Legacy query-only campaign presentation must not return.');
 

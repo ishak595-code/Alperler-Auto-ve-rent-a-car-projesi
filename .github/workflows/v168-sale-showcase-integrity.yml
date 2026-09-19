@@ -58,9 +58,12 @@ jobs:
           grep -q "SaleVehicleCardV168Component" "$SHOW"
           grep -q "cloudStockCode" "$CARD"
           grep -q "branchLabel" "$CARD"
-          grep -q "İLAN BİLGİLERİ" "$DETAIL"
-          grep -q "AÇIKLAMA" "$DETAIL"
-          grep -q "KONUM" "$DETAIL"
+          grep -q "t().saleDetail.tabInfo" "$DETAIL"
+          grep -q 'tabInfo: "İLAN BİLGİSİ"' src/services/ui.service.ts
+          grep -q "t().saleDetail.tabDesc" "$DETAIL"
+          grep -q 'tabDesc: "AÇIKLAMA"' src/services/ui.service.ts
+          grep -q "t().saleDetail.tabLocation" "$DETAIL"
+          grep -q 'tabLocation: "KONUM"' src/services/ui.service.ts
           grep -q "readonly listingRows = computed<ListingRow\[]>" "$DETAIL"
           grep -q "tramerStatusLabel" "$DETAIL"
           grep -q "damageExpertise" "$DETAIL"

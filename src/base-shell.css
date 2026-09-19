@@ -65,7 +65,7 @@ span {
 }
 
 :focus-visible {
-  outline: 3px solid #3b82f6;
+  outline: 3px solid #E15A62;
   outline-offset: 3px;
 }
 

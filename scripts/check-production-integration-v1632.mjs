@@ -5,17 +5,19 @@ const assert = (condition, message) => { if (!condition) throw new Error(`V163.2
 const all = (source, needles, label) => { for (const needle of needles) assert(source.includes(needle), `${label} missing ${needle}`); };
 
 const checkout = read('src/pages/booking-checkout.component.ts');
+const ui = read('src/services/ui.service.ts');
 all(checkout, [
   'interface LocationChoice { key: string; label: string; branchId?: string; }',
   'pickupBranchId:this.isRental()?this.selectedPickupBranchId():undefined',
   'dropoffBranchId:this.isRental()?this.selectedDropoffBranchId():undefined',
   'selectedPickupBranchId()',
   'selectedDropoffBranchId()',
-  'Talebinizi yine de gönderebilirsiniz',
+  'checkout().periodBusy',
   'role="radiogroup"',
   'role="radio"',
   '[attr.aria-checked]',
 ], 'checkout');
+assert(ui.includes('periodBusy: "Bu zaman aralığı mevcut onaylı kayıtlara göre dolu görünüyor. Talebinizi yine de gönderebilirsiniz; ekip uygun alternatif araçları değerlendirecek."'), 'TR dictionary must keep checkout.periodBusy');
 
 const planStart = checkout.indexOf('continueFromPlan():void');
 const contactStart = checkout.indexOf('continueFromContact():void', planStart);

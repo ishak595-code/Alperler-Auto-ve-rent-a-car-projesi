@@ -136,7 +136,8 @@ jobs:
           DB_GUARD=supabase/migrations/20260903121000_v237_branch_due_diligence_db_guard.sql
           EDGE=supabase/functions/branch-partner-v164/index.ts
           test -f "$PARTNER" && test -f "$ADMIN" && test -f "$DUE" && test -f "$DB_GUARD" && test -f "$EDGE"
-          grep -Fq 'İşletme / Ticari Unvan *' "$PARTNER"
+          grep -Fq 't().branchPartner.businessName' "$PARTNER"
+          grep -Fq 'businessName: "İşletme / Ticari Unvan *"' src/services/ui.service.ts
           grep -Fq 'businessType:this.businessType' "$PARTNER"
           grep -Fq 'taxOffice:this.taxOffice.trim()' "$PARTNER"
           grep -Fq 'taxNumber:this.taxNumber.trim()' "$PARTNER"

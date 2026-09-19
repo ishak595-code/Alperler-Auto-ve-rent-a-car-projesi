@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CommercialOfferContextService } from '../services/commercial-offer-context.service';
 import { CustomerAccountService } from '../services/customer-account.service';
 import { CustomerAuthService } from '../services/customer-auth.service';
+import { UiService } from '../services/ui.service';
 
 @Component({
   selector:'app-checkout-loyalty-panel',
@@ -12,19 +13,19 @@ import { CustomerAuthService } from '../services/customer-auth.service';
   template:`
     @if(auth.isLoggedIn() && account.lifetimeSummary(); as lifetime){
       @if(account.loyaltySettings()?.redemption_enabled !== false && lifetime.pointsBalance > 0){
-        <aside class="loyalty-panel" aria-label="Sadakat puanı kullanımı">
+        <aside class="loyalty-panel" [attr.aria-label]="t().loyaltyPanel.panelAria">
           @if(!open()){
             <button type="button" class="summary" (click)="open.set(true)" [attr.aria-expanded]="false">
-              <span><small>ALPERLER SADAKAT</small><strong>{{lifetime.pointsBalance|number}} puanınız var</strong></span><b>Puan Kullan</b>
+              <span><small>{{ t().loyaltyPanel.brand }}</small><strong>{{ pointsBalanceLabel(lifetime.pointsBalance) }}</strong></span><b>{{ t().loyaltyPanel.usePoints }}</b>
             </button>
           }@else{
             <section class="sheet" aria-labelledby="checkout-loyalty-title">
-              <header><div><small>ALPERLER SADAKAT</small><h2 id="checkout-loyalty-title">Puanınızı bu işlemde kullanın</h2><p>Mevcut bakiye: <strong>{{lifetime.pointsBalance|number}} puan</strong></p></div><button type="button" class="close" (click)="open.set(false)" aria-label="Sadakat puanı panelini kapat">×</button></header>
-              <label><span>Kullanmak istediğiniz puan</span><input type="number" inputmode="numeric" [min]="minimumPoints()" [max]="lifetime.pointsBalance" step="1" [ngModel]="points()" (ngModelChange)="setPoints($event)" /></label>
-              <div class="quick" aria-label="Hızlı puan seçimi"><button type="button" (click)="selectRatio(.25)">%25</button><button type="button" (click)="selectRatio(.5)">%50</button><button type="button" (click)="selectRatio(1)">Tümü</button></div>
-              <p class="rule">Minimum {{minimumPoints()|number}} puan. Puanınızın TL karşılığı ve bu işlemde kullanabileceğiniz en yüksek oran, ödeme tamamlanmadan önce güncel koşullara göre kesinleştirilir.</p>
-              <div class="actions"><button type="button" class="remove" (click)="removePoints()">Puan Kullanma</button><button type="button" class="apply" (click)="applyPoints()" [disabled]="points()>0 && points()<minimumPoints()">{{points()>0 ? ((points()|number)+' Puanı Uygula') : 'Puan Seç'}}</button></div>
-              @if(applied()){<p class="applied" role="status">{{points()|number}} puan kullanım tercihiniz işleminize eklendi. Kesin puan ve indirim tutarı rezervasyon onayında gösterilir.</p>}
+              <header><div><small>{{ t().loyaltyPanel.brand }}</small><h2 id="checkout-loyalty-title">{{ t().loyaltyPanel.sheetTitle }}</h2><p>{{ t().loyaltyPanel.balancePrefix }} <strong>{{lifetime.pointsBalance|number}} {{ t().loyaltyPanel.pointsUnit }}</strong></p></div><button type="button" class="close" (click)="open.set(false)" [attr.aria-label]="t().loyaltyPanel.closeAria">×</button></header>
+              <label><span>{{ t().loyaltyPanel.pointsLabel }}</span><input type="number" inputmode="numeric" [min]="minimumPoints()" [max]="lifetime.pointsBalance" step="1" [ngModel]="points()" (ngModelChange)="setPoints($event)" /></label>
+              <div class="quick" [attr.aria-label]="t().loyaltyPanel.quickAria"><button type="button" (click)="selectRatio(.25)">%25</button><button type="button" (click)="selectRatio(.5)">%50</button><button type="button" (click)="selectRatio(1)">{{ t().loyaltyPanel.all }}</button></div>
+              <p class="rule">{{ ruleLabel() }}</p>
+              <div class="actions"><button type="button" class="remove" (click)="removePoints()">{{ t().loyaltyPanel.remove }}</button><button type="button" class="apply" (click)="applyPoints()" [disabled]="points()>0 && points()<minimumPoints()">{{ applyLabel() }}</button></div>
+              @if(applied()){<p class="applied" role="status">{{ appliedLabel() }}</p>}
             </section>
           }
         </aside>
@@ -36,10 +37,14 @@ import { CustomerAuthService } from '../services/customer-auth.service';
   `]
 })
 export class CheckoutLoyaltyPanelComponent implements OnInit{
-  readonly auth=inject(CustomerAuthService);readonly account=inject(CustomerAccountService);private readonly offer=inject(CommercialOfferContextService);readonly open=signal(false);readonly points=signal(0);readonly applied=signal(false);readonly minimumPoints=computed(()=>Math.max(0,Number(this.account.loyaltySettings()?.minimum_redeem_points||0)));
+  readonly auth=inject(CustomerAuthService);readonly account=inject(CustomerAccountService);private readonly offer=inject(CommercialOfferContextService);private readonly ui=inject(UiService);readonly t=this.ui.translations;readonly open=signal(false);readonly points=signal(0);readonly applied=signal(false);readonly minimumPoints=computed(()=>Math.max(0,Number(this.account.loyaltySettings()?.minimum_redeem_points||0)));
   async ngOnInit():Promise<void>{await this.auth.waitUntilReady();if(!this.auth.isLoggedIn())return;await this.account.refresh().catch(()=>undefined);}
   setPoints(value:unknown):void{const balance=Math.max(0,Number(this.account.lifetimeSummary()?.pointsBalance||0));const next=Math.max(0,Math.min(balance,Math.floor(Number(value)||0)));this.points.set(next);this.applied.set(false);}
   selectRatio(ratio:number):void{const balance=Math.max(0,Number(this.account.lifetimeSummary()?.pointsBalance||0));this.setPoints(Math.floor(balance*Math.max(0,Math.min(1,ratio))));}
   applyPoints():void{const selected=this.points();if(selected>0&&selected<this.minimumPoints())return;this.offer.setLoyaltyPoints(selected);this.applied.set(selected>0);}
   removePoints():void{this.points.set(0);this.offer.setLoyaltyPoints(0);this.applied.set(false);}
+  pointsBalanceLabel(n:number):string{return String(this.t().loyaltyPanel.pointsBalance||'').replace('{n}', String(n));}
+  ruleLabel():string{return String(this.t().loyaltyPanel.rule||'').replace('{n}', String(this.minimumPoints()));}
+  applyLabel():string{return this.points()>0?String(this.t().loyaltyPanel.apply||'').replace('{n}', String(this.points())):this.t().loyaltyPanel.selectPoints;}
+  appliedLabel():string{return String(this.t().loyaltyPanel.applied||'').replace('{n}', String(this.points()));}
 }

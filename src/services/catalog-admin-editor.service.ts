@@ -257,24 +257,15 @@ export class CatalogAdminEditorService {
   }
 
   private async mediaSummary(kind: "VEHICLE" | "TOUR", id: string): Promise<MediaSummary> {
-    try {
-      const payload = await this.request<{ data?: Partial<MediaSummary> }>(
-        "GET",
-        `${this.endpoint}&view=media-summary&kind=${kind.toLowerCase()}&id=${encodeURIComponent(id)}`,
-      );
-      return {
-        activeImages: Math.max(0, Number(payload.data?.activeImages || 0)),
-        activeCovers: Math.max(0, Number(payload.data?.activeCovers || 0)),
-      };
-    } catch (error) {
-      if (!this.canFallbackToDatabase(error)) throw error;
-      const column = kind === "VEHICLE" ? "vehicle_id" : "tour_id";
-      const rows = await this.transport.rest<Array<{ is_cover?: boolean }>>(
-        `catalog_media?${column}=eq.${encodeURIComponent(id)}&is_active=eq.true&kind=eq.IMAGE&select=is_cover`,
-      );
-      const list = Array.isArray(rows) ? rows : [];
-      return { activeImages: list.length, activeCovers: list.filter((row) => row.is_cover === true).length };
-    }
+    // V184: privileged catalog_media stays on the gateway — no browser REST fallback.
+    const payload = await this.request<{ data?: Partial<MediaSummary> }>(
+      "GET",
+      `${this.endpoint}&view=media-summary&kind=${kind.toLowerCase()}&id=${encodeURIComponent(id)}`,
+    );
+    return {
+      activeImages: Math.max(0, Number(payload.data?.activeImages || 0)),
+      activeCovers: Math.max(0, Number(payload.data?.activeCovers || 0)),
+    };
   }
 
   private canFallbackToDatabase(error: unknown): boolean {

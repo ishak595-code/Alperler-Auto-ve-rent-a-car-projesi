@@ -56,10 +56,11 @@ for (const forbidden of ['CustomerFavoritesSyncService', 'customer-favorites-syn
 }
 
 const page = fs.readFileSync('src/pages/favorites-v217.component.ts', 'utf8');
+const ui = fs.readFileSync('src/services/ui.service.ts', 'utf8');
 for (const token of [
-  "label:'Araçlar'",
-  "label:'Turlar'",
-  "label:'Blog'",
+  'f.tabVehicles',
+  'f.tabTours',
+  'f.tabBlog',
   'vehiclesByIdentifiers',
   'toursByIdentifiers',
   'blogsByIdentifiers',
@@ -68,6 +69,9 @@ for (const token of [
 ]) {
   if (!page.includes(token)) throw new Error(`V217_FAVORITES_PAGE_CONTRACT_MISSING:${token}`);
 }
+for (const token of ['tabVehicles: "Araçlar"', 'tabTours: "Turlar"', 'tabBlog: "Blog"']) {
+  if (!ui.includes(token)) throw new Error(`V217_FAVORITES_TR_DICTIONARY_MISSING:${token}`);
+}
 
 const account = fs.readFileSync('src/components/account-favorites-v213.component.ts', 'utf8');
 for (const forbidden of ['CarService', 'getCars()', 'getSaleCars()', 'getTours()', 'getBlogPosts()']) {
@@ -75,9 +79,10 @@ for (const forbidden of ['CarService', 'getCars()', 'getSaleCars()', 'getTours()
 }
 
 const tourCatalog = fs.readFileSync('src/pages/tour-catalog-v217.component.ts', 'utf8');
-for (const token of ['class="card-link"', "[attr.aria-label]=\"tour.title+' turunu incele'\""]) {
+for (const token of ['class="card-link"', 'inspectAria(tour.title)', 't().tourCatalog.inspectAria']) {
   if (!tourCatalog.includes(token)) throw new Error(`V225_TOUR_SINGLE_RESULT_CONTRACT_MISSING:${token}`);
 }
+if (!ui.includes('inspectAria: "{title} turunu incele"')) throw new Error('V225_TOUR_TR_DICTIONARY_MISSING:inspectAria');
 for (const forbidden of ['CustomerFavoritesV217Service', "toggle('TOUR'", "hydrateVisible('TOUR'", 'aria-pressed']) {
   if (tourCatalog.includes(forbidden)) throw new Error(`V225_TOUR_CATALOG_SEPARATE_TOGGLE_MUST_NOT_RETURN:${forbidden}`);
 }

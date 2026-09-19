@@ -15,7 +15,7 @@ import { ConfirmService } from '../../services/confirm.service';
       <header class="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-5 shadow-sm md:px-8">
         <div class="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p class="text-[10px] font-black uppercase tracking-[.18em] text-blue-600">Bülten Yönetimi</p>
+            <p class="text-[10px] font-black uppercase tracking-[.18em] text-[#9E1B24]">Bülten Yönetimi</p>
             <h1 class="mt-1 text-2xl font-black text-slate-950">Bülten & Abone Merkezi</h1>
             <p class="mt-1 text-sm text-slate-500">Abonelik, izin durumu, kampanya gönderimi ve teslimat sonuçlarını tek merkezden yönetin.</p>
           </div>
@@ -65,7 +65,7 @@ import { ConfirmService } from '../../services/confirm.service';
                   </div>
                   <div class="flex flex-wrap gap-2">
                     @if (subscriber.status === 'ACTIVE') {
-                      <button type="button" (click)="prepareSingle(subscriber.email)" class="action-btn bg-blue-600 text-white hover:bg-blue-700"><mat-icon aria-hidden="true">mail</mat-icon>Mesaj</button>
+                      <button type="button" (click)="prepareSingle(subscriber.email)" class="action-btn bg-[#9E1B24] text-white hover:bg-blue-700"><mat-icon aria-hidden="true">mail</mat-icon>Mesaj</button>
                       <button type="button" (click)="changeStatus(subscriber, 'UNSUBSCRIBED')" class="action-btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">Çıkar</button>
                     } @else {
                       <button type="button" (click)="changeStatus(subscriber, 'ACTIVE')" class="action-btn bg-emerald-600 text-white hover:bg-emerald-700">Yeniden Aktif Et</button>
@@ -115,7 +115,7 @@ import { ConfirmService } from '../../services/confirm.service';
     .panel{overflow:hidden;border:1px solid #e2e8f0;border-radius:20px;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.04)}
     .panel-head{display:flex;gap:1rem;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding:1.1rem 1.25rem}.panel-head h2{font-size:1rem;font-weight:900;color:#0f172a}.panel-head p{margin-top:.2rem;font-size:.75rem;color:#64748b}
     .stat-card{display:flex;min-height:130px;flex-direction:column;justify-content:center;border:1px solid #e2e8f0;border-radius:18px;background:white;padding:1.25rem}.stat-card span{font-size:.68rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#64748b}.stat-card strong{margin-top:.35rem;font-size:2.2rem;line-height:1;font-weight:900;color:#0f172a}.stat-card small{margin-top:.55rem;color:#94a3b8;font-weight:700}
-    .field{display:flex;flex-direction:column;gap:.4rem;font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#475569}.control{min-height:46px;width:100%;border:1px solid #cbd5e1;border-radius:12px;background:#fff;padding:.7rem .85rem;color:#0f172a;font-size:.86rem;font-weight:650;outline:none}.control:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}.action-btn{display:inline-flex;min-height:40px;align-items:center;justify-content:center;gap:.35rem;border-radius:10px;padding:.5rem .75rem;font-size:.72rem;font-weight:900}.action-btn mat-icon{width:16px;height:16px;font-size:16px}
+    .field{display:flex;flex-direction:column;gap:.4rem;font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#475569}.control{min-height:46px;width:100%;border:1px solid #cbd5e1;border-radius:12px;background:#fff;padding:.7rem .85rem;color:#0f172a;font-size:.86rem;font-weight:650;outline:none}.control:focus{border-color:var(--alper-blue);box-shadow:0 0 0 3px rgba(37,99,235,.12)}.action-btn{display:inline-flex;min-height:40px;align-items:center;justify-content:center;gap:.35rem;border-radius:10px;padding:.5rem .75rem;font-size:.72rem;font-weight:900}.action-btn mat-icon{width:16px;height:16px;font-size:16px}
   `],
 })
 export class AdminSubscribersComponent implements OnInit {

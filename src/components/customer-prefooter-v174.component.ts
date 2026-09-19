@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { FooterSettingsService } from '../services/footer-settings.service';
+import { UiService } from '../services/ui.service';
 
 @Component({
   selector:'app-customer-prefooter-v174',standalone:true,imports:[CommonModule,MatIconModule,RouterLink],
@@ -13,7 +14,7 @@ import { FooterSettingsService } from '../services/footer-settings.service';
         <div class="shell">
           <div class="copy"><p>{{settings().badge}}</p><h2 id="prefooter-v174-title">{{settings().title}}</h2><span>{{settings().description}}</span></div>
           <div class="actions"><a class="primary" [routerLink]="settings().primaryRoute">{{settings().primaryLabel}} <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>@if(settings().secondaryLabel&&settings().secondaryRoute){<a class="secondary" [routerLink]="settings().secondaryRoute">{{settings().secondaryLabel}}</a>}</div>
-          @if(settings().trustItems.length){<ul class="trust" aria-label="Hizmet güven bilgileri">@for(item of settings().trustItems;track item){<li><mat-icon aria-hidden="true">check_circle</mat-icon><span>{{item}}</span></li>}</ul>}
+          @if(settings().trustItems.length){<ul class="trust" [attr.aria-label]="t().prefooter.trustAria">@for(item of settings().trustItems;track item){<li><mat-icon aria-hidden="true">check_circle</mat-icon><span>{{item}}</span></li>}</ul>}
         </div>
       </section>
     }
@@ -23,7 +24,7 @@ import { FooterSettingsService } from '../services/footer-settings.service';
   `]
 })
 export class CustomerPrefooterV174Component{
-  private readonly footer=inject(FooterSettingsService);private readonly router=inject(Router);private readonly path=signal(this.router.url.split('?')[0]);readonly settings=this.footer.prefooter;
+  private readonly footer=inject(FooterSettingsService);private readonly router=inject(Router);private readonly ui=inject(UiService);readonly t=this.ui.translations;private readonly path=signal(this.router.url.split('?')[0]);readonly settings=this.footer.prefooter;
   readonly visible=computed(()=>{const cfg=this.settings();if(!cfg.isEnabled)return false;const home=this.path()==='/';return home?cfg.showOnHome:cfg.showOnInner;});
   constructor(){this.router.events.pipe(filter(event=>event instanceof NavigationEnd)).subscribe(()=>this.path.set(this.router.url.split('?')[0]));}
 }

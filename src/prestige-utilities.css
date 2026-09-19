@@ -1,0 +1,50 @@
+/**
+ * Prestige Palette Utility Classes
+ * Replaces hardcoded Tailwind arbitrary values with CSS-variable-backed utilities
+ * so admin site_settings.premiumPalette changes apply live to customer chrome.
+ *
+ * Wave 12 - Admin Colors Apply 1:1 Live
+ */
+
+/* Text colors */
+.text-prestige-red { color: var(--alper-blue) !important; }
+.text-prestige-red-light { color: var(--alper-blue-light) !important; }
+.hover\:text-prestige-red:hover { color: var(--alper-blue) !important; }
+.group-hover\:text-prestige-red:hover { color: var(--alper-blue) !important; }
+
+/* Background colors */
+.bg-prestige-red { background-color: var(--alper-blue) !important; }
+.bg-prestige-red-light { background-color: var(--alper-blue-light) !important; }
+.hover\:bg-prestige-red:hover { background-color: var(--alper-blue) !important; }
+.hover\:bg-prestige-red-light:hover { background-color: var(--alper-blue-light) !important; }
+
+/* Border colors */
+.border-prestige-red { border-color: var(--alper-blue) !important; }
+.border-prestige-red-light { border-color: var(--alper-blue-light) !important; }
+.hover\:border-prestige-red:hover { border-color: var(--alper-blue) !important; }
+
+/* Ring (focus) colors - matches Tailwind ring utilities */
+.ring-prestige-red { --tw-ring-color: var(--alper-blue) !important; }
+.ring-prestige-red-light { --tw-ring-color: var(--alper-blue-light) !important; }
+.focus\:ring-prestige-red:focus { --tw-ring-color: var(--alper-blue) !important; }
+.focus\:ring-prestige-red-light:focus { --tw-ring-color: var(--alper-blue-light) !important; }
+.focus-within\:ring-prestige-red:focus-within { --tw-ring-color: var(--alper-blue) !important; }
+.focus-within\:ring-prestige-red-light:focus-within { --tw-ring-color: var(--alper-blue-light) !important; }
+.focus-visible\:ring-prestige-red:focus-visible { --tw-ring-color: var(--alper-blue) !important; }
+.focus-visible\:ring-prestige-red-light:focus-visible { --tw-ring-color: var(--alper-blue-light) !important; }
+
+/* Outline colors */
+.outline-prestige-red { outline-color: var(--alper-blue) !important; }
+.outline-prestige-red-light { outline-color: var(--alper-blue-light) !important; }
+
+/* Shadow colors */
+.shadow-prestige-red { --tw-shadow-color: var(--alper-blue) !important; }
+.shadow-prestige-red-light { --tw-shadow-color: var(--alper-blue-light) !important; }
+
+/* Stroke colors (for SVG) */
+.stroke-prestige-red { stroke: var(--alper-blue) !important; }
+.stroke-prestige-red-light { stroke: var(--alper-blue-light) !important; }
+
+/* Fill colors (for SVG) */
+.fill-prestige-red { fill: var(--alper-blue) !important; }
+.fill-prestige-red-light { fill: var(--alper-blue-light) !important; }

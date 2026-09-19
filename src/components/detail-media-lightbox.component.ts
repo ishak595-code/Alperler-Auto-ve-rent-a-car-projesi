@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
+import { UiService } from '../services/ui.service';
 
 export type DetailMediaItem = {
   kind: 'IMAGE' | 'VIDEO';
@@ -18,39 +19,41 @@ export type DetailMediaItem = {
         class="overlay"
         role="dialog"
         aria-modal="true"
-        [attr.aria-label]="title || 'Medya tam ekran görünümü'"
+        [attr.aria-label]="title || t().mediaLightbox.defaultAria"
         tabindex="-1"
         (keydown)="onKeydown($event)"
         (touchstart)="touchStart($event)"
         (touchend)="touchEnd($event)"
         (click)="backdropClick($event)"
       >
-        <button #closeButton type="button" class="close" (click)="requestClose()" aria-label="Tam ekran medyayı kapat">×</button>
+        <button #closeButton type="button" class="close" (click)="requestClose()" [attr.aria-label]="t().mediaLightbox.closeAria">×</button>
 
         @if (currentItem(); as media) {
           <div class="stage" (click)="$event.stopPropagation()">
             @if (media.kind === 'IMAGE') {
-              <img [src]="media.url" [alt]="media.title || title || 'Detay görseli'" decoding="async" />
+              <img [src]="media.url" [alt]="media.title || title || t().mediaLightbox.imageAlt" decoding="async" />
             } @else {
-              <video [src]="media.url" [poster]="media.posterUrl || ''" controls playsinline preload="metadata" [attr.aria-label]="media.title || title || 'Detay videosu'"></video>
+              <video [src]="media.url" [poster]="media.posterUrl || ''" controls playsinline preload="metadata" [attr.aria-label]="media.title || title || t().mediaLightbox.videoAlt"></video>
             }
           </div>
         }
 
         @if (items.length > 1) {
-          <button type="button" class="nav previous" (click)="previous(); $event.stopPropagation()" aria-label="Önceki medya">‹</button>
-          <button type="button" class="nav next" (click)="next(); $event.stopPropagation()" aria-label="Sonraki medya">›</button>
+          <button type="button" class="nav previous" (click)="previous(); $event.stopPropagation()" [attr.aria-label]="t().mediaLightbox.prevAria">‹</button>
+          <button type="button" class="nav next" (click)="next(); $event.stopPropagation()" [attr.aria-label]="t().mediaLightbox.nextAria">›</button>
           <div class="count" aria-live="polite" aria-atomic="true">{{ normalizedIndex() + 1 }} / {{ items.length }}</div>
         }
       </div>
     }
   `,
   styles: [`
-    :host{display:contents}.overlay{position:fixed;inset:0;z-index:3000;display:grid;place-items:center;background:rgba(2,6,23,.985);padding:64px 18px 72px;overscroll-behavior:contain;touch-action:pan-y;outline:0}.stage{display:grid;width:min(100%,1440px);height:min(82dvh,980px);place-items:center}.stage img,.stage video{display:block;max-width:100%;max-height:100%;object-fit:contain;border-radius:10px;background:#020617}.close,.nav{position:absolute;z-index:2;display:grid;place-items:center;border:1px solid rgba(255,255,255,.24);background:rgba(15,23,42,.9);color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.3)}.close{top:14px;right:14px;width:48px;height:48px;border-radius:14px;font-size:29px;line-height:1}.nav{top:50%;width:50px;height:56px;transform:translateY(-50%);border-radius:15px;font-size:35px}.previous{left:14px}.next{right:14px}.count{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(15,23,42,.9);padding:8px 12px;color:#fff;font-size:11px;font-weight:900}.close:focus-visible,.nav:focus-visible{outline:3px solid #60a5fa;outline-offset:3px}@media(max-width:640px){.overlay{padding:58px 8px 68px}.stage{height:calc(100dvh - 126px)}.nav{width:44px;height:50px;background:rgba(15,23,42,.78)}.previous{left:8px}.next{right:8px}.close{top:9px;right:9px;width:46px;height:46px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+    :host{display:contents}.overlay{position:fixed;inset:0;z-index:3000;display:grid;place-items:center;background:rgba(2,6,23,.985);padding:64px 18px 72px;overscroll-behavior:contain;touch-action:pan-y;outline:0}.stage{display:grid;width:min(100%,1440px);height:min(82dvh,980px);place-items:center}.stage img,.stage video{display:block;max-width:100%;max-height:100%;object-fit:contain;border-radius:10px;background:#020617}.close,.nav{position:absolute;z-index:2;display:grid;place-items:center;border:1px solid rgba(255,255,255,.24);background:rgba(15,23,42,.9);color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.3)}.close{top:14px;right:14px;width:48px;height:48px;border-radius:14px;font-size:29px;line-height:1}.nav{top:50%;width:50px;height:56px;transform:translateY(-50%);border-radius:15px;font-size:35px}.previous{left:14px}.next{right:14px}.count{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(15,23,42,.9);padding:8px 12px;color:#fff;font-size:11px;font-weight:900}.close:focus-visible,.nav:focus-visible{outline:3px solid #E15A62;outline-offset:3px}@media(max-width:640px){.overlay{padding:58px 8px 68px}.stage{height:calc(100dvh - 126px)}.nav{width:44px;height:50px;background:rgba(15,23,42,.78)}.previous{left:8px}.next{right:8px}.close{top:9px;right:9px;width:46px;height:46px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
   `],
 })
 export class DetailMediaLightboxComponent implements OnChanges, OnDestroy {
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   @Input() open = false;
   @Input() items: DetailMediaItem[] = [];
   @Input() index = 0;

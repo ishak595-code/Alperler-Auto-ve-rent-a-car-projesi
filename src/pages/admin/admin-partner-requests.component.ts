@@ -35,21 +35,21 @@ import { ToastService } from "../../services/toast.service";
               type="button"
               (click)="goBack()"
               aria-label="Kontrol paneline dön"
-              class="flex min-h-12 min-w-12 items-center justify-center rounded-xl bg-slate-100 text-xl font-black text-slate-700 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              class="flex min-h-12 min-w-12 items-center justify-center rounded-xl bg-slate-100 text-xl font-black text-slate-700 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light"
             >
               ←
             </button>
             <div>
-              <p class="text-[10px] font-black uppercase tracking-[0.18em] text-blue-600">Araç Değerlendirme</p>
+              <p class="text-[10px] font-black uppercase tracking-[0.18em] text-[#9E1B24]">Araç Değerlendirme</p>
               <h1 class="text-2xl font-black tracking-tight text-slate-950">Başvuru Yönetimi</h1>
               <p class="mt-1 text-xs text-slate-500">Satış ve filoya katılım talepleri Supabase üzerinden güvenli yönetilir.</p>
             </div>
           </div>
 
           <div class="grid w-full gap-2 lg:w-auto lg:grid-cols-[minmax(240px,1fr)_180px_auto]">
-            <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Müşteri, telefon, araç ara…" aria-label="Araç başvurularında ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500" />
+            <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" placeholder="Müşteri, telefon, araç ara…" aria-label="Araç başvurularında ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-prestige-red-light" />
             <select [ngModel]="filter()" (ngModelChange)="filter.set($event)" aria-label="Araç başvurusu durum filtresi" class="min-h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black"><option value="ALL">Tüm durumlar</option><option value="UPLOADING">Dosya yükleniyor</option><option value="NEW">Yeni</option><option value="REVIEWING">İnceleniyor</option><option value="CONTACTED">İletişim kuruldu</option><option value="OFFERED">Teklif verildi</option><option value="ACCEPTED">Kabul edildi</option><option value="REJECTED">Reddedildi</option><option value="CLOSED">Kapalı</option></select>
-            <button type="button" (click)="refresh()" [disabled]="partnerService.loading()" class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-blue-600 disabled:opacity-50">{{ partnerService.loading() ? "Yenileniyor..." : "Yenile" }}</button>
+            <button type="button" (click)="refresh()" [disabled]="partnerService.loading()" class="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-[#9E1B24] disabled:opacity-50">{{ partnerService.loading() ? "Yenileniyor..." : "Yenile" }}</button>
           </div>
         </div>
       </header>
@@ -168,7 +168,7 @@ import { ToastService } from "../../services/toast.service";
                         [value]="req.internalNotes || ''"
                         maxlength="4000"
                         [disabled]="req.status === 'UPLOADING'"
-                        class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-blue-500 focus:bg-white disabled:opacity-50"
+                        class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-prestige-red-light focus:bg-white disabled:opacity-50"
                         placeholder="Müşteriye gösterilmez"
                       ></textarea>
                     </label>

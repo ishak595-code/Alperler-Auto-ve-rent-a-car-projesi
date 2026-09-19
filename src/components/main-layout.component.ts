@@ -17,7 +17,7 @@ import { NavbarComponent } from "./navbar.component";
   imports: [CommonModule,RouterOutlet,NavbarComponent,CustomerPrefooterV174Component,CustomerFooterV70Component,FeedbackComponent,MatIconModule],
   template: `
     <div class="layout-root">
-      <a href="#main-content" class="skip-link">İçeriğe geç</a>
+      <a href="#main-content" class="skip-link">{{ t().common.skipToContent }}</a>
       <app-navbar></app-navbar>
       <main id="main-content" tabindex="-1" class="customer-main"><router-outlet></router-outlet></main>
 
@@ -42,13 +42,13 @@ import { NavbarComponent } from "./navbar.component";
   `],
 })
 export class MainLayoutComponent {
-  uiService=inject(UiService);carService=inject(CarService);navigation=inject(NavigationConfigService);router=inject(Router);location=inject(Location);isHomePage=signal(true);showWhatsapp=signal(false);
+  uiService=inject(UiService);t=this.uiService.translations;carService=inject(CarService);navigation=inject(NavigationConfigService);router=inject(Router);location=inject(Location);isHomePage=signal(true);showWhatsapp=signal(false);
   constructor(){this.router.events.pipe(filter(event=>event instanceof NavigationEnd)).subscribe(()=>this.updatePageState());this.updatePageState();if(typeof window!=="undefined")setTimeout(()=>this.showWhatsapp.set(true),15000);}
   getWhatsappNumber(){const config=this.carService.getConfig()();return String(config.whatsapp||config.phone||"").replace(/\D/g,"");}
-  getWhatsappMessage(){const customMsg=this.carService.getConfig()().whatsappMessage;return customMsg?.trim()||"Merhaba, detaylı bilgi almak istiyorum.";}
+  getWhatsappMessage(){const customMsg=this.carService.getConfig()().whatsappMessage;return customMsg?.trim()||this.t().common.whatsappDefault;}
   getWhatsappHref(){return`https://wa.me/${this.getWhatsappNumber()}?text=${encodeURIComponent(this.getWhatsappMessage())}`;}
   private updatePageState(){const url=this.router.url.split("?")[0];this.isHomePage.set(url==="/");}
   isVehicleDetailPage(){const url=this.router.url.split("?")[0];return /^\/(fleet|sales)\/[^/]+$/.test(url);}
   goBack(){if(window.history.length>1)this.location.back();else void this.router.navigate(["/"]);}
-  getPageTitle(){const url=this.router.url.split("?")[0];if(url.startsWith("/fleet"))return"Kiralık Araçlar";if(url.startsWith("/sales"))return"Satılık Araçlar";if(url.startsWith("/blog"))return"Blog & Haberler";if(url.startsWith("/tours"))return"Turlar";if(url.startsWith("/list-your-car"))return"Arabanı Değerlendir";if(url.startsWith("/contact"))return"İletişim";if(url.startsWith("/about"))return"Hakkımızda";if(url.startsWith("/legal"))return"Kurumsal";if(url.startsWith("/appointment"))return"Randevu Talebi";if(url.startsWith("/faq"))return"S.S.S.";return"Alperler Rent A Car";}
+  getPageTitle(){const url=this.router.url.split("?")[0];const p=this.t().layoutTitles;if(url.startsWith("/fleet"))return p.fleet;if(url.startsWith("/sales"))return p.sales;if(url.startsWith("/blog"))return p.blog;if(url.startsWith("/tours"))return p.tours;if(url.startsWith("/list-your-car"))return p.listYourCar;if(url.startsWith("/contact"))return p.contact;if(url.startsWith("/about"))return p.about;if(url.startsWith("/legal"))return p.legal;if(url.startsWith("/appointment"))return p.appointment;if(url.startsWith("/faq"))return p.faq;return p.home;}
 }

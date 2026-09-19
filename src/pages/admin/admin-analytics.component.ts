@@ -24,7 +24,7 @@ import { ToastService } from '../../services/toast.service';
         <header class="overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8">
           <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p class="text-[11px] font-black uppercase tracking-[.2em] text-blue-400">Ziyaretçi Davranış Merkezi</p>
+              <p class="text-[11px] font-black uppercase tracking-[.2em] text-[#E15A62]">Ziyaretçi Davranış Merkezi</p>
               <h1 class="mt-2 text-3xl font-black md:text-4xl">Canlı Trafik ve Dönüşüm Analitiği</h1>
               <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-300">KVKK analitik onayı veren ziyaretçilerin sayfa akışı, cihazı, ağ bilgisi, tıklamaları, scroll derinliği, form hunisi ve teknik hataları. Form içeriği, şifre ve kart verisi burada tutulmaz.</p>
             </div>
@@ -49,7 +49,7 @@ import { ToastService } from '../../services/toast.service';
         <section class="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6" aria-label="Analitik özeti">
           @for (card of summaryCards(); track card.label) {
             <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div class="flex items-center justify-between gap-2"><span class="text-[10px] font-black uppercase tracking-wider text-slate-500">{{ card.label }}</span><mat-icon class="text-blue-600" aria-hidden="true">{{ card.icon }}</mat-icon></div>
+              <div class="flex items-center justify-between gap-2"><span class="text-[10px] font-black uppercase tracking-wider text-slate-500">{{ card.label }}</span><mat-icon class="text-[#9E1B24]" aria-hidden="true">{{ card.icon }}</mat-icon></div>
               <strong class="mt-3 block text-2xl font-black text-slate-950">{{ card.value }}</strong>
               <span class="mt-1 block text-xs text-slate-500">{{ card.note }}</span>
             </article>
@@ -59,9 +59,9 @@ import { ToastService } from '../../services/toast.service';
         <section class="grid gap-5 xl:grid-cols-[1.45fr_.55fr]">
           <article class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
             <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div><p class="text-[10px] font-black uppercase tracking-widest text-blue-600">Canlı ve son oturumlar</p><h2 class="mt-1 text-2xl font-black text-slate-950">Ziyaretçiler</h2></div>
+              <div><p class="text-[10px] font-black uppercase tracking-widest text-[#9E1B24]">Canlı ve son oturumlar</p><h2 class="mt-1 text-2xl font-black text-slate-950">Ziyaretçiler</h2></div>
               <div class="grid gap-2 sm:grid-cols-3 md:min-w-[560px]">
-                <input [(ngModel)]="search" placeholder="IP, cihaz, şehir, sayfa, müşteri…" aria-label="Ziyaretçi ara" class="min-h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                <input [(ngModel)]="search" placeholder="IP, cihaz, şehir, sayfa, müşteri…" aria-label="Ziyaretçi ara" class="min-h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-prestige-red-light" />
                 <label class="flex min-h-11 items-center gap-2 rounded-xl bg-slate-50 px-3 text-xs font-black"><input type="checkbox" [(ngModel)]="liveOnly" /> Sadece canlı</label>
                 <label class="flex min-h-11 items-center gap-2 rounded-xl bg-slate-50 px-3 text-xs font-black"><input type="checkbox" [(ngModel)]="errorsOnly" /> Hata alanlar</label>
               </div>
@@ -69,7 +69,7 @@ import { ToastService } from '../../services/toast.service';
 
             <div class="mt-5 space-y-3">
               @for (session of filteredSessions(); track session.session_id) {
-                <button type="button" (click)="selectSession(session)" class="w-full rounded-2xl border border-slate-200 p-4 text-left transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                <button type="button" (click)="selectSession(session)" class="w-full rounded-2xl border border-slate-200 p-4 text-left transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light">
                   <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
                     <div class="min-w-0 flex-1">
                       <div class="flex flex-wrap items-center gap-2">
@@ -105,7 +105,7 @@ import { ToastService } from '../../services/toast.service';
           <div class="space-y-5">
             <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               <h2 class="text-lg font-black text-slate-950">Cihaz Dağılımı</h2>
-              <div class="mt-4 space-y-3">@for (row of breakdown().devices; track row.label) { <div><div class="flex justify-between text-xs"><b>{{ row.label }}</b><span>{{ row.sessions }}</span></div><div class="mt-1 h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-blue-600" [style.width.%]="barWidth(row.sessions, breakdown().devices)"></div></div></div> }</div>
+              <div class="mt-4 space-y-3">@for (row of breakdown().devices; track row.label) { <div><div class="flex justify-between text-xs"><b>{{ row.label }}</b><span>{{ row.sessions }}</span></div><div class="mt-1 h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-[#9E1B24]" [style.width.%]="barWidth(row.sessions, breakdown().devices)"></div></div></div> }</div>
             </article>
             <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               <h2 class="text-lg font-black text-slate-950">Tarayıcılar</h2>
@@ -127,7 +127,7 @@ import { ToastService } from '../../services/toast.service';
         @if (selected()) {
           <section class="rounded-3xl border border-blue-200 bg-white p-5 shadow-lg md:p-6" aria-live="polite">
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div><p class="text-[10px] font-black uppercase tracking-widest text-blue-600">Oturum zaman çizelgesi</p><h2 class="mt-1 text-xl font-black text-slate-950">{{ selected()?.known_name || deviceLabel(selected()!) }}</h2><p class="mt-1 text-xs text-slate-500">{{ selected()?.ip_address || 'IP yok' }} · {{ locationLabel(selected()!) }} · {{ selected()?.landing_path }} → {{ selected()?.exit_path }}</p></div>
+              <div><p class="text-[10px] font-black uppercase tracking-widest text-[#9E1B24]">Oturum zaman çizelgesi</p><h2 class="mt-1 text-xl font-black text-slate-950">{{ selected()?.known_name || deviceLabel(selected()!) }}</h2><p class="mt-1 text-xs text-slate-500">{{ selected()?.ip_address || 'IP yok' }} · {{ locationLabel(selected()!) }} · {{ selected()?.landing_path }} → {{ selected()?.exit_path }}</p></div>
               <button type="button" (click)="selected.set(null); timeline.set([])" class="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-black">Detayı Kapat</button>
             </div>
             <div class="mt-5 grid gap-2 md:grid-cols-2 xl:grid-cols-4">

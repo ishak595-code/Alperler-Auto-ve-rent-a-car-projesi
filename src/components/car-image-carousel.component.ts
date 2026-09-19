@@ -1,5 +1,6 @@
-import { Component, HostListener, OnDestroy, input, output, signal } from "@angular/core";
+import { Component, HostListener, OnDestroy, inject, input, output, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { UiService } from "../services/ui.service";
 
 @Component({
   selector: "app-car-image-carousel",
@@ -14,18 +15,18 @@ import { CommonModule } from "@angular/common";
       @for (img of images(); track $index; let i = $index) {
         <button
           type="button"
-          class="absolute inset-0 w-full h-full transition-opacity duration-500 ease-in-out will-change-[opacity] cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
+          class="absolute inset-0 w-full h-full transition-opacity duration-500 ease-in-out will-change-[opacity] cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light focus-visible:ring-inset"
           [class.opacity-100]="i === currentIndex()"
           [class.opacity-0]="i !== currentIndex()"
           [class.pointer-events-none]="i !== currentIndex()"
           [attr.tabindex]="i === currentIndex() ? 0 : -1"
           [attr.aria-hidden]="i !== currentIndex()"
-          [attr.aria-label]="altText() + ' görselini büyüt'"
+          [attr.aria-label]="zoomAria()"
           (click)="onImageClick($event, i)"
         >
           <img
             [src]="img"
-            [alt]="altText()"
+            [alt]="resolvedAlt()"
             [loading]="i === 0 ? 'eager' : 'lazy'"
             referrerpolicy="no-referrer"
             class="object-cover w-full h-full"
@@ -37,7 +38,7 @@ import { CommonModule } from "@angular/common";
         <button
           type="button"
           (click)="prev($event)"
-          aria-label="Önceki görsel"
+          [attr.aria-label]="t().carCarousel.prevAria"
           class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/45 hover:bg-black/70 text-white w-11 h-11 flex items-center justify-center rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -48,7 +49,7 @@ import { CommonModule } from "@angular/common";
         <button
           type="button"
           (click)="next($event)"
-          aria-label="Sonraki görsel"
+          [attr.aria-label]="t().carCarousel.nextAria"
           class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/45 hover:bg-black/70 text-white w-11 h-11 flex items-center justify-center rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -58,13 +59,13 @@ import { CommonModule } from "@angular/common";
 
         <div
           class="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-0.5 z-10 max-w-[75%] overflow-x-auto"
-          aria-label="Görsel seçimi"
+          [attr.aria-label]="t().carCarousel.selectAria"
         >
           @for (img of images(); track $index; let i = $index) {
             <button
               type="button"
               (click)="goTo($event, i)"
-              [attr.aria-label]="(i + 1) + '. görsele git'"
+              [attr.aria-label]="goToAria(i)"
               [attr.aria-current]="i === currentIndex() ? 'true' : null"
               class="w-8 h-8 shrink-0 flex items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
@@ -86,14 +87,14 @@ import { CommonModule } from "@angular/common";
           class="fixed inset-0 z-[9999] bg-black/95 flex flex-col items-center justify-center"
           role="dialog"
           aria-modal="true"
-          [attr.aria-label]="altText() + ' tam ekran galerisi'"
+          [attr.aria-label]="fullscreenAria()"
           (click)="closeGallery($event)"
         >
-          <span class="sr-only" aria-live="polite">{{ currentIndex() + 1 }} / {{ images().length }} görsel</span>
+          <span class="sr-only" aria-live="polite">{{ imageCountLive() }}</span>
           <button
             type="button"
             (click)="closeGallery($event)"
-            aria-label="Galeriyi kapat"
+            [attr.aria-label]="t().carCarousel.closeAria"
             class="absolute top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] text-white/80 hover:text-white w-12 h-12 flex items-center justify-center rounded-full bg-black/30 transition-colors z-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -109,7 +110,7 @@ import { CommonModule } from "@angular/common";
           >
             <img
               [src]="images()[currentIndex()]"
-              [alt]="altText()"
+              [alt]="resolvedAlt()"
               class="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
             />
 
@@ -117,7 +118,7 @@ import { CommonModule } from "@angular/common";
               <button
                 type="button"
                 (click)="prev($event)"
-                aria-label="Önceki görsel"
+                [attr.aria-label]="t().carCarousel.prevAria"
                 class="absolute left-2 sm:left-4 md:left-8 top-1/2 -translate-y-1/2 bg-black/45 sm:bg-white/10 hover:bg-white/20 text-white w-12 h-12 flex items-center justify-center rounded-full backdrop-blur-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -127,7 +128,7 @@ import { CommonModule } from "@angular/common";
               <button
                 type="button"
                 (click)="next($event)"
-                aria-label="Sonraki görsel"
+                [attr.aria-label]="t().carCarousel.nextAria"
                 class="absolute right-2 sm:right-4 md:right-8 top-1/2 -translate-y-1/2 bg-black/45 sm:bg-white/10 hover:bg-white/20 text-white w-12 h-12 flex items-center justify-center rounded-full backdrop-blur-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -145,20 +146,20 @@ import { CommonModule } from "@angular/common";
             </span>
             <div
               class="flex gap-2 overflow-x-auto max-w-full pb-2 custom-scrollbar"
-              aria-label="Galeri küçük görselleri"
+              [attr.aria-label]="t().carCarousel.thumbsAria"
             >
               @for (img of images(); track $index; let i = $index) {
                 <button
                   type="button"
                   (click)="goTo($event, i)"
-                  [attr.aria-label]="(i + 1) + '. görseli göster'"
+                  [attr.aria-label]="showAria(i)"
                   [attr.aria-current]="i === currentIndex() ? 'true' : null"
                   class="w-16 h-12 rounded-md overflow-hidden border-2 transition-all shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                  [class.border-blue-500]="i === currentIndex()"
+                  [class.border-prestige-red-light]="i === currentIndex()"
                   [class.border-transparent]="i !== currentIndex()"
                   [class.opacity-60]="i !== currentIndex()"
                 >
-                  <img [src]="img" [alt]="(i + 1) + '. küçük görsel'" class="w-full h-full object-cover" />
+                  <img [src]="img" [alt]="thumbAlt(i)" class="w-full h-full object-cover" />
                 </button>
               }
             </div>
@@ -169,8 +170,10 @@ import { CommonModule } from "@angular/common";
   `,
 })
 export class CarImageCarouselComponent implements OnDestroy {
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   images = input.required<string[]>();
-  altText = input<string>("Araç görseli");
+  altText = input<string>("");
   disableInternalGallery = input<boolean>(false);
   imageClick = output<number>();
 
@@ -181,6 +184,36 @@ export class CarImageCarouselComponent implements OnDestroy {
   private touchStartY = 0;
   private previousBodyOverflow: string | null = null;
   private lastTrigger: HTMLElement | null = null;
+
+  resolvedAlt(): string {
+    return this.altText().trim() || this.t().carCarousel.defaultAlt;
+  }
+
+  zoomAria(): string {
+    return String(this.t().carCarousel.zoomAria || "").replace("{alt}", this.resolvedAlt());
+  }
+
+  fullscreenAria(): string {
+    return String(this.t().carCarousel.fullscreenAria || "").replace("{alt}", this.resolvedAlt());
+  }
+
+  imageCountLive(): string {
+    return String(this.t().carCarousel.imageCountLive || "")
+      .replace("{current}", String(this.currentIndex() + 1))
+      .replace("{total}", String(this.images().length));
+  }
+
+  goToAria(i: number): string {
+    return String(this.t().carCarousel.goToAria || "").replace("{n}", String(i + 1));
+  }
+
+  showAria(i: number): string {
+    return String(this.t().carCarousel.showAria || "").replace("{n}", String(i + 1));
+  }
+
+  thumbAlt(i: number): string {
+    return String(this.t().carCarousel.thumbAlt || "").replace("{n}", String(i + 1));
+  }
 
   onImageClick(e: Event, index: number) {
     e.stopPropagation();

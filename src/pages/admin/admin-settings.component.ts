@@ -16,13 +16,13 @@ import { SiteConfig } from '../../models/site-config.model';
       <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-4 shadow-sm backdrop-blur md:px-8">
         <div class="mx-auto flex max-w-6xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p class="text-[11px] font-black uppercase tracking-[.18em] text-blue-600">Profil ve temel site bilgileri</p>
+            <p class="text-[11px] font-black uppercase tracking-[.18em] text-[#9E1B24]">Profil ve temel site bilgileri</p>
             <h1 class="mt-1 text-2xl font-black md:text-3xl">Genel Ayarlar ve Profil</h1>
             <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Yönetici profilinizi, marka bilgilerini, logoyu ve temel iletişim bilgilerini buradan düzenleyin.</p>
           </div>
           <div class="flex flex-wrap gap-2">
             <button type="button" (click)="reload()" [disabled]="loading() || saving()" class="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 disabled:opacity-50">{{ loading() ? 'Yenileniyor…' : 'Kayıtlı Bilgileri Yenile' }}</button>
-            <button type="button" (click)="save()" [disabled]="loading() || saving()" class="min-h-11 rounded-xl bg-blue-600 px-5 text-sm font-black text-white shadow-lg shadow-blue-600/20 disabled:opacity-50">{{ saving() ? 'Kaydediliyor…' : 'Kaydet ve Uygula' }}</button>
+            <button type="button" (click)="save()" [disabled]="loading() || saving()" class="min-h-11 rounded-xl bg-[#9E1B24] px-5 text-sm font-black text-white shadow-lg shadow-prestige-red disabled:opacity-50">{{ saving() ? 'Kaydediliyor…' : 'Kaydet ve Uygula' }}</button>
           </div>
         </div>
       </header>
@@ -46,10 +46,10 @@ import { SiteConfig } from '../../models/site-config.model';
                 Profil Fotoğrafı Yükle
                 <input type="file" class="sr-only" accept="image/*" (change)="onAdminProfileSelected($event)" aria-label="Yönetici profil fotoğrafı seç" />
               </label>
-              @if (profileUploading()) { <p class="text-xs font-bold text-blue-600" role="status">Görsel yükleniyor…</p> }
+              @if (profileUploading()) { <p class="text-xs font-bold text-[#9E1B24]" role="status">Görsel yükleniyor…</p> }
             </div>
             <div class="grid content-start gap-4 md:grid-cols-2">
-              <label class="grid gap-1.5 md:col-span-2"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Yönetimde Görünen Ad</span><input [(ngModel)]="formConfig.adminDisplayName" name="adminDisplayName" autocomplete="name" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10" placeholder="Yönetici adı" /></label>
+              <label class="grid gap-1.5 md:col-span-2"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Yönetimde Görünen Ad</span><input [(ngModel)]="formConfig.adminDisplayName" name="adminDisplayName" autocomplete="name" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-prestige-red-light focus:bg-white focus:ring-4 focus:ring-prestige-red-light/10" placeholder="Yönetici adı" /></label>
               <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4"><span class="text-[10px] font-black uppercase tracking-wide text-slate-400">Aktif Hesap</span><p class="mt-2 break-all text-sm font-black">{{ auth.getCurrentEmail() }}</p></div>
               <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><span class="text-[10px] font-black uppercase tracking-wide text-emerald-600">Hesap Durumu</span><p class="mt-2 text-sm font-black text-emerald-950">Yönetici hesabı doğrulandı</p></div>
             </div>
@@ -64,33 +64,33 @@ import { SiteConfig } from '../../models/site-config.model';
                 @if (formConfig.logoUrl) { <img [src]="formConfig.logoUrl" alt="Site logosu önizlemesi" class="h-full w-full object-contain p-3" /> } @else { <span class="text-sm font-black text-slate-400">Logo Yok</span> }
               </div>
               <div class="grid content-start gap-3">
-                <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Logo URL</span><input [(ngModel)]="formConfig.logoUrl" name="logoUrl" class="min-h-12 rounded-xl border border-slate-300 bg-white px-4 outline-none focus:border-blue-500" placeholder="https://…" /></label>
-                <div class="flex flex-wrap gap-2"><label class="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-xs font-black text-slate-700">Logo Dosyası Yükle<input type="file" class="sr-only" accept="image/*" (change)="onLogoSelected($event)" aria-label="Logo dosyası seç" /></label>@if (logoUploading()) { <span class="self-center text-xs font-bold text-blue-600">Yükleniyor…</span> }</div>
+                <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Logo URL</span><input [(ngModel)]="formConfig.logoUrl" name="logoUrl" class="min-h-12 rounded-xl border border-slate-300 bg-white px-4 outline-none focus:border-prestige-red-light" placeholder="https://…" /></label>
+                <div class="flex flex-wrap gap-2"><label class="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-xs font-black text-slate-700">Logo Dosyası Yükle<input type="file" class="sr-only" accept="image/*" (change)="onLogoSelected($event)" aria-label="Logo dosyası seç" /></label>@if (logoUploading()) { <span class="self-center text-xs font-bold text-[#9E1B24]">Yükleniyor…</span> }</div>
               </div>
             </div>
 
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Şirket Adı</span><input [(ngModel)]="formConfig.companyName" name="companyName" required class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 font-bold outline-none focus:border-blue-500 focus:bg-white" /></label>
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Slogan</span><input [(ngModel)]="formConfig.tagline" name="tagline" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Masaüstü Logo Genişliği</span><input [(ngModel)]="formConfig.logoWidthDesktop" name="logoWidthDesktop" type="number" min="40" max="500" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Mobil Logo Genişliği</span><input [(ngModel)]="formConfig.logoWidthMobile" name="logoWidthMobile" type="number" min="40" max="400" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Tema</span><select [(ngModel)]="formConfig.theme" name="theme" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white"><option value="light">Açık</option><option value="dark">Koyu</option><option value="luxury">Lüks</option><option value="corporate">Kurumsal</option></select></label>
+            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Şirket Adı</span><input [(ngModel)]="formConfig.companyName" name="companyName" required class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 font-bold outline-none focus:border-prestige-red-light focus:bg-white" /></label>
+            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Slogan</span><input [(ngModel)]="formConfig.tagline" name="tagline" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-prestige-red-light focus:bg-white" /></label>
+            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Masaüstü Logo Genişliği</span><input [(ngModel)]="formConfig.logoWidthDesktop" name="logoWidthDesktop" type="number" min="40" max="500" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-prestige-red-light focus:bg-white" /></label>
+            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Mobil Logo Genişliği</span><input [(ngModel)]="formConfig.logoWidthMobile" name="logoWidthMobile" type="number" min="40" max="400" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-prestige-red-light focus:bg-white" /></label>
+            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Tema</span><select [(ngModel)]="formConfig.theme" name="theme" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-prestige-red-light focus:bg-white"><option value="light">Açık</option><option value="dark">Koyu</option><option value="luxury">Lüks</option><option value="corporate">Kurumsal</option></select></label>
           </div>
         </section>
 
         <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <header class="border-b border-slate-200 p-5 md:p-6"><h2 class="text-xl font-black">Temel İletişim</h2><p class="mt-1 text-sm leading-6 text-slate-500">Telefon, e-posta ve adres müşterilerin iletişim alanlarında kullanılır. WhatsApp ayarını üstteki WhatsApp sekmesinden yönetebilirsiniz.</p></header>
           <div class="grid gap-5 p-5 md:grid-cols-2 md:p-6">
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Telefon</span><input [(ngModel)]="formConfig.phone" name="phone" autocomplete="tel" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">E-posta</span><input [(ngModel)]="formConfig.email" name="email" type="email" autocomplete="email" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
-            <label class="grid gap-1.5 md:col-span-2"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Adres</span><textarea [(ngModel)]="formConfig.address" name="address" rows="3" class="rounded-xl border border-slate-300 bg-slate-50 p-4 outline-none focus:border-blue-500 focus:bg-white"></textarea></label>
+            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Telefon</span><input [(ngModel)]="formConfig.phone" name="phone" autocomplete="tel" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-prestige-red-light focus:bg-white" /></label>
+            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">E-posta</span><input [(ngModel)]="formConfig.email" name="email" type="email" autocomplete="email" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-prestige-red-light focus:bg-white" /></label>
+            <label class="grid gap-1.5 md:col-span-2"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Adres</span><textarea [(ngModel)]="formConfig.address" name="address" rows="3" class="rounded-xl border border-slate-300 bg-slate-50 p-4 outline-none focus:border-prestige-red-light focus:bg-white"></textarea></label>
           </div>
         </section>
 
         <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <header class="border-b border-slate-200 p-5 md:p-6"><h2 class="text-xl font-black">Hesap Güvenliği</h2><p class="mt-1 text-sm leading-6 text-slate-500">Buradan yönetici hesabınızın giriş şifresini değiştirebilirsiniz.</p></header>
           <div class="grid gap-5 p-5 md:grid-cols-2 md:p-6">
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Yeni Şifre</span><input [(ngModel)]="newPassword" name="newPassword" [type]="showPassword() ? 'text' : 'password'" autocomplete="new-password" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
-            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Yeni Şifre Tekrar</span><input [(ngModel)]="confirmPassword" name="confirmPassword" [type]="showPassword() ? 'text' : 'password'" autocomplete="new-password" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-blue-500 focus:bg-white" /></label>
+            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Yeni Şifre</span><input [(ngModel)]="newPassword" name="newPassword" [type]="showPassword() ? 'text' : 'password'" autocomplete="new-password" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-prestige-red-light focus:bg-white" /></label>
+            <label class="grid gap-1.5"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Yeni Şifre Tekrar</span><input [(ngModel)]="confirmPassword" name="confirmPassword" [type]="showPassword() ? 'text' : 'password'" autocomplete="new-password" class="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 outline-none focus:border-prestige-red-light focus:bg-white" /></label>
             <div class="flex flex-wrap gap-2 md:col-span-2"><button type="button" (click)="showPassword.update(v => !v)" class="min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-xs font-black text-slate-700">{{ showPassword() ? 'Şifreyi Gizle' : 'Şifreyi Göster' }}</button><button type="button" (click)="changePassword()" [disabled]="changingPassword()" class="min-h-11 rounded-xl bg-slate-950 px-5 text-xs font-black text-white disabled:opacity-50">{{ changingPassword() ? 'Güncelleniyor…' : 'Şifreyi Güncelle' }}</button></div>
           </div>
         </section>

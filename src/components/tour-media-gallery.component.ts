@@ -3,6 +3,7 @@ import { Component, computed, inject, input, signal } from "@angular/core";
 import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { MatIconModule } from "@angular/material/icon";
 import { Tour } from "../models/car.model";
+import { UiService } from "../services/ui.service";
 
 interface GallerySlide {
   key: string;
@@ -22,8 +23,8 @@ interface GallerySlide {
       <section class="mx-auto max-w-5xl px-4 pt-8 sm:px-6" aria-labelledby="tour-gallery-title">
         <div class="mb-4 flex items-end justify-between gap-4">
           <div>
-            <p class="text-[10px] font-black uppercase tracking-[.18em] text-blue-600">Gerçek Rota Medyası</p>
-            <h3 id="tour-gallery-title" class="mt-1 text-xl font-black text-slate-950 sm:text-2xl">Fotoğraf & Video Galerisi</h3>
+            <p class="text-[10px] font-black uppercase tracking-[.18em] text-prestige-red">{{ t().tourMedia.kicker }}</p>
+            <h3 id="tour-gallery-title" class="mt-1 text-xl font-black text-slate-950 sm:text-2xl">{{ t().tourMedia.title }}</h3>
           </div>
           <span class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">{{ safeActiveIndex() + 1 }} / {{ slides().length }}</span>
         </div>
@@ -52,7 +53,7 @@ interface GallerySlide {
                     preload="metadata"
                     [attr.aria-label]="slide.title"
                   >
-                    Tarayıcınız video oynatmayı desteklemiyor.
+                    {{ t().tourMedia.videoUnsupported }}
                   </video>
                 }
               } @else {
@@ -60,20 +61,20 @@ interface GallerySlide {
               }
             </div>
             @if (slide.attribution) {
-              <p class="border-t border-white/10 px-4 py-2 text-[10px] leading-4 text-slate-400">Kaynak / Atıf: {{ slide.attribution }}</p>
+              <p class="border-t border-white/10 px-4 py-2 text-[10px] leading-4 text-slate-400">{{ attributionLabel(slide.attribution) }}</p>
             }
           </div>
         }
 
         @if (slides().length > 1) {
-          <div class="mt-3 flex snap-x gap-2 overflow-x-auto pb-2" aria-label="Tur medya küçük resimleri">
+          <div class="mt-3 flex snap-x gap-2 overflow-x-auto pb-2" [attr.aria-label]="t().tourMedia.thumbsAria">
             @for (slide of slides(); track slide.key; let index = $index) {
               <button
                 type="button"
                 (click)="activeIndex.set(index)"
-                [attr.aria-label]="(slide.kind === 'VIDEO' ? 'Videoyu aç: ' : 'Fotoğrafı aç: ') + slide.title"
+                [attr.aria-label]="thumbAria(slide)"
                 [attr.aria-current]="safeActiveIndex() === index ? 'true' : null"
-                class="relative min-h-16 min-w-24 snap-start overflow-hidden rounded-xl border-2 bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                class="relative min-h-16 min-w-24 snap-start overflow-hidden rounded-xl border-2 bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light"
                 [class.border-blue-600]="safeActiveIndex() === index"
                 [class.border-transparent]="safeActiveIndex() !== index"
               >
@@ -95,6 +96,8 @@ interface GallerySlide {
 })
 export class TourMediaGalleryComponent {
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   readonly tour = input.required<Tour>();
   readonly activeIndex = signal(0);
 
@@ -108,11 +111,12 @@ export class TourMediaGalleryComponent {
     for (const url of images) {
       if (seen.has(`IMAGE:${url}`)) continue;
       seen.add(`IMAGE:${url}`);
+      const fallback = this.t().tourMedia.tourFallback;
       slides.push({
         key: `IMAGE:${url}`,
         kind: "IMAGE",
         url,
-        title: `${tour.title || "Tur"} rota fotoğrafı`,
+        title: String(this.t().tourMedia.photoTitle || "").replace("{title}", String(tour.title || fallback)),
       });
     }
 
@@ -124,7 +128,7 @@ export class TourMediaGalleryComponent {
         kind: "VIDEO",
         url: video.url,
         posterUrl: video.posterUrl,
-        title: video.title || `${tour.title || "Tur"} videosu`,
+        title: video.title || String(this.t().tourMedia.videoTitle || "").replace("{title}", String(tour.title || this.t().tourMedia.tourFallback)),
         attribution: video.attribution,
       });
     }
@@ -137,6 +141,15 @@ export class TourMediaGalleryComponent {
 
   readonly activeSlide = computed(() => this.slides()[this.safeActiveIndex()] || null);
   readonly hasVideo = computed(() => this.slides().some((slide) => slide.kind === "VIDEO"));
+
+  attributionLabel(value?: string): string {
+    return String(this.t().tourMedia.attribution || "").replace("{value}", String(value || ""));
+  }
+
+  thumbAria(slide: GallerySlide): string {
+    const key = slide.kind === "VIDEO" ? "openVideoAria" : "openPhotoAria";
+    return String((this.t().tourMedia as any)[key] || "").replace("{title}", slide.title);
+  }
 
   isYouTube(url: string): boolean {
     return Boolean(this.youtubeId(url));

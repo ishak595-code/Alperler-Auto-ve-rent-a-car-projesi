@@ -11,6 +11,7 @@ import { CarService } from "../services/car.service";
 import { CommercialOfferContextService } from "../services/commercial-offer-context.service";
 import { PublicDetailDataService } from "../services/public-detail-data.service";
 import { SeoService } from "../services/seo.service";
+import { UiService } from "../services/ui.service";
 
 type DriverMode = "with" | "without" | "";
 
@@ -24,36 +25,36 @@ type DriverMode = "with" | "without" | "";
         <header class="detail-header">
           <div class="header-inner">
             <div class="header-left">
-              <button type="button" class="icon-button" (click)="goBack()" aria-label="Kiralık araçlara geri dön"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
-              <div class="header-copy"><span>KİRALIK ARAÇ</span><h1>{{car.brand}} {{car.model}}</h1></div>
+              <button type="button" class="icon-button" (click)="goBack()" [attr.aria-label]="t().carDetail.backAria"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
+              <div class="header-copy"><span>{{ t().carDetail.badge }}</span><h1>{{car.brand}} {{car.model}}</h1></div>
             </div>
             <div class="header-actions">
-              <button type="button" class="icon-button" (click)="share(car)" aria-label="Aracı paylaş"><mat-icon aria-hidden="true">share</mat-icon></button>
-              <button type="button" class="icon-button" (click)="toggleFav(car.id)" [attr.aria-label]="isFav(car.id)?'Favorilerden çıkar':'Favorilere ekle'"><mat-icon aria-hidden="true" [class.favorite-active]="isFav(car.id)">{{isFav(car.id)?'favorite':'favorite_border'}}</mat-icon></button>
+              <button type="button" class="icon-button" (click)="share(car)" [attr.aria-label]="t().carDetail.shareAria"><mat-icon aria-hidden="true">share</mat-icon></button>
+              <button type="button" class="icon-button" (click)="toggleFav(car.id)" [attr.aria-label]="isFav(car.id)?t().carDetail.removeFavAria:t().carDetail.addFavAria"><mat-icon aria-hidden="true" [class.favorite-active]="isFav(car.id)">{{isFav(car.id)?'favorite':'favorite_border'}}</mat-icon></button>
             </div>
           </div>
         </header>
 
-        <section class="gallery" [attr.aria-label]="car.brand+' '+car.model+' fotoğraf ve video galerisi'" (touchstart)="touchStart($event)" (touchend)="touchEnd($event)">
+        <section class="gallery" [attr.aria-label]="galleryAria(car)" (touchstart)="touchStart($event)" (touchend)="touchEnd($event)">
           @if(activeMedia();as media){
             <div class="gallery-frame">
               @if(media.kind==='IMAGE'){
-                <button type="button" class="media-open" (click)="openLightbox()" [attr.aria-label]="car.brand+' '+car.model+' görselini tam ekran aç'"><img [src]="media.url" [alt]="media.title||car.brand+' '+car.model" loading="eager" decoding="async" (error)="mediaFailed(media.url)" /></button>
+                <button type="button" class="media-open" (click)="openLightbox()" [attr.aria-label]="fullscreenAria(car)"><img [src]="media.url" [alt]="media.title||car.brand+' '+car.model" loading="eager" decoding="async" (error)="mediaFailed(media.url)" /></button>
               }@else{
-                <video [src]="media.url" [poster]="media.posterUrl||car.image||''" controls playsinline preload="metadata" [attr.aria-label]="media.title||(car.brand+' '+car.model+' videosu')" (error)="mediaFailed(media.url)"></video>
-                <button type="button" class="video-expand" (click)="openLightbox()" aria-label="Videoyu tam ekran aç"><mat-icon aria-hidden="true">fullscreen</mat-icon></button>
+                <video [src]="media.url" [poster]="media.posterUrl||car.image||''" controls playsinline preload="metadata" [attr.aria-label]="media.title||videoTitle(car)" (error)="mediaFailed(media.url)"></video>
+                <button type="button" class="video-expand" (click)="openLightbox()" [attr.aria-label]="t().carDetail.videoFullscreenAria"><mat-icon aria-hidden="true">fullscreen</mat-icon></button>
               }
-              <div class="gallery-toolbar"><span>{{currentSlide()+1}} / {{mediaItems().length}}</span>@if(mediaItems().length>1){<div><button type="button" (click)="previousMedia()" aria-label="Önceki medya"><mat-icon aria-hidden="true">chevron_left</mat-icon></button><button type="button" (click)="nextMedia()" aria-label="Sonraki medya"><mat-icon aria-hidden="true">chevron_right</mat-icon></button></div>}</div>
+              <div class="gallery-toolbar"><span>{{currentSlide()+1}} / {{mediaItems().length}}</span>@if(mediaItems().length>1){<div><button type="button" (click)="previousMedia()" [attr.aria-label]="t().carDetail.prevMediaAria"><mat-icon aria-hidden="true">chevron_left</mat-icon></button><button type="button" (click)="nextMedia()" [attr.aria-label]="t().carDetail.nextMediaAria"><mat-icon aria-hidden="true">chevron_right</mat-icon></button></div>}</div>
             </div>
           }@else{
-            <div class="gallery-empty"><mat-icon aria-hidden="true">directions_car</mat-icon><strong>Araç görsellerine şu anda ulaşılamıyor</strong></div>
+            <div class="gallery-empty"><mat-icon aria-hidden="true">directions_car</mat-icon><strong>{{ t().carDetail.mediaEmpty }}</strong></div>
           }
         </section>
 
         @if(activeCampaign();as offer){
-          <section class="campaign-strip" aria-label="Bu araca ait aktif kampanya">
+          <section class="campaign-strip" [attr.aria-label]="t().carDetail.campaignStripAria">
             <div class="campaign-copy">
-              <div class="campaign-badges"><span class="campaign-kicker">{{offer.badge||'FIRSAT'}}</span>@if(discountLabel(offer)){<span class="discount-badge">{{discountLabel(offer)}}</span>}</div>
+              <div class="campaign-badges"><span class="campaign-kicker">{{ campaignBadge(offer) }}</span>@if(discountLabel(offer)){<span class="discount-badge">{{discountLabel(offer)}}</span>}</div>
               <h2>{{offer.title}}</h2>
               @if(offer.shortDescription||offer.description){<p>{{offer.shortDescription||offer.description}}</p>}
               @if(campaignBenefits(offer).length){<ul>@for(benefit of campaignBenefits(offer);track benefit){<li><mat-icon aria-hidden="true">check_circle</mat-icon>{{benefit}}</li>}</ul>}
@@ -61,7 +62,7 @@ type DriverMode = "with" | "without" | "";
             <div class="campaign-value">
               <span class="proof" [class.hot]="campaignProof(offer).activeViewers15m>0||campaignProof(offer).recentViewers24h>1"><span class="live-dot" aria-hidden="true"></span><mat-icon aria-hidden="true">visibility</mat-icon>{{campaignProofLabel(offer)}}</span>
               @if(offer.endsAt){<span><mat-icon aria-hidden="true">schedule</mat-icon>{{campaignCountdown(offer.endsAt)}}</span>}
-              @if(offer.oldPrice&&offer.newPrice&&offer.oldPrice>offer.newPrice){<div class="price-offer"><small>{{offer.oldPrice|turkishCurrency}}</small><strong>{{offer.newPrice|turkishCurrency}}</strong><em>{{campaignPriceSuffix(offer)}}</em></div>}@else if(offer.discountPercent){<strong>%{{offer.discountPercent}} avantaj</strong>}
+              @if(offer.oldPrice&&offer.newPrice&&offer.oldPrice>offer.newPrice){<div class="price-offer"><small>{{offer.oldPrice|turkishCurrency}}</small><strong>{{offer.newPrice|turkishCurrency}}</strong><em>{{campaignPriceSuffix(offer)}}</em></div>}@else if(offer.discountPercent){<strong>{{ campaignAdvantage(offer.discountPercent) }}</strong>}
             </div>
           </section>
         }
@@ -69,44 +70,44 @@ type DriverMode = "with" | "without" | "";
         <div class="detail-layout">
           <section class="panel summary-panel" aria-labelledby="rental-vehicle-title">
             <div class="summary-head">
-              <div><p class="stock-code">ARAÇ NO {{car.cloudStockCode||car.id}}</p><h2 id="rental-vehicle-title">{{car.brand}} @if(car.series){<span>{{car.series}}</span>} {{car.model}}</h2><p class="summary-meta">{{summaryMeta(car)}}</p></div>
-              <div class="price-pair"><div class="price-block"><span>Günlük kiralama</span><strong>{{dailyDisplayPrice(car)|turkishCurrency}}</strong></div>@if(car.hourlyRentalEnabled&&car.hourlyPrice){<div class="price-block hourly"><span>Saatlik kiralama</span><strong>{{hourlyDisplayPrice(car)|turkishCurrency}}</strong></div>}</div>
+              <div><p class="stock-code">{{ stockLabel(car) }}</p><h2 id="rental-vehicle-title">{{car.brand}} @if(car.series){<span>{{car.series}}</span>} {{car.model}}</h2><p class="summary-meta">{{summaryMeta(car)}}</p></div>
+              <div class="price-pair"><div class="price-block"><span>{{ t().carDetail.dailyRental }}</span><strong>{{dailyDisplayPrice(car)|turkishCurrency}}</strong></div>@if(car.hourlyRentalEnabled&&car.hourlyPrice){<div class="price-block hourly"><span>{{ t().carDetail.hourlyRental }}</span><strong>{{hourlyDisplayPrice(car)|turkishCurrency}}</strong></div>}</div>
             </div>
-            <dl class="facts" aria-label="Temel araç bilgileri">
-              @if(car.year){<div><dt>Model Yılı</dt><dd>{{car.year}}</dd></div>}
-              <div><dt>Vites</dt><dd>{{display(car.transmission)}}</dd></div>
-              <div><dt>Yakıt</dt><dd>{{display(car.fuel)}}</dd></div>
-              <div><dt>Koltuk</dt><dd>{{car.seats?car.seats+' kişi':'Belirtilmedi'}}</dd></div>
-              @if(car.doors){<div><dt>Kapı</dt><dd>{{car.doors}}</dd></div>}
+            <dl class="facts" [attr.aria-label]="t().carDetail.factsAria">
+              @if(car.year){<div><dt>{{ t().carDetail.modelYear }}</dt><dd>{{car.year}}</dd></div>}
+              <div><dt>{{ t().carDetail.transmission }}</dt><dd>{{display(car.transmission)}}</dd></div>
+              <div><dt>{{ t().carDetail.fuel }}</dt><dd>{{display(car.fuel)}}</dd></div>
+              <div><dt>{{ t().carDetail.seats }}</dt><dd>{{car.seats?peopleLabel(car.seats):t().carDetail.notSpecified}}</dd></div>
+              @if(car.doors){<div><dt>{{ t().carDetail.doors }}</dt><dd>{{car.doors}}</dd></div>}
               <div><dt>Kasa</dt><dd>{{display(car.type)}}</dd></div>
-              <div><dt>Müsaitlik</dt><dd [class.available]="selectedPeriodAvailable()" [class.unavailable]="!selectedPeriodAvailable()">{{selectedPeriodAvailable()?'Müsait':'Seçilen zaman aralığında dolu'}}</dd></div>
+              <div><dt>{{ t().carDetail.availability }}</dt><dd [class.available]="selectedPeriodAvailable()" [class.unavailable]="!selectedPeriodAvailable()">{{selectedPeriodAvailable()?t().carDetail.available:t().carDetail.busyPeriod}}</dd></div>
             </dl>
-            @if(presetStartDate){<div class="plan-summary"><mat-icon aria-hidden="true">event_available</mat-icon><div><strong>{{formattedPresetDates()}}</strong><span>{{durationLabel()}} · {{presetDriverMode==='with'?'Şoförlü':presetDriverMode==='without'?'Şoförsüz':driverOptionLabel(car.driverOption)}}@if(presetPickupLocation){ · {{presetPickupLocation}}}</span></div></div>}
+            @if(presetStartDate){<div class="plan-summary"><mat-icon aria-hidden="true">event_available</mat-icon><div><strong>{{formattedPresetDates()}}</strong><span>{{durationLabel()}} · {{presetDriverMode==='with'?t().carDetail.withDriverShort:presetDriverMode==='without'?t().carDetail.withoutDriverShort:driverOptionLabel(car.driverOption)}}@if(presetPickupLocation){ · {{presetPickupLocation}}}</span></div></div>}
           </section>
 
           <section class="panel all-details-panel" aria-labelledby="all-details-title">
-            <button type="button" class="all-details-toggle" (click)="detailsOpen.update(v=>!v)" [attr.aria-expanded]="detailsOpen()" aria-controls="rental-all-details"><span><small>BU ARAÇ HAKKINDA</small><strong id="all-details-title">Konfor, kiralama koşulları ve araç bilgileri</strong></span><mat-icon aria-hidden="true">{{detailsOpen()?'expand_less':'expand_more'}}</mat-icon></button>
+            <button type="button" class="all-details-toggle" (click)="detailsOpen.update(v=>!v)" [attr.aria-expanded]="detailsOpen()" aria-controls="rental-all-details"><span><small>{{ t().carDetail.aboutToggleSmall }}</small><strong id="all-details-title">{{ t().carDetail.aboutToggleTitle }}</strong></span><mat-icon aria-hidden="true">{{detailsOpen()?'expand_less':'expand_more'}}</mat-icon></button>
             @if(detailsOpen()){
               <div id="rental-all-details" class="all-details-content">
-                <section class="details-group"><h3>Kiralama Koşulları</h3><dl class="detail-list"><div><dt>Konum</dt><dd>{{display(car.location)}}</dd></div><div><dt>Sürücü seçeneği</dt><dd>{{driverOptionLabel(car.driverOption)}}</dd></div>@if(car.dailyMileageLimit){<div><dt>Günlük kilometre hakkı</dt><dd>{{car.dailyMileageLimit}} km</dd></div>}@if(car.hourlyRentalEnabled){<div><dt>Saatlik kiralama</dt><dd>En az {{car.minimumRentalHours||1}} saat</dd></div>}@if(car.hourlyMileageLimit){<div><dt>Saatlik kilometre hakkı</dt><dd>{{car.hourlyMileageLimit}} km</dd></div>}@if(car.deposit!==undefined){<div><dt>Depozito</dt><dd>{{car.deposit|turkishCurrency}}</dd></div>}@if(car.minAge){<div><dt>Minimum sürücü yaşı</dt><dd>{{car.minAge}}</dd></div>}@if(car.minLicenseYears){<div><dt>Ehliyet süresi</dt><dd>En az {{car.minLicenseYears}} yıl</dd></div>}@if(car.luggage){<div><dt>Bagaj kapasitesi</dt><dd>{{car.luggage}}</dd></div>}@if(car.group){<div><dt>Araç sınıfı</dt><dd>{{car.group}}</dd></div>}</dl></section>
-                @if(features().length){<section class="details-group"><h3>Konfor ve Donanım</h3><ul class="feature-list">@for(feature of features();track feature){<li><mat-icon aria-hidden="true">check_circle</mat-icon><span>{{feature}}</span></li>}</ul></section>}
-                @if(technicalRows().length){<section class="details-group"><h3>Performans ve Tüketim</h3><dl class="tech-grid">@for(row of technicalRows();track row.label){<div><dt>{{row.label}}</dt><dd>{{row.value}}</dd></div>}</dl></section>}
-                @if(car.description){<section class="details-group"><h3>Araç Hakkında</h3><p class="description">{{car.description}}</p></section>}
+                <section class="details-group"><h3>{{ t().carDetail.rentalTerms }}</h3><dl class="detail-list"><div><dt>{{ t().carDetail.location }}</dt><dd>{{display(car.location)}}</dd></div><div><dt>{{ t().carDetail.driverOption }}</dt><dd>{{driverOptionLabel(car.driverOption)}}</dd></div>@if(car.dailyMileageLimit){<div><dt>{{ t().carDetail.dailyMileage }}</dt><dd>{{car.dailyMileageLimit}} km</dd></div>}@if(car.hourlyRentalEnabled){<div><dt>{{ t().carDetail.hourlyRental }}</dt><dd>{{ t().carDetail.minHours.replace("{n}", "" + (car.minimumRentalHours||1)) }}</dd></div>}@if(car.hourlyMileageLimit){<div><dt>{{ t().carDetail.hourlyMileage }}</dt><dd>{{car.hourlyMileageLimit}} km</dd></div>}@if(car.deposit!==undefined){<div><dt>{{ t().carDetail.deposit }}</dt><dd>{{car.deposit|turkishCurrency}}</dd></div>}@if(car.minAge){<div><dt>{{ t().carDetail.minAge }}</dt><dd>{{car.minAge}}</dd></div>}@if(car.minLicenseYears){<div><dt>{{ t().carDetail.minLicense }}</dt><dd>{{ t().carDetail.minLicenseYears.replace("{n}", "" + car.minLicenseYears) }}</dd></div>}@if(car.luggage){<div><dt>{{ t().carDetail.luggage }}</dt><dd>{{car.luggage}}</dd></div>}@if(car.group){<div><dt>{{ t().carDetail.vehicleClass }}</dt><dd>{{car.group}}</dd></div>}</dl></section>
+                @if(features().length){<section class="details-group"><h3>{{ t().carDetail.comfort }}</h3><ul class="feature-list">@for(feature of features();track feature){<li><mat-icon aria-hidden="true">check_circle</mat-icon><span>{{feature}}</span></li>}</ul></section>}
+                @if(technicalRows().length){<section class="details-group"><h3>{{ t().carDetail.performance }}</h3><dl class="tech-grid">@for(row of technicalRows();track row.label){<div><dt>{{row.label}}</dt><dd>{{row.value}}</dd></div>}</dl></section>}
+                @if(car.description){<section class="details-group"><h3>{{ t().carDetail.aboutVehicle }}</h3><p class="description">{{car.description}}</p></section>}
               </div>
             }
           </section>
         </div>
 
-        <nav class="fixed-actions" aria-label="Araç hızlı işlemleri">
-          @if(phoneHref()){<a class="phone" [href]="phoneHref()" aria-label="Telefonla ara"><span class="phone-symbol" aria-hidden="true">☎</span><span>Ara</span></a>}@else{<button type="button" class="phone" disabled aria-label="Telefonla arama şu anda kullanılamıyor"><span class="phone-symbol" aria-hidden="true">☎</span><span>Ara</span></button>}
-          <button type="button" class="whatsapp" (click)="whatsapp()" aria-label="WhatsApp ile bu araç hakkında bilgi al"><mat-icon aria-hidden="true">chat</mat-icon><span>WhatsApp</span></button>
-          <button type="button" class="reserve" (click)="reserve(car)" [disabled]="!selectedPeriodAvailable()||(presetDuration==='hourly'&&!car.hourlyRentalEnabled)"><mat-icon aria-hidden="true">event_available</mat-icon><span>Rezerve Et</span></button>
+        <nav class="fixed-actions" [attr.aria-label]="t().carDetail.actionsAria">
+          @if(phoneHref()){<a class="phone" [href]="phoneHref()" [attr.aria-label]="t().carDetail.callAria"><span class="phone-symbol" aria-hidden="true">☎</span><span>{{ t().carDetail.call }}</span></a>}@else{<button type="button" class="phone" disabled [attr.aria-label]="t().carDetail.callUnavailableAria"><span class="phone-symbol" aria-hidden="true">☎</span><span>{{ t().carDetail.call }}</span></button>}
+          <button type="button" class="whatsapp" (click)="whatsapp()" [attr.aria-label]="t().carDetail.whatsappAria"><mat-icon aria-hidden="true">chat</mat-icon><span>{{ t().carDetail.whatsapp }}</span></button>
+          <button type="button" class="reserve" (click)="reserve(car)" [disabled]="!selectedPeriodAvailable()||(presetDuration==='hourly'&&!car.hourlyRentalEnabled)"><mat-icon aria-hidden="true">event_available</mat-icon><span>{{ t().carDetail.reserve }}</span></button>
         </nav>
-        <app-detail-media-lightbox [open]="lightboxOpen()" [items]="mediaItems()" [index]="currentSlide()" [title]="car.brand+' '+car.model+' fotoğraf ve video galerisi'" (closed)="lightboxOpen.set(false)" (indexChange)="currentSlide.set($event)" />
+        <app-detail-media-lightbox [open]="lightboxOpen()" [items]="mediaItems()" [index]="currentSlide()" [title]="t().carDetail.galleryTitle.replace('{brand}', car.brand||'').replace('{model}', car.model||'' )" (closed)="lightboxOpen.set(false)" (indexChange)="currentSlide.set($event)" />
       } @else if(loading()){
-        <section class="state-panel" role="status"><div class="spinner"></div><strong>Araç bilgileri hazırlanıyor</strong></section>
+        <section class="state-panel" role="status"><div class="spinner"></div><strong>{{ t().carDetail.loading }}</strong></section>
       } @else {
-        <section class="state-panel error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><strong>Araç bilgilerine şu anda ulaşılamıyor</strong><span>Lütfen kısa bir süre sonra yeniden deneyin.</span><button type="button" (click)="reload()">Tekrar Dene</button></section>
+        <section class="state-panel error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><strong>{{ t().carDetail.errorTitle }}</strong><span>{{ t().carDetail.errorHint }}</span><button type="button" (click)="reload()">Tekrar Dene</button></section>
       }
     </main>
   `,
@@ -123,6 +124,8 @@ export class CarDetailComponent implements OnInit {
   private readonly commercialOffer = inject(CommercialOfferContextService);
   readonly carService = inject(CarService);
   private readonly seo = inject(SeoService);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   private readonly routeId = this.route.snapshot.paramMap.get("id") || "";
   private readonly campaignId = this.route.snapshot.queryParamMap.get("campaign") || "";
   private touchX = 0;
@@ -164,15 +167,15 @@ export class CarDetailComponent implements OnInit {
   readonly mediaItems = computed<DetailMediaItem[]>(() => {
     const car = this.vehicle(); if (!car) return [];
     const failed = new Set(this.failedMedia()), seen = new Set<string>(); const rows: DetailMediaItem[] = [];
-    for (const url of this.detailData.mediaUrls(car)) if (url && !failed.has(url) && !seen.has(url)) { seen.add(url); rows.push({kind:"IMAGE",url,title:`${car.brand || ""} ${car.model || ""}`.trim() || "Araç görseli"}); }
-    for (const video of car.videos || []) { const url = this.detailData.mediaUrl(video.url); if (url && !failed.has(url) && !seen.has(url)) { seen.add(url); rows.push({kind:"VIDEO",url,posterUrl:this.detailData.mediaUrl(video.posterUrl),title:video.title || `${car.brand || ""} ${car.model || ""} videosu`.trim()}); } }
+    for (const url of this.detailData.mediaUrls(car)) if (url && !failed.has(url) && !seen.has(url)) { seen.add(url); rows.push({kind:"IMAGE",url,title:`${car.brand || ""} ${car.model || ""}`.trim() || this.t().carDetail.mediaTitle}); }
+    for (const video of car.videos || []) { const url = this.detailData.mediaUrl(video.url); if (url && !failed.has(url) && !seen.has(url)) { seen.add(url); rows.push({kind:"VIDEO",url,posterUrl:this.detailData.mediaUrl(video.posterUrl),title:video.title || this.videoTitle(car)}); } }
     return rows.slice(0, 40);
   });
   readonly activeMedia = computed(() => this.mediaItems()[Math.min(this.currentSlide(), Math.max(0, this.mediaItems().length - 1))] || null);
   readonly features = computed(() => { const car=this.vehicle(); if(!car)return[]; const detailed=car.detailedFeatures?[...(car.detailedFeatures.interior||[]),...(car.detailedFeatures.exterior||[]),...(car.detailedFeatures.multimedia||[]),...(car.detailedFeatures.safety||[])]:[]; return [...new Set([...(car.features||[]),...detailed].map(v=>String(v||"").trim()).filter(Boolean))]; });
   readonly technicalRows = computed(() => {
     const car=this.vehicle(); if(!car)return[] as {label:string;value:string}[]; const specs=car.technicalSpecs;
-    const rows:Array<[string,unknown]>=[["Maksimum hız",specs?.maxSpeed||car.maxSpeed],["0-100 km/s",specs?.acceleration||car.acceleration],["Motor hacmi",specs?.engineVolume||car.engineVolume],["Motor gücü",specs?.enginePower||car.enginePower],["Tork",specs?.torque||car.torque],["Çekiş",specs?.drivetrain||car.drivetrain],["Silindir",specs?.cylinders||(car.cylinderCount?`${car.cylinderCount} silindir`:"")],["Şehir içi tüketim",specs?.cityFuel||car.cityFuelConsumption],["Uzun yol tüketim",specs?.highwayFuel||car.highwayFuelConsumption],["Ortalama tüketim",specs?.combinedFuel||car.fuelConsumption],["Depo",specs?.tankCapacity||car.fuelTankCapacity],["Bagaj",specs?.trunkCapacity||car.trunkVolume],["Jant / Lastik",specs?.wheels||car.wheelSize],["Boyutlar",specs?.dimensions||[car.length,car.width,car.height].filter(Boolean).join(" × ")],["Ağırlık",specs?.weight||car.weight]];
+    const rows:Array<[string,unknown]>=[[this.t().saleDetail.specMaxSpeed,specs?.maxSpeed||car.maxSpeed],[this.t().saleDetail.specAccel,specs?.acceleration||car.acceleration],[this.t().saleDetail.specEngineVolume,specs?.engineVolume||car.engineVolume],[this.t().saleDetail.specEnginePower,specs?.enginePower||car.enginePower],[this.t().saleDetail.specTorque,specs?.torque||car.torque],[this.t().saleDetail.specDrivetrain,specs?.drivetrain||car.drivetrain],[this.t().saleDetail.specCylinders,specs?.cylinders||(car.cylinderCount?String(this.t().saleDetail.cylindersUnit||"").replace("{n}", String(car.cylinderCount)):"")],[this.t().saleDetail.specCityFuel,specs?.cityFuel||car.cityFuelConsumption],[this.t().saleDetail.specHighwayFuel,specs?.highwayFuel||car.highwayFuelConsumption],[this.t().saleDetail.specCombinedFuel,specs?.combinedFuel||car.fuelConsumption],[this.t().saleDetail.specTank,specs?.tankCapacity||car.fuelTankCapacity],[this.t().saleDetail.specTrunk,specs?.trunkCapacity||car.trunkVolume],[this.t().saleDetail.specWheels,specs?.wheels||car.wheelSize],[this.t().saleDetail.specDimensions,specs?.dimensions||[car.length,car.width,car.height].filter(Boolean).join(" × ")],[this.t().saleDetail.specWeight,specs?.weight||car.weight]];
     return rows.filter(([,v])=>String(v??"").trim()&&String(v)!=="-").map(([label,value])=>({label,value:String(value)}));
   });
 
@@ -187,25 +190,42 @@ export class CarDetailComponent implements OnInit {
       const car=await this.detailData.load("RENTAL",this.routeId) as Car;
       this.vehicle.set(car); this.failedMedia.set([]); this.currentSlide.set(0);
       const config=this.carService.getConfig()();
-      this.seo.updateSeoTags({title:`${car.brand||"Araç"} ${car.model||""} Kiralama | ${config.companyName}`,description:`${car.brand||"Araç"} ${car.model||""} günlük/saatlik fiyat, konfor özellikleri ve kiralama koşulları.`,image:car.image||config.seoOgImage});
+      const brand = String(car.brand || this.t().carDetail.seoBrandFallback || "").trim();
+      const model = String(car.model || "").trim();
+      this.seo.updateSeoTags({
+        title: String(this.t().carDetail.seoTitle || "")
+          .replace("{brand}", brand)
+          .replace("{model}", model)
+          .replace("{company}", String(config.companyName || ""))
+          .replace(/\s+/g, " ")
+          .trim(),
+        description: String(this.t().carDetail.seoDescription || "")
+          .replace("{brand}", brand)
+          .replace("{model}", model)
+          .replace(/\s+/g, " ")
+          .trim(),
+        image: car.image || config.seoOgImage,
+      });
     } catch{this.vehicle.set(null);this.loadError.set("RENTAL_DETAIL_UNAVAILABLE");}
     finally{this.loading.set(false);}
   }
 
   display(value:unknown):string{return this.detailData.display(value);}
-  summaryMeta(car:Car):string{return[car.year,car.type,car.location].filter(Boolean).join(" · ")||"Alperler Rent A Car kiralık araç";}
+  summaryMeta(car:Car):string{return[car.year,car.type,car.location].filter(Boolean).join(" · ")||this.t().carDetail.summaryFallback;}
   campaignProof(offer:CampaignRecord):CampaignProof{return this.campaigns.proofByCampaign()[offer.id]||{campaignId:offer.id,pageViewsTotal:0,uniqueViewersTotal:0,recentViewers24h:0,activeViewers15m:0};}
-  campaignProofLabel(offer:CampaignRecord):string{const proof=this.campaignProof(offer);if(proof.activeViewers15m>0)return`${proof.activeViewers15m} kişi son 15 dakikada inceledi`;if(proof.recentViewers24h>0)return`${proof.recentViewers24h} kişi son 24 saatte inceledi`;if(proof.uniqueViewersTotal>0)return`${proof.uniqueViewersTotal} kişi inceledi`;if(proof.pageViewsTotal>0)return`${proof.pageViewsTotal} görüntülenme`;return"Yeni fırsat";}
+  campaignProofLabel(offer:CampaignRecord):string{const proof=this.campaignProof(offer);const C=this.t().carDetail;if(proof.activeViewers15m>0)return C.proofViewers15m.replace("{n}", String(proof.activeViewers15m));if(proof.recentViewers24h>0)return C.proofViewers24h.replace("{n}", String(proof.recentViewers24h));if(proof.uniqueViewersTotal>0)return C.proofViewersTotal.replace("{n}", String(proof.uniqueViewersTotal));if(proof.pageViewsTotal>0)return C.proofViews.replace("{n}", String(proof.pageViewsTotal));return C.proofNew;}
   campaignBenefits(offer:CampaignRecord):string[]{const value=offer.metadata?.["benefits"];return Array.isArray(value)?value.map(v=>String(v||"").trim()).filter(Boolean).slice(0,5):[];}
-  campaignPriceSuffix(offer:CampaignRecord):string{return String(offer.metadata?.["priceSuffix"]||offer.metadata?.["priceLabel"]||"kampanya fiyatı");}
-  discountLabel(offer:CampaignRecord):string{if(offer.discountPercent)return`%${offer.discountPercent} AVANTAJ`;if(offer.oldPrice&&offer.newPrice&&offer.oldPrice>offer.newPrice)return`%${Math.round((offer.oldPrice-offer.newPrice)/offer.oldPrice*100)} AVANTAJ`;return"";}
-  campaignCountdown(value:string):string{const remaining=new Date(value).getTime()-Date.now();if(!Number.isFinite(remaining)||remaining<=0)return"Süre doldu";const hours=Math.floor(remaining/3_600_000),days=Math.floor(hours/24);return days>1?`${days} gün kaldı`:days===1?"1 gün kaldı":`${Math.max(1,hours)} saat kaldı`;}
+  campaignPriceSuffix(offer:CampaignRecord):string{return String(offer.metadata?.["priceSuffix"]||offer.metadata?.["priceLabel"]||this.t().carDetail.campaignPrice);}
+  discountLabel(offer:CampaignRecord):string{const fmt=(n:number)=>String(this.t().catalogCampaign?.advantagePct||"%{n} AVANTAJ").replace("{n}", String(n));if(offer.discountPercent)return fmt(offer.discountPercent);if(offer.oldPrice&&offer.newPrice&&offer.oldPrice>offer.newPrice)return fmt(Math.round((offer.oldPrice-offer.newPrice)/offer.oldPrice*100));return"";}
+  campaignBadge(offer:CampaignRecord):string{return this.ui.listingBadgeLabel(offer.badge) || this.t().vehicleListItem.deal;}
+  campaignAdvantage(n:number):string{return String(this.t().catalogCampaign?.advantagePct||"%{n} AVANTAJ").replace("{n}", String(n));}
+  campaignCountdown(value:string):string{const remaining=new Date(value).getTime()-Date.now();if(!Number.isFinite(remaining)||remaining<=0)return this.t().carDetail.countdownEnded;const hours=Math.floor(remaining/3_600_000),days=Math.floor(hours/24);const C=this.t().carDetail;return days>1?C.countdownDays.replace("{n}", String(days)):days===1?C.countdownDay:C.countdownHours.replace("{n}", String(Math.max(1,hours)));}
   dailyDisplayPrice(car:Car):number{return this.unitCampaignPrice(Number(car.price||0),"daily");}
   hourlyDisplayPrice(car:Car):number{return this.unitCampaignPrice(Number(car.hourlyPrice||0),"hourly");}
   selectedUnitPrice(car:Car):number{return this.presetDuration==="hourly"?this.hourlyDisplayPrice(car):this.dailyDisplayPrice(car);}
   phoneHref():string{const phone=String(this.carService.getConfig()().phone||"").replace(/[^+\d]/g,"");return phone?`tel:${phone}`:"";}
   private unitCampaignPrice(base:number,mode:"daily"|"hourly"):number{const offer=this.activeCampaign();if(!offer||offer.discountScope!=="UNIT")return base;if(mode==="hourly"&&offer.minimumRentalDays)return base;if(mode==="daily"&&offer.minimumRentalHours)return base;if(offer.newPrice!=null&&Number.isFinite(Number(offer.newPrice)))return Math.max(0,Number(offer.newPrice));if(offer.discountMethod==="FIXED_PRICE")return Math.max(0,Number(offer.discountValue||base));if(offer.discountMethod==="PERCENT")return Math.max(0,base-base*Number(offer.discountValue||0)/100);if(offer.discountMethod==="FIXED_AMOUNT")return Math.max(0,base-Number(offer.discountValue||0));return base;}
-  durationLabel():string{return this.presetDuration==="hourly"?"Saatlik":this.presetDuration==="weekly"?"Haftalık":this.presetDuration==="monthly"?"Aylık":this.presetDuration==="longterm"?"Uzun dönem":"Günlük";}
+  durationLabel():string{const d=this.t().carDetail;return this.presetDuration==="hourly"?d.hourly:this.presetDuration==="weekly"?d.weekly:this.presetDuration==="monthly"?d.monthly:this.presetDuration==="longterm"?d.longterm:d.daily;}
   formattedPresetDates():string{const format=(v:string)=>{const d=this.parseDate(v);return d?new Intl.DateTimeFormat("tr-TR",{day:"2-digit",month:"long",year:"numeric"}).format(d):v;};return this.presetDuration==="hourly"?`${format(this.presetStartDate)} · ${this.presetStartTime}-${this.presetEndTime}`:`${format(this.presetStartDate)} - ${format(this.presetEndDate)}`;}
   previousMedia():void{const l=this.mediaItems().length;if(l>1)this.currentSlide.update(i=>(i-1+l)%l);}
   nextMedia():void{const l=this.mediaItems().length;if(l>1)this.currentSlide.update(i=>(i+1)%l);}
@@ -215,9 +235,22 @@ export class CarDetailComponent implements OnInit {
   touchEnd(event:TouchEvent):void{const end=event.changedTouches[0]?.clientX||0;if(Math.abs(end-this.touchX)<45)return;end<this.touchX?this.nextMedia():this.previousMedia();}
   reserve(car:Car):void{if(!this.selectedPeriodAvailable())return;const withDriver=this.resolveDriverPreference(car);let startDate:string|undefined,endDate:string|undefined,days:number|undefined,totalPrice=this.selectedUnitPrice(car);if(this.presetDuration==="hourly"){const start=this.selectedStart(),end=this.selectedEnd();if(start&&end){const hours=Math.max(1,Math.min(23,Math.ceil((end.getTime()-start.getTime())/3_600_000)));startDate=start.toISOString();endDate=end.toISOString();totalPrice=this.hourlyDisplayPrice(car)*hours;}}else{const count=this.rentalDays(this.presetStartDate,this.presetEndDate);if(count>0){days=count;startDate=this.presetStartDate;endDate=this.presetEndDate;totalPrice=this.dailyDisplayPrice(car)*count;}}this.carService.setBookingRequest({type:"RENTAL",item:car,itemName:`${car.brand||""} ${car.model||""}`.trim(),image:car.image||car.images?.[0],basePrice:this.selectedUnitPrice(car),totalPrice,startDate,endDate,days,rentalDuration:this.presetDuration,withDriver,pickupLocation:this.presetPickupLocation||undefined});const campaign=this.activeCampaign()?.id||this.campaignId;void this.router.navigate(["/contact"],{queryParams:{...(campaign?{campaign}:{})}});}
   toggleFav(id:string|number):void{this.carService.toggleFavorite(id);} isFav(id:string|number):boolean{return this.carService.isFavorite(id);}
-  async share(car:Car):Promise<void>{const payload={title:`${car.brand||""} ${car.model||""} | Alperler Rent A Car`.trim(),text:"Bu kiralık aracı inceleyin.",url:window.location.href};try{if(navigator.share)await navigator.share(payload);else await navigator.clipboard?.writeText(window.location.href);}catch{/* kullanıcı paylaşımı iptal etti */}}
-  whatsapp():void{const car=this.vehicle();if(!car)return;const config=this.carService.getConfig()();const phone=String(config.whatsapp||config.phone||"").replace(/\D/g,"");if(!phone)return;window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Merhaba, ${car.brand||""} ${car.model||""} kiralama hakkında bilgi almak istiyorum. ${window.location.href}`)}`,"_blank","noopener,noreferrer");}
-  driverOptionLabel(option:Car["driverOption"]):string{return option==="WITH_DRIVER"?"Şoförlü":option==="WITHOUT_DRIVER"?"Şoförsüz":"Şoförlü / şoförsüz";}
+  async share(car:Car):Promise<void>{const config=this.carService.getConfig()();const title=String(this.t().carDetail.shareTitle||"").replace("{brand}",String(car.brand||"")).replace("{model}",String(car.model||"")).replace("{company}",String(config.companyName||"")).replace(/\s+/g," ").trim();const payload={title,text:this.t().carDetail.shareText,url:window.location.href};try{if(navigator.share)await navigator.share(payload);else await navigator.clipboard?.writeText(window.location.href);}catch{/* kullanıcı paylaşımı iptal etti */}}
+  whatsapp():void{
+    const car=this.vehicle();
+    if(!car)return;
+    const config=this.carService.getConfig()();
+    const phone=String(config.whatsapp||config.phone||"").replace(/\D/g,"");
+    if(!phone)return;
+    const message=String(this.t().carDetail.whatsappPrefill||"")
+      .replace("{brand}",String(car.brand||""))
+      .replace("{model}",String(car.model||""))
+      .replace("{url}",window.location.href)
+      .replace(/\s+/g," ")
+      .trim();
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`,"_blank","noopener,noreferrer");
+  }
+  driverOptionLabel(option:Car["driverOption"]):string{return option==="WITH_DRIVER"?this.t().carDetail.withDriver:option==="WITHOUT_DRIVER"?this.t().carDetail.withoutDriver:this.t().carDetail.driverBoth;}galleryAria(car:Car){return String(this.t().carDetail.galleryAria||'').replace('{brand}',String(car.brand||'')).replace('{model}',String(car.model||''));}fullscreenAria(car:Car){return String(this.t().carDetail.fullscreenAria||'').replace('{brand}',String(car.brand||'')).replace('{model}',String(car.model||''));}stockLabel(car:Car){return String(this.t().carDetail.stockNo||'').replace('{id}', String(car.cloudStockCode||car.id));}peopleLabel(n:number){return String(this.t().carDetail.people||'').replace('{n}', String(n));}videoTitle(car:Car){const raw=String(this.t().carDetail.videoTitle||'').replace('{brand}',String(car.brand||'')).replace('{model}',String(car.model||'')).replace(/\s+/g,' ').trim();return raw||this.t().carDetail.mediaTitle;}
   goBack():void{if(window.history.length>1)this.location.back();else void this.router.navigate(["/fleet"]);}
   private resolveDriverPreference(car:Car):boolean{if(car.driverOption==="WITH_DRIVER")return true;if(car.driverOption==="WITHOUT_DRIVER")return false;if(this.presetDriverMode==="with")return true;return false;}
   private selectedStart():Date|null{if(!this.presetStartDate)return null;if(this.presetDuration==="hourly")return new Date(`${this.presetStartDate}T${this.presetStartTime}:00`);return this.parseDate(this.presetStartDate);}

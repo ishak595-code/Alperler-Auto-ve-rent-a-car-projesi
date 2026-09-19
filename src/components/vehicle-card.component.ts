@@ -13,14 +13,14 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
   imports: [CommonModule, RouterModule, MatIconModule, TurkishCurrencyPipe],
   template: `
     <article
-      class="flex flex-col p-3 sm:p-4 transition-all duration-300 bg-white w-full h-full group hover:bg-slate-50 border border-slate-100 rounded-2xl shadow-sm hover:shadow-md min-w-0 overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2"
+      class="flex flex-col p-3 sm:p-4 transition-all duration-300 bg-white w-full h-full group hover:bg-slate-50 border border-slate-100 rounded-2xl shadow-sm hover:shadow-md min-w-0 overflow-hidden focus-within:ring-2 focus-within:ring-prestige-red-light focus-within:ring-offset-2"
     >
       <div
         class="w-full h-[150px] sm:h-[170px] md:h-[190px] shrink-0 relative mb-4 bg-slate-100 rounded-xl overflow-hidden"
       >
         <a
           [routerLink]="detailRoute"
-          class="block w-full h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
+          class="block w-full h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light focus-visible:ring-inset"
           [attr.aria-label]="detailAriaLabel"
         >
           <img
@@ -28,7 +28,7 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
             (error)="handleImageError($event)"
             loading="lazy"
             decoding="async"
-            [alt]="car.brand + ' ' + car.model"
+            [alt]="imageAltText()"
             class="w-full h-full object-cover transition-transform duration-700 md:group-hover:scale-105"
             referrerpolicy="no-referrer"
           />
@@ -38,8 +38,8 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
           <button
             type="button"
             (click)="toggleFavorite($event)"
-            class="w-11 h-11 rounded-full bg-white/95 backdrop-blur shadow hover:bg-white flex items-center justify-center transition-colors group/btn focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-            [attr.aria-label]="isFavorite() ? 'Favorilerden çıkar' : 'Favorilere ekle'"
+            class="w-11 h-11 rounded-full bg-white/95 backdrop-blur shadow hover:bg-white flex items-center justify-center transition-colors group/btn focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light"
+            [attr.aria-label]="isFavorite() ? t().common.removeFromFav : t().common.addToFav"
             [attr.aria-pressed]="isFavorite()"
           >
             <mat-icon
@@ -52,11 +52,11 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
           <button
             type="button"
             (click)="shareVehicle($event)"
-            class="w-11 h-11 rounded-full bg-white/95 backdrop-blur shadow hover:bg-white flex items-center justify-center transition-colors group/btn focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-            [attr.aria-label]="car.brand + ' ' + car.model + ' aracını paylaş'"
+            class="w-11 h-11 rounded-full bg-white/95 backdrop-blur shadow hover:bg-white flex items-center justify-center transition-colors group/btn focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light"
+            [attr.aria-label]="shareAriaLabel()"
           >
             <mat-icon
-              class="text-slate-500 group-hover/btn:text-blue-500 text-[20px] transition-colors"
+              class="text-slate-500 group-hover/btn:text-slate-700 text-[20px] transition-colors"
               >share</mat-icon
             >
           </button>
@@ -66,17 +66,17 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
           @if (car.badge === "ACİL" || car.badge.includes("ACİL")) {
             <span
               class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded tracking-widest uppercase z-10 shadow-md motion-safe:animate-pulse"
-              >{{ car.badge }}</span
+              >{{ badgeLabel() }}</span
             >
           } @else if (car.badge === "FIRSAT" || car.badge.includes("FIRSAT")) {
             <span
               class="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2.5 py-1 rounded tracking-widest uppercase z-10 shadow-md"
-              >{{ car.badge }}</span
+              >{{ badgeLabel() }}</span
             >
           } @else {
             <span
               class="absolute top-2 left-2 bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded tracking-widest uppercase z-10 shadow-md"
-              >{{ car.badge }}</span
+              >{{ badgeLabel() }}</span
             >
           }
         }
@@ -89,7 +89,7 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
           >
             <a
               [routerLink]="detailRoute"
-              class="block break-words group-hover:text-blue-600 transition-colors rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              class="block break-words group-hover:text-prestige-red transition-colors rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light"
             >
               {{
                 car.title ||
@@ -130,7 +130,7 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
                 class="bg-slate-100 px-2 py-1 rounded text-slate-700 flex items-center"
                 ><mat-icon class="text-[14px] w-[14px] h-[14px] mr-1"
                   >person</mat-icon
-                >{{ car.seats }} Kişilik</span
+                >{{ seatsLabel() }}</span
               >
             }
             @if (car.category === "SALE" && car.damageStatus) {
@@ -148,12 +148,12 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
           class="mt-3 mb-2 flex flex-col gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-700"
         >
           @if (variant === "rental") {
-            <div class="flex items-center bg-blue-50/70 p-1.5 rounded text-blue-900">
+            <div class="flex items-center bg-slate-50 p-1.5 rounded text-slate-900">
               <mat-icon
-                class="text-[14px] w-[14px] h-[14px] mr-1.5 text-blue-600 shrink-0"
+                class="text-[14px] w-[14px] h-[14px] mr-1.5 text-slate-700 shrink-0"
                 >verified_user</mat-icon
               >
-              <span>%100 Kaskolu & Yol Yardım</span>
+              <span>{{ t().vehicleCard.insured }}</span>
             </div>
           } @else {
             <div class="flex items-center bg-emerald-50/70 p-1.5 rounded text-emerald-900">
@@ -161,14 +161,14 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
                 class="text-[14px] w-[14px] h-[14px] mr-1.5 text-emerald-600 shrink-0"
                 >fact_check</mat-icon
               >
-              <span>101 Nokta Ekspertizli</span>
+              <span>{{ t().vehicleCard.expertise }}</span>
             </div>
             <div class="flex items-center bg-slate-50 p-1.5 rounded text-slate-800">
               <mat-icon
                 class="text-[14px] w-[14px] h-[14px] mr-1.5 text-emerald-500 shrink-0"
                 >shield</mat-icon
               >
-              <span>Alperler Güvencesi</span>
+              <span>{{ t().vehicleCard.guarantee }}</span>
             </div>
           }
         </div>
@@ -194,18 +194,18 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
                     "
                     aria-hidden="true"
                   ></span>
-                  {{ car.isAvailable !== false ? "Müsait" : "Dolu" }}
+                  {{ car.isAvailable !== false ? t().vehicleCard.available : t().vehicleCard.busy }}
                 </span>
                 @if (car.driverOption) {
                   <span
-                    class="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-2 py-1 rounded font-bold w-fit border uppercase tracking-wider"
+                    class="bg-slate-50 text-slate-700 border-slate-200 text-[10px] px-2 py-1 rounded font-bold w-fit border uppercase tracking-wider"
                   >
                     {{
                       car.driverOption === "WITH_DRIVER"
-                        ? "ŞOFÖRLÜ"
+                        ? t().vehicleCard.withDriver
                         : car.driverOption === "WITHOUT_DRIVER"
-                          ? "ŞOFÖRSÜZ"
-                          : "ŞOFÖRLÜ & ŞOFÖRSÜZ"
+                          ? t().vehicleCard.withoutDriver
+                          : t().vehicleCard.bothDrivers
                     }}
                   </span>
                 }
@@ -215,7 +215,7 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
                     class="bg-red-50 text-red-700 border-red-200 text-[10px] px-2 py-1 rounded font-bold w-fit border uppercase tracking-wider flex items-center"
                   >
                     <span class="w-2 h-2 rounded-full mr-1.5 bg-red-500" aria-hidden="true"></span>
-                    Satıldı
+                    {{ t().vehicleCard.sold }}
                   </span>
                 } @else {
                   <span
@@ -248,7 +248,7 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
         <div class="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2 mt-4">
           <button
             type="button"
-            class="min-h-11 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2.5 px-3 border border-slate-900 rounded-lg text-center transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            class="min-h-11 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2.5 px-3 border border-slate-900 rounded-lg text-center transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light focus-visible:ring-offset-2"
             (click)="doAction($event, 'primary')"
             [disabled]="car.isAvailable === false"
             [attr.aria-disabled]="car.isAvailable === false"
@@ -257,10 +257,10 @@ import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
           </button>
           <a
             [routerLink]="detailRoute"
-            class="min-h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 text-xs font-bold py-2.5 px-3 rounded-lg text-center transition-colors flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            class="min-h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 text-xs font-bold py-2.5 px-3 rounded-lg text-center transition-colors flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-prestige-red-light focus-visible:ring-offset-2"
             [attr.aria-label]="detailAriaLabel"
           >
-            Detay
+            {{ t().vehicleCard.details }}
           </a>
         </div>
       </div>
@@ -284,7 +284,19 @@ export class VehicleCardComponent {
   }
 
   get detailAriaLabel(): string {
-    return `${this.car.year || ""} ${this.car.brand || ""} ${this.car.model || ""} detaylarını görüntüle`.trim();
+    return String(this.t().vehicleCard.detailAria||'')
+      .replace('{year}', String(this.car.year||''))
+      .replace('{brand}', String(this.car.brand||''))
+      .replace('{model}', String(this.car.model||''))
+      .replace(/\s+/g,' ').trim();
+  }
+  shareAriaLabel(): string {
+    return String(this.t().vehicleCard.shareAria||'')
+      .replace('{brand}', String(this.car.brand||''))
+      .replace('{model}', String(this.car.model||''));
+  }
+  seatsLabel(): string {
+    return String(this.t().vehicleCard.seats||'').replace('{n}', String(this.car.seats||''));
   }
 
   handleImageError(event: Event) {
@@ -359,29 +371,43 @@ export class VehicleCardComponent {
     if (typeof navigator !== "undefined" && navigator.share && typeof window !== "undefined") {
       navigator.share({
         title: `${this.car.brand} ${this.car.model}`,
-        text: `${this.car.year} model ${this.car.brand} ${this.car.model} Alperler'de!`,
+        text: String(this.t().vehicleCard.shareText||'')
+          .replace('{year}', String(this.car.year||''))
+          .replace('{brand}', String(this.car.brand||''))
+          .replace('{model}', String(this.car.model||'')),
         url:
           window.location.origin +
           (this.variant === "rental" ? "/fleet/" : "/sales/") +
           this.car.id,
       }).catch(() => {
-        // Kullanıcı paylaşım penceresini kapatırsa hata göstermeyiz.
+        // Ignore share cancellation.
       });
     }
+  }
+
+  badgeLabel(): string {
+    return this.uiService.listingBadgeLabel(this.car.badge);
+  }
+
+  imageAltText(): string {
+    const brand = this.car.brand || this.t().vehicleCard.vehicleFallback;
+    const model = this.car.model || '';
+    const year = this.car.year ? ` ${this.car.year}` : '';
+    return `${brand} ${model}${year}`.trim();
   }
 
   get buttonText(): string {
     if (this.car.isAvailable === false) {
       return this.variant === "rental"
-        ? this.t().buttons.notAvailable || "MÜSAİT DEĞİL"
-        : "SATILDI";
+        ? this.t().buttons.notAvailable || this.t().vehicleCard.busy
+        : this.t().vehicleCard.soldUpper;
     }
 
     if (this.variant === "rental") {
       if (this.withDriver) return this.t().buttons.rentDriver;
-      return this.t().home.featured.bookBtn || "HEMEN KİRALA";
+      return this.t().home.featured.bookBtn || this.t().buttons.rent;
     }
 
-    return this.t().car.inspectNow || "HEMEN AL";
+    return this.t().car.inspectNow || this.t().buttons.details;
   }
 }

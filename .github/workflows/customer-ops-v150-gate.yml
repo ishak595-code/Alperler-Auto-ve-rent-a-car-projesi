@@ -62,13 +62,17 @@ jobs:
           grep -Fq 'class="date-surface"' src/components/accessible-native-date.component.ts
           grep -Fq '[attr.aria-label]="triggerAccessibleName()"' src/components/accessible-native-date.component.ts
           grep -Fq 'aria-haspopup="dialog"' src/components/accessible-native-date.component.ts
-          grep -Fq '<strong>Tarihi seç</strong>' src/components/accessible-native-date.component.ts
+          grep -Fq '<strong>{{ t().nativeDate.selectStrong }}</strong>' src/components/accessible-native-date.component.ts
+          grep -Fq 'selectStrong: "Tarihi seç"' src/services/ui.service.ts
           grep -Fq 'role="dialog"' src/components/accessible-native-date.component.ts
           grep -Fq 'aria-modal="true"' src/components/accessible-native-date.component.ts
           grep -Fq '[attr.aria-label]="day.ariaLabel"' src/components/accessible-native-date.component.ts
-          grep -Fq 'aria-label="Önceki ay"' src/components/accessible-native-date.component.ts
-          grep -Fq 'aria-label="Sonraki ay"' src/components/accessible-native-date.component.ts
-          grep -Fq 'aria-label="Takvimi kapat"' src/components/accessible-native-date.component.ts
+          grep -Fq '[attr.aria-label]="t().nativeDate.prevMonthAria"' src/components/accessible-native-date.component.ts
+          grep -Fq 'prevMonthAria: "Önceki ay"' src/services/ui.service.ts
+          grep -Fq '[attr.aria-label]="t().nativeDate.nextMonthAria"' src/components/accessible-native-date.component.ts
+          grep -Fq 'nextMonthAria: "Sonraki ay"' src/services/ui.service.ts
+          grep -Fq '[attr.aria-label]="t().nativeDate.closeAria"' src/components/accessible-native-date.component.ts
+          grep -Fq 'closeAria: "Takvimi kapat"' src/services/ui.service.ts
           grep -Fq 'onDialogKeydown' src/components/accessible-native-date.component.ts
           grep -Fq 'onDayKeydown' src/components/accessible-native-date.component.ts
           grep -Fq 'focus({ preventScroll: true })' src/components/accessible-native-date.component.ts
@@ -90,16 +94,20 @@ jobs:
           # must not rewrite focused controls behind the application's components.
           ! grep -Fq 'AccessibilityRuntimeService' src/app.component.ts
           ! grep -Fq 'accessibilityRuntime.start' src/app.component.ts
-          grep -Fq 'aria-label="Bu turu rezerve et"' src/pages/tour-detail.component.ts
+          grep -Fq '[attr.aria-label]="t().tourDetail.reserveAria"' src/pages/tour-detail.component.ts
+          grep -Fq 'reserveAria: "Bu turu rezerve et"' src/services/ui.service.ts
           grep -Fq '[attr.inert]="reservationOpen()' src/pages/tour-detail.component.ts
           grep -Fq 'focusAfterRender' src/pages/tour-detail.component.ts
 
           # Quick planner uses the requested order and admin-configurable visible labels,
           # with deterministic accessible-name fallbacks for every interactive control.
           grep -Fq 'const defaults:PlannerFieldKey[]=["service","pickup","duration","date"]' src/pages/home-v71.component.ts
-          grep -Fq "[attr.aria-label]=\"homeContent().plannerDurationLabel || 'Kiralama süresini seç'\"" src/pages/home-v71.component.ts
-          grep -Fq "[attr.aria-label]=\"homeContent().plannerStartTimeLabel || 'Alış saatini seç'\"" src/pages/home-v71.component.ts
-          grep -Fq "[attr.aria-label]=\"homeContent().plannerEndTimeLabel || 'İade saatini seç'\"" src/pages/home-v71.component.ts
+          grep -Fq '[attr.aria-label]="t().homePage.durationAria"' src/pages/home-v71.component.ts
+          grep -Fq 'durationAria: "Kiralama süresini seç"' src/services/ui.service.ts
+          grep -Fq '[attr.aria-label]="t().homePage.startTimeAria"' src/pages/home-v71.component.ts
+          grep -Fq 'startTimeAria: "Alış saatini seç"' src/services/ui.service.ts
+          grep -Fq '[attr.aria-label]="t().homePage.endTimeAria"' src/pages/home-v71.component.ts
+          grep -Fq 'endTimeAria: "İade saatini seç"' src/services/ui.service.ts
           grep -Fq 'plannerFieldOrder' src/pages/admin/admin-homepage.component.ts
           grep -Fq 'plannerEnabled' src/pages/admin/admin-homepage.component.ts
           grep -Fq 'plannerVariant' src/pages/admin/admin-homepage.component.ts
@@ -160,12 +168,14 @@ jobs:
           grep -Fq 'customer_user_id = v_user_id' supabase/migrations/20260822090500_v150_customer_booking_self_cancel.sql
           grep -Fq "booking_cancelled_by_customer" supabase/migrations/20260822090500_v150_customer_booking_self_cancel.sql
           grep -Fq 'customer_cancel_booking' src/services/customer-booking-actions.service.ts
-          grep -Fq "Talebiniz başarıyla gönderildi" src/components/booking-success-overlay.component.ts
+          grep -Fq 't().bookingSuccess.title' src/components/booking-success-overlay.component.ts
+          grep -Fq 'title: "Talebiniz başarıyla gönderildi"' src/services/ui.service.ts
 
           # The customer wallet may contain provider-tokenized saved cards and private
           # documents. Provider tokens must never cross into browser source.
           grep -Fq 'CustomerSavedCardsV225Service' src/pages/account-wallet.component.ts
-          grep -Fq 'Kayıtlı kartlarım' src/pages/account-wallet.component.ts
+          grep -Fq 't().accountWallet.cardsTitle' src/pages/account-wallet.component.ts
+          grep -Fq 'cardsTitle: "Kayıtlı kartlarım"' src/services/ui.service.ts
           grep -Fq 'IDENTITY_FRONT' src/pages/account-wallet.component.ts
           grep -Fq 'IDENTITY_BACK' src/pages/account-wallet.component.ts
           grep -Fq 'DRIVING_LICENSE_FRONT' src/pages/account-wallet.component.ts

@@ -19,7 +19,7 @@ import { ToastService } from "../../services/toast.service";
     <main class="min-h-full bg-slate-50 p-4 md:p-8">
       <div class="mx-auto max-w-7xl space-y-6">
         <header class="overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8">
-          <p class="text-xs font-black uppercase tracking-[.2em] text-blue-400">Organizasyon ve erişim</p>
+          <p class="text-xs font-black uppercase tracking-[.2em] text-[#E15A62]">Organizasyon ve erişim</p>
           <div class="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 class="text-3xl font-black md:text-4xl">Ekip, Yetkiler ve Şubeler</h1>
@@ -32,11 +32,11 @@ import { ToastService } from "../../services/toast.service";
         <section class="sticky top-0 z-40 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur" aria-label="Ekip hızlı işlemleri">
           <div class="grid gap-2 sm:grid-cols-[minmax(220px,1fr)_auto_auto]">
             @if (tab() !== 'assignments') {
-              <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" [placeholder]="teamSearchPlaceholder()" aria-label="Ekip yönetimi kayıtlarında ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500" />
+              <input [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" type="search" autocomplete="off" [placeholder]="teamSearchPlaceholder()" aria-label="Ekip yönetimi kayıtlarında ara" class="min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400 focus:border-prestige-red-light" />
             } @else {
               <div class="hidden sm:block"></div>
             }
-            <button type="button" (click)="startNewForCurrentTab()" class="min-h-12 rounded-xl bg-blue-600 px-5 text-sm font-black text-white">+ {{ newActionLabel() }}</button>
+            <button type="button" (click)="startNewForCurrentTab()" class="min-h-12 rounded-xl bg-[#9E1B24] px-5 text-sm font-black text-white">+ {{ newActionLabel() }}</button>
             <button type="button" (click)="refresh()" [disabled]="loading()" class="min-h-12 rounded-xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-900 disabled:opacity-50">{{ loading() ? 'Yükleniyor…' : 'Yenile' }}</button>
           </div>
         </section>
@@ -58,7 +58,7 @@ import { ToastService } from "../../services/toast.service";
                 <label class="field"><span>E-posta</span><input [(ngModel)]="adminEmail" name="adminEmail" type="email" autocomplete="email" required /></label>
                 <label class="field"><span>Rol</span><select [(ngModel)]="adminRole" name="adminRole"><option value="admin">Yönetici</option><option value="editor">Editör</option><option value="support">Destek</option><option value="owner">Owner</option></select></label>
                 <label class="field"><span>Ana şube</span><select [(ngModel)]="adminBranchId" name="adminBranchId"><option value="">Şube yok</option>@for (branch of branches(); track branch.id) { <option [value]="branch.id">{{ branch.name }}</option> }</select></label>
-                <button type="submit" [disabled]="saving() || !adminName.trim() || !adminEmail.trim()" class="min-h-12 w-full rounded-xl bg-blue-600 px-4 font-black text-white disabled:opacity-40">Davet Gönder</button>
+                <button type="submit" [disabled]="saving() || !adminName.trim() || !adminEmail.trim()" class="min-h-12 w-full rounded-xl bg-[#9E1B24] px-4 font-black text-white disabled:opacity-40">Davet Gönder</button>
               </div>
             </form>
 
@@ -86,14 +86,14 @@ import { ToastService } from "../../services/toast.service";
         @if (tab()==='staff') {
           <section class="grid gap-5 xl:grid-cols-[390px_1fr]">
             <form id="team-staff-form" (ngSubmit)="saveStaff()" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-              <div class="flex items-center justify-between"><h2 class="text-xl font-black text-slate-900">{{ editingStaffId ? 'Çalışanı Düzenle' : 'Çalışan Ekle' }}</h2>@if (editingStaffId) { <button type="button" (click)="resetStaffForm()" class="text-sm font-bold text-blue-600">Yeni kayıt</button> }</div>
+              <div class="flex items-center justify-between"><h2 class="text-xl font-black text-slate-900">{{ editingStaffId ? 'Çalışanı Düzenle' : 'Çalışan Ekle' }}</h2>@if (editingStaffId) { <button type="button" (click)="resetStaffForm()" class="text-sm font-bold text-[#9E1B24]">Yeni kayıt</button> }</div>
               <div class="mt-5 space-y-4">
                 <label class="field"><span>Ad soyad</span><input [(ngModel)]="staffName" name="staffName" required /></label>
                 <label class="field"><span>Görev unvanı</span><input [(ngModel)]="staffTitle" name="staffTitle" placeholder="Satış Danışmanı, Tur Rehberi…" /></label>
                 <label class="field"><span>Departman</span><select [(ngModel)]="staffDepartment" name="staffDepartment"><option value="MANAGEMENT">Yönetim</option><option value="SALES">Satış</option><option value="RENTAL">Kiralama</option><option value="FLEET">Filo</option><option value="TOURS">Turlar</option><option value="CONTENT">İçerik</option><option value="SUPPORT">Destek</option><option value="GENERAL">Genel</option></select></label>
                 <label class="field"><span>E-posta</span><input [(ngModel)]="staffEmail" name="staffEmail" type="email" /></label>
                 <label class="field"><span>Telefon</span><input [(ngModel)]="staffPhone" name="staffPhone" type="tel" /></label>
-                <button type="submit" [disabled]="saving() || !staffName.trim()" class="min-h-12 w-full rounded-xl bg-blue-600 px-4 font-black text-white disabled:opacity-40">Kaydet</button>
+                <button type="submit" [disabled]="saving() || !staffName.trim()" class="min-h-12 w-full rounded-xl bg-[#9E1B24] px-4 font-black text-white disabled:opacity-40">Kaydet</button>
               </div>
             </form>
             <div class="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
@@ -112,7 +112,7 @@ import { ToastService } from "../../services/toast.service";
         @if (tab()==='branches') {
           <section class="grid gap-5 xl:grid-cols-[390px_1fr]">
             <form id="team-branch-form" (ngSubmit)="saveBranch()" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-              <div class="flex items-center justify-between"><h2 class="text-xl font-black text-slate-900">{{ editingBranchId ? 'Şubeyi Düzenle' : 'Şube Ekle' }}</h2>@if (editingBranchId) { <button type="button" (click)="resetBranchForm()" class="text-sm font-bold text-blue-600">Yeni kayıt</button> }</div>
+              <div class="flex items-center justify-between"><h2 class="text-xl font-black text-slate-900">{{ editingBranchId ? 'Şubeyi Düzenle' : 'Şube Ekle' }}</h2>@if (editingBranchId) { <button type="button" (click)="resetBranchForm()" class="text-sm font-bold text-[#9E1B24]">Yeni kayıt</button> }</div>
               <div class="mt-5 space-y-4">
                 <label class="field"><span>Şube kodu</span><input [(ngModel)]="branchCode" name="branchCode" placeholder="YKVA-MRK" required /></label>
                 <label class="field"><span>Şube adı</span><input [(ngModel)]="branchName" name="branchName" required /></label>
@@ -121,13 +121,13 @@ import { ToastService } from "../../services/toast.service";
                 <label class="field"><span>Adres</span><textarea [(ngModel)]="branchAddress" name="branchAddress" rows="3"></textarea></label>
                 <label class="field"><span>Telefon</span><input [(ngModel)]="branchPhone" name="branchPhone" type="tel" /></label>
                 <label class="field"><span>E-posta</span><input [(ngModel)]="branchEmail" name="branchEmail" type="email" /></label>
-                <button type="submit" [disabled]="saving() || !branchName.trim() || !branchCity.trim()" class="min-h-12 w-full rounded-xl bg-blue-600 px-4 font-black text-white disabled:opacity-40">Şubeyi Kaydet</button>
+                <button type="submit" [disabled]="saving() || !branchName.trim() || !branchCity.trim()" class="min-h-12 w-full rounded-xl bg-[#9E1B24] px-4 font-black text-white disabled:opacity-40">Şubeyi Kaydet</button>
               </div>
             </form>
             <div class="grid gap-3 md:grid-cols-2">
               @for (branch of filteredBranches(); track branch.id) {
                 <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <div class="flex items-start justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-blue-600">{{ branch.code || 'ŞUBE' }}</span><h3 class="mt-1 text-xl font-black text-slate-900">{{ branch.name }}</h3></div><span [class.bg-emerald-100]="branch.isActive" [class.text-emerald-700]="branch.isActive" class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black">{{ branch.isActive ? 'AKTİF' : 'PASİF' }}</span></div>
+                  <div class="flex items-start justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-[#9E1B24]">{{ branch.code || 'ŞUBE' }}</span><h3 class="mt-1 text-xl font-black text-slate-900">{{ branch.name }}</h3></div><span [class.bg-emerald-100]="branch.isActive" [class.text-emerald-700]="branch.isActive" class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black">{{ branch.isActive ? 'AKTİF' : 'PASİF' }}</span></div>
                   <p class="mt-3 text-sm text-slate-600">{{ branch.district ? branch.district + ' / ' : '' }}{{ branch.city }}</p><p class="mt-1 text-xs leading-relaxed text-slate-500">{{ branch.address || 'Adres girilmedi' }}</p>
                   <button type="button" (click)="editBranch(branch)" class="mt-5 min-h-11 w-full rounded-xl border border-slate-200 font-black">Düzenle</button>
                 </article>

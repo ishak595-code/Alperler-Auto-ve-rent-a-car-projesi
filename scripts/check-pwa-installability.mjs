@@ -32,11 +32,19 @@ assert(manifest.prefer_related_applications === false, 'PWA must prefer the web 
 
 const icons = Array.isArray(manifest.icons) ? manifest.icons : [];
 for (const size of ['192x192', '512x512']) {
-  const icon = icons.find((item) => item?.sizes === size && item?.type === 'image/png');
-  assert(icon?.src, `PWA manifest is missing ${size} PNG icon.`);
+  const icon = icons.find((item) => item?.sizes === size && item?.type === 'image/png' && String(item?.purpose || 'any').split(/\s+/).includes('any'));
+  assert(icon?.src, `PWA manifest is missing ${size} PNG icon with purpose any.`);
   const localPath = `public${icon.src}`;
   assert(fs.existsSync(localPath), `PWA icon file is missing: ${localPath}`);
+  const bytes = fs.readFileSync(localPath);
+  assert(bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47, `PWA icon is not a PNG: ${localPath}`);
+  const width = bytes.readUInt32BE(16);
+  const height = bytes.readUInt32BE(20);
+  const [expectW, expectH] = size.split('x').map(Number);
+  assert(width === expectW && height === expectH, `PWA icon ${localPath} is ${width}x${height}, expected ${size}.`);
 }
+assert(icons.some((item) => item?.type === 'image/png' && String(item?.purpose || '').split(/\s+/).includes('maskable')), 'PWA manifest should expose at least one maskable PNG icon.');
+assert(/apple-touch-icon["']\s+href=["']\/icons\/apple-touch-icon\.png["']/.test(indexHtml), 'index.html must use PNG /icons/apple-touch-icon.png for iOS Add to Home Screen.');
 
 assert(/<link\s+rel=["']manifest["']\s+href=["']\/manifest\.json["']/.test(indexHtml), 'index.html must link /manifest.json.');
 assert(/name=["']mobile-web-app-capable["']\s+content=["']yes["']/.test(indexHtml), 'Android standalone meta is missing.');

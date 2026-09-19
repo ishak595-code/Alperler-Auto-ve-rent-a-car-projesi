@@ -1,4 +1,4 @@
-import { getIyzicoCredentials, getPaymentConfig, IyzicoCredentialSet, PaytrServerConfig } from './integration-config';
+import { getIyzicoCredentials, getPaymentConfig, IyzicoCredentialSet, PaytrServerConfig } from './integration-config.js';
 
 type VaultCredentialPayload = {
   configured?: unknown;

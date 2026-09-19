@@ -1,4 +1,4 @@
-import { requestPublicOrigin } from "./_lib/public-origin";
+import { requestPublicOrigin } from "./_lib/public-origin.js";
 
 const privatePaths=['/admin','/branch-portal','/track-car','/booking-checkout','/api'];
 const aiAgents=[

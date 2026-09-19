@@ -1,7 +1,7 @@
 import {
   SUPABASE_PROJECT_URL,
   supabaseRestHeaders,
-} from "./_lib/supabase-public";
+} from "./_lib/supabase-public.js";
 
 type Resource = "vehicles" | "tours" | "blog" | "faqs" | "config";
 type MutableResource = Exclude<Resource, "config">;

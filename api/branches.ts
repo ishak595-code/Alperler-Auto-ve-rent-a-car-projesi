@@ -1,4 +1,4 @@
-import { SUPABASE_PROJECT_URL, supabaseRestHeaders } from "./_lib/supabase-public";
+import { SUPABASE_PROJECT_URL, supabaseRestHeaders } from "./_lib/supabase-public.js";
 
 interface BranchPayload {
   id?: string;cloudId?: string;slug?: string;name?: string;city?: string;district?: string;country?: string;addressLabel?: string;phone?: string;whatsapp?: string;email?: string;timezone?: string;latitude?: number;longitude?: number;mapUrl?: string;workingHours?: Array<{ label?: string; value?: string }>;services?: string[];isActive?: boolean;isPickupPoint?: boolean;isReturnPoint?: boolean;priority?: number;networkType?: "OWNED" | "FRANCHISE" | "PARTNER";publicStatus?: "DRAFT" | "ACTIVE" | "SUSPENDED" | "CLOSED";territoryLabel?: string;publicDescription?: string;heroImage?: string;customerGuaranteeEnabled?: boolean;centralPricingRequired?: boolean;listingRequiresApproval?: boolean;brandProfile?: Record<string, unknown>;serviceRules?: Record<string, unknown>;

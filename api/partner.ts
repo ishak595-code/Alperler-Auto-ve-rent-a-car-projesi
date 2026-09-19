@@ -1,5 +1,5 @@
-import { clientIp, corsHeaders, guardOrigin, originDecision } from "./_lib/request-security";
-import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "./_lib/supabase-public";
+import { clientIp, corsHeaders, guardOrigin, originDecision } from "./_lib/request-security.js";
+import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "./_lib/supabase-public.js";
 
 const ALLOWED_METHODS = "GET,POST,PATCH,OPTIONS";
 

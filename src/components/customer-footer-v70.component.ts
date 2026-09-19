@@ -36,6 +36,24 @@ private packOrAdminFooter(packKey:string,adminKey:string):string{
   const pack=String((this.t().footer as any)?.[packKey]||'').trim();
   const admin=String((this.footer.settings() as any)?.[adminKey]||'').trim();
   if(this.ui.currentLang()!=='TR'&&pack)return pack;
-  return admin||pack;
+  return admin||pack||this.footerContractFallback(adminKey);
+}
+private footerContractFallback(key:string):string{
+  const values:Record<string,unknown>={
+    phoneLabel:this.footer.settings().phoneLabel,
+    whatsappLabel:this.footer.settings().whatsappLabel,
+    defaultTagline:this.footer.settings().defaultTagline,
+    whatsappDefaultMessage:this.footer.settings().whatsappDefaultMessage,
+    legalMoreLabel:this.footer.settings().legalMoreLabel,
+    newsletterEmailLabel:this.footer.settings().newsletterEmailLabel,
+    newsletterEmailPlaceholder:this.footer.settings().newsletterEmailPlaceholder,
+    newsletterFreeNote:this.footer.settings().newsletterFreeNote,
+    newsletterLegalLabel:this.footer.settings().newsletterLegalLabel,
+    newsletterSuccessMessage:this.footer.settings().newsletterSuccessMessage,
+    newsletterInvalidEmailMessage:this.footer.settings().newsletterInvalidEmailMessage,
+    newsletterErrorMessage:this.footer.settings().newsletterErrorMessage,
+    copyrightSuffix:this.footer.settings().copyrightSuffix,
+  };
+  return String(values[key]||'').trim();
 }
 private safeSocialUrl(v?:string){return this.safeExternalUrl(v)==='#'?'':this.safeExternalUrl(v);}}

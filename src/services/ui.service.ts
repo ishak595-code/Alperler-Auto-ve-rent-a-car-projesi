@@ -3162,7 +3162,7 @@ export class UiService {
 
 
 
-  /** Public chrome label for nav/dock itemKey. Prefer UiService; fallback to admin/DB label. */
+  /** Public chrome label for nav/dock itemKey. Prefer UiService packs; admin/DB TR only for TR or unknown custom keys. */
   publicNavLabel(itemKey: string, fallback: string, surface: "MOBILE_MENU" | "MOBILE_DOCK" = "MOBILE_MENU"): string {
     const t = this.translations() as any;
     const key = String(itemKey || "").trim();
@@ -3194,6 +3194,7 @@ export class UiService {
     };
     const mapped = map[key];
     if (typeof mapped === "string" && mapped.trim()) return mapped.trim();
+    // Non-TR: do not invent pack strings for freeform admin labels; keep admin fallback only when no pack key exists.
     return fallback;
   }
 

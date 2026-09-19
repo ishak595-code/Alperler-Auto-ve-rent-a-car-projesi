@@ -2,10 +2,12 @@
    Palette ownership: prestige-palette-defaults.css and ThemeService.
    This layer defines material/shadow/interaction behavior using palette variables. */
 :root {
-  --alper-shadow: 0 18px 50px rgba(0, 0, 0, .24);
-  --alper-shadow-hover: 0 22px 58px rgba(0, 0, 0, .3);
-  --alper-focus-ring: 0 0 0 3px color-mix(in srgb, var(--alper-blue-light) 20%, transparent);
-  --alper-border-hover: color-mix(in srgb, var(--alper-border) 62%, var(--alper-text) 38%);
+  --alper-shadow: 0 18px 50px rgba(0, 0, 0, .18);
+  --alper-shadow-hover: 0 24px 60px rgba(0, 0, 0, .26);
+  --alper-focus-ring: 0 0 0 3px color-mix(in srgb, var(--alper-gold) 28%, transparent);
+  --alper-border-hover: color-mix(in srgb, var(--alper-border) 55%, var(--alper-gold) 45%);
+  --alper-heading-font: "Playfair Display", Georgia, "Times New Roman", serif;
+  --alper-body-font: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 /* Palette references preserved for V206 design system guards.

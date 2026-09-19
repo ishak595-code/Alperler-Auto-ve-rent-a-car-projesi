@@ -31,6 +31,22 @@ assert(manifest.theme_color && manifest.background_color, 'PWA theme/background 
 assert(manifest.prefer_related_applications === false, 'PWA must prefer the web app installation flow.');
 
 const icons = Array.isArray(manifest.icons) ? manifest.icons : [];
+assert(icons.length > 0, 'PWA manifest must declare icons.');
+// Chrome Android installability: primary icons must be decodable PNG 192/512.
+// SVG may remain as a trailing brand asset but must never lead the icons list.
+const leadingInstallIcons = icons.slice(0, 4);
+assert(
+  leadingInstallIcons.every((item) => item?.type === 'image/png'),
+  'PWA install icons must list PNG 192/512 (and maskable) BEFORE any SVG brand asset.',
+);
+assert(
+  icons[0]?.type === 'image/png' && icons[0]?.sizes === '192x192',
+  'First PWA icon must be PNG 192x192 with purpose any (not SVG).',
+);
+assert(
+  !icons.some((item, index) => item?.type === 'image/svg+xml' && index < 2),
+  'SVG must not occupy a primary install-icon slot (first two entries).',
+);
 for (const size of ['192x192', '512x512']) {
   const icon = icons.find((item) => item?.sizes === size && item?.type === 'image/png' && String(item?.purpose || 'any').split(/\s+/).includes('any'));
   assert(icon?.src, `PWA manifest is missing ${size} PNG icon with purpose any.`);
@@ -45,6 +61,7 @@ for (const size of ['192x192', '512x512']) {
 }
 assert(icons.some((item) => item?.type === 'image/png' && String(item?.purpose || '').split(/\s+/).includes('maskable')), 'PWA manifest should expose at least one maskable PNG icon.');
 assert(/apple-touch-icon["']\s+href=["']\/icons\/apple-touch-icon\.png["']/.test(indexHtml), 'index.html must use PNG /icons/apple-touch-icon.png for iOS Add to Home Screen.');
+assert(/name=["']theme-color["']\s+content=["']#[0-9A-Fa-f]{6}["']/.test(indexHtml), 'index.html must declare a coherent theme-color.');
 
 assert(/<link\s+rel=["']manifest["']\s+href=["']\/manifest\.json["']/.test(indexHtml), 'index.html must link /manifest.json.');
 assert(/name=["']mobile-web-app-capable["']\s+content=["']yes["']/.test(indexHtml), 'Android standalone meta is missing.');

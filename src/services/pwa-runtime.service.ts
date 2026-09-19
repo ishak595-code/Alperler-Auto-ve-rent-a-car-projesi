@@ -104,7 +104,12 @@ async function registerServiceWorker(): Promise<void> {
       dispatchRuntimeEvent('alperler:pwa-controller-changed', { scope: registration.scope });
     });
   } catch (error) {
-    console.warn('Installable web app registration failed.', error);
+    // Browser owns install UI (beforeinstallprompt). Registration failure means the
+    // app is not installable yet — never claim Install/Add to Home Screen is available.
+    console.warn(
+      'PWA service worker registration failed; Chrome Install / Add to Home Screen will stay unavailable until HTTPS, a valid PNG 192/512 manifest, and a healthy SW are present.',
+      error,
+    );
   }
 }
 

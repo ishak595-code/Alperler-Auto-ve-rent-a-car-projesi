@@ -184,32 +184,31 @@ function paymentNotice(booking:BookingRow,event:EventName,lang:Lang,context:Noti
   const table=medium==="sms"?sms:email;
   return table[method]?.[lang]||"";
 }
+function introCopy(lang:Lang,booking:BookingRow):string{
+  const map:Record<Lang,string>={
+    tr:`${labels(lang).hello} ${booking.customer_name}, talebiniz ${booking.reference} referansıyla sistemimize kaydedildi.`,
+    en:`${labels(lang).hello} ${booking.customer_name}, your request has been recorded under reference ${booking.reference}.`,
+    de:`${labels(lang).hello} ${booking.customer_name}, Ihre Anfrage wurde unter der Referenz ${booking.reference} gespeichert.`,
+    fr:`${labels(lang).hello} ${booking.customer_name}, votre demande a été enregistrée sous la référence ${booking.reference}.`,
+    es:`${labels(lang).hello} ${booking.customer_name}, su solicitud se registró con la referencia ${booking.reference}.`,
+    ru:`${labels(lang).hello} ${booking.customer_name}, ваш запрос сохранён под номером ${booking.reference}.`,
+    zh:`${labels(lang).hello} ${booking.customer_name}，您的申请已以参考编号 ${booking.reference} 登记。`,
+    ar:`${labels(lang).hello} ${booking.customer_name}، تم تسجيل طلبكم بالمرجع ${booking.reference}.`,
+    ku:`${labels(lang).hello} ${booking.customer_name}, daxwaza we bi referansa ${booking.reference} hate tomarkirin.`,
+  };
+  return map[lang]||map.tr;
+}
 async function bookingById(id:string):Promise<BookingRow|null>{const response=await db(`bookings?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=id,reference,booking_type,item_name,customer_name,customer_email,customer_phone,customer_locale,start_at,end_at,total_price,currency,payment_method,payment_status,amount_paid,status&limit=1`);if(!response.ok)throw new Error(`BOOKING_READ_${response.status}`);const rows=await response.json();return Array.isArray(rows)&&rows[0]?rows[0] as BookingRow:null;}
 async function siteConfig():Promise<Record<string,any>>{const response=await db("site_config?key=in.(business_profile,site_settings)&select=key,value");if(!response.ok)return{};const rows=await response.json();const result:Record<string,any>={};for(const row of Array.isArray(rows)?rows:[])result[row.key]=row.value||{};return result;}
 async function templateFor(event:EventName,audience:Audience,lang:Lang):Promise<TemplateRow|null>{const response=await db(`notification_templates?event_key=eq.${encodeURIComponent(event)}&audience=eq.${audience}&locale=eq.${lang}&is_active=eq.true&select=subject_template,intro_template,next_step_template&limit=1`);if(!response.ok)return null;const rows=await response.json().catch(()=>[]);return Array.isArray(rows)&&rows[0]?rows[0] as TemplateRow:null;}
 function renderTemplate(value:string,vars:Record<string,string>,max:number):string{return clean(value,max).replace(/\{\{([a-z_]+)\}\}/g,(_match,key:string)=>vars[key]??"");}
 function notificationVars(booking:BookingRow,lang:Lang,context:NotificationContext):Record<string,string>{const paid=moneyValue(booking.amount_paid);const total=moneyValue(booking.total_price);const balance=Math.max(0,Math.round((total-paid)*100)/100);const currentPayment=moneyValue(context.paymentAmount);return{customer_name:booking.customer_name,reference:booking.reference,item_name:booking.item_name,total:formatMoney(total,booking.currency,lang),payment_method:paymentMethodLabel(context.paymentMethod||booking.payment_method,lang),payment_status:paymentStatusLabel(booking.payment_status,lang),amount_paid:formatMoney(paid,booking.currency,lang),balance_due:formatMoney(balance,booking.currency,lang),payment_amount:formatMoney(currentPayment||paid,booking.currency,lang)};}
-function paymentNotice(booking:BookingRow,event:EventName,lang:Lang,context:NotificationContext,medium:NoticeMedium):string{
-  if(event==="payment_received"||booking.payment_status==="PAID")return"";
-  const method=(context.paymentMethod||booking.payment_method||"").toUpperCase();
-  if(medium==="sms"){
-    if(method==="OFFICE")return lang==="tr"?"Ödeme ofiste yapılacaktır. Bu mesaj ödeme makbuzu değildir; tahsilat sonrası ayrıca onay gönderilir.":lang==="de"?"Die Zahlung erfolgt im Büro. Diese Nachricht ist kein Zahlungsbeleg; nach der Zahlung folgt eine Bestätigung.":lang==="fr"?"Le paiement sera effectué au bureau. Ce message n’est pas un reçu; une confirmation suivra après encaissement.":"Payment will be collected at the office. This message is not a receipt; a separate confirmation follows collection.";
-    if(method==="EFT")return lang==="tr"?"Havale / EFT henüz bekleniyor. Bu mesaj ödeme makbuzu değildir; doğrulama sonrası ayrıca onay gönderilir.":lang==="de"?"Die Überweisung ist noch ausstehend. Diese Nachricht ist kein Zahlungsbeleg; nach Bestätigung folgt eine Zahlungsbestätigung.":lang==="fr"?"Le virement est encore en attente. Ce message n’est pas un reçu; une confirmation suivra après validation.":"Bank transfer is still pending. This message is not a receipt; a confirmation follows verification.";
-    if(method==="CARD")return lang==="tr"?"Kart ödemesi henüz tamamlanmadı. Onay yalnız başarılı tahsilat sonrasında gönderilir.":lang==="de"?"Die Kartenzahlung ist noch nicht abgeschlossen. Die Bestätigung folgt erst nach erfolgreicher Zahlung.":lang==="fr"?"Le paiement par carte n’est pas encore finalisé. La confirmation suit uniquement après paiement réussi.":"Card payment is not completed yet. Confirmation follows only after a successful charge.";
-    return"";
-  }
-  if(method==="OFFICE")return lang==="tr"?"Ödeme ofiste yapılacaktır. Bu e-posta rezervasyon kaydınızı doğrular; ödeme makbuzu değildir. Tahsilat yapıldığında ayrıca ödeme onayı gönderilecektir.":lang==="de"?"Die Zahlung erfolgt im Büro. Diese E-Mail bestätigt Ihre Reservierung, ist jedoch kein Zahlungsbeleg. Nach der Zahlung erhalten Sie eine separate Bestätigung.":lang==="fr"?"Le paiement sera effectué au bureau. Cet e-mail confirme votre réservation mais ne constitue pas un reçu de paiement. Une confirmation distincte sera envoyée après encaissement.":"Payment will be collected at the office. This email confirms your reservation and is not a payment receipt. A separate payment confirmation will be sent after collection.";
-  if(method==="EFT")return lang==="tr"?"Havale / EFT ödemesi henüz bekleniyor. Bu e-posta ödeme makbuzu değildir; tahsilat doğrulandığında ayrıca ödeme onayı gönderilecektir.":lang==="de"?"Die Überweisung ist noch ausstehend. Diese E-Mail ist kein Zahlungsbeleg; nach Bestätigung der Zahlung erhalten Sie eine separate Bestätigung.":lang==="fr"?"Le virement est encore en attente. Cet e-mail n’est pas un reçu; une confirmation distincte sera envoyée après validation du paiement.":"Your bank transfer is still pending. This email is not a payment receipt; a separate confirmation will be sent after payment is verified.";
-  if(method==="CARD")return lang==="tr"?"Kart ödemesi henüz tamamlanmadı. Ödeme onayı yalnız başarılı tahsilat sonrasında gönderilir.":lang==="de"?"Die Kartenzahlung ist noch nicht abgeschlossen. Eine Zahlungsbestätigung wird erst nach erfolgreicher Belastung gesendet.":lang==="fr"?"Le paiement par carte n’est pas encore finalisé. Une confirmation sera envoyée uniquement après encaissement réussi.":"Card payment is not completed yet. A payment confirmation is sent only after a successful charge.";
-  return"";
-}
-
 async function buildMail(booking:BookingRow,event:EventName,config:Record<string,any>,admin:boolean,context:NotificationContext){
   const lang=admin?"tr":language(booking.customer_locale);const l=labels(lang);const settings=config.site_settings||{};const profile=config.business_profile||{};
   const vars=notificationVars(booking,lang,context);const total=moneyValue(booking.total_price);const paid=moneyValue(booking.amount_paid);const balance=Math.max(0,Math.round((total-paid)*100)/100);
   const template=admin?null:await templateFor(event,"CUSTOMER",lang);
   const subject=admin?`${event==="payment_received"?"Ödeme alındı":"Yeni işlem"} | ${typeLabel(booking.booking_type,"tr")} | ${booking.reference}`:template?renderTemplate(template.subject_template,vars,240):`${subjectCopy[lang][event]} | ${booking.reference}`;
-  const introText=admin?`${booking.customer_name} adlı müşteri için ${typeLabel(booking.booking_type,"tr").toLowerCase()} kaydında ${event==="payment_received"?"ödeme alındı":"yeni bir güncelleme var"}.`:template?renderTemplate(template.intro_template,vars,3000):`${l.hello} ${booking.customer_name}, talebiniz ${booking.reference} referansıyla sistemimize kaydedildi.`;
+  const introText=admin?`${booking.customer_name} adlı müşteri için ${typeLabel(booking.booking_type,"tr").toLowerCase()} kaydında ${event==="payment_received"?"ödeme alındı":"yeni bir güncelleme var"}.`:template?renderTemplate(template.intro_template,vars,3000):introCopy(lang,booking);
   const nextText=template?renderTemplate(template.next_step_template,vars,3000):nextStep(event,lang);
   const logoUrl=clean(settings.logoUrl,1000);const logo=/^https:\/\//i.test(logoUrl)?`<img src="${escapeHtml(logoUrl)}" alt="Alperler Auto" style="max-height:58px;max-width:220px;margin-bottom:20px" />`:`<div style="font-family:Georgia,serif;font-size:26px;font-weight:800;margin-bottom:20px">Alperler Auto</div>`;
   const phone=clean(settings.phone||profile.phone,80);const email=clean(settings.email||profile.email,180);const address=clean(settings.address||profile.address,300);const website=clean(profile.website,400);

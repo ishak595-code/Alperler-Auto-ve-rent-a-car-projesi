@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "ng build && node --import tsx server.ts",
     "start": "node --import tsx server.ts",
-    "build": "ng build && node scripts/write-runtime-env.mjs",
+    "build": "ng build --stats-json && node scripts/write-runtime-env.mjs",
     "lint": "tsc --noEmit",
     "typecheck:api": "tsc --noEmit -p tsconfig.api.json",
     "a11y:buttons": "node scripts/check-accessible-buttons.mjs",

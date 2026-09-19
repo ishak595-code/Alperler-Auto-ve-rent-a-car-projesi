@@ -125,7 +125,7 @@ export class ContactComponent {
   whatsappUrl(): string {
     const raw = this.config().whatsapp || this.config().phone || "";
     const number = raw.replace(/\D/g, "");
-    const text = this.config().whatsappMessage || this.t().contactPage.whatsappDefault;
+    const pack = String(this.t().contactPage?.whatsappDefault || this.t().common?.whatsappDefault || "").trim(); const text = (this.ui.currentLang() !== "TR" && pack) ? pack : (this.config().whatsappMessage || pack);
     return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
   }
 

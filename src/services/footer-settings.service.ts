@@ -27,7 +27,7 @@ const DEFAULT_FOOTER_SETTINGS:FooterSettings={
   legalMoreLabel:'Diğer yasal bilgiler',newsletterEmailLabel:'E-posta adresi',newsletterEmailPlaceholder:'ornek@eposta.com',newsletterFreeNote:'Abonelik ücretsizdir.',newsletterLegalLabel:'Ticari ileti ve abonelik koşulları',
   newsletterSuccessMessage:'Aboneliğiniz kaydedildi.',newsletterInvalidEmailMessage:'Geçerli bir e-posta adresi girin.',newsletterErrorMessage:'Abonelik şu anda tamamlanamadı. Lütfen tekrar deneyin.',copyrightSuffix:'Tüm hakları saklıdır.'
 };
-const DEFAULT_PREFOOTER:PrefooterSettings={isEnabled:true,badge:'Size Uygun Sonraki Adım',title:'Planınızı Birlikte Netleştirelim',description:'Araç kiralama, ikinci el araç, tur, transfer, randevu veya aracınızı değerlendirme konusunda hangi adımın size uygun olduğunu birlikte netleştirin.',primaryLabel:'Bize Ulaşın',primaryRoute:'/contact',secondaryLabel:'Randevu Oluştur',secondaryRoute:'/appointment',trustItems:['Kiralama, satış, tur ve transfer tek ekipte','WhatsApp ve telefon desteği','İçerikler canlı katalog ve şube verisinden gelir'],showOnHome:true,showOnInner:true};
+const DEFAULT_PREFOOTER:PrefooterSettings={isEnabled:true,badge:'Size Uygun Sonraki Adım',title:'Planınızı Birlikte Netleştirelim',description:'Araç kiralama, ikinci el araç, tur, transfer, randevu veya aracınızı değerlendirme konusunda hangi adımın size uygun olduğunu birlikte netleştirin.',primaryLabel:'Bize Ulaşın',primaryRoute:'/contact',secondaryLabel:'Randevu Oluştur',secondaryRoute:'/appointment',trustItems:['Kiralama, satış, tur ve transfer tek ekipte','WhatsApp ve telefon desteği','Güncel filo ve şube seçenekleriyle ihtiyacınıza net cevap'],showOnHome:true,showOnInner:true};
 
 @Injectable({providedIn:'root'})
 export class FooterSettingsService{

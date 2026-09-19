@@ -220,6 +220,17 @@ export class UiService {
         contact: "İletişim",
         blog: "Blog",
         corporate: "Kurumsal",
+        campaigns: "Kampanyalar",
+        appointment: "Randevu",
+        branches: "Şubeler",
+        branchPartner: "Bayilik Başvurusu",
+        search: "Katalog",
+        account: "Profil",
+        faq: "Sık Sorulan Sorular",
+        legal: "Yasal Bilgilendirmeler",
+        fleetShort: "Kiralık",
+        salesShort: "Satılık",
+        campaignsShort: "Fırsatlar",
          brandSub: "Kiralama • Satış • Tur",
          mainAria: "Ana navigasyon",
          homeAria: "Alperler Rent A Car ana sayfa",
@@ -424,12 +435,18 @@ export class UiService {
       footer: {
         rights: "Tüm Hakları Saklıdır.",
         support: "7/24 Canlı Destek",
+        servicesTitle: "Hizmetlerimiz",
         corporate: "Kurumsal",
+        corporateTitle: "Alperler Auto",
         legal: "Yasal",
+        legalTitle: "Yasal",
         newsletter: "Bülten Aboneliği",
         newsletterSub:
           "Kampanyalardan ve yeni araçlardan haberdar olmak için ücretsiz abone olun.",
         emailPlaceholder: "E-posta adresiniz",
+        emailLabel: "E-posta adresiniz",
+        freeNote: "Abonelik ücretsizdir.",
+        legalLabel: "Ticari ileti ve abonelik koşulları",
         subscribeBtn: "Ücretsiz Abone Ol",
         subscribeSuccess:
           "Tebrikler! Bültenimize başarıyla abone oldunuz. Kampanyalarımızdan ilk siz haberdar olacaksınız.",
@@ -733,10 +750,25 @@ export class UiService {
         removeFromFav: "Favorilerden Çıkar",
          skipToContent: "İçeriğe geç",
          whatsappDefault: "Merhaba, detaylı bilgi almak istiyorum.",
+         whatsappFabAria: "WhatsApp ile yazın",
          siteBrandFallback: "Alperler Rent A Car",
        },
         dock: {
-          ariaLabel: "Alt hızlı menü"
+          ariaLabel: "Alt hızlı menü",
+          items: {
+            fleet: "Kiralık",
+            sales: "Satılık",
+            search: "Katalog",
+            campaigns: "Fırsatlar",
+            account: "Profil",
+            home: "Ana Sayfa",
+            appointment: "Randevu",
+            tours: "Turlar",
+            branches: "Şubeler",
+            contact: "İletişim",
+            about: "Hakkımızda",
+            blog: "Blog",
+          }
         },
         catalog: {
           backAria: "Geri dön",
@@ -801,7 +833,7 @@ export class UiService {
           inspect: "İncele",
           removeAria: "{title} favorilerden çıkar",
           emptyTitle: "Henüz favoriniz yok",
-          emptyHint: "Araç, tur veya blog kartlarındaki kalp simgesine dokunarak kaydedebilirsiniz.",
+          emptyHint: "Beğendiğiniz araç, tur ve yazıları kalple kaydedin; planınız tek dokunuşla hazır olsun.",
           linkVehicles: "Araçlar",
           linkTours: "Turlar",
           linkBlog: "Blog",
@@ -924,7 +956,7 @@ export class UiService {
           loading: "Yükleniyor...",
           loadMore: "Daha Fazla Sonuç",
           emptyTitle: "Eşleşme bulunamadı",
-          emptyHint: "Farklı bir marka, model, araç numarası, tur adı, kampanya veya hizmet adı deneyin.",
+          emptyHint: "Marka, model veya hizmet adı deneyin — doğru seçenek bir arama uzağınızda.",
           statusSearching: "Güncel içerikler aranıyor.",
           statusMinChars: "En az iki karakter yazın.",
           statusEmpty: "Eşleşme bulunamadı.",
@@ -1021,7 +1053,7 @@ export class UiService {
           resultsHint: "Size uygun aracı karşılaştırın; ekspertiz, geçmiş ve donanım detaylarını tek tek inceleyin.",
           preparing: "İlanlar hazırlanıyor...",
           emptyTitle: "Uygun ilan bulunamadı",
-          emptyHint: "Filtreleri değiştirip yeniden deneyin.",
+          emptyHint: "Filtreleri biraz esnetin; şeffaf geçmişli seçenekler sizi bekliyor.",
           showAll: "Tüm satılık araçları göster",
           errorTitle: "İlanlara şu anda ulaşılamıyor",
           loadError: "Satılık araçlar şu anda yüklenemiyor. Lütfen tekrar deneyin.",
@@ -1121,7 +1153,7 @@ export class UiService {
           filter: "Filtrele",
           resultsAria: "Kiralık araç sonuçları",
           emptyTitle: "Aradığınız özelliklerde araç bulunamadı",
-          emptyHint: "Tarih, şube, fiyat veya araç özelliklerinden birini değiştirerek yeniden deneyin.",
+          emptyHint: "Tarih, şube veya donanımı gevşetin — bakımlı araçlar planınıza uymak için hazır.",
           showAll: "Tüm Kiralık Araçları Göster",
           filterSheetEyebrow: "SİZE UYGUN ARACI BULUN",
           filterSheetTitle: "Kiralık Araçları Filtreleyin",
@@ -1344,6 +1376,16 @@ export class UiService {
         },
         prefooter: {
           trustAria: "Hizmet güven bilgileri",
+          badge: "Size Uygun Sonraki Adım",
+          title: "Planınızı Birlikte Netleştirelim",
+          description: "Araç kiralama, ikinci el araç, tur, transfer, randevu veya aracınızı değerlendirme konusunda hangi adımın size uygun olduğunu birlikte netleştirin.",
+          primaryLabel: "Bize Ulaşın",
+          secondaryLabel: "Randevu Oluştur",
+          trustItems: [
+            "Kiralama, satış, tur ve transfer tek ekipte",
+            "WhatsApp ve telefon desteği",
+            "Güncel filo ve şube seçenekleriyle ihtiyacınıza net cevap",
+          ],
         },
         loyaltyPanel: {
           panelAria: "Sadakat puanı kullanımı",
@@ -1925,23 +1967,123 @@ export class UiService {
           branchCardCtaLabel: "Şubeyi Keşfet",
           partnerCtaTitle: "Kendi bölgenizde Alperler Auto ile büyümek ister misiniz?",
           partnerCtaLabel: "Bayilik Başvurusu",
+          defaultDescription: "Planınıza ekstra avantaj katacak seçili fırsatlar burada. Süre dolmadan size uyan kampanyayı yakalayın, gerçek fiyat avantajını görün ve tek dokunuşla detayına geçin.",
+          sections: {
+            campaigns: {
+              title: "Aktif Fırsatlar",
+              badge: "KAÇIRMADAN İNCELE",
+              description: "Planınıza ekstra avantaj katacak seçili fırsatlar burada. Süre dolmadan size uyan kampanyayı yakalayın, gerçek fiyat avantajını görün ve tek dokunuşla detayına geçin.",
+            },
+            services: {
+              title: "Hizmetlerimiz",
+              badge: "ALPERLER AUTO",
+              description: "Kiralama, satış, tur ve transfer — ihtiyacınıza uygun adımı tek yerden planlayın.",
+            },
+            "why-us": {
+              title: "Neden Biz",
+              badge: "GÜVENİNİZİ KAZANDIK",
+              description: "Net fiyat, yerel ekip ve bakımlı filo ile yolculuğunuzu güvenle planlayın.",
+            },
+            why_us: {
+              title: "Neden Biz",
+              badge: "GÜVENİNİZİ KAZANDIK",
+              description: "Net fiyat, yerel ekip ve bakımlı filo ile yolculuğunuzu güvenle planlayın.",
+            },
+            kirala: {
+              title: "Kirala",
+              badge: "HIZLI KİRALAMA",
+              description: "Size uygun aracı seçin, tarihleri netleştirin ve dakikalar içinde yola çıkın.",
+            },
+            rent: {
+              title: "Kirala",
+              badge: "HIZLI KİRALAMA",
+              description: "Size uygun aracı seçin, tarihleri netleştirin ve dakikalar içinde yola çıkın.",
+            },
+            featured: {
+              title: "Öne Çıkan Araçlar",
+              badge: "KİRALIK ARAÇLAR",
+              description: "Bakımlı, net fiyatlı ve hemen kullanılabilir seçenekler.",
+            },
+            rental: {
+              title: "Kiralık Araçlar",
+              badge: "KİRALIK",
+              description: "Günlük iş veya tatil planınız için bakımlı araçlar.",
+            },
+            sales: {
+              title: "Satılık Araçlar",
+              badge: "İKİNCİ EL",
+              description: "Şeffaf geçmişli, ekspertizli ikinci el seçenekler.",
+            },
+            tours: {
+              title: "Turlar",
+              badge: "KEŞFET",
+              description: "Bölgesel rotalar ve özel gün deneyimleri.",
+            },
+            branches: {
+              title: "Şubeler",
+              badge: "YAKININIZDA",
+              description: "Teslim alma ve iade noktalarını keşfedin.",
+            },
+            blog: {
+              title: "Blog",
+              badge: "YOL REHBERİ",
+              description: "Seyahat ve araç seçimi için pratik öneriler.",
+            },
+            partner: {
+              title: "Aracını Değerlendir",
+              badge: "ARAÇ SAHİPLERİ",
+              description: "Aracınızı satış veya kiralama için değerlendirmeye gönderin.",
+            },
+          },
+          byType: {
+            CAMPAIGN: {
+              title: "Aktif Fırsatlar",
+              badge: "KAÇIRMADAN İNCELE",
+              description: "Planınıza ekstra avantaj katacak seçili fırsatlar burada. Süre dolmadan size uyan kampanyayı yakalayın, gerçek fiyat avantajını görün ve tek dokunuşla detayına geçin.",
+            },
+            VEHICLES_RENTAL: {
+              title: "Kiralık Araçlar",
+              badge: "KİRALIK",
+              description: "Günlük iş veya tatil planınız için bakımlı araçlar.",
+            },
+            VEHICLES_SALE: {
+              title: "Satılık Araçlar",
+              badge: "İKİNCİ EL",
+              description: "Şeffaf geçmişli, ekspertizli ikinci el seçenekler.",
+            },
+            TOURS: {
+              title: "Turlar",
+              badge: "KEŞFET",
+              description: "Bölgesel rotalar ve özel gün deneyimleri.",
+            },
+            BLOG: {
+              title: "Blog",
+              badge: "YOL REHBERİ",
+              description: "Seyahat ve araç seçimi için pratik öneriler.",
+            },
+            CUSTOM: {
+              title: "Hizmetlerimiz",
+              badge: "ALPERLER AUTO",
+              description: "Kiralama, satış, tur ve transfer — ihtiyacınıza uygun adımı tek yerden planlayın.",
+            },
+          },
         },
         campaignsPage: {
           backAria: "Kampanyalardan geri dön",
           title: "Kampanyalar",
           kicker: "Aktif Fırsatlar",
           introTitle: "Planınıza uygun avantajları inceleyin",
-          introCopy: "Geçerlilik tarihi, kapsamı ve fiyat avantajı açık kampanyaları karşılaştırın. Kartı açtığınızda ilgili araç veya tur detayına geçersiniz.",
+          introCopy: "Kaçırmadan bakın: süresi, kapsamı ve fiyat avantajı net fırsatları yan yana görün. Kartı açınca ilgili araç veya tura geçersiniz — karar vermek kolaylaşır.",
           errorTitle: "Kampanyalar yüklenemedi",
           retry: "Tekrar Dene",
-          loadingTitle: "Kampanyalar hazırlanıyor",
-          loadingCopy: "Size özel güncel fırsatlar hazırlanıyor.",
-          emptyTitle: "Şu anda aktif kampanya yok",
-          emptyCopy: "Yeni fırsatlar başladığında bu sayfada keşfedebilirsiniz.",
+          loadingTitle: "Fırsatlar sizin için hazırlanıyor",
+          loadingCopy: "Size yakışan güncel avantajlar toplanıyor. Bir an sürecek.",
+          emptyTitle: "Şu an yeni bir fırsat kapıda",
+          emptyCopy: "Yeni kampanyalar açılır açılmaz burada sizi bekler. Bu arada kiralık ve satılık seçeneklere göz atabilirsiniz.",
           badge: "KAMPANYA",
           discount: "%{n} İNDİRİM",
-          mediaEmptyAria: "Kampanya görseli eklenmedi",
-          fallbackDesc: "Kampanya koşullarını ve kapsamını detay ekranında inceleyin.",
+          mediaEmptyAria: "Kampanya görseli yakında",
+          fallbackDesc: "Avantajı, süreyi ve size özel koşulları detayda görün — tek dokunuşla netleşsin.",
           saving: "{amount} avantaj",
           savingPct: "%{n} avantaj",
           deadline: "Bitiş: {date}",
@@ -1949,7 +2091,7 @@ export class UiService {
           loadError: "Kampanyalar şu anda yüklenemiyor. Lütfen tekrar deneyin.",
           hookSaving: "{amount} fiyat avantajı",
           hookPct: "%{n} fiyat avantajı",
-          hookDefault: "Kampanya avantajını inceleyin",
+          hookDefault: "Size özel avantajı kaçırmayın",
           proofActive: "{n} kişi son 15 dakikada inceledi",
           proofDay: "{n} kişi son 24 saatte inceledi",
           proofTotal: "{n} kişi inceledi",
@@ -2265,7 +2407,7 @@ export class UiService {
           openAria: "{title} favorisini aç",
           inspect: "İncele",
           emptyTitle: "Henüz favoriniz yok",
-          emptyHint: "Beğendiğiniz araç, tur ve rehber yazılarını kalp simgesiyle kaydedebilirsiniz.",
+          emptyHint: "Kalple kaydedin; favorileriniz bir sonraki yolculuğunuz için hazır beklesin.",
           linkVehicles: "Araçlar",
           linkTours: "Turlar",
           linkBlog: "Blog",
@@ -2329,7 +2471,7 @@ export class UiService {
           cancelling: "İptal ediliyor...",
           cancelRequest: "Talebi İptal Et",
           emptyTitle: "Bu durumda bir işleminiz yok.",
-          emptyHint: "Yeni rezervasyon veya talep oluşturduğunuzda burada görünür.",
+          emptyHint: "Yeni rezervasyon veya talebiniz burada görünsün — tek bakışta takip edin.",
           browseServices: "Hizmetleri İncele",
           partialRefresh: "Hesabınız açıldı ancak bazı ek bilgiler şu anda güncellenemedi. Lütfen biraz sonra tekrar deneyin.",
           refreshFail: "Hesap bilgileriniz şu anda yenilenemedi. Lütfen tekrar deneyin.",
@@ -2674,9 +2816,9 @@ export class UiService {
           hoursLeft: "{n} saat kaldı",
         },
         catalogVideo: {
-          kicker: "Doğrulanmış medya",
+          kicker: "Gerçek yolculuk görüntüleri",
           title: "Video Galerisi",
-          subtitle: "Yüklenen veya kaynak bilgisiyle doğrulanan videolar.",
+          subtitle: "Aracı veya turu gerçek karelerle görün; içiniz rahat karar verin.",
           count: "{n} video",
           videoFallback: "Video",
           itemFallback: "Araç / tur videosu",
@@ -2742,7 +2884,7 @@ export class UiService {
           call: "Ara",
           noPhone: "Telefon yok",
           emptyTitle: "Aramanıza uyan şube yok",
-          emptyHint: "İşletme adı, il, ilçe veya hizmet kelimesini değiştirin.",
+          emptyHint: "İl, ilçe veya hizmet deneyin; size en yakın noktayı hızla bulun.",
           networkFranchise: "Yetkili İş Ortağı",
           networkPartner: "Bölgesel Partner",
           networkCentral: "Merkez Şubesi",
@@ -2807,7 +2949,7 @@ export class UiService {
           vehicleFallback: "Araç",
           tourFallback: "Tur",
           emptyTitle: "Henüz seçenek bulunmuyor",
-          emptyHint: "Yeni araç ve tur seçenekleri eklendikçe burada keşfedebilirsiniz.",
+          emptyHint: "Yeni araç ve turlar eklendikçe burada sizi karşılar — sık uğrayın.",
           networkFranchise: "Yetkili İş Ortağı",
           networkPartner: "Bölgesel Partner",
           networkCentral: "Merkez Şubesi",
@@ -2844,7 +2986,7 @@ export class UiService {
           detail: "Detay",
           viewBranch: "Şubeyi Gör",
           emptyTitle: "Bu konumda henüz seçenek yok",
-          emptyHint: "Farklı bir ilçe seçebilir veya tüm ili arayabilirsiniz.",
+          emptyHint: "Komşu ilçeyi deneyin veya tüm ili açın — uygun seçenek bir adım ötenizde.",
           geoError: "Konum seçenekleri şu anda hazırlanamadı.",
           searchError: "Arama şu anda tamamlanamadı. Lütfen tekrar deneyin.",
           tourFallback: "Tur",
@@ -3018,6 +3160,92 @@ export class UiService {
     }
   }
 
+
+
+  /** Public chrome label for nav/dock itemKey. Prefer UiService; fallback to admin/DB label. */
+  publicNavLabel(itemKey: string, fallback: string, surface: "MOBILE_MENU" | "MOBILE_DOCK" = "MOBILE_MENU"): string {
+    const t = this.translations() as any;
+    const key = String(itemKey || "").trim();
+    if (!key) return fallback;
+    if (surface === "MOBILE_DOCK") {
+      const dockLabel = t?.dock?.items?.[key];
+      if (typeof dockLabel === "string" && dockLabel.trim()) return dockLabel.trim();
+    }
+    const nav = t?.nav || {};
+    const map: Record<string, unknown> = {
+      home: nav.home,
+      fleet: surface === "MOBILE_DOCK" ? (nav.fleetShort || nav.fleet) : nav.fleet,
+      sales: surface === "MOBILE_DOCK" ? (nav.salesShort || nav.sales) : nav.sales,
+      tours: nav.tours,
+      earn: nav.earn,
+      "list-car": nav.earn,
+      about: nav.about,
+      contact: nav.contact,
+      blog: nav.blog,
+      corporate: nav.corporate,
+      campaigns: surface === "MOBILE_DOCK" ? (nav.campaignsShort || nav.campaigns) : nav.campaigns,
+      appointment: nav.appointment,
+      branches: nav.branches,
+      "branch-partner": nav.branchPartner,
+      search: nav.search,
+      account: nav.account,
+      faq: nav.faq,
+      legal: nav.legal,
+    };
+    const mapped = map[key];
+    if (typeof mapped === "string" && mapped.trim()) return mapped.trim();
+    return fallback;
+  }
+
+  /** Homepage section chrome: when lang!==TR prefer UiService keys over admin TR leftovers. */
+  publicSectionChrome(
+    sectionKey: string,
+    sectionType: string,
+    kind: "title" | "badge" | "description",
+    adminValue: string,
+    category?: string,
+  ): string {
+    const lang = this.currentLang();
+    const t = this.translations() as any;
+    const hs = t?.homeSection || {};
+    const byKey = hs?.sections?.[sectionKey];
+    let typeKey = String(sectionType || "").toUpperCase();
+    if (typeKey === "VEHICLES") {
+      typeKey = String(category || "").toUpperCase() === "SALE" ? "VEHICLES_SALE" : "VEHICLES_RENTAL";
+    }
+    const byType = hs?.byType?.[typeKey];
+    const fromKey = byKey && typeof byKey[kind] === "string" ? String(byKey[kind]).trim() : "";
+    const fromType = byType && typeof byType[kind] === "string" ? String(byType[kind]).trim() : "";
+    const packValue = fromKey || fromType;
+    const admin = String(adminValue || "").trim();
+    if (lang !== "TR") {
+      if (packValue) return packValue;
+      return admin; // unknown custom chrome without pack key
+    }
+    return admin || packValue;
+  }
+
+  /** Prefooter chrome: admin TR stays live only for TR; other langs use UiService. */
+  publicPrefooterChrome(): {
+    badge: string;
+    title: string;
+    description: string;
+    primaryLabel: string;
+    secondaryLabel: string;
+    trustItems: string[];
+  } {
+    const t = this.translations() as any;
+    const pf = t?.prefooter || {};
+    const packTrust = Array.isArray(pf.trustItems) ? pf.trustItems.map(String).filter(Boolean) : [];
+    return {
+      badge: String(pf.badge || ""),
+      title: String(pf.title || ""),
+      description: String(pf.description || ""),
+      primaryLabel: String(pf.primaryLabel || ""),
+      secondaryLabel: String(pf.secondaryLabel || ""),
+      trustItems: packTrust,
+    };
+  }
 
   private carService = inject(CarService);
 

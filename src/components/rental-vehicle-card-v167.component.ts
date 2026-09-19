@@ -21,7 +21,7 @@ import { UiService } from '../services/ui.service';
           <span class="stock">{{ stockLabel() }}</span>
           <span class="availability" [class.closed]="!available">{{ available ? t().rentalCard.available : t().rentalCard.busy }}</span>
           @if (campaign && campaign.visibilityMode === 'EVERYWHERE') {
-            <span class="campaign">{{ campaign.badge || t().rentalCard.deal }}</span>
+            <span class="campaign">{{ campaignBadgeLabel(campaign) }}</span>
           }
         </div>
 
@@ -86,4 +86,6 @@ export class RentalVehicleCardV167Component {
     return `${details.join(', ')}. ${r.ariaInspect}`;
   }
   imageFailed(event:Event):void{const image=event.target as HTMLImageElement;image.onerror=null;image.src='/vehicle-placeholder.svg';}
+  campaignBadgeLabel(campaign:{badge?:string|null}):string{const labeled=this.ui.listingBadgeLabel(campaign?.badge);return labeled||this.t().rentalCard.deal;}
+
 }

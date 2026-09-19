@@ -220,5 +220,5 @@ export class TourDetailComponent implements OnInit {
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   }
   goBack(): void { if (window.history.length > 1) this.location.back(); else void this.router.navigate(["/tours"]); }
-  private itineraryText(value: unknown, index: number): string { if (typeof value === "string") return value.trim(); if (value && typeof value === "object") { const row = value as Record<string, unknown>; return String(row["title"] || row["name"] || row["description"] || row["label"] || `Program adımı ${index + 1}`).trim(); } return ""; }
+  private itineraryText(value: unknown, index: number): string { if (typeof value === "string") return value.trim(); if (value && typeof value === "object") { const row = value as Record<string, unknown>; return String(row["title"] || row["name"] || row["description"] || row["label"] || String(this.t().tourDetail.itineraryStep || "").replace("{n}", String(index + 1))).trim(); } return ""; }
 }

@@ -43,20 +43,24 @@ for (const [name, source, token] of [
   if (!source.includes(token)) failures.push(`${name} detail is not database-authoritative`);
 }
 if (rentalDetail.includes("getAllVehicles()") || saleDetail.includes("getSaleCar(") || tourDetail.includes("getTours()().find")) failures.push("a detail page can still resolve from stale shared catalogue state");
-for (const token of ["all-details-toggle", "all-details-content", "detailsOpen", "Konfor, kiralama koşulları ve araç bilgileri", "Performans ve Tüketim"]) {
+for (const token of ["all-details-toggle", "all-details-content", "detailsOpen", "t().carDetail.aboutToggleTitle", "t().carDetail.performance"]) {
   if (!rentalDetail.includes(token)) failures.push(`rental canonical detail disclosure is missing: ${token}`);
 }
-if (!rentalDetail.includes("<dt>Kapı</dt>") || !rentalDetail.includes("car.doors") || !rentalDetail.includes("car.luggage")) failures.push("rental canonical detail is dropping admin-entered capacity facts");
+if (!rentalDetail.includes("t().carDetail.doors") || !rentalDetail.includes("car.doors") || !rentalDetail.includes("car.luggage") || !rentalDetail.includes("t().carDetail.luggage")) failures.push("rental canonical detail is dropping admin-entered capacity facts");
 if (rentalDetail.includes("Rezervasyon Özeti") || rentalDetail.includes("Kiralama Özeti") || rentalDetail.includes('class="reservation-panel"')) failures.push("rental detail reintroduced booking-owned summary content");
 if (rentalDetail.includes("Tarih, nereden alınacağı, iade noktası")) failures.push("rental detail reintroduced the redundant reservation instruction paragraph");
-for (const token of ["İLAN BİLGİLERİ", "AÇIKLAMA", "KONUM", "app-expertise-graphic", "activeTab", "readonly listingRows = computed<ListingRow[]>"]) {
+for (const token of ["t().saleDetail.tabInfo", "t().saleDetail.tabDesc", "t().saleDetail.tabLocation", "app-expertise-graphic", "activeTab", "readonly listingRows = computed<ListingRow[]>"]) {
   if (!saleDetail.includes(token)) failures.push(`sale listing identity is missing: ${token}`);
 }
 if (saleDetail.includes('class="core-facts"')) failures.push("sale detail reintroduced duplicate top summary cards");
 if (!saleDetail.includes('(click)="callPhone()"') || saleDetail.includes('[href]="phoneHref()"')) failures.push("sale phone CTA is not a persistent action button");
 
-for (const token of ["checkoutStep", "Sürücü Tercihi", "Nereden alınacak?", "Nereye iade edilecek?", "Sonraki Adım", "Rezervasyonu kontrol edin", '<dl class="review">', "<dt>Araç</dt>", "<dt>Zaman</dt>", "<dt>Şoför</dt>", "<dt>Teslim</dt>", "<dt>İade</dt>", "<dt>Toplam</dt>"]) {
+for (const token of ["checkoutStep", "checkout().driverPreference", "checkout().pickupWhere", "checkout().dropoffWhere", "checkout().nextStep", "checkout().reviewTitle", '<dl class="review">', "checkout().reviewVehicle", "checkout().reviewTime", "checkout().reviewDriver", "checkout().reviewPickup", "checkout().reviewDropoff", "checkout().reviewTotal"]) {
   if (!checkout.includes(token)) failures.push(`focused rental checkout is missing: ${token}`);
+}
+const uiService = read("src/services/ui.service.ts");
+for (const token of ['driverPreference: "Sürücü Tercihi"', 'pickupWhere: "Nereden alınacak?"', 'dropoffWhere: "Nereye iade edilecek?"', 'nextStep: "Sonraki Adım"', 'reviewTitle: "Rezervasyonu kontrol edin"']) {
+  if (!uiService.includes(token)) failures.push(`checkout TR dictionary missing: ${token}`);
 }
 if (!checkout.includes('checkoutStep() === 1') || !checkout.includes('checkoutStep() === 2')) failures.push("rental checkout steps are not mutually exclusive views");
 
@@ -73,7 +77,7 @@ if (!campaignService.includes("readonly proofByCampaign = this._proofByCampaign.
 if (!campaignService.includes("socialProofInFlight") || !campaignService.includes("socialProofLastLoadedAt")) failures.push("campaign social proof request dedupe/freshness guard is missing");
 if (!dynamicHome.includes("this.campaignsService.proofByCampaign")) failures.push("homepage campaign UI is not connected to shared aggregate social proof");
 if (!campaigns.includes("this.campaignService.proofByCampaign")) failures.push("campaign listing is not connected to shared aggregate social proof");
-if (!dynamicHome.includes("KAMPANYA") || !dynamicHome.includes("campaignProofLabel")) failures.push("homepage campaign card lacks explicit campaign identity or proof label");
+if ((!dynamicHome.includes("copy('campaignLabel')") && !dynamicHome.includes('copy("campaignLabel")')) || !dynamicHome.includes("campaignProofLabel")) failures.push("homepage campaign card lacks explicit campaign identity or proof label");
 if (!campaigns.includes("proofLabel")) failures.push("campaign listing lacks real interest proof label");
 if (!fs.existsSync(campaignProofMigration)) failures.push("campaign social proof migration missing");
 if (!detailData.includes("targetType === \"VEHICLE\"") || !detailData.includes("targetType === \"TOUR\"") || !detailData.includes("cta.startsWith(\"/\")")) failures.push("campaign target resolver is incomplete");

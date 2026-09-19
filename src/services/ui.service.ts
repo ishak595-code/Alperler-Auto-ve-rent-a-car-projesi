@@ -1022,7 +1022,7 @@ export class UiService {
           loadError: "Satılık araçlar şu anda yüklenemiyor. Lütfen tekrar deneyin.",
           retry: "Tekrar dene",
           loading: "Yükleniyor...",
-          loadMore: "Daha Fazla İlan Göster"
+          loadMore: "Daha Fazla İlan Göster",
           filterBtn: "Filtrele",
           clearShort: "Temizle",
           listingCount: "{n} ilan",
@@ -2012,8 +2012,8 @@ export class UiService {
           summaryDriver: "Şoförlü",
           summaryWedding: "Özel gün",
           summaryTour: "Tur",
-          seoTitleSuffix: "Araç Kiralama, Satış ve Turlar"
-        }
+          seoTitleSuffix: "Araç Kiralama, Satış ve Turlar",
+        },
       
       home: {
         booking: {
@@ -3923,7 +3923,7 @@ export class UiService {
           loadError: "Vehicles for sale could not be loaded. Please try again.",
           retry: "Try again",
           loading: "Loading...",
-          loadMore: "Show More Listings"
+          loadMore: "Show More Listings",
           filterBtn: "Filter",
           clearShort: "Clear",
           listingCount: "{n} listings",
@@ -4913,7 +4913,7 @@ export class UiService {
           summaryDriver: "With driver",
           summaryWedding: "Special day",
           summaryTour: "Tour",
-          seoTitleSuffix: "Car Rental, Sales and Tours"
+          seoTitleSuffix: "Car Rental, Sales and Tours",
         },
         accountShell: {
           homeAria: "Back to home",
@@ -6047,7 +6047,7 @@ export class UiService {
           loadError: "Verkaufsfahrzeuge konnten nicht geladen werden. Bitte erneut versuchen.",
           retry: "Erneut versuchen",
           loading: "Wird geladen...",
-          loadMore: "Mehr Anzeigen zeigen"
+          loadMore: "Mehr Anzeigen zeigen",
           filterBtn: "Filtern",
           clearShort: "Löschen",
           listingCount: "{n} Inserate",
@@ -7037,8 +7037,8 @@ export class UiService {
           summaryDriver: "Mit Fahrer",
           summaryWedding: "Besonderer Anlass",
           summaryTour: "Tour",
-          seoTitleSuffix: "Autovermietung, Verkauf und Touren"
-        }
+          seoTitleSuffix: "Autovermietung, Verkauf und Touren",
+        },
       
 
       filters: {
@@ -8643,7 +8643,7 @@ export class UiService {
           loadError: "Impossible de charger les véhicules à vendre. Veuillez réessayer.",
           retry: "Réessayer",
           loading: "Chargement...",
-          loadMore: "Afficher plus d'annonces"
+          loadMore: "Afficher plus d'annonces",
           filterBtn: "Filtrer",
           clearShort: "Effacer",
           listingCount: "{n} annonces",
@@ -9633,8 +9633,8 @@ export class UiService {
           summaryDriver: "Avec chauffeur",
           summaryWedding: "Jour spécial",
           summaryTour: "Circuit",
-          seoTitleSuffix: "Location, vente et circuits"
-        }
+          seoTitleSuffix: "Location, vente et circuits",
+        },
       
 
       filters: {
@@ -11240,7 +11240,7 @@ export class UiService {
           loadError: "No se pudieron cargar los vehículos en venta. Inténtelo de nuevo.",
           retry: "Reintentar",
           loading: "Cargando...",
-          loadMore: "Mostrar más anuncios"
+          loadMore: "Mostrar más anuncios",
           filterBtn: "Filtrar",
           clearShort: "Limpiar",
           listingCount: "{n} anuncios",
@@ -12230,8 +12230,8 @@ export class UiService {
           summaryDriver: "Con conductor",
           summaryWedding: "Día especial",
           summaryTour: "Tour",
-          seoTitleSuffix: "Alquiler, ventas y tours"
-        }
+          seoTitleSuffix: "Alquiler, ventas y tours",
+        },
       
 
       filters: {
@@ -13835,7 +13835,7 @@ export class UiService {
           loadError: "Не удалось загрузить автомобили на продажу. Попробуйте снова.",
           retry: "Повторить",
           loading: "Загрузка...",
-          loadMore: "Показать ещё объявления"
+          loadMore: "Показать ещё объявления",
           filterBtn: "Фильтр",
           clearShort: "Сбросить",
           listingCount: "{n} объявлений",
@@ -14825,8 +14825,8 @@ export class UiService {
           summaryDriver: "С водителем",
           summaryWedding: "Особый день",
           summaryTour: "Тур",
-          seoTitleSuffix: "Аренда, продажа и туры"
-        }
+          seoTitleSuffix: "Аренда, продажа и туры",
+        },
       
 
       filters: {
@@ -16388,7 +16388,7 @@ export class UiService {
           loadError: "Wesayîtên firotinê niha nayên barkirin. Ji kerema xwe dîsa biceribîne.",
           retry: "Dîsa biceribîne",
           loading: "Tê barkirin...",
-          loadMore: "Zêdetir Îlan Nîşan Bide"
+          loadMore: "Zêdetir Îlan Nîşan Bide",
           filterBtn: "Parzûn bike",
           clearShort: "Paqij bike",
           listingCount: "{n} îlan",
@@ -17378,8 +17378,8 @@ export class UiService {
           summaryDriver: "Bi şofêr",
           summaryWedding: "Roja taybet",
           summaryTour: "Tûr",
-          seoTitleSuffix: "Kirêkirin, Firotin û Tûrên Wesayîtan"
-        }
+          seoTitleSuffix: "Kirêkirin, Firotin û Tûrên Wesayîtan",
+        },
       
       filters: { all: "Hemû", pickup: "Pikap", sedan: "Sedan", hatchback: "Ekonomîk", luxury: "Luks", minibus: "Mînîbus", vip: "VIP", driverActive: "Vebijarka Kirêkirina bi Şofêr Çalak e", rented: "HATIYE KIRÊKIRIN", brand: "Marka û Model", series: "Serî", priceRange: "Navbera Biha", kmRange: "Navbera Kilometreyê", color: "Reng", engine: "Hêza / Hecma Motorê", fuel: "Cureyê Sotemeniyê", transmission: "Cureyê Vitesê", year: "Sala Modelê", damage: "Rewşa Ziyanê",
           suv: "SUV",
@@ -18846,7 +18846,7 @@ export class UiService {
           loadError: "无法加载在售车辆。请重试。",
           retry: "重试",
           loading: "加载中...",
-          loadMore: "显示更多车源"
+          loadMore: "显示更多车源",
           filterBtn: "筛选",
           clearShort: "清除",
           listingCount: "{n} 个车源",
@@ -19836,8 +19836,8 @@ export class UiService {
           summaryDriver: "带司机",
           summaryWedding: "特殊日期",
           summaryTour: "行程",
-          seoTitleSuffix: "汽车租赁、销售与行程"
-        }
+          seoTitleSuffix: "汽车租赁、销售与行程",
+        },
       
 
       filters: {
@@ -21433,7 +21433,7 @@ export class UiService {
           loadError: "تعذر تحميل السيارات للبيع. يرجى المحاولة مرة أخرى.",
           retry: "إعادة المحاولة",
           loading: "جارٍ التحميل...",
-          loadMore: "عرض المزيد من الإعلانات"
+          loadMore: "عرض المزيد من الإعلانات",
           filterBtn: "تصفية",
           clearShort: "مسح",
           listingCount: "{n} إعلان",
@@ -22423,8 +22423,8 @@ export class UiService {
           summaryDriver: "مع سائق",
           summaryWedding: "يوم خاص",
           summaryTour: "جولة",
-          seoTitleSuffix: "تأجير وبيع وجولات السيارات"
-        }
+          seoTitleSuffix: "تأجير وبيع وجولات السيارات",
+        },
       
       footer: {
         rights: "جميع الحقوق محفوظة.",

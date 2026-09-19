@@ -136,11 +136,11 @@ for (const token of ['CarDetailComponent','SaleCarDetailComponent','TourDetailCo
 for (const token of ['RentalDetailV167Component','SaleDetailV1681Component','TourDetailV170Component']) mustNot(shell, token, `Historical renderer returned to public shell: ${token}`);
 
 const sale = read('src/pages/sale-car-detail.component.ts');
-for (const token of ['İLAN BİLGİLERİ','readonly listingRows = computed<ListingRow[]>','label: "Yıl"','label: "Kilometre"','label: "Yakıt"','label: "Vites"','label: "Kasa Tipi"','class="bottom-actions"','callPhone()','launchExternal','class="truth-list"']) must(sale, token, `Sale canonical contract missing: ${token}`);
+for (const token of ['t().saleDetail.tabInfo','readonly listingRows = computed<ListingRow[]>','t().saleDetail.labelYear','t().saleDetail.labelKm','t().saleDetail.labelFuel','t().saleDetail.labelTransmission','t().saleDetail.labelBody','class="bottom-actions"','callPhone()','launchExternal','class="truth-list"']) must(sale, token, `Sale canonical contract missing: ${token}`);
 for (const token of ['class="summary"','summaryMeta(','class="core-facts"']) mustNot(sale, token, 'Sale hero must not duplicate canonical listing facts.');
 const saleActionBlock = sale.match(/<nav class="bottom-actions"[\s\S]*?<\/nav>/)?.[0] || '';
 if ((saleActionBlock.match(/<button\b/g) || []).length !== 3) throw new Error('Sale bottom bar must contain exactly three persistent buttons.');
-for (const token of ['Telefonla ara','Satış Talebi Gönder','WhatsApp ile bilgi al']) must(saleActionBlock, token);
+for (const token of ['t().saleDetail.call','t().saleDetail.inquiry','t().saleDetail.whatsapp']) must(saleActionBlock, token);
 mustNot(saleActionBlock, 'Araç için bilgi talebi gönder', 'Legacy sale inquiry wording must not return.');
 if (/\[disabled\].*(phone|whatsapp)|(phone|whatsapp).*\[disabled\]/i.test(saleActionBlock)) throw new Error('Phone/WhatsApp actions must not disappear through native disabled state.');
 

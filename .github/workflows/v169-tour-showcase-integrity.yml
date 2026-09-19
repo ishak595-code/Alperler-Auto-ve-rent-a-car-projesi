@@ -57,7 +57,8 @@ jobs:
           grep -Fq '<section class="results">' "$SHOW"
           grep -Fq "pageSize:24" "$SHOW"
           grep -Fq "readonly reservationOpen = signal(false)" "$DETAIL"
-          grep -Fq "Bu Turu Rezerve Et" "$DETAIL"
+          grep -Fq "t().tourDetail.reserve" "$DETAIL"
+          grep -Fq 'reserve: "Rezervasyon Talep Et"' src/services/ui.service.ts
           grep -Fq "action-bar" "$DETAIL"
           grep -Fq "mapHref" "$DETAIL"
           grep -Fq "DetailMediaLightboxComponent" "$DETAIL"

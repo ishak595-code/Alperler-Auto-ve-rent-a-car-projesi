@@ -42,9 +42,9 @@ const invariants = [
   ['class="calendar-grid" role="group"', 'calendar dates must remain a simple named group of native buttons rather than a fragile ARIA grid'],
   ['[attr.aria-label]="day.ariaLabel"', 'every date button needs a full spoken date'],
   ['[attr.aria-pressed]="day.isSelected"', 'selected date state must be exposed on the actual day button'],
-  ['aria-label="Önceki ay"', 'previous-month control must be named'],
-  ['aria-label="Sonraki ay"', 'next-month control must be named'],
-  ['aria-label="Takvimi kapat"', 'close control must be named'],
+  ['[attr.aria-label]="t().nativeDate.prevMonthAria"', 'previous-month control must be named via i18n'],
+  ['[attr.aria-label]="t().nativeDate.nextMonthAria"', 'next-month control must be named via i18n'],
+  ['[attr.aria-label]="t().nativeDate.closeAria"', 'close control must be named via i18n'],
   ['onDialogKeydown', 'calendar dialog must manage Escape and focus containment'],
   ['onDayKeydown', 'calendar buttons must support keyboard date navigation'],
   ['moveActiveDate', 'calendar navigation must use one deterministic focus movement path'],
@@ -54,11 +54,23 @@ const invariants = [
   ['afterRender(() => this.focusDate(initial))', 'opening the calendar must focus the initial date after Angular has rendered'],
   ['touch-action:manipulation', 'date controls must use stable mobile tap handling'],
   ['overscroll-behavior:contain', 'calendar dialog must contain mobile overscroll'],
-  ['<strong>Tarihi seç</strong>', 'the visible control itself must permanently say Tarihi seç'],
+  ['<strong>{{ t().nativeDate.selectStrong }}</strong>', 'the visible control itself must permanently bind Tarihi seç via i18n'],
   ['color:var(--alper-muted,#b9c3d2)', 'calendar secondary text must use the accessible premium muted token'],
 ];
 for (const [needle, message] of invariants) {
   if (!dateComponent.includes(needle)) failures.push(message);
+}
+
+
+const uiService = fs.readFileSync("src/services/ui.service.ts", "utf8");
+const trDateCopy = [
+  ['selectStrong: "Tarihi seç"', 'TR dictionary must keep nativeDate.selectStrong = Tarihi seç'],
+  ['prevMonthAria: "Önceki ay"', 'TR dictionary must keep nativeDate.prevMonthAria = Önceki ay'],
+  ['nextMonthAria: "Sonraki ay"', 'TR dictionary must keep nativeDate.nextMonthAria = Sonraki ay'],
+  ['closeAria: "Takvimi kapat"', 'TR dictionary must keep nativeDate.closeAria = Takvimi kapat'],
+];
+for (const [needle, message] of trDateCopy) {
+  if (!uiService.includes(needle)) failures.push(message);
 }
 
 const forbidden = [

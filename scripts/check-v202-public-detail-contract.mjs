@@ -2,6 +2,7 @@ import fs from 'node:fs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const sale = read('src/pages/sale-car-detail.component.ts');
+const uiService = read('src/services/ui.service.ts');
 const rental = read('src/pages/car-detail.component.ts');
 const tour = read('src/pages/tour-detail.component.ts');
 const blogShell = read('src/pages/blog-list.component.ts');
@@ -19,15 +20,39 @@ const rejectText = (source, value, message) => {
 };
 
 // Sale detail: the existing information table is the canonical customer surface.
-for (const label of ['Seri / Model', 'Yıl', 'Kilometre', 'Yakıt', 'Vites', 'Kasa Tipi', 'Renk', 'Koltuk', 'Kapı', 'Çekiş', 'Motor Gücü', 'Motor Hacmi']) {
-  requireText(sale, `label: "${label}"`, `Sale listing row missing: ${label}`);
+for (const label of [
+  't().saleDetail.labelSeriesModel',
+  't().saleDetail.labelYear',
+  't().saleDetail.labelKm',
+  't().saleDetail.labelFuel',
+  't().saleDetail.labelTransmission',
+  't().saleDetail.labelBody',
+  't().saleDetail.labelColor',
+  't().saleDetail.labelSeats',
+  't().saleDetail.labelDoors',
+  't().saleDetail.labelDrivetrain',
+  't().saleDetail.labelEnginePower',
+  't().saleDetail.labelEngineVolume',
+]) {
+  requireText(sale, label, `Sale listing row missing: ${label}`);
+}
+for (const label of [
+  'labelSeriesModel: "Seri / Model"',
+  'labelYear: "Yıl"',
+  'labelKm: "Kilometre"',
+  'labelFuel: "Yakıt"',
+  'labelTransmission: "Vites"',
+  'labelBody: "Kasa"',
+]) {
+  requireText(uiService, label, `Sale TR dictionary missing: ${label}`);
 }
 requireText(sale, 'readonly listingRows = computed<ListingRow[]>', 'Sale facts must be rendered from one canonical listingRows contract.');
 requireText(sale, '(click)="callPhone()"', 'Sale phone action must be a persistent button action.');
 requireText(sale, '(click)="inquire(item)"', 'Sale inquiry CTA must keep the canonical inquiry action.');
-requireText(sale, 'aria-label="Satış talebi gönder"', 'Sale inquiry CTA must keep the current customer-facing accessible name.');
-requireText(sale, '<span>Satış Talebi Gönder</span>', 'Sale inquiry CTA must state the action clearly.');
-requireText(sale, '<span>WhatsApp</span>', 'Sale WhatsApp CTA missing.');
+requireText(sale, '[attr.aria-label]="t().saleDetail.inquiryAria"', 'Sale inquiry CTA must keep the current customer-facing accessible name via i18n.');
+requireText(uiService, 'inquiryAria: "Satış talebi gönder"', 'Sale TR dictionary must keep inquiryAria.');
+requireText(sale, 't().saleDetail.inquiry', 'Sale inquiry CTA must state the action clearly.');
+requireText(sale, 't().saleDetail.whatsapp', 'Sale WhatsApp CTA missing.');
 rejectText(sale, '<span>Bilgi Al</span>', 'Old generic sale CTA wording must not return.');
 rejectText(sale, 'class="core-facts"', 'Duplicate top sale fact cards must not return.');
 rejectText(sale, '[href]="phoneHref()"', 'Sale phone action must not regress to the disappearing anchor implementation.');
@@ -59,8 +84,8 @@ for (const forbidden of ['loadBlogList()', 'getBlogPosts()', 'refreshCloudCatalo
 // Previously fixed public regressions remain locked.
 requireText(rental, 'campaignProofLabel', 'Rental campaign social proof must remain wired.');
 requireText(tour, 'class="action-bar"', 'Tour must retain one canonical fixed action bar.');
-requireText(tour, '<span>WhatsApp’tan Sor</span>', 'Tour WhatsApp action missing.');
-requireText(tour, '<span>Bu Turu Rezerve Et</span>', 'Tour reservation action missing.');
+requireText(tour, 't().tourDetail.whatsapp', 'Tour WhatsApp action missing.');
+requireText(tour, 't().tourDetail.reserve', 'Tour reservation action missing.');
 rejectText(tour, 'Hazır olduğunuzda', 'Duplicate legacy tour reservation card must not return.');
 
 // The PWA cache must always have an explicit release owner, but later releases are allowed

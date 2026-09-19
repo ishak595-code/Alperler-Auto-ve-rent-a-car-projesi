@@ -55,7 +55,8 @@ jobs:
           grep -Fq "readonly reservationOpen = signal(false)" "$FILE"
           grep -Fq '@if (reservationOpen())' "$FILE"
           grep -Fq 'class="reservation-overlay"' "$FILE"
-          grep -Fq "Bu Turu Rezerve Et" "$FILE"
+          grep -Fq "t().tourDetail.reserve" "$FILE"
+          grep -Fq 'reserve: "Rezervasyon Talep Et"' src/services/ui.service.ts
           grep -Fq "action-bar" "$FILE"
           grep -Fq "mediaItems" "$FILE"
           grep -Fq "<video" "$FILE"

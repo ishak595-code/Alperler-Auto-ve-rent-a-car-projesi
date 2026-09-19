@@ -66,6 +66,8 @@ export class CustomerMobileDockComponent {
   readonly navigation = inject(NavigationConfigService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly ui = inject(UiService);
+  readonly t = this.ui.translations;
   readonly hidden = signal(false);
   readonly autoHidden = signal(false);
   readonly currentUrl = signal(this.router.url);

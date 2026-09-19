@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../helpers/fixtures";
 import AxeBuilder from "@axe-core/playwright";
 
 test.describe("Alperler accessible calendar", () => {

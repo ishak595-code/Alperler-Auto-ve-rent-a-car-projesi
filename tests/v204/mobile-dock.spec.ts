@@ -1,11 +1,5 @@
-import { expect, test } from "@playwright/test";
-
-/** Pin UI to TR so dock aria contracts stay stable under CI navigator.languages → EN. */
-async function forceTurkishUi(page: import("@playwright/test").Page): Promise<void> {
-  await page.addInitScript(() => {
-    localStorage.setItem("alperler-language", "TR");
-  });
-}
+import { expect, test } from "../helpers/fixtures";
+import { forceTurkishUi } from "../helpers/force-turkish-ui";
 
 async function settleFrames(page: import("@playwright/test").Page): Promise<void> {
   await page.evaluate(() => new Promise<void>((resolve) => {

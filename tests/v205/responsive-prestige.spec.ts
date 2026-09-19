@@ -1,14 +1,8 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../helpers/fixtures";
+import { forceTurkishUi } from "../helpers/force-turkish-ui";
 
 const phoneProjects = new Set(["android-phone", "iphone-webkit", "android-landscape-phone"]);
 const tabletProjects = new Set(["ipad-mini-webkit", "android-tablet"]);
-
-/** Pin UI to TR so dock/menu aria contracts stay stable under CI navigator.languages → EN. */
-async function forceTurkishUi(page: import("@playwright/test").Page): Promise<void> {
-  await page.addInitScript(() => {
-    localStorage.setItem("alperler-language", "TR");
-  });
-}
 
 async function noHorizontalOverflow(page: import("@playwright/test").Page): Promise<boolean> {
   return page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2);

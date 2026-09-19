@@ -1,5 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
+// Suite UI language: tests import from tests/helpers/fixtures.ts which
+// addInitScript-sets localStorage alperler-language=TR before first navigation.
+
 const baseUse = {
   baseURL: "http://127.0.0.1:4175",
   trace: "retain-on-failure" as const,

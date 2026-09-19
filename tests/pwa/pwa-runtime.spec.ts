@@ -1,5 +1,6 @@
 import fs from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '../helpers/fixtures';
+import type { Page } from '@playwright/test';
 
 const serviceWorkerSource = fs.readFileSync('public/service-worker.js', 'utf8');
 const releaseMatch = /^const RELEASE = ['"](v[0-9][A-Za-z0-9._-]*)['"];?$/m.exec(serviceWorkerSource);

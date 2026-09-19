@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../helpers/fixtures';
 
 test.describe('customer privacy surface', () => {
   test('customer routes never render the removed custom consent banner', async ({ page }) => {

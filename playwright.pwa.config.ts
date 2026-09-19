@@ -1,5 +1,8 @@
 import { defineConfig } from '@playwright/test';
 
+// Suite UI language: tests import from tests/helpers/fixtures.ts which
+// addInitScript-sets localStorage alperler-language=TR before first navigation.
+
 export default defineConfig({
   testDir: './tests/pwa',
   fullyParallel: false,

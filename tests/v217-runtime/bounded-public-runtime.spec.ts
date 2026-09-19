@@ -1,4 +1,5 @@
-import { expect, test, type Page, type Request } from "@playwright/test";
+import { expect, test } from "../helpers/fixtures";
+import type { Page, Request } from "@playwright/test";
 
 const LEGACY_FULL_CATALOG_PATHS = new Set([
   "/rest/v1/vehicles",

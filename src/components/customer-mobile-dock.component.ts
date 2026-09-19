@@ -25,7 +25,7 @@ import { UiService } from "../services/ui.service";
             [class.dock-primary]="isPrimary(item)"
             [class.dock-active]="isCurrent(item.route)"
             [attr.aria-current]="isCurrent(item.route) ? 'page' : null"
-            [attr.aria-label]="item.label"
+            [attr.aria-label]="dockLabel(item)"
             [attr.data-dock-item]="item.itemKey"
           >
             <span class="dock-icon-shell" aria-hidden="true"><mat-icon>{{ item.icon }}</mat-icon></span>
@@ -45,7 +45,7 @@ import { UiService } from "../services/ui.service";
     .dock-action::before{content:"";position:absolute;left:30%;right:30%;top:0;height:3px;border-radius:0 0 999px 999px;background:transparent;transition:background-color .16s ease}
     .dock-icon-shell{display:grid;width:32px;height:30px;place-items:center;border-radius:10px;background:transparent;transition:background-color .16s ease,transform .16s ease,box-shadow .16s ease}
     .dock-action mat-icon{width:22px;height:22px;font-size:22px;line-height:22px}
-    .dock-label{display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .dock-label{display:-webkit-box;width:100%;max-width:100%;min-width:0;overflow:hidden;overflow-wrap:anywhere;word-break:break-word;white-space:normal;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.1}
     .dock-action:active{transform:translateY(1px)}
     .dock-action:focus-visible{outline:3px solid var(--alper-gold,#c6a15b);outline-offset:-3px}
     .dock-action.dock-active{background:color-mix(in srgb,var(--alper-blue,#E15A62) 25%,transparent);color:#fff}

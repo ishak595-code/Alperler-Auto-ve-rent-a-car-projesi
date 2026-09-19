@@ -33,57 +33,57 @@ import { ToastService } from '../../services/toast.service';
               <div class="grid">
                 <label class="wide toggle"><input type="checkbox" [ngModel]="bool(section,'showDiscount',true)" (ngModelChange)="setBool(section,'showDiscount',$event)" [name]="section.sectionKey+'-showDiscount'" /><span>Kampanya kartlarında indirim bilgisini göster</span></label>
                 <label class="wide toggle"><input type="checkbox" [ngModel]="bool(section,'showCountdown',true)" (ngModelChange)="setBool(section,'showCountdown',$event)" [name]="section.sectionKey+'-showCountdown'" /><span>Kampanya kartlarında süre sayacını göster</span></label>
-                <label><span>Kart üst etiketi</span><input [ngModel]="text(section,'campaignLabel')" (ngModelChange)="setText(section,'campaignLabel',$event)" [name]="section.sectionKey+'-campaignLabel'" maxlength="80" /></label>
-                <label><span>İndirim son eki</span><input [ngModel]="text(section,'campaignDiscountSuffix')" (ngModelChange)="setText(section,'campaignDiscountSuffix',$event)" [name]="section.sectionKey+'-campaignDiscountSuffix'" maxlength="50" /></label>
-                <label class="wide"><span>İçerik açıklaması yoksa gösterilecek metin</span><textarea [ngModel]="text(section,'campaignFallbackDescription')" (ngModelChange)="setText(section,'campaignFallbackDescription',$event)" [name]="section.sectionKey+'-campaignFallbackDescription'" rows="3" maxlength="300"></textarea></label>
-                <label><span>Kart CTA metni</span><input [ngModel]="text(section,'campaignCtaLabel')" (ngModelChange)="setText(section,'campaignCtaLabel',$event)" [name]="section.sectionKey+'-campaignCtaLabel'" maxlength="100" /></label>
-                <label><span>Kazanç son eki</span><input [ngModel]="text(section,'campaignSavingSuffix')" (ngModelChange)="setText(section,'campaignSavingSuffix',$event)" [name]="section.sectionKey+'-campaignSavingSuffix'" maxlength="50" /></label>
-                <label><span>Avantaj son eki</span><input [ngModel]="text(section,'campaignAdvantageSuffix')" (ngModelChange)="setText(section,'campaignAdvantageSuffix',$event)" [name]="section.sectionKey+'-campaignAdvantageSuffix'" maxlength="50" /></label>
-                <label><span>Sınırlı fırsat metni</span><input [ngModel]="text(section,'campaignLimitedLabel')" (ngModelChange)="setText(section,'campaignLimitedLabel',$event)" [name]="section.sectionKey+'-campaignLimitedLabel'" maxlength="100" /></label>
-                <label><span>Süresi doldu metni</span><input [ngModel]="text(section,'campaignExpiredLabel')" (ngModelChange)="setText(section,'campaignExpiredLabel',$event)" [name]="section.sectionKey+'-campaignExpiredLabel'" maxlength="80" /></label>
-                <label><span>Gün kaldı son eki</span><input [ngModel]="text(section,'campaignDaysRemainingSuffix')" (ngModelChange)="setText(section,'campaignDaysRemainingSuffix',$event)" [name]="section.sectionKey+'-campaignDaysRemainingSuffix'" maxlength="80" /></label>
-                <label><span>1 gün kaldı metni</span><input [ngModel]="text(section,'campaignOneDayRemainingLabel')" (ngModelChange)="setText(section,'campaignOneDayRemainingLabel',$event)" [name]="section.sectionKey+'-campaignOneDayRemainingLabel'" maxlength="80" /></label>
-                <label><span>Saat kaldı son eki</span><input [ngModel]="text(section,'campaignHoursRemainingSuffix')" (ngModelChange)="setText(section,'campaignHoursRemainingSuffix',$event)" [name]="section.sectionKey+'-campaignHoursRemainingSuffix'" maxlength="80" /></label>
-                <label><span>15 dakika ilgi son eki</span><input [ngModel]="text(section,'campaignProofActiveSuffix')" (ngModelChange)="setText(section,'campaignProofActiveSuffix',$event)" [name]="section.sectionKey+'-campaignProofActiveSuffix'" maxlength="120" /></label>
-                <label><span>24 saat ilgi son eki</span><input [ngModel]="text(section,'campaignProofRecentSuffix')" (ngModelChange)="setText(section,'campaignProofRecentSuffix',$event)" [name]="section.sectionKey+'-campaignProofRecentSuffix'" maxlength="120" /></label>
-                <label><span>Toplam kişi son eki</span><input [ngModel]="text(section,'campaignProofUniqueSuffix')" (ngModelChange)="setText(section,'campaignProofUniqueSuffix',$event)" [name]="section.sectionKey+'-campaignProofUniqueSuffix'" maxlength="100" /></label>
-                <label><span>Görüntülenme son eki</span><input [ngModel]="text(section,'campaignViewsSuffix')" (ngModelChange)="setText(section,'campaignViewsSuffix',$event)" [name]="section.sectionKey+'-campaignViewsSuffix'" maxlength="80" /></label>
-                <label><span>Yeni kampanya metni</span><input [ngModel]="text(section,'campaignNewLabel')" (ngModelChange)="setText(section,'campaignNewLabel',$event)" [name]="section.sectionKey+'-campaignNewLabel'" maxlength="100" /></label>
+                <label><span>Kart üst etiketi</span><input [ngModel]="text(section,'campaignLabel')" (ngModelChange)="setText(section,'campaignLabel',$event)" [name]="section.sectionKey+'-campaignLabel'" maxlength="160" /></label>
+                <label><span>İndirim son eki</span><input [ngModel]="text(section,'campaignDiscountSuffix')" (ngModelChange)="setText(section,'campaignDiscountSuffix',$event)" [name]="section.sectionKey+'-campaignDiscountSuffix'" maxlength="120" /></label>
+                <label class="wide"><span>İçerik açıklaması yoksa gösterilecek metin</span><textarea [ngModel]="text(section,'campaignFallbackDescription')" (ngModelChange)="setText(section,'campaignFallbackDescription',$event)" [name]="section.sectionKey+'-campaignFallbackDescription'" rows="3" maxlength="1200"></textarea></label>
+                <label><span>Kart CTA metni</span><input [ngModel]="text(section,'campaignCtaLabel')" (ngModelChange)="setText(section,'campaignCtaLabel',$event)" [name]="section.sectionKey+'-campaignCtaLabel'" maxlength="200" /></label>
+                <label><span>Kazanç son eki</span><input [ngModel]="text(section,'campaignSavingSuffix')" (ngModelChange)="setText(section,'campaignSavingSuffix',$event)" [name]="section.sectionKey+'-campaignSavingSuffix'" maxlength="120" /></label>
+                <label><span>Avantaj son eki</span><input [ngModel]="text(section,'campaignAdvantageSuffix')" (ngModelChange)="setText(section,'campaignAdvantageSuffix',$event)" [name]="section.sectionKey+'-campaignAdvantageSuffix'" maxlength="120" /></label>
+                <label><span>Sınırlı fırsat metni</span><input [ngModel]="text(section,'campaignLimitedLabel')" (ngModelChange)="setText(section,'campaignLimitedLabel',$event)" [name]="section.sectionKey+'-campaignLimitedLabel'" maxlength="200" /></label>
+                <label><span>Süresi doldu metni</span><input [ngModel]="text(section,'campaignExpiredLabel')" (ngModelChange)="setText(section,'campaignExpiredLabel',$event)" [name]="section.sectionKey+'-campaignExpiredLabel'" maxlength="160" /></label>
+                <label><span>Gün kaldı son eki</span><input [ngModel]="text(section,'campaignDaysRemainingSuffix')" (ngModelChange)="setText(section,'campaignDaysRemainingSuffix',$event)" [name]="section.sectionKey+'-campaignDaysRemainingSuffix'" maxlength="160" /></label>
+                <label><span>1 gün kaldı metni</span><input [ngModel]="text(section,'campaignOneDayRemainingLabel')" (ngModelChange)="setText(section,'campaignOneDayRemainingLabel',$event)" [name]="section.sectionKey+'-campaignOneDayRemainingLabel'" maxlength="160" /></label>
+                <label><span>Saat kaldı son eki</span><input [ngModel]="text(section,'campaignHoursRemainingSuffix')" (ngModelChange)="setText(section,'campaignHoursRemainingSuffix',$event)" [name]="section.sectionKey+'-campaignHoursRemainingSuffix'" maxlength="160" /></label>
+                <label><span>15 dakika ilgi son eki</span><input [ngModel]="text(section,'campaignProofActiveSuffix')" (ngModelChange)="setText(section,'campaignProofActiveSuffix',$event)" [name]="section.sectionKey+'-campaignProofActiveSuffix'" maxlength="200" /></label>
+                <label><span>24 saat ilgi son eki</span><input [ngModel]="text(section,'campaignProofRecentSuffix')" (ngModelChange)="setText(section,'campaignProofRecentSuffix',$event)" [name]="section.sectionKey+'-campaignProofRecentSuffix'" maxlength="200" /></label>
+                <label><span>Toplam kişi son eki</span><input [ngModel]="text(section,'campaignProofUniqueSuffix')" (ngModelChange)="setText(section,'campaignProofUniqueSuffix',$event)" [name]="section.sectionKey+'-campaignProofUniqueSuffix'" maxlength="200" /></label>
+                <label><span>Görüntülenme son eki</span><input [ngModel]="text(section,'campaignViewsSuffix')" (ngModelChange)="setText(section,'campaignViewsSuffix',$event)" [name]="section.sectionKey+'-campaignViewsSuffix'" maxlength="160" /></label>
+                <label><span>Yeni kampanya metni</span><input [ngModel]="text(section,'campaignNewLabel')" (ngModelChange)="setText(section,'campaignNewLabel',$event)" [name]="section.sectionKey+'-campaignNewLabel'" maxlength="200" /></label>
               </div>
             }
 
             @if (section.sectionType === 'TOURS') {
               <div class="grid">
-                <label class="wide"><span>Tur açıklaması yoksa gösterilecek metin</span><textarea [ngModel]="text(section,'tourFallbackDescription')" (ngModelChange)="setText(section,'tourFallbackDescription',$event)" [name]="section.sectionKey+'-tourFallbackDescription'" rows="3" maxlength="300"></textarea></label>
-                <label><span>Tur kart CTA metni</span><input [ngModel]="text(section,'tourCardCtaLabel')" (ngModelChange)="setText(section,'tourCardCtaLabel',$event)" [name]="section.sectionKey+'-tourCardCtaLabel'" maxlength="100" /></label>
+                <label class="wide"><span>Tur açıklaması yoksa gösterilecek metin</span><textarea [ngModel]="text(section,'tourFallbackDescription')" (ngModelChange)="setText(section,'tourFallbackDescription',$event)" [name]="section.sectionKey+'-tourFallbackDescription'" rows="3" maxlength="1200"></textarea></label>
+                <label><span>Tur kart CTA metni</span><input [ngModel]="text(section,'tourCardCtaLabel')" (ngModelChange)="setText(section,'tourCardCtaLabel',$event)" [name]="section.sectionKey+'-tourCardCtaLabel'" maxlength="200" /></label>
               </div>
             }
 
             @if (renderer(section) === 'BRANCHES') {
               <div class="grid">
-                <label><span>Franchise etiketi</span><input [ngModel]="text(section,'branchFranchiseLabel')" (ngModelChange)="setText(section,'branchFranchiseLabel',$event)" [name]="section.sectionKey+'-branchFranchiseLabel'" maxlength="100" /></label>
-                <label><span>Standart nokta etiketi</span><input [ngModel]="text(section,'branchLocationLabel')" (ngModelChange)="setText(section,'branchLocationLabel',$event)" [name]="section.sectionKey+'-branchLocationLabel'" maxlength="100" /></label>
-                <label class="wide"><span>Şube açıklaması yoksa konumdan sonra eklenecek metin</span><input [ngModel]="text(section,'branchFallbackDescriptionSuffix')" (ngModelChange)="setText(section,'branchFallbackDescriptionSuffix',$event)" [name]="section.sectionKey+'-branchFallbackDescriptionSuffix'" maxlength="220" /></label>
-                <label><span>Teslim alma etiketi</span><input [ngModel]="text(section,'branchPickupLabel')" (ngModelChange)="setText(section,'branchPickupLabel',$event)" [name]="section.sectionKey+'-branchPickupLabel'" maxlength="80" /></label>
-                <label><span>İade etiketi</span><input [ngModel]="text(section,'branchReturnLabel')" (ngModelChange)="setText(section,'branchReturnLabel',$event)" [name]="section.sectionKey+'-branchReturnLabel'" maxlength="80" /></label>
-                <label><span>Şube kart CTA metni</span><input [ngModel]="text(section,'branchCardCtaLabel')" (ngModelChange)="setText(section,'branchCardCtaLabel',$event)" [name]="section.sectionKey+'-branchCardCtaLabel'" maxlength="100" /></label>
+                <label><span>Franchise etiketi</span><input [ngModel]="text(section,'branchFranchiseLabel')" (ngModelChange)="setText(section,'branchFranchiseLabel',$event)" [name]="section.sectionKey+'-branchFranchiseLabel'" maxlength="200" /></label>
+                <label><span>Standart nokta etiketi</span><input [ngModel]="text(section,'branchLocationLabel')" (ngModelChange)="setText(section,'branchLocationLabel',$event)" [name]="section.sectionKey+'-branchLocationLabel'" maxlength="200" /></label>
+                <label class="wide"><span>Şube açıklaması yoksa konumdan sonra eklenecek metin</span><input [ngModel]="text(section,'branchFallbackDescriptionSuffix')" (ngModelChange)="setText(section,'branchFallbackDescriptionSuffix',$event)" [name]="section.sectionKey+'-branchFallbackDescriptionSuffix'" maxlength="400" /></label>
+                <label><span>Teslim alma etiketi</span><input [ngModel]="text(section,'branchPickupLabel')" (ngModelChange)="setText(section,'branchPickupLabel',$event)" [name]="section.sectionKey+'-branchPickupLabel'" maxlength="160" /></label>
+                <label><span>İade etiketi</span><input [ngModel]="text(section,'branchReturnLabel')" (ngModelChange)="setText(section,'branchReturnLabel',$event)" [name]="section.sectionKey+'-branchReturnLabel'" maxlength="160" /></label>
+                <label><span>Şube kart CTA metni</span><input [ngModel]="text(section,'branchCardCtaLabel')" (ngModelChange)="setText(section,'branchCardCtaLabel',$event)" [name]="section.sectionKey+'-branchCardCtaLabel'" maxlength="200" /></label>
                 <label class="wide toggle"><input type="checkbox" [ngModel]="bool(section,'showPartnerCta',true)" (ngModelChange)="setBool(section,'showPartnerCta',$event)" [name]="section.sectionKey+'-showPartnerCta'" /><span>Bayilik CTA alanını göster</span></label>
-                <label class="wide"><span>Bayilik CTA başlığı</span><input [ngModel]="text(section,'partnerCtaTitle')" (ngModelChange)="setText(section,'partnerCtaTitle',$event)" [name]="section.sectionKey+'-partnerCtaTitle'" maxlength="220" /></label>
-                <label><span>Bayilik CTA butonu</span><input [ngModel]="text(section,'partnerCtaLabel')" (ngModelChange)="setText(section,'partnerCtaLabel',$event)" [name]="section.sectionKey+'-partnerCtaLabel'" maxlength="100" /></label>
+                <label class="wide"><span>Bayilik CTA başlığı</span><input [ngModel]="text(section,'partnerCtaTitle')" (ngModelChange)="setText(section,'partnerCtaTitle',$event)" [name]="section.sectionKey+'-partnerCtaTitle'" maxlength="400" /></label>
+                <label><span>Bayilik CTA butonu</span><input [ngModel]="text(section,'partnerCtaLabel')" (ngModelChange)="setText(section,'partnerCtaLabel',$event)" [name]="section.sectionKey+'-partnerCtaLabel'" maxlength="200" /></label>
                 <label><span>Bayilik CTA rotası</span><input [ngModel]="text(section,'partnerRoute')" (ngModelChange)="setText(section,'partnerRoute',$event)" [name]="section.sectionKey+'-partnerRoute'" maxlength="300" placeholder="/branch-partner" /></label>
               </div>
             }
 
             @if (section.sectionType === 'BLOG') {
               <div class="grid">
-                <label><span>Blog kart CTA metni</span><input [ngModel]="text(section,'blogCardCtaLabel')" (ngModelChange)="setText(section,'blogCardCtaLabel',$event)" [name]="section.sectionKey+'-blogCardCtaLabel'" maxlength="100" /></label>
+                <label><span>Blog kart CTA metni</span><input [ngModel]="text(section,'blogCardCtaLabel')" (ngModelChange)="setText(section,'blogCardCtaLabel',$event)" [name]="section.sectionKey+'-blogCardCtaLabel'" maxlength="200" /></label>
               </div>
             }
 
             @if (renderer(section) === 'PROMO') {
               <div class="grid">
-                <label><span>Varsayılan üst etiket</span><input [ngModel]="text(section,'promoFallbackBadge')" (ngModelChange)="setText(section,'promoFallbackBadge',$event)" [name]="section.sectionKey+'-promoFallbackBadge'" maxlength="100" /></label>
-                <label class="wide"><span>Varsayılan açıklama</span><textarea [ngModel]="text(section,'promoFallbackDescription')" (ngModelChange)="setText(section,'promoFallbackDescription',$event)" [name]="section.sectionKey+'-promoFallbackDescription'" rows="3" maxlength="300"></textarea></label>
+                <label><span>Varsayılan üst etiket</span><input [ngModel]="text(section,'promoFallbackBadge')" (ngModelChange)="setText(section,'promoFallbackBadge',$event)" [name]="section.sectionKey+'-promoFallbackBadge'" maxlength="200" /></label>
+                <label class="wide"><span>Varsayılan açıklama</span><textarea [ngModel]="text(section,'promoFallbackDescription')" (ngModelChange)="setText(section,'promoFallbackDescription',$event)" [name]="section.sectionKey+'-promoFallbackDescription'" rows="3" maxlength="1200"></textarea></label>
               </div>
             }
           </article>

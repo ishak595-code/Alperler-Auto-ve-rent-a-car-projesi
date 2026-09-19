@@ -22,45 +22,45 @@ import { ToastService } from '../../services/toast.service';
       <div class="grid">
         <fieldset>
           <legend>Arama ve hizmet seçimi</legend>
-          <label><span>Arama düğmesi</span><input [(ngModel)]="form.searchButtonLabel" name="searchButtonLabel" maxlength="60" /></label>
-          <label><span>Hizmet alanı etiketi</span><input [(ngModel)]="form.plannerServiceLabel" name="plannerServiceLabel" maxlength="100" /></label>
+          <label><span>Arama düğmesi</span><input [(ngModel)]="form.searchButtonLabel" name="searchButtonLabel" maxlength="120" /></label>
+          <label><span>Hizmet alanı etiketi</span><input [(ngModel)]="form.plannerServiceLabel" name="plannerServiceLabel" maxlength="200" /></label>
           <p class="hint">Şoförsüz kiralama, şoförlü transfer, özel gün ve tur seçeneklerinin adları, sırası ve görünürlüğü üstteki Ana Sayfa Üst Alanı editöründen yönetilir.</p>
         </fieldset>
 
         <fieldset>
           <legend>Teslim noktası, süre ve tarihler</legend>
-          <label><span>Teslim noktası etiketi</span><input [(ngModel)]="form.plannerPickupLabel" name="plannerPickupLabel" maxlength="100" /></label>
-          <label><span>Teslim noktası boş seçeneği</span><input [(ngModel)]="form.plannerPickupPlaceholder" name="plannerPickupPlaceholder" maxlength="180" /></label>
-          <label><span>Kiralama süresi etiketi</span><input [(ngModel)]="form.plannerDurationLabel" name="plannerDurationLabel" maxlength="100" /></label>
-          <label><span>Tur tarihi etiketi</span><input [(ngModel)]="form.plannerTourDateLabel" name="plannerTourDateLabel" maxlength="80" /></label>
-          <label><span>Saatlik kiralama tarihi etiketi</span><input [(ngModel)]="form.plannerHourlyDateLabel" name="plannerHourlyDateLabel" maxlength="80" /></label>
-          <label><span>Alış tarihi etiketi</span><input [(ngModel)]="form.plannerStartDateLabel" name="plannerStartDateLabel" maxlength="80" /></label>
-          <label><span>İade tarihi etiketi</span><input [(ngModel)]="form.plannerEndDateLabel" name="plannerEndDateLabel" maxlength="80" /></label>
-          <label><span>Alış saati etiketi</span><input [(ngModel)]="form.plannerStartTimeLabel" name="plannerStartTimeLabel" maxlength="80" /></label>
-          <label><span>İade saati etiketi</span><input [(ngModel)]="form.plannerEndTimeLabel" name="plannerEndTimeLabel" maxlength="80" /></label>
+          <label><span>Teslim noktası etiketi</span><input [(ngModel)]="form.plannerPickupLabel" name="plannerPickupLabel" maxlength="200" /></label>
+          <label><span>Teslim noktası boş seçeneği</span><input [(ngModel)]="form.plannerPickupPlaceholder" name="plannerPickupPlaceholder" maxlength="400" /></label>
+          <label><span>Kiralama süresi etiketi</span><input [(ngModel)]="form.plannerDurationLabel" name="plannerDurationLabel" maxlength="200" /></label>
+          <label><span>Tur tarihi etiketi</span><input [(ngModel)]="form.plannerTourDateLabel" name="plannerTourDateLabel" maxlength="160" /></label>
+          <label><span>Saatlik kiralama tarihi etiketi</span><input [(ngModel)]="form.plannerHourlyDateLabel" name="plannerHourlyDateLabel" maxlength="160" /></label>
+          <label><span>Alış tarihi etiketi</span><input [(ngModel)]="form.plannerStartDateLabel" name="plannerStartDateLabel" maxlength="160" /></label>
+          <label><span>İade tarihi etiketi</span><input [(ngModel)]="form.plannerEndDateLabel" name="plannerEndDateLabel" maxlength="160" /></label>
+          <label><span>Alış saati etiketi</span><input [(ngModel)]="form.plannerStartTimeLabel" name="plannerStartTimeLabel" maxlength="160" /></label>
+          <label><span>İade saati etiketi</span><input [(ngModel)]="form.plannerEndTimeLabel" name="plannerEndTimeLabel" maxlength="160" /></label>
         </fieldset>
 
         <fieldset>
           <legend>Sonuç ve yüklenme metinleri</legend>
-          <label><span>Kiralık araç düğmesi</span><input [(ngModel)]="form.plannerButtonRental" name="plannerButtonRental" maxlength="140" /></label>
-          <label><span>Saatlik kiralama düğmesi</span><input [(ngModel)]="form.plannerButtonHourly" name="plannerButtonHourly" maxlength="140" /></label>
-          <label><span>Şoförlü araç düğmesi</span><input [(ngModel)]="form.plannerButtonDriver" name="plannerButtonDriver" maxlength="140" /></label>
-          <label><span>Özel gün düğmesi</span><input [(ngModel)]="form.plannerButtonWedding" name="plannerButtonWedding" maxlength="140" /></label>
-          <label><span>Tur düğmesi</span><input [(ngModel)]="form.plannerButtonTour" name="plannerButtonTour" maxlength="140" /></label>
-          <label><span>İlk vitrin yükleme metni</span><input [(ngModel)]="form.plannerLoadingText" name="plannerLoadingText" maxlength="160" /></label>
+          <label><span>Kiralık araç düğmesi</span><input [(ngModel)]="form.plannerButtonRental" name="plannerButtonRental" maxlength="220" /></label>
+          <label><span>Saatlik kiralama düğmesi</span><input [(ngModel)]="form.plannerButtonHourly" name="plannerButtonHourly" maxlength="220" /></label>
+          <label><span>Şoförlü araç düğmesi</span><input [(ngModel)]="form.plannerButtonDriver" name="plannerButtonDriver" maxlength="220" /></label>
+          <label><span>Özel gün düğmesi</span><input [(ngModel)]="form.plannerButtonWedding" name="plannerButtonWedding" maxlength="220" /></label>
+          <label><span>Tur düğmesi</span><input [(ngModel)]="form.plannerButtonTour" name="plannerButtonTour" maxlength="220" /></label>
+          <label><span>İlk vitrin yükleme metni</span><input [(ngModel)]="form.plannerLoadingText" name="plannerLoadingText" maxlength="240" /></label>
           <label><span>Bölüm hazırlanıyor etiketi</span><input [(ngModel)]="form.sectionPreparingLabel" name="sectionPreparingLabel" maxlength="120" /></label>
-          <label><span>Bölüm yükleniyor metni</span><input [(ngModel)]="form.sectionLoadingLabel" name="sectionLoadingLabel" maxlength="160" /></label>
+          <label><span>Bölüm yükleniyor metni</span><input [(ngModel)]="form.sectionLoadingLabel" name="sectionLoadingLabel" maxlength="240" /></label>
         </fieldset>
 
         <fieldset>
           <legend>Doğrulama mesajları</legend>
-          <label><span>Tur tarihi eksik</span><input [(ngModel)]="form.plannerErrorTourDate" name="plannerErrorTourDate" maxlength="180" /></label>
-          <label><span>Alış tarihi eksik</span><input [(ngModel)]="form.plannerErrorStartDate" name="plannerErrorStartDate" maxlength="180" /></label>
-          <label><span>İade tarihi eksik</span><input [(ngModel)]="form.plannerErrorEndDate" name="plannerErrorEndDate" maxlength="180" /></label>
-          <label><span>Tarih sırası hatası</span><input [(ngModel)]="form.plannerErrorDateOrder" name="plannerErrorDateOrder" maxlength="180" /></label>
-          <label><span>Teslim noktası eksik</span><input [(ngModel)]="form.plannerErrorPickup" name="plannerErrorPickup" maxlength="180" /></label>
-          <label><span>Saat sırası hatası</span><input [(ngModel)]="form.plannerErrorTimeOrder" name="plannerErrorTimeOrder" maxlength="180" /></label>
-          <label><span>Saatlik üst sınır mesajı</span><input [(ngModel)]="form.plannerErrorHourlyLimit" name="plannerErrorHourlyLimit" maxlength="180" /></label>
+          <label><span>Tur tarihi eksik</span><input [(ngModel)]="form.plannerErrorTourDate" name="plannerErrorTourDate" maxlength="400" /></label>
+          <label><span>Alış tarihi eksik</span><input [(ngModel)]="form.plannerErrorStartDate" name="plannerErrorStartDate" maxlength="400" /></label>
+          <label><span>İade tarihi eksik</span><input [(ngModel)]="form.plannerErrorEndDate" name="plannerErrorEndDate" maxlength="400" /></label>
+          <label><span>Tarih sırası hatası</span><input [(ngModel)]="form.plannerErrorDateOrder" name="plannerErrorDateOrder" maxlength="400" /></label>
+          <label><span>Teslim noktası eksik</span><input [(ngModel)]="form.plannerErrorPickup" name="plannerErrorPickup" maxlength="400" /></label>
+          <label><span>Saat sırası hatası</span><input [(ngModel)]="form.plannerErrorTimeOrder" name="plannerErrorTimeOrder" maxlength="400" /></label>
+          <label><span>Saatlik üst sınır mesajı</span><input [(ngModel)]="form.plannerErrorHourlyLimit" name="plannerErrorHourlyLimit" maxlength="400" /></label>
         </fieldset>
       </div>
     </section>

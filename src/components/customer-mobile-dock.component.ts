@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, NgZone, inject, signal } from "@angular/core";
+import { ChangeDetectorRef, Component, DestroyRef, ElementRef, NgZone, inject, signal } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { NavigationEnd, Router, RouterLink } from "@angular/router";
 import { NavigationConfigService, NavigationItem } from "../services/navigation-config.service";
@@ -66,6 +66,7 @@ export class CustomerMobileDockComponent {
   readonly navigation = inject(NavigationConfigService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
   private readonly ui = inject(UiService);
   readonly t = this.ui.translations;
@@ -179,6 +180,7 @@ export class CustomerMobileDockComponent {
     this.zone.run(() => {
       this.autoHidden.set(hidden);
       this.navigation.setMobileDockAutoHidden(hidden);
+      this.changeDetector.detectChanges();
     });
   }
 

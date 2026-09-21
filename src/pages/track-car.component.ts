@@ -56,7 +56,7 @@ import { UiService } from "../services/ui.service";
           <section class="hero-card" aria-labelledby="tracking-item-title">
             <div class="vehicle-media">
               @if (record.image) {
-                <img [src]="record.image" [alt]="record.itemName" />
+                <img [src]="record.image" [alt]="record.itemName" loading="lazy" decoding="async" />
               } @else {
                 <div class="media-placeholder" aria-hidden="true"><mat-icon>directions_car</mat-icon></div>
               }

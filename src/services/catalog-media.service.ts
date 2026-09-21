@@ -3,6 +3,11 @@ import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.conf
 import { AuthService } from "./auth.service";
 import { AdminGatewayTransportService, isAdminGatewayFailure } from "./admin-gateway-transport.service";
 import { describeStorageError, mediaExtension, mediaRejectionReason, resolveMediaType } from "./media-file.util";
+import {
+  CATALOG_STORAGE_BUCKET_MAX_BYTES,
+  catalogUploadSizeRejection,
+  prepareCatalogImage,
+} from "./catalog-image-optimize.util";
 
 export type CatalogMediaKind = "IMAGE" | "VIDEO";
 export type CatalogEntityType = "VEHICLE" | "TOUR" | "BLOG";
@@ -74,8 +79,8 @@ export class CatalogMediaService {
   private readonly endpoint = "/api/partner?op=media-control-admin";
   private readonly tusThreshold = 6 * 1024 * 1024;
   private readonly tusChunkSize = 6 * 1024 * 1024;
-  /** Depolama kovası tavanı (V246 migration: 200 MB). Çözünürlük sınırı yoktur. */
-  readonly maxUploadBytes = 200 * 1024 * 1024;
+  /** Depolama kovası tavanı (V246). Görseller yüklemeden önce WebP/JPEG sıkıştırılır; video giriş tavanı ~20 MB. */
+  readonly maxUploadBytes = CATALOG_STORAGE_BUCKET_MAX_BYTES;
   private readonly _uploadProgress = signal(0);
   readonly uploadProgress = this._uploadProgress.asReadonly();
 
@@ -97,16 +102,18 @@ export class CatalogMediaService {
   ): Promise<CatalogMediaItem> {
     this.validateFile(file);
     const token = await this.requiredToken();
-    const mediaType = resolveMediaType(file);
+    let mediaType = resolveMediaType(file);
     const kind: CatalogMediaKind = mediaType.startsWith("video/") ? "VIDEO" : "IMAGE";
     if (options.isCover && kind !== "IMAGE") throw new Error("Kapak yalnız fotoğraf olabilir.");
-    const extension = mediaExtension(mediaType, file);
+    const uploadFile = kind === "IMAGE" ? await prepareCatalogImage(file) : file;
+    mediaType = resolveMediaType(uploadFile);
+    const extension = mediaExtension(mediaType, uploadFile);
     const objectPath = `${entityType.toLowerCase()}/${entityId}/${crypto.randomUUID()}.${extension}`;
     this._uploadProgress.set(0);
     try {
-      if (file.size >= this.tusThreshold) await this.uploadTus(file, objectPath, token, mediaType);
+      if (uploadFile.size >= this.tusThreshold) await this.uploadTus(uploadFile, objectPath, token, mediaType);
       else {
-        await this.uploadStandard(file, objectPath, token, mediaType);
+        await this.uploadStandard(uploadFile, objectPath, token, mediaType);
         this._uploadProgress.set(100);
       }
 
@@ -128,8 +135,10 @@ export class CatalogMediaService {
             sort_order: options.sortOrder ?? 0,
             metadata: {
               originalName: file.name.slice(0, 180),
-              mimeType: file.type,
-              fileSize: file.size,
+              mimeType: mediaType,
+              fileSize: uploadFile.size,
+              originalFileSize: file.size,
+              optimized: kind === "IMAGE" && uploadFile !== file,
               verificationScope: "ACTUAL_ASSET",
               sourceVerified: true,
               provenanceComplete: true,
@@ -336,9 +345,10 @@ export class CatalogMediaService {
   }
 
   private validateFile(file: File): void {
-    // Telefon ne çektiyse o yüklenir: tüm fotoğraf ve video türleri ("video/mp4", "video/webm", MOV, 3GP, GIF...).
     const reason = mediaRejectionReason(file, { video: true });
     if (reason) throw new Error(reason);
+    const sizeReason = catalogUploadSizeRejection(file, resolveMediaType(file));
+    if (sizeReason) throw new Error(sizeReason);
     if (file.size > this.maxUploadBytes) throw new Error("Dosya depolama tavanı olan 200 MB sınırını aşıyor.");
   }
 

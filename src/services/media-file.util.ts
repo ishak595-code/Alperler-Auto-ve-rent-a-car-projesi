@@ -1,10 +1,10 @@
 /**
  * Medya dosyası kuralları — tüm yükleme yüzeyleri için tek kaynak.
  *
- * İlke: telefon fotoğrafı/videoyu nasıl çektiyse öyle yüklenir; çözünürlük veya
- * boyut sınırı yok (depolama kovasının kendi tavanı hariç). Tarayıcının hiç
- * gösteremeyeceği biçimler (HEIC/HEIF) sessizce bozuk görsel olarak vitrine
- * düşmesin diye açık bir açıklamayla reddedilir.
+ * İlke: tarayıcının gösteremeyeceği biçimler (HEIC/HEIF, SVG) açıkça reddedilir.
+ * Katalog görselleri yüklemeden önce `catalog-image-optimize.util` ile WebP/JPEG
+ * sıkıştırılır (uzun kenar ~1920, ~150–300 KB). Video giriş tavanı ~20 MB;
+ * depolama kovası tavanı 200 MB kalır.
  */
 
 const TYPE_BY_EXTENSION: Record<string, string> = {

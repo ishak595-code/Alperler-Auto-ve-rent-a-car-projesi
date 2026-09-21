@@ -63,11 +63,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("feedback opens on the first click as a stable full-screen dialog and closes cleanly", async ({ page }) => {
-  const footerLinks = page.waitForResponse((response) =>
-    response.url().includes("/rest/v1/footer_links?") && response.ok(),
-  );
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await footerLinks;
 
   // The CTA is rendered by the async footer contract at the bottom of the page.
   // Wait for the real footer button, then bring it into view before asserting/clicking;

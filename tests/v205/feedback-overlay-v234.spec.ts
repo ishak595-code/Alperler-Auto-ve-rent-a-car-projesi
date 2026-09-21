@@ -65,14 +65,11 @@ test.beforeEach(async ({ page }) => {
 test("feedback opens on the first click as a stable full-screen dialog and closes cleanly", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
-  // The CTA is rendered by the async footer contract at the bottom of the page.
-  // Wait for the real footer button, then bring it into view before asserting/clicking;
-  // WebKit can otherwise report the dynamically-added offscreen control as hidden.
-  const trigger = page
-    .locator("app-customer-footer-v70")
-    .getByRole("button", { name: "Geri Bildirim Gönder", exact: true });
-  await expect(trigger).toHaveCount(1);
-  await trigger.scrollIntoViewIfNeeded();
+  // Footer CTA can remount once when SWR replaces default links with the live
+  // contract. Prefer a lazy locator + visibility wait (auto-retries) over
+  // scrollIntoViewIfNeeded on a resolved node that may detach mid-call.
+  const footer = page.locator("app-customer-footer-v70");
+  const trigger = footer.getByRole("button", { name: "Geri Bildirim Gönder", exact: true });
   await expect(trigger).toBeVisible();
   await trigger.click();
 

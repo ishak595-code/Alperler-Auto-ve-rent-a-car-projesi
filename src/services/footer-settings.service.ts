@@ -71,12 +71,12 @@ export class FooterSettingsService{
       if(linksResponse.ok){
         const rows=await linksResponse.json() as Record<string,unknown>[];
         const mapped=rows.map(row=>this.linkFromRow(row));
-        this._links.set(mapped.length ? mapped : (this._links().length ? this._links() : DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l}))));
+        this._links.set(this.stabilizePublicLinks(mapped.length ? mapped : (this._links().length ? this._links() : DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l})))));
       } else {
         failed=true; failCode=failCode||`FOOTER_LINKS_${linksResponse.status}`;
         if(!this._links().length){
           const stale=readPublicSwr<{links?:FooterLink[]}>('footer-public:snapshot',12*60*60*1000);
-          this._links.set(stale?.value?.links?.length ? stale.value.links : DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l})));
+          this._links.set(this.stabilizePublicLinks(stale?.value?.links?.length ? stale.value.links : DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l}))));
         }
       }
       if(prefooterResponse.ok){
@@ -95,11 +95,11 @@ export class FooterSettingsService{
       const message=error instanceof Error ? error.message : 'FOOTER_LOAD_FAILED';
       if(!this._links().length){
         const stale=readPublicSwr<{links?:FooterLink[]}>('footer-public:snapshot',12*60*60*1000);
-        this._links.set(stale?.value?.links?.length ? stale.value.links : DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l})));
+        this._links.set(this.stabilizePublicLinks(stale?.value?.links?.length ? stale.value.links : DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l}))));
       }
       this._loadError.set(quotaOrPaymentError(0, message) ? turkishQuotaMessage('Alt bilgi') : message);
     } finally {
-      if(!this._links().length) this._links.set(DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l})));
+      if(!this._links().length) this._links.set(this.stabilizePublicLinks(DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l}))));
       this._loading.set(false);
     }
   }
@@ -130,12 +130,26 @@ export class FooterSettingsService{
   private linkFromRow(row:Record<string,unknown>):FooterLink{return{linkKey:String(row['link_key']||row['linkKey']||''),groupKey:String(row['group_key']||row['groupKey']||'SERVICES') as FooterLinkGroup,label:String(row['label']||''),actionType:String(row['action_type']||row['actionType']||'ROUTE') as FooterLinkAction,route:row['route']?String(row['route']):undefined,queryParams:row['query_params']&&typeof row['query_params']==='object'?row['query_params'] as Record<string,string>:row['queryParams']&&typeof row['queryParams']==='object'?row['queryParams'] as Record<string,string>:{},externalUrl:row['external_url']?String(row['external_url']):undefined,sortOrder:Number(row['sort_order']??row['sortOrder']??0),isEnabled:(row['is_enabled']??row['isEnabled'])!==false,opensNewTab:Boolean(row['opens_new_tab']??row['opensNewTab']),isSecondary:Boolean(row['is_secondary']??row['isSecondary'])};}
   private str(row:Record<string,unknown>,snake:string,camel:string,fallback:string){return String(row[snake]??row[camel]??fallback).trim()||fallback;}
   
+
+  /** Keep a durable BOTTOM FEEDBACK CTA across SWR/default swaps so the button node is not destroyed/recreated mid-interaction. */
+  private stabilizePublicLinks(links:FooterLink[]):FooterLink[]{
+    const feedbackDefault=DEFAULT_PUBLIC_FOOTER_LINKS.find(link=>link.actionType==='FEEDBACK')!;
+    const normalized=links.map(link=>{
+      if(link.actionType!=='FEEDBACK')return link;
+      return{...link,linkKey:feedbackDefault.linkKey,groupKey:'BOTTOM' as FooterLinkGroup,isEnabled:link.isEnabled!==false,label:String(link.label||feedbackDefault.label).trim()||feedbackDefault.label};
+    });
+    if(!normalized.some(link=>link.actionType==='FEEDBACK'&&link.isEnabled)){
+      normalized.push({...feedbackDefault});
+    }
+    return normalized;
+  }
+
   private restorePublicFooterSnapshot():void{
     const cached=readPublicSwr<{settings?:FooterSettings;links?:FooterLink[];prefooter?:PrefooterSettings}>('footer-public:snapshot',12*60*60*1000);
     if(cached?.value?.settings) this._settings.set(cached.value.settings);
     if(cached?.value?.prefooter) this._prefooter.set(cached.value.prefooter);
-    if(cached?.value?.links?.length) this._links.set(cached.value.links);
-    else if(!this._links().length) this._links.set(DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l})));
+    if(cached?.value?.links?.length) this._links.set(this.stabilizePublicLinks(cached.value.links));
+    else if(!this._links().length) this._links.set(this.stabilizePublicLinks(DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l}))));
   }
 
   private queueRefresh(){if(typeof window==='undefined'){void this.refreshPublic();return;}if(this.refreshTimer!==undefined)window.clearTimeout(this.refreshTimer);this.refreshTimer=window.setTimeout(()=>{this.refreshTimer=undefined;void this.refreshPublic();},120);}

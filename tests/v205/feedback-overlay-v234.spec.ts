@@ -63,11 +63,21 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("feedback opens on the first click as a stable full-screen dialog and closes cleanly", async ({ page }) => {
+  const footerLinks = page.waitForResponse((response) =>
+    response.url().includes("/rest/v1/footer_links?") && response.ok(),
+  );
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await footerLinks;
 
-  const trigger = page.getByRole("button", { name: "Geri Bildirim Gönder", exact: true });
-  await expect(trigger).toBeVisible();
+  // The CTA is rendered by the async footer contract at the bottom of the page.
+  // Wait for the real footer button, then bring it into view before asserting/clicking;
+  // WebKit can otherwise report the dynamically-added offscreen control as hidden.
+  const trigger = page
+    .locator("app-customer-footer-v70")
+    .getByRole("button", { name: "Geri Bildirim Gönder", exact: true });
+  await expect(trigger).toHaveCount(1);
   await trigger.scrollIntoViewIfNeeded();
+  await expect(trigger).toBeVisible();
   await trigger.click();
 
   const dialog = page.getByRole("dialog", { name: /geri bildirim/i });

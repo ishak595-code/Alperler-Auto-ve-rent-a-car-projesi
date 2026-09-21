@@ -86,9 +86,9 @@ function sanitizedMetadata(input: unknown, excluded: Set<string>, legacyId: numb
 
 function publicCache(resource: Resource): string {
   switch (resource) {
-    case "vehicles": return "no-store";
     // Yönetim panelinden yayınlanan içerik en geç 30 sn içinde vitrine yansır;
     // tarayıcı hiç önbelleklemez, CDN kısa süre tutar ve arkada tazeler.
+    case "vehicles":
     case "tours":
     case "blog":
     case "faqs":

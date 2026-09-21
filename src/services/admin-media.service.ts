@@ -1,6 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { adminFetch } from "./admin-fetch";
 import { mediaRejectionReason } from "./media-file.util";
+import {
+  CATALOG_STORAGE_BUCKET_MAX_BYTES,
+  catalogUploadSizeRejection,
+  prepareCatalogImage,
+} from "./catalog-image-optimize.util";
 import { AuthService } from './auth.service';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
 
@@ -25,23 +30,33 @@ const HOMEPAGE_BACKGROUND_QUALITIES = [0.82, 0.74, 0.66, 0.58] as const;
 export class AdminMediaService {
   private readonly auth = inject(AuthService);
   private readonly bucket = 'catalog-media';
-  /** Depolama kovası tavanı ile aynı (200 MB); çözünürlük sınırı yok. */
-  private readonly maxImageBytes = 200 * 1024 * 1024;
+  /** Depolama kovası tavanı (V246). Katalog görselleri WebP/JPEG sıkıştırılır. */
+  private readonly maxImageBytes = CATALOG_STORAGE_BUCKET_MAX_BYTES;
   private readonly tusThreshold = 6 * 1024 * 1024;
   private readonly tusChunkSize = 6 * 1024 * 1024;
 
   async uploadHomepageImage(file: File, sectionKey: string, purpose: 'profile' | 'cover' | 'background'): Promise<AdminMediaUploadResult> {
-    const prepared = purpose === 'background' ? await this.prepareHomepageBackground(file) : file;
-    return this.uploadImage(prepared, 'HOMEPAGE_SECTION', sectionKey, purpose);
+    // Background uses a slightly larger hero budget; other homepage assets use catalog compression.
+    const prepared = purpose === 'background'
+      ? await this.prepareHomepageBackground(file)
+      : await prepareCatalogImage(file);
+    return this.uploadImage(prepared, 'HOMEPAGE_SECTION', sectionKey, purpose, { alreadyOptimized: true });
   }
 
-  async uploadImage(file: File, entityType: string, entityId: string, purpose = 'image'): Promise<AdminMediaUploadResult> {
+  async uploadImage(
+    file: File,
+    entityType: string,
+    entityId: string,
+    purpose = 'image',
+    options: { alreadyOptimized?: boolean } = {},
+  ): Promise<AdminMediaUploadResult> {
     this.validateImage(file);
+    const uploadFile = options.alreadyOptimized ? file : await prepareCatalogImage(file);
 
     const token = await this.auth.getAccessToken();
     if (!token) throw new Error('ADMIN_SESSION_REQUIRED');
 
-    const extension = this.extensionFor(file);
+    const extension = this.extensionFor(uploadFile);
     const safeType = this.cleanSegment(entityType || 'content');
     const safeEntity = this.cleanSegment(entityId || 'draft');
     const safePurpose = this.cleanSegment(purpose || 'image');
@@ -52,8 +67,8 @@ export class AdminMediaService {
     const encodedPath = this.encodedObjectPath(objectPath);
 
     try {
-      if (file.size >= this.tusThreshold) await this.uploadTus(file, objectPath, token);
-      else await this.uploadStandard(file, encodedPath, token);
+      if (uploadFile.size >= this.tusThreshold) await this.uploadTus(uploadFile, objectPath, token);
+      else await this.uploadStandard(uploadFile, encodedPath, token);
     } catch (error) {
       throw error instanceof Error ? error : new Error('MEDIA_UPLOAD_FAILED');
     }
@@ -81,11 +96,13 @@ export class AdminMediaService {
             metadata: {
               purpose: safePurpose,
               originalName: file.name.slice(0, 180),
-              size: file.size,
-              mimeType: file.type,
+              size: uploadFile.size,
+              originalSize: file.size,
+              mimeType: uploadFile.type,
               bindingState: String(entityType || '').toUpperCase() === 'CAMPAIGN' && safePurpose === 'cover' ? 'PENDING' : 'BOUND',
               registeredAt: new Date().toISOString(),
               optimizedForHomepage: entityType === 'HOMEPAGE_SECTION' && purpose === 'background',
+              optimized: options.alreadyOptimized || uploadFile !== file,
             },
           },
         }),
@@ -286,6 +303,8 @@ export class AdminMediaService {
   private validateImage(file: File): void {
     const reason = mediaRejectionReason(file, { video: false });
     if (reason) throw new Error(reason);
+    const sizeReason = catalogUploadSizeRejection(file, file.type || 'image/jpeg');
+    if (sizeReason) throw new Error(sizeReason);
     if (!file.size || file.size > this.maxImageBytes) throw new Error('Görsel depolama tavanı olan 200 MB sınırını aşıyor.');
   }
 

@@ -29,7 +29,7 @@ type CheckoutPaymentMethod = "CARD"|"EFT"|"OFFICE";
 
       <div class="checkout-shell">
         @if (request(); as booking) {
-          <section class="item-card" aria-labelledby="checkout-item-title">@if (booking.image) {<img [src]="booking.image" [alt]="booking.itemName" />}<div><p>{{ isRental() ? checkout().rentalVehicle : checkout().purchaseRequest }}</p><h2 id="checkout-item-title">{{ booking.itemName }}</h2>@if (booking.basePrice) {<strong>{{ displayedUnitPrice() | number:'1.0-2' }} ₺{{ isRental() ? (rentalDuration === 'hourly' ? checkout().perHour : checkout().perDay) : '' }}</strong>}</div></section>
+          <section class="item-card" aria-labelledby="checkout-item-title">@if (booking.image) {<img [src]="booking.image" [alt]="booking.itemName" loading="lazy" decoding="async" />}<div><p>{{ isRental() ? checkout().rentalVehicle : checkout().purchaseRequest }}</p><h2 id="checkout-item-title">{{ booking.itemName }}</h2>@if (booking.basePrice) {<strong>{{ displayedUnitPrice() | number:'1.0-2' }} ₺{{ isRental() ? (rentalDuration === 'hourly' ? checkout().perHour : checkout().perDay) : '' }}</strong>}</div></section>
 
           @if (successMessage()) {
             <section class="success-card" role="status" aria-live="polite"><mat-icon aria-hidden="true">check_circle</mat-icon><h2>{{ checkout().savedTitle }}</h2><p>{{ successMessage() }}</p><strong>{{ checkout().referenceLabel }}: {{ bookingReference() }}</strong><button type="button" (click)="finish()">{{ checkout().goHome }}</button></section>

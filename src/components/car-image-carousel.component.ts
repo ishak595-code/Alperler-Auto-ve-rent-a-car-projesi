@@ -159,7 +159,7 @@ import { UiService } from "../services/ui.service";
                   [class.border-transparent]="i !== currentIndex()"
                   [class.opacity-60]="i !== currentIndex()"
                 >
-                  <img [src]="img" [alt]="thumbAlt(i)" class="w-full h-full object-cover" />
+                  <img [src]="img" [alt]="thumbAlt(i)" loading="lazy" decoding="async" class="w-full h-full object-cover" />
                 </button>
               }
             </div>

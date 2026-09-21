@@ -105,6 +105,10 @@ export class CustomerMobileDockComponent {
     if (typeof window === "undefined") return;
     this.lastScrollY = Math.max(0, window.scrollY || 0);
     const onScroll = () => {
+      // Apply synchronously as well as on the next frame. A scroll can happen
+      // while an empty/retry shell is replacing its content; relying only on
+      // the queued frame can miss that first meaningful movement.
+      this.applyScrollAutoHide();
       if (this.scrollFrame !== null) return;
       this.scrollFrame = window.requestAnimationFrame(() => {
         this.scrollFrame = null;
@@ -115,10 +119,16 @@ export class CustomerMobileDockComponent {
       this.lastScrollY = Math.max(0, window.scrollY || 0);
       if (!this.isPhoneDockViewport()) this.setAutoHidden(false);
     };
+    // Capture the document's root scroll as well as the window event. This
+    // keeps the contract intact across browsers that dispatch the mobile root
+    // scroll on document while the homepage shell is hydrating.
     window.addEventListener("scroll", onScroll, { passive: true });
+    document.addEventListener("scroll", onScroll, { passive: true, capture: true });
     window.addEventListener("resize", onViewportChange, { passive: true });
+    window.requestAnimationFrame(() => this.applyScrollAutoHide());
     this.destroyRef.onDestroy(() => {
       window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", onViewportChange);
       if (this.scrollFrame !== null) window.cancelAnimationFrame(this.scrollFrame);
     });

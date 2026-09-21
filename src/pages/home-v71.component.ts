@@ -23,7 +23,7 @@ interface PlannerDurationChoice { value: RentalDuration; label: string; enabled:
   standalone: true,
   imports: [CommonModule, FormsModule, MatIconModule, DynamicHomeSectionComponent, AccessibleNativeDateComponent],
   template: `
-    <main class="home-root">
+    <main class="home-root" [class.home-shell-degraded]="homepageLayout.error() || (!homepageLayout.loading() && managedSections().length === 0)">
       <section class="hero" [style.backgroundImage]="heroImage() ? 'url(' + heroImage() + ')' : 'none'" aria-labelledby="home-title">
         <div class="hero-shade" aria-hidden="true"></div>
         <div class="hero-stage" [class.planner-disabled]="!plannerEnabled()">
@@ -106,6 +106,7 @@ interface PlannerDurationChoice { value: RentalDuration; label: string; enabled:
   `,
   styles: [`.home-shell-error,.home-shell-empty{width:min(100% - 1.5rem,80rem);margin:1.25rem auto;display:flex;gap:1rem;align-items:flex-start;border:1px solid rgba(251,191,36,.35);border-radius:18px;background:#fffbeb;padding:1.1rem 1.2rem;color:#92400e}.home-shell-empty{border-color:#cbd5e1;background:#f8fafc;color:#334155}.home-shell-error h2,.home-shell-empty h2{margin:0 0 .35rem;font-size:1.15rem}.home-shell-error p,.home-shell-empty p{margin:0;line-height:1.55}.home-shell-error button,.home-shell-empty button{margin-top:.8rem;min-height:42px;border:0;border-radius:11px;background:#ea580c;padding:0 1rem;color:#fff;font-weight:850;cursor:pointer}.home-shell-empty button{background:#0f172a}
 :host, .page, .hero{overflow-x:clip;overflow-wrap:anywhere;}
+    .home-root{min-height:calc(100dvh + 280px)}
     .home-root,.home-root *{box-sizing:border-box}
     .hero{position:relative;isolation:isolate;overflow:hidden;background:var(--alper-bg,#06080D) center/cover no-repeat;color:var(--alper-text,#F8F6F1)}
     .hero-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,color-mix(in srgb,var(--alper-bg,#020617) 97%,transparent),color-mix(in srgb,var(--alper-bg,#020617) 88%,transparent) 52%,color-mix(in srgb,var(--alper-bg,#020617) 67%,transparent)),radial-gradient(circle at 85% 12%,color-mix(in srgb,var(--alper-blue,#9E1B24) 28%,transparent),transparent 32%)}

@@ -1,5 +1,6 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import { adminFetch } from "./admin-fetch";
+import { readPublicSwr, writePublicSwr, quotaOrPaymentError, turkishQuotaMessage } from "./public-json-swr.util";
 import { AuthService } from './auth.service';
 import { PublicContentRealtimeService } from './public-content-realtime.service';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
@@ -29,19 +30,78 @@ const DEFAULT_FOOTER_SETTINGS:FooterSettings={
 };
 const DEFAULT_PREFOOTER:PrefooterSettings={isEnabled:true,badge:'Size Uygun Sonraki Adım',title:'Planınızı Birlikte Netleştirelim',description:'Araç kiralama, ikinci el araç, tur, transfer, randevu veya aracınızı değerlendirme konusunda hangi adımın size uygun olduğunu birlikte netleştirin.',primaryLabel:'Bize Ulaşın',primaryRoute:'/contact',secondaryLabel:'Randevu Oluştur',secondaryRoute:'/appointment',trustItems:['Kiralama, satış, tur ve transfer tek ekipte','WhatsApp ve telefon desteği','Güncel filo ve şube seçenekleriyle ihtiyacınıza net cevap'],showOnHome:true,showOnInner:true};
 
+
+const DEFAULT_PUBLIC_FOOTER_LINKS:FooterLink[]=[
+  {linkKey:'services.fleet',groupKey:'SERVICES',label:'Araç Kirala',actionType:'ROUTE',route:'/fleet',queryParams:{},sortOrder:10,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'services.sales',groupKey:'SERVICES',label:'İkinci El',actionType:'ROUTE',route:'/sales',queryParams:{},sortOrder:20,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'services.tours',groupKey:'SERVICES',label:'Turlar',actionType:'ROUTE',route:'/tours',queryParams:{},sortOrder:30,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'services.branches',groupKey:'SERVICES',label:'Şubeler',actionType:'ROUTE',route:'/branches',queryParams:{},sortOrder:40,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'services.appointment',groupKey:'SERVICES',label:'Randevu',actionType:'ROUTE',route:'/appointment',queryParams:{},sortOrder:50,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'legal.privacy',groupKey:'LEGAL',label:'Gizlilik',actionType:'LEGAL',route:'/legal',queryParams:{type:'privacy'},sortOrder:10,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'legal.terms',groupKey:'LEGAL',label:'Kullanım Koşulları',actionType:'LEGAL',route:'/legal',queryParams:{type:'terms'},sortOrder:20,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'legal.cookies',groupKey:'LEGAL',label:'Çerez Politikası',actionType:'LEGAL',route:'/legal',queryParams:{type:'cookies'},sortOrder:30,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'legal.kvkk',groupKey:'LEGAL',label:'KVKK',actionType:'LEGAL',route:'/legal',queryParams:{type:'kvkk'},sortOrder:40,isEnabled:true,opensNewTab:false,isSecondary:false},
+];
 @Injectable({providedIn:'root'})
 export class FooterSettingsService{
   private readonly auth=inject(AuthService);private readonly realtime=inject(PublicContentRealtimeService);private readonly destroyRef=inject(DestroyRef);private readonly endpoint='/api/partner?op=site-content-admin';
   private readonly footerSettingsSelect='config_key,is_enabled,brand_summary,services_title,corporate_title,legal_title,newsletter_enabled,newsletter_title,newsletter_description,newsletter_button_text,show_phone,show_whatsapp,show_social,show_feedback,show_legal_links,home_label,contact_label,phone_label,whatsapp_label,default_tagline,whatsapp_default_message,legal_more_label,newsletter_email_label,newsletter_email_placeholder,newsletter_free_note,newsletter_legal_label,newsletter_success_message,newsletter_invalid_email_message,newsletter_error_message,copyright_suffix';
   private readonly footerLinkSelect='link_key,config_key,group_key,label,action_type,route,query_params,external_url,sort_order,is_enabled,opens_new_tab,is_secondary';
   private readonly prefooterSelect='config_key,is_enabled,badge,title,description,primary_label,primary_route,secondary_label,secondary_route,trust_items,show_on_home,show_on_inner';
-  private readonly _settings=signal<FooterSettings>({...DEFAULT_FOOTER_SETTINGS});private readonly _prefooter=signal<PrefooterSettings>({...DEFAULT_PREFOOTER});private readonly _links=signal<FooterLink[]>([]);private readonly _loading=signal(false);private refreshTimer?:number;
-  readonly settings=this._settings.asReadonly();readonly prefooter=this._prefooter.asReadonly();readonly links=this._links.asReadonly();readonly loading=this._loading.asReadonly();
+  private readonly _settings=signal<FooterSettings>({...DEFAULT_FOOTER_SETTINGS});private readonly _prefooter=signal<PrefooterSettings>({...DEFAULT_PREFOOTER});private readonly _links=signal<FooterLink[]>([]);private readonly _loading=signal(false);private readonly _loadError=signal("");private refreshTimer?:number;
+  readonly settings=this._settings.asReadonly();readonly prefooter=this._prefooter.asReadonly();readonly links=this._links.asReadonly();readonly loading=this._loading.asReadonly();readonly loadError=this._loadError.asReadonly();
 
-  constructor(){void this.refreshPublic();const unwatch=this.realtime.watch(['footer_settings','footer_links','prefooter_settings'],()=>this.queueRefresh());this.destroyRef.onDestroy(()=>{unwatch();if(this.refreshTimer!==undefined&&typeof window!=='undefined')window.clearTimeout(this.refreshTimer);});}
+  constructor(){this.restorePublicFooterSnapshot();void this.refreshPublic();const unwatch=this.realtime.watch(['footer_settings','footer_links','prefooter_settings'],()=>this.queueRefresh());this.destroyRef.onDestroy(()=>{unwatch();if(this.refreshTimer!==undefined&&typeof window!=='undefined')window.clearTimeout(this.refreshTimer);});}
   linksFor(group:FooterLinkGroup,secondary?:boolean):FooterLink[]{return this._links().filter(link=>link.groupKey===group&&link.isEnabled&&(secondary===undefined||link.isSecondary===secondary)).sort((a,b)=>a.sortOrder-b.sortOrder||a.label.localeCompare(b.label,'tr'));}
 
-  async refreshPublic():Promise<void>{this._loading.set(true);try{const [settingsResponse,linksResponse,prefooterResponse]=await Promise.all([adminFetch(`${SUPABASE_PROJECT_URL}/rest/v1/footer_settings?config_key=eq.main&select=${this.footerSettingsSelect}`,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,accept:'application/json'},cache:'no-store'}),adminFetch(`${SUPABASE_PROJECT_URL}/rest/v1/footer_links?config_key=eq.main&is_enabled=eq.true&select=${this.footerLinkSelect}&order=group_key.asc,sort_order.asc`,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,accept:'application/json'},cache:'no-store'}),adminFetch(`${SUPABASE_PROJECT_URL}/rest/v1/prefooter_settings?config_key=eq.main&select=${this.prefooterSelect}`,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,accept:'application/json'},cache:'no-store'})]);if(settingsResponse.ok){const rows=await settingsResponse.json() as Record<string,unknown>[];if(rows[0])this._settings.set(this.fromRow(rows[0]));}if(linksResponse.ok){const rows=await linksResponse.json() as Record<string,unknown>[];this._links.set(rows.map(row=>this.linkFromRow(row)));}if(prefooterResponse.ok){const rows=await prefooterResponse.json() as Record<string,unknown>[];if(rows[0])this._prefooter.set(this.prefooterFromRow(rows[0]));}}finally{this._loading.set(false);}}
+  async refreshPublic():Promise<void>{
+    this._loading.set(true);
+    try{
+      const [settingsResponse,linksResponse,prefooterResponse]=await Promise.all([
+        adminFetch(`${SUPABASE_PROJECT_URL}/rest/v1/footer_settings?config_key=eq.main&select=${this.footerSettingsSelect}`,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,accept:'application/json'},cache:'no-store'}),
+        adminFetch(`${SUPABASE_PROJECT_URL}/rest/v1/footer_links?config_key=eq.main&is_enabled=eq.true&select=${this.footerLinkSelect}&order=group_key.asc,sort_order.asc`,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,accept:'application/json'},cache:'no-store'}),
+        adminFetch(`${SUPABASE_PROJECT_URL}/rest/v1/prefooter_settings?config_key=eq.main&select=${this.prefooterSelect}`,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,accept:'application/json'},cache:'no-store'})
+      ]);
+      let failed=false; let failCode='';
+      if(settingsResponse.ok){
+        const rows=await settingsResponse.json() as Record<string,unknown>[];
+        if(rows[0]) this._settings.set(this.fromRow(rows[0]));
+      } else { failed=true; failCode=`FOOTER_SETTINGS_${settingsResponse.status}`; }
+      if(linksResponse.ok){
+        const rows=await linksResponse.json() as Record<string,unknown>[];
+        const mapped=rows.map(row=>this.linkFromRow(row));
+        this._links.set(mapped.length ? mapped : (this._links().length ? this._links() : DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l}))));
+      } else {
+        failed=true; failCode=failCode||`FOOTER_LINKS_${linksResponse.status}`;
+        if(!this._links().length){
+          const stale=readPublicSwr<{links?:FooterLink[]}>('footer-public:snapshot',12*60*60*1000);
+          this._links.set(stale?.value?.links?.length ? stale.value.links : DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l})));
+        }
+      }
+      if(prefooterResponse.ok){
+        const rows=await prefooterResponse.json() as Record<string,unknown>[];
+        if(rows[0]) this._prefooter.set(this.prefooterFromRow(rows[0]));
+      } else { failed=true; failCode=failCode||`PREFOOTER_${prefooterResponse.status}`; }
+      if(failed){
+        const statusMatch=failCode.match(/([0-9]{3})$/);
+        const status=statusMatch ? Number(statusMatch[1]) : 0;
+        this._loadError.set(quotaOrPaymentError(status, failCode) ? turkishQuotaMessage('Alt bilgi') : (failCode||'FOOTER_LOAD_FAILED'));
+      } else {
+        this._loadError.set('');
+        writePublicSwr('footer-public:snapshot',{settings:this._settings(),links:this._links(),prefooter:this._prefooter()});
+      }
+    } catch(error) {
+      const message=error instanceof Error ? error.message : 'FOOTER_LOAD_FAILED';
+      if(!this._links().length){
+        const stale=readPublicSwr<{links?:FooterLink[]}>('footer-public:snapshot',12*60*60*1000);
+        this._links.set(stale?.value?.links?.length ? stale.value.links : DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l})));
+      }
+      this._loadError.set(quotaOrPaymentError(0, message) ? turkishQuotaMessage('Alt bilgi') : message);
+    } finally {
+      if(!this._links().length) this._links.set(DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l})));
+      this._loading.set(false);
+    }
+  }
 
   async refreshAdmin():Promise<void>{const token=await this.requiredToken();const payload=await this.gateway<SiteSnapshot>('GET',token);if(payload.ok!==true)throw new Error(payload.code||'FOOTER_ADMIN_LOAD_FAILED');this._settings.set(payload.footerSettings?this.fromRow(payload.footerSettings):{...DEFAULT_FOOTER_SETTINGS});this._links.set((payload.footerLinks||[]).map(row=>this.linkFromRow(row)));this._prefooter.set(payload.prefooterSettings?this.prefooterFromRow(payload.prefooterSettings):{...DEFAULT_PREFOOTER});}
   async save(settings:FooterSettings,links:FooterLink[]=this._links()):Promise<void>{const token=await this.requiredToken();const normalizedLinks=links.map((link,index)=>this.normalizeLink(link,index));const payload=await this.gateway<FooterMutation>('PATCH',token,{action:'saveFooter',settings:this.settingsPayload(settings),links:normalizedLinks});if(payload.ok!==true)throw new Error(payload.code||'FOOTER_SAVE_FAILED');this._settings.set(payload.footerSettings?this.fromRow(payload.footerSettings):settings);this._links.set((payload.footerLinks||[]).map(row=>this.linkFromRow(row)));}
@@ -68,6 +128,15 @@ export class FooterSettingsService{
   private prefooterFromRow(row:Record<string,unknown>):PrefooterSettings{const raw=row['trust_items']??row['trustItems'];return{isEnabled:(row['is_enabled']??row['isEnabled'])!==false,badge:String(row['badge']||DEFAULT_PREFOOTER.badge),title:String(row['title']||DEFAULT_PREFOOTER.title),description:String(row['description']||DEFAULT_PREFOOTER.description),primaryLabel:String(row['primary_label']||row['primaryLabel']||DEFAULT_PREFOOTER.primaryLabel),primaryRoute:String(row['primary_route']||row['primaryRoute']||DEFAULT_PREFOOTER.primaryRoute),secondaryLabel:String(row['secondary_label']||row['secondaryLabel']||DEFAULT_PREFOOTER.secondaryLabel),secondaryRoute:String(row['secondary_route']||row['secondaryRoute']||DEFAULT_PREFOOTER.secondaryRoute),trustItems:Array.isArray(raw)?raw.map(String).filter(Boolean).slice(0,6):[...DEFAULT_PREFOOTER.trustItems],showOnHome:(row['show_on_home']??row['showOnHome'])!==false,showOnInner:(row['show_on_inner']??row['showOnInner'])!==false};}
   private linkFromRow(row:Record<string,unknown>):FooterLink{return{linkKey:String(row['link_key']||row['linkKey']||''),groupKey:String(row['group_key']||row['groupKey']||'SERVICES') as FooterLinkGroup,label:String(row['label']||''),actionType:String(row['action_type']||row['actionType']||'ROUTE') as FooterLinkAction,route:row['route']?String(row['route']):undefined,queryParams:row['query_params']&&typeof row['query_params']==='object'?row['query_params'] as Record<string,string>:row['queryParams']&&typeof row['queryParams']==='object'?row['queryParams'] as Record<string,string>:{},externalUrl:row['external_url']?String(row['external_url']):undefined,sortOrder:Number(row['sort_order']??row['sortOrder']??0),isEnabled:(row['is_enabled']??row['isEnabled'])!==false,opensNewTab:Boolean(row['opens_new_tab']??row['opensNewTab']),isSecondary:Boolean(row['is_secondary']??row['isSecondary'])};}
   private str(row:Record<string,unknown>,snake:string,camel:string,fallback:string){return String(row[snake]??row[camel]??fallback).trim()||fallback;}
+  
+  private restorePublicFooterSnapshot():void{
+    const cached=readPublicSwr<{settings?:FooterSettings;links?:FooterLink[];prefooter?:PrefooterSettings}>('footer-public:snapshot',12*60*60*1000);
+    if(cached?.value?.settings) this._settings.set(cached.value.settings);
+    if(cached?.value?.prefooter) this._prefooter.set(cached.value.prefooter);
+    if(cached?.value?.links?.length) this._links.set(cached.value.links);
+    else if(!this._links().length) this._links.set(DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l})));
+  }
+
   private queueRefresh(){if(typeof window==='undefined'){void this.refreshPublic();return;}if(this.refreshTimer!==undefined)window.clearTimeout(this.refreshTimer);this.refreshTimer=window.setTimeout(()=>{this.refreshTimer=undefined;void this.refreshPublic();},120);}
   private clean(value:string,max:number){return String(value||'').replace(/\s+/g,' ').trim().slice(0,max);}
   private async requiredToken(){const token=await this.auth.getAccessToken();if(!token)throw new Error('ADMIN_SESSION_REQUIRED');return token;}

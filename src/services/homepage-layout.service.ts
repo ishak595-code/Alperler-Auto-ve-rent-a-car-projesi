@@ -9,6 +9,7 @@ import {
   TourCardV217,
 } from './scalable-public-catalog-v217.service';
 import { PublicContentRealtimeService } from './public-content-realtime.service';
+import { publicSwrFetch, readPublicSwr, writePublicSwr, quotaOrPaymentError, turkishQuotaMessage } from './public-json-swr.util';
 
 export interface PublicHomepageSection {
   sectionKey: string;
@@ -80,6 +81,7 @@ export class HomepageLayoutService {
         window.clearTimeout(this.refreshTimer);
       }
     });
+    this.restoreSnapshot();
   }
 
   load(): Promise<void> {
@@ -212,28 +214,25 @@ export class HomepageLayoutService {
               }
             } catch (error) {
               console.error('Homepage section load failed', section.sectionKey, error);
-              sectionErrorMap[section.sectionKey] = error instanceof Error ? error.message : 'CATALOG_LOAD_FAILED';
-              vehicleMap[section.sectionKey] = [];
-              tourMap[section.sectionKey] = [];
-              blogMap[section.sectionKey] = [];
-              campaignMap[section.sectionKey] = [];
-              branchMap[section.sectionKey] = [];
+              const raw = error instanceof Error ? error.message : 'CATALOG_LOAD_FAILED';
+              const statusMatch = /(\d{3})/.exec(raw);
+              const status = statusMatch ? Number(statusMatch[1]) : 0;
+              sectionErrorMap[section.sectionKey] = quotaOrPaymentError(status, raw)
+                ? turkishQuotaMessage(section.title || 'Bu bölüm')
+                : raw;
+              // Keep last-good items for this section when available.
+              vehicleMap[section.sectionKey] = this._vehicles()[section.sectionKey] || [];
+              tourMap[section.sectionKey] = this._tours()[section.sectionKey] || [];
+              blogMap[section.sectionKey] = this._blogs()[section.sectionKey] || [];
+              campaignMap[section.sectionKey] = this._campaigns()[section.sectionKey] || [];
+              branchMap[section.sectionKey] = this._branches()[section.sectionKey] || [];
             }
           }),
         );
 
         const validPlacements = rawPlacements.filter((placement) => validPlacementIds.has(placement.id));
-        const visibleSections = sections.filter((section) => {
-          const renderer = this.renderer(section);
-          if (renderer === 'PARTNER' || renderer === 'PROMO') return true;
-          if (sectionErrorMap[section.sectionKey]) return true;
-          if (renderer === 'BRANCHES') return (branchMap[section.sectionKey] || []).length > 0;
-          if (section.sectionType === 'VEHICLES') return (vehicleMap[section.sectionKey] || []).length > 0;
-          if (section.sectionType === 'TOURS') return (tourMap[section.sectionKey] || []).length > 0;
-          if (section.sectionType === 'BLOG') return (blogMap[section.sectionKey] || []).length > 0;
-          if (section.sectionType === 'CAMPAIGN') return (campaignMap[section.sectionKey] || []).length > 0;
-          return false;
-        });
+        // Keep every enabled section — empty and failed states must render durable chrome (never silent blank).
+        const visibleSections = sections;
 
         this._vehicles.set(vehicleMap);
         this._tours.set(tourMap);
@@ -243,9 +242,31 @@ export class HomepageLayoutService {
         this._sectionErrors.set(sectionErrorMap);
         this._placements.set(validPlacements);
         this._sections.set(visibleSections);
+        this._error.set('');
         this._loaded.set(true);
+        this.persistSnapshot();
       } catch (error) {
-        this._error.set(error instanceof Error ? error.message : 'HOMEPAGE_LAYOUT_LOAD_FAILED');
+        const message = error instanceof Error ? error.message : 'HOMEPAGE_LAYOUT_LOAD_FAILED';
+        const statusMatch = /(?:HOMEPAGE_LAYOUT_|PUBLIC_CATALOG_|HTTP_)?(\d{3})/.exec(message);
+        const status = statusMatch ? Number(statusMatch[1]) : 0;
+        const friendly = quotaOrPaymentError(status, message)
+          ? turkishQuotaMessage('Ana sayfa vitrini')
+          : message;
+        // Prefer last-good in-memory/local snapshot over wiping the homepage chrome.
+        if (!this._sections().length) this.restoreSnapshot();
+        if (this._sections().length) {
+          // Mark catalog sections as degraded so each block can show retry chrome.
+          const degraded: Record<string, string> = { ...this._sectionErrors() };
+          for (const section of this._sections()) {
+            const renderer = this.renderer(section);
+            if (renderer === 'PARTNER' || renderer === 'PROMO') continue;
+            degraded[section.sectionKey] = degraded[section.sectionKey] || friendly;
+          }
+          this._sectionErrors.set(degraded);
+          this._error.set(friendly);
+        } else {
+          this._error.set(friendly);
+        }
         this._loaded.set(true);
       } finally {
         this._loading.set(false);
@@ -427,12 +448,55 @@ export class HomepageLayoutService {
   }
 
   private async get<T>(path: string): Promise<T> {
-    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
-      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, accept: 'application/json' },
-      cache: 'no-store',
-      signal: AbortSignal.timeout(12_000),
+    const cacheKey = `homepage-shell:${path.split('?')[0]}`;
+    const result = await publicSwrFetch<T>({
+      key: cacheKey,
+      freshMs: 45_000,
+      staleMs: 12 * 60 * 60_000,
+      isValid: (value) => Array.isArray(value),
+      loader: async () => {
+        const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/${path}`, {
+          headers: { apikey: SUPABASE_PUBLISHABLE_KEY, accept: 'application/json' },
+          cache: 'no-store',
+          signal: AbortSignal.timeout(12_000),
+        });
+        if (!response.ok) throw new Error(`HOMEPAGE_LAYOUT_${response.status}`);
+        return await response.json() as T;
+      },
     });
-    if (!response.ok) throw new Error(`HOMEPAGE_LAYOUT_${response.status}`);
-    return await response.json() as T;
+    return result.value;
+  }
+
+  private persistSnapshot(): void {
+    writePublicSwr('homepage-layout:snapshot', {
+      sections: this._sections(),
+      placements: this._placements(),
+      vehicles: this._vehicles(),
+      tours: this._tours(),
+      blogs: this._blogs(),
+      campaigns: this._campaigns(),
+      branches: this._branches(),
+    });
+  }
+
+  private restoreSnapshot(): void {
+    const cached = readPublicSwr<{
+      sections: PublicHomepageSection[];
+      placements: PublicHomepagePlacement[];
+      vehicles: Record<string, Vehicle[]>;
+      tours: Record<string, TourCardV217[]>;
+      blogs: Record<string, BlogCardV217[]>;
+      campaigns: Record<string, CampaignRecord[]>;
+      branches: Record<string, BranchCardV217[]>;
+    }>('homepage-layout:snapshot', 12 * 60 * 60_000);
+    if (!cached?.value?.sections?.length) return;
+    this._sections.set(cached.value.sections);
+    this._placements.set(cached.value.placements || []);
+    this._vehicles.set(cached.value.vehicles || {});
+    this._tours.set(cached.value.tours || {});
+    this._blogs.set(cached.value.blogs || {});
+    this._campaigns.set(cached.value.campaigns || {});
+    this._branches.set(cached.value.branches || {});
   }
 }
+

@@ -164,6 +164,7 @@ export class CatalogAdminEditorService {
         availability_status: record.availabilityStatus || "AVAILABLE",
         seo_slug: record.seoSlug?.trim() || null,
         publication_status: record.publicationStatus,
+        is_active: record.publicationStatus === "PUBLISHED" || record.publicationStatus === "SCHEDULED",
         published_at: record.publicationStatus === "PUBLISHED" ? (record.publishedAt || new Date().toISOString()) : record.publishedAt || null,
         scheduled_at: record.publicationStatus === "SCHEDULED" ? this.toIsoDateTime(record.scheduledAt) : null,
         record_origin: record.recordOrigin || "REAL",
@@ -483,6 +484,9 @@ export class CatalogAdminEditorService {
       if (code === "INVALID_CATALOG_FIELD_VALUE") throw new Error("Girilen katalog alanlarından biri geçersiz. Sayı, tarih ve seçimleri kontrol edin.");
       if (code === "RATE_LIMITED") throw new Error("Çok hızlı işlem yapıldı. Kısa bir süre sonra tekrar deneyin.");
       if (code === "VEHICLE_NOT_FOUND" || code === "TOUR_NOT_FOUND") throw new Error("Kayıt bulunamadı. Liste yenilenmiş olabilir.");
+      if (error.status === 402 || /PAYMENT_REQUIRED|EGRESS|QUOTA|BANDWIDTH|OVER_CAPACITY/i.test(String(error.code||''))) {
+        throw new Error('Yayınlama şu an yapılamıyor: Supabase ücretsiz kota / ödeme gerekli (yaklaşık 2026-10-18’e kadar). Taslak kaydı duruyor; kota açılınca Canlı Yayınla ile tekrar deneyin.');
+      }
       throw this.transport.humanize(error, method === "GET" ? "Katalog verisi" : "Katalog kaydı");
     }
   }

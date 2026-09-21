@@ -164,6 +164,7 @@ export class AdminGatewayTransportService {
     if (error.code === "UNAUTHORIZED" || error.status === 401) return "Yönetici oturumu doğrulanamadı. Çıkış yapıp yeniden giriş yapın.";
     if (error.code === "FORBIDDEN" || error.code === "CONTENT_PERMISSION_REQUIRED" || error.status === 403) return "Bu işlem için yönetici yetkiniz yok (yetki denetimi Supabase tarafından reddedildi).";
     if (error.code === "RATE_LIMITED" || error.status === 429) return "Çok hızlı işlem yapıldı. Kısa bir süre sonra tekrar deneyin.";
+    if (error.status === 402 || /PAYMENT_REQUIRED|EGRESS|QUOTA|BANDWIDTH|OVER_CAPACITY/i.test(String(error.code || ""))) return "Supabase ücretsiz kota / ödeme gerekli (yaklaşık 2026-10-18’e kadar). İşlem şimdilik durduruldu; kota açılınca tekrar deneyin.";
     const trail = (error.attempts.length ? error.attempts : [{ layer: error.layer, status: error.status, code: error.code }])
       .map((attempt) => `${this.layerLabel(attempt.layer)}: ${attempt.code}${attempt.status ? ` (HTTP ${attempt.status})` : ""}`)
       .join(" · ");

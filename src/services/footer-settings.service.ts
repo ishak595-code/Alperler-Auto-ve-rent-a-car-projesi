@@ -41,6 +41,7 @@ const DEFAULT_PUBLIC_FOOTER_LINKS:FooterLink[]=[
   {linkKey:'legal.terms',groupKey:'LEGAL',label:'Kullanım Koşulları',actionType:'LEGAL',route:'/legal',queryParams:{type:'terms'},sortOrder:20,isEnabled:true,opensNewTab:false,isSecondary:false},
   {linkKey:'legal.cookies',groupKey:'LEGAL',label:'Çerez Politikası',actionType:'LEGAL',route:'/legal',queryParams:{type:'cookies'},sortOrder:30,isEnabled:true,opensNewTab:false,isSecondary:false},
   {linkKey:'legal.kvkk',groupKey:'LEGAL',label:'KVKK',actionType:'LEGAL',route:'/legal',queryParams:{type:'kvkk'},sortOrder:40,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'bottom.feedback',groupKey:'BOTTOM',label:'Geri Bildirim Gönder',actionType:'FEEDBACK',queryParams:{},sortOrder:10,isEnabled:true,opensNewTab:false,isSecondary:false},
 ];
 @Injectable({providedIn:'root'})
 export class FooterSettingsService{

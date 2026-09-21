@@ -212,6 +212,23 @@ const adminLabel=String(custom?.label||"").trim();const label=lang==="TR"?(admin
     const pickup=this.pickupChoices().find((item)=>item.key===this.selectedPickupKey);if(!pickup){this.plannerError=this.t().homePage.errorPickup;return;}const driverMode=this.serviceType==="individual"?"without":"with";void this.router.navigate(["/fleet"],{queryParams:{duration:this.rentalDuration,start:this.startDate,end:this.rentalDuration==="hourly"?this.startDate:this.endDate,startTime:this.rentalDuration==="hourly"?this.startTime:undefined,endTime:this.rentalDuration==="hourly"?this.endTime:undefined,pickup:pickup.branchId,pickupLocation:pickup.label,driverMode,availableOnly:"true",occasion:this.serviceType==="wedding"?"wedding":undefined}});}
   plannerSummary():string{if(!this.startDate)return"";const hp=this.t().homePage;const pickup=this.pickupChoices().find((item)=>item.key===this.selectedPickupKey);const dates=this.serviceType==="tour"?this.formatShortDate(this.startDate):this.rentalDuration==="hourly"?`${this.formatShortDate(this.startDate)} · ${this.startTime}-${this.endTime}`:`${this.formatShortDate(this.startDate)} - ${this.endDate?this.formatShortDate(this.endDate):"?"}`;const mode=this.serviceType==="individual"?hp.summarySelf:this.serviceType==="driver"?hp.summaryDriver:this.serviceType==="wedding"?hp.summaryWedding:hp.summaryTour;const duration=this.serviceType==="tour"?"":(this.plannerDurationOptions().find((item)=>item.value===this.rentalDuration)?.label||this.rentalDuration);return[dates,duration,mode,pickup?.label].filter(Boolean).join(" · ");}
   bookingButtonLabel():string{const hp=this.t().homePage;if(this.serviceType==="tour")return hp.buttonTour;if(this.rentalDuration==="hourly")return hp.buttonHourly;if(this.serviceType==="driver")return hp.buttonDriver;if(this.serviceType==="wedding")return hp.buttonWedding;return hp.buttonRental;}
+  homeShellErrorTitle():string{
+    const pack=(this.t() as any)?.homePage||{};
+    return String(pack.shellErrorTitle||'İçerik şu an yüklenemedi').trim();
+  }
+  homeShellEmptyTitle():string{
+    const pack=(this.t() as any)?.homePage||{};
+    return String(pack.shellEmptyTitle||'Gösterilecek bölüm yok').trim();
+  }
+  homeShellEmptyBody():string{
+    const pack=(this.t() as any)?.homePage||{};
+    return String(pack.shellEmptyBody||'Ana sayfa bölümleri şu an boş. Lütfen biraz sonra tekrar deneyin.').trim();
+  }
+  homeShellRetryLabel():string{
+    const pack=(this.t() as any)?.homePage||{};
+    return String(pack.retry||pack.shellRetry||'Tekrar Dene').trim();
+  }
+  retryHomeShell():void{ void this.homepageLayout.refreshPublicState(); }
   private minutes(value:string):number|null{const match=/^(\d{2}):(\d{2})$/.exec(value||"");if(!match)return null;const h=Number(match[1]),m=Number(match[2]);return h>=0&&h<=23&&m>=0&&m<=59?h*60+m:null;}
   private parseLocalDate(value:string):Date|null{const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(value||"");if(!match)return null;const date=new Date(Number(match[1]),Number(match[2])-1,Number(match[3]));return Number.isNaN(date.getTime())?null:date;}
   private formatShortDate(value:string):string{const date=this.parseLocalDate(value);const loc=({TR:"tr-TR",EN:"en-GB",DE:"de-DE",FR:"fr-FR",ES:"es-ES",RU:"ru-RU",ZH:"zh-CN",AR:"ar",KU:"ku"} as Record<string,string>)[this.ui.currentLang()]||"tr-TR";return date?new Intl.DateTimeFormat(loc,{day:"2-digit",month:"short"}).format(date):value;}

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, inject, signal } from "@angular/core";
+import { Component, DestroyRef, ElementRef, NgZone, inject, signal } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { NavigationEnd, Router, RouterLink } from "@angular/router";
 import { NavigationConfigService, NavigationItem } from "../services/navigation-config.service";
@@ -66,6 +66,7 @@ export class CustomerMobileDockComponent {
   readonly navigation = inject(NavigationConfigService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly zone = inject(NgZone);
   private readonly ui = inject(UiService);
   readonly t = this.ui.translations;
   readonly hidden = signal(false);
@@ -172,8 +173,13 @@ export class CustomerMobileDockComponent {
   private setAutoHidden(hidden: boolean): void {
     if (this.autoHidden() === hidden) return;
     if (hidden) this.releaseDockFocus();
-    this.autoHidden.set(hidden);
-    this.navigation.setMobileDockAutoHidden(hidden);
+    // Native scroll listeners are intentionally outside Angular's template
+    // event bindings. Re-enter Angular so the accessibility attributes and
+    // dock class are committed immediately on zoned and zoneless runtimes.
+    this.zone.run(() => {
+      this.autoHidden.set(hidden);
+      this.navigation.setMobileDockAutoHidden(hidden);
+    });
   }
 
   private releaseDockFocus(): void {

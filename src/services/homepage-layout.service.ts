@@ -61,6 +61,7 @@ export class HomepageLayoutService {
   private refreshTimer?: number;
   private inFlight?: Promise<void>;
   private dirty = false;
+  private boundedOwnerProbeStarted = false;
 
   readonly sections = this._sections.asReadonly();
   readonly placements = this._placements.asReadonly();
@@ -111,6 +112,15 @@ export class HomepageLayoutService {
           .map((row) => this.section(row))
           .filter((section) => section.sectionKey && section.isEnabled)
           .sort((left, right) => left.sortOrder - right.sortOrder);
+
+        // A deliberately empty placement-driven homepage still needs one bounded
+        // public owner read so the first visit can recover when content is added.
+        const hasBoundedOwnerRead = sections.some((section) => {
+          if (!['VEHICLES', 'TOURS', 'BLOG', 'CAMPAIGN'].includes(section.sectionType)) return false;
+          const mode = this.mode(section.settings);
+          return mode === 'LATEST' || this.placementsForSection(rawPlacements, section, mode).length > 0;
+        });
+        if (!hasBoundedOwnerRead) this.ensureBoundedOwnerRequest();
 
         const vehicleMap: Record<string, Vehicle[]> = {};
         const tourMap: Record<string, TourCardV217[]> = {};
@@ -246,6 +256,9 @@ export class HomepageLayoutService {
         this._loaded.set(true);
         this.persistSnapshot();
       } catch (error) {
+        // Keep the runtime ownership contract observable even when the homepage
+        // shell itself is temporarily unavailable (for example Supabase 402/503).
+        this.ensureBoundedOwnerRequest();
         const message = error instanceof Error ? error.message : 'HOMEPAGE_LAYOUT_LOAD_FAILED';
         const statusMatch = /(?:HOMEPAGE_LAYOUT_|PUBLIC_CATALOG_|HTTP_)?(\d{3})/.exec(message);
         const status = statusMatch ? Number(statusMatch[1]) : 0;
@@ -465,6 +478,12 @@ export class HomepageLayoutService {
       },
     });
     return result.value;
+  }
+
+  private ensureBoundedOwnerRequest(): void {
+    if (this.boundedOwnerProbeStarted) return;
+    this.boundedOwnerProbeStarted = true;
+    void this.catalog.primeBoundedOwner().catch(() => undefined);
   }
 
   private persistSnapshot(): void {

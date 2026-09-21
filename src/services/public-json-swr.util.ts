@@ -58,11 +58,12 @@ export async function publicSwrFetch<T>(options: {
   staleMs: number;
   loader: () => Promise<T>;
   isValid?: (value: T) => boolean;
+  forceNetwork?: boolean;
 }): Promise<{ value: T; fromCache: boolean; stale: boolean }> {
   const cached = readPublicSwr<T>(options.key, options.freshMs);
   const valid = (value: T) => (options.isValid ? options.isValid(value) : value != null);
 
-  if (cached && cached.fresh && valid(cached.value)) {
+  if (!options.forceNetwork && cached && cached.fresh && valid(cached.value)) {
     return { value: cached.value, fromCache: true, stale: false };
   }
 

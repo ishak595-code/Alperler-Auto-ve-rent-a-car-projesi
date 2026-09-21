@@ -124,11 +124,17 @@ export class CustomerMobileDockComponent {
     // scroll on document while the homepage shell is hydrating.
     window.addEventListener("scroll", onScroll, { passive: true });
     document.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    document.documentElement.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scrollend", onScroll, { passive: true });
+    document.documentElement.addEventListener("scrollend", onScroll, { passive: true });
     window.addEventListener("resize", onViewportChange, { passive: true });
     window.requestAnimationFrame(() => this.applyScrollAutoHide());
     this.destroyRef.onDestroy(() => {
       window.removeEventListener("scroll", onScroll);
       document.removeEventListener("scroll", onScroll, true);
+      document.documentElement.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scrollend", onScroll);
+      document.documentElement.removeEventListener("scrollend", onScroll);
       window.removeEventListener("resize", onViewportChange);
       if (this.scrollFrame !== null) window.cancelAnimationFrame(this.scrollFrame);
     });

@@ -23,7 +23,7 @@ interface PlannerDurationChoice { value: RentalDuration; label: string; enabled:
   standalone: true,
   imports: [CommonModule, FormsModule, MatIconModule, DynamicHomeSectionComponent, AccessibleNativeDateComponent],
   template: `
-    <main class="home-root">
+    <main class="home-root" [class.home-shell-degraded]="homepageLayout.error() || (!homepageLayout.loading() && managedSections().length === 0)">
       <section class="hero" [style.backgroundImage]="heroImage() ? 'url(' + heroImage() + ')' : 'none'" aria-labelledby="home-title">
         <div class="hero-shade" aria-hidden="true"></div>
         <div class="hero-stage" [class.planner-disabled]="!plannerEnabled()">
@@ -79,12 +79,34 @@ interface PlannerDurationChoice { value: RentalDuration; label: string; enabled:
       </section>
 
       @if (homepageLayout.loading() && managedSections().length === 0) {<div class="loading" role="status"><mat-icon aria-hidden="true">sync</mat-icon><span>{{ t().homePage.loading }}</span></div>}
+      @if (homepageLayout.error() && !homepageLayout.loading()) {
+        <section class="home-shell-error" role="alert" aria-live="polite">
+          <mat-icon aria-hidden="true">cloud_off</mat-icon>
+          <div>
+            <h2>{{ homeShellErrorTitle() }}</h2>
+            <p>{{ homepageLayout.error() }}</p>
+            <button type="button" (click)="retryHomeShell()">{{ homeShellRetryLabel() }}</button>
+          </div>
+        </section>
+      }
       @for (section of managedSections(); track section.sectionKey) {
         <app-dynamic-home-section [section]="section"></app-dynamic-home-section>
       }
+      @if (!homepageLayout.loading() && managedSections().length === 0 && !homepageLayout.error()) {
+        <section class="home-shell-empty" role="status">
+          <mat-icon aria-hidden="true">inventory_2</mat-icon>
+          <div>
+            <h2>{{ homeShellEmptyTitle() }}</h2>
+            <p>{{ homeShellEmptyBody() }}</p>
+            <button type="button" (click)="retryHomeShell()">{{ homeShellRetryLabel() }}</button>
+          </div>
+        </section>
+      }
     </main>
   `,
-  styles: [`:host, .page, .hero{overflow-x:clip;overflow-wrap:anywhere;}
+  styles: [`.home-shell-error,.home-shell-empty{width:min(100% - 1.5rem,80rem);margin:1.25rem auto;display:flex;gap:1rem;align-items:flex-start;border:1px solid rgba(251,191,36,.35);border-radius:18px;background:#fffbeb;padding:1.1rem 1.2rem;color:#92400e}.home-shell-empty{border-color:#cbd5e1;background:#f8fafc;color:#334155}.home-shell-error h2,.home-shell-empty h2{margin:0 0 .35rem;font-size:1.15rem}.home-shell-error p,.home-shell-empty p{margin:0;line-height:1.55}.home-shell-error button,.home-shell-empty button{margin-top:.8rem;min-height:42px;border:0;border-radius:11px;background:#ea580c;padding:0 1rem;color:#fff;font-weight:850;cursor:pointer}.home-shell-empty button{background:#0f172a}
+:host, .page, .hero{overflow-x:clip;overflow-wrap:anywhere;}
+    .home-root{min-height:calc(100dvh + 280px)}
     .home-root,.home-root *{box-sizing:border-box}
     .hero{position:relative;isolation:isolate;overflow:hidden;background:var(--alper-bg,#06080D) center/cover no-repeat;color:var(--alper-text,#F8F6F1)}
     .hero-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,color-mix(in srgb,var(--alper-bg,#020617) 97%,transparent),color-mix(in srgb,var(--alper-bg,#020617) 88%,transparent) 52%,color-mix(in srgb,var(--alper-bg,#020617) 67%,transparent)),radial-gradient(circle at 85% 12%,color-mix(in srgb,var(--alper-blue,#9E1B24) 28%,transparent),transparent 32%)}
@@ -190,6 +212,23 @@ const adminLabel=String(custom?.label||"").trim();const label=lang==="TR"?(admin
     const pickup=this.pickupChoices().find((item)=>item.key===this.selectedPickupKey);if(!pickup){this.plannerError=this.t().homePage.errorPickup;return;}const driverMode=this.serviceType==="individual"?"without":"with";void this.router.navigate(["/fleet"],{queryParams:{duration:this.rentalDuration,start:this.startDate,end:this.rentalDuration==="hourly"?this.startDate:this.endDate,startTime:this.rentalDuration==="hourly"?this.startTime:undefined,endTime:this.rentalDuration==="hourly"?this.endTime:undefined,pickup:pickup.branchId,pickupLocation:pickup.label,driverMode,availableOnly:"true",occasion:this.serviceType==="wedding"?"wedding":undefined}});}
   plannerSummary():string{if(!this.startDate)return"";const hp=this.t().homePage;const pickup=this.pickupChoices().find((item)=>item.key===this.selectedPickupKey);const dates=this.serviceType==="tour"?this.formatShortDate(this.startDate):this.rentalDuration==="hourly"?`${this.formatShortDate(this.startDate)} · ${this.startTime}-${this.endTime}`:`${this.formatShortDate(this.startDate)} - ${this.endDate?this.formatShortDate(this.endDate):"?"}`;const mode=this.serviceType==="individual"?hp.summarySelf:this.serviceType==="driver"?hp.summaryDriver:this.serviceType==="wedding"?hp.summaryWedding:hp.summaryTour;const duration=this.serviceType==="tour"?"":(this.plannerDurationOptions().find((item)=>item.value===this.rentalDuration)?.label||this.rentalDuration);return[dates,duration,mode,pickup?.label].filter(Boolean).join(" · ");}
   bookingButtonLabel():string{const hp=this.t().homePage;if(this.serviceType==="tour")return hp.buttonTour;if(this.rentalDuration==="hourly")return hp.buttonHourly;if(this.serviceType==="driver")return hp.buttonDriver;if(this.serviceType==="wedding")return hp.buttonWedding;return hp.buttonRental;}
+  homeShellErrorTitle():string{
+    const pack=(this.t() as any)?.homePage||{};
+    return String(pack.shellErrorTitle||'İçerik şu an yüklenemedi').trim();
+  }
+  homeShellEmptyTitle():string{
+    const pack=(this.t() as any)?.homePage||{};
+    return String(pack.shellEmptyTitle||'Gösterilecek bölüm yok').trim();
+  }
+  homeShellEmptyBody():string{
+    const pack=(this.t() as any)?.homePage||{};
+    return String(pack.shellEmptyBody||'Ana sayfa bölümleri şu an boş. Lütfen biraz sonra tekrar deneyin.').trim();
+  }
+  homeShellRetryLabel():string{
+    const pack=(this.t() as any)?.homePage||{};
+    return String(pack.retry||pack.shellRetry||'Tekrar Dene').trim();
+  }
+  retryHomeShell():void{ void this.homepageLayout.refreshPublicState(); }
   private minutes(value:string):number|null{const match=/^(\d{2}):(\d{2})$/.exec(value||"");if(!match)return null;const h=Number(match[1]),m=Number(match[2]);return h>=0&&h<=23&&m>=0&&m<=59?h*60+m:null;}
   private parseLocalDate(value:string):Date|null{const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(value||"");if(!match)return null;const date=new Date(Number(match[1]),Number(match[2])-1,Number(match[3]));return Number.isNaN(date.getTime())?null:date;}
   private formatShortDate(value:string):string{const date=this.parseLocalDate(value);const loc=({TR:"tr-TR",EN:"en-GB",DE:"de-DE",FR:"fr-FR",ES:"es-ES",RU:"ru-RU",ZH:"zh-CN",AR:"ar",KU:"ku"} as Record<string,string>)[this.ui.currentLang()]||"tr-TR";return date?new Intl.DateTimeFormat(loc,{day:"2-digit",month:"short"}).format(date):value;}

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, inject, signal } from "@angular/core";
+import { ChangeDetectorRef, Component, DestroyRef, ElementRef, NgZone, inject, signal } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
 import { NavigationEnd, Router, RouterLink } from "@angular/router";
 import { NavigationConfigService, NavigationItem } from "../services/navigation-config.service";
@@ -66,6 +66,8 @@ export class CustomerMobileDockComponent {
   readonly navigation = inject(NavigationConfigService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly changeDetector = inject(ChangeDetectorRef);
+  private readonly zone = inject(NgZone);
   private readonly ui = inject(UiService);
   readonly t = this.ui.translations;
   readonly hidden = signal(false);
@@ -105,6 +107,10 @@ export class CustomerMobileDockComponent {
     if (typeof window === "undefined") return;
     this.lastScrollY = Math.max(0, window.scrollY || 0);
     const onScroll = () => {
+      // Apply synchronously as well as on the next frame. A scroll can happen
+      // while an empty/retry shell is replacing its content; relying only on
+      // the queued frame can miss that first meaningful movement.
+      this.applyScrollAutoHide();
       if (this.scrollFrame !== null) return;
       this.scrollFrame = window.requestAnimationFrame(() => {
         this.scrollFrame = null;
@@ -115,10 +121,22 @@ export class CustomerMobileDockComponent {
       this.lastScrollY = Math.max(0, window.scrollY || 0);
       if (!this.isPhoneDockViewport()) this.setAutoHidden(false);
     };
+    // Capture the document's root scroll as well as the window event. This
+    // keeps the contract intact across browsers that dispatch the mobile root
+    // scroll on document while the homepage shell is hydrating.
     window.addEventListener("scroll", onScroll, { passive: true });
+    document.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    document.documentElement.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scrollend", onScroll, { passive: true });
+    document.documentElement.addEventListener("scrollend", onScroll, { passive: true });
     window.addEventListener("resize", onViewportChange, { passive: true });
+    window.requestAnimationFrame(() => this.applyScrollAutoHide());
     this.destroyRef.onDestroy(() => {
       window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("scroll", onScroll, true);
+      document.documentElement.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scrollend", onScroll);
+      document.documentElement.removeEventListener("scrollend", onScroll);
       window.removeEventListener("resize", onViewportChange);
       if (this.scrollFrame !== null) window.cancelAnimationFrame(this.scrollFrame);
     });
@@ -156,8 +174,14 @@ export class CustomerMobileDockComponent {
   private setAutoHidden(hidden: boolean): void {
     if (this.autoHidden() === hidden) return;
     if (hidden) this.releaseDockFocus();
-    this.autoHidden.set(hidden);
-    this.navigation.setMobileDockAutoHidden(hidden);
+    // Native scroll listeners are intentionally outside Angular's template
+    // event bindings. Re-enter Angular so the accessibility attributes and
+    // dock class are committed immediately on zoned and zoneless runtimes.
+    this.zone.run(() => {
+      this.autoHidden.set(hidden);
+      this.navigation.setMobileDockAutoHidden(hidden);
+      this.changeDetector.detectChanges();
+    });
   }
 
   private releaseDockFocus(): void {

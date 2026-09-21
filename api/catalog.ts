@@ -254,7 +254,7 @@ function faqFromRow(row: any): Record<string, unknown> {
 async function getPublic(resource: Resource): Promise<Response> {
   if (resource === "config") {
     const upstream = await rest("site_config?key=eq.site_settings&is_public=eq.true&select=value,updated_at&limit=1").catch(() => null);
-    if (!upstream?.ok) return response({ ok: false, code: "CATALOG_SOURCE_UNAVAILABLE", resource }, 503);
+    if (!upstream?.ok) return response({ ok: false, code: upstream?.status === 402 ? "CATALOG_QUOTA_PAYMENT_REQUIRED" : "CATALOG_SOURCE_UNAVAILABLE", resource, message: upstream?.status === 402 ? "Supabase ücretsiz kota / ödeme gerekli." : undefined }, upstream?.status === 402 ? 402 : 503);
     const rows = await upstream.json();
     const value = Array.isArray(rows) && rows[0]?.value ? rows[0].value : null;
     return response({ ok: true, resource, value }, 200, publicCache(resource));

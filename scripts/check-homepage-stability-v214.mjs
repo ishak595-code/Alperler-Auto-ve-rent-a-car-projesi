@@ -47,10 +47,24 @@ expect(home.includes('grid-template-columns:minmax(0,1fr) minmax(0,1fr)'), 'Plan
 expect(home.includes('overflow-wrap:anywhere'), 'Homepage long text must have an overflow-safe wrapping rule.');
 expect(!home.includes('.planner{border:1px solid rgba(148,163,184,.25);border-radius:22px;background:rgba(6,14,29,.94)'), 'Planner must not regress to the scroll-flicker-prone translucent blur surface.');
 
+
+// v247: durable empty/error chrome under catalog/branches quota failures
+expect(read('src/services/homepage-layout.service.ts').includes('writePublicSwr') && read('src/services/homepage-layout.service.ts').includes('readPublicSwr'), 'Homepage layout must persist/restore last-good snapshot');
+expect(read('src/services/homepage-layout.service.ts').includes('const visibleSections = sections') || read('src/services/homepage-layout.service.ts').includes('visibleSections = sections'), 'Homepage must keep empty sections visible (no silent blank)');
+expect(read('src/services/homepage-layout.service.ts').includes('turkishQuotaMessage') || read('src/services/homepage-layout.service.ts').includes('quotaOrPaymentError'), 'Homepage must surface quota/payment errors in Turkish');
+expect(read('src/pages/home-v71.component.ts').includes('home-shell-error') && read('src/pages/home-v71.component.ts').includes('retryHomeShell'), 'Home page must expose shell-level retry when layout fails');
+expect(read('src/services/footer-settings.service.ts').includes('DEFAULT_PUBLIC_FOOTER_LINKS'), 'Footer must ship durable default legal/services links');
+expect(read('src/services/footer-settings.service.ts').includes('loadError'), 'Footer must expose loadError for retry chrome');
+expect(read('src/components/customer-footer-v70.component.ts').includes('footerEmptyCopy') && read('src/components/customer-footer-v70.component.ts').includes('retryFooter'), 'Footer UI must render empty/retry for services/legal');
+expect(read('src/services/scalable-public-catalog-v217.service.ts').includes('publicSwrFetch'), 'Public catalog must use short-lived SWR');
+expect(read('src/services/catalog-admin-editor.service.ts').includes('is_active:') && read('src/services/catalog-admin-editor.service.ts').includes('PUBLISHED'), 'Admin publish payload must set is_active with publication status');
+expect(/kota|ödeme gerekli|402/i.test(read('src/services/catalog-admin-editor.service.ts')), 'Admin publish must surface Turkish quota/payment error');
+expect(read('src/services/public-json-swr.util.ts').includes('staleMs') && read('src/services/public-json-swr.util.ts').includes('localStorage'), 'public-json-swr util must provide localStorage SWR');
+
 if (failures.length) {
-  console.error('V214 homepage stability contract failed:');
+  console.error('V214/V247 homepage stability contract failed:');
   failures.forEach((failure) => console.error(`- ${failure}`));
   process.exit(1);
 }
 
-console.log('V214 homepage stability contract passed.');
+console.log('V214/V247 homepage stability contract passed.');

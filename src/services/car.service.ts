@@ -11,6 +11,12 @@ import { CustomerFavoritesV217Service } from "./customer-favorites-v217.service"
 import { DEFAULT_SITE_CONFIG } from "./default-site-config";
 import { PublicCatalogMediaService } from "./public-catalog-media.service";
 import { PublicContentRealtimeService } from "./public-content-realtime.service";
+import { readPublicSwr, writePublicSwr } from "./public-json-swr.util";
+
+const SITE_CONFIG_SNAPSHOT_KEY = "site-config:snapshot";
+const SITE_CONFIG_SNAPSHOT_FRESH_MS = 12 * 60 * 60_000;
+/** Older snapshots are ignored so pricing-bearing config is never resurrected indefinitely. */
+const SITE_CONFIG_SNAPSHOT_MAX_AGE_MS = 14 * 24 * 60 * 60_000;
 
 export interface BlogPost {
   id: number;
@@ -84,6 +90,7 @@ export class CarService {
 
   constructor() {
     this.purgeObsoleteBusinessCaches();
+    this.restoreConfigSnapshot();
 
     const unwatchCatalog = this.realtime.watch(
       ["vehicles", "tours", "catalog_media", "media_assets", "blog_posts", "faqs"],
@@ -111,8 +118,20 @@ export class CarService {
     }
 
     const request = (async () => {
-      const config = await this.catalogService.loadConfig(fresh);
-      if (config) this._config.set(this.normalizeConfig(config));
+      try {
+        const config = await this.catalogService.loadConfig(fresh);
+        if (config) {
+          // A successful read is authoritative (admin edits/clears win); stale values are never merged in.
+          const next = this.normalizeConfig(config);
+          this._config.set(next);
+          this.persistConfigSnapshot(next);
+        }
+      } catch (error) {
+        // Keep last-good in-memory/local config (WhatsApp/phone/chrome) across 402/503, then let the
+        // caller (refresh coordinator backoff, admin save flows) observe the failure.
+        if (!this.hasContactChrome(this._config())) this.restoreConfigSnapshot();
+        throw error;
+      }
     })();
 
     this.configRefreshInFlight = request;
@@ -487,6 +506,22 @@ export class CarService {
 
   private normalizeConfig(config: Partial<SiteConfig>): SiteConfig {
     return { ...DEFAULT_SITE_CONFIG, ...config } as SiteConfig;
+  }
+
+  private hasContactChrome(config: SiteConfig): boolean {
+    return Boolean(String(config.whatsapp || config.phone || "").replace(/\D/g, ""));
+  }
+
+  /** Last-good public site config (stale-while-revalidate) so quota/API failures cannot blank contact chrome. */
+  private persistConfigSnapshot(config: SiteConfig): void {
+    if (!this.hasContactChrome(config) && !String(config.companyName || "").trim()) return;
+    writePublicSwr(SITE_CONFIG_SNAPSHOT_KEY, config);
+  }
+
+  private restoreConfigSnapshot(): void {
+    const cached = readPublicSwr<SiteConfig>(SITE_CONFIG_SNAPSHOT_KEY, SITE_CONFIG_SNAPSHOT_FRESH_MS);
+    if (!cached?.value || typeof cached.value !== "object" || cached.ageMs > SITE_CONFIG_SNAPSHOT_MAX_AGE_MS) return;
+    this._config.set(this.normalizeConfig(cached.value));
   }
 
   private upsertById<T extends { id: number | string }>(items: T[], value: T): T[] {

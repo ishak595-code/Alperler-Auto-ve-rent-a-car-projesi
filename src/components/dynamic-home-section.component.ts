@@ -12,36 +12,39 @@ import { UiService } from '../services/ui.service';
 @if(shouldRender()){
 <section class="section" [ngClass]="classes()" [ngStyle]="styles()" [attr.aria-labelledby]="section.sectionKey+'-title'">
  <div class="inner">
- @if(layout.sectionHasError(section.sectionKey)){
-  <div class="section-error" role="alert">
-   <div class="error-icon"><mat-icon aria-hidden="true">cloud_off</mat-icon></div>
-   <div class="error-copy">
-    <h3>{{ loadFailedTitle() }}</h3>
-    <p>{{ t().homeSection.loadFailedBody }}</p>
-    <button type="button" class="retry-button" (click)="retrySection()" [attr.aria-label]="retryAria()"><mat-icon aria-hidden="true">refresh</mat-icon>{{ t().homeSection.retry }}</button>
-   </div>
-  </div>
- }@else if(isCatalogEmpty()){
-  <div class="section-empty" role="status">
-   <div class="error-icon"><mat-icon aria-hidden="true">inventory_2</mat-icon></div>
-   <div class="error-copy">
-    <h3>{{ emptyTitle() }}</h3>
-    <p>{{ t().homeSection.emptyBody }}</p>
-    @if(viewAllUrl()){<a class="retry-button empty-cta" [routerLink]="viewAllUrl()">{{ emptyCta() }} <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>}
-    @else{<button type="button" class="retry-button" (click)="retrySection()" [attr.aria-label]="retryAria()"><mat-icon aria-hidden="true">refresh</mat-icon>{{ t().homeSection.retry }}</button>}
-   </div>
-  </div>
- }@else if(renderer()==='PARTNER'){
+ @if(renderer()==='PARTNER'){
   <div class="partner">@if(profileImage()){<img [src]="profileImage()" [alt]="sectionTitle()"/>}<div><p class="kicker">{{sectionBadge(copy('partnerOwnersBadge'))}}</p><h2 [id]="section.sectionKey+'-title'">{{sectionTitle()}}</h2><p>{{sectionDescription(copy('partnerDescFallback'))}}</p></div><a class="primary" [routerLink]="internalCta('/list-your-car')">{{ctaLabel(copy('partnerCtaFallback'))}} <mat-icon>arrow_forward</mat-icon></a></div>
  }@else if(renderer()==='PROMO'){
   <div class="promo">@if(coverImage()){<div class="promo-media"><img [src]="coverImage()" [alt]="sectionTitle()"/></div>}<div class="promo-copy">@if(profileImage()){<img class="profile" [src]="profileImage()" [alt]="sectionTitle()"/>}<p class="kicker">{{sectionBadge(copy('promoFallbackBadge'))}}</p><h2 [id]="section.sectionKey+'-title'">{{sectionTitle()}}</h2><p>{{sectionDescription(copy('promoFallbackDescription'))}}</p>@if(ctaLabel('')&&internalCta('')){<a class="primary" [routerLink]="internalCta('')">{{ctaLabel('')}} <mat-icon>arrow_forward</mat-icon></a>}</div></div>
  }@else{
   <header class="head"><div>@if(profileImage()){<img class="profile" [src]="profileImage()" [alt]="sectionTitle()"/>}<p class="kicker">{{sectionBadge(defaultBadge())}}</p><h2 [id]="section.sectionKey+'-title'">{{sectionTitle()}}</h2>@if(sectionDescription(defaultDescription())){<p class="desc">{{sectionDescription(defaultDescription())}}</p>}</div>@if(viewAllUrl()){<a class="view" [routerLink]="viewAllUrl()">{{viewAllLabelLocalized()}} <mat-icon>arrow_forward</mat-icon></a>}</header>
+  <!-- v248: heading/description stay rendered in error & empty states; only the body degrades. -->
+  @if(layout.sectionHasError(section.sectionKey)&&!hasCatalogItems()){
+  <div class="section-error" role="alert">
+     <div class="error-icon"><mat-icon aria-hidden="true">cloud_off</mat-icon></div>
+     <div class="error-copy">
+      <h3>{{ loadFailedTitle() }}</h3>
+      <p>{{ t().homeSection.loadFailedBody }}</p>
+      <button type="button" class="retry-button" (click)="retrySection()" [attr.aria-label]="retryAria()"><mat-icon aria-hidden="true">refresh</mat-icon>{{ t().homeSection.retry }}</button>
+     </div>
+    </div>
+  }@else if(isCatalogEmpty()){
+  <div class="section-empty" role="status">
+     <div class="error-icon"><mat-icon aria-hidden="true">inventory_2</mat-icon></div>
+     <div class="error-copy">
+      <h3>{{ emptyTitle() }}</h3>
+      <p>{{ t().homeSection.emptyBody }}</p>
+      @if(viewAllUrl()){<a class="retry-button empty-cta" [routerLink]="viewAllUrl()">{{ emptyCta() }} <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>}
+      @else{<button type="button" class="retry-button" (click)="retrySection()" [attr.aria-label]="retryAria()"><mat-icon aria-hidden="true">refresh</mat-icon>{{ t().homeSection.retry }}</button>}
+     </div>
+    </div>
+  }@else{
   @if(section.sectionType==='VEHICLES'){<div class="rail" [class.grid]="isGrid()">@for(car of vehicles();track car.cloudId||car.id){<div class="vehicle"><app-vehicle-list-item [car]="car" [variant]="car.category==='SALE'?'sale':'rental'"></app-vehicle-list-item></div>}</div>}
   @if(section.sectionType==='TOURS'){<div class="rail" [class.grid]="isGrid()">@for(tour of tours();track tour.cloudId||tour.id){<a class="card tour-card" [routerLink]="['/tour',tour.cloudSlug||tour.cloudId||tour.id]" [attr.aria-label]="tourExploreAria(tour.title)"><div class="media tour-media">@if(tour.image){<img [src]="mediaUrl(tour.image)" [alt]="tour.title||copy('tourAlt')" loading="lazy" decoding="async"/>}@else{<span><mat-icon aria-hidden="true">landscape</mat-icon></span>}<div class="tour-badges">@if(tour.badge){<b>{{tour.badge}}</b>}@if(tour.isFeatured){<b>{{copy('featured')}}</b>}</div></div><div class="body tour-body"><div class="tour-meta">@if(tour.duration){<span><mat-icon aria-hidden="true">schedule</mat-icon>{{tour.duration}}</span>}@if(tour.locationName||tour.location){<span><mat-icon aria-hidden="true">location_on</mat-icon>{{tour.locationName||tour.location}}</span>}</div><h3>{{tour.title}}</h3><p>{{tour.shortDescription||tour.description||tour.location||copy('tourFallbackDescription')}}</p>@if(tourIncluded(tour).length){<div class="tour-included" [attr.aria-label]="copy('tourIncludedAria')"><small>{{copy('tourIncluded')}}</small>@for(item of tourIncluded(tour);track item){<span><mat-icon aria-hidden="true">check_circle</mat-icon>{{item}}</span>}</div>}<div class="tour-facts">@if(tour.capacity){<span><mat-icon aria-hidden="true">groups</mat-icon>{{capacityLabel(tour.capacity)}}</span>}@if(tour.price){<span class="tour-price"><small>{{copy('perPerson')}}</small><strong>{{formatPrice(tour.price)}}</strong></span>}</div><span class="text-link">{{copy('tourCardCtaLabel')}} <mat-icon aria-hidden="true">arrow_forward</mat-icon></span></div></a>}</div>}
   @if(section.sectionType==='BLOG'){<div class="rail" [class.grid]="isGrid()">@for(post of blogs();track post.cloudId){<a class="card" [routerLink]="['/blog',post.cloudSlug||post.cloudId]"><div class="media">@if(post.image){<img [src]="mediaUrl(post.image)" [alt]="post.title" loading="lazy" decoding="async"/>}@else{<span><mat-icon>article</mat-icon></span>}</div><div class="body"><h3>{{post.title}}</h3><p>{{post.summary}}</p><span class="text-link">{{copy('blogCardCtaLabel')}} <mat-icon>arrow_forward</mat-icon></span></div></a>}</div>}
   @if(section.sectionType==='CAMPAIGN'){<div class="rail campaign-rail" [class.grid]="isGrid()">@for(item of campaigns();track item.id){<article class="campaign"><button type="button" (click)="openCampaign(item)" [attr.aria-label]="campaignAriaLabel(item)"><div class="campaign-media">@if(campaignImage(item)){<img [src]="campaignImage(item)" [alt]="item.title" loading="lazy" decoding="async"/>}@else{<span><mat-icon>local_offer</mat-icon></span>}<div class="campaign-top"><b>{{campaignBadge(item.badge)}}</b>@if(item.discountPercent){<strong>%{{item.discountPercent}} {{copy('campaignDiscountSuffix')}}</strong>}</div>@if(item.endsAt){<em><mat-icon>schedule</mat-icon>{{campaignCountdown(item.endsAt)}}</em>}</div><div class="body"><p class="campaign-hook">{{campaignHook(item)}}</p><h3>{{item.title}}</h3><p>{{item.shortDescription||item.description||copy('campaignFallbackDescription')}}</p>@if(campaignProofLabel(item)){<small class="campaign-proof"><mat-icon>group</mat-icon>{{campaignProofLabel(item)}}</small>}@if(item.newPrice!=null){<div class="campaign-price">@if(item.oldPrice&&item.oldPrice>item.newPrice){<s>{{formatPrice(item.oldPrice)}}</s>}<strong>{{formatPrice(item.newPrice)}}</strong></div>}<span class="text-link">{{item.ctaLabel||copy('campaignCtaLabel')}} <mat-icon>arrow_forward</mat-icon></span></div></button></article>}</div>}
   @if(renderer()==='BRANCHES'){<div class="rail" [class.grid]="isGrid()">@for(branch of branches();track branch.id){<a class="branch" [routerLink]="branch.slug?['/branches',branch.slug]:['/branches']"><span><mat-icon>storefront</mat-icon></span><p class="kicker">{{branch.networkType==='FRANCHISE'?copy('branchFranchiseLabel'):copy('branchLocationLabel')}}</p><h3>{{branch.name}}</h3><p>{{branch.publicDescription||((branch.district||branch.city||'')+' '+copy('branchFallbackDescriptionSuffix'))}}</p><div class="branch-meta"><small>{{branch.city}} / {{branch.district}}</small>@if(branch.isPickupPoint){<small>{{copy('branchPickupLabel')}}</small>}@if(branch.isReturnPoint){<small>{{copy('branchReturnLabel')}}</small>}</div><strong>{{copy('branchCardCtaLabel')}} <mat-icon>arrow_forward</mat-icon></strong></a>}</div>@if(boolSetting('showPartnerCta',true)){<a class="partner-inline" [routerLink]="internalSettingRoute('partnerRoute','/branch-partner')"><span><mat-icon>add_business</mat-icon><b>{{copy('partnerCtaTitle')}}</b></span><strong>{{copy('partnerCtaLabel')}} <mat-icon>arrow_forward</mat-icon></strong></a>}}
+  }
   @if(viewAllUrl()){<a class="mobile-view" [routerLink]="viewAllUrl()">{{viewAllLabelLocalized()}} <mat-icon>arrow_forward</mat-icon></a>}
  }
  </div>
@@ -76,7 +79,8 @@ export class DynamicHomeSectionComponent implements OnInit{
  capacityLabel(n:unknown){return String(this.copy('capacityUpTo')||'').replace('{n}', String(n??''));}
  async retrySection(){await this.layout.refreshPublicState();}
 
- sectionTitle(){return this.ui.publicSectionChrome(this.section.sectionKey,this.section.sectionType,'title',this.section.title||'',String(this.setting('category','')));}
+ /** Title chain (never blank): admin/DB copy -> i18n pack (sections[key] / byType) -> type badge -> brand. */
+ sectionTitle(){const chrome=this.ui.publicSectionChrome(this.section.sectionKey,this.section.sectionType,'title',this.section.title||'',String(this.setting('category','')));return chrome||String(this.section.title||'').trim()||this.defaultBadge()||String(this.t().common?.siteBrandFallback||'Alperler Rent A Car');}
  sectionBadge(fallback=''){const admin=String(this.setting('badge',fallback)||'');return this.ui.publicSectionChrome(this.section.sectionKey,this.section.sectionType,'badge',admin,String(this.setting('category','')))||admin||fallback;}
  sectionDescription(fallback=''){const admin=String(this.setting('description',fallback)||'');return this.ui.publicSectionChrome(this.section.sectionKey,this.section.sectionType,'description',admin,String(this.setting('category','')))||admin||fallback;}
  viewAllLabelLocalized(){const admin=String(this.setting('viewAllLabel',this.copy('viewAllLabel'))||'');if(this.ui.currentLang()!=='TR'){const pack=String((this.t().homeSection as any)?.viewAllLabel||'').trim();if(pack)return pack;}return admin;}

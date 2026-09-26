@@ -12,6 +12,7 @@ import { CommercialOfferContextService } from "../services/commercial-offer-cont
 import { PublicDetailDataService } from "../services/public-detail-data.service";
 import { SeoService } from "../services/seo.service";
 import { UiService } from "../services/ui.service";
+import { resolvePublicWhatsappDigits } from "../services/public-contact-fallback";
 
 type DriverMode = "with" | "without" | "";
 
@@ -240,7 +241,7 @@ export class CarDetailComponent implements OnInit {
     const car=this.vehicle();
     if(!car)return;
     const config=this.carService.getConfig()();
-    const phone=String(config.whatsapp||config.phone||"").replace(/\D/g,"");
+    const phone=resolvePublicWhatsappDigits(config);
     if(!phone)return;
     const message=String(this.t().carDetail.whatsappPrefill||"")
       .replace("{brand}",String(car.brand||""))

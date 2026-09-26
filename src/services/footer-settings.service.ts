@@ -31,18 +31,36 @@ const DEFAULT_FOOTER_SETTINGS:FooterSettings={
 const DEFAULT_PREFOOTER:PrefooterSettings={isEnabled:true,badge:'Size Uygun Sonraki Adım',title:'Planınızı Birlikte Netleştirelim',description:'Araç kiralama, ikinci el araç, tur, transfer, randevu veya aracınızı değerlendirme konusunda hangi adımın size uygun olduğunu birlikte netleştirin.',primaryLabel:'Bize Ulaşın',primaryRoute:'/contact',secondaryLabel:'Randevu Oluştur',secondaryRoute:'/appointment',trustItems:['Kiralama, satış, tur ve transfer tek ekipte','WhatsApp ve telefon desteği','Güncel filo ve şube seçenekleriyle ihtiyacınıza net cevap'],showOnHome:true,showOnInner:true};
 
 
+/** Built-in mirror of the v174 footer_links seed. Used only when neither the DB nor a last-good snapshot is available. */
 const DEFAULT_PUBLIC_FOOTER_LINKS:FooterLink[]=[
-  {linkKey:'services.fleet',groupKey:'SERVICES',label:'Araç Kirala',actionType:'ROUTE',route:'/fleet',queryParams:{},sortOrder:10,isEnabled:true,opensNewTab:false,isSecondary:false},
-  {linkKey:'services.sales',groupKey:'SERVICES',label:'İkinci El',actionType:'ROUTE',route:'/sales',queryParams:{},sortOrder:20,isEnabled:true,opensNewTab:false,isSecondary:false},
-  {linkKey:'services.tours',groupKey:'SERVICES',label:'Turlar',actionType:'ROUTE',route:'/tours',queryParams:{},sortOrder:30,isEnabled:true,opensNewTab:false,isSecondary:false},
-  {linkKey:'services.branches',groupKey:'SERVICES',label:'Şubeler',actionType:'ROUTE',route:'/branches',queryParams:{},sortOrder:40,isEnabled:true,opensNewTab:false,isSecondary:false},
-  {linkKey:'services.appointment',groupKey:'SERVICES',label:'Randevu',actionType:'ROUTE',route:'/appointment',queryParams:{},sortOrder:50,isEnabled:true,opensNewTab:false,isSecondary:false},
-  {linkKey:'legal.privacy',groupKey:'LEGAL',label:'Gizlilik',actionType:'LEGAL',route:'/legal',queryParams:{type:'privacy'},sortOrder:10,isEnabled:true,opensNewTab:false,isSecondary:false},
-  {linkKey:'legal.terms',groupKey:'LEGAL',label:'Kullanım Koşulları',actionType:'LEGAL',route:'/legal',queryParams:{type:'terms'},sortOrder:20,isEnabled:true,opensNewTab:false,isSecondary:false},
-  {linkKey:'legal.cookies',groupKey:'LEGAL',label:'Çerez Politikası',actionType:'LEGAL',route:'/legal',queryParams:{type:'cookies'},sortOrder:30,isEnabled:true,opensNewTab:false,isSecondary:false},
-  {linkKey:'legal.kvkk',groupKey:'LEGAL',label:'KVKK',actionType:'LEGAL',route:'/legal',queryParams:{type:'kvkk'},sortOrder:40,isEnabled:true,opensNewTab:false,isSecondary:false},
-  {linkKey:'bottom.feedback',groupKey:'BOTTOM',label:'Geri Bildirim Gönder',actionType:'FEEDBACK',queryParams:{},sortOrder:10,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'services.rentals',groupKey:'SERVICES',label:'Kiralık Araçlar',actionType:'ROUTE',route:'/fleet',queryParams:{},sortOrder:10,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'services.sales',groupKey:'SERVICES',label:'Satılık Araçlar',actionType:'ROUTE',route:'/sales',queryParams:{},sortOrder:20,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'services.valuation',groupKey:'SERVICES',label:'Aracını Değerlendir',actionType:'ROUTE',route:'/list-your-car',queryParams:{},sortOrder:30,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'services.tours',groupKey:'SERVICES',label:'Turlar',actionType:'ROUTE',route:'/tours',queryParams:{},sortOrder:40,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'services.campaigns',groupKey:'SERVICES',label:'Kampanyalar',actionType:'ROUTE',route:'/campaigns',queryParams:{},sortOrder:50,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'services.branches',groupKey:'SERVICES',label:'Şubelerimiz',actionType:'ROUTE',route:'/branches',queryParams:{},sortOrder:60,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'services.appointment',groupKey:'SERVICES',label:'Randevu',actionType:'ROUTE',route:'/appointment',queryParams:{},sortOrder:70,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'corporate.about',groupKey:'CORPORATE',label:'Hakkımızda',actionType:'ROUTE',route:'/about',queryParams:{},sortOrder:10,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'corporate.blog',groupKey:'CORPORATE',label:'Blog',actionType:'ROUTE',route:'/blog',queryParams:{},sortOrder:20,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'corporate.contact',groupKey:'CORPORATE',label:'İletişim',actionType:'ROUTE',route:'/contact',queryParams:{},sortOrder:30,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'corporate.faq',groupKey:'CORPORATE',label:'Sık Sorulan Sorular',actionType:'ROUTE',route:'/faq',queryParams:{},sortOrder:40,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'corporate.branch_partner',groupKey:'CORPORATE',label:'Şube Başvurusu',actionType:'ROUTE',route:'/branch-partner',queryParams:{},sortOrder:50,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'corporate.feedback',groupKey:'CORPORATE',label:'Geri Bildirim Gönder',actionType:'FEEDBACK',queryParams:{},sortOrder:60,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'legal.rental',groupKey:'LEGAL',label:'Kiralama Koşulları',actionType:'LEGAL',route:'/legal',queryParams:{type:'rental'},sortOrder:10,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'legal.insurance',groupKey:'LEGAL',label:'Sigorta ve Sorumluluk',actionType:'LEGAL',route:'/legal',queryParams:{type:'insurance'},sortOrder:20,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'legal.cancellation',groupKey:'LEGAL',label:'İade ve İptal',actionType:'LEGAL',route:'/legal',queryParams:{type:'cancellation'},sortOrder:30,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'legal.kvkk',groupKey:'LEGAL',label:'KVKK Aydınlatma',actionType:'LEGAL',route:'/legal',queryParams:{type:'kvkk'},sortOrder:40,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'legal.privacy',groupKey:'LEGAL',label:'Gizlilik',actionType:'LEGAL',route:'/legal',queryParams:{type:'privacy'},sortOrder:50,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'legal.sales',groupKey:'LEGAL',label:'Satış ve İlan Koşulları',actionType:'LEGAL',route:'/legal',queryParams:{type:'sales'},sortOrder:60,isEnabled:true,opensNewTab:false,isSecondary:true},
+  {linkKey:'legal.tour',groupKey:'LEGAL',label:'Tur ve Transfer Koşulları',actionType:'LEGAL',route:'/legal',queryParams:{type:'tour'},sortOrder:70,isEnabled:true,opensNewTab:false,isSecondary:true},
+  {linkKey:'legal.partner',groupKey:'LEGAL',label:'Aracını Değerlendir Koşulları',actionType:'LEGAL',route:'/legal',queryParams:{type:'partner'},sortOrder:80,isEnabled:true,opensNewTab:false,isSecondary:true},
+  {linkKey:'legal.branch',groupKey:'LEGAL',label:'Şube ve Bayilik Koşulları',actionType:'LEGAL',route:'/legal',queryParams:{type:'branch'},sortOrder:90,isEnabled:true,opensNewTab:false,isSecondary:true},
+  {linkKey:'legal.commercial',groupKey:'LEGAL',label:'Bülten ve Ticari İleti',actionType:'LEGAL',route:'/legal',queryParams:{type:'commercial-communication'},sortOrder:100,isEnabled:true,opensNewTab:false,isSecondary:true},
+  {linkKey:'legal.terms',groupKey:'LEGAL',label:'Genel Kullanım Şartları',actionType:'LEGAL',route:'/legal',queryParams:{type:'terms'},sortOrder:110,isEnabled:true,opensNewTab:false,isSecondary:true},
+  {linkKey:'legal.cookies',groupKey:'LEGAL',label:'Çerez Politikası',actionType:'LEGAL',route:'/legal',queryParams:{type:'cookies'},sortOrder:120,isEnabled:true,opensNewTab:false,isSecondary:true},
 ];
+/** Stable @for track key for the single public Feedback CTA (label mapped in UiService.publicFooterLinkLabel). */
+const FEEDBACK_TRACK_KEY='corporate.feedback';
 @Injectable({providedIn:'root'})
 export class FooterSettingsService{
   private readonly auth=inject(AuthService);private readonly realtime=inject(PublicContentRealtimeService);private readonly destroyRef=inject(DestroyRef);private readonly endpoint='/api/partner?op=site-content-admin';
@@ -131,22 +149,34 @@ export class FooterSettingsService{
   private str(row:Record<string,unknown>,snake:string,camel:string,fallback:string){return String(row[snake]??row[camel]??fallback).trim()||fallback;}
   
 
-  /** Keep a durable BOTTOM FEEDBACK CTA across SWR/default swaps so the button node is not destroyed/recreated mid-interaction. */
+  /**
+   * Feedback CTA durability (v248).
+   * - The admin/DB placement wins: a FEEDBACK link stays in the group it was configured in
+   *   (e.g. corporate.feedback in the CORPORATE column). PR #247 forced every FEEDBACK link into
+   *   BOTTOM, which moved "Geri Bildirim Gönder" into the bottom-right corner under the WhatsApp FAB.
+   * - Only when no enabled FEEDBACK link exists is the default corporate.feedback CTA appended.
+   * - The track key is normalized (FEEDBACK_TRACK_KEY) so SWR/default swaps never recreate the node
+   *   inside the same group.
+   * - Non-FEEDBACK links (WhatsApp lives in contact pills + layout FAB) are never remapped.
+   */
   private stabilizePublicLinks(links:FooterLink[]):FooterLink[]{
     const feedbackDefault=DEFAULT_PUBLIC_FOOTER_LINKS.find(link=>link.actionType==='FEEDBACK')!;
-    const normalized=links.map(link=>{
-      if(link.actionType!=='FEEDBACK')return link;
-      return{...link,linkKey:feedbackDefault.linkKey,groupKey:'BOTTOM' as FooterLinkGroup,isEnabled:link.isEnabled!==false,label:String(link.label||feedbackDefault.label).trim()||feedbackDefault.label};
-    });
-    if(!normalized.some(link=>link.actionType==='FEEDBACK'&&link.isEnabled)){
-      normalized.push({...feedbackDefault});
+    const validGroups:FooterLinkGroup[]=['SERVICES','CORPORATE','LEGAL','BOTTOM'];
+    let feedbackSeen=false;
+    const normalized:FooterLink[]=[];
+    for(const link of links){
+      if(link.actionType!=='FEEDBACK'){normalized.push(link);continue;}
+      if(link.isEnabled===false||feedbackSeen)continue;
+      feedbackSeen=true;
+      normalized.push({...link,linkKey:FEEDBACK_TRACK_KEY,groupKey:validGroups.includes(link.groupKey)?link.groupKey:'BOTTOM',isEnabled:true,label:String(link.label||feedbackDefault.label).trim()||feedbackDefault.label});
     }
+    if(!feedbackSeen)normalized.push({...feedbackDefault});
     return normalized;
   }
 
   private restorePublicFooterSnapshot():void{
     const cached=readPublicSwr<{settings?:FooterSettings;links?:FooterLink[];prefooter?:PrefooterSettings}>('footer-public:snapshot',12*60*60*1000);
-    if(cached?.value?.settings) this._settings.set(cached.value.settings);
+    if(cached?.value?.settings) this._settings.set({...DEFAULT_FOOTER_SETTINGS,...cached.value.settings,showWhatsapp:cached.value.settings.showWhatsapp!==false,showFeedback:cached.value.settings.showFeedback!==false});
     if(cached?.value?.prefooter) this._prefooter.set(cached.value.prefooter);
     if(cached?.value?.links?.length) this._links.set(this.stabilizePublicLinks(cached.value.links));
     else if(!this._links().length) this._links.set(this.stabilizePublicLinks(DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l}))));

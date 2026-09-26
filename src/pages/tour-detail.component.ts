@@ -15,6 +15,7 @@ import { SeoService } from "../services/seo.service";
 import { UiService } from "../services/ui.service";
 import { TourBookingV170Service } from "../services/tour-booking-v170.service";
 import { TourDemandV170, TourDemandV170Service } from "../services/tour-demand-v170.service";
+import { resolvePublicWhatsappDigits } from "../services/public-contact-fallback";
 
 @Component({
   selector: "app-tour-detail",
@@ -209,7 +210,7 @@ export class TourDetailComponent implements OnInit {
     const item = this.tour();
     if (!item) return;
     const config = this.carService.getConfig()();
-    const phone = String(config.whatsapp || config.phone || "").replace(/\D/g, "");
+    const phone = resolvePublicWhatsappDigits(config);
     if (!phone) return;
     const title = String(item.title || this.t().tourDetail.titleFallback || "").trim();
     const message = String(this.t().tourDetail.whatsappPrefill || "")

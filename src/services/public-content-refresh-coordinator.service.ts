@@ -26,6 +26,8 @@ const CONFIG_CADENCE_MS = 5 * 60_000;
 const BRANCH_DIRECTORY_CADENCE_MS = 5 * 60_000;
 const FAILURE_RETRY_BASE_MS = 15_000;
 const MIN_TIMER_DELAY_MS = 80;
+const QUOTA_BACKOFF_MAX_MS = 15 * 60_000;
+const QUOTA_FAILURE_PATTERN = /\b(402|429)\b|PAYMENT_REQUIRED|QUOTA|EGRESS|BANDWIDTH|OVER_CAPACITY|kota/i;
 
 @Injectable({ providedIn: "root" })
 export class PublicContentRefreshCoordinatorService {
@@ -136,7 +138,10 @@ export class PublicContentRefreshCoordinatorService {
 
       results.forEach((result, index) => {
         const task = dueTasks[index];
-        if (result.status === "fulfilled") {
+        // HomepageLayoutService degrades in place (last-good/built-in sections) instead of rejecting;
+        // treat a degraded shell as a failure so it backs off instead of re-polling every cadence.
+        const degradedReason = result.status === "fulfilled" ? this.degradedReason(task.key) : "";
+        if (result.status === "fulfilled" && !degradedReason) {
           this.failureCounts.set(task.key, 0);
           delete failures[task.key];
           this.nextDueAt.set(task.key, completedAt + this.withJitter(task.cadenceMs));
@@ -146,9 +151,14 @@ export class PublicContentRefreshCoordinatorService {
         const count = (this.failureCounts.get(task.key) ?? 0) + 1;
         this.failureCounts.set(task.key, count);
         failures[task.key] = count;
-        const retryMs = Math.min(task.cadenceMs, FAILURE_RETRY_BASE_MS * 2 ** Math.min(count - 1, 3));
+        const reason = result.status === "rejected" ? result.reason : degradedReason;
+        // Quota / payment-required outages (Supabase Free egress, 402/429) will not recover in seconds:
+        // back off exponentially up to QUOTA_BACKOFF_MAX_MS instead of retrying every cadence (no retry storm).
+        const quota = QUOTA_FAILURE_PATTERN.test(String((reason as { message?: unknown })?.message ?? reason ?? ""));
+        const retryCap = quota ? Math.max(task.cadenceMs, QUOTA_BACKOFF_MAX_MS) : task.cadenceMs;
+        const retryMs = Math.min(retryCap, FAILURE_RETRY_BASE_MS * 2 ** Math.min(count - 1, quota ? 6 : 3));
         this.nextDueAt.set(task.key, completedAt + this.withJitter(retryMs));
-        console.info(`Public content refresh deferred for ${task.key}.`, result.reason);
+        console.info(`Public content refresh deferred for ${task.key}.`, reason);
       });
 
       this._state.update((value) => ({ ...value, lastCycleAt: completedAt, failures }));
@@ -174,6 +184,10 @@ export class PublicContentRefreshCoordinatorService {
       this.timer = undefined;
       void this.runCycle(false, "timer");
     }, delay);
+  }
+
+  private degradedReason(key: PublicRefreshTaskKey): string {
+    return key === "homepage" ? String(this.homepageLayout.error() || "") : "";
   }
 
   private startupOffsets(): Record<PublicRefreshTaskKey, number> {

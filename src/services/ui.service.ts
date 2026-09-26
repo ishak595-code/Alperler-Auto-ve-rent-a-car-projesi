@@ -3243,6 +3243,7 @@ export class UiService {
       "corporate.faq": links.faq || nav.faq,
       "corporate.branch_partner": links.branchPartner || nav.branchPartner,
       "corporate.feedback": links.feedback || t?.footer?.feedbackBtn,
+      "bottom.feedback": links.feedback || t?.footer?.feedbackBtn,
       "legal.rental": links.rental || links.terms,
       "legal.insurance": links.insurance,
       "legal.cancellation": links.cancellation,
@@ -3343,6 +3344,7 @@ export class UiService {
       if (packValue) return packValue;
       return admin; // unknown custom chrome without pack key
     }
+    // TR: prefer operator title when present; otherwise durable pack defaults so remounts never blank vitrin chrome.
     return admin || packValue;
   }
 

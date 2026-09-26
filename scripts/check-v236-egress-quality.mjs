@@ -40,7 +40,7 @@ must(branchPortal.includes("file.size > 10 * 1024 * 1024"),"legacy branch vehicl
 must(branchPortal.includes("\"cacheControl\", \"31536000\"")&&branchPortal.includes("uploadVehicleImageTus"),"legacy branch image reliable upload/cache hardening missing");
 must(branchPortalUi.includes(".slice(0, 30)"),"branch vehicle 30-photo gallery limit changed");
 
-must(catalogApi.includes('case "vehicles"')&&catalogApi.includes("public, max-age=0, s-maxage=30, stale-while-revalidate=120"),"vehicles catalog short CDN cache missing");
+must(catalogApi.includes('case "vehicles"')&&catalogApi.includes("public, max-age=0, s-maxage=30, stale-while-revalidate=600, stale-if-error=86400"),"vehicles catalog short CDN cache (+ bounded SWR and stale-if-error) missing");
 must(!/case\s+[\"']vehicles[\"']\s*:\s*return\s+[\"']no-store[\"']/.test(catalogApi),"vehicles catalog must not stay no-store");
 
 must(fs.existsSync("scripts/reprocess-catalog-media.mjs"),"catalog media reprocess script missing");

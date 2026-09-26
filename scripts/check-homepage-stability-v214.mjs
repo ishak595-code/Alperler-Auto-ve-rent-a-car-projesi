@@ -61,10 +61,34 @@ expect(read('src/services/catalog-admin-editor.service.ts').includes('is_active:
 expect(/kota|ödeme gerekli|402/i.test(read('src/services/catalog-admin-editor.service.ts')), 'Admin publish must surface Turkish quota/payment error');
 expect(read('src/services/public-json-swr.util.ts').includes('staleMs') && read('src/services/public-json-swr.util.ts').includes('localStorage'), 'public-json-swr util must provide localStorage SWR');
 
+// v248: WhatsApp + Feedback coexist in bottom chrome, durable home copy, quota-safe caching
+const footerSvc = read('src/services/footer-settings.service.ts');
+const footerUi = read('src/components/customer-footer-v70.component.ts');
+const carSvc = read('src/services/car.service.ts');
+const contactFallback = read('src/services/public-contact-fallback.ts');
+const sectionUi = read('src/components/dynamic-home-section.component.ts');
+const catalogApi = read('api/catalog.ts');
+const branchesApi = read('api/branches.ts');
+expect(mainLayout.includes('whatsappFabVisible()') && mainLayout.includes('data-chrome="whatsapp-fab"'), 'WhatsApp FAB must remain a dedicated bottom-chrome control');
+expect(mainLayout.includes("this.footer.settings().showWhatsapp!==false"), 'WhatsApp FAB must only hide when footer showWhatsapp is explicitly false');
+expect(mainLayout.includes('resolvePublicWhatsappDigits('), 'WhatsApp FAB number must not depend on a successful site_config read');
+expect(!mainLayout.includes('15000'), 'WhatsApp FAB must not wait 15s before becoming visible');
+expect(/PUBLIC_WHATSAPP_FALLBACK_DIGITS = "\d{11,13}"/.test(contactFallback) && contactFallback.split('\n').some((line) => line.trim().startsWith('return `https://wa.me/${safeDigits}?text=')), 'Public contact fallback must provide a wa.me target');
+expect(footerUi.includes('resolvePublicWhatsappDigits(') && footerUi.includes('buildPublicWhatsappHref('), 'Footer WhatsApp pill must use the shared durable WhatsApp resolver');
+expect(footerSvc.includes("link.actionType!=='FEEDBACK'") && !footerSvc.includes("groupKey:'BOTTOM' as FooterLinkGroup"), 'Feedback normalization must keep the admin placement and never remap non-FEEDBACK links');
+expect(footerSvc.includes("{linkKey:'corporate.feedback',groupKey:'CORPORATE'"), 'Default footer must keep Feedback in its seeded CORPORATE place');
+expect(carSvc.includes('SITE_CONFIG_SNAPSHOT_KEY') && carSvc.includes('restoreConfigSnapshot') && carSvc.includes('throw error;'), 'Site config must keep a last-good snapshot and still surface failures');
+expect(layout.includes('DEFAULT_HOMEPAGE_SECTIONS') && layout.includes('usingBuiltInSections'), 'Homepage must fall back to built-in vitrin sections when DB and snapshot are unavailable');
+expect(!layout.includes('mergeSectionsWithLastGood'), 'Fresh homepage data is authoritative; stale copy must not be merged into it');
+expect(sectionUi.includes('layout.sectionHasError(section.sectionKey)&&!hasCatalogItems()'), 'Section heading/description must stay rendered while the body shows the degraded state');
+expect(coordinator.includes('QUOTA_BACKOFF_MAX_MS') && coordinator.includes('degradedReason('), 'Refresh coordinator must back off on quota/degraded shells (no retry storm)');
+expect(catalogApi.includes('stale-if-error=86400') && catalogApi.includes('s-maxage=30') && catalogApi.includes('"retry-after"'), 'Catalog CDN responses must keep s-maxage=30 plus stale-if-error, failures must send Retry-After');
+expect(branchesApi.includes('stale-if-error=86400') && branchesApi.includes('"retry-after"'), 'Branches CDN responses must advertise stale-if-error and Retry-After');
+
 if (failures.length) {
-  console.error('V214/V247 homepage stability contract failed:');
+  console.error('V214/V247/V248 homepage stability contract failed:');
   failures.forEach((failure) => console.error(`- ${failure}`));
   process.exit(1);
 }
 
-console.log('V214/V247 homepage stability contract passed.');
+console.log('V214/V247/V248 homepage stability contract passed.');

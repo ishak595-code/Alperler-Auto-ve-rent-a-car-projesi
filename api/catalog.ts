@@ -86,25 +86,47 @@ function sanitizedMetadata(input: unknown, excluded: Set<string>, legacyId: numb
 
 function publicCache(resource: Resource): string {
   switch (resource) {
-    // Browser: no long cache. CDN: short fresh window + long SWR/stale-if-error so
-    // Free Supabase 402/503 cannot wipe a previously good catalog/config response.
+    // Yönetim panelinden yayınlanan içerik en geç ~30 sn içinde vitrine yansır (s-maxage=30).
+    // Browser: no cache. CDN: short fresh window, bounded background revalidation (10 dk) and
+    // stale-if-error (24 sa) so a Supabase quota/5xx outage serves the last good response
+    // instead of wiping the public catalog/config.
     case "vehicles":
     case "tours":
     case "blog":
     case "faqs":
     case "config":
-      return "public, max-age=0, s-maxage=60, stale-while-revalidate=86400, stale-if-error=86400";
+      return "public, max-age=0, s-maxage=30, stale-while-revalidate=600, stale-if-error=86400";
   }
 }
 
-function response(body: unknown, status = 200, cache = "no-store"): Response {
+function response(body: unknown, status = 200, cache = "no-store", extraHeaders: Record<string, string> = {}): Response {
   return Response.json(body, {
     status,
     headers: {
       "cache-control": cache,
       "content-type": "application/json; charset=utf-8",
+      ...extraHeaders,
     },
   });
+}
+
+/**
+ * Public read failure. Always 503 (never cached, never a 4xx) so the CDN's stale-if-error can
+ * keep serving the last good response; the machine code still says whether it is a quota/payment
+ * outage. Retry-After tells clients not to hammer a quota-limited origin.
+ */
+function publicUnavailable(resource: Resource, quota: boolean): Response {
+  return response(
+    {
+      ok: false,
+      code: quota ? "CATALOG_QUOTA_PAYMENT_REQUIRED" : "CATALOG_SOURCE_UNAVAILABLE",
+      resource,
+      message: quota ? "Supabase ücretsiz kota / ödeme gerekli." : undefined,
+    },
+    503,
+    "no-store",
+    { "retry-after": quota ? "600" : "60" },
+  );
 }
 
 async function rest(path: string, init: RequestInit = {}, authorization?: string | null): Promise<Response> {
@@ -140,7 +162,7 @@ async function readAllRows(path: string): Promise<any[]> {
     }).catch(() => null);
 
     if (upstream?.status === 416 && start > 0) break;
-    if (!upstream?.ok) throw new Error("CATALOG_SOURCE_UNAVAILABLE");
+    if (!upstream?.ok) throw new Error(upstream?.status === 402 || upstream?.status === 429 ? "CATALOG_QUOTA_PAYMENT_REQUIRED" : "CATALOG_SOURCE_UNAVAILABLE");
 
     const pageRows = await upstream.json();
     const list = Array.isArray(pageRows) ? pageRows : [];
@@ -255,7 +277,7 @@ function faqFromRow(row: any): Record<string, unknown> {
 async function getPublic(resource: Resource): Promise<Response> {
   if (resource === "config") {
     const upstream = await rest("site_config?key=eq.site_settings&is_public=eq.true&select=value,updated_at&limit=1").catch(() => null);
-    if (!upstream?.ok) return response({ ok: false, code: upstream?.status === 402 ? "CATALOG_QUOTA_PAYMENT_REQUIRED" : "CATALOG_SOURCE_UNAVAILABLE", resource, message: upstream?.status === 402 ? "Supabase ücretsiz kota / ödeme gerekli." : undefined }, upstream?.status === 402 ? 402 : 503);
+    if (!upstream?.ok) return publicUnavailable(resource, upstream?.status === 402 || upstream?.status === 429);
     const rows = await upstream.json();
     const value = Array.isArray(rows) && rows[0]?.value ? rows[0].value : null;
     return response({ ok: true, resource, value }, 200, publicCache(resource));
@@ -289,7 +311,8 @@ async function getPublic(resource: Resource): Promise<Response> {
     return response({ ok: true, resource, records: rows.map(map) }, 200, publicCache(resource));
   } catch (error) {
     const code = error instanceof Error ? error.message : "CATALOG_SOURCE_UNAVAILABLE";
-    return response({ ok: false, code, resource }, code === "CATALOG_PUBLIC_PAGE_LIMIT_REACHED" ? 507 : 503);
+    if (code === "CATALOG_PUBLIC_PAGE_LIMIT_REACHED") return response({ ok: false, code, resource }, 507);
+    return publicUnavailable(resource, code === "CATALOG_QUOTA_PAYMENT_REQUIRED");
   }
 }
 

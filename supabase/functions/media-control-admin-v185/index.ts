@@ -145,7 +145,8 @@ async function readBody(request: Request): Promise<JsonObject> {
 }
 async function drainMediaCleanup(limit = 20): Promise<CleanupSummary> {
   const safeLimit = Math.max(1, Math.min(50, Math.trunc(limit)));
-  const response = await rest(`media_cleanup_jobs_v198?status=eq.PENDING&completed_at=is.null&select=id,storage_bucket,object_path,attempts&order=created_at.asc&limit=${safeLimit}`);
+  // V249: Cloudinary jobs (storage_bucket=cloudinary) are drained by /api/partner?op=cloudinary (signed destroy).
+  const response = await rest(`media_cleanup_jobs_v198?storage_bucket=eq.catalog-media&status=eq.PENDING&completed_at=is.null&select=id,storage_bucket,object_path,attempts&order=created_at.asc&limit=${safeLimit}`);
   if (!response.ok) throw new Error(`MEDIA_CLEANUP_LIST_${response.status}`);
   const jobs = await response.json().catch(() => []) as CleanupJob[];
   let completed = 0;

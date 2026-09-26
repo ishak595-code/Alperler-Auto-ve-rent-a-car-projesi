@@ -53,6 +53,8 @@ function buildRuntimeEnvJs():string{
   const origin=configuredPublicOrigin()||vercelProductionOrigin()||vercelDeploymentOrigin()||"";
   const env:Record<string,string>={NODE_ENV:process.env.NODE_ENV||"production"};
   if(origin){env.APP_PUBLIC_ORIGIN=origin;env.PUBLIC_APP_URL=origin;}
+  const cloudinaryCloudName=String(process.env.CLOUDINARY_CLOUD_NAME||"").trim();
+  if(/^[A-Za-z0-9_-]{1,64}$/.test(cloudinaryCloudName))env.CLOUDINARY_CLOUD_NAME=cloudinaryCloudName;
   return `window.process = Object.assign({}, window.process, { env: Object.assign({}, (window.process && window.process.env) || {}, ${JSON.stringify(env)}) });\n`;
 }
 

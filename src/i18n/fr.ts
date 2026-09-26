@@ -3,6 +3,12 @@
  * Lazy-loaded on demand — kept out of the initial bundle.
  */
 export default {
+      mediaUpload: {
+        imageTooLarge: "Les photos ne doivent pas dépasser {max} Mo. Veuillez choisir une photo plus petite.",
+        videoTooLarge: "Les vidéos ne doivent pas dépasser {max} Mo. Veuillez choisir une vidéo plus courte ou compressée.",
+        uploadFailed: "Le média n’a pas pu être envoyé vers le stockage cloud. Vérifiez votre connexion et réessayez.",
+        signatureFailed: "L’autorisation d’envoi n’a pas pu être obtenue. Actualisez votre session et réessayez.",
+      },
       nav: {
         home: "Accueil",
         fleet: "Flotte",

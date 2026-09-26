@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, Injector, inject } from '@angular/core';
 import { adminFetch } from "./admin-fetch";
 import { mediaRejectionReason } from "./media-file.util";
 import {
@@ -8,6 +8,9 @@ import {
 } from "./catalog-image-optimize.util";
 import { AuthService } from './auth.service';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
+import { CloudinarySizeError, CloudinaryUnavailableError, CloudinaryUploadService } from './cloudinary-upload.service';
+import { UiService } from './ui.service';
+import { CLOUDINARY_IMAGE_MAX_BYTES, CLOUDINARY_STORAGE_BUCKET, cloudinaryImageUrl } from '../utils/cloudinary-media';
 
 export interface AdminMediaUploadResult {
   bucket: string;
@@ -29,6 +32,8 @@ const HOMEPAGE_BACKGROUND_QUALITIES = [0.82, 0.74, 0.66, 0.58] as const;
 @Injectable({ providedIn: 'root' })
 export class AdminMediaService {
   private readonly auth = inject(AuthService);
+  private readonly cloudinary = inject(CloudinaryUploadService);
+  private readonly injector = inject(Injector);
   private readonly bucket = 'catalog-media';
   /** Depolama kovası tavanı (V246). Katalog görselleri WebP/JPEG sıkıştırılır. */
   private readonly maxImageBytes = CATALOG_STORAGE_BUCKET_MAX_BYTES;
@@ -55,6 +60,17 @@ export class AdminMediaService {
 
     const token = await this.auth.getAccessToken();
     if (!token) throw new Error('ADMIN_SESSION_REQUIRED');
+
+    // V249: env-gated Cloudinary path. Campaign covers stay on Supabase Storage because the
+    // campaign cover binding trigger (v199) parses Supabase object paths.
+    if (this.cloudinary.isEnabled() && String(entityType || '').toUpperCase() !== 'CAMPAIGN') {
+      try {
+        return await this.uploadImageToCloudinary(file, uploadFile, entityType, entityId, purpose, token, options);
+      } catch (error) {
+        if (!(error instanceof CloudinaryUnavailableError)) throw error;
+        console.warn('[AdminMedia] Cloudinary unavailable, falling back to Supabase Storage:', error.code);
+      }
+    }
 
     const extension = this.extensionFor(uploadFile);
     const safeType = this.cleanSegment(entityType || 'content');
@@ -119,6 +135,106 @@ export class AdminMediaService {
     return { bucket: this.bucket, objectPath, publicUrl };
   }
 
+  private async uploadImageToCloudinary(
+    originalFile: File,
+    uploadFile: File,
+    entityType: string,
+    entityId: string,
+    purpose: string,
+    token: string,
+    options: { alreadyOptimized?: boolean },
+  ): Promise<AdminMediaUploadResult> {
+    if (uploadFile.size > CLOUDINARY_IMAGE_MAX_BYTES) throw new Error(this.uiText('imageTooLarge', 10));
+    let signed;
+    try {
+      signed = await this.cloudinary.sign(token, {
+        scope: 'admin',
+        entityType: String(entityType || 'content'),
+        entityId: String(entityId || 'draft'),
+        purpose: String(purpose || 'image'),
+        resourceType: 'image',
+        bytes: uploadFile.size,
+      });
+    } catch (error) {
+      if (error instanceof CloudinarySizeError) throw new Error(this.uiText('imageTooLarge', 10));
+      if (error instanceof CloudinaryUnavailableError) throw error;
+      throw new Error(`${this.uiText('signatureFailed')} (${error instanceof Error ? error.message : 'SIGN'})`);
+    }
+    let uploaded;
+    try {
+      uploaded = await this.cloudinary.upload(uploadFile, signed);
+    } catch (error) {
+      if (error instanceof CloudinarySizeError) throw new Error(this.uiText('imageTooLarge', 10));
+      throw new Error(`${this.uiText('uploadFailed')} (${error instanceof Error ? error.message : 'UPLOAD'})`);
+    }
+    const width = String(entityType || '').toUpperCase() === 'HOMEPAGE_SECTION' && purpose === 'background' ? 1920 : 1440;
+    const publicUrl = cloudinaryImageUrl(uploaded.cloudName, uploaded.publicId, width);
+    const safePurpose = this.cleanSegment(purpose || 'image');
+    try {
+      const asset = await adminFetch('/api/partner?op=media-control-admin', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+          accept: 'application/json',
+          'x-request-id': crypto.randomUUID(),
+        },
+        body: JSON.stringify({
+          action: 'REGISTER_MEDIA_ASSET',
+          payload: {
+            bucket: CLOUDINARY_STORAGE_BUCKET,
+            object_path: uploaded.publicId,
+            media_type: 'IMAGE',
+            entity_type: String(entityType || 'CONTENT').slice(0, 80),
+            entity_id: String(entityId || 'draft').slice(0, 180),
+            alt_text: originalFile.name.slice(0, 180),
+            metadata: {
+              purpose: safePurpose,
+              originalName: originalFile.name.slice(0, 180),
+              size: uploadFile.size,
+              originalSize: originalFile.size,
+              mimeType: uploadFile.type,
+              bindingState: 'BOUND',
+              registeredAt: new Date().toISOString(),
+              optimizedForHomepage: entityType === 'HOMEPAGE_SECTION' && purpose === 'background',
+              optimized: options.alreadyOptimized || uploadFile !== originalFile,
+              storageProvider: CLOUDINARY_STORAGE_BUCKET,
+              publicUrl,
+              cloudinary: { cloudName: uploaded.cloudName, resourceType: 'image', version: uploaded.version ?? null, format: uploaded.format ?? null, bytes: uploaded.bytes ?? uploadFile.size },
+            },
+          },
+        }),
+      });
+      const payload = await asset.json().catch(() => ({})) as { ok?: boolean; code?: string };
+      if (!asset.ok || payload.ok !== true) throw new Error(payload.code || `MEDIA_ASSET_${asset.status}`);
+    } catch (error) {
+      await this.cloudinary.destroy(token, uploaded.publicId, 'image').catch(() => undefined);
+      // V249 migration not applied yet → the DB only accepts catalog-media assets; fall back.
+      if (error instanceof Error && error.message === 'INVALID_MEDIA_ASSET_STORAGE') {
+        throw new CloudinaryUnavailableError('CLOUDINARY_DB_MIGRATION_PENDING');
+      }
+      throw error;
+    }
+    return { bucket: CLOUDINARY_STORAGE_BUCKET, objectPath: uploaded.publicId, publicUrl };
+  }
+
+  private uiText(key: 'imageTooLarge' | 'uploadFailed' | 'signatureFailed', max?: number): string {
+    const fallback: Record<string, string> = {
+      imageTooLarge: 'Fotoğraf en fazla {max} MB olabilir. Lütfen daha küçük bir fotoğraf seçin.',
+      uploadFailed: 'Medya bulut depolamaya yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.',
+      signatureFailed: 'Yükleme izni alınamadı. Oturumunuzu yenileyip tekrar deneyin.',
+    };
+    let template = fallback[key];
+    try {
+      const translations = this.injector.get(UiService).translations() as { mediaUpload?: Record<string, string> };
+      template = String(translations?.mediaUpload?.[key] || template);
+    } catch {
+      // UiService unavailable → Turkish default.
+    }
+    return template.replace('{max}', max === undefined ? '' : String(max));
+  }
+
   async drainCleanup(limit = 30): Promise<AdminMediaCleanupResult> {
     const token = await this.auth.getAccessToken();
     if (!token) throw new Error('ADMIN_SESSION_REQUIRED');
@@ -135,11 +251,21 @@ export class AdminMediaService {
     });
     const payload = await response.json().catch(() => ({})) as { ok?: boolean; code?: string; cleanup?: Partial<AdminMediaCleanupResult> };
     if (!response.ok || payload.ok !== true) throw new Error(payload.code || `MEDIA_CLEANUP_${response.status}`);
-    return {
+    const result = {
       attempted: Number(payload.cleanup?.attempted || 0),
       completed: Number(payload.cleanup?.completed || 0),
       pending: Number(payload.cleanup?.pending || 0),
     };
+    // V249: also drain queued Cloudinary deletions (server-side signed destroy). Best effort.
+    if (this.cloudinary.isEnabled()) {
+      const extra = await this.cloudinary.drainCleanup(token, Math.max(1, Math.min(25, Math.trunc(limit)))).catch(() => null);
+      if (extra) {
+        result.attempted += extra.attempted;
+        result.completed += extra.completed;
+        result.pending += extra.pending;
+      }
+    }
+    return result;
   }
 
   private async uploadStandard(file: File, encodedPath: string, token: string): Promise<void> {

@@ -3,6 +3,12 @@
  * Lazy-loaded on demand — kept out of the initial bundle.
  */
 export default {
+      mediaUpload: {
+        imageTooLarge: "Photos can be at most {max} MB. Please choose a smaller photo.",
+        videoTooLarge: "Videos can be at most {max} MB. Please choose a shorter or compressed video.",
+        uploadFailed: "The media could not be uploaded to cloud storage. Check your connection and try again.",
+        signatureFailed: "Upload permission could not be obtained. Refresh your session and try again.",
+      },
       nav: {
         home: "Home",
         fleet: "Fleet",

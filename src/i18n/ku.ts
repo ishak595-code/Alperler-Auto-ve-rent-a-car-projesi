@@ -3,6 +3,12 @@
  * Lazy-loaded on demand — kept out of the initial bundle.
  */
 export default {
+      mediaUpload: {
+        imageTooLarge: "Wêne herî zêde dikare {max} MB be. Ji kerema xwe wêneyekî piçûktir hilbijêrin.",
+        videoTooLarge: "Vîdyo herî zêde dikare {max} MB be. Ji kerema xwe vîdyoyeke kurttir an pêçayî hilbijêrin.",
+        uploadFailed: "Medya nehat barkirin bo embara ewrê. Girêdana xwe kontrol bikin û dîsa biceribînin.",
+        signatureFailed: "Destûra barkirinê nehat wergirtin. Danişîna xwe nû bikin û dîsa biceribînin.",
+      },
       nav: { home: "Malper", fleet: "Fîloya Wesayîtan", sales: "Firotina Destê Duyem", tours: "Tûr", earn: "Wesayîta Xwe Nirxîne", about: "Derbarê Me", contact: "Têkilî", blog: "Blog", corporate: "Korporatîf",
         campaigns: "Kampanya",
         appointment: "Randevû",

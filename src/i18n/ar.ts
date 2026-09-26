@@ -3,6 +3,12 @@
  * Lazy-loaded on demand — kept out of the initial bundle.
  */
 export default {
+      mediaUpload: {
+        imageTooLarge: "يجب ألا يتجاوز حجم الصورة {max} ميغابايت. يرجى اختيار صورة أصغر.",
+        videoTooLarge: "يجب ألا يتجاوز حجم الفيديو {max} ميغابايت. يرجى اختيار فيديو أقصر أو مضغوط.",
+        uploadFailed: "تعذّر رفع الوسائط إلى التخزين السحابي. تحقّق من اتصالك وحاول مرة أخرى.",
+        signatureFailed: "تعذّر الحصول على إذن الرفع. يرجى تحديث الجلسة والمحاولة مرة أخرى.",
+      },
       nav: {
         home: "الرئيسية",
         fleet: "الأسطول",

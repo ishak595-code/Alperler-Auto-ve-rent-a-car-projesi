@@ -32,7 +32,9 @@ app-navbar .brand-lockup::before {
 app-navbar .brand-lockup > .brand-mark,
 app-navbar .brand-lockup > .brand-copy { display: none !important; }
 @media (min-width: 1280px) {
-  app-navbar .brand-lockup::before { width: 270px; height: 70px; }
+  /* 1200x520 logo in a 70px-high box renders ~162px wide; a tighter box keeps the same logo size
+     while giving the desktop link row room (V250). */
+  app-navbar .brand-lockup::before { width: 172px; height: 70px; background-position: left center; }
 }
 
 /* Customer account chrome must stay connected to the admin-managed palette even when component CSS contains safe fallbacks. */

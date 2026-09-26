@@ -42,17 +42,15 @@
  *   --report=path.json      report file (default media-migration-<timestamp>.json)
  *   --rollback=file.json    revert rows/URLs from a report (entries whose source was NOT deleted)
  *
- * Env: SUPABASE_PROJECT_URL, SUPABASE_SERVICE_ROLE_KEY, plus the target provider's variables:
+ * Env (process environment; e.g. `node --env-file=.env scripts/migrate-media.mjs`):
+ *   SUPABASE_PROJECT_URL, SUPABASE_SERVICE_ROLE_KEY, plus the target provider's variables:
  *   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_BASE_URL
  *   or CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
  */
 
-import "dotenv/config";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import { resolveMediaProviderFromEnv } from "./media-provider-env.mjs";
 import { awsEncode, signR2Request } from "./r2-sigv4.mjs";
 
@@ -179,23 +177,18 @@ function r2Target() {
     }
     return { width, height };
   }
-  async function posterBytes(videoBytes, posterUrl) {
+  async function posterBytes(videoUrl, posterUrl) {
     if (posterUrl) {
       try { return await downloadUrl(posterUrl); } catch (error) { console.warn(`   ! poster download failed (${error.message}); extracting a frame`); }
     }
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "media-poster-"));
     try {
-      const input = path.join(dir, "in.bin");
-      const output = path.join(dir, "poster.jpg");
-      fs.writeFileSync(input, videoBytes);
-      execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-ss", "1", "-i", input, "-frames:v", "1", "-q:v", "3", output], { timeout: 120_000 });
-      return fs.readFileSync(output);
+      // ffmpeg reads the just-uploaded video through the public Worker (range requests) and writes
+      // the frame to stdout — nothing downloaded is written to the local filesystem.
+      return execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-ss", "1", "-i", videoUrl, "-frames:v", "1", "-q:v", "3", "-f", "image2pipe", "-c:v", "mjpeg", "pipe:1"], { timeout: 120_000, maxBuffer: 32 * 1024 * 1024 });
     } catch {
       console.warn("   ! ffmpeg frame extraction unavailable — neutral poster used");
       const s = await sharp();
       return s({ create: { width: 1920, height: 1080, channels: 3, background: "#0f172a" } }).jpeg().toBuffer();
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
     }
   }
   return {
@@ -209,7 +202,7 @@ function r2Target() {
       let size;
       if (kind === "VIDEO") {
         await put(`${stem}/video.${ext}`, source.bytes, contentType);
-        size = await variants(stem, await posterBytes(source.bytes, posterUrl));
+        size = await variants(stem, await posterBytes(`${base}/${stem}/video.${ext}`, posterUrl));
       } else {
         size = await variants(stem, source.bytes);
         await put(`${stem}/orig.${ext}`, source.bytes, contentType);

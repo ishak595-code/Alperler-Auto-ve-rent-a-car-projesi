@@ -10,6 +10,7 @@ import fs from "node:fs";
 const read = (path) => fs.readFileSync(path, "utf8");
 const failures = [];
 const must = (ok, message) => { if (!ok) failures.push(message); };
+const hardcodesSiteDomain = (text) => text.toLowerCase().includes(["alperler", "com"].join("."));
 const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(`${dir}/${e.name}`) : [`${dir}/${e.name}`]);
 
 const r2 = read("api/_lib/r2.ts");
@@ -33,7 +34,7 @@ must(server.includes("MEDIA_PROVIDER") && !/R2_(SECRET_ACCESS_KEY|ACCESS_KEY_ID)
 for (const file of walk("src").filter((f) => /\.(ts|html|js)$/.test(f))) {
   const source = read(file);
   if (/R2_SECRET_ACCESS_KEY|R2_ACCESS_KEY_ID|X-Amz-Credential=/.test(source)) failures.push(`browser source must never reference R2 credentials: ${file}`);
-  if (/alperler\.com/i.test(source) && /r2|media/i.test(file)) failures.push(`media code must not hardcode a domain: ${file}`);
+  if (hardcodesSiteDomain(source) && /r2|media/i.test(file)) failures.push(`media code must not hardcode a domain: ${file}`);
 }
 
 // 2. Upload endpoint: authenticated, validated, presigned (never proxies bytes through Vercel).
@@ -77,7 +78,7 @@ const wrangler = read("workers/media/wrangler.toml");
 must(/\[\[r2_buckets\]\][\s\S]*binding\s*=\s*"MEDIA_BUCKET"/.test(wrangler) && /workers_dev\s*=\s*true/.test(wrangler), "wrangler.toml must bind MEDIA_BUCKET and serve on workers.dev");
 must(wrangler.includes("immutable") || worker.includes("immutable"), "Worker must send immutable cache headers");
 must(/GET|HEAD/.test(worker) && worker.includes("405"), "Worker must be read-only");
-must(!/alperler\.com/i.test(worker + wrangler), "Worker must not hardcode a domain");
+must(!hardcodesSiteDomain(worker + wrangler), "Worker must not hardcode a domain");
 must(/^workers\/$/m.test(read(".vercelignore")), ".vercelignore must exclude workers/");
 for (const file of walk(".github").filter((f) => /\.ya?ml$/.test(f))) must(!/wrangler\s+deploy/.test(read(file)), `CI must not deploy the Worker: ${file}`);
 
@@ -91,7 +92,7 @@ if (fs.existsSync(migration)) {
   must(sql.includes("public.can_upload_media_v252") && /grant execute on function public\.can_upload_media_v252[^;]*to authenticated/i.test(sql), "can_upload_media_v252 must be callable by authenticated users");
   must(sql.includes("public.service_rebase_r2_media_v252") && /grant execute on function public\.service_rebase_r2_media_v252[^;]*to service_role/i.test(sql), "custom-domain rebase must be service_role only");
   must(!/grant[^;]*service_rebase_r2_media_v252[^;]*to\s+(anon|authenticated)/i.test(sql), "rebase must never be granted to anon/authenticated");
-  must(!/alperler\.com/i.test(sql), "migration must not hardcode a domain");
+  must(!hardcodesSiteDomain(sql), "migration must not hardcode a domain");
 }
 const script = read("scripts/migrate-media.mjs");
 must(script.includes('const APPLY = hasFlag("apply");') && script.includes('hasFlag("delete-source")'), "migration must be dry-run by default with --apply/--delete-source");

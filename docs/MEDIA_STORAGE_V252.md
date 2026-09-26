@@ -55,7 +55,7 @@ signed URLs, RLS by user).
 
 ```bash
 npm i --no-save sharp            # R2 target needs sharp for the fixed widths; ffmpeg for video posters
-node scripts/migrate-media.mjs                      # dry-run (default), active provider (R2 preferred)
+node --env-file=.env scripts/migrate-media.mjs      # dry-run (default), active provider (R2 preferred)
 node scripts/migrate-media.mjs --apply              # copy + rewrite rows (sources kept)
 node scripts/migrate-media.mjs --apply --delete-source
 node scripts/migrate-media.mjs --provider=cloudinary   # or scripts/migrate-media-to-cloudinary.mjs

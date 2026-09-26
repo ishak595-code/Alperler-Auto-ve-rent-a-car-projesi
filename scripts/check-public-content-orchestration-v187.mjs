@@ -40,8 +40,8 @@ for (const required of [
   'key: "config"',
   'key: "homepage"',
   'key: "branches"',
-  "ACTIVE_CONTENT_CADENCE_MS = 60_000",
-  "BRANCH_DIRECTORY_CADENCE_MS = 5 * 60_000",
+  "ACTIVE_CONTENT_CADENCE_MS = 30 * 60_000",
+  "BRANCH_DIRECTORY_CADENCE_MS = 60 * 60_000",
   "Promise.allSettled",
   "window.setTimeout",
   "document.visibilityState",
@@ -97,7 +97,8 @@ for (const forbidden of ["setInterval", "visibilitychange", "SUPABASE_PROJECT_UR
   if (dynamic.includes(forbidden)) fail(`dynamic section component regained transport/timer ownership: ${forbidden}`);
 }
 
-if (!realtime.includes("postgres_changes")) fail("event-driven realtime must remain active while polling is only fallback reconciliation");
+if (!realtime.includes("postgres_changes")) fail("event-driven realtime must remain available on staff surfaces");
+if (!realtime.includes("REALTIME_PATH_PREFIXES") || !realtime.includes("realtimeAllowed()")) fail("V253: the realtime socket must stay limited to staff routes (no socket per public tab)");
 if (!realtime.includes("branches")) fail("public realtime table set must retain branch directory updates");
 
 if (!process.exitCode) {

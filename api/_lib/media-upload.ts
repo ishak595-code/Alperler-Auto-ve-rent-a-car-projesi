@@ -35,7 +35,8 @@ import {
   type CatalogEntityType,
 } from "./cloudinary.js";
 import { drainCloudinaryCleanup } from "./cloudinary-admin.js";
-import { R2_IMAGE_WIDTHS, R2_PRESIGN_TTL_SECONDS, R2_STORAGE_BUCKET, checkR2File, deleteStem, isSafeStem, presignPut, r2Config, type R2FileRequest } from "./r2.js";
+import { R2_IMAGE_WIDTHS, R2_PRESIGN_TTL_SECONDS, R2_STORAGE_BUCKET, checkR2File, deleteStem, isSafeStem, measureBucket, presignPut, r2Config, type R2FileRequest } from "./r2.js";
+import { reservationBytes, reserveUpload } from "./media-upload-guard.js";
 import { resolveMediaProvider, type MediaProvider } from "./media-provider.js";
 
 const ALLOWED_METHODS = "GET,POST,PATCH,OPTIONS";
@@ -77,6 +78,14 @@ function reply(request: Request, body: Json, status = 200): Response {
     status,
     headers: { ...corsHeaders(decision, ALLOWED_METHODS), "cache-control": "private, no-store" },
   });
+}
+
+async function serviceRpc(name: string, args: Json): Promise<unknown> {
+  const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/rpc/${name}`, {
+    method: "POST", headers: serviceHeaders(), body: JSON.stringify(args), signal: AbortSignal.timeout(8_000),
+  });
+  if (!response.ok) throw new Error(`RPC_${response.status}`);
+  return response.json();
 }
 
 async function readBody(request: Request): Promise<Json> {
@@ -322,7 +331,14 @@ export async function mediaUpload(request: Request): Promise<Response> {
       if (provider === "supabase") throw new HttpError("MEDIA_PROVIDER_NOT_CONFIGURED", 503);
       const target = targetFrom(input);
       await authorize(actor, target.authz);
-      return reply(request, { ok: true, ...(provider === "r2" ? signR2(target, input) : signCloudinary(target, input)) });
+      // Validate + sign locally first (free), then reserve quota; nothing is released unless the guard allows it.
+      const signed = provider === "r2" ? signR2(target, input) : signCloudinary(target, input);
+      const decision = await reserveUpload({ userId: actor.userId, provider, ...reservationBytes(provider, input) }, {
+        rpc: serviceRpc,
+        measureR2: provider === "r2" ? () => measureBucket(r2Config()) : undefined,
+      });
+      if (!decision.ok) throw new HttpError(decision.code, decision.status, decision.retryAfterSeconds ? { retryAfterSeconds: decision.retryAfterSeconds } : {});
+      return reply(request, { ok: true, ...signed });
     }
     if (action === "DESTROY") return reply(request, { ok: true, ...(await destroy(actor, input)) });
     if (action === "DRAIN_CLEANUP") {

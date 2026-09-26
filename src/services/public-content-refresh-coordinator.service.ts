@@ -21,9 +21,11 @@ export interface PublicContentRefreshState {
   failures: Partial<Record<PublicRefreshTaskKey, number>>;
 }
 
-const ACTIVE_CONTENT_CADENCE_MS = 60_000;
-const CONFIG_CADENCE_MS = 5 * 60_000;
-const BRANCH_DIRECTORY_CADENCE_MS = 5 * 60_000;
+// V253 egress: public tabs no longer poll Supabase every minute. Content published in the admin
+// panel reaches open tabs within ~30 min (or immediately on reload); the CDN serves repeat reads.
+const ACTIVE_CONTENT_CADENCE_MS = 30 * 60_000;
+const CONFIG_CADENCE_MS = 30 * 60_000;
+const BRANCH_DIRECTORY_CADENCE_MS = 60 * 60_000;
 const FAILURE_RETRY_BASE_MS = 15_000;
 const MIN_TIMER_DELAY_MS = 80;
 const QUOTA_BACKOFF_MAX_MS = 15 * 60_000;
@@ -93,7 +95,8 @@ export class PublicContentRefreshCoordinatorService {
 
   refreshNow(reason: PublicRefreshReason = "manual"): void {
     if (!this.started || !this.canRun()) return;
-    void this.runCycle(true, reason);
+    // Returning to a tab only runs tasks whose cadence has elapsed (was: refetch everything).
+    void this.runCycle(reason !== "visible", reason);
   }
 
   private readonly handleOnline = () => {

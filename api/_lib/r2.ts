@@ -18,7 +18,7 @@ export const R2_IMAGE_WIDTHS = [480, 768, 1080, 1440, 1920] as const;
 export const R2_VARIANT_MAX_BYTES = 8 * 1024 * 1024;
 export const R2_ORIGINAL_MAX_BYTES = 25 * 1024 * 1024;
 export const R2_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
-export const R2_PRESIGN_TTL_SECONDS = 900;
+export const R2_PRESIGN_TTL_SECONDS = 600;
 
 export interface R2Config {
   configured: boolean;
@@ -231,4 +231,30 @@ export async function deleteStem(config: R2Config, stem: string): Promise<{ ok: 
     deleted++;
   }
   return { ok: true, deleted, status: 200 };
+}
+
+/**
+ * V253 storage growth guard: sums object sizes with ListObjectsV2 (Class A ops, 1 per 1000 objects).
+ * Called at most hourly by the signing API; `complete=false` when the page cap stopped the walk early
+ * (the caller then treats the bucket as at least `bytes` large).
+ */
+export async function measureBucket(config: R2Config, maxPages = 20): Promise<{ ok: boolean; bytes: number; objects: number; complete: boolean; status: number }> {
+  if (!config.configured) throw new Error("R2_NOT_CONFIGURED");
+  let bytes = 0;
+  let objects = 0;
+  let token = "";
+  for (let page = 0; page < maxPages; page++) {
+    const list = new URL(`${config.endpoint}/${config.bucket}`);
+    list.searchParams.set("list-type", "2");
+    list.searchParams.set("max-keys", "1000");
+    if (token) list.searchParams.set("continuation-token", token);
+    const response = await r2Fetch(config, "GET", list);
+    if (!response.ok) return { ok: false, bytes, objects, complete: false, status: response.status };
+    const xml = await response.text();
+    for (const match of xml.matchAll(/<Size>(\d+)<\/Size>/g)) { bytes += Number(match[1]); objects++; }
+    const next = /<NextContinuationToken>([^<]+)<\/NextContinuationToken>/.exec(xml);
+    if (!/<IsTruncated>true<\/IsTruncated>/.test(xml) || !next) return { ok: true, bytes, objects, complete: true, status: 200 };
+    token = next[1].replace(/&amp;/g, "&");
+  }
+  return { ok: true, bytes, objects, complete: false, status: 200 };
 }

@@ -16,3 +16,17 @@ bucket_name = "alperler-media" # must equal the R2_BUCKET env var used by the Ve
 [vars]
 # Browser caches objects for a year; keys are content-addressed (random stem per upload).
 CACHE_CONTROL = "public, max-age=31536000, immutable"
+# V253 hotlink policy: comma-separated host suffixes of our own sites (see index.ts). Empty = allow all.
+# Add the custom domain here later (config only).
+# Requests WITHOUT a Referer (social previews, chat apps, e-mail, direct opens) and from search/social hosts
+# are always allowed; another website embedding our files gets 403.
+ALLOWED_REFERER_HOSTS = "alperler-auto-ve-rent-a-car-projesi.vercel.app,-ishak595-codes-projects.vercel.app,localhost,127.0.0.1"
+
+# V253 abuse protection -------------------------------------------------------------------------
+# Per-IP limiter (Workers rate-limit binding; counters are per Cloudflare location, best effort).
+# 300 requests / 10 s per IP is far above what one visitor's gallery needs (5 widths × ~30 images).
+[[ratelimits]]
+name = "MEDIA_RATE_LIMITER"
+namespace_id = "25301"
+simple = { limit = 300, period = 10 }
+

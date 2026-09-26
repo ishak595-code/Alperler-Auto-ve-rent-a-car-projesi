@@ -44,7 +44,7 @@ must(endpoint.includes("can_upload_media_v252"), "branch uploads must be authori
 must(endpoint.includes("checkR2File"), "R2 uploads must validate file names/types/sizes before presigning");
 must(endpoint.includes("MEDIA_PROVIDER_NOT_CONFIGURED"), "supabase provider must return MEDIA_PROVIDER_NOT_CONFIGURED so the browser falls back");
 must(r2.includes("UNSIGNED-PAYLOAD") && /"content-type"\s*:/.test(r2) && /"content-length"\s*:/.test(r2), "presigned PUT must bind content-type + content-length");
-must(/R2_PRESIGN_TTL_SECONDS\s*=\s*900/.test(r2), "presigned URLs must expire in 15 minutes");
+must(/R2_PRESIGN_TTL_SECONDS\s*=\s*600/.test(r2), "presigned URLs must expire in 10 minutes (V253)");
 
 // 3. Every public-media upload path goes through the layer, keeping a Supabase fallback.
 const paths = {

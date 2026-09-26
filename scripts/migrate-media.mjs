@@ -37,6 +37,9 @@
  *   --delete-source         after verification delete Supabase copies no longer referenced (irreversible)
  *   --provider=r2|cloudinary  override the provider resolved from env (MEDIA_PROVIDER + env presence)
  *   --only=catalog,assets,urls  run selected phases (default all)
+ *   --owners=tour           catalog_media owners to migrate (default: tour). Existing vehicle media are demo
+ *                           photos and are NOT migrated unless explicitly requested:
+ *                           --owners=tour,blog,branch,vehicle  or  --owners=all
  *   --limit=N               max rows per phase (default 50)
  *   --sleep-ms=N            pause between uploads (default 200)
  *   --report=path.json      report file (default media-migration-<timestamp>.json)
@@ -69,6 +72,12 @@ const APPLY = hasFlag("apply");
 const DELETE_SOURCE = hasFlag("delete-source");
 const LIMIT = Math.max(1, Number(argValue("limit", "50")) || 50);
 const SLEEP_MS = Math.max(0, Number(argValue("sleep-ms", "200")) || 0);
+const OWNER_KINDS = ["vehicle", "tour", "blog", "branch"];
+const OWNERS_ARG = String(argValue("owners", "tour")).toLowerCase();
+const OWNERS = new Set(OWNERS_ARG === "all" ? OWNER_KINDS : OWNERS_ARG.split(",").map((v) => v.trim()).filter((v) => OWNER_KINDS.includes(v)));
+function rowOwnerKind(row) {
+  return row.vehicle_id ? "vehicle" : row.tour_id ? "tour" : row.blog_post_id ? "blog" : row.branch_id ? "branch" : "";
+}
 const ONLY = new Set(String(argValue("only", "catalog,assets,urls")).split(",").map((v) => v.trim()).filter(Boolean));
 const ROLLBACK = String(argValue("rollback", "") || "");
 const REPORT = String(argValue("report", `media-migration-${new Date().toISOString().replace(/[:.]/g, "-")}.json`));
@@ -298,8 +307,9 @@ async function migrateObject(label, stem, bucket, objectPath, kind, options = {}
 // ---- Phase 1: catalog_media ----------------------------------------------------------------
 async function phaseCatalog() {
   const rows = await selectAll("catalog_media", `storage_bucket=eq.catalog-media&object_path=not.is.null&external_url=is.null&select=id,vehicle_id,tour_id,blog_post_id,branch_id,kind,object_path,poster_url,metadata&order=created_at.asc&limit=${LIMIT}`);
-  console.log(`\n[1] catalog_media rows on Supabase Storage: ${rows.length} (limit ${LIMIT})`);
+  console.log(`\n[1] catalog_media rows on Supabase Storage: ${rows.length} (limit ${LIMIT}); owners: ${[...OWNERS].join(",") || "none"}`);
   for (const row of rows) {
+    if (!OWNERS.has(rowOwnerKind(row))) continue;
     const owner = ownerStem(row);
     const entry = { type: "row", table: "catalog_media", id: row.id, source: { bucket: "catalog-media", objectPath: row.object_path }, status: "PLANNED" };
     report.entries.push(entry);
@@ -368,13 +378,14 @@ const URL_COLUMNS = [
   { table: "branches", key: "id", columns: ["hero_image"] },
   { table: "blog_posts", key: "id", columns: ["cover_image"] },
   { table: "vehicle_inspections", key: "id", columns: ["photo_paths"] },
-  { table: "vehicles", key: "id", columns: ["images", "cover_image"] },
-  { table: "tours", key: "id", columns: ["images", "cover_image"] },
+  { table: "vehicles", key: "id", columns: ["images", "cover_image"], owner: "vehicle" },
+  { table: "tours", key: "id", columns: ["images", "cover_image"], owner: "tour" },
 ];
 
-async function scanReferences() {
+async function scanReferences({ allOwners = false } = {}) {
   const hits = [];
   for (const spec of URL_COLUMNS) {
+    if (!allOwners && spec.owner && !OWNERS.has(spec.owner)) continue;
     const rows = await selectAll(spec.table, `select=${spec.key},${spec.columns.join(",")}&limit=5000`);
     for (const row of rows) for (const column of spec.columns) {
       const refs = referencesIn(row[column]);
@@ -431,7 +442,8 @@ async function phaseUrls() {
 
 // ---- Delete source ---------------------------------------------------------------------------
 async function deleteSources() {
-  const remaining = await scanReferences();
+  // Deletion safety: every table is scanned, including owners excluded from this run.
+  const remaining = await scanReferences({ allOwners: true });
   const stillReferenced = new Set(remaining.flatMap((hit) => hit.refs.map((r) => `${r.bucket}/${r.objectPath}`)));
   console.log(`\n[4] delete-source candidates: ${migratedSources.size}`);
   for (const [key, source] of migratedSources) {

@@ -47,7 +47,7 @@ const CONSENT_KEY = 'alperler.analytics.consent.v1';
 const VISITOR_KEY = 'alperler.analytics.visitor.v1';
 const SESSION_KEY = 'alperler.analytics.session.v1';
 const BOOKING_FUNNEL = 'booking_conversion';
-const FLUSH_MS = 5000;
+const FLUSH_MS = 30_000; // V253: batch analytics (was 5 s); pagehide still flushes with keepalive.
 
 @Injectable({ providedIn: 'root' })
 export class VisitorAnalyticsService {

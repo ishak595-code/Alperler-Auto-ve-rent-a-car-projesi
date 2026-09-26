@@ -11,6 +11,8 @@
  *    the Vercel API, deletes happen server-side with the S3 API.
  */
 
+import { MAX_KEY_LENGTH, rangeAcceptable, refererAllowed } from "./policy";
+
 interface R2Range { offset?: number; length?: number; suffix?: number }
 interface R2ObjectLike {
   key: string;
@@ -25,7 +27,8 @@ interface R2BucketLike {
   get(key: string, options?: { range?: Headers; onlyIf?: Headers }): Promise<R2ObjectLike | null>;
   head(key: string): Promise<R2ObjectLike | null>;
 }
-interface Env { MEDIA_BUCKET: R2BucketLike; CACHE_CONTROL?: string }
+interface RateLimiterLike { limit(options: { key: string }): Promise<{ success: boolean }> }
+interface Env { MEDIA_BUCKET: R2BucketLike; CACHE_CONTROL?: string; ALLOWED_REFERER_HOSTS?: string; MEDIA_RATE_LIMITER?: RateLimiterLike }
 interface Ctx { waitUntil(promise: Promise<unknown>): void }
 declare const caches: { default: { match(request: Request): Promise<Response | undefined>; put(request: Request, response: Response): Promise<void> } };
 
@@ -61,6 +64,28 @@ export default {
       return new Response("Method not allowed", { status: 405, headers });
     }
     const url = new URL(request.url);
+    if (url.pathname.length > MAX_KEY_LENGTH) return notFound();
+
+    if (!refererAllowed(request.headers.get("referer"), env.ALLOWED_REFERER_HOSTS)) {
+      const headers = baseHeaders();
+      headers.set("cache-control", "private, no-store");
+      return new Response("Hotlinking is not allowed", { status: 403, headers });
+    }
+    if (env.MEDIA_RATE_LIMITER) {
+      const ip = request.headers.get("cf-connecting-ip") || "unknown";
+      const { success } = await env.MEDIA_RATE_LIMITER.limit({ key: ip });
+      if (!success) {
+        const headers = baseHeaders();
+        headers.set("retry-after", "10");
+        headers.set("cache-control", "private, no-store");
+        return new Response("Too many requests", { status: 429, headers });
+      }
+    }
+    if (!rangeAcceptable(request.headers.get("range"))) {
+      const headers = baseHeaders();
+      headers.set("cache-control", "private, no-store");
+      return new Response("Range not satisfiable", { status: 416, headers });
+    }
     let key: string;
     try {
       key = decodeURIComponent(url.pathname.replace(/^\/+/, ""));

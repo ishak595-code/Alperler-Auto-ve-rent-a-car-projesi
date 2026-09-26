@@ -108,10 +108,15 @@ export class HomepageLayoutService {
             placement.isActive &&
             this.inside(placement, now),
           );
-        const sections = sectionRows
+        const sectionsRaw = sectionRows
           .map((row) => this.section(row))
           .filter((section) => section.sectionKey && section.isEnabled)
           .sort((left, right) => left.sortOrder - right.sortOrder);
+        // Durable titles/descriptions: merge API with last-good so remount/402 cannot blank chrome.
+        // Empty successful shells keep prior sections rather than wiping the vitrin.
+        const sections = sectionsRaw.length
+          ? this.mergeSectionsWithLastGood(sectionsRaw)
+          : (this._sections().length ? this._sections() : sectionsRaw);
 
         // A deliberately empty placement-driven homepage still needs one bounded
         // public owner read so the first visit can recover when content is added.
@@ -254,7 +259,7 @@ export class HomepageLayoutService {
         this._sections.set(visibleSections);
         this._error.set('');
         this._loaded.set(true);
-        this.persistSnapshot();
+        if (visibleSections.length) this.persistSnapshot();
       } catch (error) {
         // Keep the runtime ownership contract observable even when the homepage
         // shell itself is temporarily unavailable (for example Supabase 402/503).
@@ -484,6 +489,28 @@ export class HomepageLayoutService {
     if (this.boundedOwnerProbeStarted) return;
     this.boundedOwnerProbeStarted = true;
     void this.catalog.primeBoundedOwner().catch(() => undefined);
+  }
+
+  /**
+   * Clean merge: prefer non-empty API title/settings, else keep last-good for the same sectionKey.
+   * Ensures vitrin titles/descriptions survive remounts and partial DB failures.
+   */
+  private mergeSectionsWithLastGood(incoming: PublicHomepageSection[]): PublicHomepageSection[] {
+    const priorByKey = new Map(this._sections().map((section) => [section.sectionKey, section]));
+    return incoming.map((section) => {
+      const prior = priorByKey.get(section.sectionKey);
+      const title = String(section.title || '').trim() || String(prior?.title || '').trim();
+      const settings: Record<string, unknown> = {
+        ...(prior?.settings && typeof prior.settings === 'object' ? prior.settings : {}),
+        ...(section.settings && typeof section.settings === 'object' ? section.settings : {}),
+      };
+      for (const key of ['description', 'badge', 'viewAllLabel', 'ctaLabel', 'category', 'renderer', 'layout']) {
+        const next = String(settings[key] ?? '').trim();
+        const prev = String(prior?.settings?.[key] ?? '').trim();
+        if (!next && prev) settings[key] = prior!.settings[key];
+      }
+      return { ...section, title, settings };
+    });
   }
 
   private persistSnapshot(): void {

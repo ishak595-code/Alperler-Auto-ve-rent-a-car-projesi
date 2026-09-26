@@ -67,4 +67,22 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('V214/V247 homepage stability contract passed.');
+
+// v248: WhatsApp FAB + Feedback coexistence + durable home copy + config SWR
+const footerSvc = read('src/services/footer-settings.service.ts');
+const carSvc = read('src/services/car.service.ts');
+const mainLayoutSrc = read('src/components/main-layout.component.ts');
+const layoutSrc = read('src/services/homepage-layout.service.ts');
+const catalogApi = read('api/catalog.ts');
+const branchesApi = read('api/branches.ts');
+expect(mainLayoutSrc.includes('whatsappFabVisible') && mainLayoutSrc.includes('data-chrome="whatsapp-fab"'), 'WhatsApp FAB must remain a dedicated bottom-chrome control');
+expect(mainLayoutSrc.includes('FooterSettingsService') && mainLayoutSrc.includes('showWhatsapp'), 'WhatsApp FAB must honor footer showWhatsapp and coexist with Feedback');
+expect(!mainLayoutSrc.includes('setTimeout(()=>this.showWhatsapp.set(true),15000)'), 'WhatsApp FAB must not wait 15s before becoming eligible');
+expect(footerSvc.includes('actionType!==\'FEEDBACK\'') || footerSvc.includes('actionType!=="FEEDBACK"') || footerSvc.includes("Never remaps non-FEEDBACK"), 'Footer stabilizePublicLinks must not remap non-FEEDBACK links');
+expect(footerSvc.includes('bottom.feedback') && footerSvc.includes('FEEDBACK'), 'Footer must keep durable BOTTOM Feedback CTA');
+expect(carSvc.includes('site-config:snapshot') && carSvc.includes('mergeConfig') && carSvc.includes('restoreConfigSnapshot'), 'Site config must use durable last-good SWR for WhatsApp/phone chrome');
+expect(layoutSrc.includes('mergeSectionsWithLastGood'), 'Homepage sections must merge API titles/descriptions with last-good');
+expect(/stale-if-error=86400/.test(catalogApi) && /stale-if-error=86400/.test(branchesApi), 'Catalog/branches CDN responses must advertise stale-if-error for quota outages');
+
+console.log('V214/V247/V248 homepage stability contract passed.');
+

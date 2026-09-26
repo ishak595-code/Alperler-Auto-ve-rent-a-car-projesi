@@ -11,6 +11,7 @@ import { CustomerFavoritesV217Service } from "./customer-favorites-v217.service"
 import { DEFAULT_SITE_CONFIG } from "./default-site-config";
 import { PublicCatalogMediaService } from "./public-catalog-media.service";
 import { PublicContentRealtimeService } from "./public-content-realtime.service";
+import { readPublicSwr, writePublicSwr } from "./public-json-swr.util";
 
 export interface BlogPost {
   id: number;
@@ -84,6 +85,7 @@ export class CarService {
 
   constructor() {
     this.purgeObsoleteBusinessCaches();
+    this.restoreConfigSnapshot();
 
     const unwatchCatalog = this.realtime.watch(
       ["vehicles", "tours", "catalog_media", "media_assets", "blog_posts", "faqs"],
@@ -111,8 +113,17 @@ export class CarService {
     }
 
     const request = (async () => {
-      const config = await this.catalogService.loadConfig(fresh);
-      if (config) this._config.set(this.normalizeConfig(config));
+      try {
+        const config = await this.catalogService.loadConfig(fresh);
+        if (config) {
+          const merged = this.mergeConfig(this._config(), config);
+          this._config.set(merged);
+          this.persistConfigSnapshot(merged);
+        }
+      } catch {
+        // Keep last-good in-memory/local config (WhatsApp/phone/chrome) across 402/503.
+        if (!this.hasContactChrome(this._config())) this.restoreConfigSnapshot();
+      }
     })();
 
     this.configRefreshInFlight = request;
@@ -486,7 +497,42 @@ export class CarService {
   }
 
   private normalizeConfig(config: Partial<SiteConfig>): SiteConfig {
-    return { ...DEFAULT_SITE_CONFIG, ...config } as SiteConfig;
+    return this.mergeConfig({ ...DEFAULT_SITE_CONFIG }, config);
+  }
+
+  /** Prefer non-empty contact/chrome fields so brief API failures cannot blank WhatsApp. */
+  private mergeConfig(base: SiteConfig, incoming: Partial<SiteConfig>): SiteConfig {
+    const next: SiteConfig = { ...base, ...incoming };
+    const pick = (value: unknown) => String(value ?? "").trim();
+    if (!pick(incoming.companyName) && pick(base.companyName)) next.companyName = base.companyName;
+    if (!pick(incoming.tagline) && pick(base.tagline)) next.tagline = base.tagline;
+    if (!pick(incoming.phone) && pick(base.phone)) next.phone = base.phone;
+    if (!pick(incoming.email) && pick(base.email)) next.email = base.email;
+    if (!pick(incoming.address) && pick(base.address)) next.address = base.address;
+    if (!pick(incoming.whatsapp) && pick(base.whatsapp)) next.whatsapp = base.whatsapp;
+    if (!pick(incoming.whatsappMessage) && pick(base.whatsappMessage)) next.whatsappMessage = base.whatsappMessage;
+    if (!pick(incoming.instagramUrl) && pick(base.instagramUrl)) next.instagramUrl = base.instagramUrl;
+    if (!pick(incoming.twitterUrl) && pick(base.twitterUrl)) next.twitterUrl = base.twitterUrl;
+    if (!pick(incoming.facebookUrl) && pick(base.facebookUrl)) next.facebookUrl = base.facebookUrl;
+    if (!pick(incoming.youtubeUrl) && pick(base.youtubeUrl)) next.youtubeUrl = base.youtubeUrl;
+    if (!pick(incoming.tiktokUrl) && pick(base.tiktokUrl)) next.tiktokUrl = base.tiktokUrl;
+    if (!pick(incoming.logoUrl) && pick(base.logoUrl)) next.logoUrl = base.logoUrl;
+    return next;
+  }
+
+  private hasContactChrome(config: SiteConfig): boolean {
+    return Boolean(String(config.whatsapp || config.phone || "").replace(/\D/g, ""));
+  }
+
+  private persistConfigSnapshot(config: SiteConfig): void {
+    if (!this.hasContactChrome(config) && !String(config.companyName || "").trim()) return;
+    writePublicSwr("site-config:snapshot", config);
+  }
+
+  private restoreConfigSnapshot(): void {
+    const cached = readPublicSwr<SiteConfig>("site-config:snapshot", 12 * 60 * 60_000);
+    if (!cached?.value || typeof cached.value !== "object") return;
+    this._config.set(this.mergeConfig({ ...DEFAULT_SITE_CONFIG }, cached.value));
   }
 
   private upsertById<T extends { id: number | string }>(items: T[], value: T): T[] {

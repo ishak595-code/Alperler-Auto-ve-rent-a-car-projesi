@@ -3337,6 +3337,7 @@ export class UiService {
       if (packValue) return packValue;
       return admin; // unknown custom chrome without pack key
     }
+    // TR: prefer operator title when present; otherwise durable pack defaults so remounts never blank vitrin chrome.
     return admin || packValue;
   }
 

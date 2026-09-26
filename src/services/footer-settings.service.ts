@@ -131,7 +131,11 @@ export class FooterSettingsService{
   private str(row:Record<string,unknown>,snake:string,camel:string,fallback:string){return String(row[snake]??row[camel]??fallback).trim()||fallback;}
   
 
-  /** Keep a durable BOTTOM FEEDBACK CTA across SWR/default swaps so the button node is not destroyed/recreated mid-interaction. */
+  /**
+   * Keep a durable BOTTOM FEEDBACK CTA across SWR/default swaps so the button node is not
+   * destroyed/recreated mid-interaction. Never remaps non-FEEDBACK links (WhatsApp lives in
+   * the contact pills + layout FAB — Feedback must not replace that chrome).
+   */
   private stabilizePublicLinks(links:FooterLink[]):FooterLink[]{
     const feedbackDefault=DEFAULT_PUBLIC_FOOTER_LINKS.find(link=>link.actionType==='FEEDBACK')!;
     const normalized=links.map(link=>{
@@ -141,12 +145,19 @@ export class FooterSettingsService{
     if(!normalized.some(link=>link.actionType==='FEEDBACK'&&link.isEnabled)){
       normalized.push({...feedbackDefault});
     }
-    return normalized;
+    // Dedupe Feedback only; preserve any other BOTTOM links (legal extras, etc.).
+    const seenFeedback=new Set<string>();
+    return normalized.filter(link=>{
+      if(link.actionType!=='FEEDBACK')return true;
+      if(seenFeedback.has(link.linkKey))return false;
+      seenFeedback.add(link.linkKey);
+      return true;
+    });
   }
 
   private restorePublicFooterSnapshot():void{
     const cached=readPublicSwr<{settings?:FooterSettings;links?:FooterLink[];prefooter?:PrefooterSettings}>('footer-public:snapshot',12*60*60*1000);
-    if(cached?.value?.settings) this._settings.set(cached.value.settings);
+    if(cached?.value?.settings) this._settings.set({...DEFAULT_FOOTER_SETTINGS,...cached.value.settings,showWhatsapp:cached.value.settings.showWhatsapp!==false,showFeedback:cached.value.settings.showFeedback!==false});
     if(cached?.value?.prefooter) this._prefooter.set(cached.value.prefooter);
     if(cached?.value?.links?.length) this._links.set(this.stabilizePublicLinks(cached.value.links));
     else if(!this._links().length) this._links.set(this.stabilizePublicLinks(DEFAULT_PUBLIC_FOOTER_LINKS.map(l=>({...l}))));

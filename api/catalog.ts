@@ -86,13 +86,14 @@ function sanitizedMetadata(input: unknown, excluded: Set<string>, legacyId: numb
 
 function publicCache(resource: Resource): string {
   switch (resource) {
-    // Yönetim panelinden yayınlanan içerik en geç 30 sn içinde vitrine yansır;
-    // tarayıcı hiç önbelleklemez, CDN kısa süre tutar ve arkada tazeler.
+    // Browser: no long cache. CDN: short fresh window + long SWR/stale-if-error so
+    // Free Supabase 402/503 cannot wipe a previously good catalog/config response.
     case "vehicles":
     case "tours":
     case "blog":
     case "faqs":
-    case "config": return "public, max-age=0, s-maxage=30, stale-while-revalidate=120";
+    case "config":
+      return "public, max-age=0, s-maxage=60, stale-while-revalidate=86400, stale-if-error=86400";
   }
 }
 

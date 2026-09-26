@@ -52,6 +52,32 @@ requireText(device, "display: contents", "Phone hero copy must expose children f
 requireText(device, "app-home-v71 .planner { order: 5", "Planner must precede trust proof on phones.");
 requireText(device, "app-home-v71 .trust-row { order: 6", "Trust proof must follow the planner on phones.");
 requireText(device, "app-home-v71 .desktop-search { order: 4; display: none !important; }", "Phone hero search must remain hidden, including landscape phones.");
+// V251 hero reading order: headline must never render after the subtitle on any phone class.
+// Every stylesheet that orders hero items must use one shared scale so cascade/specificity cannot interleave them.
+{
+  const heroOrderSources = { "src/mobile-target-fixes.css": fs.readFileSync("src/mobile-target-fixes.css", "utf8"), "src/device-experience.css": device };
+  const canonical = [["eyebrow", /\.eyebrow$/], ["headline", /(?:>\s*h1|\.hero h1)$/], ["subtitle", /\.hero-copy$/], ["search", /\.desktop-search$/], ["planner", /\.planner$/], ["trust", /\.trust-row$/]];
+  const seen = new Map();
+  for (const [file, css] of Object.entries(heroOrderSources)) {
+    for (const match of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const order = /(?:^|;|\s)order:\s*(-?\d+)/.exec(match[2]);
+      if (!order) continue;
+      for (const rawSelector of match[1].split(",")) {
+        const selector = rawSelector.replace(/\/\*[\s\S]*?\*\//g, "").trim();
+        if (!selector.startsWith("app-home-v71")) continue;
+        const entry = canonical.find(([, pattern]) => pattern.test(selector));
+        if (!entry) continue;
+        const value = Number(order[1]);
+        const previous = seen.get(entry[0]);
+        if (previous && previous.value !== value) failures.push(`Hero ${entry[0]} order drifts: ${previous.file} uses ${previous.value}, ${file} uses ${value}.`);
+        else if (!previous) seen.set(entry[0], { value, file });
+      }
+    }
+  }
+  const ordered = canonical.map(([key]) => seen.get(key)?.value);
+  if (ordered.some((value) => value === undefined)) failures.push(`Hero reading-order contract incomplete: ${canonical.map(([key], i) => `${key}=${ordered[i]}`).join(", ")}`);
+  else if (!ordered.every((value, i) => i === 0 || value > ordered[i - 1])) failures.push(`Hero reading order must be eyebrow < headline < subtitle < search < planner < trust, got ${ordered.join(" < ")}`);
+}
 requireText(angular, '"src/device-experience.css"', "Canonical device experience stylesheet must be in the production style graph.");
 
 if (failures.length) {

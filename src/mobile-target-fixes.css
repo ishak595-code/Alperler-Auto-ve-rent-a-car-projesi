@@ -26,7 +26,14 @@ app-tour-catalog-v217 .summary > span {
 /* V213 mobile hierarchy: keep the existing Hero search contract untouched.
    On phones the value proposition stays first, then Quick Planning appears
    before secondary trust badges so customers can act sooner without adding a
-   second planner or a second search surface. */
+   second planner or a second search surface.
+   V251 reading-order contract: once .hero-copy-block becomes display:contents,
+   its children are ordered by the hero stage grid, so every hero item uses the
+   SAME order scale as src/device-experience.css (eyebrow 1, headline 2,
+   subtitle 3, search 4, planner 5, trust 6). A mixed scale (this file used to
+   reset the text to order 0 with a more specific selector while the touch-phone
+   contract gave the headline order 2) put the subtitle above the headline on
+   touch phones. */
 @media (max-width:767px) {
   app-home-v71 .hero-stage {
     padding-top: .85rem !important;
@@ -37,20 +44,18 @@ app-tour-catalog-v217 .summary > span {
     display: contents;
   }
 
-  app-home-v71 .hero-copy-block > .eyebrow,
-  app-home-v71 .hero-copy-block > h1,
-  app-home-v71 .hero-copy-block > .hero-copy,
-  app-home-v71 .hero-copy-block > .desktop-search {
-    order: 0;
-  }
+  app-home-v71 .hero-copy-block > .eyebrow { order: 1; }
+  app-home-v71 .hero-copy-block > h1 { order: 2; }
+  app-home-v71 .hero-copy-block > .hero-copy { order: 3; }
+  app-home-v71 .hero-copy-block > .desktop-search { order: 4; }
 
   app-home-v71 .planner {
-    order: 1;
+    order: 5;
     margin-top: -.08rem;
   }
 
   app-home-v71 .trust-row {
-    order: 2;
+    order: 6;
     margin-top: .08rem !important;
   }
 }

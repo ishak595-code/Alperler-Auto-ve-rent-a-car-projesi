@@ -34,8 +34,9 @@ let nextDateControlId = 0;
         (click)="openCalendar()"
       >
         <span class="date-copy" aria-hidden="true">
+          <!-- V253: the reserved two-line box never changes height when a date is chosen. -->
           <strong>{{ t().nativeDate.selectStrong }}</strong>
-          @if (value) { <small>{{ formattedValue() }}</small> }
+          <small [class.is-empty]="!value">{{ value ? compactValue() + " · " + weekdayValue() : "\u00a0" }}</small>
         </span>
         <mat-icon aria-hidden="true">calendar_month</mat-icon>
       </button>
@@ -127,15 +128,15 @@ let nextDateControlId = 0;
   styles: [`
     :host{display:block;min-width:0}
     .date-control{display:block;min-width:0}
-    .date-label{display:block;margin-bottom:.38rem;color:var(--date-label,var(--alper-muted,#b9c3d2));font-size:.66rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
-    .date-surface{display:flex;width:100%;min-height:58px;align-items:center;justify-content:space-between;gap:.7rem;border:1px solid var(--date-border,var(--alper-border,rgba(148,163,184,.24)));border-radius:min(var(--site-radius,12px),16px);background:var(--date-bg,var(--alper-card,#050c1a));padding:.72rem .82rem .72rem .92rem;color:var(--date-color,var(--alper-text,#fff));text-align:left;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:border-color .16s ease,box-shadow .16s ease,background-color .16s ease}
+    .date-label{display:block;margin-bottom:.4rem;color:var(--date-label,var(--alper-muted,#b9c3d2));font-size:var(--date-label-size,.66rem);font-weight:var(--date-label-weight,900);letter-spacing:var(--date-label-spacing,.06em);text-transform:var(--date-label-transform,uppercase);line-height:1.3;overflow-wrap:break-word}
+    .date-surface{display:flex;width:100%;min-height:var(--date-surface-h,58px);height:var(--date-surface-h,auto);align-items:center;justify-content:space-between;gap:.7rem;border:1px solid var(--date-border,var(--alper-border,rgba(148,163,184,.24)));border-radius:min(var(--site-radius,12px),16px);background:var(--date-bg,var(--alper-card,#050c1a));padding:var(--date-surface-pad,.72rem .82rem .72rem .92rem);color:var(--date-color,var(--alper-text,#fff));text-align:left;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:border-color .16s ease,box-shadow .16s ease,background-color .16s ease}
     .date-surface:focus-visible{outline:0;border-color:var(--date-focus,var(--alper-blue-light,#E15A62));box-shadow:0 0 0 3px color-mix(in srgb,var(--date-focus,var(--alper-blue-light,#E15A62)) 24%,transparent)}
     .date-surface:active:not(:disabled){border-color:var(--date-focus,var(--alper-blue-light,#E15A62));background:color-mix(in srgb,var(--date-bg,var(--alper-card,#050c1a)) 92%,var(--date-focus,var(--alper-blue-light,#E15A62)) 8%)}
     .date-surface:disabled{cursor:not-allowed;opacity:.55}
-    .date-copy{display:block;min-width:0}
+    .date-copy{display:grid;min-width:0;align-content:center;min-height:calc(.9375rem * 1.2 + .12rem + .75rem * 1.25)}
     .date-copy strong,.date-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .date-copy strong{font:900 .82rem/1.2 ui-sans-serif,system-ui,sans-serif}
-    .date-copy small{margin-top:.18rem;color:var(--date-hint,var(--alper-muted,#b9c3d2));font:700 .66rem/1.25 ui-sans-serif,system-ui,sans-serif}
+    .date-copy strong{font:800 .9375rem/1.2 ui-sans-serif,system-ui,sans-serif}
+    .date-copy small{margin-top:.12rem;color:var(--date-hint,var(--alper-muted,#b9c3d2));font:600 .75rem/1.25 ui-sans-serif,system-ui,sans-serif}.date-copy small.is-empty{visibility:hidden}
     .date-surface mat-icon{flex:0 0 auto;color:var(--date-icon,var(--alper-blue-light,#93c5fd))}
     .calendar-dialog{position:fixed;inset:0;margin:auto;width:min(calc(100% - 2rem),420px);max-height:min(88dvh,720px);overflow:auto;overscroll-behavior:contain;border:1px solid var(--alper-border,rgba(148,163,184,.24));border-radius:min(var(--site-radius,16px),22px);background:var(--alper-card,#071120);color:var(--alper-text,#fff);box-shadow:0 24px 70px rgba(0,0,0,.46);padding:0}
     .calendar-dialog::backdrop{background:rgba(1,6,15,.72);backdrop-filter:blur(8px)}
@@ -226,6 +227,17 @@ export class AccessibleNativeDateComponent implements OnDestroy {
   formattedValue(): string {
     const date = this.parseDateKey(this.value);
     return date ? this.formatLongDate(date) : this.value;
+  }
+
+  /** Short visible date ("12 Eki 2026"); the full long date stays in the accessible name. */
+  compactValue(): string {
+    const date = this.parseDateKey(this.value);
+    return date ? new Intl.DateTimeFormat(this.localeTag(), { day: "numeric", month: "short", year: "numeric" }).format(date) : this.value;
+  }
+
+  weekdayValue(): string {
+    const date = this.parseDateKey(this.value);
+    return date ? new Intl.DateTimeFormat(this.localeTag(), { weekday: "short" }).format(date) : "";
   }
 
   openCalendar(): void {

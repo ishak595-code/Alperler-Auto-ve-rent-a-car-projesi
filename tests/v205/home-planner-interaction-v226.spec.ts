@@ -62,7 +62,7 @@ test("V226 quick planner settles after touch interactions and routes with the ch
   await expect(planner.locator('[role="alert"]')).toContainText(/tarih/i);
   await expectNoResidualJank(page);
 
-  const dateTrigger = planner.locator("app-accessible-native-date button.date-surface");
+  const dateTrigger = planner.locator(".when-variant.is-active app-accessible-native-date button.date-surface");
   await expect(dateTrigger).toBeVisible();
   await dateTrigger.scrollIntoViewIfNeeded();
   await frameSettled(page);
@@ -76,7 +76,7 @@ test("V226 quick planner settles after touch interactions and routes with the ch
   await dialog.getByRole("button", { name: "Bugün", exact: true }).click();
   await expect(dialog).toBeHidden();
   await expect(dateTrigger).toHaveAttribute("aria-label", /tarihi değiştir/i);
-  await expect(planner.locator(".planner-summary")).toContainText(/Tur/i);
+  await expect(planner.locator(".when-variant.is-active .planner-summary")).toContainText(/Tur/i);
   await expectNoResidualJank(page);
 
   await action.scrollIntoViewIfNeeded();

@@ -136,19 +136,21 @@ body.theme-dark .border-slate-200 {
   border-color: #334155 !important;
 }
 
+/* V253: the luxury shell follows the prestige palette (near-black navy) instead of the old stone
+   brown, so short pages, the WhatsApp lane and overscroll never show a brown band. */
 body.theme-luxury {
-  background-color: #1c1917 !important;
+  background-color: var(--alper-bg, #06080D) !important;
   color: #e7e5e4 !important;
 }
 body.theme-luxury .bg-slate-900 {
-  background-color: #0c0a09 !important;
+  background-color: var(--alper-list, #090C12) !important;
 }
 body.theme-luxury .bg-white {
   background-color: #292524 !important;
   color: #e7e5e4 !important;
 }
 body.theme-luxury .bg-slate-50 {
-  background-color: #1c1917 !important;
+  background-color: var(--alper-bg, #06080D) !important;
 }
 body.theme-luxury .text-slate-900 {
   color: #e7e5e4 !important;

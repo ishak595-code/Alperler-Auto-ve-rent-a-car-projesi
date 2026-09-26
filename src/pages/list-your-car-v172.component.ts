@@ -24,7 +24,7 @@ import {
     <main class="min-h-screen bg-slate-950 text-white">
       <header class="sticky top-0 z-30 border-b border-white/10 bg-slate-950/95 px-4 py-4 backdrop-blur-xl md:px-8">
         <div class="mx-auto flex max-w-6xl items-center justify-between gap-4">
-          <button type="button" (click)="goBack()" [attr.aria-label]="t().listYourCar.backAria" class="grid min-h-12 min-w-12 place-items-center rounded-2xl border border-white/10 bg-white/5 text-xl font-black transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">←</button>
+          <button type="button" (click)="goBack()" [attr.aria-label]="t().listYourCar.backAria" class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/5 text-xl font-black transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">←</button>
           <div class="min-w-0 flex-1">
             <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Alperler Auto</p>
             <h1 class="truncate text-lg font-black tracking-tight md:text-xl">{{ t().listYourCar.title }}</h1>

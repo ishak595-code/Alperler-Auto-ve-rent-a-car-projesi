@@ -127,6 +127,7 @@ export default {
          skipToContent: "تخطِّ إلى المحتوى",
          whatsappDefault: "مرحبًا، أود الحصول على معلومات مفصلة.",
          whatsappFabAria: "راسلونا عبر واتساب",
+         whatsappPageContext: "الصفحة التي أتصفحها",
          siteBrandFallback: "Alperler Rent A Car",
        },
         dock: {
@@ -1437,6 +1438,9 @@ export default {
           endTimeLabel: "وقت الإعادة",
           endTimeAria: "اختر وقت الإعادة",
           plannerNote: "يُنشأ الحجز النهائي بعد تأكيد توفر السيارة والمدة الزمنية.",
+          summaryHint: "اختر التاريخ؛ سيظهر ملخص خطتك هنا.",
+          tourIncluded: "مشمول في برنامج الجولة",
+          pickupAny: "يُحدَّد لاحقًا",
           loading: "جارٍ تجهيز الخيارات لك...",
           errorTourDate: "اختر تاريخ الجولة.",
           errorStartDate: "اختر تاريخ الاستلام.",

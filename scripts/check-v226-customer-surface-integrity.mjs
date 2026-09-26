@@ -90,9 +90,16 @@ requireText(dateControl, 'focus({ preventScroll: true })', 'Calendar focus resto
 forbidText(dateControl, 'transform:translateY(1px)', 'Date controls must not move geometry on pointer press.');
 requireText(dateControl, 'touch-action:manipulation', 'Calendar touch controls must use stable mobile tap handling.');
 requireText(dateControl, 'overscroll-behavior:contain', 'Calendar dialog must contain mobile overscroll.');
-requireText(runtimeStability, 'app-home-v71 .planner .field-grid', 'Quick planner must reserve feedback geometry before validation messages appear.');
-requireText(runtimeStability, 'padding-bottom: 2.75rem', 'Quick planner feedback space must stay reserved.');
-requireText(runtimeStability, 'app-home-v71 .planner .planner-error + .planner-summary', 'Planner must suppress a duplicate summary while an error owns the feedback slot.');
+// V253 reserved-geometry planner: the date modes share one grid cell, the action button stacks every
+// label, and validation replaces the note inside a fixed feedback slot, so no interaction resizes it.
+const homePlanner = readFileSync('src/pages/home-v71.component.ts', 'utf8');
+requireText(runtimeStability, 'app-home-v71 .planner .when-stack', 'Quick planner runtime layer must keep the shared date-mode cell anchored.');
+requireText(homePlanner, 'class="when-stack"', 'Quick planner date modes must share one reserved grid cell.');
+requireText(homePlanner, '.when-variant{grid-area:when;', 'Inactive planner date modes must keep occupying the shared cell.');
+requireText(homePlanner, 'class="planner-feedback"', 'Quick planner must reserve feedback geometry before validation messages appear.');
+requireText(homePlanner, 'class="action-labels"', 'Planner action must reserve the height of its longest label.');
+forbidText(homePlanner, '@if (plannerSummary())', 'Planner summary must never be inserted/removed after an interaction.');
+requireText(dateControl, 'small.is-empty', 'Date controls must reserve their value line before a date is chosen.');
 requireText(runtimeStability, '-webkit-tap-highlight-color: transparent', 'Planner mobile controls must not add browser tap highlight jitter.');
 
 requireText(walletService, "window.open('about:blank','_blank')", 'Document preview must synchronously reserve a browser tab from the user gesture.');

@@ -9,7 +9,10 @@
     padding-bottom: calc(7rem + env(safe-area-inset-bottom)) !important;
   }
 
-  app-customer-footer-v70.mobile-dock-present .customer-footer {
+  /* V253: reserve the bottom-chrome lane (dock on home, WhatsApp FAB elsewhere) by route, not by
+     the scroll-driven dock state, so the footer never grows/shrinks while the customer scrolls. */
+  app-customer-footer-v70.mobile-dock-present .customer-footer,
+  app-customer-footer-v70.bottom-chrome-space .customer-footer {
     padding-bottom: calc(6.15rem + env(safe-area-inset-bottom)) !important;
   }
 }

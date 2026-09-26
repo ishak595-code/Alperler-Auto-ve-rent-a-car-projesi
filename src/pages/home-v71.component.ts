@@ -28,7 +28,7 @@ interface PlannerDurationChoice { value: RentalDuration; label: string; enabled:
         <div class="hero-shade" aria-hidden="true"></div>
         <div class="hero-stage" [class.planner-disabled]="!plannerEnabled()">
           <div class="hero-copy-block">
-            <p class="eyebrow">{{ t().homePage.trustLine }}</p>
+            <p class="eyebrow">@for (part of eyebrowParts(); track $index) {<span class="eyebrow-part">{{ part }}</span>&ngsp;}</p>
             <h1 id="home-title">{{ t().homePage.title }}</h1>
             <p class="hero-copy">{{ t().homePage.subtitle }}</p>
             <div class="desktop-search" role="search" [attr.aria-label]="t().homePage.searchAria"><label class="sr-only" for="home-search-v80">{{ t().homePage.searchAria }}</label><div class="search-shell"><mat-icon aria-hidden="true">search</mat-icon><input id="home-search-v80" type="search" [(ngModel)]="searchQuery" (keyup.enter)="performSearch()" autocomplete="off" [attr.aria-label]="t().homePage.searchAria" [placeholder]="t().homePage.searchPlaceholder" /><button type="button" (click)="performSearch()" [attr.aria-label]="t().homePage.searchStartAria">{{ t().homePage.searchButton }}</button></div></div>
@@ -36,43 +36,56 @@ interface PlannerDurationChoice { value: RentalDuration; label: string; enabled:
           </div>
 
           @if (plannerEnabled()) {
-          <aside class="planner" [class.planner-compact]="plannerVariant() === 'compact'" aria-labelledby="planner-title">
+          <!-- V253 stable planner: every interaction keeps the card's geometry. Service/duration
+               switches never add or remove rows; the three date modes share one grid cell so the
+               block is always as tall as its tallest mode; summary/error live in reserved slots. -->
+          <aside class="planner" [class.planner-compact]="plannerVariant() === 'compact'" [attr.data-when-mode]="whenMode()" aria-labelledby="planner-title">
             <div class="planner-head"><div><p class="planner-kicker">{{ t().homePage.plannerKicker }}</p><h2 id="planner-title">{{ t().homePage.bookingTitle }}</h2><p>{{ t().homePage.bookingSubtitle }}</p></div><span class="planner-icon" aria-hidden="true"><mat-icon>event_available</mat-icon></span></div>
 
             <div class="field-grid">
               @for (field of plannerFieldOrder(); track field) {
                 @switch (field) {
                   @case ('service') {
-                    <label class="field"><span>{{ t().homePage.serviceLabel }}</span><select [(ngModel)]="serviceType" name="homeService" (ngModelChange)="onServiceChanged()" [attr.aria-label]="t().homePage.serviceLabel">@for (option of plannerServiceOptions(); track option.value) {<option [value]="option.value">{{ option.label }}</option>}</select></label>
+                    <label class="field field-service"><span class="field-label">{{ t().homePage.serviceLabel }}</span><select [(ngModel)]="serviceType" name="homeService" (ngModelChange)="onServiceChanged()" [attr.aria-label]="t().homePage.serviceLabel">@for (option of plannerServiceOptions(); track option.value) {<option [value]="option.value">{{ option.label }}</option>}</select></label>
                   }
                   @case ('pickup') {
                     @if (serviceType !== 'tour') {
-                      <label class="field"><span>{{ t().homePage.pickupLabel }}</span><select [(ngModel)]="selectedPickupKey" name="homePickup" (ngModelChange)="clearPlannerError()" [attr.aria-label]="t().homePage.pickupAria"><option value="">{{ t().homePage.pickupPlaceholder }}</option>@for (choice of pickupChoices(); track choice.key) { <option [value]="choice.key">{{ choice.label }}</option> }</select></label>
+                      <label class="field field-pickup"><span class="field-label">{{ t().homePage.pickupLabel }}</span><select [(ngModel)]="selectedPickupKey" name="homePickup" (ngModelChange)="clearPlannerError()" [attr.aria-label]="t().homePage.pickupAria"><option value="">{{ pickupChoices().length ? t().homePage.pickupPlaceholder : t().homePage.pickupAny }}</option>@for (choice of pickupChoices(); track choice.key) { <option [value]="choice.key">{{ choice.label }}</option> }</select></label>
+                    } @else {
+                      <div class="field field-pickup"><span class="field-label">{{ t().homePage.pickupLabel }}</span><p class="field-static"><mat-icon aria-hidden="true">tour</mat-icon><span>{{ t().homePage.tourIncluded }}</span></p></div>
                     }
                   }
                   @case ('duration') {
                     @if (serviceType !== 'tour') {
-                      <label class="field"><span>{{ t().homePage.durationLabel }}</span><select [(ngModel)]="rentalDuration" name="homeDuration" (ngModelChange)="onDurationChanged()" [attr.aria-label]="t().homePage.durationAria">@for (option of plannerDurationOptions(); track option.value) {<option [value]="option.value">{{ option.label }}</option>}</select></label>
+                      <label class="field field-duration"><span class="field-label">{{ t().homePage.durationLabel }}</span><select [(ngModel)]="rentalDuration" name="homeDuration" (ngModelChange)="onDurationChanged()" [attr.aria-label]="t().homePage.durationAria">@for (option of plannerDurationOptions(); track option.value) {<option [value]="option.value">{{ option.label }}</option>}</select></label>
+                    } @else {
+                      <div class="field field-duration"><span class="field-label">{{ t().homePage.durationLabel }}</span><p class="field-static"><mat-icon aria-hidden="true">schedule</mat-icon><span>{{ t().homePage.tourIncluded }}</span></p></div>
                     }
                   }
                   @case ('date') {
-                    @if (serviceType === 'tour') {
-                      <div class="date-grid single-date"><app-accessible-native-date [label]="t().homePage.tourDateLabel" [value]="startDate" [min]="today" (valueChange)="onStartDateChanged($event)" /></div>
-                    } @else if (rentalDuration === 'hourly') {
-                      <div class="date-grid single-date"><app-accessible-native-date [label]="t().homePage.hourlyDateLabel" [value]="startDate" [min]="today" (valueChange)="onStartDateChanged($event)" /></div>
-                      <div class="time-grid"><label class="field"><span>{{ t().homePage.startTimeLabel }}</span><input type="time" [(ngModel)]="startTime" name="homeStartTime" step="900" (ngModelChange)="clearPlannerError()" [attr.aria-label]="t().homePage.startTimeAria" /></label><label class="field"><span>{{ t().homePage.endTimeLabel }}</span><input type="time" [(ngModel)]="endTime" name="homeEndTime" step="900" (ngModelChange)="clearPlannerError()" [attr.aria-label]="t().homePage.endTimeAria" /></label></div>
-                    } @else {
-                      <div class="date-grid"><app-accessible-native-date [label]="t().homePage.startDateLabel" [value]="startDate" [min]="today" (valueChange)="onStartDateChanged($event)" /><app-accessible-native-date [label]="t().homePage.endDateLabel" [value]="endDate" [min]="startDate || today" (valueChange)="onEndDateChanged($event)" /></div>
-                    }
+                    <div class="when-stack">
+                      <div class="when-variant when-range" [class.is-active]="whenMode() === 'range'" [attr.aria-hidden]="whenMode() === 'range' ? null : 'true'" [attr.inert]="whenMode() === 'range' ? null : ''">
+                        <div class="date-grid"><app-accessible-native-date [label]="t().homePage.startDateLabel" [value]="startDate" [min]="today" (valueChange)="onStartDateChanged($event)" /><app-accessible-native-date [label]="t().homePage.endDateLabel" [value]="endDate" [min]="startDate || today" (valueChange)="onEndDateChanged($event)" /></div>
+                        <p class="planner-summary" [class.is-hint]="!plannerSummary()" [attr.aria-live]="whenMode() === 'range' ? 'polite' : null">{{ plannerSummary() || t().homePage.summaryHint }}</p>
+                      </div>
+                      <div class="when-variant when-hourly" [class.is-active]="whenMode() === 'hourly'" [attr.aria-hidden]="whenMode() === 'hourly' ? null : 'true'" [attr.inert]="whenMode() === 'hourly' ? null : ''">
+                        <div class="date-grid single-date"><app-accessible-native-date [label]="t().homePage.hourlyDateLabel" [value]="startDate" [min]="today" (valueChange)="onStartDateChanged($event)" /></div>
+                        <div class="time-grid"><label class="field"><span class="field-label">{{ t().homePage.startTimeLabel }}</span><input type="time" [(ngModel)]="startTime" name="homeStartTime" step="900" (ngModelChange)="clearPlannerError()" [attr.aria-label]="t().homePage.startTimeAria" /></label><label class="field"><span class="field-label">{{ t().homePage.endTimeLabel }}</span><input type="time" [(ngModel)]="endTime" name="homeEndTime" step="900" (ngModelChange)="clearPlannerError()" [attr.aria-label]="t().homePage.endTimeAria" /></label></div>
+                      </div>
+                      <div class="when-variant when-tour" [class.is-active]="whenMode() === 'tour'" [attr.aria-hidden]="whenMode() === 'tour' ? null : 'true'" [attr.inert]="whenMode() === 'tour' ? null : ''">
+                        <div class="date-grid single-date"><app-accessible-native-date [label]="t().homePage.tourDateLabel" [value]="startDate" [min]="today" (valueChange)="onStartDateChanged($event)" /></div>
+                        <p class="planner-summary" [class.is-hint]="!plannerSummary()" [attr.aria-live]="whenMode() === 'tour' ? 'polite' : null">{{ plannerSummary() || t().homePage.summaryHint }}</p>
+                      </div>
+                    </div>
                   }
                 }
               }
             </div>
 
-            @if (plannerError) { <p class="planner-error" role="alert">{{ plannerError }}</p> }
-            @if (plannerSummary()) { <p class="planner-summary" aria-live="polite">{{ plannerSummary() }}</p> }
-            <button type="button" class="planner-action" (click)="searchAvailability()" [attr.aria-label]="bookingButtonLabel()"><span>{{ bookingButtonLabel() }}</span><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
-            <p class="planner-note">{{ t().homePage.plannerNote }}</p>
+            <button type="button" class="planner-action" (click)="searchAvailability()" [attr.aria-label]="bookingButtonLabel()"><span class="action-labels" aria-hidden="true">@for (label of bookingButtonLabels(); track $index) {<span [class.is-active]="label === bookingButtonLabel()">{{ label }}</span>}</span><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
+            <div class="planner-feedback">
+              @if (plannerError) { <p class="planner-error" role="alert">{{ plannerError }}</p> } @else { <p class="planner-note">{{ t().homePage.plannerNote }}</p> }
+            </div>
           </aside>
           }
         </div>
@@ -112,76 +125,96 @@ interface PlannerDurationChoice { value: RentalDuration; label: string; enabled:
     .home-root,.home-root *{box-sizing:border-box}
     .hero{position:relative;isolation:isolate;overflow:hidden;background:var(--alper-bg,#06080D) center/cover no-repeat;color:var(--alper-text,#F8F6F1)}
     .hero-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,color-mix(in srgb,var(--alper-bg,#020617) 97%,transparent),color-mix(in srgb,var(--alper-bg,#020617) 88%,transparent) 52%,color-mix(in srgb,var(--alper-bg,#020617) 67%,transparent)),radial-gradient(circle at 85% 12%,color-mix(in srgb,var(--alper-blue,#9E1B24) 28%,transparent),transparent 32%)}
-    .hero-stage{--hero-gutter:.625rem;width:min(100% - 2 * var(--hero-gutter),var(--site-content-max,80rem));margin:auto;padding:1.45rem 0 1.75rem;display:grid;gap:1.2rem}
+    /* V253 canonical hero type + control scale. One fluid clamp() per role, from 320px phones to
+       2560px desktops, so no breakpoint jumps and no global override is needed. Casing system:
+       eyebrow/kicker = uppercase + tracking (lang-aware via <html lang>), headings/labels/body =
+       sentence case as authored, buttons = authored case at one shared height scale. */
+    .hero-stage{--hero-gutter:clamp(.875rem,3.4vw,1.25rem);--hero-eyebrow:clamp(.75rem,.7rem + .22vw,.875rem);--hero-h1:clamp(2rem,1.4rem + 3.05vw,4.75rem);--hero-sub:clamp(1rem,.94rem + .3vw,1.1875rem);--planner-h2:clamp(1.375rem,1.2rem + .62vw,1.875rem);--control-h:clamp(3rem,2.85rem + .5vw,3.375rem);--action-h:clamp(3.25rem,3.1rem + .5vw,3.625rem);--field-label:clamp(.8125rem,.78rem + .12vw,.875rem);width:min(100% - 2 * var(--hero-gutter),var(--site-content-max,80rem));margin:auto;padding:clamp(1rem,.6rem + 2.4vw,3.6rem) 0 clamp(1.25rem,.8rem + 2.6vw,4.1rem);display:grid;gap:clamp(.9rem,.7rem + 1vw,1.45rem)}
     .hero-stage>*{min-width:0}
     .hero-copy-block{min-width:0}
-    .eyebrow,.planner-kicker{margin:0;color:var(--alper-gold,#D4AF37);font-size:.72rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;line-height:1.35;overflow-wrap:anywhere}
-    .hero h1{max-width:850px;margin:.7rem 0 0;font-family:"Playfair Display",Georgia,"Times New Roman",serif;font-size:clamp(2.05rem,8.5vw,3.2rem);font-weight:600;line-height:1.08;letter-spacing:-.02em;overflow-wrap:anywhere}
-    .hero-copy{max-width:720px;margin:.8rem 0 0;color:color-mix(in srgb,var(--alper-text,#F8F6F1) 78%,var(--alper-muted,#B8B4AA));font-size:clamp(.98rem,2.8vw,1.08rem);line-height:1.65;overflow-wrap:anywhere}
-    .desktop-search{display:none;max-width:650px;margin-top:1.2rem}
-    .search-shell{display:flex;min-width:0;align-items:center;gap:.5rem;border:1px solid color-mix(in srgb,var(--alper-border,#303846) 70%,transparent);border-radius:var(--site-radius,16px);background:color-mix(in srgb,var(--alper-surface,#0D1118) 88%,transparent);padding:.45rem;box-shadow:var(--alper-shadow,0 18px 50px rgba(0,0,0,.24))}
-    .search-shell mat-icon{color:var(--alper-muted,#B8B4AA)}
-    .search-shell input{min-width:0;max-width:100%;flex:1;border:0;background:transparent;padding:.72rem .15rem;color:var(--alper-text,#F8F6F1);font-size:1rem;outline:none}
-    .search-shell button{min-height:44px;flex:none;border:0;border-radius:12px;background:linear-gradient(135deg,var(--alper-blue,#9E1B24),#7A0D15);padding:0 1.15rem;color:#fff;font-size:.95rem;font-weight:700;letter-spacing:.01em}
+    .eyebrow,.planner-kicker{margin:0;color:var(--alper-gold,#D4AF37);font-size:var(--hero-eyebrow);font-weight:800;letter-spacing:.14em;text-transform:uppercase;line-height:1.4;overflow-wrap:anywhere}
+    .planner-kicker{font-size:.75rem}
+    .hero h1{max-width:18ch;margin:clamp(.5rem,.4rem + .4vw,.8rem) 0 0;font-family:"Playfair Display",Georgia,"Times New Roman",serif;font-size:var(--hero-h1);font-weight:600;line-height:1.08;letter-spacing:-.018em;overflow-wrap:break-word;hyphens:manual;text-wrap:balance}
+    .hero-copy{max-width:40rem;margin:clamp(.6rem,.5rem + .4vw,.9rem) 0 0;color:color-mix(in srgb,var(--alper-text,#F8F6F1) 80%,var(--alper-muted,#B8B4AA));font-size:var(--hero-sub);line-height:1.6;overflow-wrap:break-word;text-wrap:pretty}
+    .desktop-search{display:none;max-width:650px;margin-top:clamp(1rem,.8rem + .6vw,1.4rem)}
+    .search-shell{display:flex;min-width:0;align-items:center;gap:.5rem;border:1px solid color-mix(in srgb,var(--alper-border,#303846) 70%,transparent);border-radius:var(--site-radius,16px);background:color-mix(in srgb,var(--alper-surface,#0D1118) 88%,transparent);padding:.375rem .375rem .375rem .85rem;box-shadow:var(--alper-shadow,0 18px 50px rgba(0,0,0,.24))}
+    .search-shell mat-icon{flex:none;color:var(--alper-muted,#B8B4AA)}
+    .search-shell input{min-width:0;max-width:100%;min-height:var(--control-h);flex:1;border:0;background:transparent;padding:0 .15rem;color:var(--alper-text,#F8F6F1);font-size:1rem;outline:none}
+    .search-shell button{min-height:var(--control-h);flex:none;border:0;border-radius:12px;background:linear-gradient(135deg,var(--alper-blue,#9E1B24),#7A0D15);padding:0 1.35rem;color:#fff;font-size:1rem;font-weight:700;letter-spacing:.01em}
     .search-shell button:focus-visible{outline:3px solid var(--alper-blue-light,#E15A62);outline-offset:2px}
-    .trust-row{display:flex;min-width:0;flex-wrap:wrap;gap:.55rem;margin-top:1.05rem}
-    .trust-row span{display:inline-flex;min-width:0;max-width:100%;align-items:center;gap:.4rem;border:1px solid color-mix(in srgb,var(--alper-border,#303846) 55%,transparent);border-radius:999px;background:color-mix(in srgb,var(--alper-elevated,#171D26) 55%,transparent);padding:.5rem .8rem;color:color-mix(in srgb,var(--alper-text,#F8F6F1) 86%,var(--alper-muted));font-size:.8125rem;font-weight:650;line-height:1.35;overflow-wrap:anywhere}
-    .trust-row mat-icon{width:16px;height:16px;flex:none;font-size:16px;color:var(--alper-gold,#D4AF37)}
-    .planner{width:100%;min-width:0;border:1px solid color-mix(in srgb,var(--alper-border,#303846) 80%,var(--alper-gold,#D4AF37) 20%);border-radius:calc(var(--site-radius,18px) + 4px);background:linear-gradient(180deg,color-mix(in srgb,var(--alper-card,#11161E) 92%,var(--alper-elevated,#171D26)),var(--alper-surface,#0D1118));padding:1.2rem;box-shadow:var(--alper-shadow,0 24px 54px rgba(2,6,23,.36));isolation:isolate;backdrop-filter:blur(8px)}
-    .planner-head{display:flex;min-width:0;justify-content:space-between;gap:.85rem;align-items:flex-start}
-    .planner-head>div{min-width:0;flex:1}
-    .planner h2{margin:.35rem 0 0;font-family:"Playfair Display",Georgia,"Times New Roman",serif;font-size:clamp(1.45rem,4.5vw,1.85rem);font-weight:600;line-height:1.18;letter-spacing:-.015em;overflow-wrap:anywhere;color:var(--alper-text,#F8F6F1)}
-    .planner-head p:not(.planner-kicker){margin:.5rem 0 0;color:var(--alper-muted,#B8B4AA);font-size:.95rem;line-height:1.55;overflow-wrap:anywhere}
+    .trust-row{display:flex;min-width:0;flex-wrap:wrap;gap:.55rem;margin-top:clamp(.9rem,.8rem + .4vw,1.2rem)}
+    .trust-row span{display:inline-flex;min-width:0;max-width:100%;min-height:2.5rem;align-items:center;gap:.45rem;border:1px solid color-mix(in srgb,var(--alper-border,#303846) 55%,transparent);border-radius:999px;background:color-mix(in srgb,var(--alper-elevated,#171D26) 55%,transparent);padding:.45rem .9rem;color:color-mix(in srgb,var(--alper-text,#F8F6F1) 86%,var(--alper-muted));font-size:clamp(.8125rem,.79rem + .1vw,.875rem);font-weight:650;line-height:1.3;overflow-wrap:break-word}
+    .trust-row mat-icon{width:18px;height:18px;flex:none;font-size:18px;color:var(--alper-gold,#D4AF37)}
+    .planner{width:100%;min-width:0;border:1px solid color-mix(in srgb,var(--alper-border,#303846) 80%,var(--alper-gold,#D4AF37) 20%);border-radius:calc(var(--site-radius,18px) + 4px);background:linear-gradient(180deg,color-mix(in srgb,var(--alper-card,#11161E) 92%,var(--alper-elevated,#171D26)),var(--alper-surface,#0D1118));padding:clamp(1.05rem,.85rem + 1vw,1.6rem);box-shadow:var(--alper-shadow,0 24px 54px rgba(2,6,23,.36));isolation:isolate;backdrop-filter:blur(8px);overflow-anchor:none}
+    /* Icon sits beside kicker+title only; the explanation uses the full card width (no 5-line squeeze at 320px). */
+    .planner-head{display:grid;min-width:0;grid-template-columns:minmax(0,1fr) auto;column-gap:.85rem;align-items:start}
+    .planner-head>div{display:contents}
+    .planner-head .planner-kicker,.planner-head h2{grid-column:1}
+    .planner-head p:not(.planner-kicker){grid-column:1/-1}
+    .planner-icon{grid-column:2;grid-row:1/span 2;align-self:center}
+    .eyebrow-part{white-space:nowrap}
+    .eyebrow-part:not(:last-child)::after{content:"\\00a0\\00b7";content:"\\00a0\\00b7" / ""}
+    .planner h2{margin:.35rem 0 0;font-family:"Playfair Display",Georgia,"Times New Roman",serif;font-size:var(--planner-h2);font-weight:600;line-height:1.18;letter-spacing:-.012em;overflow-wrap:break-word;color:var(--alper-text,#F8F6F1)}
+    .planner-head p:not(.planner-kicker){margin:.45rem 0 0;color:var(--alper-muted,#B8B4AA);font-size:clamp(.9375rem,.9rem + .15vw,1rem);line-height:1.5;overflow-wrap:break-word}
     .planner-icon{display:grid;width:48px;height:48px;flex:none;place-items:center;border-radius:14px;background:color-mix(in srgb,var(--alper-gold,#D4AF37) 18%,transparent);color:var(--alper-gold,#D4AF37);border:1px solid color-mix(in srgb,var(--alper-gold,#D4AF37) 28%,transparent)}
-    .field-grid{display:grid;min-width:0;gap:.8rem;margin-top:1.1rem}
+    /* Fields: sentence-case labels in a readable size (no uppercase questions), one control
+       height for selects, inputs and date buttons, and controls aligned to the row bottom so
+       labels that wrap in one language never push a neighbour down. */
+    .field-grid{display:grid;min-width:0;grid-template-columns:minmax(0,1fr);align-items:end;gap:.85rem;margin-top:clamp(1rem,.9rem + .5vw,1.3rem)}
     .field{display:flex;min-width:0;max-width:100%;flex-direction:column;gap:.4rem}
-    .field>span{min-width:0;color:var(--alper-subtle,#81858A);font-size:.72rem;font-weight:750;letter-spacing:.06em;text-transform:uppercase;line-height:1.3;overflow-wrap:anywhere}
-    .field select,.field input{width:100%;min-width:0;max-width:100%;min-height:48px;border:1px solid var(--alper-border,#303846);border-radius:12px;background:var(--alper-elevated,#171D26);padding:0 .9rem;color:var(--alper-text,#F8F6F1);font-size:1rem;font-weight:600;outline:none;text-overflow:ellipsis}
+    .field-label,.field>span{min-width:0;color:color-mix(in srgb,var(--alper-muted,#B8B4AA) 88%,#fff);font-size:var(--field-label);font-weight:700;letter-spacing:.005em;text-transform:none;line-height:1.3;overflow-wrap:break-word}
+    .field select,.field input{width:100%;min-width:0;max-width:100%;height:var(--control-h);min-height:var(--control-h);border:1px solid var(--alper-border,#303846);border-radius:12px;background:var(--alper-elevated,#171D26);padding:0 .95rem;color:var(--alper-text,#F8F6F1);font-size:1rem;font-weight:600;outline:none;text-overflow:ellipsis;white-space:nowrap}
     .field select:focus,.field input:focus{border-color:var(--alper-gold,#D4AF37);box-shadow:var(--alper-focus-ring,0 0 0 3px color-mix(in srgb,var(--alper-gold,#D4AF37) 22%,transparent))}
-    .date-grid,.time-grid{display:grid;min-width:0;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.7rem}
+    .field-static{display:flex;height:var(--control-h);min-width:0;align-items:center;gap:.55rem;margin:0;border:1px dashed color-mix(in srgb,var(--alper-gold,#D4AF37) 32%,var(--alper-border,#303846));border-radius:12px;background:color-mix(in srgb,var(--alper-elevated,#171D26) 60%,transparent);padding:0 .95rem;color:var(--alper-muted,#B8B4AA);font-size:.9375rem;font-weight:600;line-height:1.25}
+    .field-static mat-icon{width:20px;height:20px;flex:none;font-size:20px;color:var(--alper-gold,#D4AF37)}
+    .field-static span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .when-stack{display:grid;min-width:0;grid-template-areas:"when";grid-column:1/-1}
+    .when-variant{grid-area:when;display:flex;min-width:0;flex-direction:column;gap:.75rem;visibility:hidden}
+    .when-variant.is-active{visibility:visible}
+    .when-variant app-accessible-native-date{--date-label-size:var(--field-label);--date-label-weight:700;--date-label-transform:none;--date-label-spacing:.005em;--date-label:color-mix(in srgb,var(--alper-muted,#B8B4AA) 88%,#fff);--date-surface-h:var(--control-h);--date-surface-pad:.3rem .8rem .3rem .95rem;--date-bg:rgba(5,7,11,.86);--date-border:rgba(212,175,55,.19);--date-icon:var(--alper-gold,#D4AF37)}
+    .date-grid,.time-grid{display:grid;min-width:0;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:end;gap:.7rem}
     .date-grid>*,.time-grid>*{min-width:0}
     .date-grid.single-date{grid-template-columns:minmax(0,1fr)}
-    .planner-summary{margin:.75rem 0 0;border-radius:12px;background:color-mix(in srgb,var(--alper-gold,#D4AF37) 10%,transparent);border:1px solid color-mix(in srgb,var(--alper-gold,#D4AF37) 22%,transparent);padding:.75rem .85rem;color:var(--alper-text,#F8F6F1);font-size:.875rem;font-weight:650;line-height:1.45;overflow-wrap:anywhere}
-    .planner-error{margin:.75rem 0 0;border-radius:12px;background:color-mix(in srgb,var(--alper-blue,#9E1B24) 14%,transparent);border:1px solid color-mix(in srgb,var(--alper-blue-light,#E15A62) 35%,transparent);padding:.75rem .85rem;color:var(--alper-blue-light,#E15A62);font-size:.875rem;font-weight:700;line-height:1.45;overflow-wrap:anywhere}
-    .planner-action{display:flex;width:100%;min-width:0;min-height:52px;margin-top:1rem;align-items:center;justify-content:center;gap:.5rem;border:0;border-radius:14px;background:linear-gradient(135deg,var(--alper-blue,#9E1B24),#7A0D15);padding:.8rem 1.1rem;color:#fff;font-size:1.02rem;font-weight:750;line-height:1.25;letter-spacing:.01em;box-shadow:0 16px 34px color-mix(in srgb,var(--alper-blue,#9E1B24) 28%,transparent);transition:transform .15s ease,box-shadow .15s ease}
-    .planner-action:hover{box-shadow:var(--alper-shadow-hover,0 22px 58px rgba(0,0,0,.3))}
-    .planner-action span{min-width:0;overflow-wrap:anywhere}
+    .planner-summary{display:-webkit-box;flex:1 0 auto;min-height:calc(3 * 1.45em + 1.5rem);max-height:calc(3 * 1.45em + 1.5rem);margin:0;overflow:hidden;border-radius:12px;background:color-mix(in srgb,var(--alper-gold,#D4AF37) 10%,transparent);border:1px solid color-mix(in srgb,var(--alper-gold,#D4AF37) 22%,transparent);padding:.75rem .9rem;color:var(--alper-text,#F8F6F1);font-size:.9375rem;font-weight:650;line-height:1.45;overflow-wrap:break-word;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3}
+    .planner-summary.is-hint{background:transparent;border-style:dashed;border-color:color-mix(in srgb,var(--alper-border,#303846) 90%,transparent);color:var(--alper-muted,#B8B4AA);font-weight:550}
+    .planner-action{display:flex;width:100%;min-width:0;min-height:var(--action-h);margin-top:1.1rem;align-items:center;justify-content:center;gap:.5rem;border:0;border-radius:14px;background:linear-gradient(135deg,var(--alper-blue,#9E1B24),#7A0D15);padding:.7rem 1.1rem;color:#fff;font-size:clamp(1rem,.97rem + .12vw,1.0625rem);font-weight:750;line-height:1.25;letter-spacing:.01em;box-shadow:0 16px 34px color-mix(in srgb,var(--alper-blue,#9E1B24) 28%,transparent);transition:box-shadow .15s ease,filter .15s ease}
+    .planner-action:hover{box-shadow:var(--alper-shadow-hover,0 22px 58px rgba(0,0,0,.3));filter:brightness(1.06)}
+    /* Every mode's label is stacked in one cell, so the button is always as tall as its longest label (in any language) and switching service/duration never resizes it. */
+    .action-labels{display:grid;min-width:0;grid-template-areas:"label";text-align:center}
+    .action-labels>span{grid-area:label;min-width:0;overflow-wrap:break-word;visibility:hidden}
+    .action-labels>span.is-active{visibility:visible}
+    .planner-action mat-icon{flex:none}
     .planner-action:focus-visible{outline:3px solid var(--alper-blue-light,#E15A62);outline-offset:3px}
-    .planner-note{margin:.6rem 0 0;color:var(--alper-subtle,#81858A);font-size:.8125rem;line-height:1.55;overflow-wrap:anywhere}
+    /* Reserved two-line feedback slot under the action: the reassurance note by default, the
+       validation error (role=alert) in the same box, so validating never moves anything. */
+    .planner-feedback{display:flex;min-height:calc(2 * 1.45 * .875rem + .9rem);margin-top:.6rem;align-items:flex-start}
+    .planner-error,.planner-note{display:-webkit-box;width:100%;margin:0;overflow:hidden;font-size:.875rem;line-height:1.45;overflow-wrap:break-word;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
+    .planner-note{padding:.45rem .1rem;color:var(--alper-muted,#B8B4AA)}
+    .planner-error{border-radius:10px;background:color-mix(in srgb,var(--alper-blue,#9E1B24) 16%,transparent);border:1px solid color-mix(in srgb,var(--alper-blue-light,#E15A62) 40%,transparent);padding:.4rem .7rem;color:#FFB4B8;font-weight:700}
     .loading{display:flex;min-height:110px;align-items:center;justify-content:center;gap:.45rem;background:var(--alper-surface,#fff);color:var(--alper-muted,#475569);font-size:.92rem;font-weight:700}
     .loading mat-icon{color:var(--alper-blue,#9E1B24)}
+    /* Phones: pickup and return dates get the full width so "Datum wählen", "Seleccionar fecha"
+       and formatted dates are never cut off in a cramped half-column. */
+    @media(max-width:439px){
+      .date-grid:not(.single-date){grid-template-columns:minmax(0,1fr)}
+    }
+    @media(max-width:359px){
+      .planner-icon{width:44px;height:44px}
+    }
+    @media(min-width:640px){
+      .field-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+      .field-service{grid-column:1/-1}
+      .planner-summary{min-height:calc(2 * 1.45em + 1.5rem);max-height:calc(2 * 1.45em + 1.5rem);-webkit-line-clamp:2;line-clamp:2}
+    }
     @media(min-width:768px){
       .home-root{padding-bottom:0}
-      .hero-stage{--hero-gutter:clamp(1.25rem,3vw,2.5rem);padding:3.6rem 0 4.1rem;gap:1.45rem}
+      .hero-stage{--hero-gutter:clamp(1.25rem,3vw,2.5rem)}
       .desktop-search{display:block}
-      .hero h1{font-size:clamp(3.25rem,6vw,4.9rem)}
-      .hero-copy{font-size:1.08rem}
-      .planner{padding:1.35rem}
-      .planner h2{font-size:clamp(1.6rem,2.4vw,1.95rem)}
-      .planner-head p:not(.planner-kicker){font-size:1.02rem}
-      .field-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-      .date-grid,.time-grid{grid-column:1/-1}
-      .date-grid.single-date{grid-column:auto}
-      .trust-row span{font-size:.875rem}
     }
     @media(min-width:1024px){
-      .hero-stage{--hero-gutter:clamp(1.5rem,3.2vw,3rem);grid-template-columns:minmax(0,1.12fr) minmax(min(400px,100%),.88fr);align-items:center;gap:clamp(2rem,3.4vw,3.2rem);padding:5rem 0 5.6rem}
-      .planner{padding:1.5rem 1.55rem}
-      .planner h2{font-size:2rem}
-      .field-grid{grid-template-columns:minmax(0,1fr)}
-      .date-grid,.time-grid{grid-column:auto}
-      .hero h1{font-size:clamp(3.6rem,5.2vw,5.4rem)}
+      .hero-stage{--hero-gutter:clamp(1.5rem,3.2vw,3rem);grid-template-columns:minmax(0,1.12fr) minmax(min(420px,100%),.88fr);align-items:center;gap:clamp(2rem,3.4vw,3.2rem);padding:clamp(4rem,2rem + 3vw,6rem) 0 clamp(4.5rem,2.4rem + 3.2vw,6.6rem)}
     }
-    @media(max-width:430px){
-      .date-grid,.time-grid{grid-template-columns:minmax(0,1fr)}
-      .hero-stage{--hero-gutter:.5rem;padding-top:1.1rem}
-      .planner{padding:1.05rem;border-radius:18px}
-      .hero h1{font-size:clamp(1.98rem,9vw,2.4rem);line-height:1.1}
-      .planner h2{font-size:clamp(1.38rem,6.5vw,1.58rem)}
-      .planner-icon{width:46px;height:46px}
-      .trust-row span{border-radius:14px}
-    }
-    .planner.planner-compact{padding:1rem}
+    .planner.planner-compact{padding:clamp(.95rem,.8rem + .8vw,1.3rem)}
     .planner.planner-compact .field-grid{gap:.65rem}
     @media(min-width:1024px){
       .hero-stage.planner-disabled{grid-template-columns:1fr}
@@ -211,8 +244,15 @@ const adminLabel=String(custom?.label||"").trim();const label=lang==="TR"?(admin
   onEndDateChanged(value:string):void{this.endDate=value;this.clearPlannerError();}
   clearPlannerError():void{this.plannerError="";}
   searchAvailability():void{this.clearPlannerError();if(!this.startDate){this.plannerError=this.serviceType==="tour"?this.t().homePage.errorTourDate:this.t().homePage.errorStartDate;return;}if(this.serviceType==="tour"){void this.router.navigate(["/tours"],{queryParams:{start:this.startDate}});return;}if(this.rentalDuration==="hourly"){const start=this.minutes(this.startTime),end=this.minutes(this.endTime);if(start===null||end===null||end<=start){this.plannerError=this.t().homePage.errorTimeOrder;return;}if(Math.ceil((end-start)/60)>23){this.plannerError=this.t().homePage.errorHourlyLimit;return;}}else{if(!this.endDate){this.plannerError=this.t().homePage.errorEndDate;return;}if(this.endDate<=this.startDate){this.plannerError=this.t().homePage.errorDateOrder;return;}}
-    const pickup=this.pickupChoices().find((item)=>item.key===this.selectedPickupKey);if(!pickup){this.plannerError=this.t().homePage.errorPickup;return;}const driverMode=this.serviceType==="individual"?"without":"with";void this.router.navigate(["/fleet"],{queryParams:{duration:this.rentalDuration,start:this.startDate,end:this.rentalDuration==="hourly"?this.startDate:this.endDate,startTime:this.rentalDuration==="hourly"?this.startTime:undefined,endTime:this.rentalDuration==="hourly"?this.endTime:undefined,pickup:pickup.branchId,pickupLocation:pickup.label,driverMode,availableOnly:"true",occasion:this.serviceType==="wedding"?"wedding":undefined}});}
+    const choices=this.pickupChoices();const pickup=choices.find((item)=>item.key===this.selectedPickupKey);// V253: while branches cannot be read (quota/offline) the pickup point is decided later with the team instead of blocking the fastest path to the fleet.
+    if(!pickup&&choices.length){this.plannerError=this.t().homePage.errorPickup;return;}const driverMode=this.serviceType==="individual"?"without":"with";void this.router.navigate(["/fleet"],{queryParams:{duration:this.rentalDuration,start:this.startDate,end:this.rentalDuration==="hourly"?this.startDate:this.endDate,startTime:this.rentalDuration==="hourly"?this.startTime:undefined,endTime:this.rentalDuration==="hourly"?this.endTime:undefined,pickup:pickup?.branchId,pickupLocation:pickup?.label,driverMode,availableOnly:"true",occasion:this.serviceType==="wedding"?"wedding":undefined}});}
   plannerSummary():string{if(!this.startDate)return"";const hp=this.t().homePage;const pickup=this.pickupChoices().find((item)=>item.key===this.selectedPickupKey);const dates=this.serviceType==="tour"?this.formatShortDate(this.startDate):this.rentalDuration==="hourly"?`${this.formatShortDate(this.startDate)} · ${this.startTime}-${this.endTime}`:`${this.formatShortDate(this.startDate)} - ${this.endDate?this.formatShortDate(this.endDate):"?"}`;const mode=this.serviceType==="individual"?hp.summarySelf:this.serviceType==="driver"?hp.summaryDriver:this.serviceType==="wedding"?hp.summaryWedding:hp.summaryTour;const duration=this.serviceType==="tour"?"":(this.plannerDurationOptions().find((item)=>item.value===this.rentalDuration)?.label||this.rentalDuration);return[dates,duration,mode,pickup?.label].filter(Boolean).join(" · ");}
+  /** Which date block is active; all three are rendered in one grid cell so switching never resizes the card. */
+  whenMode():"range"|"hourly"|"tour"{return this.serviceType==="tour"?"tour":this.rentalDuration==="hourly"?"hourly":"range";}
+  /** Eyebrow segments: separators stay glued to the preceding word so a wrap never starts a line with "·". */
+  eyebrowParts():string[]{return String(this.t().homePage.trustLine||"").split(/\s*[·•|]\s*/).map((part)=>part.trim()).filter(Boolean);}
+  /** All possible action labels (deduplicated) for the stacked, fixed-height button. */
+  bookingButtonLabels():string[]{const hp=this.t().homePage;return Array.from(new Set([hp.buttonRental,hp.buttonHourly,hp.buttonDriver,hp.buttonWedding,hp.buttonTour].map((item)=>String(item||""))));}
   bookingButtonLabel():string{const hp=this.t().homePage;if(this.serviceType==="tour")return hp.buttonTour;if(this.rentalDuration==="hourly")return hp.buttonHourly;if(this.serviceType==="driver")return hp.buttonDriver;if(this.serviceType==="wedding")return hp.buttonWedding;return hp.buttonRental;}
   homeShellErrorTitle():string{
     const pack=(this.t() as any)?.homePage||{};

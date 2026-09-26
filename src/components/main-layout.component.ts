@@ -27,8 +27,8 @@ import { NavbarComponent } from "./navbar.component";
 
       <app-feedback></app-feedback>
 
-      <!-- V253: the WhatsApp FAB is global bottom chrome (app-whatsapp-fab in AppComponent) so every
-           public page gets it once; this shell only reserves its lane in the footer on phones. -->
+      <!-- V253/V254: the floating WhatsApp FAB is mounted once in AppComponent and shows on the homepage
+           only; this shell only reserves its lane in the homepage footer on phones. -->
     </div>
   `,
   styles: [`
@@ -46,10 +46,8 @@ export class MainLayoutComponent {
     this.router.events.pipe(filter(event=>event instanceof NavigationEnd)).subscribe(()=>this.updatePageState());
     this.updatePageState();
   }
-  /** Phones reserve the bottom-chrome lane (dock or WhatsApp FAB) by route so it never toggles on scroll. */
-  bottomChromeLane(){return this.navigation.mobileDockOnRoute()||(this.footer.settings().showWhatsapp!==false&&!this.hasOwnBottomActionBar());}
-  /** Detail/checkout/account surfaces own a fixed bottom action bar; keep the FAB off those to avoid covering CTAs. */
-  private hasOwnBottomActionBar(){const url=this.currentPath();return /^\/(fleet|sales)\/[^/]+$/.test(url)||/^\/tour\/[^/]+$/.test(url)||/^\/(booking-checkout|track-car|account|branch-portal|admin)(\/|$)/.test(url);}
+  /** Phones reserve the bottom-chrome lane (dock or homepage-only WhatsApp FAB) by route so it never toggles on scroll. */
+  bottomChromeLane(){return this.navigation.mobileDockOnRoute()||(this.isHomePage()&&this.footer.settings().showWhatsapp!==false);}
   private updatePageState(){const url=this.router.url.split("?")[0].split("#")[0]||"/";this.currentPath.set(url);this.isHomePage.set(url==="/");}
   isVehicleDetailPage(){const url=this.router.url.split("?")[0];return /^\/(fleet|sales)\/[^/]+$/.test(url);}
   goBack(){if(window.history.length>1)this.location.back();else void this.router.navigate(["/"]);}

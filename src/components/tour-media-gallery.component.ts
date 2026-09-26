@@ -4,6 +4,7 @@ import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { MatIconModule } from "@angular/material/icon";
 import { Tour } from "../models/car.model";
 import { UiService } from "../services/ui.service";
+import { ResponsiveImageDirective } from "../directives/responsive-image.directive";
 
 interface GallerySlide {
   key: string;
@@ -17,7 +18,7 @@ interface GallerySlide {
 @Component({
   selector: "app-tour-media-gallery",
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [ResponsiveImageDirective, CommonModule, MatIconModule],
   template: `
     @if (slides().length > 1 || hasVideo()) {
       <section class="mx-auto max-w-5xl px-4 pt-8 sm:px-6" aria-labelledby="tour-gallery-title">
@@ -57,7 +58,7 @@ interface GallerySlide {
                   </video>
                 }
               } @else {
-                <img [src]="slide.url" [alt]="slide.title" class="h-full w-full object-cover" loading="eager" decoding="async" />
+                <img [src]="slide.url" [alt]="slide.title" [appResponsiveImg]="slide.url" appResponsiveSizes="(min-width: 1024px) 66vw, 100vw" class="h-full w-full object-cover" loading="eager" decoding="async" />
               }
             </div>
             @if (slide.attribution) {

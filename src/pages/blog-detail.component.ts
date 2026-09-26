@@ -5,11 +5,12 @@ import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { DetailMediaLightboxComponent } from "../components/detail-media-lightbox.component";
 import { BlogDetailPost, PublicDetailDataService } from "../services/public-detail-data.service";
 import { UiService } from "../services/ui.service";
+import { ResponsiveImageDirective } from "../directives/responsive-image.directive";
 
 @Component({
   selector: "app-blog-detail",
   standalone: true,
-  imports: [CommonModule, RouterLink, MatIconModule, DetailMediaLightboxComponent],
+  imports: [ResponsiveImageDirective, CommonModule, RouterLink, MatIconModule, DetailMediaLightboxComponent],
   template: `
     <main class="page">
       <header class="topbar">
@@ -25,7 +26,7 @@ import { UiService } from "../services/ui.service";
             <div class="frame">
               @if(media.kind==='IMAGE'){
                 <button type="button" class="media-button" (click)="openFullscreen()" [attr.aria-label]="fullscreenAria(media.title)">
-                  <img [src]="media.url" [alt]="media.title" loading="eager" decoding="async" />
+                  <img [src]="media.url" [alt]="media.title" loading="eager" [appResponsiveImg]="media.url" appResponsiveSizes="(min-width: 1024px) 66vw, 100vw" decoding="async" />
                 </button>
               }@else{
                 <video [src]="media.url" [poster]="media.posterUrl" controls playsinline preload="metadata" [attr.aria-label]="media.title"></video>

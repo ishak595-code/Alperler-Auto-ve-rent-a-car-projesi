@@ -2,6 +2,8 @@ import { Injectable, inject, signal } from '@angular/core';
 import { AuthService } from './auth.service';
 import { describeStorageError, mediaExtension, mediaRejectionReason, resolveMediaType } from './media-file.util';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
+import { MediaProviderUnavailableError, MediaUploadService, MediaUploadSizeError } from './media-upload.service';
+import { prepareCatalogImage } from './catalog-image-optimize.util';
 
 export type FleetOperationalStatus = 'READY'|'RESERVED'|'RENTED'|'CLEANING'|'MAINTENANCE'|'INSPECTION_HOLD'|'OUT_OF_SERVICE';
 export type FleetCleanliness = 'UNKNOWN'|'CLEAN'|'NEEDS_CLEANING'|'DEEP_CLEANING';
@@ -48,6 +50,7 @@ export const INSPECTION_TYPES_REQUIRING_MEDIA:InspectionType[]=['PRE_RENTAL','HA
 @Injectable({providedIn:'root'})
 export class FleetOperationsService {
   private readonly auth=inject(AuthService);
+  private readonly media=inject(MediaUploadService);
   private readonly mediaBucket='vehicle-media';
   private readonly operationSelect='vehicle_id,operational_status,odometer_km,fuel_percent,cleanliness_status,last_inspection_at,last_service_at,next_service_at,next_service_km,insurance_expires_at,periodic_inspection_expires_at,damage_notes,internal_notes,gps_provider,gps_device_id,gps_status,gps_last_sync_at,last_known_latitude,last_known_longitude';
   private readonly _vehicles=signal<FleetVehicle[]>([]);
@@ -216,6 +219,18 @@ export class FleetOperationsService {
     const reason=mediaRejectionReason(file,{video:false});
     if(reason) throw new Error(reason);
     const token=await this.requiredToken();
+    // V252: active media provider (R2 → Cloudinary) first; Supabase Storage stays the fallback.
+    if(this.media.isEnabled()){
+      try{
+        const prepared=await prepareCatalogImage(file);
+        const uploaded=await this.media.upload({scope:'ops',vehicleId},prepared,'IMAGE',token);
+        return uploaded.url;
+      }catch(error){
+        if(error instanceof MediaUploadSizeError) throw new Error('Kontrol fotoğrafı çok büyük. Daha küçük bir fotoğraf seçin.');
+        if(!(error instanceof MediaProviderUnavailableError)) throw error;
+        console.warn('[FleetOperations] media provider unavailable, falling back to Supabase Storage:',error.code);
+      }
+    }
     const mediaType=resolveMediaType(file);
     const extension=mediaExtension(mediaType,file);
     const safeVehicle=(vehicleId||'vehicle').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,64)||'vehicle';

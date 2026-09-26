@@ -42,9 +42,11 @@ must(server.includes("env.CLOUDINARY_CLOUD_NAME") && !/CLOUDINARY_API_(KEY|SECRE
 must(uploader.includes("X-Unique-Upload-Id") && uploader.includes("Content-Range"), "chunked Cloudinary upload headers missing");
 must(uploader.includes("readCloudinaryCloudName() !== \"\""), "frontend must stay disabled without CLOUDINARY_CLOUD_NAME");
 must(catalog.includes("prepareCatalogImage") && catalog.includes("catalogUploadSizeRejection"), "existing WebP compression / Supabase caps must remain");
-must(catalog.includes("CloudinaryUnavailableError") && catalog.includes("CLOUDINARY_DB_MIGRATION_PENDING"), "catalog upload must fall back to Supabase when Cloudinary/migration is unavailable");
-must(catalog.includes("storage_bucket: CLOUDINARY_STORAGE_BUCKET") && catalog.includes("object_path: uploaded.publicId"), "Cloudinary rows must be stored as storage_bucket=cloudinary + object_path=public_id");
-must(adminMedia.includes("CloudinaryUnavailableError") && adminMedia.includes("REGISTER_MEDIA_ASSET"), "admin media Cloudinary path/fallback missing");
+// V252: uploads go through the provider-agnostic MediaUploadService (Cloudinary is one adapter,
+// R2 preferred once configured); the Supabase fallback and the "provider/public_id" row contract stay.
+must(catalog.includes("MediaProviderUnavailableError") && catalog.includes("MEDIA_PROVIDER_DB_MIGRATION_PENDING"), "catalog upload must fall back to Supabase when the media provider/migration is unavailable");
+must(catalog.includes("storage_bucket: uploaded.bucket") && catalog.includes("object_path: uploaded.objectPath"), "provider rows must be stored as storage_bucket=<provider> + object_path=<public_id|R2 stem>");
+must(adminMedia.includes("MediaProviderUnavailableError") && adminMedia.includes("REGISTER_MEDIA_ASSET"), "admin media provider path/fallback missing");
 must(lib.includes("CLOUDINARY_IMAGE_MAX_BYTES = 10 * 1024 * 1024") && lib.includes("CLOUDINARY_VIDEO_MAX_BYTES = 100 * 1024 * 1024"), "server free-plan caps missing");
 
 // 3. Delivery URLs: fixed widths only.

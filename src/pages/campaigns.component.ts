@@ -7,11 +7,12 @@ import { CommercialOfferContextService } from "../services/commercial-offer-cont
 import { PublicDetailDataService } from "../services/public-detail-data.service";
 import { CarService } from "../services/car.service";
 import { UiService } from "../services/ui.service";
+import { ResponsiveImageDirective } from "../directives/responsive-image.directive";
 
 @Component({
   selector: "app-campaigns",
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [ResponsiveImageDirective, CommonModule, MatIconModule],
   template: `
     <main class="page">
       <header class="topbar"><div class="topbar-inner"><button type="button" class="back" (click)="goBack()" [attr.aria-label]="t().campaignsPage.backAria"><mat-icon aria-hidden="true">arrow_back</mat-icon></button><div><p class="kicker">{{ brandLabel() }}</p><h1>{{ t().campaignsPage.title }}</h1></div></div></header>
@@ -25,7 +26,7 @@ import { UiService } from "../services/ui.service";
           <div class="grid">@for (campaign of campaigns(); track campaign.id) {
             <article class="offer">
               <button type="button" class="offer-button" (click)="openCampaign(campaign)" [attr.aria-label]="campaignAriaLabel(campaign)">
-                <div class="media">@if (campaign.coverImage) {<img [src]="campaignImage(campaign)" [alt]="campaign.title" loading="lazy" decoding="async" />} @else {<div class="media-empty" [attr.aria-label]="t().campaignsPage.mediaEmptyAria"><mat-icon aria-hidden="true">local_offer</mat-icon></div>}<div class="top-badges"><span class="badge">{{ t().campaignsPage.badge }}</span>@if (campaign.discountPercent) {<span class="discount">{{ discountLabel(campaign.discountPercent) }}</span>} @else if (campaign.badge) {<span class="discount">{{ badgeLabel(campaign.badge) }}</span>}</div>@if (campaign.endsAt) {<span class="time" [class.urgent]="isUrgent(campaign.endsAt)"><mat-icon aria-hidden="true">schedule</mat-icon>{{ countdown(campaign.endsAt) }}</span>}</div>
+                <div class="media">@if (campaign.coverImage) {<img [src]="campaignImage(campaign)" [appResponsiveImg]="campaignImage(campaign)" [alt]="campaign.title" loading="lazy" decoding="async" />} @else {<div class="media-empty" [attr.aria-label]="t().campaignsPage.mediaEmptyAria"><mat-icon aria-hidden="true">local_offer</mat-icon></div>}<div class="top-badges"><span class="badge">{{ t().campaignsPage.badge }}</span>@if (campaign.discountPercent) {<span class="discount">{{ discountLabel(campaign.discountPercent) }}</span>} @else if (campaign.badge) {<span class="discount">{{ badgeLabel(campaign.badge) }}</span>}</div>@if (campaign.endsAt) {<span class="time" [class.urgent]="isUrgent(campaign.endsAt)"><mat-icon aria-hidden="true">schedule</mat-icon>{{ countdown(campaign.endsAt) }}</span>}</div>
                 <div class="body"><div class="proof" [class.hot]="proofFor(campaign).activeViewers15m > 0 || proofFor(campaign).recentViewers24h > 1"><span class="dot" aria-hidden="true"></span><mat-icon aria-hidden="true">visibility</mat-icon><strong>{{ proofLabel(campaign) }}</strong></div><p class="hook">{{ campaignHook(campaign) }}</p><h2>{{ campaign.title }}</h2><p class="copy">{{ campaign.shortDescription || campaign.description || t().campaignsPage.fallbackDesc }}</p><div class="price-row"><div>@if (campaign.oldPrice && campaign.newPrice && campaign.oldPrice > campaign.newPrice) {<span class="old">{{ formatPrice(campaign.oldPrice) }}</span>}@if (campaign.newPrice != null) {<strong class="new">{{ formatPrice(campaign.newPrice) }}</strong>}</div>@if (campaignSavings(campaign) > 0) {<span class="saving">{{ savingAmount(campaign) }}</span>} @else if (campaign.discountPercent) {<span class="saving" >{{ savingPct(campaign.discountPercent) }}</span>}</div>@if (campaign.endsAt) {<p class="deadline">{{ deadlineLabel(campaign.endsAt) }}</p>}<span class="cta"><span>{{ campaign.ctaLabel || t().campaignsPage.cta }}</span><mat-icon aria-hidden="true">arrow_forward</mat-icon></span></div>
               </button>
             </article>

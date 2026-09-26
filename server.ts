@@ -16,6 +16,8 @@ import robotsApi from "./api/robots";
 import sitemapApi from "./api/sitemap";
 import socialPreviewApi from "./api/social-preview";
 import { configuredPublicOrigin, vercelDeploymentOrigin, vercelProductionOrigin } from "./api/_lib/public-origin";
+import { resolveMediaProvider } from "./api/_lib/media-provider";
+import { r2Config } from "./api/_lib/r2";
 
 const __filename=fileURLToPath(import.meta.url);
 const __dirname=path.dirname(__filename);
@@ -55,6 +57,10 @@ function buildRuntimeEnvJs():string{
   if(origin){env.APP_PUBLIC_ORIGIN=origin;env.PUBLIC_APP_URL=origin;}
   const cloudinaryCloudName=String(process.env.CLOUDINARY_CLOUD_NAME||"").trim();
   if(/^[A-Za-z0-9_-]{1,64}$/.test(cloudinaryCloudName))env.CLOUDINARY_CLOUD_NAME=cloudinaryCloudName;
+  // V252: provider for new uploads + public R2 base only (never R2 keys).
+  env.MEDIA_PROVIDER=resolveMediaProvider();
+  const r2PublicBase=r2Config().publicBaseUrl;
+  if(r2PublicBase)env.R2_PUBLIC_BASE_URL=r2PublicBase;
   return `window.process = Object.assign({}, window.process, { env: Object.assign({}, (window.process && window.process.env) || {}, ${JSON.stringify(env)}) });\n`;
 }
 

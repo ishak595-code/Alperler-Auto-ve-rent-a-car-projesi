@@ -8,9 +8,9 @@ import {
 } from "./catalog-image-optimize.util";
 import { AuthService } from './auth.service';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
-import { CloudinarySizeError, CloudinaryUnavailableError, CloudinaryUploadService } from './cloudinary-upload.service';
+import { MediaProviderUnavailableError, MediaUploadService, MediaUploadSizeError, type ProviderUploadResult } from './media-upload.service';
 import { UiService } from './ui.service';
-import { CLOUDINARY_IMAGE_MAX_BYTES, CLOUDINARY_STORAGE_BUCKET, cloudinaryImageUrl } from '../utils/cloudinary-media';
+import { CLOUDINARY_IMAGE_MAX_BYTES } from '../utils/cloudinary-media';
 
 export interface AdminMediaUploadResult {
   bucket: string;
@@ -32,7 +32,7 @@ const HOMEPAGE_BACKGROUND_QUALITIES = [0.82, 0.74, 0.66, 0.58] as const;
 @Injectable({ providedIn: 'root' })
 export class AdminMediaService {
   private readonly auth = inject(AuthService);
-  private readonly cloudinary = inject(CloudinaryUploadService);
+  private readonly media = inject(MediaUploadService);
   private readonly injector = inject(Injector);
   private readonly bucket = 'catalog-media';
   /** Depolama kovası tavanı (V246). Katalog görselleri WebP/JPEG sıkıştırılır. */
@@ -61,14 +61,14 @@ export class AdminMediaService {
     const token = await this.auth.getAccessToken();
     if (!token) throw new Error('ADMIN_SESSION_REQUIRED');
 
-    // V249: env-gated Cloudinary path. Campaign covers stay on Supabase Storage because the
-    // campaign cover binding trigger (v199) parses Supabase object paths.
-    if (this.cloudinary.isEnabled() && String(entityType || '').toUpperCase() !== 'CAMPAIGN') {
+    // V252: active media provider (R2 → Cloudinary → Supabase). Campaign covers included: the
+    // V252 campaign cover trigger binds provider assets by metadata.publicUrl.
+    if (this.media.isEnabled()) {
       try {
-        return await this.uploadImageToCloudinary(file, uploadFile, entityType, entityId, purpose, token, options);
+        return await this.uploadImageToProvider(file, uploadFile, entityType, entityId, purpose, token, options);
       } catch (error) {
-        if (!(error instanceof CloudinaryUnavailableError)) throw error;
-        console.warn('[AdminMedia] Cloudinary unavailable, falling back to Supabase Storage:', error.code);
+        if (!(error instanceof MediaProviderUnavailableError)) throw error;
+        console.warn(`[AdminMedia] ${this.media.activeProvider()} unavailable, falling back to Supabase Storage:`, error.code);
       }
     }
 
@@ -135,7 +135,7 @@ export class AdminMediaService {
     return { bucket: this.bucket, objectPath, publicUrl };
   }
 
-  private async uploadImageToCloudinary(
+  private async uploadImageToProvider(
     originalFile: File,
     uploadFile: File,
     entityType: string,
@@ -144,32 +144,25 @@ export class AdminMediaService {
     token: string,
     options: { alreadyOptimized?: boolean },
   ): Promise<AdminMediaUploadResult> {
-    if (uploadFile.size > CLOUDINARY_IMAGE_MAX_BYTES) throw new Error(this.uiText('imageTooLarge', 10));
-    let signed;
+    if (this.media.activeProvider() === 'cloudinary' && uploadFile.size > CLOUDINARY_IMAGE_MAX_BYTES) throw new Error(this.uiText('imageTooLarge', 10));
+    const displayWidth = String(entityType || '').toUpperCase() === 'HOMEPAGE_SECTION' && purpose === 'background' ? 1920 : 1440;
+    let uploaded: ProviderUploadResult;
     try {
-      signed = await this.cloudinary.sign(token, {
+      uploaded = await this.media.upload({
         scope: 'admin',
         entityType: String(entityType || 'content'),
         entityId: String(entityId || 'draft'),
         purpose: String(purpose || 'image'),
-        resourceType: 'image',
-        bytes: uploadFile.size,
-      });
+      }, uploadFile, 'IMAGE', token, { displayWidth });
     } catch (error) {
-      if (error instanceof CloudinarySizeError) throw new Error(this.uiText('imageTooLarge', 10));
-      if (error instanceof CloudinaryUnavailableError) throw error;
-      throw new Error(`${this.uiText('signatureFailed')} (${error instanceof Error ? error.message : 'SIGN'})`);
+      if (error instanceof MediaUploadSizeError) throw new Error(this.uiText('imageTooLarge', 10));
+      if (error instanceof MediaProviderUnavailableError) throw error;
+      const code = error instanceof Error ? error.message : 'UPLOAD';
+      throw new Error(`${this.uiText(/^(FORBIDDEN|UNAUTHORIZED)$/.test(code) ? 'signatureFailed' : 'uploadFailed')} (${code})`);
     }
-    let uploaded;
-    try {
-      uploaded = await this.cloudinary.upload(uploadFile, signed);
-    } catch (error) {
-      if (error instanceof CloudinarySizeError) throw new Error(this.uiText('imageTooLarge', 10));
-      throw new Error(`${this.uiText('uploadFailed')} (${error instanceof Error ? error.message : 'UPLOAD'})`);
-    }
-    const width = String(entityType || '').toUpperCase() === 'HOMEPAGE_SECTION' && purpose === 'background' ? 1920 : 1440;
-    const publicUrl = cloudinaryImageUrl(uploaded.cloudName, uploaded.publicId, width);
+    const publicUrl = uploaded.url;
     const safePurpose = this.cleanSegment(purpose || 'image');
+    const campaignCover = String(entityType || '').toUpperCase() === 'CAMPAIGN' && safePurpose === 'cover';
     try {
       const asset = await adminFetch('/api/partner?op=media-control-admin', {
         method: 'POST',
@@ -183,8 +176,8 @@ export class AdminMediaService {
         body: JSON.stringify({
           action: 'REGISTER_MEDIA_ASSET',
           payload: {
-            bucket: CLOUDINARY_STORAGE_BUCKET,
-            object_path: uploaded.publicId,
+            bucket: uploaded.bucket,
+            object_path: uploaded.objectPath,
             media_type: 'IMAGE',
             entity_type: String(entityType || 'CONTENT').slice(0, 80),
             entity_id: String(entityId || 'draft').slice(0, 180),
@@ -195,13 +188,12 @@ export class AdminMediaService {
               size: uploadFile.size,
               originalSize: originalFile.size,
               mimeType: uploadFile.type,
-              bindingState: 'BOUND',
+              bindingState: campaignCover ? 'PENDING' : 'BOUND',
               registeredAt: new Date().toISOString(),
               optimizedForHomepage: entityType === 'HOMEPAGE_SECTION' && purpose === 'background',
               optimized: options.alreadyOptimized || uploadFile !== originalFile,
-              storageProvider: CLOUDINARY_STORAGE_BUCKET,
               publicUrl,
-              cloudinary: { cloudName: uploaded.cloudName, resourceType: 'image', version: uploaded.version ?? null, format: uploaded.format ?? null, bytes: uploaded.bytes ?? uploadFile.size },
+              ...uploaded.metadata,
             },
           },
         }),
@@ -209,14 +201,14 @@ export class AdminMediaService {
       const payload = await asset.json().catch(() => ({})) as { ok?: boolean; code?: string };
       if (!asset.ok || payload.ok !== true) throw new Error(payload.code || `MEDIA_ASSET_${asset.status}`);
     } catch (error) {
-      await this.cloudinary.destroy(token, uploaded.publicId, 'image').catch(() => undefined);
-      // V249 migration not applied yet → the DB only accepts catalog-media assets; fall back.
+      await this.media.rollback(token, uploaded);
+      // Provider migration (V249 / V252) not applied yet → the DB rejects the bucket; fall back.
       if (error instanceof Error && error.message === 'INVALID_MEDIA_ASSET_STORAGE') {
-        throw new CloudinaryUnavailableError('CLOUDINARY_DB_MIGRATION_PENDING');
+        throw new MediaProviderUnavailableError('MEDIA_PROVIDER_DB_MIGRATION_PENDING');
       }
       throw error;
     }
-    return { bucket: CLOUDINARY_STORAGE_BUCKET, objectPath: uploaded.publicId, publicUrl };
+    return { bucket: uploaded.bucket, objectPath: uploaded.objectPath, publicUrl };
   }
 
   private uiText(key: 'imageTooLarge' | 'uploadFailed' | 'signatureFailed', max?: number): string {
@@ -256,9 +248,9 @@ export class AdminMediaService {
       completed: Number(payload.cleanup?.completed || 0),
       pending: Number(payload.cleanup?.pending || 0),
     };
-    // V249: also drain queued Cloudinary deletions (server-side signed destroy). Best effort.
-    if (this.cloudinary.isEnabled()) {
-      const extra = await this.cloudinary.drainCleanup(token, Math.max(1, Math.min(25, Math.trunc(limit)))).catch(() => null);
+    // V252: also drain queued R2 / Cloudinary deletions (server-side). Best effort.
+    {
+      const extra = await this.media.drainCleanup(token, Math.max(1, Math.min(25, Math.trunc(limit)))).catch(() => null);
       if (extra) {
         result.attempted += extra.attempted;
         result.completed += extra.completed;

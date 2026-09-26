@@ -8,3 +8,6 @@ project/
 
 # Historical migration copies are retained in Git but are not needed by Vercel builds.
 supabase/applied-history/
+
+# Cloudflare Worker (deployed separately with wrangler), not part of the Vercel runtime.
+workers/

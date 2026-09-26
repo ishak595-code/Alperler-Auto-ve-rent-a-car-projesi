@@ -155,15 +155,22 @@ async function patchJob(id: string, body: Json): Promise<void> {
 }
 
 async function drainAction(request: Request, input: Json): Promise<Response> {
+  const result = await drainCloudinaryCleanup(Number(input["limit"] || 10));
+  if (result.code === "CLOUDINARY_CLEANUP_LIST_FAILED") return reply(request, { ok: false, code: result.code }, 503);
+  return reply(request, { ok: true, ...(result.code ? { code: result.code } : {}), cleanup: result.cleanup });
+}
+
+/** V252: shared by /api/partner?op=cloudinary and ?op=media-upload (provider-agnostic drain). */
+export async function drainCloudinaryCleanup(rawLimit: number): Promise<{ code?: string; cleanup: { attempted: number; completed: number; pending: number } }> {
   const config = cloudinaryConfig();
-  const limit = Math.max(1, Math.min(25, Math.trunc(Number(input["limit"] || 10)) || 10));
+  const limit = Math.max(1, Math.min(25, Math.trunc(Number(rawLimit || 10)) || 10));
   const listing = await fetch(
     `${SUPABASE_PROJECT_URL}/rest/v1/media_cleanup_jobs_v198?storage_bucket=eq.${CLOUDINARY_STORAGE_BUCKET}&status=eq.PENDING&completed_at=is.null&select=id,object_path,resource_type,attempts&order=created_at.asc&limit=${limit}`,
     { headers: serviceHeaders(), signal: AbortSignal.timeout(8_000) },
   );
   // 400 → V249 migration (resource_type column / bucket constraint) not applied yet: nothing to drain.
-  if (listing.status === 400) return reply(request, { ok: true, code: "CLOUDINARY_CLEANUP_MIGRATION_PENDING", cleanup: { attempted: 0, completed: 0, pending: 0 } });
-  if (!listing.ok) return reply(request, { ok: false, code: "CLOUDINARY_CLEANUP_LIST_FAILED" }, 503);
+  if (listing.status === 400) return { code: "CLOUDINARY_CLEANUP_MIGRATION_PENDING", cleanup: { attempted: 0, completed: 0, pending: 0 } };
+  if (!listing.ok) return { code: "CLOUDINARY_CLEANUP_LIST_FAILED", cleanup: { attempted: 0, completed: 0, pending: 0 } };
   const jobs = await listing.json().catch(() => []) as CleanupJob[];
   let completed = 0;
   let pending = 0;
@@ -187,7 +194,7 @@ async function drainAction(request: Request, input: Json): Promise<Response> {
       pending++;
     }
   }
-  return reply(request, { ok: true, cleanup: { attempted: Array.isArray(jobs) ? jobs.length : 0, completed, pending } });
+  return { cleanup: { attempted: Array.isArray(jobs) ? jobs.length : 0, completed, pending } };
 }
 
 function statusFor(code: string): number {

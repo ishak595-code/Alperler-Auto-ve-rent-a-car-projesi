@@ -1,11 +1,12 @@
 import { Component, HostListener, OnDestroy, inject, input, output, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { UiService } from "../services/ui.service";
+import { ResponsiveImageDirective } from "../directives/responsive-image.directive";
 
 @Component({
   selector: "app-car-image-carousel",
   standalone: true,
-  imports: [CommonModule],
+  imports: [ResponsiveImageDirective, CommonModule],
   template: `
     <div
       class="relative w-full h-full group overflow-hidden bg-slate-200 touch-pan-y"
@@ -26,8 +27,11 @@ import { UiService } from "../services/ui.service";
         >
           <img
             [src]="img"
+            [appResponsiveImg]="img"
+            appResponsiveSizes="(min-width: 1024px) 66vw, 100vw"
             [alt]="resolvedAlt()"
             [loading]="i === 0 ? 'eager' : 'lazy'"
+            decoding="async"
             referrerpolicy="no-referrer"
             class="object-cover w-full h-full"
           />
@@ -110,6 +114,8 @@ import { UiService } from "../services/ui.service";
           >
             <img
               [src]="images()[currentIndex()]"
+              [appResponsiveImg]="images()[currentIndex()]"
+              appResponsiveSizes="100vw"
               [alt]="resolvedAlt()"
               class="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
             />
@@ -159,7 +165,7 @@ import { UiService } from "../services/ui.service";
                   [class.border-transparent]="i !== currentIndex()"
                   [class.opacity-60]="i !== currentIndex()"
                 >
-                  <img [src]="img" [alt]="thumbAlt(i)" loading="lazy" decoding="async" class="w-full h-full object-cover" />
+                  <img [src]="img" [appResponsiveImg]="img" appResponsiveSizes="160px" [alt]="thumbAlt(i)" loading="lazy" decoding="async" class="w-full h-full object-cover" />
                 </button>
               }
             </div>

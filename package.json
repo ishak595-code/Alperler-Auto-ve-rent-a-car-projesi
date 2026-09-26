@@ -40,7 +40,9 @@
     "media:reprocess": "node scripts/reprocess-catalog-media.mjs",
     "egress:v236": "node scripts/check-v236-egress-quality.mjs",
     "cloudinary:v249": "node scripts/check-v249-cloudinary-media.mjs",
+    "media:v252": "node scripts/check-v252-media-provider.mjs",
     "test:cloudinary": "node --import tsx --test tests/unit/cloudinary-media.test.ts",
+    "test:media": "node --import tsx --test tests/unit/media-provider.test.ts",
     "media:migrate-cloudinary": "node scripts/migrate-media-to-cloudinary.mjs"
   },
   "dependencies": {

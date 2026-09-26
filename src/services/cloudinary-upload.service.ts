@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { CLOUDINARY_CHUNK_BYTES, readCloudinaryCloudName } from "../utils/cloudinary-media";
+import { readActiveMediaProvider } from "../utils/r2-media";
 
 /**
  * V249 — browser → Cloudinary direct uploads with a server-issued signature.
@@ -69,8 +70,9 @@ const FALLBACK_CODES = new Set([
 export class CloudinaryUploadService {
   private readonly endpoint = "/api/partner?op=cloudinary";
 
+  /** V252: Cloudinary receives new uploads only while it is the active provider (R2 wins once configured). */
   isEnabled(): boolean {
-    return readCloudinaryCloudName() !== "";
+    return readCloudinaryCloudName() !== "" && readActiveMediaProvider() === "cloudinary";
   }
 
   async sign(token: string, request: CloudinarySignRequest): Promise<CloudinarySignedUpload> {

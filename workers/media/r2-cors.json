@@ -1,0 +1,18 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": [
+          "https://REPLACE-WITH-PRODUCTION-ORIGIN",
+          "https://alperler-auto-ve-rent-a-car-projesi.vercel.app",
+          "http://localhost:4200",
+          "http://127.0.0.1:4175"
+        ],
+        "methods": ["PUT"],
+        "headers": ["content-type"]
+      },
+      "exposeHeaders": ["ETag"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+}

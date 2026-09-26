@@ -67,7 +67,7 @@ export function resourceTypeFrom(value: unknown): CloudinaryResourceType | null 
 /**
  * Cloudinary signature: every signed parameter (except file, cloud_name,
  * resource_type, api_key) sorted by key, joined as k=v&k2=v2, then the API
- * secret appended and SHA-1 hashed (hex).
+ * secret appended and SHA-256 hashed (hex). Cloudinary accepts SHA-1 or SHA-256 digests; SHA-256 is used to avoid a weak hash.
  */
 export function signCloudinaryParams(params: Record<string, string | number | boolean | undefined | null>, apiSecret: string): string {
   const serialized = Object.keys(params)
@@ -76,7 +76,7 @@ export function signCloudinaryParams(params: Record<string, string | number | bo
     .sort()
     .map((key) => `${key}=${String(params[key])}`)
     .join("&");
-  return createHash("sha1").update(`${serialized}${apiSecret}`).digest("hex");
+  return createHash("sha256").update(`${serialized}${apiSecret}`).digest("hex");
 }
 
 function segment(value: unknown, fallback: string): string {

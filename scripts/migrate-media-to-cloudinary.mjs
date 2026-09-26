@@ -94,7 +94,7 @@ async function supabase(path, init = {}) {
 
 function sign(params) {
   const serialized = Object.keys(params).filter((k) => params[k] !== undefined && params[k] !== null && String(params[k]) !== "").sort().map((k) => `${k}=${params[k]}`).join("&");
-  return createHash("sha1").update(`${serialized}${API_SECRET}`).digest("hex");
+  return createHash("sha256").update(`${serialized}${API_SECRET}`).digest("hex");
 }
 
 function encodePath(path) {
@@ -221,7 +221,15 @@ async function deleteSource(objectPath) {
 
 async function rollback(file) {
   const report = JSON.parse(fs.readFileSync(file, "utf8"));
-  const entries = (report.entries || []).filter((e) => e.status === "MIGRATED" && !e.sourceDeleted);
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const SAFE_PATH = /^[^\u0000-\u001f\u007f]{1,1024}$/;
+  const entries = (report.entries || [])
+    .filter((e) => e.status === "MIGRATED" && !e.sourceDeleted)
+    .filter((e) => {
+      const ok = UUID.test(String(e.rowId || "")) && SAFE_PATH.test(String(e.sourcePath || "")) && !String(e.sourcePath).includes("..");
+      if (!ok) console.warn(` ! skipping malformed report entry ${JSON.stringify(e.rowId)}`);
+      return ok;
+    });
   console.log(`Rollback candidates: ${entries.length}${APPLY ? "" : " (dry-run)"}`);
   for (const entry of entries) {
     console.log(` ↺ ${entry.rowId} ${entry.publicId} → ${SOURCE_BUCKET}/${entry.sourcePath}`);

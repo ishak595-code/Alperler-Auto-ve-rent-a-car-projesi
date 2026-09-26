@@ -87,12 +87,12 @@ test("free plan caps: 10 MB image, 100 MB video", () => {
   assert.equal(cloudinarySizeViolation(100 * 1024 * 1024 + 1, "video/mp4"), "video");
 });
 
-test("signature follows the Cloudinary algorithm (sorted params + secret, SHA-1)", () => {
-  // Documented Cloudinary example.
-  const expected = createHash("sha1").update("eager=w_400,h_300,c_pad|w_260,h_200,c_crop&public_id=sample_image&timestamp=1315060510abcd").digest("hex");
+test("signature follows the Cloudinary algorithm (sorted params + secret, SHA-256)", () => {
+  // Documented Cloudinary example string; SHA-256 digest (Cloudinary accepts SHA-1 or SHA-256).
+  const expected = createHash("sha256").update("eager=w_400,h_300,c_pad|w_260,h_200,c_crop&public_id=sample_image&timestamp=1315060510abcd").digest("hex");
   const actual = signCloudinaryParams({ timestamp: 1315060510, public_id: "sample_image", eager: "w_400,h_300,c_pad|w_260,h_200,c_crop", api_key: "ignored", file: "ignored", resource_type: "ignored" }, "abcd");
   assert.equal(actual, expected);
-  assert.equal(actual, "bfd09f95f331f558cbd1320e67aa8d488770583e");
+  assert.equal(actual, "cc927e1290f9e3ae4c1a741eda21a4630b4ce80f9ce0bc0296337d25cf40f91e");
 });
 
 test("server config is env-gated (all three variables required)", () => {

@@ -93,6 +93,12 @@ app-home-v71 .hero-shade {
     linear-gradient(0deg, rgba(3,5,9,.78) 0%, transparent 43%) !important;
 }
 
+/* V250 viewport-fit contract: every translateZ inside the 1500px hero
+   perspective magnifies by 1500 / (1500 - z) around the stage centre, which
+   pushed the copy column past the left edge and the planner past the right
+   edge at 1180-1366px. Hero columns therefore keep only shallow depth and pair
+   it with a compensating scale(1 - z/1500), so the projected size equals the
+   layout box. The tilt, shadows and nested depth layers stay intact. */
 app-home-v71 .hero-stage {
   position: relative;
   z-index: 2;
@@ -109,7 +115,8 @@ app-home-v71 .planner {
 
 app-home-v71 .hero-copy-block {
   position: relative;
-  transform: translateZ(34px);
+  /* z=12px -> scale 1 - 12/1500 */
+  transform: translateZ(12px) scale(.992);
 }
 
 app-home-v71 .hero-copy-block::before {
@@ -188,7 +195,8 @@ app-dynamic-home-section .primary-cta {
 app-home-v71 .planner {
   position: relative;
   overflow: hidden;
-  transform: translateZ(72px) rotateY(-1.2deg) rotateX(.35deg);
+  /* z=24px -> scale 1 - 24/1500 */
+  transform: translateZ(24px) rotateY(-1.2deg) rotateX(.35deg) scale(.984);
   transform-origin: 50% 50%;
   box-shadow:
     0 42px 90px rgba(0,0,0,.50),
@@ -325,11 +333,11 @@ app-dynamic-home-section .campaign-cta {
   }
 
   app-home-v71 .hero-copy-block {
-    transform: translate3d(0,-6px,46px) rotateY(1.15deg);
+    transform: translate3d(0,-6px,12px) rotateY(1.15deg) scale(.992);
   }
 
   app-home-v71 .planner {
-    transform: translate3d(0,8px,88px) rotateY(-2.2deg) rotateX(.7deg);
+    transform: translate3d(0,8px,24px) rotateY(-2.2deg) rotateX(.7deg) scale(.984);
   }
 
   app-home-v71 .desktop-search {
@@ -348,7 +356,8 @@ app-dynamic-home-section .campaign-cta {
   }
 
   app-home-v71 .planner:hover {
-    transform: translate3d(0,2px,96px) rotateY(-1.25deg) rotateX(.15deg);
+    /* Hover lift: z=32px -> scale 1 - 32/1500 keeps the lifted card inside the gutter. */
+    transform: translate3d(0,2px,32px) rotateY(-1.25deg) rotateX(.15deg) scale(.9787);
     border-color: rgba(212,175,55,.34) !important;
   }
 

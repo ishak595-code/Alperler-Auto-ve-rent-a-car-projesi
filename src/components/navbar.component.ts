@@ -1,4 +1,4 @@
-import { Component, HostListener, OnDestroy, effect, inject, signal } from "@angular/core";
+import { Component, ElementRef, HostListener, NgZone, OnDestroy, afterNextRender, effect, inject, signal, viewChild } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
@@ -12,6 +12,7 @@ import { NavigationConfigService } from "../services/navigation-config.service";
   selector: "app-navbar",
   standalone: true,
   imports: [CommonModule, RouterLink, RouterLinkActive, MatIconModule],
+  host: { "[class.nav-collapsed]": "navCollapsed()" },
   template: `
     <nav class="site-navbar" [attr.aria-label]="t().nav.mainAria">
       <div class="navbar-shell">
@@ -27,7 +28,7 @@ import { NavigationConfigService } from "../services/navigation-config.service";
             }
           </a>
 
-          <div class="desktop-nav" [attr.aria-label]="t().nav.desktopMenuAria">
+          <div #desktopNav class="desktop-nav" [attr.aria-label]="t().nav.desktopMenuAria" [attr.aria-hidden]="navCollapsed() ? 'true' : null">
             @for (item of navigation.itemsFor('MOBILE_MENU'); track item.id) {
               <a [routerLink]="item.route" [routerLinkActiveOptions]="{ exact: item.route === '/' }" routerLinkActive="nav-link-active" class="nav-link" [attr.aria-label]="navLabel(item)">{{ navLabel(item) }}</a>
             }
@@ -93,20 +94,27 @@ import { NavigationConfigService } from "../services/navigation-config.service";
     @media(min-width:420px){.navbar-shell{width:min(100% - 1.5rem,1280px)}.brand-name{font-size:14px}.brand-sub{font-size:7.5px}.navbar-actions{gap:.35rem}.auth-entry,.account-entry{display:flex;width:auto;max-width:138px;padding:0 10px;gap:6px}.auth-entry span,.account-entry span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9.5px;font-weight:900}}
     @media(min-width:640px){.brand-lockup{gap:.7rem}.brand-mark{width:46px;height:46px;flex-basis:46px}.brand-name{font-size:16px}.brand-sub{font-size:8px}.mobile-language-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
     @media(min-width:768px){.site-navbar{height:84px}.mobile-navigation{inset:84px 0 0}.brand-logo{max-height:62px}.brand-name{font-size:17px}.brand-sub{font-size:8.5px}.auth-entry,.account-entry{min-height:46px}.mobile-menu-trigger{width:46px;min-height:46px}}
-    @media(min-width:1280px){.site-navbar{height:96px}.navbar-shell{width:min(100% - 3rem,1280px)}.brand-link{flex:0 1 285px;max-width:285px}.brand-logo{max-width:280px;max-height:72px}.desktop-nav{display:flex;min-width:0;max-width:min(58vw,740px);flex:1;align-items:center;gap:.72rem;overflow-x:auto;padding:.3rem .2rem;scrollbar-width:none}.desktop-nav::-webkit-scrollbar{display:none}.nav-link{flex:none;border-bottom:2px solid transparent;padding:.55rem 0;color:#cbd5e1;text-decoration:none;font-size:10px;font-weight:850;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}.nav-link:hover{color:#fff}.nav-link-active{border-color:var(--alper-blue-light,#E15A62);color:#fff}.desktop-control{display:grid;place-items:center}.language-trigger{min-width:44px;padding:0 8px;font-size:11px;font-weight:900}.icon-control{width:44px}.mobile-menu-trigger{display:none}.auth-entry,.account-entry{display:flex;min-height:44px;width:auto;max-width:150px;padding:0 10px;gap:7px}.mobile-navigation{display:none!important}}
+    @media(min-width:1280px){.site-navbar{height:96px}.navbar-shell{width:min(100% - 3rem,1280px)}.brand-link{flex:0 1 auto;max-width:285px}.brand-logo{max-width:280px;max-height:72px}.desktop-nav{display:flex;min-width:0;flex:1 1 0%;align-items:center;justify-content:space-between;gap:.5rem;overflow-x:auto;overflow-y:hidden;padding:.3rem .65rem;scrollbar-width:none}.desktop-nav::-webkit-scrollbar{display:none}.nav-link{flex:none;border-bottom:2px solid transparent;padding:.55rem 0;color:#cbd5e1;text-decoration:none;font-size:10px;font-weight:850;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}.nav-link:hover{color:#fff}.nav-link-active{border-color:var(--alper-blue-light,#E15A62);color:#fff}.desktop-control{display:grid;place-items:center}.language-trigger{min-width:44px;padding:0 8px;font-size:11px;font-weight:900}.icon-control{width:44px}.mobile-menu-trigger{display:none}.auth-entry,.account-entry{display:flex;min-height:44px;width:auto;max-width:150px;padding:0 10px;gap:7px}.mobile-navigation{display:none!important}:host(.nav-collapsed) .desktop-nav{visibility:hidden;pointer-events:none}:host(.nav-collapsed) .mobile-menu-trigger{display:grid}:host(.nav-collapsed) .mobile-navigation{display:block!important;inset:96px 0 0}}
     @media(display-mode:standalone) and (pointer:coarse), (display-mode:fullscreen) and (pointer:coarse){.site-navbar{padding-top:env(safe-area-inset-top);height:calc(72px + env(safe-area-inset-top))}.mobile-navigation{inset:calc(72px + env(safe-area-inset-top)) 0 0}}@media(display-mode:standalone) and (pointer:coarse) and (min-width:768px), (display-mode:fullscreen) and (pointer:coarse) and (min-width:768px){.site-navbar{height:calc(84px + env(safe-area-inset-top))}.mobile-navigation{inset:calc(84px + env(safe-area-inset-top)) 0 0}}
     @media(prefers-reduced-motion:reduce){.expand-icon{transition:none}}
   `],
 })
 export class NavbarComponent implements OnDestroy {
   carService=inject(CarService);customerAuth=inject(CustomerAuthService);customerAccount=inject(CustomerAccountService);uiService=inject(UiService);t=this.uiService.translations;navigation=inject(NavigationConfigService);router=inject(Router);config=this.carService.getConfig();favoriteCount=this.carService.getFavoriteCount;
-  isMenuOpen=signal(false);isLangMenuOpen=signal(false);mobileLanguageOpen=signal(false);languages:Language[]=["TR","EN","DE","FR","KU","ES","RU","ZH","AR"];
+  isMenuOpen=signal(false);isLangMenuOpen=signal(false);mobileLanguageOpen=signal(false);
+  /** V250: desktop links collapse into the menu whenever they cannot fit on one row (any language, admin label or width). */
+  navCollapsed=signal(false);
+  private readonly desktopNav=viewChild<ElementRef<HTMLElement>>("desktopNav");
+  private readonly zone=inject(NgZone);
+  private navResizeObserver?:ResizeObserver;private navMutationObserver?:MutationObserver;private navFitFrame=0;languages:Language[]=["TR","EN","DE","FR","KU","ES","RU","ZH","AR"];
   constructor(){
     effect(()=>{if(!this.navigation.mobileMenuEnabled())this.closeMenu(false);});
     effect(()=>{if(this.customerAuth.isLoggedIn())void this.customerAccount.refreshProfileSummary();else this.customerAccount.clearLocalProfile();});
     this.router.events.subscribe(event=>{if(event instanceof NavigationEnd)this.closeMenu(false);});
+    effect(()=>{this.navigation.mobileMenuEnabled();this.t();this.scheduleNavFit();});
+    afterNextRender(()=>this.observeDesktopNav());
   }
-  ngOnDestroy():void{this.setDocumentMenuOpen(false);}
+  ngOnDestroy():void{this.setDocumentMenuOpen(false);this.navResizeObserver?.disconnect();this.navMutationObserver?.disconnect();if(this.navFitFrame&&typeof window!=="undefined")window.cancelAnimationFrame(this.navFitFrame);}
   accountLabel():string{const fullName=String(this.customerAccount.profile()?.full_name||'').trim();return fullName?fullName.split(/\s+/)[0]:this.t().nav.myAccount;}
   favoritesCountLabel():string{return String(this.t().nav.favoritesCount||'').replace('{n}', String(this.favoriteCount()));}
   toggleMenu():void{this.isMenuOpen()?this.closeMenu(false):this.openMenu();}
@@ -119,5 +127,38 @@ export class NavbarComponent implements OnDestroy {
   langName(lang:Language):string{return({TR:"Türkçe",EN:"English",DE:"Deutsch",FR:"Français",KU:"Kurdî",ES:"Español",RU:"Русский",ZH:"中文",AR:"العربية"} as Record<Language,string>)[lang];}
   private setDocumentMenuOpen(open:boolean):void{if(typeof document==="undefined")return;if(open)document.documentElement.dataset["mobileMenuOpen"]="true";else delete document.documentElement.dataset["mobileMenuOpen"];}
   private focusElement(id:string):void{if(typeof window==="undefined"||typeof document==="undefined")return;window.requestAnimationFrame(()=>(document.getElementById(id) as HTMLElement|null)?.focus({preventScroll:true}));}
-  @HostListener("document:keydown.escape")onEscape():void{this.closeLangMenu();this.closeMenu(true);}@HostListener("window:resize")onResize():void{if(typeof window!=="undefined"&&window.innerWidth>=1280)this.closeMenu(false);}
+  @HostListener("document:keydown.escape")onEscape():void{this.closeLangMenu();this.closeMenu(true);}@HostListener("window:resize")onResize():void{this.scheduleNavFit();if(typeof window!=="undefined"&&window.innerWidth>=1280&&!this.navCollapsed())this.closeMenu(false);}
+  private observeDesktopNav():void{
+    const nav=this.desktopNav()?.nativeElement;if(!nav||typeof window==="undefined")return;
+    this.zone.runOutsideAngular(()=>{
+      if(typeof ResizeObserver!=="undefined"){this.navResizeObserver=new ResizeObserver(()=>this.scheduleNavFit());this.navResizeObserver.observe(nav);}
+      if(typeof MutationObserver!=="undefined"){this.navMutationObserver=new MutationObserver(()=>this.scheduleNavFit());this.navMutationObserver.observe(nav,{childList:true,subtree:true,characterData:true});}
+    });
+    void document.fonts?.ready.then(()=>this.scheduleNavFit());
+    this.scheduleNavFit();
+  }
+  private scheduleNavFit():void{if(typeof window==="undefined")return;if(this.navFitFrame)window.cancelAnimationFrame(this.navFitFrame);this.navFitFrame=window.requestAnimationFrame(()=>{this.navFitFrame=0;this.fitDesktopNav();});}
+  /** The collapsed link row stays in layout (visibility:hidden), so its natural width is always measurable.
+   *  Room for it = current slot, plus the menu button's slot when collapsed (the button disappears on expand). */
+  private fitDesktopNav():void{
+    const nav=this.desktopNav()?.nativeElement;if(!nav||typeof window==="undefined")return;
+    const style=window.getComputedStyle(nav);
+    let overflowing=false;
+    if(style.display!=="none"){
+      const links=Array.from(nav.children) as HTMLElement[];
+      const gap=parseFloat(style.columnGap)||0;
+      const required=links.reduce((width,link)=>width+link.getBoundingClientRect().width,0)+gap*Math.max(0,links.length-1)+(parseFloat(style.paddingLeft)||0)+(parseFloat(style.paddingRight)||0);
+      let available=nav.clientWidth;
+      if(this.navCollapsed()){
+        const trigger=document.getElementById("mobile-menu-trigger");
+        if(trigger?.parentElement)available+=trigger.getBoundingClientRect().width+(parseFloat(window.getComputedStyle(trigger.parentElement).columnGap)||0);
+        overflowing=required>available-2;
+      }else{
+        overflowing=required>available+.5||nav.scrollWidth-nav.clientWidth>1;
+      }
+    }
+    const collapse=overflowing&&this.navigation.mobileMenuEnabled();
+    if(collapse===this.navCollapsed())return;
+    this.zone.run(()=>{this.navCollapsed.set(collapse);if(!collapse&&window.innerWidth>=1280)this.closeMenu(false);});
+  }
 }

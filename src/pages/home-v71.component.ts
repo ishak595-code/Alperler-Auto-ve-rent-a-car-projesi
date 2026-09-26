@@ -112,7 +112,7 @@ interface PlannerDurationChoice { value: RentalDuration; label: string; enabled:
     .home-root,.home-root *{box-sizing:border-box}
     .hero{position:relative;isolation:isolate;overflow:hidden;background:var(--alper-bg,#06080D) center/cover no-repeat;color:var(--alper-text,#F8F6F1)}
     .hero-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,color-mix(in srgb,var(--alper-bg,#020617) 97%,transparent),color-mix(in srgb,var(--alper-bg,#020617) 88%,transparent) 52%,color-mix(in srgb,var(--alper-bg,#020617) 67%,transparent)),radial-gradient(circle at 85% 12%,color-mix(in srgb,var(--alper-blue,#9E1B24) 28%,transparent),transparent 32%)}
-    .hero-stage{width:min(100% - 1.25rem,var(--site-content-max,80rem));margin:auto;padding:1.45rem 0 1.75rem;display:grid;gap:1.2rem}
+    .hero-stage{--hero-gutter:.625rem;width:min(100% - 2 * var(--hero-gutter),var(--site-content-max,80rem));margin:auto;padding:1.45rem 0 1.75rem;display:grid;gap:1.2rem}
     .hero-stage>*{min-width:0}
     .hero-copy-block{min-width:0}
     .eyebrow,.planner-kicker{margin:0;color:var(--alper-gold,#D4AF37);font-size:.72rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;line-height:1.35;overflow-wrap:anywhere}
@@ -152,7 +152,7 @@ interface PlannerDurationChoice { value: RentalDuration; label: string; enabled:
     .loading mat-icon{color:var(--alper-blue,#9E1B24)}
     @media(min-width:768px){
       .home-root{padding-bottom:0}
-      .hero-stage{padding:3.6rem 0 4.1rem;gap:1.45rem}
+      .hero-stage{--hero-gutter:clamp(1.25rem,3vw,2.5rem);padding:3.6rem 0 4.1rem;gap:1.45rem}
       .desktop-search{display:block}
       .hero h1{font-size:clamp(3.25rem,6vw,4.9rem)}
       .hero-copy{font-size:1.08rem}
@@ -165,7 +165,7 @@ interface PlannerDurationChoice { value: RentalDuration; label: string; enabled:
       .trust-row span{font-size:.875rem}
     }
     @media(min-width:1024px){
-      .hero-stage{grid-template-columns:minmax(0,1.12fr) minmax(400px,.88fr);align-items:center;gap:3.2rem;padding:5rem 0 5.6rem}
+      .hero-stage{--hero-gutter:clamp(1.5rem,3.2vw,3rem);grid-template-columns:minmax(0,1.12fr) minmax(min(400px,100%),.88fr);align-items:center;gap:clamp(2rem,3.4vw,3.2rem);padding:5rem 0 5.6rem}
       .planner{padding:1.5rem 1.55rem}
       .planner h2{font-size:2rem}
       .field-grid{grid-template-columns:minmax(0,1fr)}
@@ -174,7 +174,7 @@ interface PlannerDurationChoice { value: RentalDuration; label: string; enabled:
     }
     @media(max-width:430px){
       .date-grid,.time-grid{grid-template-columns:minmax(0,1fr)}
-      .hero-stage{width:min(100% - 1rem,80rem);padding-top:1.1rem}
+      .hero-stage{--hero-gutter:.5rem;padding-top:1.1rem}
       .planner{padding:1.05rem;border-radius:18px}
       .hero h1{font-size:clamp(1.98rem,9vw,2.4rem);line-height:1.1}
       .planner h2{font-size:clamp(1.38rem,6.5vw,1.58rem)}

@@ -9,11 +9,12 @@ import { BookingSuccessExperienceService } from './services/booking-success-expe
 import { CustomerMobileDockComponent } from './components/customer-mobile-dock.component';
 import { RuntimeStatusGateComponent } from './components/runtime-status-gate.component';
 import { BookingSuccessOverlayComponent } from './components/booking-success-overlay.component';
+import { WhatsappFabComponent } from './components/whatsapp-fab.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CustomerMobileDockComponent, RuntimeStatusGateComponent, BookingSuccessOverlayComponent],
+  imports: [RouterOutlet, CustomerMobileDockComponent, RuntimeStatusGateComponent, BookingSuccessOverlayComponent, WhatsappFabComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <router-outlet></router-outlet>
@@ -22,6 +23,7 @@ import { BookingSuccessOverlayComponent } from './components/booking-success-ove
     }
     @if (showCustomerChrome()) {
       <app-customer-mobile-dock></app-customer-mobile-dock>
+      <app-whatsapp-fab></app-whatsapp-fab>
       <app-runtime-status-gate></app-runtime-status-gate>
     }
   `,

@@ -45,7 +45,7 @@ requireText(spacing, "(max-width:639px) and (pointer:coarse)", "Dock content spa
 requireText(spacing, "(max-width:950px) and (max-height:500px) and (pointer:coarse)", "Dock content spacing must match phone landscape.");
 requireText(layout, "[class.mobile-dock-present]=\"navigation.mobileDockRendered()\"", "Footer dock spacing must follow the live dock-render state.");
 requireText(spacing, "app-customer-footer-v70.mobile-dock-present .customer-footer", "Footer must reserve fixed-dock safe area only while the dock is rendered.");
-requireText(layout, "@media(max-width:639px) and (pointer:coarse)", "WhatsApp offset must match the phone dock breakpoint.");
+requireText(read("src/components/whatsapp-fab.component.ts"), "@media(max-width:639px) and (pointer:coarse)", "WhatsApp FAB yield must match the phone dock breakpoint.");
 
 requireText(device, "app-home-v71 .hero-copy-block", "Device contract must own the phone hero hierarchy.");
 requireText(device, "display: contents", "Phone hero copy must expose children for semantic visual reordering.");

@@ -15,6 +15,9 @@ html {
   min-width: 320px;
   max-width: 100%;
   overflow-x: clip;
+  /* V253: calendar/menu scroll locks hide the classic desktop scrollbar; a stable
+     gutter keeps the page width (and the hero/planner) from jumping sideways. */
+  scrollbar-gutter: stable;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
@@ -67,32 +70,20 @@ input, select, textarea, button {
   border-radius: min(var(--site-radius), 18px);
 }
 
-/* The quick planner already exposes its choices in the select and validates at
-   submit time. Duplicate helper lines add noise on small screens and to screen
-   readers, so they are intentionally omitted from the rendered experience. */
-app-home-v71 .field small,
-app-home-v71 .planner-note {
+/* Planner field helper lines stay omitted: the select itself exposes the
+   choices and validation happens at submit time. */
+app-home-v71 .field small {
   display: none !important;
 }
 
-/* Quick-planner runtime stability. The feedback slot is reserved before an
-   error/summary appears, so validating or changing a choice does not push the
-   booking action up and down. If an error is present it owns the slot and the
-   informational summary is suppressed until the error is cleared. */
-app-home-v71 .planner .field-grid {
-  padding-bottom: 2.75rem;
-}
-
-app-home-v71 .planner .planner-error,
-app-home-v71 .planner .planner-summary {
-  display: flex;
-  min-height: 2.15rem;
-  align-items: center;
-  margin: -2.4rem 0 .25rem !important;
-}
-
-app-home-v71 .planner .planner-error + .planner-summary {
-  display: none;
+/* V253 quick-planner runtime stability. The planner owns reserved geometry in
+   HomeV71 itself: the date modes share one grid cell (.when-stack), the summary
+   has a fixed three-line box and validation replaces the reassurance note inside
+   the fixed two-line .planner-feedback slot under the action. Nothing here may
+   add or remove height after an interaction. */
+app-home-v71 .planner .when-stack,
+app-home-v71 .planner .planner-feedback {
+  overflow-anchor: none;
 }
 
 app-home-v71 .planner select,

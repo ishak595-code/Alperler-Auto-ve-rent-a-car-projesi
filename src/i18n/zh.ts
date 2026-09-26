@@ -127,6 +127,7 @@ export default {
          skipToContent: "跳到正文",
          whatsappDefault: "您好，我想了解更多信息。",
          whatsappFabAria: "通过 WhatsApp 联系",
+         whatsappPageContext: "我正在浏览的页面",
          siteBrandFallback: "Alperler Rent A Car",
        },
         dock: {
@@ -1437,6 +1438,9 @@ export default {
           endTimeLabel: "还车时间",
           endTimeAria: "选择还车时间",
           plannerNote: "确认车辆与时段可用后才会生成正式预订。",
+          summaryHint: "选择日期后，这里会显示您的行程摘要。",
+          tourIncluded: "已包含在行程安排中",
+          pickupAny: "稍后确定",
           loading: "正在为您准备方案...",
           errorTourDate: "请选择行程日期。",
           errorStartDate: "请选择取车日期。",

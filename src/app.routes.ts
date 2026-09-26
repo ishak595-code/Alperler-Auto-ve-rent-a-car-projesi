@@ -79,6 +79,8 @@ export const routes: Routes = [
   { path: 'branch-portal/vehicle-media', canActivate:[branchPortalOperatingGuard], loadComponent: () => import('./pages/branch-portal-vehicle-media-v171.component').then(m => m.BranchPortalVehicleMediaV171Component) },
   { path: 'branch-portal/tours', canActivate:[branchPortalOperatingGuard], loadComponent: () => import('./pages/branch-portal-tours-v171.component').then(m => m.BranchPortalToursV171Component) },
   { path: 'branch-portal', canActivate:[branchPortalOperatingGuard], loadComponent: () => import('./pages/branch-portal-home-v171.component').then(m => m.BranchPortalHomeV171Component) },
+  // V253: customers who type /favorites land on their saved vehicles instead of a 404.
+  { path: 'favorites', redirectTo: '/fleet?favs=true', pathMatch: 'full' },
   { path: 'search', loadComponent: () => import('./pages/search.component').then(m => m.SearchComponent) },
   { path: 'branch-marketplace', loadComponent: () => import('./pages/branch-marketplace-v171.component').then(m => m.BranchMarketplaceV171Component) },
   { path: 'campaigns', loadComponent: () => import('./pages/campaigns.component').then(m => m.CampaignsComponent) },

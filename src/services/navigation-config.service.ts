@@ -77,6 +77,8 @@ export class NavigationConfigService {
   readonly mobileMenuEnabled = computed(() => this._settings().mobileMenuEnabled);
   readonly mobileDockAutoHideEnabled = computed(() => this._settings().mobileDockAutoHide);
   readonly mobileDockAutoHidden = this._mobileDockAutoHidden.asReadonly();
+  /** Route-level dock presence (ignores scroll auto-hide) so reserved bottom space never toggles while scrolling. */
+  readonly mobileDockOnRoute = computed(() => this._settings().mobileDockEnabled && !this._mobileDockRouteHidden());
   readonly mobileDockRendered = computed(() => this._settings().mobileDockEnabled && !this._mobileDockRouteHidden() && !(this._settings().mobileDockAutoHide && this._mobileDockAutoHidden()));
 
   readonly presets: NavigationPreset[] = [

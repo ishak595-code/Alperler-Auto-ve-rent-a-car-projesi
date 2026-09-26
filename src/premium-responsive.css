@@ -38,6 +38,12 @@ app-blog-detail .prose a{color:var(--alper-blue-light)!important}
 
 :is(app-contact,app-appointment,app-list-your-car-v172,app-account-login,app-account-dashboard-v150,app-account-wallet) :is(input,select,textarea){border-color:var(--alper-border)!important;background:var(--alper-elevated)!important;color:var(--alper-text)!important}
 :is(app-contact,app-appointment,app-list-your-car-v172,app-account-login,app-account-dashboard-v150,app-account-wallet) :is(input,select,textarea)::placeholder{color:var(--alper-subtle)!important}
+/* V253: light Tailwind choice states (peer-checked:bg-blue-50, hover:bg-slate-50) turned the selected
+   appointment topic into light text on a near-white card. Dark prestige selection instead. */
+:is(app-contact,app-appointment,app-list-your-car-v172,app-account-login,app-account-dashboard-v150,app-account-wallet) .peer:checked~[class*="peer-checked:bg-"]{border-color:var(--alper-gold)!important;background-color:color-mix(in srgb,var(--alper-gold) 14%,var(--alper-surface))!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--alper-gold) 16%,transparent)}
+:is(app-contact,app-appointment,app-list-your-car-v172,app-account-login,app-account-dashboard-v150,app-account-wallet) .peer:checked~[class*="peer-checked:bg-"] mat-icon{color:var(--alper-gold)!important}
+:is(app-contact,app-appointment,app-list-your-car-v172,app-account-login,app-account-dashboard-v150,app-account-wallet) .peer:focus-visible~[class*="peer-checked:bg-"]{outline:3px solid var(--alper-gold);outline-offset:2px}
+:is(app-contact,app-appointment,app-list-your-car-v172,app-account-login,app-account-dashboard-v150,app-account-wallet) [class*="hover:bg-slate-50"]:hover{background-color:var(--alper-elevated)!important}
 :is(app-contact,app-appointment,app-list-your-car-v172,app-account-login,app-account-dashboard-v150,app-account-wallet) :is(input,select,textarea):focus{border-color:var(--alper-blue-light)!important;box-shadow:var(--alper-focus-ring)!important}
 
 /* Account controls inherit the admin-managed palette rather than hardcoded blues. */
@@ -142,35 +148,35 @@ app-tour-detail .action-bar{grid-template-columns:minmax(0,1fr) minmax(0,1.16fr)
 }
 
 /* V204 canonical mobile home conversion geometry.
-   This remains in the same responsive owner as the detail action system. */
+   This remains in the same responsive owner as the detail action system.
+   V253: hero/planner type, control heights and grid tracks are one fluid clamp()
+   scale inside HomeV71 (320-2560px). This layer only keeps phone material and
+   section rhythm; it must not re-declare font sizes or planner grid columns
+   (those competing values were what made the planner cramped and uneven). */
 @media (max-width:767px){
-  /* Comfortable type scale: no sub-12px marketing copy. Touch targets ≥44px. */
-  app-home-v71 .hero-stage{padding:1rem 0 1.15rem;gap:.9rem}
-  app-home-v71 .eyebrow{font-size:.75rem;letter-spacing:.11em}
-  app-home-v71 .hero h1{margin:.55rem 0 0;font-size:clamp(2rem,8.5vw,2.5rem);line-height:1.06}
-  app-home-v71 .hero-copy{margin:.65rem 0 0;font-size:.95rem;line-height:1.55}
-  app-home-v71 .trust-row{flex-wrap:wrap;gap:.45rem;margin-top:.75rem;overflow-x:visible;padding-bottom:0}
-  app-home-v71 .trust-row span{flex:1 1 auto;max-width:100%;padding:.45rem .65rem;font-size:.8125rem;line-height:1.3}
-  app-home-v71 .planner{padding:1.05rem;border-radius:18px;box-shadow:0 22px 52px rgba(2,6,23,.32)}
-  app-home-v71 .planner-head{gap:.65rem}
-  app-home-v71 .planner-icon{display:grid;width:44px;height:44px}
-  app-home-v71 .planner h2{font-size:clamp(1.4rem,5.5vw,1.65rem);line-height:1.15}
-  app-home-v71 .planner-head p:not(.planner-kicker){margin:.4rem 0 0;font-size:.9375rem;line-height:1.5}
-  app-home-v71 .field-grid{gap:.7rem;margin-top:.9rem}
-  app-home-v71 .field{gap:.35rem}
-  app-home-v71 .field>span{font-size:.75rem;letter-spacing:.04em}
-  app-home-v71 .field select,
-  app-home-v71 .field input{min-height:48px;border-radius:12px;padding-inline:.8rem;font-size:1rem}
-  app-home-v71 .date-grid,
-  app-home-v71 .time-grid{gap:.55rem}
-  app-home-v71 .planner-summary,
-  app-home-v71 .planner-error{margin-top:.6rem;padding:.65rem .75rem;font-size:.875rem;line-height:1.45}
-  app-home-v71 .planner-action{min-height:52px;margin-top:.75rem;border-radius:12px;font-size:1rem}
-  app-home-v71 .planner-note{margin:.5rem 0 0;font-size:.8125rem;line-height:1.5}
+  app-home-v71 .hero-stage{align-content:start}
+  app-home-v71 .trust-row{flex-wrap:wrap;overflow-x:visible;padding-bottom:0}
+  app-home-v71 .trust-row span{flex:1 1 auto;max-width:100%}
+  app-home-v71 .planner{border-radius:18px;box-shadow:0 22px 52px rgba(2,6,23,.32)}
+  app-home-v71 .field-grid{min-width:0}
   app-dynamic-home-section .home-section{padding:1.5rem 0}
   app-dynamic-home-section .section-head{margin-bottom:.85rem}
 }
-@media (min-width:390px) and (max-width:767px){
-  app-home-v71 .date-grid:not(.single-date),
-  app-home-v71 .time-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
+
+/* V253 customer-eye pass on the scalable catalogues (/fleet, /sales, /tours): 8–10px micro copy was
+   unreadable on phones and the outage "Tekrar dene" button had no horizontal padding. One readable
+   scale and the same primary retry button the rest of the site uses. */
+:is(app-rental-catalog-v217,app-sale-catalog-v217,app-tour-catalog-v217) .hero p{font-size:.75rem!important}
+:is(app-rental-catalog-v217,app-sale-catalog-v217,app-tour-catalog-v217) .hero span{font-size:clamp(.875rem,.84rem + .15vw,.9375rem)!important;color:#a7b4c6!important}
+:is(app-rental-catalog-v217,app-sale-catalog-v217,app-tour-catalog-v217) .hero h1{font-family:"Playfair Display",Georgia,serif!important;font-weight:700!important}
+:is(app-rental-catalog-v217,app-sale-catalog-v217,app-tour-catalog-v217) .chips b,
+:is(app-rental-catalog-v217,app-sale-catalog-v217,app-tour-catalog-v217) .filters label span,
+:is(app-rental-catalog-v217,app-sale-catalog-v217,app-tour-catalog-v217) .summary em{font-size:.75rem!important}
+:is(app-rental-catalog-v217,app-sale-catalog-v217,app-tour-catalog-v217) .summary>div>span{font-size:.8125rem!important;line-height:1.45;color:#8e9db2!important}
+:is(app-rental-catalog-v217,app-sale-catalog-v217,app-tour-catalog-v217) .state{font-size:.9375rem}
+:is(app-rental-catalog-v217,app-sale-catalog-v217,app-tour-catalog-v217) .state button{min-width:10rem;min-height:48px!important;margin-top:.35rem;padding:0 1.4rem!important;border:0!important;border-radius:12px!important;background:linear-gradient(135deg,#b3202a,#8a141c)!important;color:#fff!important;box-shadow:0 10px 26px rgba(158,27,36,.28)}
+:is(app-rental-catalog-v217,app-sale-catalog-v217,app-tour-catalog-v217) .state button:hover{filter:brightness(1.08)}
+app-tour-catalog-v217 .meta span,app-tour-catalog-v217 .facts span{font-size:.75rem!important}
+app-tour-catalog-v217 .body>p{font-size:.8125rem!important}
+app-tour-catalog-v217 .foot small,app-tour-catalog-v217 .foot>span,app-tour-catalog-v217 .badges b{font-size:.72rem!important}
+app-tour-catalog-v217 .state strong{color:#fff;font-size:1rem}

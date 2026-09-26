@@ -355,9 +355,11 @@ app-dynamic-home-section .campaign-cta {
     border-color: rgba(212,175,55,.36) !important;
   }
 
-  app-home-v71 .planner:hover {
-    /* Hover lift: z=32px -> scale 1 - 32/1500 keeps the lifted card inside the gutter. */
-    transform: translate3d(0,2px,32px) rotateY(-1.25deg) rotateX(.15deg) scale(.9787);
+  app-home-v71 .planner:hover,
+  app-home-v71 .planner:focus-within {
+    /* V253: hover/focus only brightens the edge. Changing the 3D transform on hover
+       moved the card under the pointer (and again whenever a native select popup
+       took the hover away), which read as the planner shaking while choosing. */
     border-color: rgba(212,175,55,.34) !important;
   }
 

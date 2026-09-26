@@ -59,7 +59,9 @@ test("quota outage keeps WhatsApp and Feedback both visible and working in the b
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
   const fab = page.locator('a[data-chrome="whatsapp-fab"]');
-  await expect(fab).toBeVisible();
+  // V253: on phones the FAB yields to the bottom dock at the top of the page and takes over once
+  // the dock auto-hides on scroll, so assert presence first and visibility after scrolling.
+  await expect(fab).toHaveCount(1);
   await expect(fab).toHaveAttribute("href", /^https:\/\/wa\.me\/\d{11,13}\?text=.+/);
   await expect(fab).toHaveAttribute("target", "_blank");
 
@@ -86,7 +88,7 @@ test("quota outage keeps WhatsApp and Feedback both visible and working in the b
   await expect(dialog).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
-  await expect(fab).toBeVisible();
+  await expect(fab).toHaveCount(1);
 });
 
 test("quota outage still renders vitrin section titles and descriptions from stable defaults", async ({ page }) => {

@@ -38,7 +38,7 @@ import { UiService } from "../services/ui.service";
         } @else if (loadError()) {
           <div class="rounded-xl border border-red-900/60 bg-slate-900 p-6 text-center" role="alert">
             <p>{{ t().faqPage.error }}</p>
-            <button type="button" (click)="reload()" class="mt-4 rounded-lg bg-prestige-red px-4 py-2 font-bold text-white">{{ t().faqPage.retry }}</button>
+            <button type="button" (click)="reload()" class="mt-4 inline-flex min-h-11 items-center rounded-xl bg-prestige-red px-5 font-bold text-white">{{ t().faqPage.retry }}</button>
           </div>
         } @else if (faqs().length === 0) {
           <div class="rounded-xl border border-slate-800 bg-slate-900 p-6 text-center" role="status">{{ t().faqPage.empty }}</div>

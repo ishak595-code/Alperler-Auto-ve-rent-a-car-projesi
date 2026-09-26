@@ -8,18 +8,37 @@ import { expect, test } from "../helpers/fixtures";
  * - Vitrin section titles/descriptions render from built-in Turkish defaults when nothing else exists.
  */
 
+// The PWA service worker would otherwise answer Supabase reads itself and bypass page.route()
+// (observed on WebKit once an earlier test installed it), making the mocks non-deterministic.
+test.use({ serviceWorkers: "block" });
+
 const QUOTA_BODY = JSON.stringify({
   message: "Service for this project is restricted due to the following violations: exceed_cached_egress_quota.",
 });
+
+const CORS_HEADERS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-headers": "*",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+};
+
+/** Cross-origin Supabase REST mocks need CORS headers (and a preflight answer) so WebKit accepts them. */
+async function fulfillSupabase(route: Route, status: number, body: string): Promise<void> {
+  if (route.request().method() === "OPTIONS") {
+    await route.fulfill({ status: 204, headers: CORS_HEADERS, body: "" });
+    return;
+  }
+  await route.fulfill({ status, contentType: "application/json", headers: CORS_HEADERS, body });
+}
 
 async function simulateQuotaOutage(page: Page, overrides: Record<string, unknown> | null = null): Promise<void> {
   await page.route(/\/rest\/v1\//, async (route: Route) => {
     const url = route.request().url();
     if (overrides && /\/rest\/v1\/footer_settings\?/.test(url)) {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{ config_key: "main", is_enabled: true, ...overrides }]) });
+      await fulfillSupabase(route, 200, JSON.stringify([{ config_key: "main", is_enabled: true, ...overrides }]));
       return;
     }
-    await route.fulfill({ status: 402, contentType: "application/json", body: QUOTA_BODY });
+    await fulfillSupabase(route, 402, QUOTA_BODY);
   });
   await page.route(/\/api\/(catalog|branches)(\?|$)/, async (route: Route) => {
     await route.fulfill({
@@ -109,18 +128,14 @@ test("fresh admin copy replaces built-in defaults in place when the database rec
   await page.route(/\/rest\/v1\//, async (route: Route) => {
     const url = route.request().url();
     if (recovered && /\/rest\/v1\/homepage_sections\?/.test(url)) {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify([{ section_key: "rental_featured", title: "Yeni Sezon Kiralık Araçlar", section_type: "VEHICLES", is_enabled: true, sort_order: 10, max_items: 5, settings: { category: "RENTAL", description: "Yönetim panelinden gelen güncel açıklama." } }]),
-      });
+      await fulfillSupabase(route, 200, JSON.stringify([{ section_key: "rental_featured", title: "Yeni Sezon Kiralık Araçlar", section_type: "VEHICLES", is_enabled: true, sort_order: 10, max_items: 5, settings: { category: "RENTAL", description: "Yönetim panelinden gelen güncel açıklama." } }]));
       return;
     }
     if (recovered && /\/rest\/v1\/homepage_placements\?/.test(url)) {
-      await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+      await fulfillSupabase(route, 200, "[]");
       return;
     }
-    await route.fulfill({ status: 402, contentType: "application/json", body: QUOTA_BODY });
+    await fulfillSupabase(route, 402, QUOTA_BODY);
   });
   await page.goto("/", { waitUntil: "domcontentloaded" });
 

@@ -16,11 +16,12 @@ import { UiService } from "../services/ui.service";
 import { TourBookingV170Service } from "../services/tour-booking-v170.service";
 import { TourDemandV170, TourDemandV170Service } from "../services/tour-demand-v170.service";
 import { resolvePublicWhatsappDigits } from "../services/public-contact-fallback";
+import { ResponsiveImageDirective } from "../directives/responsive-image.directive";
 
 @Component({
   selector: "app-tour-detail",
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, AccessibleNativeDateComponent, DetailMediaLightboxComponent, TurkishCurrencyPipe],
+  imports: [ResponsiveImageDirective, CommonModule, FormsModule, MatIconModule, AccessibleNativeDateComponent, DetailMediaLightboxComponent, TurkishCurrencyPipe],
   template: `
     <main class="tour-page">
       @if (tour(); as item) {
@@ -31,7 +32,7 @@ import { resolvePublicWhatsappDigits } from "../services/public-contact-fallback
         <section class="gallery" [attr.aria-label]="galleryAria(item.title)" [attr.inert]="reservationOpen() ? '' : null" [attr.aria-hidden]="reservationOpen() ? 'true' : null" (touchstart)="touchStart($event)" (touchend)="touchEnd($event)">
           @if (activeMedia(); as media) {
             <div class="gallery-frame">
-              @if (media.kind === 'IMAGE') {<button type="button" class="media-open" (click)="openLightbox()" [attr.aria-label]="fullscreenAria(media.title)"><img [src]="media.url" [alt]="media.title || item.title" loading="eager" decoding="async" (error)="mediaFailed(media.url)" /></button>} @else {<video [src]="media.url" [poster]="media.posterUrl || item.image || ''" controls playsinline preload="metadata" [attr.aria-label]="media.title || item.title" (error)="mediaFailed(media.url)"></video><button type="button" class="video-expand" (click)="openLightbox()" [attr.aria-label]="t().tourDetail.openFullscreenAria.replace('{title}', 'video')"><mat-icon aria-hidden="true">fullscreen</mat-icon></button>}
+              @if (media.kind === 'IMAGE') {<button type="button" class="media-open" (click)="openLightbox()" [attr.aria-label]="fullscreenAria(media.title)"><img [src]="media.url" [alt]="media.title || item.title" [appResponsiveImg]="media.url" appResponsiveSizes="(min-width: 1024px) 66vw, 100vw" loading="eager" decoding="async" (error)="mediaFailed(media.url)" /></button>} @else {<video [src]="media.url" [poster]="media.posterUrl || item.image || ''" controls playsinline preload="metadata" [attr.aria-label]="media.title || item.title" (error)="mediaFailed(media.url)"></video><button type="button" class="video-expand" (click)="openLightbox()" [attr.aria-label]="t().tourDetail.openFullscreenAria.replace('{title}', 'video')"><mat-icon aria-hidden="true">fullscreen</mat-icon></button>}
               <div class="gallery-shade" aria-hidden="true"></div><div class="hero-copy"><p>{{ item.duration || t().tourDetail.durationFallback }}</p><h2>{{ item.title }}</h2><span>{{ item.location || item.meetingPoint }}</span></div><div class="gallery-toolbar"><span>{{ currentSlide() + 1 }} / {{ mediaItems().length }}</span>@if (mediaItems().length > 1) {<div><button type="button" (click)="previousMedia()" [attr.aria-label]="t().tourDetail.prevMediaAria"><mat-icon aria-hidden="true">chevron_left</mat-icon></button><button type="button" (click)="nextMedia()" [attr.aria-label]="t().tourDetail.nextMediaAria"><mat-icon aria-hidden="true">chevron_right</mat-icon></button></div>}</div>
             </div>
           } @else {<div class="gallery-empty" role="status"><mat-icon aria-hidden="true">perm_media</mat-icon><strong>{{ t().tourDetail.mediaEmptyTitle }}</strong><p>{{ t().tourDetail.mediaEmptyHint }}</p></div>}

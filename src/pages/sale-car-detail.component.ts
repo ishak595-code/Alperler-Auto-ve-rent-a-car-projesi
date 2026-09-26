@@ -11,6 +11,7 @@ import { PublicDetailDataService } from "../services/public-detail-data.service"
 import { SeoService } from "../services/seo.service";
 import { UiService } from "../services/ui.service";
 import { resolvePublicPhoneHref, resolvePublicWhatsappDigits } from "../services/public-contact-fallback";
+import { ResponsiveImageDirective } from "../directives/responsive-image.directive";
 
 type ListingRow = { label: string; value: string; important?: boolean };
 type FactRow = { label: string; value: string };
@@ -18,7 +19,7 @@ type FactRow = { label: string; value: string };
 @Component({
   selector: "app-sale-car-detail",
   standalone: true,
-  imports: [CommonModule, MatIconModule, DetailMediaLightboxComponent, ExpertiseGraphicComponent, TurkishCurrencyPipe],
+  imports: [ResponsiveImageDirective, CommonModule, MatIconModule, DetailMediaLightboxComponent, ExpertiseGraphicComponent, TurkishCurrencyPipe],
   template: `
     <main class="sale-page">
       @if (car(); as item) {
@@ -37,7 +38,7 @@ type FactRow = { label: string; value: string };
           @if (activeMedia(); as media) {
             <div class="media-frame">
               @if (media.kind === 'IMAGE') {
-                <button type="button" class="media-open" (click)="openLightbox()" [attr.aria-label]="t().saleDetail.enlargeAria"><img [src]="media.url" [alt]="media.title || (item.brand + ' ' + item.model)" loading="eager" decoding="async" (error)="mediaFailed(media.url)" /></button>
+                <button type="button" class="media-open" (click)="openLightbox()" [attr.aria-label]="t().saleDetail.enlargeAria"><img [src]="media.url" [appResponsiveImg]="media.url" appResponsiveSizes="(min-width: 1024px) 66vw, 100vw" [alt]="media.title || (item.brand + ' ' + item.model)" loading="eager" decoding="async" (error)="mediaFailed(media.url)" /></button>
               } @else {
                 <video [src]="media.url" [poster]="media.posterUrl || item.image || ''" controls playsinline preload="metadata" [attr.aria-label]="media.title || videoTitle(item)" (error)="mediaFailed(media.url)"></video>
                 <button type="button" class="video-expand" (click)="openLightbox()" [attr.aria-label]="t().saleDetail.videoFullscreenAria"><mat-icon aria-hidden="true">fullscreen</mat-icon></button>

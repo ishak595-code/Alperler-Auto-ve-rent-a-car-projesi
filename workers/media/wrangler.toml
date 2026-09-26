@@ -1,0 +1,18 @@
+# V252 — public delivery for the Cloudflare R2 media bucket.
+# NOT deployed by CI. Deploy manually (see workers/media/README.md):
+#   cd workers/media && npx wrangler@latest deploy
+name = "alperler-media"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+workers_dev = true
+# No custom domain yet: the Worker answers on https://alperler-media.<account-subdomain>.workers.dev
+# Later, attach a custom domain in the Cloudflare dashboard (Workers → alperler-media →
+# Settings → Domains & Routes) and switch R2_PUBLIC_BASE_URL — config only, no code change.
+
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "alperler-media" # must equal the R2_BUCKET env var used by the Vercel API
+
+[vars]
+# Browser caches objects for a year; keys are content-addressed (random stem per upload).
+CACHE_CONTROL = "public, max-age=31536000, immutable"

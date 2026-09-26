@@ -7,6 +7,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { resolveMediaProviderFromEnv } from './media-provider-env.mjs';
 
 function normalizeHttpsOrigin(value) {
   const raw = String(value ?? '').trim();
@@ -35,6 +36,11 @@ if (configured) {
 // Unset → the frontend keeps the Supabase Storage media path exactly as before.
 const cloudinaryCloudName = String(process.env.CLOUDINARY_CLOUD_NAME ?? '').trim();
 if (/^[A-Za-z0-9_-]{1,64}$/.test(cloudinaryCloudName)) env.CLOUDINARY_CLOUD_NAME = cloudinaryCloudName;
+
+// V252: provider for NEW uploads + public R2 base (see scripts/media-provider-env.mjs).
+const media = resolveMediaProviderFromEnv(process.env);
+env.MEDIA_PROVIDER = media.provider;
+if (media.r2Base) env.R2_PUBLIC_BASE_URL = media.r2Base;
 
 const body =
   'window.process = Object.assign({}, window.process, { env: Object.assign({}, (window.process && window.process.env) || {}, ' +

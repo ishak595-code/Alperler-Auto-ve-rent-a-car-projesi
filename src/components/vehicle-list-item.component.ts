@@ -4,14 +4,15 @@ import { Params, RouterLink } from "@angular/router";
 import { Car } from "../models/car.model";
 import { TurkishCurrencyPipe } from "../pipes/turkish-currency.pipe";
 import { UiService } from "../services/ui.service";
+import { ResponsiveImageDirective } from "../directives/responsive-image.directive";
 
 @Component({
-  selector:"app-vehicle-list-item",standalone:true,imports:[CommonModule,RouterLink,TurkishCurrencyPipe],host:{class:"block h-full w-full min-w-0"},
+  selector:"app-vehicle-list-item",standalone:true,imports:[ResponsiveImageDirective, CommonModule,RouterLink,TurkishCurrencyPipe],host:{class:"block h-full w-full min-w-0"},
   template:`
     <a [routerLink]="detailRoute" [queryParams]="queryParams||undefined" [attr.aria-label]="detailAriaLabel" class="group block h-full min-w-0 cursor-pointer overflow-hidden rounded-2xl border border-[#24314A] bg-[#0D1628] p-3 text-[#F8FAFC] shadow-lg transition-all duration-200 hover:-translate-y-1 hover:border-[#C6A15B] hover:bg-[#101A2E] hover:shadow-2xl active:translate-y-0 active:scale-[.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C6A15B]">
       <article class="flex h-full min-w-0 flex-col">
         <div class="relative h-[148px] w-full overflow-hidden rounded-xl bg-[#101A2E] sm:h-[168px]">
-          <img [src]="car.images?.[0]||car.image||'/vehicle-placeholder.svg'" (error)="handleImageError($event)" [alt]="displayTitle" loading="lazy" decoding="async" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.035]" />
+          <img [src]="car.images?.[0]||car.image||'/vehicle-placeholder.svg'" [appResponsiveImg]="car.images?.[0]||car.image" (error)="handleImageError($event)" [alt]="displayTitle" loading="lazy" decoding="async" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.035]" />
           <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#050A18]/65 via-transparent to-transparent" aria-hidden="true"></div>
           @if(car.badge){<span class="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wide shadow-lg" [ngClass]="badgeTone(car.badge)">{{badgeLabel()}}</span>}
           @if(car.isCampaign||car.discountRate){<span class="absolute bottom-2 left-2 rounded-full bg-[#EABF35] px-2.5 py-1 text-[9px] font-black uppercase text-[#111827] shadow-lg">@if(car.discountRate){{{discountLabel()}}}@else{{{t().vehicleListItem.deal}}}</span>}

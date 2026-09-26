@@ -40,6 +40,7 @@ const PUBLIC_CONTENT_TABLES = [
 const HEARTBEAT_MS = 25_000;
 const STALE_CONNECTION_MS = 80_000;
 const WATCHDOG_MS = 20_000;
+const VISIBILITY_REFETCH_AFTER_MS = 5 * 60_000;
 
 @Injectable({ providedIn: 'root' })
 export class PublicContentRealtimeService {
@@ -106,9 +107,21 @@ export class PublicContentRealtimeService {
     this.closeActiveSocket(true);
   };
 
+  private hiddenAt = 0;
+
   private readonly handleVisibilityChange = () => {
-    if (document.visibilityState !== 'visible' || this.handlers.size === 0) return;
-    this.emitSubscribedTables();
+    if (document.visibilityState !== 'visible') {
+      this.hiddenAt = Date.now();
+      return;
+    }
+    if (this.handlers.size === 0) return;
+    // V252 egress: a tab switch used to re-download every public table. While the socket stayed
+    // live the change feed already covered the hidden period, so only refetch after a long absence
+    // or when the connection was lost.
+    const hiddenFor = this.hiddenAt ? Date.now() - this.hiddenAt : Number.POSITIVE_INFINITY;
+    this.hiddenAt = 0;
+    const socketLive = !!this.socket && this.socket.readyState === WebSocket.OPEN && this._state() === 'LIVE';
+    if (!socketLive || hiddenFor >= VISIBILITY_REFETCH_AFTER_MS) this.emitSubscribedTables();
     this.ensureConnected();
   };
 

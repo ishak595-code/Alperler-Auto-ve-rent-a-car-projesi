@@ -9,10 +9,11 @@ import {
   prepareCatalogImage,
 } from "./catalog-image-optimize.util";
 import {
-  CloudinarySizeError,
-  CloudinaryUnavailableError,
-  CloudinaryUploadService,
-} from "./cloudinary-upload.service";
+  MediaProviderUnavailableError,
+  MediaUploadService,
+  MediaUploadSizeError,
+  type ProviderUploadResult,
+} from "./media-upload.service";
 import { UiService } from "./ui.service";
 import {
   CLOUDINARY_IMAGE_MAX_BYTES,
@@ -21,8 +22,8 @@ import {
   cloudNameForRow,
   cloudinaryMediaUrl,
   cloudinarySizeViolation,
-  cloudinaryVideoPosterUrl,
 } from "../utils/cloudinary-media";
+import { R2_STORAGE_BUCKET, r2MediaUrl, type MediaProvider } from "../utils/r2-media";
 
 type MediaUploadTextKey = "imageTooLarge" | "videoTooLarge" | "uploadFailed" | "signatureFailed";
 const MEDIA_UPLOAD_TEXT_TR: Record<MediaUploadTextKey, string> = {
@@ -98,7 +99,7 @@ interface MediaControlResponse {
 export class CatalogMediaService {
   private readonly auth = inject(AuthService);
   private readonly transport = inject(AdminGatewayTransportService);
-  private readonly cloudinary = inject(CloudinaryUploadService);
+  private readonly media = inject(MediaUploadService);
   private readonly injector = inject(Injector);
   private readonly bucket = "catalog-media";
   /** Kaynak-gerçeği: Supabase Edge Function. BFF yalnızca taşıma hatasında yedek. */
@@ -127,23 +128,23 @@ export class CatalogMediaService {
     file: File,
     options: CatalogUploadOptions = {},
   ): Promise<CatalogMediaItem> {
-    // V249: Cloudinary only when CLOUDINARY_CLOUD_NAME is injected at runtime; otherwise the
-    // Supabase Storage path below runs exactly as before.
-    const useCloudinary = this.cloudinary.isEnabled();
-    this.validateFile(file, useCloudinary);
+    // V252: the active media provider (R2 → Cloudinary → Supabase, resolved server-side and
+    // injected via /runtime-env.js). Supabase Storage below stays the fallback path.
+    const provider = this.media.activeProvider();
+    this.validateFile(file, provider);
     const token = await this.requiredToken();
     let mediaType = resolveMediaType(file);
     const kind: CatalogMediaKind = mediaType.startsWith("video/") ? "VIDEO" : "IMAGE";
     if (options.isCover && kind !== "IMAGE") throw new Error("Kapak yalnız fotoğraf olabilir.");
     const uploadFile = kind === "IMAGE" ? await prepareCatalogImage(file) : file;
     mediaType = resolveMediaType(uploadFile);
-    if (useCloudinary) {
+    if (provider !== "supabase") {
       try {
-        return await this.uploadToCloudinary(entityType, entityId, file, uploadFile, kind, mediaType, token, options);
+        return await this.uploadToProvider(entityType, entityId, file, uploadFile, kind, mediaType, token, options);
       } catch (error) {
-        if (!(error instanceof CloudinaryUnavailableError)) throw error;
-        console.warn("[CatalogMedia] Cloudinary unavailable, falling back to Supabase Storage:", error.code);
-        this.validateFile(file, false);
+        if (!(error instanceof MediaProviderUnavailableError)) throw error;
+        console.warn(`[CatalogMedia] ${provider} unavailable, falling back to Supabase Storage:`, error.code);
+        this.validateFile(file, "supabase");
       }
     }
     const extension = mediaExtension(mediaType, uploadFile);
@@ -240,21 +241,20 @@ export class CatalogMediaService {
 
   async remove(item: CatalogMediaItem): Promise<void> {
     await this.gateway("POST", { action: "REMOVE_CATALOG_MEDIA", mediaId: item.id });
-    // V249: the DB delete trigger queues a Cloudinary cleanup job; drain it server-side (signed destroy).
-    if (item.storageBucket === CLOUDINARY_STORAGE_BUCKET) await this.drainCloudinaryCleanup();
+    // The DB delete trigger queues an R2 / Cloudinary cleanup job; drain it server-side.
+    if (item.storageBucket === CLOUDINARY_STORAGE_BUCKET || item.storageBucket === R2_STORAGE_BUCKET) await this.drainProviderCleanup();
   }
 
-  private async drainCloudinaryCleanup(): Promise<void> {
-    if (!this.cloudinary.isEnabled()) return;
+  private async drainProviderCleanup(): Promise<void> {
     try {
       const token = await this.requiredToken();
-      await this.cloudinary.drainCleanup(token, 10);
+      await this.media.drainCleanup(token, 10);
     } catch (error) {
-      console.warn("[CatalogMedia] Cloudinary cleanup deferred:", error instanceof Error ? error.message : error);
+      console.warn("[CatalogMedia] media cleanup deferred:", error instanceof Error ? error.message : error);
     }
   }
 
-  private async uploadToCloudinary(
+  private async uploadToProvider(
     entityType: CatalogEntityType,
     entityId: string,
     originalFile: File,
@@ -264,26 +264,22 @@ export class CatalogMediaService {
     token: string,
     options: CatalogUploadOptions,
   ): Promise<CatalogMediaItem> {
-    const resourceType = kind === "VIDEO" ? "video" : "image";
-    const violation = cloudinarySizeViolation(uploadFile.size, mediaType);
-    if (violation) throw new Error(this.sizeMessage(violation));
-    let signed;
-    try {
-      signed = await this.cloudinary.sign(token, { scope: "catalog", entityType, entityId, resourceType, bytes: uploadFile.size });
-    } catch (error) {
-      if (error instanceof CloudinarySizeError) throw new Error(this.sizeMessage(error.kind));
-      if (error instanceof CloudinaryUnavailableError) throw error;
-      throw new Error(`${this.uiText("signatureFailed")} (${error instanceof Error ? error.message : "SIGN"})`);
+    if (this.media.activeProvider() === "cloudinary") {
+      const violation = cloudinarySizeViolation(uploadFile.size, mediaType);
+      if (violation) throw new Error(this.sizeMessage(violation));
     }
-
     this._uploadProgress.set(0);
     try {
-      let uploaded;
+      let uploaded: ProviderUploadResult;
       try {
-        uploaded = await this.cloudinary.upload(uploadFile, signed, (percent) => this._uploadProgress.set(percent));
+        uploaded = await this.media.upload({ scope: "catalog", entityType, entityId }, uploadFile, kind, token, {
+          onProgress: (percent) => this._uploadProgress.set(percent),
+        });
       } catch (error) {
-        if (error instanceof CloudinarySizeError) throw new Error(this.sizeMessage(error.kind));
-        throw new Error(`${this.uiText("uploadFailed")} (${error instanceof Error ? error.message : "UPLOAD"})`);
+        if (error instanceof MediaUploadSizeError) throw new Error(this.sizeMessage(error.kind));
+        if (error instanceof MediaProviderUnavailableError) throw error;
+        const code = error instanceof Error ? error.message : "UPLOAD";
+        throw new Error(`${this.uiText(/^(FORBIDDEN|UNAUTHORIZED)$/.test(code) ? "signatureFailed" : "uploadFailed")} (${code})`);
       }
 
       let created: CatalogMediaItem;
@@ -294,9 +290,9 @@ export class CatalogMediaService {
           entityId,
           payload: {
             kind,
-            storage_bucket: CLOUDINARY_STORAGE_BUCKET,
-            object_path: uploaded.publicId,
-            poster_url: options.posterUrl || (kind === "VIDEO" ? cloudinaryVideoPosterUrl(uploaded.cloudName, uploaded.publicId) : null),
+            storage_bucket: uploaded.bucket,
+            object_path: uploaded.objectPath,
+            poster_url: options.posterUrl || uploaded.posterUrl,
             source_name: "Alperler Auto yönetim paneli",
             license: "BUSINESS_OWNED",
             attribution: "Alperler Auto",
@@ -313,28 +309,19 @@ export class CatalogMediaService {
               provenanceComplete: true,
               reviewStatus: "VERIFIED",
               verifiedAt: new Date().toISOString().slice(0, 10),
-              storageProvider: CLOUDINARY_STORAGE_BUCKET,
-              cloudinary: {
-                cloudName: uploaded.cloudName,
-                resourceType: uploaded.resourceType,
-                version: uploaded.version ?? null,
-                format: uploaded.format ?? null,
-                bytes: uploaded.bytes ?? uploadFile.size,
-                width: uploaded.width ?? null,
-                height: uploaded.height ?? null,
-                duration: uploaded.duration ?? null,
-              },
+              ...uploaded.metadata,
             },
           },
         });
         if (!response.record) throw new Error("CATALOG_MEDIA_CREATE_FAILED");
         created = this.fromRow(response.record);
       } catch (error) {
-        // No DB row references the asset → safe server-side signed destroy (rollback).
-        await this.cloudinary.destroy(token, uploaded.publicId, uploaded.resourceType).catch(() => undefined);
-        // V249 migration not applied yet → the DB still only accepts 'catalog-media'; fall back.
+        // No DB row references the asset → safe server-side delete (rollback).
+        await this.media.rollback(token, uploaded);
+        // Provider migration (V249 cloudinary / V252 r2) not applied yet → the DB rejects the
+        // bucket; fall back to Supabase Storage.
         if (error instanceof Error && error.message === "INVALID_MEDIA_STORAGE") {
-          throw new CloudinaryUnavailableError("CLOUDINARY_DB_MIGRATION_PENDING");
+          throw new MediaProviderUnavailableError("MEDIA_PROVIDER_DB_MIGRATION_PENDING");
         }
         throw error;
       }
@@ -509,10 +496,10 @@ export class CatalogMediaService {
     if (!response.ok) throw new Error(`CATALOG_STORAGE_DELETE_${response.status}`);
   }
 
-  private validateFile(file: File, cloudinary = false): void {
+  private validateFile(file: File, provider: MediaProvider = "supabase"): void {
     const reason = mediaRejectionReason(file, { video: true });
     if (reason) throw new Error(reason);
-    if (cloudinary) {
+    if (provider === "cloudinary") {
       // Cloudinary free plan: 10 MB/image, 100 MB/video (friendly, translated message).
       const violation = cloudinarySizeViolation(file.size, resolveMediaType(file));
       if (violation) throw new Error(this.sizeMessage(violation));
@@ -526,6 +513,8 @@ export class CatalogMediaService {
   private fromRow(row: CatalogMediaRow): CatalogMediaItem {
     const url = row.external_url || (row.storage_bucket === CLOUDINARY_STORAGE_BUCKET && row.object_path
       ? cloudinaryMediaUrl(cloudNameForRow(row.metadata), row.object_path, row.kind)
+      : row.storage_bucket === R2_STORAGE_BUCKET && row.object_path
+      ? r2MediaUrl(row.object_path, row.kind, row.metadata)
       : row.storage_bucket && row.object_path
       ? `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${encodeURIComponent(row.storage_bucket)}/${row.object_path.split("/").map(encodeURIComponent).join("/")}` : "");
     return {

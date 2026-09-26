@@ -9,6 +9,7 @@ import {
   cloudinaryMediaUrl,
   readCloudinaryCloudName,
 } from "../utils/cloudinary-media";
+import { R2_STORAGE_BUCKET, r2MediaUrl } from "../utils/r2-media";
 
 export type PublicCatalogMediaKind = "IMAGE" | "VIDEO";
 
@@ -46,11 +47,13 @@ interface PublicCatalogMediaRow {
   alt_text?: string | null;
   sort_order?: number | null;
   is_cover?: boolean | null;
+  /** V252: only the `metadata.r2` sub-object is selected (public base URL / formats), not all metadata. */
+  r2_meta?: Record<string, unknown> | null;
 }
 
 @Injectable({ providedIn: "root" })
 export class PublicCatalogMediaService {
-  private readonly select = "id,vehicle_id,tour_id,blog_post_id,kind,storage_bucket,object_path,external_url,poster_url,source_url,source_name,license,attribution,alt_text,sort_order,is_cover";
+  private readonly select = "id,vehicle_id,tour_id,blog_post_id,kind,storage_bucket,object_path,external_url,poster_url,source_url,source_name,license,attribution,alt_text,sort_order,is_cover,r2_meta:metadata->r2";
 
   loadAll(): Promise<PublicCatalogMediaItem[]> {
     return this.loadPath(`catalog_media?is_active=eq.true&select=${this.select}&order=sort_order.asc,created_at.asc`);
@@ -129,7 +132,7 @@ export class PublicCatalogMediaService {
   private fromRow(row: PublicCatalogMediaRow): PublicCatalogMediaItem | null {
     const kind = row.kind === "VIDEO" ? "VIDEO" : row.kind === "IMAGE" ? "IMAGE" : null;
     if (!kind) return null;
-    const url = this.resolveUrl(row.external_url, row.storage_bucket, row.object_path, kind);
+    const url = this.resolveUrl(row.external_url, row.storage_bucket, row.object_path, kind, row.r2_meta);
     if (!url) return null;
     return {
       id: row.id,
@@ -154,7 +157,12 @@ export class PublicCatalogMediaService {
     storageBucket?: string | null,
     objectPath?: string | null,
     kind: PublicCatalogMediaKind = "IMAGE",
+    r2Meta?: Record<string, unknown> | null,
   ): string {
+    // V252: R2-hosted rows (object_path = key stem, fixed WebP widths as siblings).
+    if (storageBucket === R2_STORAGE_BUCKET) {
+      return objectPath ? r2MediaUrl(objectPath, kind, { r2: r2Meta || {} }) : "";
+    }
     // V249: Cloudinary-hosted rows (object_path = public_id). Needs the runtime cloud name;
     // without it the row is skipped instead of producing a broken Supabase URL.
     if (storageBucket === CLOUDINARY_STORAGE_BUCKET) {

@@ -1,0 +1,60 @@
+name: V252 Media Provider
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "api/**"
+      - "src/**"
+      - "server.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/**"
+      - "tests/unit/**"
+      - "workers/**"
+      - "supabase/migrations/**"
+      - ".vercelignore"
+      - ".github/workflows/v252-media-provider.yml"
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - "src/**"
+      - "server.ts"
+      - "scripts/**"
+      - "tests/unit/**"
+      - "workers/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/v252-media-provider.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  media-provider:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: V252 media provider contract
+        run: node scripts/check-v252-media-provider.mjs
+
+      - name: V252 media provider unit tests
+        run: npm run test:media
+
+      - name: Migration script syntax
+        run: node --check scripts/migrate-media.mjs && node --check scripts/migrate-media-to-cloudinary.mjs
+
+      - name: Worker TypeScript (standalone)
+        run: npx tsc --noEmit --strict --target es2022 --module es2022 --moduleResolution bundler --lib es2022,dom workers/media/src/index.ts

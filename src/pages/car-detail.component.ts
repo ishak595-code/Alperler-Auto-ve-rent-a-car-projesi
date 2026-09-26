@@ -13,13 +13,14 @@ import { PublicDetailDataService } from "../services/public-detail-data.service"
 import { SeoService } from "../services/seo.service";
 import { UiService } from "../services/ui.service";
 import { resolvePublicWhatsappDigits } from "../services/public-contact-fallback";
+import { ResponsiveImageDirective } from "../directives/responsive-image.directive";
 
 type DriverMode = "with" | "without" | "";
 
 @Component({
   selector: "app-car-detail",
   standalone: true,
-  imports: [CommonModule, MatIconModule, DetailMediaLightboxComponent, TurkishCurrencyPipe],
+  imports: [ResponsiveImageDirective, CommonModule, MatIconModule, DetailMediaLightboxComponent, TurkishCurrencyPipe],
   template: `
     <main class="detail-page">
       @if (vehicle(); as car) {
@@ -40,7 +41,7 @@ type DriverMode = "with" | "without" | "";
           @if(activeMedia();as media){
             <div class="gallery-frame">
               @if(media.kind==='IMAGE'){
-                <button type="button" class="media-open" (click)="openLightbox()" [attr.aria-label]="fullscreenAria(car)"><img [src]="media.url" [alt]="media.title||car.brand+' '+car.model" loading="eager" decoding="async" (error)="mediaFailed(media.url)" /></button>
+                <button type="button" class="media-open" (click)="openLightbox()" [attr.aria-label]="fullscreenAria(car)"><img [src]="media.url" [appResponsiveImg]="media.url" appResponsiveSizes="(min-width: 1024px) 66vw, 100vw" [alt]="media.title||car.brand+' '+car.model" loading="eager" decoding="async" (error)="mediaFailed(media.url)" /></button>
               }@else{
                 <video [src]="media.url" [poster]="media.posterUrl||car.image||''" controls playsinline preload="metadata" [attr.aria-label]="media.title||videoTitle(car)" (error)="mediaFailed(media.url)"></video>
                 <button type="button" class="video-expand" (click)="openLightbox()" [attr.aria-label]="t().carDetail.videoFullscreenAria"><mat-icon aria-hidden="true">fullscreen</mat-icon></button>

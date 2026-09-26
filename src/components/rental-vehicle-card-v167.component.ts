@@ -6,17 +6,18 @@ import { TurkishCurrencyPipe } from '../pipes/turkish-currency.pipe';
 import { CampaignRecord } from '../services/campaign.service';
 import { RentalCampaignPricingService } from '../services/rental-campaign-pricing.service';
 import { UiService } from '../services/ui.service';
+import { ResponsiveImageDirective } from "../directives/responsive-image.directive";
 
 @Component({
   selector: 'app-rental-vehicle-card-v167',
   standalone: true,
-  imports: [CommonModule, RouterLink, TurkishCurrencyPipe],
+  imports: [ResponsiveImageDirective, CommonModule, RouterLink, TurkishCurrencyPipe],
   host: { class: 'block h-full min-w-0' },
   template: `
     <a [routerLink]="['/fleet',car.id]" [queryParams]="detailParams()" [attr.aria-label]="ariaLabel()" class="card">
       <article>
         <div class="media">
-          <img [src]="imageUrl()" [alt]="title()" loading="lazy" decoding="async" (error)="imageFailed($event)" />
+          <img [src]="imageUrl()" [appResponsiveImg]="imageUrl()" [alt]="title()" loading="lazy" decoding="async" (error)="imageFailed($event)" />
           <div class="media-shade" aria-hidden="true"></div>
           <span class="stock">{{ stockLabel() }}</span>
           <span class="availability" [class.closed]="!available">{{ available ? t().rentalCard.available : t().rentalCard.busy }}</span>

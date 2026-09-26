@@ -4,13 +4,14 @@ import { RouterLink } from '@angular/router';
 import { Car } from '../models/car.model';
 import { TurkishCurrencyPipe } from '../pipes/turkish-currency.pipe';
 import { UiService } from '../services/ui.service';
+import { ResponsiveImageDirective } from "../directives/responsive-image.directive";
 
 @Component({
-  selector:'app-sale-vehicle-card-v168',standalone:true,imports:[CommonModule,RouterLink,TurkishCurrencyPipe],host:{class:'block h-full min-w-0'},
+  selector:'app-sale-vehicle-card-v168',standalone:true,imports:[ResponsiveImageDirective, CommonModule,RouterLink,TurkishCurrencyPipe],host:{class:'block h-full min-w-0'},
   template:`
     <a [routerLink]="['/sales',car.id]" [attr.aria-label]="ariaLabel" class="card">
       <article>
-        <div class="media"><img [src]="cover" (error)="imageError($event)" [alt]="title" loading="lazy" decoding="async"/><div class="shade"></div>@if(car.cloudStockCode){<span class="stock">{{ stockLabel() }}</span>}<span class="status" [class.sold]="isSold">{{statusLabel}}</span>@if(car.badge){<span class="badge">{{ badgeLabel() }}</span>}</div>
+        <div class="media"><img [src]="cover" [appResponsiveImg]="cover" (error)="imageError($event)" [alt]="title" loading="lazy" decoding="async"/><div class="shade"></div>@if(car.cloudStockCode){<span class="stock">{{ stockLabel() }}</span>}<span class="status" [class.sold]="isSold">{{statusLabel}}</span>@if(car.badge){<span class="badge">{{ badgeLabel() }}</span>}</div>
         <div class="body"><h2>{{title}}</h2><div class="facts" [attr.aria-label]="t().saleCard.factsAria">@if(car.year){<span>{{car.year}}</span>}@if(car.km!=null){<span>{{car.km|number}} km</span>}@if(car.fuel){<span>{{car.fuel}}</span>}@if(car.transmission){<span>{{car.transmission}}</span>}@if(car.type){<span>{{car.type}}</span>}@if(car.color){<span>{{car.color}}</span>}</div>
           <div class="trust">@if(warrantyLabel){<span>✓ {{warrantyLabel}}</span>}@if(damageLabel){<span [class.attention]="!damageFree">{{damageFree?'✓':'•'}} {{damageLabel}}</span>}<span class="tramer" [class.verified]="tramerVerified">{{tramerLabel}}</span></div>
           <div class="location"><div><strong>{{branchLabel||t().saleCard.branchFallback}}</strong><span>{{car.location||t().saleCard.locationFallback}}</span></div><b>{{car.price|turkishCurrency}}</b></div>

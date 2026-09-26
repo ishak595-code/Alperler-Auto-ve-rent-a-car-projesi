@@ -103,6 +103,17 @@ export function adminFolder(entityType: unknown, entityId: unknown, purpose: unk
   return `${CLOUDINARY_ADMIN_FOLDER}/${segment(entityType, "content")}/${segment(entityId, "draft")}/${segment(purpose, "image")}`;
 }
 
+/** alperler/branch/<branchUuid>[/<sub>] — branch profile / hero media and branch drafts. */
+export function branchFolder(branchId: string, sub = ""): string {
+  const base = `${CLOUDINARY_ROOT_FOLDER}/branch/${branchId.toLowerCase()}`;
+  return sub ? `${base}/${segment(sub, "media")}` : base;
+}
+
+/** alperler/ops/inspection/<vehicle> — fleet delivery / return inspection photos. */
+export function opsFolder(vehicleId: unknown): string {
+  return `${CLOUDINARY_ROOT_FOLDER}/ops/inspection/${segment(vehicleId, "vehicle")}`;
+}
+
 export function newPublicId(folder: string, nonce: string = randomUUID()): string {
   return `${folder}/${nonce.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64)}`;
 }

@@ -3,6 +3,8 @@ import { Branch } from "../models/branch.model";
 import { Vehicle } from "../models/car.model";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { BranchPortalAuthService } from "./branch-portal-auth.service";
+import { MediaProviderUnavailableError, MediaUploadService, MediaUploadSizeError } from "./media-upload.service";
+import { prepareCatalogImage } from "./catalog-image-optimize.util";
 
 export type BranchMemberRole = "BRANCH_OWNER" | "BRANCH_MANAGER" | "BRANCH_EDITOR";
 
@@ -98,6 +100,7 @@ const BRANCH_BOOKING_SELECT = "id,booking_type,status,customer_name,customer_pho
 @Injectable({ providedIn: "root" })
 export class BranchPortalService {
   private readonly auth = inject(BranchPortalAuthService);
+  private readonly media = inject(MediaUploadService);
   private readonly _memberships = signal<BranchPortalMembership[]>([]);
   private readonly _selectedBranchId = signal<string>("");
   private readonly _vehicles = signal<Vehicle[]>([]);
@@ -248,6 +251,18 @@ export class BranchPortalService {
     const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
     if (!allowed.has(file.type)) throw new Error("IMAGE_TYPE_NOT_ALLOWED");
     if (file.size <= 0 || file.size > 10 * 1024 * 1024) throw new Error("IMAGE_TOO_LARGE");
+    // V252: active media provider (R2 → Cloudinary) first; Supabase Storage stays the fallback.
+    if (this.media.isEnabled()) {
+      try {
+        const prepared = await prepareCatalogImage(file);
+        const uploaded = await this.media.upload({ scope: "branch", branchId, purpose: "vehicle-draft" }, prepared, "IMAGE", token);
+        return uploaded.url;
+      } catch (error) {
+        if (error instanceof MediaUploadSizeError) throw new Error("IMAGE_TOO_LARGE");
+        if (!(error instanceof MediaProviderUnavailableError)) throw new Error("IMAGE_UPLOAD_FAILED");
+        console.warn("[BranchPortal] media provider unavailable, falling back to Supabase Storage:", error.code);
+      }
+    }
     const extension = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" } as Record<string, string>)[file.type] || "jpg";
     const path = `branches/${branchId}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${extension}`;
     if (file.size >= 6 * 1024 * 1024) {

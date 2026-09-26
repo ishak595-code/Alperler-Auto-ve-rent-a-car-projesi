@@ -10,6 +10,7 @@ import { CarService } from "../services/car.service";
 import { PublicDetailDataService } from "../services/public-detail-data.service";
 import { SeoService } from "../services/seo.service";
 import { UiService } from "../services/ui.service";
+import { resolvePublicPhoneHref, resolvePublicWhatsappDigits } from "../services/public-contact-fallback";
 
 type ListingRow = { label: string; value: string; important?: boolean };
 type FactRow = { label: string; value: string };
@@ -418,9 +419,9 @@ export class SaleCarDetailComponent implements OnInit {
   badgeLabel(value: string | null | undefined): string { return this.ui.listingBadgeLabel(value); }
   inquire(item: Car): void { if (item.availability === "Satıldı") return; this.carService.setBookingRequest({ type: "SALE_INQUIRY", item, itemName: `${item.brand || ""} ${item.model || ""}`.trim(), image: item.image || item.images?.[0], basePrice: Number(item.price || 0) }); void this.router.navigate(["/contact"]); }
   async share(item: Car): Promise<void> { const config = this.carService.getConfig()(); const title = String(this.t().saleDetail.shareTitle || "").replace("{brand}", String(item.brand || "")).replace("{model}", String(item.model || "")).replace("{company}", String(config.companyName || "")).replace(/\s+/g, " ").trim(); const payload = { title, text: this.t().saleDetail.shareText, url: window.location.href }; try { if (navigator.share) await navigator.share(payload); else await navigator.clipboard?.writeText(window.location.href); } catch { /* kullanıcı paylaşımı iptal etti */ } }
-  phoneHref(): string { const phone = String(this.carService.getConfig()().phone || "").replace(/[^+\d]/g, ""); return phone ? `tel:${phone}` : ""; }
+  phoneHref(): string { return resolvePublicPhoneHref(this.carService.getConfig()()); }
   callPhone(): void { const href = this.phoneHref(); if (href) this.launchExternal(href, false); }
-  whatsappPhone(): string { return String(this.carService.getConfig()().whatsapp || this.carService.getConfig()().phone || "").replace(/\D/g, ""); }
+  whatsappPhone(): string { return resolvePublicWhatsappDigits(this.carService.getConfig()()); }
   whatsapp(): void {
     const item = this.car();
     if (!item) return;

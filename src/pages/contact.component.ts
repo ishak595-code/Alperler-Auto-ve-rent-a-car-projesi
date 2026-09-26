@@ -9,6 +9,7 @@ import { CarService } from "../services/car.service";
 import { AnalyticsIdentityService } from "../services/analytics-identity.service";
 import { VisitorAnalyticsService } from "../services/visitor-analytics.service";
 import { UiService } from "../services/ui.service";
+import { resolvePublicWhatsappDigits } from "../services/public-contact-fallback";
 
 interface ContactResponse {
   ok: boolean;
@@ -123,8 +124,7 @@ export class ContactComponent {
   private submissionKey = crypto.randomUUID();
 
   whatsappUrl(): string {
-    const raw = this.config().whatsapp || this.config().phone || "";
-    const number = raw.replace(/\D/g, "");
+    const number = resolvePublicWhatsappDigits(this.config());
     const pack = String(this.t().contactPage?.whatsappDefault || this.t().common?.whatsappDefault || "").trim(); const text = (this.ui.currentLang() !== "TR" && pack) ? pack : (this.config().whatsappMessage || pack);
     return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
   }

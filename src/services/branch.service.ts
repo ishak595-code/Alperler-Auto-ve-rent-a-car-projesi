@@ -3,6 +3,7 @@ import { Branch } from "../models/branch.model";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { AuthService } from "./auth.service";
 import { PublicContentRealtimeService } from "./public-content-realtime.service";
+import { readPublicSwr, writePublicSwr } from "./public-json-swr.util";
 
 interface BranchApiResponse {
   ok: boolean;
@@ -12,6 +13,8 @@ interface BranchApiResponse {
 }
 
 const PUBLIC_BRANCH_COALESCE_MS = 2_000;
+const PUBLIC_BRANCH_SNAPSHOT_KEY = "branches-public:snapshot";
+const PUBLIC_BRANCH_SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60_000;
 const PUBLIC_BRANCH_SELECT = [
   "id", "name", "code", "address_line", "district", "city", "country", "latitude", "longitude", "phone", "whatsapp", "email",
   "opening_hours", "services", "is_active", "sort_order", "updated_at", "map_url", "is_pickup_point", "is_return_point", "slug",
@@ -127,9 +130,18 @@ export class BranchService {
     try {
       const records = await this.fetchPublicDirect();
       this.usePublicRecords(records);
+      writePublicSwr(PUBLIC_BRANCH_SNAPSHOT_KEY, records);
     } catch (error) {
-      console.info("Public branch source unavailable; failing closed.", error);
-      this.publicRemoteBranches.set([]);
+      // v248: keep the last-good public directory (in memory, else a bounded localStorage snapshot) so a
+      // quota/API outage cannot wipe pickup points and branch cards. Bookings are still validated server-side.
+      if (!this.publicRemoteBranches().length) {
+        const cached = readPublicSwr<Branch[]>(PUBLIC_BRANCH_SNAPSHOT_KEY, PUBLIC_BRANCH_SNAPSHOT_MAX_AGE_MS);
+        const usable = cached && cached.ageMs <= PUBLIC_BRANCH_SNAPSHOT_MAX_AGE_MS && Array.isArray(cached.value)
+          ? cached.value.map((branch) => this.normalize(branch)).filter((branch) => this.isUsable(branch))
+          : [];
+        this.publicRemoteBranches.set(usable);
+      }
+      console.info("Public branch source unavailable; serving last-good directory when available.", error);
       if (showError) this.syncError.set("Şube veri kaynağına şu anda ulaşılamıyor.");
     }
   }

@@ -6,6 +6,7 @@ import { filter } from "rxjs/operators";
 import { CarService } from "../services/car.service";
 import { FooterSettingsService } from "../services/footer-settings.service";
 import { NavigationConfigService } from "../services/navigation-config.service";
+import { PUBLIC_WHATSAPP_FALLBACK_MESSAGE, buildPublicWhatsappHref, resolvePublicWhatsappDigits } from "../services/public-contact-fallback";
 import { UiService } from "../services/ui.service";
 import { CustomerFooterV70Component } from "./customer-footer-v70.component";
 import { CustomerPrefooterV174Component } from "./customer-prefooter-v174.component";
@@ -44,22 +45,22 @@ import { NavbarComponent } from "./navbar.component";
   `],
 })
 export class MainLayoutComponent {
-  uiService=inject(UiService);t=this.uiService.translations;carService=inject(CarService);footer=inject(FooterSettingsService);navigation=inject(NavigationConfigService);router=inject(Router);location=inject(Location);isHomePage=signal(true);fabReady=signal(false);
+  uiService=inject(UiService);t=this.uiService.translations;carService=inject(CarService);footer=inject(FooterSettingsService);navigation=inject(NavigationConfigService);router=inject(Router);location=inject(Location);isHomePage=signal(true);currentPath=signal("/");fabReady=signal(false);
   constructor(){
     this.router.events.pipe(filter(event=>event instanceof NavigationEnd)).subscribe(()=>this.updatePageState());
     this.updatePageState();
-    // Reveal as soon as the shell is interactive. Config SWR may already hold last-good WhatsApp/phone.
-    if(typeof window!=="undefined"){
-      queueMicrotask(()=>this.fabReady.set(true));
-      setTimeout(()=>this.fabReady.set(true),800);
-    }
+    // Reveal shortly after first paint (fixed element, no layout shift). The number never depends on a
+    // successful site_config read: configured value -> last-good snapshot -> public business line.
+    if(typeof window!=="undefined")window.setTimeout(()=>this.fabReady.set(true),600);
   }
-  getWhatsappNumber(){const config=this.carService.getConfig()();return String(config.whatsapp||config.phone||"").replace(/\D/g,"");}
-  getWhatsappMessage(){const pack=String(this.t().common.whatsappDefault||"").trim();if(this.uiService.currentLang()!=="TR"&&pack)return pack;const customMsg=this.carService.getConfig()().whatsappMessage;return customMsg?.trim()||this.footer.settings().whatsappDefaultMessage||pack;}
-  getWhatsappHref(){return`https://wa.me/${this.getWhatsappNumber()}?text=${encodeURIComponent(this.getWhatsappMessage())}`;}
-  /** Bottom chrome: WhatsApp FAB + footer Feedback CTA must both remain available. */
-  whatsappFabVisible(){return this.fabReady() && this.footer.settings().showWhatsapp !== false && this.getWhatsappNumber().length > 0;}
-  private updatePageState(){const url=this.router.url.split("?")[0];this.isHomePage.set(url==="/");}
+  getWhatsappNumber(){return resolvePublicWhatsappDigits(this.carService.getConfig()());}
+  getWhatsappMessage(){const pack=String(this.t().common.whatsappDefault||"").trim();if(this.uiService.currentLang()!=="TR"&&pack)return pack;const customMsg=String(this.carService.getConfig()().whatsappMessage||"").trim();return customMsg||String(this.footer.settings().whatsappDefaultMessage||"").trim()||pack||PUBLIC_WHATSAPP_FALLBACK_MESSAGE;}
+  getWhatsappHref(){return buildPublicWhatsappHref(this.getWhatsappNumber(),this.getWhatsappMessage());}
+  /** Bottom chrome: WhatsApp FAB + footer Feedback CTA are independent controls; neither replaces the other. */
+  whatsappFabVisible(){return this.fabReady()&&this.footer.settings().showWhatsapp!==false&&this.getWhatsappNumber().length>0&&!this.hasOwnBottomActionBar();}
+  /** Detail/checkout/account surfaces own a fixed bottom action bar; keep the FAB off those to avoid covering CTAs. */
+  private hasOwnBottomActionBar(){const url=this.currentPath();return /^\/(fleet|sales)\/[^/]+$/.test(url)||/^\/tour\/[^/]+$/.test(url)||/^\/(booking-checkout|track-car|account|branch-portal|admin)(\/|$)/.test(url);}
+  private updatePageState(){const url=this.router.url.split("?")[0].split("#")[0]||"/";this.currentPath.set(url);this.isHomePage.set(url==="/");}
   isVehicleDetailPage(){const url=this.router.url.split("?")[0];return /^\/(fleet|sales)\/[^/]+$/.test(url);}
   goBack(){if(window.history.length>1)this.location.back();else void this.router.navigate(["/"]);}
   getPageTitle(){const url=this.router.url.split("?")[0];const p=this.t().layoutTitles;if(url.startsWith("/fleet"))return p.fleet;if(url.startsWith("/sales"))return p.sales;if(url.startsWith("/blog"))return p.blog;if(url.startsWith("/tours"))return p.tours;if(url.startsWith("/list-your-car"))return p.listYourCar;if(url.startsWith("/contact"))return p.contact;if(url.startsWith("/about"))return p.about;if(url.startsWith("/legal"))return p.legal;if(url.startsWith("/appointment"))return p.appointment;if(url.startsWith("/faq"))return p.faq;return p.home;}

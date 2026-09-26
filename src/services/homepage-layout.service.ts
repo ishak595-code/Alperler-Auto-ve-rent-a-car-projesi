@@ -35,6 +35,25 @@ export interface PublicHomepagePlacement {
 }
 
 type HomepageSelectionMode = 'PLACEMENT' | 'LATEST';
+
+/**
+ * Built-in vitrin shell (v248): mirrors the seeded homepage_sections keys/order so a first visit during a
+ * Supabase quota/API outage still renders stable section headings. Titles/descriptions here are the Turkish
+ * marketing defaults; every language resolves its own copy through UiService.publicSectionChrome
+ * (homeSection.sections[key] / homeSection.byType[type]). Same sectionKeys as the DB, so when fresh data
+ * arrives Angular keeps the same section nodes (track sectionKey) and only swaps copy/items: no flicker.
+ */
+export const DEFAULT_HOMEPAGE_SECTIONS: readonly PublicHomepageSection[] = Object.freeze([
+  { sectionKey: 'campaigns', title: 'Aktif Fırsatlar', sectionType: 'CAMPAIGN', isEnabled: true, sortOrder: 5, maxItems: 3, settings: { selectionMode: 'PLACEMENT', theme: 'graphite', width: 'wide', layout: 'rail', badge: 'Kaçırmadan İncele', viewAllLabel: 'Tüm Fırsatlar', description: 'Planınıza ekstra avantaj katacak seçili fırsatlar burada. Süre dolmadan size uyan kampanyayı yakalayın, gerçek fiyat avantajını görün ve tek dokunuşla detayına geçin.' } },
+  { sectionKey: 'rental_featured', title: 'Kiralık Araçlar', sectionType: 'VEHICLES', isEnabled: true, sortOrder: 10, maxItems: 5, settings: { selectionMode: 'PLACEMENT', category: 'RENTAL', theme: 'light', width: 'wide', layout: 'rail', badge: 'Planınıza Uyan Araçlar', viewAllLabel: 'Tüm Kiralık Araçlar', description: 'Şehir içinde pratik, uzun yolda rahat, özel günlerde şık. Planınıza uyan aracı seçin, tarihlerinizi belirleyin ve Yüksekova’dan yola güvenle çıkın.' } },
+  { sectionKey: 'sale_featured', title: 'İkinci El Araçlar', sectionType: 'VEHICLES', isEnabled: true, sortOrder: 20, maxItems: 5, settings: { selectionMode: 'PLACEMENT', category: 'SALE', theme: 'sand', width: 'wide', layout: 'rail', badge: 'İçinize Sinen Aracı Bulun', viewAllLabel: 'Tüm Satılık Araçlar', description: 'Yeni yol arkadaşınızı rakam kalabalığında kaybolmadan bulun. Öne çıkan ikinci el araçları karşılaştırın, güven veren detayları görün ve içinize sinen araç için görüşmeyi başlatın.' } },
+  { sectionKey: 'tour_featured', title: 'Turlar ve Rotalar', sectionType: 'TOURS', isEnabled: true, sortOrder: 30, maxItems: 5, settings: { selectionMode: 'PLACEMENT', theme: 'ocean', width: 'wide', layout: 'rail', badge: 'Hakkâri’yi Yerel Gözle Keşfedin', viewAllLabel: 'Tüm Turlar', description: 'Hakkâri’nin hafızasında kalan yollarına yerel gözle çıkın. Cilo’dan yaylalara uzanan rotalarda size uyan deneyimi seçin, tarihinizi belirleyin ve gerisini birlikte planlayalım.' } },
+  { sectionKey: 'branches', title: 'Şubeler ve Hizmet Noktaları', sectionType: 'CUSTOM', isEnabled: true, sortOrder: 35, maxItems: 3, settings: { renderer: 'BRANCHES', theme: 'soft', width: 'wide', layout: 'rail', badge: 'Hizmet Ağı', viewAllLabel: 'Tüm Noktalar', showPartnerCta: true, partnerRoute: '/branch-partner', description: 'Size en uygun Alperler Rent A Car hizmet noktasını bulun. Her şubenin teslim ve iade imkanlarını, kiralama, satış, tur ve transfer hizmetlerini, çalışma bilgilerini ve iletişim kanallarını inceleyin; ihtiyacınıza göre doğrudan ilgili şubeye ulaşın.' } },
+  { sectionKey: 'partner', title: 'Aracını Değerlendir', sectionType: 'CUSTOM', isEnabled: true, sortOrder: 40, maxItems: 1, settings: { renderer: 'PARTNER', theme: 'brand', width: 'wide', layout: 'wide', badge: 'Aracınız İçin Seçenekleri Görün', ctaLabel: 'Aracımı Değerlendir', ctaUrl: '/list-your-car', description: 'Aracınızı satmak veya kiralama filosunda değerlendirmek istiyorsanız marka, model, yıl, kilometre ve fiyat beklentinizi birkaç adımda gönderin. İsterseniz fotoğraf, video veya belge ekleyin; ekibimiz aracın durumunu ve talep ettiğiniz modeli inceleyerek uygun sonraki adımı sizinle netleştirsin.' } },
+  { sectionKey: 'blog_featured', title: 'Rehber ve İçerikler', sectionType: 'BLOG', isEnabled: true, sortOrder: 50, maxItems: 5, settings: { selectionMode: 'PLACEMENT', theme: 'light', width: 'wide', layout: 'rail', badge: 'Rehber & İpuçları', viewAllLabel: 'Tüm Yazılar', description: 'Araç seçimi, kiralama süreci, yolculuk planlama, bölgesel rotalar ve güvenli sürüş hakkında karar vermenizi kolaylaştıracak içerikleri okuyun. Her yazının tamamına girerek ayrıntılı rehberi inceleyebilir ve size yararlı olan içeriği paylaşabilirsiniz.' } },
+  { sectionKey: 'closing_cta', title: 'Yolculuğunuzu Birlikte Planlayalım', sectionType: 'CUSTOM', isEnabled: true, sortOrder: 60, maxItems: 1, settings: { renderer: 'PROMO', theme: 'dark', width: 'full', layout: 'wide', badge: 'ALPERLER RENT A CAR', ctaLabel: 'Rezervasyon Oluştur', ctaUrl: '/appointment', description: 'Hakkari ve Yüksekova’da kiralama, özel gün aracı ve rota planınızı tek noktadan oluşturun. Uygun seçeneği birlikte netleştirip rezervasyonunuzu güvenle başlatın.' } },
+] satisfies PublicHomepageSection[]);
+
 type HomepageRenderer = 'BRANCHES' | 'PARTNER' | 'PROMO' | 'DEFAULT';
 
 @Injectable({ providedIn: 'root' })
@@ -49,6 +68,7 @@ export class HomepageLayoutService {
   private readonly _loaded = signal(false);
   private readonly _error = signal('');
   private readonly _sectionErrors = signal<Record<string, string>>({});
+  private readonly _usingBuiltInSections = signal(false);
   private readonly _clock = signal(Date.now());
   private readonly _vehicles = signal<Record<string, Vehicle[]>>({});
   private readonly _tours = signal<Record<string, TourCardV217[]>>({});
@@ -69,6 +89,8 @@ export class HomepageLayoutService {
   readonly loaded = this._loaded.asReadonly();
   readonly error = this._error.asReadonly();
   readonly sectionErrors = this._sectionErrors.asReadonly();
+  /** True while the vitrin renders the built-in section set (no DB response and no last-good snapshot yet). */
+  readonly usingBuiltInSections = this._usingBuiltInSections.asReadonly();
   readonly realtimeState = this.realtime.state;
 
   constructor() {
@@ -108,15 +130,12 @@ export class HomepageLayoutService {
             placement.isActive &&
             this.inside(placement, now),
           );
-        const sectionsRaw = sectionRows
+        // A successful read is authoritative (admin order/visibility wins). Blank admin copy is never
+        // rendered as blank: DynamicHomeSectionComponent resolves admin -> i18n built-in defaults.
+        const sections = sectionRows
           .map((row) => this.section(row))
           .filter((section) => section.sectionKey && section.isEnabled)
           .sort((left, right) => left.sortOrder - right.sortOrder);
-        // Durable titles/descriptions: merge API with last-good so remount/402 cannot blank chrome.
-        // Empty successful shells keep prior sections rather than wiping the vitrin.
-        const sections = sectionsRaw.length
-          ? this.mergeSectionsWithLastGood(sectionsRaw)
-          : (this._sections().length ? this._sections() : sectionsRaw);
 
         // A deliberately empty placement-driven homepage still needs one bounded
         // public owner read so the first visit can recover when content is added.
@@ -259,7 +278,8 @@ export class HomepageLayoutService {
         this._sections.set(visibleSections);
         this._error.set('');
         this._loaded.set(true);
-        if (visibleSections.length) this.persistSnapshot();
+        this._usingBuiltInSections.set(false);
+        this.persistSnapshot();
       } catch (error) {
         // Keep the runtime ownership contract observable even when the homepage
         // shell itself is temporarily unavailable (for example Supabase 402/503).
@@ -270,8 +290,12 @@ export class HomepageLayoutService {
         const friendly = quotaOrPaymentError(status, message)
           ? turkishQuotaMessage('Ana sayfa vitrini')
           : message;
-        // Prefer last-good in-memory/local snapshot over wiping the homepage chrome.
+        // Prefer last-good in-memory/local snapshot, then stable built-in sections, over wiping the vitrin.
         if (!this._sections().length) this.restoreSnapshot();
+        if (!this._sections().length) {
+          this._sections.set(DEFAULT_HOMEPAGE_SECTIONS.map((section) => ({ ...section, settings: { ...section.settings } })));
+          this._usingBuiltInSections.set(true);
+        }
         if (this._sections().length) {
           // Mark catalog sections as degraded so each block can show retry chrome.
           const degraded: Record<string, string> = { ...this._sectionErrors() };
@@ -489,28 +513,6 @@ export class HomepageLayoutService {
     if (this.boundedOwnerProbeStarted) return;
     this.boundedOwnerProbeStarted = true;
     void this.catalog.primeBoundedOwner().catch(() => undefined);
-  }
-
-  /**
-   * Clean merge: prefer non-empty API title/settings, else keep last-good for the same sectionKey.
-   * Ensures vitrin titles/descriptions survive remounts and partial DB failures.
-   */
-  private mergeSectionsWithLastGood(incoming: PublicHomepageSection[]): PublicHomepageSection[] {
-    const priorByKey = new Map(this._sections().map((section) => [section.sectionKey, section]));
-    return incoming.map((section) => {
-      const prior = priorByKey.get(section.sectionKey);
-      const title = String(section.title || '').trim() || String(prior?.title || '').trim();
-      const settings: Record<string, unknown> = {
-        ...(prior?.settings && typeof prior.settings === 'object' ? prior.settings : {}),
-        ...(section.settings && typeof section.settings === 'object' ? section.settings : {}),
-      };
-      for (const key of ['description', 'badge', 'viewAllLabel', 'ctaLabel', 'category', 'renderer', 'layout']) {
-        const next = String(settings[key] ?? '').trim();
-        const prev = String(prior?.settings?.[key] ?? '').trim();
-        if (!next && prev) settings[key] = prior!.settings[key];
-      }
-      return { ...section, title, settings };
-    });
   }
 
   private persistSnapshot(): void {

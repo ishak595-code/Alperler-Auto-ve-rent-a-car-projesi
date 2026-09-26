@@ -79,7 +79,9 @@ interface PlannerDurationChoice { value: RentalDuration; label: string; enabled:
       </section>
 
       @if (homepageLayout.loading() && managedSections().length === 0) {<div class="loading" role="status"><mat-icon aria-hidden="true">sync</mat-icon><span>{{ t().homePage.loading }}</span></div>}
-      @if (homepageLayout.error() && !homepageLayout.loading()) {
+      <!-- v248: sections (DB -> last-good snapshot -> built-in defaults) own their degraded state; the
+           page-level alert only appears if there is truly nothing to render. -->
+      @if (homepageLayout.error() && !homepageLayout.loading() && managedSections().length === 0) {
         <section class="home-shell-error" role="alert" aria-live="polite">
           <mat-icon aria-hidden="true">cloud_off</mat-icon>
           <div>

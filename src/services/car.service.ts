@@ -13,6 +13,11 @@ import { PublicCatalogMediaService } from "./public-catalog-media.service";
 import { PublicContentRealtimeService } from "./public-content-realtime.service";
 import { readPublicSwr, writePublicSwr } from "./public-json-swr.util";
 
+const SITE_CONFIG_SNAPSHOT_KEY = "site-config:snapshot";
+const SITE_CONFIG_SNAPSHOT_FRESH_MS = 12 * 60 * 60_000;
+/** Older snapshots are ignored so pricing-bearing config is never resurrected indefinitely. */
+const SITE_CONFIG_SNAPSHOT_MAX_AGE_MS = 14 * 24 * 60 * 60_000;
+
 export interface BlogPost {
   id: number;
   title: string;
@@ -116,13 +121,16 @@ export class CarService {
       try {
         const config = await this.catalogService.loadConfig(fresh);
         if (config) {
-          const merged = this.mergeConfig(this._config(), config);
-          this._config.set(merged);
-          this.persistConfigSnapshot(merged);
+          // A successful read is authoritative (admin edits/clears win); stale values are never merged in.
+          const next = this.normalizeConfig(config);
+          this._config.set(next);
+          this.persistConfigSnapshot(next);
         }
-      } catch {
-        // Keep last-good in-memory/local config (WhatsApp/phone/chrome) across 402/503.
+      } catch (error) {
+        // Keep last-good in-memory/local config (WhatsApp/phone/chrome) across 402/503, then let the
+        // caller (refresh coordinator backoff, admin save flows) observe the failure.
         if (!this.hasContactChrome(this._config())) this.restoreConfigSnapshot();
+        throw error;
       }
     })();
 
@@ -497,42 +505,23 @@ export class CarService {
   }
 
   private normalizeConfig(config: Partial<SiteConfig>): SiteConfig {
-    return this.mergeConfig({ ...DEFAULT_SITE_CONFIG }, config);
-  }
-
-  /** Prefer non-empty contact/chrome fields so brief API failures cannot blank WhatsApp. */
-  private mergeConfig(base: SiteConfig, incoming: Partial<SiteConfig>): SiteConfig {
-    const next: SiteConfig = { ...base, ...incoming };
-    const pick = (value: unknown) => String(value ?? "").trim();
-    if (!pick(incoming.companyName) && pick(base.companyName)) next.companyName = base.companyName;
-    if (!pick(incoming.tagline) && pick(base.tagline)) next.tagline = base.tagline;
-    if (!pick(incoming.phone) && pick(base.phone)) next.phone = base.phone;
-    if (!pick(incoming.email) && pick(base.email)) next.email = base.email;
-    if (!pick(incoming.address) && pick(base.address)) next.address = base.address;
-    if (!pick(incoming.whatsapp) && pick(base.whatsapp)) next.whatsapp = base.whatsapp;
-    if (!pick(incoming.whatsappMessage) && pick(base.whatsappMessage)) next.whatsappMessage = base.whatsappMessage;
-    if (!pick(incoming.instagramUrl) && pick(base.instagramUrl)) next.instagramUrl = base.instagramUrl;
-    if (!pick(incoming.twitterUrl) && pick(base.twitterUrl)) next.twitterUrl = base.twitterUrl;
-    if (!pick(incoming.facebookUrl) && pick(base.facebookUrl)) next.facebookUrl = base.facebookUrl;
-    if (!pick(incoming.youtubeUrl) && pick(base.youtubeUrl)) next.youtubeUrl = base.youtubeUrl;
-    if (!pick(incoming.tiktokUrl) && pick(base.tiktokUrl)) next.tiktokUrl = base.tiktokUrl;
-    if (!pick(incoming.logoUrl) && pick(base.logoUrl)) next.logoUrl = base.logoUrl;
-    return next;
+    return { ...DEFAULT_SITE_CONFIG, ...config } as SiteConfig;
   }
 
   private hasContactChrome(config: SiteConfig): boolean {
     return Boolean(String(config.whatsapp || config.phone || "").replace(/\D/g, ""));
   }
 
+  /** Last-good public site config (stale-while-revalidate) so quota/API failures cannot blank contact chrome. */
   private persistConfigSnapshot(config: SiteConfig): void {
     if (!this.hasContactChrome(config) && !String(config.companyName || "").trim()) return;
-    writePublicSwr("site-config:snapshot", config);
+    writePublicSwr(SITE_CONFIG_SNAPSHOT_KEY, config);
   }
 
   private restoreConfigSnapshot(): void {
-    const cached = readPublicSwr<SiteConfig>("site-config:snapshot", 12 * 60 * 60_000);
-    if (!cached?.value || typeof cached.value !== "object") return;
-    this._config.set(this.mergeConfig({ ...DEFAULT_SITE_CONFIG }, cached.value));
+    const cached = readPublicSwr<SiteConfig>(SITE_CONFIG_SNAPSHOT_KEY, SITE_CONFIG_SNAPSHOT_FRESH_MS);
+    if (!cached?.value || typeof cached.value !== "object" || cached.ageMs > SITE_CONFIG_SNAPSHOT_MAX_AGE_MS) return;
+    this._config.set(this.normalizeConfig(cached.value));
   }
 
   private upsertById<T extends { id: number | string }>(items: T[], value: T): T[] {

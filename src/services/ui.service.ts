@@ -3237,6 +3237,7 @@ export class UiService {
       "corporate.faq": links.faq || nav.faq,
       "corporate.branch_partner": links.branchPartner || nav.branchPartner,
       "corporate.feedback": links.feedback || t?.footer?.feedbackBtn,
+      "bottom.feedback": links.feedback || t?.footer?.feedbackBtn,
       "legal.rental": links.rental || links.terms,
       "legal.insurance": links.insurance,
       "legal.cancellation": links.cancellation,

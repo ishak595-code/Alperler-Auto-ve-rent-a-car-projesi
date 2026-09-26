@@ -41,6 +41,10 @@ const HEARTBEAT_MS = 25_000;
 const STALE_CONNECTION_MS = 80_000;
 const WATCHDOG_MS = 20_000;
 const VISIBILITY_REFETCH_AFTER_MS = 5 * 60_000;
+// V253 egress: the Supabase realtime socket (postgres_changes on every public table) is opened only
+// on staff surfaces, where editors expect instant previews. Public visitors rely on the CDN-cached
+// API + PublicContentRefreshCoordinatorService's long-interval refresh instead of one socket per tab.
+const REALTIME_PATH_PREFIXES = ['/admin', '/branch-portal'] as const;
 
 @Injectable({ providedIn: 'root' })
 export class PublicContentRealtimeService {
@@ -96,7 +100,7 @@ export class PublicContentRealtimeService {
   }
 
   private readonly handleOnline = () => {
-    if (this.handlers.size === 0) return;
+    if (this.handlers.size === 0 || !this.realtimeAllowed()) return;
     this.reconnectAttempt = 0;
     this.emitSubscribedTables();
     this.connect();
@@ -120,13 +124,28 @@ export class PublicContentRealtimeService {
     // or when the connection was lost.
     const hiddenFor = this.hiddenAt ? Date.now() - this.hiddenAt : Number.POSITIVE_INFINITY;
     this.hiddenAt = 0;
+    if (!this.realtimeAllowed()) {
+      // Public pages: PublicContentRefreshCoordinatorService owns cadence-based refresh.
+      return;
+    }
     const socketLive = !!this.socket && this.socket.readyState === WebSocket.OPEN && this._state() === 'LIVE';
     if (!socketLive || hiddenFor >= VISIBILITY_REFETCH_AFTER_MS) this.emitSubscribedTables();
     this.ensureConnected();
   };
 
+  private realtimeAllowed(): boolean {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname || '/';
+    return REALTIME_PATH_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+  }
+
   private ensureConnected(): void {
     if (typeof window === 'undefined' || typeof WebSocket === 'undefined') return;
+    if (!this.realtimeAllowed()) {
+      if (this.socket) this.closeActiveSocket(true);
+      this._state.set('IDLE');
+      return;
+    }
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       this._state.set('OFFLINE');
       return;
@@ -137,6 +156,7 @@ export class PublicContentRealtimeService {
 
   private connect(): void {
     if (typeof window === 'undefined' || typeof WebSocket === 'undefined' || this.handlers.size === 0) return;
+    if (!this.realtimeAllowed()) return;
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       this._state.set('OFFLINE');
       return;
@@ -279,6 +299,10 @@ export class PublicContentRealtimeService {
     }
 
     const socket = this.socket;
+    if (!this.realtimeAllowed()) {
+      if (socket) this.ensureConnected();
+      return;
+    }
     if (!socket || socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
       this.ensureConnected();
       return;

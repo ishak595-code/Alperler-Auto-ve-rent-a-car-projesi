@@ -4,8 +4,13 @@ function clean(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
+// V253 egress: select only what the mappers consume (was select=*).
+const BRANCH_COLUMNS = "address_line,brand_profile,central_pricing_required,city,code,customer_guarantee_enabled,district,email,hero_image,id,is_active,is_pickup_point,is_return_point,latitude,listing_requires_approval,longitude,map_url,name,network_type,opening_hours,operator_display_name,operator_identity_verified_at,operator_legal_name,operator_relationship,phone,platform_disclaimer,public_description,public_status,services,slug,sort_order,territory_label,whatsapp";
+const VEHICLE_COLUMNS = "availability_status,body_type,branch_id,brand,category,cover_image,fuel_type,id,images,location,mileage_km,model,model_year,price,rental_price_daily,transmission,legacy_id:metadata->legacyId";
+const TOUR_COLUMNS = "branch_id,cover_image,duration,id,images,meeting_point,price_per_person,title,legacy_id:metadata->legacyId";
+
 function legacyId(row: any): string | number {
-  const value = row?.metadata?.legacyId;
+  const value = row?.metadata?.legacyId ?? row?.legacy_id;
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string" && value.trim()) return /^\d+$/.test(value.trim()) ? Number(value.trim()) : value.trim();
   return row.id;
@@ -115,7 +120,7 @@ export default {
     const slug = clean(url.searchParams.get("slug"), 140).toLowerCase();
     if (!/^[a-z0-9-]{2,140}$/.test(slug)) return Response.json({ ok: false, code: "INVALID_BRANCH_SLUG" }, { status: 400 });
 
-    const branchResponse = await rest(`branches?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&public_status=eq.ACTIVE&select=*&limit=1`);
+    const branchResponse = await rest(`branches?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&public_status=eq.ACTIVE&select=${BRANCH_COLUMNS}&limit=1`);
     if (!branchResponse?.ok) return Response.json({ ok: false, code: "BRANCH_SOURCE_UNAVAILABLE" }, { status: 503, headers: { "cache-control": "no-store" } });
     const branchRows = await branchResponse.json();
     const branch = Array.isArray(branchRows) ? branchRows[0] : null;
@@ -123,8 +128,8 @@ export default {
 
     const branchId = String(branch.id);
     const [vehiclesResponse, toursResponse] = await Promise.all([
-      rest(`vehicles?branch_id=eq.${encodeURIComponent(branchId)}&is_active=eq.true&select=*&order=is_featured.desc,updated_at.desc`),
-      rest(`tours?branch_id=eq.${encodeURIComponent(branchId)}&is_active=eq.true&select=*&order=is_featured.desc,updated_at.desc`),
+      rest(`vehicles?branch_id=eq.${encodeURIComponent(branchId)}&is_active=eq.true&select=${VEHICLE_COLUMNS}&order=is_featured.desc,updated_at.desc`),
+      rest(`tours?branch_id=eq.${encodeURIComponent(branchId)}&is_active=eq.true&select=${TOUR_COLUMNS}&order=is_featured.desc,updated_at.desc`),
     ]);
 
     const vehicles = vehiclesResponse?.ok ? await vehiclesResponse.json() : [];
@@ -147,7 +152,7 @@ export default {
       },
     }, {
       headers: {
-        "cache-control": "public, max-age=30, s-maxage=120, stale-while-revalidate=1800",
+        "cache-control": "public, max-age=30, s-maxage=600, stale-while-revalidate=1800, stale-if-error=86400",
         "content-type": "application/json; charset=utf-8",
       },
     });

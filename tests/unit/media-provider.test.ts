@@ -9,6 +9,8 @@ import { presignUrl, presignPut, r2ConfigFrom, checkR2File, signedHeaders, isSaf
 import { resolveMediaProvider } from "../../api/_lib/media-provider.ts";
 import { authzForKey, targetFrom } from "../../api/_lib/media-upload.ts";
 import { resolveMediaProviderFromEnv } from "../../scripts/media-provider-env.mjs";
+import { guardLimits, reservationBytes, reserveUpload, DEFAULT_GUARD_LIMITS } from "../../api/_lib/media-upload-guard.ts";
+import { rangeAcceptable, refererAllowed, MAX_KEY_LENGTH } from "../../workers/media/src/policy.ts";
 import { signR2Request } from "../../scripts/r2-sigv4.mjs";
 import {
   R2_IMAGE_WIDTHS,
@@ -88,7 +90,7 @@ test("presigned PUT signs host + content-type + content-length and returns the p
   assert.equal(put.publicUrl, `${BASE}/${STEM}/w480.webp`);
   assert.match(put.url, /^https:\/\/0123456789abcdef0123456789abcdef\.r2\.cloudflarestorage\.com\/alperler-media\/alperler\/catalog\//);
   assert.match(put.url, /X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost/);
-  assert.match(put.url, /X-Amz-Expires=900/);
+  assert.match(put.url, /X-Amz-Expires=600/);
   assert.ok(!put.url.includes(R2_ENV.R2_SECRET_ACCESS_KEY));
   assert.throws(() => presignPut(r2ConfigFrom(R2_ENV), "../escape", { name: "w480.webp", contentType: "image/webp", bytes: 1 }));
 });
@@ -177,4 +179,72 @@ test("browser provider flag: MEDIA_PROVIDER wins, legacy runtime-env falls back 
 test("variant sizes never upscale", () => {
   assert.deepEqual(variantSize(4000, 3000, 1440), { width: 1440, height: 1080 });
   assert.deepEqual(variantSize(800, 600, 1920), { width: 800, height: 600 });
+});
+
+// ---- V253 abuse guards ---------------------------------------------------------------------------
+test("V253 guard limits: defaults, env overrides, never above the 10 GB free tier", () => {
+  assert.deepEqual(guardLimits({}), DEFAULT_GUARD_LIMITS);
+  assert.equal(guardLimits({ R2_STORAGE_LIMIT_BYTES: "20000000000" }).storageBytes, 10_000_000_000);
+  assert.equal(guardLimits({ MEDIA_UPLOAD_HOURLY_LIMIT: "5" }).hourly, 5);
+  assert.equal(guardLimits({ MEDIA_UPLOAD_HOURLY_LIMIT: "-1" }).hourly, 60);
+});
+
+test("V253 reservation bytes sum every presigned R2 file", () => {
+  assert.deepEqual(reservationBytes("r2", { files: [{ bytes: 100 }, { bytes: 50 }, { bytes: "x" }] }), { bytes: 150, files: 3 });
+  assert.deepEqual(reservationBytes("cloudinary", { bytes: 42 }), { bytes: 42, files: 1 });
+});
+
+test("V253 reserveUpload measures a stale bucket once, maps rejections and fails closed", async () => {
+  const calls: string[] = [];
+  const allow = await reserveUpload({ userId: "u", provider: "r2", bytes: 10, files: 1 }, {
+    rpc: async (name, args) => {
+      calls.push(name);
+      if (name === "media_storage_status_v253") return { stale: true };
+      if (name === "media_storage_measure_v253") { assert.equal(args["p_bytes"], 123); return null; }
+      assert.equal(args["p_storage_limit"], DEFAULT_GUARD_LIMITS.storageBytes);
+      return { ok: true };
+    },
+    measureR2: async () => ({ ok: true, bytes: 123, objects: 2, complete: true }),
+  }, DEFAULT_GUARD_LIMITS);
+  assert.deepEqual(allow, { ok: true });
+  assert.deepEqual(calls, ["media_storage_status_v253", "media_storage_measure_v253", "media_upload_reserve_v253"]);
+
+  const full = await reserveUpload({ userId: "u", provider: "r2", bytes: 10, files: 1 }, {
+    rpc: async (name) => (name === "media_storage_status_v253" ? { stale: false } : { ok: false, code: "MEDIA_STORAGE_FULL" }),
+    measureR2: async () => { throw new Error("must not list a fresh bucket"); },
+  });
+  assert.deepEqual(full, { ok: false, code: "MEDIA_STORAGE_FULL", status: 507 });
+
+  const limited = await reserveUpload({ userId: "u", provider: "cloudinary", bytes: 10, files: 1 }, {
+    rpc: async () => ({ ok: false, code: "MEDIA_UPLOAD_RATE_LIMITED", retryAfterSeconds: 900 }),
+  });
+  assert.deepEqual(limited, { ok: false, code: "MEDIA_UPLOAD_RATE_LIMITED", status: 429, retryAfterSeconds: 900 });
+
+  const down = await reserveUpload({ userId: "u", provider: "cloudinary", bytes: 10, files: 1 }, { rpc: async () => { throw new Error("402"); } });
+  assert.deepEqual(down, { ok: false, code: "MEDIA_GUARD_UNAVAILABLE", status: 503 });
+});
+
+test("V253 media Worker referer policy keeps previews working and blocks hotlinks", () => {
+  const own = "alperler-auto-ve-rent-a-car-projesi.vercel.app,localhost";
+  assert.equal(refererAllowed(null, own), true);
+  assert.equal(refererAllowed("", own), true);
+  assert.equal(refererAllowed("https://alperler-auto-ve-rent-a-car-projesi.vercel.app/tr/araclar", own), true);
+  assert.equal(refererAllowed("http://localhost:4200/", own), true);
+  assert.equal(refererAllowed("https://www.google.com/", own), true);
+  assert.equal(refererAllowed("https://l.facebook.com/", own), true);
+  assert.equal(refererAllowed("https://web.whatsapp.com/", own), true);
+  assert.equal(refererAllowed("https://evil-mirror.example/", own), false);
+  assert.equal(refererAllowed("https://notgoogle.com/", own), false);
+  const withPreviews = `${own},-ishak595-codes-projects.vercel.app`;
+  assert.equal(refererAllowed("https://alperler-git-feat-x-ishak595-codes-projects.vercel.app/", withPreviews), true);
+  assert.equal(refererAllowed("https://other.vercel.app/", withPreviews), false);
+});
+
+test("V253 media Worker accepts a single byte range only", () => {
+  assert.equal(rangeAcceptable(null), true);
+  assert.equal(rangeAcceptable("bytes=0-1023"), true);
+  assert.equal(rangeAcceptable("bytes=-500"), true);
+  assert.equal(rangeAcceptable("bytes=0-1,5-9"), false);
+  assert.equal(rangeAcceptable("items=0-1"), false);
+  assert.ok(MAX_KEY_LENGTH >= 200);
 });

@@ -82,7 +82,7 @@ expect(layout.includes('DEFAULT_HOMEPAGE_SECTIONS') && layout.includes('usingBui
 expect(!layout.includes('mergeSectionsWithLastGood'), 'Fresh homepage data is authoritative; stale copy must not be merged into it');
 expect(sectionUi.includes('layout.sectionHasError(section.sectionKey)&&!hasCatalogItems()'), 'Section heading/description must stay rendered while the body shows the degraded state');
 expect(coordinator.includes('QUOTA_BACKOFF_MAX_MS') && coordinator.includes('degradedReason('), 'Refresh coordinator must back off on quota/degraded shells (no retry storm)');
-expect(catalogApi.includes('stale-if-error=86400') && catalogApi.includes('s-maxage=30') && catalogApi.includes('"retry-after"'), 'Catalog CDN responses must keep s-maxage=30 plus stale-if-error, failures must send Retry-After');
+expect(catalogApi.includes('stale-if-error=86400') && catalogApi.includes('s-maxage=300') && catalogApi.includes('"retry-after"'), 'Catalog CDN responses must keep s-maxage=30 plus stale-if-error, failures must send Retry-After');
 expect(branchesApi.includes('stale-if-error=86400') && branchesApi.includes('"retry-after"'), 'Branches CDN responses must advertise stale-if-error and Retry-After');
 
 if (failures.length) {

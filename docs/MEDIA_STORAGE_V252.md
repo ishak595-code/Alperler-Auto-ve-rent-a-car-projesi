@@ -59,6 +59,8 @@ node --env-file=.env scripts/migrate-media.mjs      # dry-run (default), active 
 node scripts/migrate-media.mjs --apply              # copy + rewrite rows (sources kept)
 node scripts/migrate-media.mjs --apply --delete-source
 node scripts/migrate-media.mjs --provider=cloudinary   # or scripts/migrate-media-to-cloudinary.mjs
+node scripts/migrate-media.mjs --owners=tour          # V253 default: tours only (vehicle photos were demo images, not migrated)
+node scripts/migrate-media.mjs --owners=all           # every owner type (vehicle,tour,blog,branch)
 ```
 
 Covers `catalog_media` (incl. branch rows), `media_assets`, and URL rewrites in `campaigns`, `homepage_sections`,
@@ -69,3 +71,14 @@ Covers `catalog_media` (incl. branch rows), `media_assets`, and URL rewrites in 
 
 See `workers/media/README.md`: attach the domain to the Worker, set `R2_PUBLIC_BASE_URL`, redeploy, then run
 `select public.service_rebase_r2_media_v252('<old base>', '<new base>');` (service_role).
+
+## V253 abuse guards
+
+- Presigned R2 PUT URLs expire after **10 minutes** and sign `content-type` + `content-length`, so the size cap cannot be bypassed.
+- `SIGN_UPLOAD` goes through `media_upload_reserve_v253` (service-role RPC): max **60 signings/hour** and **3 GB/day** per user,
+  R2 bucket growth guard (`R2_STORAGE_LIMIT_BYTES`, default 9 GB; bucket re-measured at most hourly via ListObjectsV2 and signed
+  bytes counted pessimistically in between), and a **5 GB/month** Cloudinary signing cap. Rejections: `MEDIA_UPLOAD_RATE_LIMITED`,
+  `MEDIA_DAILY_QUOTA`, `MEDIA_STORAGE_FULL`, `CLOUDINARY_MONTHLY_QUOTA` (all 429/507 with no upload URL).
+- The media Worker is read-only (GET/HEAD), serves only contract keys, allows one `bytes=` range (else 416), rate-limits
+  per IP (300 req / 10 s, `MEDIA_RATE_LIMITER`) and blocks hotlinking from foreign sites while allowing requests without a
+  Referer and search/social/chat previews (`ALLOWED_REFERER_HOSTS` + built-in list).

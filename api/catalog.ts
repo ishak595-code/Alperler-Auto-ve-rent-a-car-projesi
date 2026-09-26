@@ -84,9 +84,16 @@ function sanitizedMetadata(input: unknown, excluded: Set<string>, legacyId: numb
   return result;
 }
 
+// V253 egress: public reads select only the columns the mappers below consume (was select=*),
+// which also keeps review notes / reviewer ids / source URLs out of the public payload.
+const PUBLIC_VEHICLE_COLUMNS = "availability_status,body_type,branch_id,brand,category,color,cover_image,created_at,description,engine,features,fuel_type,id,images,is_featured,listing_origin,location,metadata,mileage_km,model,model_year,price,publication_status,published_at,rental_price_daily,scheduled_at,seats,stock_code,transmission,updated_at";
+const PUBLIC_TOUR_COLUMNS = "branch_id,capacity,cover_image,description,duration,excluded_items,id,images,included_items,is_featured,itinerary,listing_origin,meeting_point,metadata,price_per_person,publication_status,seo_slug,short_description,title,updated_at";
+const PUBLIC_BLOG_COLUMNS = "content,cover_image,excerpt,id,metadata,published_at,slug,title,updated_at";
+const PUBLIC_FAQ_COLUMNS = "answer,category,id,question,sort_order,updated_at";
+
 function publicCache(resource: Resource): string {
   switch (resource) {
-    // Yönetim panelinden yayınlanan içerik en geç ~30 sn içinde vitrine yansır (s-maxage=30).
+    // V253: yönetim panelinden yayınlanan içerik en geç ~5 dk içinde vitrine yansır (s-maxage=300; was 30 s).
     // Browser: no cache. CDN: short fresh window, bounded background revalidation (10 dk) and
     // stale-if-error (24 sa) so a Supabase quota/5xx outage serves the last good response
     // instead of wiping the public catalog/config.
@@ -95,7 +102,7 @@ function publicCache(resource: Resource): string {
     case "blog":
     case "faqs":
     case "config":
-      return "public, max-age=0, s-maxage=30, stale-while-revalidate=600, stale-if-error=86400";
+      return "public, max-age=0, s-maxage=300, stale-while-revalidate=600, stale-if-error=86400";
   }
 }
 
@@ -287,19 +294,19 @@ async function getPublic(resource: Resource): Promise<Response> {
   let map: (row: any) => Record<string, unknown> = (row) => row;
   switch (resource) {
     case "vehicles":
-      path = "vehicles?is_active=eq.true&select=*&order=is_featured.desc,updated_at.desc";
+      path = `vehicles?is_active=eq.true&select=${PUBLIC_VEHICLE_COLUMNS}&order=is_featured.desc,updated_at.desc`;
       map = vehicleFromRow;
       break;
     case "tours":
-      path = "tours?is_active=eq.true&select=*&order=is_featured.desc,updated_at.desc";
+      path = `tours?is_active=eq.true&select=${PUBLIC_TOUR_COLUMNS}&order=is_featured.desc,updated_at.desc`;
       map = tourFromRow;
       break;
     case "blog":
-      path = "blog_posts?status=eq.PUBLISHED&select=*&order=published_at.desc";
+      path = `blog_posts?status=eq.PUBLISHED&select=${PUBLIC_BLOG_COLUMNS}&order=published_at.desc`;
       map = blogFromRow;
       break;
     case "faqs":
-      path = "faqs?is_active=eq.true&select=*&order=sort_order.asc";
+      path = `faqs?is_active=eq.true&select=${PUBLIC_FAQ_COLUMNS}&order=sort_order.asc`;
       map = faqFromRow;
       break;
     default:

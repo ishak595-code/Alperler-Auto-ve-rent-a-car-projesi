@@ -50,6 +50,9 @@ jobs:
       - name: V252 media provider contract
         run: node scripts/check-v252-media-provider.mjs
 
+      - name: V253 egress + upload abuse guards
+        run: node scripts/check-v253-abuse-guards.mjs
+
       - name: V252 media provider unit tests
         run: npm run test:media
 

@@ -51,7 +51,7 @@ export class BookingService {
     void this.analyticsIdentity.link({entityType:"BOOKING",reference:record.id,phone:normalized.customerPhone,email:normalized.customerEmail});return record;
   }
 
-  startAdminListener():void{if(this.adminRefreshTimer)return;this.adminError.set(null);this.adminLoaded.set(false);void this.refreshAdminRecords();this.adminRefreshTimer=setInterval(()=>void this.refreshAdminRecords(false),30_000);}
+  startAdminListener():void{if(this.adminRefreshTimer)return;this.adminError.set(null);this.adminLoaded.set(false);void this.refreshAdminRecords();this.adminRefreshTimer=setInterval(()=>{if(typeof document!=='undefined'&&document.visibilityState!=='visible')return;void this.refreshAdminRecords(false);},60_000);}
   stopAdminListener():void{if(this.adminRefreshTimer)clearInterval(this.adminRefreshTimer);this.adminRefreshTimer=null;}
 
   async updateStatus(id:string,status:BookingStatus):Promise<NotificationDeliveryReport>{

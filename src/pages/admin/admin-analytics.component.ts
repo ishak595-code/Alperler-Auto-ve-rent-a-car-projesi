@@ -181,7 +181,7 @@ export class AdminAnalyticsComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     void this.refreshAll();
-    this.timer = window.setInterval(() => void this.refreshLive(), 30000);
+    this.timer = window.setInterval(() => { if (document.visibilityState === 'visible') void this.refreshLive(); }, 60000);
   }
 
   ngOnDestroy(): void {

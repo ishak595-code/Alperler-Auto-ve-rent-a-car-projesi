@@ -61,5 +61,5 @@ requireText(adminLogin,'Kurulum E-postasını Gönder','owner first access must 
 requireText(adminLogin,'İlk Yönetici Kurulumu','owner first access must be explicitly separated from normal login');
 forbidText(adminLogin,'Tek kullanımlık kurulum kodu','owner first access must not expose the retired setup-code field');
 forbidText(adminLogin,'this.firstAccess.complete','owner first access must not call the retired setup-code complete path');
-for(const forbidden of ['registerPrimaryAdmin','signup','Kayıt Ol','signInWithProvider','loginWithGoogle'])forbidText(adminLogin,forbidden,`admin login must not expose generic registration/social path: ${forbidden}`);
+for(const forbidden of ['registerPrimaryAdmin','signup','Kayıt Ol','Kayıt ol','signInWithProvider','loginWithGoogle'])forbidText(adminLogin,forbidden,`admin login must not expose generic registration/social path: ${forbidden}`);
 console.log('V218 branch/admin invariant passed with email-first V239 owner first access.');

@@ -53,7 +53,7 @@ export default {
         title: "Location de voitures leader à Yüksekova",
         subtitle:
           "Expérience de location de voiture sûre, confortable et premium.",
-        cta: "Louer Maintenant",
+        cta: "Louer maintenant",
           trustLine: "1001+ CLIENTS SATISFAITS • AUCUN FRAIS CACHÉ • FLOTTE FIABLE",
           ctaSubtext: "Solution rapide, sans garant ni paperasse",
           bullets: [
@@ -75,9 +75,9 @@ export default {
         notAvailable: "Indisponible",
         remove: "Supprimer",
         apply: "Soumettre",
-        viewAll: "Voir Tout",
+        viewAll: "Voir tout",
         viewTours: "Voir Tours",
-        backHome: "Retour Accueil",
+        backHome: "Retour accueil",
         complete: "Terminer",
         pay: "Payer & Finir",
         appointment: "Prendre rendez-vous",
@@ -1537,7 +1537,7 @@ export default {
             },
           startDate: "DATE DE DÉPART",
           endDate: "DATE DE RETOUR",
-          searchBtn: "TROUVER VOITURE",
+          searchBtn: "Trouver voiture",
             duration: "Durée de location",
             durations: {
               hourly: "Service horaire",
@@ -1550,7 +1550,7 @@ export default {
           title: "Notre Flotte Vedette",
           subtitle:
             "Prêt pour toutes les routes avec des options SUV, Pickup et Berline.",
-          viewAll: "Voir Tout",
+          viewAll: "Voir tout",
           model: "Modèle",
           perDay: "/ jour",
           person: "Personnes",
@@ -1562,7 +1562,7 @@ export default {
           title: "Possédez une Voiture Fiable",
           description:
             "Obtenez la voiture de vos rêves avec nos véhicules d'occasion garantis et bien entretenus. Options de reprise et plans de paiement adaptés vous attendent.",
-          cta: "Voir les Voitures",
+          cta: "Voir les voitures",
           viewAll: "Voir tous les véhicules d'occasion",
           stats: {
             expert: "Garantie Expertise",
@@ -1621,7 +1621,7 @@ export default {
             maxFiles: "(Max 10 Fichiers)",
             notes: "Notes Supplémentaires",
             notesPlaceholder: "Ce que vous voulez ajouter sur le véhicule...",
-            submit: "Soumettre Candidature",
+            submit: "Soumettre candidature",
               email: "Adresse e-mail",
               errors: {
                 name: "Veuillez saisir votre nom complet.",
@@ -1637,7 +1637,7 @@ export default {
           subtitle:
             "Des routes uniques des montagnes Cilo aux glaciers vous attendent.",
           bookBtn: "Réserver",
-          viewAll: "Voir Tours",
+          viewAll: "Voir tours",
             bottomNote: "* Notre conseiller vous contactera pour la réservation et les tarifs.",
           },
         vipAndMinibus: {
@@ -1695,7 +1695,7 @@ export default {
         total: "Montant Total",
         days: "Jours",
         checkout: {
-          cancel: "Annuler & Retour",
+          cancel: "Annuler & retour",
           securePayment: "PAIEMENT SÉCURISÉ & RÉSERVATION",
           createRequest: "CRÉER DEMANDE",
           rentalService: "Service Location",

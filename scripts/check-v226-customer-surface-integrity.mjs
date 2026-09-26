@@ -69,7 +69,7 @@ requireText(dynamicHome, "section.sectionType==='TOURS'", 'Homepage must retain 
 requireText(dynamicHome, 'class="rail"', 'Homepage tour and vehicle selections must retain the horizontal rail layout contract.');
 requireText(dynamicHome, "this.layout.toursFor(this.section.sectionKey)", 'Homepage tours must be resolved from the live homepage layout service.');
 for (const token of ['tour.duration','tour.locationName','tour.capacity',"copy('perPerson')",'tourIncluded(tour)',"copy('tourIncluded')","copy('tourCardCtaLabel')"]) requireText(dynamicHome, token, `Homepage tour cards must expose the factual decision signal: ${token}`);
-for (const token of ['perPerson: "Kişi başı"', 'tourIncluded: "Tura dahil"', 'tourCardCtaLabel: "Rotayı ve Ayrıntıları Keşfet"']) requireText(ui, token, `TR dictionary must keep homeSection label: ${token}`);
+for (const token of ['perPerson: "Kişi başı"', 'tourIncluded: "Tura dahil"', 'tourCardCtaLabel: "Rotayı ve ayrıntıları keşfet"']) requireText(ui, token, `TR dictionary must keep homeSection label: ${token}`);
 requireText(homepageLayout, "section.sectionType === 'TOURS'", 'Homepage layout must hydrate tour sections dynamically.');
 requireText(homepageLayout, 'this.catalog.listTours', 'Homepage tour hydration must delegate to the scalable public catalog.');
 requireText(publicCatalog, 'public_tour_catalog_v217', 'Customer tours must be read from the Supabase public tour catalog.');

@@ -1536,7 +1536,7 @@ export default {
             },
           startDate: "ДАТА ПОЛУЧЕНИЯ",
           endDate: "ДАТА ВОЗВРАТА",
-          searchBtn: "НАЙТИ АВТО",
+          searchBtn: "Найти авто",
             duration: "Срок аренды",
             durations: {
               hourly: "Почасовая услуга",

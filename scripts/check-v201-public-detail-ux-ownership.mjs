@@ -62,7 +62,7 @@ for (const contract of [
   '[attr.aria-label]="t().tourDetail.submitAria"','[attr.aria-label]="t().tourDetail.retryAria"',
 ]) must(tour, contract, `Tour approved UX/flexible-demand/map/a11y contract missing: ${contract}`);
 for (const contract of [
-  'reserve: "Rezervasyon Talep Et"','reserveAria: "Bu turu rezerve et"','aboutTour: "Tur hakkında"','itinerary: "Güzergah"','scopeTitle: "Neler Dahil?"','mapTitle: "Buluşma ve rota"','openMap: "Haritada aç"','returnToTourAria: "Tur detayına dön"','continueContactAria: "İletişim bilgileri adımına devam et"','continueReviewAria: "Rezervasyon onay adımına devam et"','submitAria: "Rezervasyon talebini gönder"','retryAria: "Tur bilgilerini tekrar yükle"',
+  'reserve: "Rezervasyon talep et"','reserveAria: "Bu turu rezerve et"','aboutTour: "Tur hakkında"','itinerary: "Güzergah"','scopeTitle: "Neler Dahil?"','mapTitle: "Buluşma ve rota"','openMap: "Haritada aç"','returnToTourAria: "Tur detayına dön"','continueContactAria: "İletişim bilgileri adımına devam et"','continueReviewAria: "Rezervasyon onay adımına devam et"','submitAria: "Rezervasyon talebini gönder"','retryAria: "Tur bilgilerini tekrar yükle"',
 ]) must(uiService, contract, `Tour TR dictionary missing: ${contract}`);
 mustNot(tour, 'TARİHLİ REZERVASYON', 'Tour booking controls must not render as an always-open page section.');
 mustNot(tour, 'Ne zaman geleceksiniz?', 'Tour booking form must stay behind the explicit reservation action.');

@@ -22,13 +22,13 @@ interface FooterMutation {ok?:boolean;code?:string;footerSettings?:Record<string
 
 const DEFAULT_FOOTER_SETTINGS:FooterSettings={
   isEnabled:true,brandSummary:'Araç kiralama, ikinci el satış, transfer ve bölgesel tur hizmetlerini tek yerde planlayın.',servicesTitle:'Hizmetler',corporateTitle:'Alperler Auto',legalTitle:'Yasal',
-  newsletterEnabled:true,newsletterTitle:'Yeni araç ve fırsatları kaçırmayın',newsletterDescription:'Sadece yeni ilan, tur ve kampanya olduğunda haber alın. Abonelik ücretsizdir.',newsletterButtonText:'Ücretsiz Abone Ol',
+  newsletterEnabled:true,newsletterTitle:'Yeni araç ve fırsatları kaçırmayın',newsletterDescription:'Sadece yeni ilan, tur ve kampanya olduğunda haber alın. Abonelik ücretsizdir.',newsletterButtonText:'Ücretsiz abone ol',
   showPhone:true,showWhatsapp:true,showSocial:true,showFeedback:true,showLegalLinks:true,
   homeLabel:'Ana Sayfa',contactLabel:'İletişim',phoneLabel:'Telefon',whatsappLabel:'WhatsApp',defaultTagline:'Kiralama • Satış • Tur',whatsappDefaultMessage:'Merhaba, Alperler Rent A Car hizmetleri hakkında bilgi almak istiyorum.',
   legalMoreLabel:'Diğer yasal bilgiler',newsletterEmailLabel:'E-posta adresi',newsletterEmailPlaceholder:'ornek@eposta.com',newsletterFreeNote:'Abonelik ücretsizdir.',newsletterLegalLabel:'Ticari ileti ve abonelik koşulları',
   newsletterSuccessMessage:'Aboneliğiniz kaydedildi.',newsletterInvalidEmailMessage:'Geçerli bir e-posta adresi girin.',newsletterErrorMessage:'Abonelik şu anda tamamlanamadı. Lütfen tekrar deneyin.',copyrightSuffix:'Tüm hakları saklıdır.'
 };
-const DEFAULT_PREFOOTER:PrefooterSettings={isEnabled:true,badge:'Size Uygun Sonraki Adım',title:'Planınızı Birlikte Netleştirelim',description:'Araç kiralama, ikinci el araç, tur, transfer, randevu veya aracınızı değerlendirme konusunda hangi adımın size uygun olduğunu birlikte netleştirin.',primaryLabel:'Bize Ulaşın',primaryRoute:'/contact',secondaryLabel:'Randevu Oluştur',secondaryRoute:'/appointment',trustItems:['Kiralama, satış, tur ve transfer tek ekipte','WhatsApp ve telefon desteği','Güncel filo ve şube seçenekleriyle ihtiyacınıza net cevap'],showOnHome:true,showOnInner:true};
+const DEFAULT_PREFOOTER:PrefooterSettings={isEnabled:true,badge:'Size Uygun Sonraki Adım',title:'Planınızı Birlikte Netleştirelim',description:'Araç kiralama, ikinci el araç, tur, transfer, randevu veya aracınızı değerlendirme konusunda hangi adımın size uygun olduğunu birlikte netleştirin.',primaryLabel:'Bize ulaşın',primaryRoute:'/contact',secondaryLabel:'Randevu oluştur',secondaryRoute:'/appointment',trustItems:['Kiralama, satış, tur ve transfer tek ekipte','WhatsApp ve telefon desteği','Güncel filo ve şube seçenekleriyle ihtiyacınıza net cevap'],showOnHome:true,showOnInner:true};
 
 
 /** Built-in mirror of the v174 footer_links seed. Used only when neither the DB nor a last-good snapshot is available. */
@@ -45,7 +45,7 @@ const DEFAULT_PUBLIC_FOOTER_LINKS:FooterLink[]=[
   {linkKey:'corporate.contact',groupKey:'CORPORATE',label:'İletişim',actionType:'ROUTE',route:'/contact',queryParams:{},sortOrder:30,isEnabled:true,opensNewTab:false,isSecondary:false},
   {linkKey:'corporate.faq',groupKey:'CORPORATE',label:'Sık Sorulan Sorular',actionType:'ROUTE',route:'/faq',queryParams:{},sortOrder:40,isEnabled:true,opensNewTab:false,isSecondary:false},
   {linkKey:'corporate.branch_partner',groupKey:'CORPORATE',label:'Şube Başvurusu',actionType:'ROUTE',route:'/branch-partner',queryParams:{},sortOrder:50,isEnabled:true,opensNewTab:false,isSecondary:false},
-  {linkKey:'corporate.feedback',groupKey:'CORPORATE',label:'Geri Bildirim Gönder',actionType:'FEEDBACK',queryParams:{},sortOrder:60,isEnabled:true,opensNewTab:false,isSecondary:false},
+  {linkKey:'corporate.feedback',groupKey:'CORPORATE',label:'Geri bildirim gönder',actionType:'FEEDBACK',queryParams:{},sortOrder:60,isEnabled:true,opensNewTab:false,isSecondary:false},
   {linkKey:'legal.rental',groupKey:'LEGAL',label:'Kiralama Koşulları',actionType:'LEGAL',route:'/legal',queryParams:{type:'rental'},sortOrder:10,isEnabled:true,opensNewTab:false,isSecondary:false},
   {linkKey:'legal.insurance',groupKey:'LEGAL',label:'Sigorta ve Sorumluluk',actionType:'LEGAL',route:'/legal',queryParams:{type:'insurance'},sortOrder:20,isEnabled:true,opensNewTab:false,isSecondary:false},
   {linkKey:'legal.cancellation',groupKey:'LEGAL',label:'İade ve İptal',actionType:'LEGAL',route:'/legal',queryParams:{type:'cancellation'},sortOrder:30,isEnabled:true,opensNewTab:false,isSecondary:false},

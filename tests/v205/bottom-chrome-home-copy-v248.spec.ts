@@ -69,7 +69,7 @@ test("quota outage keeps WhatsApp and Feedback both visible and working in the b
   const whatsappPill = footer.locator("a.contact-pill.whatsapp");
   await expect(whatsappPill).toHaveAttribute("href", /^https:\/\/wa\.me\/\d{11,13}\?text=.+/);
 
-  const feedback = footer.getByRole("button", { name: "Geri Bildirim Gönder", exact: true });
+  const feedback = footer.getByRole("button", { name: "Geri bildirim gönder", exact: true });
   await expect(feedback).toBeVisible();
   await expect(feedback).toHaveCount(1);
 
@@ -119,7 +119,7 @@ test("WhatsApp FAB hides only when showWhatsapp is explicitly false; Feedback re
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
   const footer = page.locator("app-customer-footer-v70");
-  await expect(footer.getByRole("button", { name: "Geri Bildirim Gönder", exact: true })).toBeVisible();
+  await expect(footer.getByRole("button", { name: "Geri bildirim gönder", exact: true })).toBeVisible();
   await page.waitForTimeout(900);
   await expect(page.locator('a[data-chrome="whatsapp-fab"]')).toHaveCount(0);
   await expect(footer.locator("a.contact-pill.whatsapp")).toHaveCount(0);

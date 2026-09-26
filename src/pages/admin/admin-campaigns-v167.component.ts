@@ -266,7 +266,7 @@ export class AdminCampaignsV167Component implements OnInit {
     this.saving.set(true);
     try {
       const draft = await this.service.save({
-        title: 'Yeni Kampanya', campaignType: 'DISCOUNT', ctaLabel: 'Fırsatı İncele', publicationStatus: 'DRAFT',
+        title: 'Yeni Kampanya', campaignType: 'DISCOUNT', ctaLabel: 'Fırsatı incele', publicationStatus: 'DRAFT',
         discountMethod: 'FIXED_AMOUNT', discountValue: 0, discountScope: 'ORDER', visibilityMode: 'CAMPAIGN_ONLY',
         minimumOrderAmount: 0, perCustomerLimit: 1, allowReferralDiscount: true, allowLoyaltyRedemption: true,
         priority: 100, targetType: 'GENERAL', isActive: false, sortOrder: this.campaigns().length + 1,

@@ -69,7 +69,7 @@ test("feedback opens on the first click as a stable full-screen dialog and close
   // contract. Prefer a lazy locator + visibility wait (auto-retries) over
   // scrollIntoViewIfNeeded on a resolved node that may detach mid-call.
   const footer = page.locator("app-customer-footer-v70");
-  const trigger = footer.getByRole("button", { name: "Geri Bildirim Gönder", exact: true });
+  const trigger = footer.getByRole("button", { name: "Geri bildirim gönder", exact: true });
   await expect(trigger).toBeVisible();
   await trigger.click();
 

@@ -35,6 +35,9 @@ need(fab.includes("fab-yield") && fab.includes("mobileDockRendered"), "FAB must 
 need(fab.includes("safe-area-inset-bottom") && fab.includes("safe-area-inset-right"), "FAB must respect safe-area insets");
 need(!/transition:[^;]*\bbottom\b/.test(fab), "FAB must animate opacity/transform, never bottom (that registers as layout shift)");
 need(fab.includes("window.location.pathname"), "FAB must read its initial route from the real URL");
+// V254: the single floating WhatsApp button is homepage-only; in-page WhatsApp buttons elsewhere are separate.
+need(/readonly onHomeRoute = computed\(\(\) => this\.currentPath\(\) === "\/"\)/.test(fab) && fab.includes("&& this.onHomeRoute()"), "Floating WhatsApp FAB must render on the homepage route only");
+need(!fab.includes("hasOwnBottomActionBar") && !fab.includes("fab-lane"), "Floating WhatsApp FAB must not keep inner-page visibility/spacer logic");
 
 const routes = read("src/app.routes.ts");
 need(/path:\s*'favorites'/.test(routes), "/favorites must redirect to saved vehicles instead of 404");

@@ -165,13 +165,21 @@ test("V253 WhatsApp FAB and phone dock never overlap or show together", async ({
   expect(s.fab).toBeNull();
 });
 
-test("V253 FAB is present on inner public pages and absent where a page owns the bottom bar", async ({ page }) => {
-  await page.goto("/contact", { waitUntil: "domcontentloaded" });
-  await expect(page.locator('a[data-chrome="whatsapp-fab"]')).toHaveCount(1);
-  await expect(page.locator('a[data-chrome="whatsapp-fab"]')).toHaveAttribute("href", /^https:\/\/wa\.me\/\d{11,13}\?text=.+contact/);
-  await page.goto("/account/login", { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(600);
-  await expect(page.locator('a[data-chrome="whatsapp-fab"]')).toHaveCount(0);
+test("V254 floating WhatsApp FAB shows on the homepage only", async ({ page }) => {
+  const fab = page.locator('a[data-chrome="whatsapp-fab"]');
+  await page.goto("/?lang=en", { waitUntil: "domcontentloaded" });
+  await expect(fab).toHaveCount(1);
+  await expect(fab).toHaveAttribute("href", /^https:\/\/wa\.me\/\d{11,13}\?text=.+/);
+  for (const path of ["/contact", "/fleet", "/sales", "/tours", "/about", "/blog", "/account/login", "/no-such-page"]) {
+    await page.goto(path, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(700);
+    await expect(fab, `floating FAB must be hidden on ${path}`).toHaveCount(0);
+  }
+  // Client-side navigation back to home brings it back; leaving home hides it again.
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(fab).toHaveCount(1);
+  await page.evaluate(() => { history.pushState({}, "", "/contact"); dispatchEvent(new PopStateEvent("popstate")); });
+  await expect(fab).toHaveCount(0);
 });
 
 test("V253 hero type and controls stay inside their fluid bounds", async ({ page }) => {

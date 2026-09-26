@@ -33,7 +33,7 @@ let nextDateControlId = 0;
         [attr.aria-controls]="dialogOpen ? dialogId : null"
         (click)="openCalendar()"
       >
-        <span class="date-copy" aria-hidden="true">
+        <span class="date-copy" [class.is-empty]="!value" aria-hidden="true">
           <!-- V253: the reserved two-line box never changes height when a date is chosen. -->
           <strong>{{ t().nativeDate.selectStrong }}</strong>
           <small [class.is-empty]="!value">{{ value ? compactValue() + " · " + weekdayValue() : "\u00a0" }}</small>
@@ -137,6 +137,11 @@ let nextDateControlId = 0;
     .date-copy strong,.date-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .date-copy strong{font:800 .9375rem/1.2 ui-sans-serif,system-ui,sans-serif}
     .date-copy small{margin-top:.12rem;color:var(--date-hint,var(--alper-muted,#b9c3d2));font:600 .75rem/1.25 ui-sans-serif,system-ui,sans-serif}.date-copy small.is-empty{visibility:hidden}
+    /* V254: with no date the single "Tarihi seç" line is optically centred. A transform (never a layout
+       property) moves it, so choosing a date and revealing the weekday line causes zero layout shift. */
+    .date-copy strong{transition:transform .18s ease}
+    .date-copy.is-empty strong{transform:translateY(calc((.75rem * 1.25 + .12rem) / 2))}
+    @media(prefers-reduced-motion:reduce){.date-copy strong{transition:none}}
     .date-surface mat-icon{flex:0 0 auto;color:var(--date-icon,var(--alper-blue-light,#93c5fd))}
     .calendar-dialog{position:fixed;inset:0;margin:auto;width:min(calc(100% - 2rem),420px);max-height:min(88dvh,720px);overflow:auto;overscroll-behavior:contain;border:1px solid var(--alper-border,rgba(148,163,184,.24));border-radius:min(var(--site-radius,16px),22px);background:var(--alper-card,#071120);color:var(--alper-text,#fff);box-shadow:0 24px 70px rgba(0,0,0,.46);padding:0}
     .calendar-dialog::backdrop{background:rgba(1,6,15,.72);backdrop-filter:blur(8px)}

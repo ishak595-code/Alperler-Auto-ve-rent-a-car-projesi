@@ -52,7 +52,7 @@ export default {
       hero: {
         title: "Alquiler de coches líder en Yüksekova",
         subtitle: "Experiencia de alquiler de coches segura, cómoda y premium.",
-        cta: "Alquilar Ahora",
+        cta: "Alquilar ahora",
           trustLine: "1001+ CLIENTES FELICES • CERO CARGOS OCULTOS • FLOTA DE CONFIANZA",
           ctaSubtext: "Solución rápida, sin aval ni papeleo",
           bullets: [
@@ -73,10 +73,10 @@ export default {
         rentDriver: "Alquilar con Conductor",
         notAvailable: "No Disponible",
         remove: "Eliminar",
-        apply: "Enviar Solicitud",
-        viewAll: "Ver Todo",
+        apply: "Enviar solicitud",
+        viewAll: "Ver todo",
         viewTours: "Ver Tours",
-        backHome: "Volver al Inicio",
+        backHome: "Volver al inicio",
         complete: "Completar",
         pay: "Pagar y Terminar",
         appointment: "Pedir Cita",
@@ -1535,7 +1535,7 @@ export default {
             },
           startDate: "FECHA RECOGIDA",
           endDate: "FECHA DEVOLUCIÓN",
-          searchBtn: "BUSCAR COCHE",
+          searchBtn: "Buscar coche",
             duration: "Duración del alquiler",
             durations: {
               hourly: "Servicio por horas",
@@ -1548,7 +1548,7 @@ export default {
           title: "Nuestra Flota Destacada",
           subtitle:
             "Listo para cualquier camino con opciones SUV, Pickup y Sedán.",
-          viewAll: "Ver Todo",
+          viewAll: "Ver todo",
           model: "Modelo",
           perDay: "/ día",
           person: "Personas",
@@ -1560,8 +1560,8 @@ export default {
           title: "Posee un Auto Confiable",
           description:
             "Obtenga el auto de sus sueños con nuestros vehículos usados garantizados y bien mantenidos. Opciones de intercambio y planes de pago adecuados le esperan.",
-          cta: "Ver Autos en Venta",
-          viewAll: "Ver Todos los Vehículos de Ocasión",
+          cta: "Ver autos en venta",
+          viewAll: "Ver todos los vehículos de ocasión",
           stats: {
             expert: "Garantía Peritaje",
             months: "Meses",
@@ -1619,7 +1619,7 @@ export default {
             maxFiles: "(Max 10 Archivos)",
             notes: "Notas Adicionales",
             notesPlaceholder: "Lo que quiera agregar sobre el vehículo...",
-            submit: "Enviar Solicitud",
+            submit: "Enviar solicitud",
               email: "Correo electrónico",
               errors: {
                 name: "Introduzca su nombre completo.",
@@ -1635,7 +1635,7 @@ export default {
           subtitle:
             "Rutas únicas desde las montañas Cilo hasta los glaciares le esperan.",
           bookBtn: "Reservar",
-          viewAll: "Ver Todos los Tours",
+          viewAll: "Ver todos los tours",
             bottomNote: "* Nuestro representante le contactará para la reserva y los precios.",
           },
         vipAndMinibus: {
@@ -1693,7 +1693,7 @@ export default {
         total: "Monto Total",
         days: "Días",
         checkout: {
-          cancel: "Cancelar y Volver",
+          cancel: "Cancelar y volver",
           securePayment: "PAGO SEGURO Y RESERVA",
           createRequest: "CREAR SOLICITUD",
           rentalService: "Servicio Alquiler",
@@ -1714,7 +1714,7 @@ export default {
           bankName: "Ziraat Bank",
           important: "Importante:",
           contract: "Contrato Venta Distancia",
-          goHome: "Volver Atrás",
+          goHome: "Volver atrás",
           stepOf: "Paso {step} / 3",
           inquiryKicker: "Solicitud",
           createBooking: "Crear reserva",

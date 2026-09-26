@@ -52,7 +52,7 @@ export default {
       hero: {
         title: "Führende Autovermietung in Yüksekova",
         subtitle: "Sicheres, komfortables und erstklassiges Mietwagenerlebnis.",
-        cta: "Jetzt Mieten",
+        cta: "Jetzt mieten",
           trustLine: "1001+ ZUFRIEDENE KUNDEN • KEINE VERSTECKTEN GEBÜHREN • ZUVERLÄSSIGE FLOTTE",
           ctaSubtext: "Schnelle Lösung ohne Bürgen und Papierkram",
           bullets: [
@@ -65,17 +65,17 @@ export default {
       buttons: {
         back: "Zurück",
         close: "Schließen",
-        book: "Jetzt Buchen",
+        book: "Jetzt buchen",
         details: "Details",
-        call: "Jetzt Anrufen",
+        call: "Jetzt anrufen",
         send: "Senden",
-        rent: "Jetzt Mieten",
+        rent: "Jetzt mieten",
         rentDriver: "Mieten mit Fahrer",
         notAvailable: "Nicht Verfügbar",
         remove: "Entfernen",
-        apply: "Bewerbung Senden",
-        viewAll: "Alle Anzeigen",
-        viewTours: "Alle Touren Anzeigen",
+        apply: "Bewerbung senden",
+        viewAll: "Alle anzeigen",
+        viewTours: "Alle Touren anzeigen",
         backHome: "Zurück zur Startseite",
         complete: "Abschließen",
         pay: "Bezahlen & Beenden",
@@ -1536,7 +1536,7 @@ export default {
             },
           startDate: "ABHOLDATUM",
           endDate: "RÜCKGABEDATUM",
-          searchBtn: "AUTO FINDEN",
+          searchBtn: "Auto finden",
             duration: "Mietdauer",
             durations: {
               hourly: "Stundenservice",
@@ -1548,11 +1548,11 @@ export default {
         featured: {
           title: "Unsere Flotte",
           subtitle: "Bereit für jede Straße mit SUV, Pickup und Limousinen.",
-          viewAll: "Alle Anzeigen",
+          viewAll: "Alle anzeigen",
           model: "Modell",
           perDay: "/ Tag",
           person: "Personen",
-          rentNow: "Jetzt Mieten",
+          rentNow: "Jetzt mieten",
             badge: "MIETWAGEN",
           },
         sales: {
@@ -1619,7 +1619,7 @@ export default {
             maxFiles: "(Max 10 Dateien)",
             notes: "Zusätzliche Notizen",
             notesPlaceholder: "Was Sie über das Fahrzeug hinzufügen möchten...",
-            submit: "Bewerbung Senden",
+            submit: "Bewerbung senden",
               email: "E-Mail-Adresse",
               errors: {
                 name: "Bitte geben Sie Ihren vollständigen Namen ein.",
@@ -1634,8 +1634,8 @@ export default {
           title: "Yüksekova Entdeckungstouren",
           subtitle:
             "Einzigartige Routen von den Cilo-Bergen bis zu den Gletschern erwarten Sie.",
-          bookBtn: "Jetzt Buchen",
-          viewAll: "Alle Touren Anzeigen",
+          bookBtn: "Jetzt buchen",
+          viewAll: "Alle Touren anzeigen",
             bottomNote: "* Unser Vertreter kontaktiert Sie für Reservierung und Preisdetails.",
           },
         vipAndMinibus: {
@@ -1694,7 +1694,7 @@ export default {
         total: "Gesamtbetrag",
         days: "Tage",
         checkout: {
-          cancel: "Abbrechen & Zurück",
+          cancel: "Abbrechen & zurück",
           securePayment: "SICHERE ZAHLUNG & RESERVIERUNG",
           createRequest: "ANFRAGE ERSTELLEN",
           rentalService: "Mietservice",

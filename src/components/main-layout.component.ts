@@ -27,12 +27,12 @@ import { NavbarComponent } from "./navbar.component";
 
       <app-feedback></app-feedback>
 
-      <!-- V253: the WhatsApp FAB is global bottom chrome (app-whatsapp-fab in AppComponent) so every
-           public page gets it once; this shell only reserves its lane in the footer on phones. -->
+      <!-- V253/V254: the floating WhatsApp FAB is mounted once in AppComponent and shows on the homepage
+           only; this shell only reserves its lane in the homepage footer on phones. -->
     </div>
   `,
   styles: [`
-    :host{display:block}.layout-root{position:relative;display:flex;min-height:100vh;min-height:100dvh;min-width:0;flex-direction:column;overflow-x:hidden;background:#f8fafc;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.customer-main{min-width:0;flex:1;padding-top:72px}.skip-link{position:fixed;left:12px;top:12px;z-index:220;transform:translateY(calc(-100% - 28px));border-radius:10px;background:#fff;padding:11px 15px;color:#0f172a;font-weight:900;text-decoration:none;box-shadow:0 16px 36px rgba(2,6,23,.28);transition:transform .16s ease}.skip-link:focus,.skip-link:focus-visible{transform:translateY(0);outline:3px solid #3b82f6;outline-offset:2px}
+    :host{display:block}.layout-root{position:relative;display:flex;min-height:100vh;min-height:100dvh;min-width:0;flex-direction:column;overflow-x:hidden;background:var(--alper-bg,#06080D);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.customer-main{min-width:0;flex:1;padding-top:72px}.skip-link{position:fixed;left:12px;top:12px;z-index:220;transform:translateY(calc(-100% - 28px));border-radius:10px;background:#fff;padding:11px 15px;color:#0f172a;font-weight:900;text-decoration:none;box-shadow:0 16px 36px rgba(2,6,23,.28);transition:transform .16s ease}.skip-link:focus,.skip-link:focus-visible{transform:translateY(0);outline:3px solid #3b82f6;outline-offset:2px}
     @media(min-width:768px){.customer-main{padding-top:84px}}
     @media(min-width:1280px){.customer-main{padding-top:96px}}
     @media(display-mode:standalone) and (pointer:coarse), (display-mode:fullscreen) and (pointer:coarse){.customer-main{padding-top:calc(72px + env(safe-area-inset-top))}}
@@ -46,10 +46,8 @@ export class MainLayoutComponent {
     this.router.events.pipe(filter(event=>event instanceof NavigationEnd)).subscribe(()=>this.updatePageState());
     this.updatePageState();
   }
-  /** Phones reserve the bottom-chrome lane (dock or WhatsApp FAB) by route so it never toggles on scroll. */
-  bottomChromeLane(){return this.navigation.mobileDockOnRoute()||(this.footer.settings().showWhatsapp!==false&&!this.hasOwnBottomActionBar());}
-  /** Detail/checkout/account surfaces own a fixed bottom action bar; keep the FAB off those to avoid covering CTAs. */
-  private hasOwnBottomActionBar(){const url=this.currentPath();return /^\/(fleet|sales)\/[^/]+$/.test(url)||/^\/tour\/[^/]+$/.test(url)||/^\/(booking-checkout|track-car|account|branch-portal|admin)(\/|$)/.test(url);}
+  /** Phones reserve the bottom-chrome lane (dock or homepage-only WhatsApp FAB) by route so it never toggles on scroll. */
+  bottomChromeLane(){return this.navigation.mobileDockOnRoute()||(this.isHomePage()&&this.footer.settings().showWhatsapp!==false);}
   private updatePageState(){const url=this.router.url.split("?")[0].split("#")[0]||"/";this.currentPath.set(url);this.isHomePage.set(url==="/");}
   isVehicleDetailPage(){const url=this.router.url.split("?")[0];return /^\/(fleet|sales)\/[^/]+$/.test(url);}
   goBack(){if(window.history.length>1)this.location.back();else void this.router.navigate(["/"]);}

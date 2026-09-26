@@ -258,16 +258,16 @@ export class AdminHomepageComponent implements OnInit {
   trustVerified = '';
 
   readonly themes: ThemeOption[] = [
-    { value: 'light', label: 'Beyaz', preview: '#ffffff', text: '#0f172a' },
-    { value: 'soft', label: 'Buz', preview: '#f1f5f9', text: '#0f172a' },
-    { value: 'dark', label: 'Gece', preview: '#050b18', text: '#ffffff' },
+    { value: 'light', label: 'Fildişi (koyu zemin)', preview: 'linear-gradient(180deg,#0D0F14,#0A0C10)', text: '#F4F1EA' },
+    { value: 'soft', label: 'Buz (koyu zemin)', preview: 'linear-gradient(180deg,#0F1218,#0B0D12)', text: '#F4F1EA' },
+    { value: 'dark', label: 'Gece', preview: '#06080D', text: '#F4F1EA' },
     { value: 'brand', label: 'Alperler Auto', preview: 'linear-gradient(145deg,#06080D,#171D26 58%,#720B12)', text: '#F8F6F1' },
-    { value: 'ocean', label: 'Okyanus', preview: 'linear-gradient(145deg,#062a4e,#0b5b83)', text: '#ffffff' },
-    { value: 'emerald', label: 'Zümrüt', preview: 'linear-gradient(145deg,#052e2b,#0f766e)', text: '#ffffff' },
-    { value: 'sunset', label: 'Gün Batımı', preview: 'linear-gradient(145deg,#7c2d12,#ea580c)', text: '#ffffff' },
-    { value: 'violet', label: 'Mor', preview: 'linear-gradient(145deg,#3b0764,#7c3aed)', text: '#ffffff' },
-    { value: 'sand', label: 'Kum', preview: '#f6f0e4', text: '#3f3528' },
-    { value: 'graphite', label: 'Grafit', preview: 'linear-gradient(145deg,#111827,#374151)', text: '#ffffff' },
+    { value: 'ocean', label: 'Okyanus', preview: 'linear-gradient(145deg,#06111A,#0A1E2B)', text: '#F4F1EA' },
+    { value: 'emerald', label: 'Zümrüt', preview: 'linear-gradient(145deg,#06120E,#0A2019)', text: '#F4F1EA' },
+    { value: 'sunset', label: 'Gün Batımı', preview: 'linear-gradient(145deg,#140B07,#231209)', text: '#F4F1EA' },
+    { value: 'violet', label: 'Mor', preview: 'linear-gradient(145deg,#0E0A16,#180F25)', text: '#F4F1EA' },
+    { value: 'sand', label: 'Kum (sıcak koyu)', preview: 'linear-gradient(180deg,#15120C,#0D0B08)', text: '#F4F1EA' },
+    { value: 'graphite', label: 'Grafit', preview: 'linear-gradient(145deg,#0F1116,#1A1D24)', text: '#F4F1EA' },
   ];
 
   newTitle = '';
@@ -428,12 +428,12 @@ export class AdminHomepageComponent implements OnInit {
   private themeLabel(theme: HomepageTheme): string { return this.themes.find((item) => item.value === theme)?.label || theme; }
 
   private newSectionSpec(kind: NewSectionKind): { type: HomepageSectionType; settings: HomepageSectionSettings } {
-    if (kind === 'RENTAL') return { type:'VEHICLES', settings:{ category:'RENTAL', badge:'Seçili Kiralık Araçlar', description:'Planınıza uyan seçili kiralık araçları karşılaştırın.', layout:'rail', width:'wide', theme:'light', viewAllLabel:'Tüm Kiralık Araçlar', viewAllUrl:'/fleet' } };
-    if (kind === 'SALE') return { type:'VEHICLES', settings:{ category:'SALE', badge:'Seçili İkinci El Araçlar', description:'Öne çıkan ikinci el araçları karşılaştırın.', layout:'rail', width:'wide', theme:'soft', viewAllLabel:'Tüm Satılık Araçlar', viewAllUrl:'/sales' } };
-    if (kind === 'TOURS') return { type:'TOURS', settings:{ badge:'Yerel Rotalar', description:'Yerel rehberlerle öne çıkan rotaları keşfedin.', layout:'rail', width:'wide', theme:'dark', viewAllLabel:'Tüm Turlar', viewAllUrl:'/tours' } };
-    if (kind === 'CAMPAIGN') return { type:'CAMPAIGN', settings:{ badge:'Seçili Avantajlar', description:'Planınıza uyan güncel avantajları keşfedin.', layout:'rail', width:'wide', theme:'brand', viewAllLabel:'Tüm Fırsatlar', viewAllUrl:'/campaigns' } };
-    if (kind === 'BLOG') return { type:'BLOG', settings:{ badge:'Rehber & İpuçları', description:'Yola çıkmadan önce seçili içeriklere göz atın.', layout:'rail', width:'wide', theme:'light', viewAllLabel:'Tüm Yazılar', viewAllUrl:'/blog' } };
-    return { type:'CUSTOM', settings:{ renderer:'PROMO', badge:'Alperler Auto', description:'Bu bölümün açıklamasını düzenleyin.', layout:'wide', width:'wide', theme:'brand', ctaLabel:'Detayları İncele', ctaUrl:'/contact' } };
+    if (kind === 'RENTAL') return { type:'VEHICLES', settings:{ category:'RENTAL', badge:'Seçili Kiralık Araçlar', description:'Planınıza uyan seçili kiralık araçları karşılaştırın.', layout:'rail', width:'wide', theme:'light', viewAllLabel:'Tüm kiralık araçlar', viewAllUrl:'/fleet' } };
+    if (kind === 'SALE') return { type:'VEHICLES', settings:{ category:'SALE', badge:'Seçili İkinci El Araçlar', description:'Öne çıkan ikinci el araçları karşılaştırın.', layout:'rail', width:'wide', theme:'soft', viewAllLabel:'Tüm satılık araçlar', viewAllUrl:'/sales' } };
+    if (kind === 'TOURS') return { type:'TOURS', settings:{ badge:'Yerel Rotalar', description:'Yerel rehberlerle öne çıkan rotaları keşfedin.', layout:'rail', width:'wide', theme:'dark', viewAllLabel:'Tüm turlar', viewAllUrl:'/tours' } };
+    if (kind === 'CAMPAIGN') return { type:'CAMPAIGN', settings:{ badge:'Seçili Avantajlar', description:'Planınıza uyan güncel avantajları keşfedin.', layout:'rail', width:'wide', theme:'brand', viewAllLabel:'Tüm fırsatlar', viewAllUrl:'/campaigns' } };
+    if (kind === 'BLOG') return { type:'BLOG', settings:{ badge:'Rehber & İpuçları', description:'Yola çıkmadan önce seçili içeriklere göz atın.', layout:'rail', width:'wide', theme:'light', viewAllLabel:'Tüm yazılar', viewAllUrl:'/blog' } };
+    return { type:'CUSTOM', settings:{ renderer:'PROMO', badge:'Alperler Auto', description:'Bu bölümün açıklamasını düzenleyin.', layout:'wide', width:'wide', theme:'brand', ctaLabel:'Detayları incele', ctaUrl:'/contact' } };
   }
 
   private allCandidates(section?: HomepageSectionRecord): Candidate[] {

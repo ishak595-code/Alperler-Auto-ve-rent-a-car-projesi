@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from "@angular/core";
+import { Injectable, Injector, inject, signal } from "@angular/core";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { AuthService } from "./auth.service";
 import { AdminGatewayTransportService, isAdminGatewayFailure } from "./admin-gateway-transport.service";
@@ -8,6 +8,31 @@ import {
   catalogUploadSizeRejection,
   prepareCatalogImage,
 } from "./catalog-image-optimize.util";
+import {
+  CloudinarySizeError,
+  CloudinaryUnavailableError,
+  CloudinaryUploadService,
+} from "./cloudinary-upload.service";
+import { UiService } from "./ui.service";
+import {
+  CLOUDINARY_IMAGE_MAX_BYTES,
+  CLOUDINARY_STORAGE_BUCKET,
+  CLOUDINARY_VIDEO_MAX_BYTES,
+  cloudNameForRow,
+  cloudinaryMediaUrl,
+  cloudinarySizeViolation,
+  cloudinaryVideoPosterUrl,
+} from "../utils/cloudinary-media";
+
+type MediaUploadTextKey = "imageTooLarge" | "videoTooLarge" | "uploadFailed" | "signatureFailed";
+const MEDIA_UPLOAD_TEXT_TR: Record<MediaUploadTextKey, string> = {
+  imageTooLarge: "Fotoğraf en fazla {max} MB olabilir. Lütfen daha küçük bir fotoğraf seçin.",
+  videoTooLarge: "Video en fazla {max} MB olabilir. Lütfen daha kısa veya sıkıştırılmış bir video seçin.",
+  uploadFailed: "Medya bulut depolamaya yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.",
+  signatureFailed: "Yükleme izni alınamadı. Oturumunuzu yenileyip tekrar deneyin.",
+};
+
+type CatalogUploadOptions = { altText?: string; isCover?: boolean; sortOrder?: number; posterUrl?: string };
 
 export type CatalogMediaKind = "IMAGE" | "VIDEO";
 export type CatalogEntityType = "VEHICLE" | "TOUR" | "BLOG";
@@ -73,6 +98,8 @@ interface MediaControlResponse {
 export class CatalogMediaService {
   private readonly auth = inject(AuthService);
   private readonly transport = inject(AdminGatewayTransportService);
+  private readonly cloudinary = inject(CloudinaryUploadService);
+  private readonly injector = inject(Injector);
   private readonly bucket = "catalog-media";
   /** Kaynak-gerçeği: Supabase Edge Function. BFF yalnızca taşıma hatasında yedek. */
   private readonly edgeFunction = "media-control-admin-v185";
@@ -98,15 +125,27 @@ export class CatalogMediaService {
     entityType: CatalogEntityType,
     entityId: string,
     file: File,
-    options: { altText?: string; isCover?: boolean; sortOrder?: number; posterUrl?: string } = {},
+    options: CatalogUploadOptions = {},
   ): Promise<CatalogMediaItem> {
-    this.validateFile(file);
+    // V249: Cloudinary only when CLOUDINARY_CLOUD_NAME is injected at runtime; otherwise the
+    // Supabase Storage path below runs exactly as before.
+    const useCloudinary = this.cloudinary.isEnabled();
+    this.validateFile(file, useCloudinary);
     const token = await this.requiredToken();
     let mediaType = resolveMediaType(file);
     const kind: CatalogMediaKind = mediaType.startsWith("video/") ? "VIDEO" : "IMAGE";
     if (options.isCover && kind !== "IMAGE") throw new Error("Kapak yalnız fotoğraf olabilir.");
     const uploadFile = kind === "IMAGE" ? await prepareCatalogImage(file) : file;
     mediaType = resolveMediaType(uploadFile);
+    if (useCloudinary) {
+      try {
+        return await this.uploadToCloudinary(entityType, entityId, file, uploadFile, kind, mediaType, token, options);
+      } catch (error) {
+        if (!(error instanceof CloudinaryUnavailableError)) throw error;
+        console.warn("[CatalogMedia] Cloudinary unavailable, falling back to Supabase Storage:", error.code);
+        this.validateFile(file, false);
+      }
+    }
     const extension = mediaExtension(mediaType, uploadFile);
     const objectPath = `${entityType.toLowerCase()}/${entityId}/${crypto.randomUUID()}.${extension}`;
     this._uploadProgress.set(0);
@@ -201,6 +240,132 @@ export class CatalogMediaService {
 
   async remove(item: CatalogMediaItem): Promise<void> {
     await this.gateway("POST", { action: "REMOVE_CATALOG_MEDIA", mediaId: item.id });
+    // V249: the DB delete trigger queues a Cloudinary cleanup job; drain it server-side (signed destroy).
+    if (item.storageBucket === CLOUDINARY_STORAGE_BUCKET) await this.drainCloudinaryCleanup();
+  }
+
+  private async drainCloudinaryCleanup(): Promise<void> {
+    if (!this.cloudinary.isEnabled()) return;
+    try {
+      const token = await this.requiredToken();
+      await this.cloudinary.drainCleanup(token, 10);
+    } catch (error) {
+      console.warn("[CatalogMedia] Cloudinary cleanup deferred:", error instanceof Error ? error.message : error);
+    }
+  }
+
+  private async uploadToCloudinary(
+    entityType: CatalogEntityType,
+    entityId: string,
+    originalFile: File,
+    uploadFile: File,
+    kind: CatalogMediaKind,
+    mediaType: string,
+    token: string,
+    options: CatalogUploadOptions,
+  ): Promise<CatalogMediaItem> {
+    const resourceType = kind === "VIDEO" ? "video" : "image";
+    const violation = cloudinarySizeViolation(uploadFile.size, mediaType);
+    if (violation) throw new Error(this.sizeMessage(violation));
+    let signed;
+    try {
+      signed = await this.cloudinary.sign(token, { scope: "catalog", entityType, entityId, resourceType, bytes: uploadFile.size });
+    } catch (error) {
+      if (error instanceof CloudinarySizeError) throw new Error(this.sizeMessage(error.kind));
+      if (error instanceof CloudinaryUnavailableError) throw error;
+      throw new Error(`${this.uiText("signatureFailed")} (${error instanceof Error ? error.message : "SIGN"})`);
+    }
+
+    this._uploadProgress.set(0);
+    try {
+      let uploaded;
+      try {
+        uploaded = await this.cloudinary.upload(uploadFile, signed, (percent) => this._uploadProgress.set(percent));
+      } catch (error) {
+        if (error instanceof CloudinarySizeError) throw new Error(this.sizeMessage(error.kind));
+        throw new Error(`${this.uiText("uploadFailed")} (${error instanceof Error ? error.message : "UPLOAD"})`);
+      }
+
+      let created: CatalogMediaItem;
+      try {
+        const response = await this.gateway("POST", {
+          action: "CREATE_CATALOG_MEDIA",
+          entityType,
+          entityId,
+          payload: {
+            kind,
+            storage_bucket: CLOUDINARY_STORAGE_BUCKET,
+            object_path: uploaded.publicId,
+            poster_url: options.posterUrl || (kind === "VIDEO" ? cloudinaryVideoPosterUrl(uploaded.cloudName, uploaded.publicId) : null),
+            source_name: "Alperler Auto yönetim paneli",
+            license: "BUSINESS_OWNED",
+            attribution: "Alperler Auto",
+            alt_text: (options.altText || originalFile.name).trim().slice(0, 300),
+            sort_order: options.sortOrder ?? 0,
+            metadata: {
+              originalName: originalFile.name.slice(0, 180),
+              mimeType: mediaType,
+              fileSize: uploadFile.size,
+              originalFileSize: originalFile.size,
+              optimized: kind === "IMAGE" && uploadFile !== originalFile,
+              verificationScope: "ACTUAL_ASSET",
+              sourceVerified: true,
+              provenanceComplete: true,
+              reviewStatus: "VERIFIED",
+              verifiedAt: new Date().toISOString().slice(0, 10),
+              storageProvider: CLOUDINARY_STORAGE_BUCKET,
+              cloudinary: {
+                cloudName: uploaded.cloudName,
+                resourceType: uploaded.resourceType,
+                version: uploaded.version ?? null,
+                format: uploaded.format ?? null,
+                bytes: uploaded.bytes ?? uploadFile.size,
+                width: uploaded.width ?? null,
+                height: uploaded.height ?? null,
+                duration: uploaded.duration ?? null,
+              },
+            },
+          },
+        });
+        if (!response.record) throw new Error("CATALOG_MEDIA_CREATE_FAILED");
+        created = this.fromRow(response.record);
+      } catch (error) {
+        // No DB row references the asset → safe server-side signed destroy (rollback).
+        await this.cloudinary.destroy(token, uploaded.publicId, uploaded.resourceType).catch(() => undefined);
+        // V249 migration not applied yet → the DB still only accepts 'catalog-media'; fall back.
+        if (error instanceof Error && error.message === "INVALID_MEDIA_STORAGE") {
+          throw new CloudinaryUnavailableError("CLOUDINARY_DB_MIGRATION_PENDING");
+        }
+        throw error;
+      }
+
+      if (options.isCover) {
+        const response = await this.gateway("PATCH", { action: "SET_CATALOG_COVER", mediaId: created.id });
+        if (!response.record) throw new Error("CATALOG_COVER_SET_FAILED");
+        created = this.fromRow(response.record);
+      }
+      this._uploadProgress.set(100);
+      return created;
+    } finally {
+      if (this._uploadProgress() < 100) this._uploadProgress.set(0);
+    }
+  }
+
+  private uiText(key: MediaUploadTextKey, max?: number): string {
+    let template = MEDIA_UPLOAD_TEXT_TR[key];
+    try {
+      const translations = this.injector.get(UiService).translations() as { mediaUpload?: Partial<Record<MediaUploadTextKey, string>> };
+      template = String(translations?.mediaUpload?.[key] || template);
+    } catch {
+      // UiService unavailable (tests/SSR) → Turkish default.
+    }
+    return template.replace("{max}", max === undefined ? "" : String(max));
+  }
+
+  private sizeMessage(kind: "image" | "video"): string {
+    return kind === "video"
+      ? this.uiText("videoTooLarge", Math.round(CLOUDINARY_VIDEO_MAX_BYTES / (1024 * 1024)))
+      : this.uiText("imageTooLarge", Math.round(CLOUDINARY_IMAGE_MAX_BYTES / (1024 * 1024)));
   }
 
   async removeAll(entityType: CatalogEntityType, entityId: string): Promise<void> {
@@ -344,16 +509,24 @@ export class CatalogMediaService {
     if (!response.ok) throw new Error(`CATALOG_STORAGE_DELETE_${response.status}`);
   }
 
-  private validateFile(file: File): void {
+  private validateFile(file: File, cloudinary = false): void {
     const reason = mediaRejectionReason(file, { video: true });
     if (reason) throw new Error(reason);
+    if (cloudinary) {
+      // Cloudinary free plan: 10 MB/image, 100 MB/video (friendly, translated message).
+      const violation = cloudinarySizeViolation(file.size, resolveMediaType(file));
+      if (violation) throw new Error(this.sizeMessage(violation));
+      return;
+    }
     const sizeReason = catalogUploadSizeRejection(file, resolveMediaType(file));
     if (sizeReason) throw new Error(sizeReason);
     if (file.size > this.maxUploadBytes) throw new Error("Dosya depolama tavanı olan 200 MB sınırını aşıyor.");
   }
 
   private fromRow(row: CatalogMediaRow): CatalogMediaItem {
-    const url = row.external_url || (row.storage_bucket && row.object_path
+    const url = row.external_url || (row.storage_bucket === CLOUDINARY_STORAGE_BUCKET && row.object_path
+      ? cloudinaryMediaUrl(cloudNameForRow(row.metadata), row.object_path, row.kind)
+      : row.storage_bucket && row.object_path
       ? `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${encodeURIComponent(row.storage_bucket)}/${row.object_path.split("/").map(encodeURIComponent).join("/")}` : "");
     return {
       id: row.id,

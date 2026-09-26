@@ -1,0 +1,73 @@
+name: V249 Cloudinary Media Hosting
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "api/**"
+      - "src/**"
+      - "server.ts"
+      - "vercel.json"
+      - "public/_headers"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/write-runtime-env.mjs"
+      - "scripts/check-v249-cloudinary-media.mjs"
+      - "scripts/migrate-media-to-cloudinary.mjs"
+      - "tests/unit/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/v249-cloudinary-media.yml"
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - "src/**"
+      - "server.ts"
+      - "vercel.json"
+      - "public/_headers"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/write-runtime-env.mjs"
+      - "scripts/check-v249-cloudinary-media.mjs"
+      - "scripts/migrate-media-to-cloudinary.mjs"
+      - "tests/unit/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/v249-cloudinary-media.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  cloudinary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: V249 Cloudinary contract
+        run: npm run cloudinary:v249
+
+      - name: V249 Cloudinary unit tests
+        run: npm run test:cloudinary
+
+      - name: Migration script syntax
+        run: node --check scripts/migrate-media-to-cloudinary.mjs
+
+      - name: Vercel function budget
+        run: npm run vercel:functions
+
+      - name: API TypeScript
+        run: npm run typecheck:api
+
+      - name: Frontend TypeScript
+        run: npm run lint

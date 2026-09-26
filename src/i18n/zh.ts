@@ -3,6 +3,12 @@
  * Lazy-loaded on demand — kept out of the initial bundle.
  */
 export default {
+      mediaUpload: {
+        imageTooLarge: "照片最大不能超过 {max} MB。请选择更小的照片。",
+        videoTooLarge: "视频最大不能超过 {max} MB。请选择更短或经过压缩的视频。",
+        uploadFailed: "媒体文件无法上传到云存储。请检查网络连接后重试。",
+        signatureFailed: "无法获取上传授权。请刷新会话后重试。",
+      },
       nav: {
         home: "首页",
         fleet: "车队",

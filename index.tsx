@@ -1,5 +1,5 @@
 import { APP_BASE_HREF } from '@angular/common';
-import { ErrorHandler, provideZonelessChangeDetection } from '@angular/core';
+import { ErrorHandler, inject, provideAppInitializer, provideZonelessChangeDetection } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideRouter, RouteReuseStrategy, withInMemoryScrolling } from '@angular/router';
@@ -13,6 +13,7 @@ import { GlobalErrorHandler } from './src/services/global-error-handler';
 import { ParamAwareRouteReuseStrategy } from './src/services/param-aware-route-reuse.strategy';
 import { PublicDetailDataService } from './src/services/public-detail-data.service';
 import { startPwaRuntime } from './src/services/pwa-runtime.service';
+import { UiService } from './src/services/ui.service';
 import { installWebPlatformCompatibility } from './src/services/web-platform-compatibility';
 
 const LEGACY_CATALOG_STORAGE_KEY = /^db_(?:cars|rental_?cars?|sale_?cars?|sales?|vehicles?|tours?|inventory|config|faqs?|blog)(?:_|$)/i;
@@ -71,6 +72,8 @@ async function bootstrap(): Promise<void> {
   await bootstrapApplication(AppComponent, {
     providers: [
       provideZonelessChangeDetection(),
+      // V254: first paint in the visitor's saved language (avoids a TR → EN/DE header reflow / CLS).
+      provideAppInitializer(() => inject(UiService).whenInitialLocaleReady()),
       provideHttpClient(withInterceptors([bookingSuccessInterceptor])),
       provideLegacyWebhookSafety(),
       { provide: ErrorHandler, useClass: GlobalErrorHandler },

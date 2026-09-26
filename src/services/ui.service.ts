@@ -227,6 +227,12 @@ export class UiService {
   // Non-TR packs: src/i18n/{en,de,fr,es,ru,ku,zh,ar}.ts — dynamic import.
   private dictionary: Partial<Record<Language, any>> = {
     TR: {
+      mediaUpload: {
+        imageTooLarge: "Fotoğraf en fazla {max} MB olabilir. Lütfen daha küçük bir fotoğraf seçin.",
+        videoTooLarge: "Video en fazla {max} MB olabilir. Lütfen daha kısa veya sıkıştırılmış bir video seçin.",
+        uploadFailed: "Medya bulut depolamaya yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.",
+        signatureFailed: "Yükleme izni alınamadı. Oturumunuzu yenileyip tekrar deneyin.",
+      },
       nav: {
         home: "Ana Sayfa",
         fleet: "Araç Filosu",

@@ -31,6 +31,10 @@ if (configured) {
   env.APP_PUBLIC_ORIGIN = configured;
   env.PUBLIC_APP_URL = configured;
 }
+// V249: only the public Cloudinary cloud name reaches the browser (never the API key/secret).
+// Unset → the frontend keeps the Supabase Storage media path exactly as before.
+const cloudinaryCloudName = String(process.env.CLOUDINARY_CLOUD_NAME ?? '').trim();
+if (/^[A-Za-z0-9_-]{1,64}$/.test(cloudinaryCloudName)) env.CLOUDINARY_CLOUD_NAME = cloudinaryCloudName;
 
 const body =
   'window.process = Object.assign({}, window.process, { env: Object.assign({}, (window.process && window.process.env) || {}, ' +

@@ -4,6 +4,11 @@ import {
   SUPABASE_PROJECT_URL,
   SUPABASE_PUBLISHABLE_KEY,
 } from "../supabase.config";
+import {
+  CLOUDINARY_STORAGE_BUCKET,
+  cloudinaryMediaUrl,
+  readCloudinaryCloudName,
+} from "../utils/cloudinary-media";
 
 export type PublicCatalogMediaKind = "IMAGE" | "VIDEO";
 
@@ -124,7 +129,7 @@ export class PublicCatalogMediaService {
   private fromRow(row: PublicCatalogMediaRow): PublicCatalogMediaItem | null {
     const kind = row.kind === "VIDEO" ? "VIDEO" : row.kind === "IMAGE" ? "IMAGE" : null;
     if (!kind) return null;
-    const url = this.resolveUrl(row.external_url, row.storage_bucket, row.object_path);
+    const url = this.resolveUrl(row.external_url, row.storage_bucket, row.object_path, kind);
     if (!url) return null;
     return {
       id: row.id,
@@ -148,7 +153,13 @@ export class PublicCatalogMediaService {
     externalUrl?: string | null,
     storageBucket?: string | null,
     objectPath?: string | null,
+    kind: PublicCatalogMediaKind = "IMAGE",
   ): string {
+    // V249: Cloudinary-hosted rows (object_path = public_id). Needs the runtime cloud name;
+    // without it the row is skipped instead of producing a broken Supabase URL.
+    if (storageBucket === CLOUDINARY_STORAGE_BUCKET) {
+      return objectPath ? cloudinaryMediaUrl(readCloudinaryCloudName(), objectPath, kind) : "";
+    }
     if (storageBucket === "catalog-media" && objectPath) {
       const encodedPath = objectPath.split("/").map(encodeURIComponent).join("/");
       return `/catalog-media/${encodedPath}`;

@@ -1,5 +1,6 @@
 import { clientIp, corsHeaders, guardOrigin, originDecision } from "./_lib/request-security.js";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "./_lib/supabase-public.js";
+import { cloudinaryAdmin } from "./_lib/cloudinary-admin.js";
 
 const ALLOWED_METHODS = "GET,POST,PATCH,OPTIONS";
 
@@ -129,6 +130,7 @@ export default {
     if (operation === "marketing-admin") return proxy(request, { edgeFunction: "marketing-admin", allowedMethods: ["GET", "POST"], timeout: 25_000, requireAuth: true, maxBodyBytes: 64 * 1024, unavailableCode: "MARKETING_ADMIN_UNAVAILABLE", unavailableMessage: "Pazarlama yönetim servisine şu anda ulaşılamıyor." });
     if (operation === "telematics-admin") return proxy(request, { edgeFunction: "telematics-admin", allowedMethods: ["GET", "POST"], timeout: 20_000, requireAuth: true, maxBodyBytes: 16 * 1024, unavailableCode: "TELEMATICS_ADMIN_UNAVAILABLE", unavailableMessage: "Araç telematik yönetim servisine şu anda ulaşılamıyor." });
     if (operation === "catalog-admin") return proxy(request, { edgeFunction: "catalog-admin-gateway-v184", allowedMethods: ["GET", "POST", "PATCH"], timeout: 25_000, requireAuth: true, maxBodyBytes: 128 * 1024, unavailableCode: "CATALOG_ADMIN_UNAVAILABLE", unavailableMessage: "Araç ve tur katalog yönetim servisine şu anda ulaşılamıyor.", forwardQuery: ["view", "kind", "id"] });
+    if (operation === "cloudinary") return cloudinaryAdmin(request);
     if (operation === "media-control-admin") return proxy(request, { edgeFunction: "media-control-admin-v185", allowedMethods: ["GET", "POST", "PATCH"], timeout: 25_000, requireAuth: true, maxBodyBytes: 64 * 1024, unavailableCode: "MEDIA_CONTROL_ADMIN_UNAVAILABLE", unavailableMessage: "Medya yönetim servisine şu anda ulaşılamıyor.", forwardQuery: ["entityType", "entityId"] });
     if (operation === "admin-team") return proxy(request, { edgeFunction: "admin-team", allowedMethods: ["POST", "PATCH"], timeout: 25_000, requireAuth: true, maxBodyBytes: 32 * 1024, unavailableCode: "ADMIN_TEAM_GATEWAY_UNAVAILABLE", unavailableMessage: "Yönetici ekip servisine şu anda ulaşılamıyor." });
     if (operation === "customer-admin") return proxy(request, { edgeFunction: "customer-admin-gateway-v173", allowedMethods: ["GET", "POST", "PATCH"], timeout: 20_000, requireAuth: true, maxBodyBytes: 64 * 1024, unavailableCode: "CUSTOMER_ADMIN_GATEWAY_UNAVAILABLE", unavailableMessage: "Müşteri yönetim servisine şu anda ulaşılamıyor.", forwardQuery: ["userId", "limit"] });

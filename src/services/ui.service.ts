@@ -3177,6 +3177,15 @@ export class UiService {
   private localePacks = signal<Partial<Record<Language, any>>>({});
   private localeLoadInflight = new Map<Language, Promise<void>>();
 
+  /**
+   * V254: awaited by an app initializer so a saved/detected non-TR language paints its own labels on the
+   * first frame (no TR → EN/DE header reflow = no layout shift). Capped so a slow chunk never blocks startup.
+   */
+  whenInitialLocaleReady(maxWaitMs = 1500): Promise<void> {
+    const load = this.ensureLocaleLoaded(this.currentLang());
+    return Promise.race([load, new Promise<void>((resolve) => setTimeout(resolve, maxWaitMs))]);
+  }
+
   private async ensureLocaleLoaded(lang: Language): Promise<void> {
     if (lang === "TR") return;
     if (this.dictionary[lang] || this.localePacks()[lang]) return;

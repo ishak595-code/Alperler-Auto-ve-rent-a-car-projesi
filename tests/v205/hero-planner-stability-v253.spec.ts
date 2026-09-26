@@ -137,7 +137,7 @@ test("V253 WhatsApp FAB and phone dock never overlap or show together", async ({
   const overlap = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
   await expect(dock).toBeVisible();
-  await page.waitForTimeout(400);
+  await expect.poll(async () => (await state()).fab === null, { message: "FAB yields while the dock is visible", timeout: 5_000 }).toBe(true);
   let s = await state();
   expect(s.dock, "dock visible at the top of the page").not.toBeNull();
   expect(s.fab, "FAB yields while the dock is visible").toBeNull();
@@ -148,9 +148,9 @@ test("V253 WhatsApp FAB and phone dock never overlap or show together", async ({
   await page.evaluate((top) => window.scrollTo({ top, behavior: "instant" }), target);
   await expect.poll(async () => (await dock.getAttribute("class")) || "", { timeout: 3_000 }).toContain("dock-auto-hidden");
   await expect(dock).toBeHidden();
-  await page.waitForTimeout(400);
+  // The FAB fades in (opacity/transform); give slow CI WebKit time to finish the transition.
+  await expect.poll(async () => (await state()).fab !== null, { message: "FAB appears once the dock hides", timeout: 5_000 }).toBe(true);
   s = await state();
-  expect(s.fab, "FAB appears once the dock hides").not.toBeNull();
   expect(s.fab!.w).toBeGreaterThanOrEqual(44);
   expect(s.fab!.y + s.fab!.h).toBeLessThanOrEqual(s.vh);
   expect(s.fab!.x + s.fab!.w).toBeLessThanOrEqual(s.vw);
@@ -159,7 +159,7 @@ test("V253 WhatsApp FAB and phone dock never overlap or show together", async ({
   await page.evaluate((distance) => window.scrollBy({ top: -distance, behavior: "instant" }), Math.min(260, target));
   await expect.poll(async () => (await dock.getAttribute("class")) || "", { timeout: 3_000 }).not.toContain("dock-auto-hidden");
   await expect(dock).toBeVisible();
-  await page.waitForTimeout(400);
+  await expect.poll(async () => (await state()).fab === null, { message: "FAB yields again when the dock returns", timeout: 5_000 }).toBe(true);
   s = await state();
   if (s.fab && s.dock) expect(overlap(s.fab, s.dock), "FAB must never cover the dock").toBe(false);
   expect(s.fab).toBeNull();

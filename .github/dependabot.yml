@@ -7,7 +7,7 @@ updates:
       day: "monday"
       time: "04:30"
       timezone: "Europe/Istanbul"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0  # Dependabot version-update PRs paused by owner
     versioning-strategy: increase-if-necessary
     labels:
       - "dependencies"
@@ -62,7 +62,7 @@ updates:
       day: "monday"
       time: "05:00"
       timezone: "Europe/Istanbul"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0  # Dependabot version-update PRs paused by owner
     labels:
       - "dependencies"
     groups:

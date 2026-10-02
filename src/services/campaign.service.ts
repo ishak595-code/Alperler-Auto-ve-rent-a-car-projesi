@@ -2,6 +2,7 @@ import { DestroyRef, Injectable, inject, signal } from "@angular/core";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { AuthService } from "./auth.service";
 import { PublicContentRealtimeService } from "./public-content-realtime.service";
+import { readPublicCatalogJson } from "../utils/cdn-catalog-media";
 
 export interface CampaignRecord {
   id: string;
@@ -322,7 +323,7 @@ export class CampaignService {
         cache: "no-store",
       });
       if (!response.ok) throw new Error(`CAMPAIGNS_PUBLIC_V217_${response.status}`);
-      const records = ((await response.json()) as any[]).map((row) => this.fromRow(row));
+      const records = (await readPublicCatalogJson<any[]>(response)).map((row) => this.fromRow(row));
       if (this.publicScopeKey === key) this._publicCampaigns.set(records);
       this._clock.set(Date.now());
       return records;

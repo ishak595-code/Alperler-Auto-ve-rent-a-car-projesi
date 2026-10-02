@@ -4,6 +4,7 @@ import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.conf
 import type { CatalogBlogPost } from "./catalog.service";
 import { PublicCatalogMediaService } from "./public-catalog-media.service";
 import { UiService } from "./ui.service";
+import { readPublicCatalogJson } from "../utils/cdn-catalog-media";
 
 export type DetailKind = "RENTAL" | "SALE" | "TOUR";
 export type BlogDetailMediaItem = { kind: "IMAGE" | "VIDEO"; url: string; posterUrl?: string; title: string };
@@ -210,7 +211,7 @@ export class PublicDetailDataService {
       }
 
       if (response.ok) {
-        const payload = await response.json();
+        const payload = await readPublicCatalogJson<unknown>(response);
         return Array.isArray(payload) ? payload : [];
       }
 

@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Car, Vehicle } from '../models/car.model';
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from '../supabase.config';
 import { CampaignRecord } from './campaign.service';
+import { readPublicCatalogJson } from "../utils/cdn-catalog-media";
 
 export interface CatalogPage<T>{items:T[];page:number;pageSize:number;hasMore:boolean;}
 export interface VehicleFacetsV217{brands:string[];years:number[];fuels:string[];transmissions:string[];bodyTypes:string[];colors:string[];priceMin:number;priceMax:number;hourlyPriceMin:number;hourlyPriceMax:number;kmMin:number;kmMax:number;}
@@ -57,7 +58,7 @@ export class ScalablePublicCatalogV217Service{
         if(quotaOrPaymentError(response.status,code)) throw new Error(turkishQuotaMessage('Katalog'));
         throw new Error(code);
       }
-      return await response.json() as T;
+      return await readPublicCatalogJson<T>(response);
     },
   });
   return result.value;

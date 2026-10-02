@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
+import { readPublicCatalogJson } from "../utils/cdn-catalog-media";
 
 export type BranchMarketplaceKind="ALL"|"RENTAL"|"SALE"|"TOUR";
 export interface MarketplaceBranch {id:string;slug?:string;name:string;operatorName:string;operatorRelationship:string;platformDisclaimer:string;city:string;district:string;provinceCode:string;districtCode:string;address?:string;phone?:string;whatsapp?:string;email?:string;heroImage?:string;customerGuaranteeEnabled:boolean;verified:boolean;}
@@ -43,7 +44,7 @@ export class BranchMarketplaceV171Service {
 
   private async catalog(resource:"vehicles"|"tours"):Promise<Array<Record<string,unknown>>>{
     const response=await fetch(`/api/catalog?resource=${resource}`,{headers:{accept:"application/json"},cache:"no-store",signal:AbortSignal.timeout(15_000)});
-    const payload=await response.json().catch(()=>({})) as CatalogPayload;
+    const payload=await readPublicCatalogJson<CatalogPayload>(response).catch(()=>({} as CatalogPayload));
     if(!response.ok||payload.ok!==true||!Array.isArray(payload.records))throw new Error(String(payload.code||"CATALOG_SOURCE_UNAVAILABLE"));
     return payload.records;
   }

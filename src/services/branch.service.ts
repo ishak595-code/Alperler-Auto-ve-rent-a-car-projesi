@@ -3,6 +3,7 @@ import { Branch } from "../models/branch.model";
 import { SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_KEY } from "../supabase.config";
 import { AuthService } from "./auth.service";
 import { PublicContentRealtimeService } from "./public-content-realtime.service";
+import { readPublicCatalogJson } from "../utils/cdn-catalog-media";
 
 interface BranchApiResponse {
   ok: boolean;
@@ -174,7 +175,7 @@ export class BranchService {
       headers: { apikey: SUPABASE_PUBLISHABLE_KEY, accept: "application/json", "cache-control": "no-cache" },
     });
     if (!response.ok) throw new Error(`BRANCH_DIRECT_${response.status}`);
-    const rows = await response.json();
+    const rows = await readPublicCatalogJson<unknown>(response);
     if (!Array.isArray(rows)) throw new Error("BRANCH_DIRECT_INVALID");
     return rows
       .map((row) => this.fromPublicRow(row))

@@ -105,7 +105,8 @@ assert(/^4\.2\.\d+$/.test(String(pkg.devDependencies?.tailwindcss||'')),'Tailwin
 for(const name of ['@angular/common','@angular/compiler','@angular/core','@angular/forms','@angular/platform-browser','@angular/router']){
   assert(/^21\.2\.(?:2[0-9]|[3-9][0-9])$/.test(String(pkg.dependencies?.[name]||'')),`${name} must stay on patched Angular 21.2.20+`);
 }
-assert(/^9\./.test(String(pkg.dependencies?.nodemailer||'')),'Nodemailer must stay on the hardened v9 line');
+// V255: every 9.x release is covered by GHSA-g57g-f23g-4646 / GHSA-prgh-xp8r-p3m5; 10.0.13+ is the first clean line.
+{const [major,minor,patch]=String(pkg.dependencies?.nodemailer||'').replace(/^[^\d]*/,'').split('.').map(Number);assert(major>10||(major===10&&(minor>0||patch>=13)),'Nodemailer must stay on the hardened 10.0.13+ line');}
 for(const name of ['@angular/build','@angular/cli','@angular/compiler-cli']) assert(pkg.devDependencies?.[name],`${name} must remain build-only`);
 
 function scan(root,needle,out=[]){if(!fs.existsSync(root))return out;const stat=fs.statSync(root);if(stat.isFile()){if(read(root).includes(needle))out.push(root);return out;}for(const name of fs.readdirSync(root)){const target=path.join(root,name);const s=fs.statSync(target);if(s.isDirectory())scan(target,needle,out);else if(/\.(ts|js|mjs|cjs|json|html|css|sql|md|yml|yaml)$/.test(name)&&read(target).includes(needle))out.push(target);}return out;}

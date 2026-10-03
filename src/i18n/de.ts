@@ -1402,7 +1402,7 @@ export default {
         homePage: {
           trustLine: "YÜKSEKOVA · MIETE · VERKAUF · TOUREN · TRANSFER",
           title: "Sie wählen den Weg. Wir stellen das Auto.",
-          subtitle: "Vom Tagesmietwagen über das Hochzeitsauto bis zum Transfer mit Fahrer und den Cilo-Routen: Wählen Sie, was Sie brauchen, und sehen Sie den Preis von Anfang an. Den Rest übernimmt unser Team vor Ort, das Yüksekova wie seine Westentasche kennt.",
+          subtitle: "Mietwagen, Hochzeitsauto, Transfer mit Fahrer oder Cilo-Route. Wählen Sie aus, sehen Sie den Preis sofort, den Rest übernimmt unser Team vor Ort.",
           searchAria: "Fahrzeuge, Touren oder Inserate suchen",
           searchPlaceholder: "Marke, Modell, Tour oder Inseratnr.",
           searchStartAria: "Suche starten",

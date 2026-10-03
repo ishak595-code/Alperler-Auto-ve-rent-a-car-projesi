@@ -1401,8 +1401,8 @@ export default {
         },
         homePage: {
           trustLine: "YÜKSEKOVA · ALQUILER · VENTAS · TOURS · TRANSFER",
-          title: "Usted elige el camino. Nosotros ponemos el coche.",
-          subtitle: "Del alquiler por días al coche de boda, del traslado con chófer a las rutas del Cilo: elija lo que necesita y vea el precio desde el principio. Del resto se encarga nuestro equipo local, que conoce Yüksekova como la palma de su mano.",
+          title: "El camino es suyo. El coche, nuestro.",
+          subtitle: "Alquiler, coche de boda, traslado o ruta por el Cilo. Elija, vea el precio desde el principio y nuestro equipo local hace el resto.",
           searchAria: "Buscar vehículo, tour o anuncio",
           searchPlaceholder: "Marca, modelo, tour o nº de anuncio",
           searchStartAria: "Iniciar búsqueda",

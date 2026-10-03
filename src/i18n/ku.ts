@@ -1376,7 +1376,7 @@ export default {
         homePage: {
           trustLine: "YÜKSEKOVA · KIRÊ · FIROTIN · TÛR · TRANSFER",
           title: "Rê ya we ye, wesayît ji me ye.",
-          subtitle: "Ji kirêkirina rojane heta erebeya bûkê, ji transfera bi şofêr heta rêyên Çiyayên Cîloyê: tiştê ku hûn hewce ne hilbijêrin û bihayê ji destpêkê ve bibînin. Yê mayî bila tîma me ya herêmî, ku Yüksekovayê wek kefa destê xwe nas dike, pêk bîne.",
+          subtitle: "Kirê, erebeya bûkê, transfera bi şofêr an rêyeke Cîloyê. Hilbijêrin, bihayê ji destpêkê ve bibînin; yê mayî tîma me ya herêmî pêk tîne.",
           searchAria: "Wesayît, tûr an îlan bigere",
           searchPlaceholder: "Marka, model, tûr an hejmara îlanê",
           searchStartAria: "Lêgerînê dest pê bike",

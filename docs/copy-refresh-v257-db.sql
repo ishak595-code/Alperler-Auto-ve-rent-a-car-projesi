@@ -8,7 +8,7 @@ update public.site_config
 set value = jsonb_set(
   value || jsonb_build_object(
     'heroTitle', $t$Yüksekova’da yol sizin, araç bizden.$t$,
-    'heroSubtitle', $t$Günlük kiralamadan gelin arabasına, şoförlü transferden Cilo rotalarına kadar ihtiyacınızı seçin, fiyatı baştan görün. Gerisini Yüksekova’yı avucunun içi gibi bilen yerel ekibimiz halletsin.$t$,
+    'heroSubtitle', $t$Kiralık araç, gelin arabası, şoförlü transfer veya Cilo rotası. Seçin, fiyatı baştan görün; gerisini yerel ekibimiz halletsin.$t$,
     'aboutTitle', $t$Yüksekova’nın yolunu bilen bir aile işletmesi$t$,
     'aboutText', $t$Alperler Rent A Car, Yüksekova’da bir aile işletmesi olarak yola çıktı. Kurucumuz İshak Alper’in hedefi basitti: bu bölgede araç kiralamak, araç almak ya da bir yolculuk planlamak kolay ve açık olsun.
 
@@ -23,7 +23,7 @@ Sitede gördüğünüz marka Alperler Rent A Car’dır. Arkasındaki filo ve ar
   '{homeContent}',
   coalesce(value->'homeContent', '{}'::jsonb) || jsonb_build_object(
     'heroTitle', $t$Yüksekova’da yol sizin, araç bizden.$t$,
-    'heroSubtitle', $t$Günlük kiralamadan gelin arabasına, şoförlü transferden Cilo rotalarına kadar ihtiyacınızı seçin, fiyatı baştan görün. Gerisini Yüksekova’yı avucunun içi gibi bilen yerel ekibimiz halletsin.$t$,
+    'heroSubtitle', $t$Kiralık araç, gelin arabası, şoförlü transfer veya Cilo rotası. Seçin, fiyatı baştan görün; gerisini yerel ekibimiz halletsin.$t$,
     'trustSupport', $t$Tek mesajla yerel ekip$t$,
     'trustVerified', $t$Güncel araç, net koşul$t$,
     'plannerKicker', $t$ŞİMDİ PLANLAYIN$t$,

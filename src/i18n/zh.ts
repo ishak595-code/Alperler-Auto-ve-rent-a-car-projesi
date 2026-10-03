@@ -1402,7 +1402,7 @@ export default {
         homePage: {
           trustLine: "YÜKSEKOVA · 租赁 · 销售 · 行程 · 接送",
           title: "路由您选，车由我们备。",
-          subtitle: "从日租、婚车，到配司机接送和 Cilo 山路线：选择您的需求，价格一开始就清楚。其余的交给熟悉 Yüksekova 每一条路的本地团队。",
+          subtitle: "租车、婚车、配司机接送或 Cilo 山路线。选择您的需求，价格一开始就清楚，其余交给本地团队。",
           searchAria: "搜索车辆、行程或信息",
           searchPlaceholder: "品牌、车型、行程或信息编号",
           searchStartAria: "开始搜索",

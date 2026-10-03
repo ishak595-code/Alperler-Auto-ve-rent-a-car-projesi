@@ -2007,7 +2007,7 @@ export default {
         homePage: {
           trustLine: "YÜKSEKOVA · RENTAL · SALES · TOURS · TRANSFER",
           title: "You pick the road. We bring the car.",
-          subtitle: "From daily rentals and wedding cars to chauffeured transfers and Cilo mountain routes: choose what you need and see the price upfront. Our local team, who know Yüksekova inside out, take care of the rest.",
+          subtitle: "Rental, wedding car, chauffeured transfer or a Cilo mountain route. Choose, see the price upfront, and our local team handles the rest.",
           searchAria: "Search vehicles, tours or listings",
           searchPlaceholder: "Brand, model, tour or listing no",
           searchStartAria: "Start search",

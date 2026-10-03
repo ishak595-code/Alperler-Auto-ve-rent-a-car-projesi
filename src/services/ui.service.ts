@@ -2167,7 +2167,7 @@ export class UiService {
         homePage: {
           trustLine: "YÜKSEKOVA · KİRALAMA · SATIŞ · TUR · TRANSFER",
           title: "Yüksekova'da yol sizin, araç bizden.",
-          subtitle: "Günlük kiralamadan gelin arabasına, şoförlü transferden Cilo rotalarına kadar ihtiyacınızı seçin, fiyatı baştan görün. Gerisini Yüksekova'yı avucunun içi gibi bilen yerel ekibimiz halletsin.",
+          subtitle: "Kiralık araç, gelin arabası, şoförlü transfer veya Cilo rotası. Seçin, fiyatı baştan görün; gerisini yerel ekibimiz halletsin.",
           searchAria: "Araç, tur veya ilan ara",
           searchPlaceholder: "Marka, model, tur veya ilan no",
           searchStartAria: "Aramayı başlat",

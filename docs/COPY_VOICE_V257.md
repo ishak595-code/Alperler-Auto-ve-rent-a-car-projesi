@@ -24,6 +24,15 @@ Database values that existed before this refresh are kept in `docs/copy-backup-v
 5. **Short sentences.** One idea each. No em dashes.
 6. **The decision stays with the customer.** Invite, do not push: "Karar sizin, hazırlık bizden."
 
+## Length limits
+
+The home hero sits above the quick planner. On a landscape phone (844 x 390) the planner must start within the first 72% of the screen (`tests/v205/responsive-prestige.spec.ts`), so:
+
+- hero title: one line, about 40 characters (about 25 in Russian);
+- hero subtitle: about 130 characters, at most 150.
+
+Check every language, not only Turkish: French, Spanish and Russian wrap first.
+
 ## Claims we do not make
 
 Persuasive copy must stay true. Do not publish any of these unless the business can prove it on request:

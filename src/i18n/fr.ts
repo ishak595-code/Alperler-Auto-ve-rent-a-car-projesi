@@ -1402,8 +1402,8 @@ export default {
         },
         homePage: {
           trustLine: "YÜKSEKOVA · LOCATION · VENTE · CIRCUITS · TRANSFER",
-          title: "Vous choisissez la route. Nous fournissons la voiture.",
-          subtitle: "De la location à la journée à la voiture de mariage, du transfert avec chauffeur aux itinéraires du Cilo : choisissez ce qu'il vous faut et voyez le prix dès le départ. Notre équipe locale, qui connaît Yüksekova sur le bout des doigts, s'occupe du reste.",
+          title: "À vous la route, à nous la voiture.",
+          subtitle: "Location, voiture de mariage, transfert ou itinéraire du Cilo. Choisissez, voyez le prix d'emblée, notre équipe locale fait le reste.",
           searchAria: "Rechercher véhicule, circuit ou annonce",
           searchPlaceholder: "Marque, modèle, circuit ou n° d’annonce",
           searchStartAria: "Lancer la recherche",

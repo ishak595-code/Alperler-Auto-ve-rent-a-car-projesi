@@ -8,6 +8,13 @@ Automotive infrastructure: Alperler Auto
 
 Alperler Rent A Car is the customer-facing automotive and travel service of the Alperler company structure. Public services include vehicle rental, vehicle sales listings, driver/transfer requests, selected local tours, campaigns, branch information, and practical travel and automotive content.
 
+## Hizmetler (Türkçe özet)
+Yüksekova ve Hakkâri çevresinde günlük, haftalık ve aylık araç kiralama; şoförlü VIP transfer; düğün ve özel gün aracı (süslü gelin arabası, VIP minibüs); ikinci el satılık araçlar; Zagros dağları ve bölgesel doğa turları. Talepler web sitesi, telefon veya WhatsApp üzerinden alınır.
+
+## Contact
+- Phone / WhatsApp: +90 537 959 48 51
+- Live contact details: /contact (the administration panel value is authoritative if it differs)
+
 ## Canonical public sections
 Use the current HTTPS host as the canonical origin.
 - Vehicle rentals: /fleet

@@ -24,7 +24,6 @@ for (const [token, message] of [
   ['payment=(self)', 'portable runtime Permissions-Policy drifted from production'],
   ['X-Robots-Tag', 'portable runtime must protect private/admin surfaces from indexing'],
   ['req.path.startsWith("/api/")', 'portable runtime must keep API responses no-store/noindex'],
-  ['aiCrawlerPattern', 'portable runtime must preserve AI crawler routing parity'],
   ['runtime-env.js', 'portable runtime must preserve runtime environment cache semantics'],
   ['manifest.json', 'portable runtime must preserve PWA manifest cache/content-type semantics'],
   ['offline.html', 'portable runtime must preserve offline page cache/robots semantics'],
@@ -35,6 +34,9 @@ for (const [token, message] of [
 ]) requireText(server, token, message);
 
 forbidText(server, 'https://cdn.tailwindcss.com', 'portable runtime CSP must not depend on Tailwind CDN');
+// V256 open discovery: Vercel serves AI crawlers like any visitor, so the portable runtime must not block them either.
+forbidText(server, 'aiCrawlerPattern', 'portable runtime must keep AI crawler parity with Vercel (no AI block)');
+forbidText(server, 'block:"ai"', 'portable runtime must keep AI crawler parity with Vercel (no AI block)');
 forbidText(server, './api/rental-availability', 'portable runtime must not import the removed rental-availability adapter');
 forbidText(server, './api/admin-booking-actions', 'portable runtime must not import the removed admin-booking-actions adapter');
 forbidText(server, './api/send-email', 'portable runtime must follow the production send-email rewrite instead of a divergent direct adapter');

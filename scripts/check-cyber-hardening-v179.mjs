@@ -7,22 +7,22 @@ const assert=(condition,message)=>{if(!condition)throw new Error(`V179 cyber har
 const all=(content,needles,label)=>{for(const needle of needles)assert(content.includes(needle),`${label} missing ${needle}`);};
 
 const robots=read('api/robots.ts');
+// V256 open discovery (owner decision): search engines, AI answer assistants and AI training crawlers may all
+// read the public site. Private operational surfaces stay disallowed here and noindex/no-store below.
 const aiAgents=[
   'GPTBot','OAI-SearchBot','ChatGPT-User','OAI-AdsBot','ClaudeBot','Claude-SearchBot','Claude-User',
   'Google-Extended','CCBot','PerplexityBot','Perplexity-User','Applebot-Extended','Bytespider','Amazonbot',
   'meta-externalagent','meta-externalfetcher','cohere-ai',
 ];
-all(robots,aiAgents,'AI crawler deny-list');
-all(robots,["aiAgents.map((agent)=>`User-agent: ${agent}\\nDisallow: /\\n`)","url.searchParams.get('block')==='ai'",'status:403',"'x-robots-tag':'noindex, nofollow, noarchive, nosnippet, noimageindex'"],'robots hard block');
-assert(!robots.includes('User-agent: OAI-SearchBot\\nAllow: /'),'OAI-SearchBot must not be explicitly allowed');
-assert(!robots.includes('User-agent: ChatGPT-User\\nAllow: /'),'ChatGPT-User must not be explicitly allowed');
+all(robots,["'User-agent: *'","'Allow: /'","'/admin'","'/branch-portal'","'/track-car'","'/booking-checkout'","'/api'","Sitemap: "],'robots open-discovery policy');
+assert(!robots.includes('Disallow: /\\n'),'robots must not disallow the whole site for any agent');
+assert(!robots.includes("block')==='ai'"),'robots must not hard-block AI crawlers');
+for(const agent of aiAgents)assert(!robots.includes(`'${agent}'`),`robots must not single out ${agent}`);
 
 const vercelText=read('vercel.json');
 const vercel=JSON.parse(vercelText);
-const aiRewrite=(vercel.rewrites||[]).find((rule)=>rule.destination==='/api/robots?block=ai');
-assert(aiRewrite,'known AI agents must be edge-routed to the 403 endpoint');
-const aiUa=String(aiRewrite?.has?.find((condition)=>condition.type==='header'&&condition.key==='user-agent')?.value||'');
-all(aiUa,aiAgents,'Vercel AI user-agent edge rule');
+assert(!(vercel.rewrites||[]).some((rule)=>String(rule.destination||'').includes('block=ai')),'AI crawlers must not be edge-routed to a 403');
+assert(!/GPTBot|PerplexityBot|ClaudeBot/.test(read('server.ts')),'portable server must not block AI crawlers');
 
 const globalHeaders=vercel.headers?.find((rule)=>rule.source==='/(.*)')?.headers||[];
 const header=(key)=>globalHeaders.find((item)=>item.key===key)?.value||'';
@@ -30,6 +30,10 @@ assert(header('Strict-Transport-Security')==='max-age=31536000','HSTS must remai
 assert(header('X-Content-Type-Options')==='nosniff','MIME sniffing must remain disabled');
 assert(header('X-Frame-Options')==='DENY','framing must remain denied');
 assert(header('X-DNS-Prefetch-Control')==='off','DNS prefetch must remain disabled');
+// V256: cross-origin requests carry no Referer, so the R2 media Worker's hotlink policy (no Referer = allowed)
+// keeps serving our images on ANY production domain without a Worker redeploy. Same-origin navigation keeps its Referer.
+assert(header('Referrer-Policy')==='same-origin','Referrer-Policy must stay same-origin so R2 media works on any domain');
+assert(read('server.ts').includes('res.setHeader("Referrer-Policy","same-origin")'),'portable server Referrer-Policy must match vercel.json');
 assert(header('Cross-Origin-Opener-Policy')==='same-origin-allow-popups','COOP must isolate the browsing context without breaking OAuth popups');
 assert(header('Origin-Agent-Cluster')==='?1','origin-keyed process isolation must remain requested');
 const csp=header('Content-Security-Policy');
@@ -127,4 +131,4 @@ if(fs.existsSync('dist')){
   assert(sourceMaps.length===0,`production build emitted source maps: ${sourceMaps.join(', ')}`);
 }
 
-console.log('V179 cyber hardening, AI crawler denial, secret hygiene, browser isolation and production source-map invariants are satisfied.');
+console.log('V179 cyber hardening, open AI/search discovery, secret hygiene, browser isolation and production source-map invariants are satisfied.');

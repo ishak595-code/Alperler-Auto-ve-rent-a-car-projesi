@@ -36,7 +36,7 @@ app.use((req,res,next)=>{
   res.setHeader("X-Frame-Options","DENY");
   res.setHeader("X-Permitted-Cross-Domain-Policies","none");
   res.setHeader("X-DNS-Prefetch-Control","off");
-  res.setHeader("Referrer-Policy","strict-origin-when-cross-origin");
+  res.setHeader("Referrer-Policy","same-origin");
   res.setHeader("Cross-Origin-Opener-Policy","same-origin-allow-popups");
   res.setHeader("Origin-Agent-Cluster","?1");
   res.setHeader("Permissions-Policy","camera=(), microphone=(), geolocation=(self), payment=(self), usb=(), serial=(), bluetooth=()");
@@ -148,11 +148,7 @@ app.get(/^\/catalog-media\/.+/, (req,res)=>{
   }
 });
 
-const aiCrawlerPattern=/(GPTBot|OAI-SearchBot|ChatGPT-User|OAI-AdsBot|ClaudeBot|Claude-SearchBot|Claude-User|Google-Extended|CCBot|PerplexityBot|Perplexity-User|Applebot-Extended|Bytespider|Amazonbot|meta-externalagent|meta-externalfetcher|cohere-ai)/i;
-app.get(/.*/,async(req,res,next)=>{
-  if(!aiCrawlerPattern.test(String(req.headers["user-agent"]||""))){next();return;}
-  await serveWebHandler(req,res,robotsApi,{block:"ai"});
-});
+// V256: AI search, answer and training crawlers are served like every other visitor (open discovery).
 
 const crawlerPattern=/(facebookexternalhit|Facebot|WhatsApp|Twitterbot|LinkedInBot|Slackbot|Discordbot|TelegramBot)/i;
 app.get(["/","/fleet/:id","/sales/:id","/tour/:id","/blog/:id","/branches/:id"],async(req,res,next)=>{

@@ -41,7 +41,7 @@ jobs:
       - name: Verify production vulnerability gate
         run: npm audit --omit=dev --audit-level=high
       - name: Verify complete dependency vulnerability gate
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
       - name: Verify TypeScript
         run: npm run lint
       - name: Verify API TypeScript

@@ -52,7 +52,7 @@ jobs:
       - name: Campaign price, media and payment contract
         run: node scripts/check-v200-campaign-price-media-integrity.mjs
       - name: Dependency high severity gate
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
       - name: Frontend lint
         run: npm run lint
       - name: API TypeScript

@@ -57,7 +57,7 @@ jobs:
         run: npx tsc -p tsconfig.json --noEmit
 
       - name: Dependency vulnerability gate
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
 
       - name: Production build
         run: npm run build

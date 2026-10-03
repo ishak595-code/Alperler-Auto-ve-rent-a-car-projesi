@@ -68,7 +68,7 @@ jobs:
           ! grep -Fq 'media-control-admin' "$BRANCH"
 
       - name: Dependency vulnerability gate
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
 
       - name: Frontend lint
         run: npm run lint

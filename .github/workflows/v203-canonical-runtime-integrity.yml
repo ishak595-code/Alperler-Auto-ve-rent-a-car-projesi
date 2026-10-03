@@ -43,7 +43,7 @@ jobs:
       - name: Canonical runtime and repository contract
         run: node scripts/check-v203-canonical-runtime-integrity.mjs
       - name: Dependency high severity gate
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
       - name: Frontend lint
         run: npm run lint
       - name: API TypeScript

@@ -145,12 +145,12 @@ requireText(sources.ui, 'kicker: "ALPERLER KİRALAMA"', "TR dictionary must keep
 requireText(sources.saleList, "t().saleCatalog.kicker", "Sale catalogue must keep the second-hand customer hero via i18n.");
 requireText(sources.ui, 'kicker: "ALPERLER İKİNCİ EL"', "TR dictionary must keep saleCatalog.kicker.");
 requireText(sources.tourList, "t().tourCatalog.subtitle", "Tour catalogue must keep customer-oriented discovery copy via i18n.");
-requireText(sources.ui, "subtitle: \"Do\u011fa, k\u00fclt\u00fcr ve \u00f6zel rotalar aras\u0131ndan size uygun deneyimi se\u00e7in. Program\u0131, bulu\u015fma noktas\u0131n\u0131 ve dahil olan ayr\u0131cal\u0131klar\u0131 kar\u015f\u0131la\u015ft\u0131r\u0131n.\"", "TR dictionary must keep tourCatalog.subtitle.");
+requireText(sources.ui, "subtitle: \"Cilo'nun buzullarından yayla yollarına, bu coğrafyayı yakından tanıyan yerel ekiple çıkın. Programı, süreyi ve kişi başı fiyatı baştan görün; size uyan rotayı seçin.\"", "TR dictionary must keep tourCatalog.subtitle.");
 requireText(sources.tourList, "filtersOpen=signal(false)", "Tour filters must stay closed until the customer opens them.");
 requireText(sources.blogList, "t().blogCatalog.kicker", "Blog catalogue must keep editorial customer language via i18n.");
 requireText(sources.ui, 'kicker: "ALPERLER YOL REHBERİ"', "TR dictionary must keep blogCatalog.kicker.");
 requireText(sources.blogList, "t().blogCatalog.introTitle", "Blog catalogue must keep a useful editorial introduction via i18n.");
-requireText(sources.ui, 'introTitle: "Daha iyi bir yolculuk için doğru bilgiler"', "TR dictionary must keep blogCatalog.introTitle.");
+requireText(sources.ui, 'introTitle: "Yola çıkmadan önce bilmeniz gerekenler"', "TR dictionary must keep blogCatalog.introTitle.");
 requireText(sources.saleDetail, "t().saleDetail.showPerformance", "Sale detail must frame specifications as customer-useful performance information.");
 requireText(sources.ui, 'showPerformance: "Performans ve Tüketim Bilgilerini Gör"', "TR dictionary must keep saleDetail.showPerformance.");
 requireText(sources.rentalDetail, "t().carDetail.performance", "Rental detail must frame specifications as customer-useful performance information.");

@@ -64,7 +64,7 @@ jobs:
         run: node scripts/check-v217-scalable-public-catalog.mjs
 
       - name: Dependency vulnerability gate
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
 
       - name: TypeScript
         run: npm run lint

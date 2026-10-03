@@ -52,7 +52,7 @@ jobs:
       - name: Approved public detail UX and campaign price ownership contract
         run: node scripts/check-v201-public-detail-ux-ownership.mjs
       - name: Dependency high severity gate
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
       - name: Frontend lint
         run: npm run lint
       - name: API TypeScript

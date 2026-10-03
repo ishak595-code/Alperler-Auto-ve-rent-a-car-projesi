@@ -39,7 +39,7 @@ jobs:
       - name: Customer profile security invariant
         run: node scripts/check-v223-customer-profile-security.mjs
       - name: Dependency vulnerability gate
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
       - name: TypeScript
         run: npm run lint
       - name: Production build

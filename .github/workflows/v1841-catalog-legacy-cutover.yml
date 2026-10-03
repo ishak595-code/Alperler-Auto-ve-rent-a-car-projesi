@@ -65,7 +65,7 @@ jobs:
           test ! -f src/pages/admin/admin-catalog-editor.component.ts
 
       - name: Dependency vulnerability gate
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
 
       - name: Frontend lint
         run: npm run lint

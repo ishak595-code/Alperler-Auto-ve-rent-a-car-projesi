@@ -1,0 +1,35 @@
+{
+  "note": "Database copy as it was before the V257 copy refresh (2026-10-03). To roll back, write these values back to the same fields.",
+  "site_config.site_settings": {
+    "heroTitle": "Doğru aracı bulun, yolculuğunuzu güvenle planlayın.",
+    "heroSubtitle": "Yüksekova ve Hakkâri çevresinde günlük ve dönemsel araç kiralama, ikinci el araçlar, şoförlü transfer, özel gün araçları ve yerel turları tek yerde inceleyin. Fiyatı, araç özelliklerini, müsaitlik sürecini ve hizmet detaylarını karşılaştırın; size uygun seçeneğe birkaç adımda ulaşın.",
+    "aboutTitle": "Alperler Güvencesiyle Yüksekova’da Otomotiv ve Yolculuk Çözümleri",
+    "aboutText": "Alperler, farklı iş alanlarında büyümek üzere kurulan şirket çatımızdır. Alperler Rent A Car ise bu yapının araç kiralama, araç satışı, şoförlü transfer, özel gün araçları ve bölgesel tur hizmetlerini müşteriye sunan otomotiv markasıdır. Alperler Auto adı, bu hizmetlerin arkasındaki otomotiv altyapısını, filo yönetimini ve araç operasyonlarını ifade eder.\n\nAlperler Rent A Car’ın kurucusu İshak Alper’dir. Yapıyı Yüksekova ve Hakkâri’nin gerçek ihtiyaçlarına göre geliştiriyoruz: uzun formlar yerine hızlı talep, belirsiz süreçler yerine kayıtlı operasyon, şehir içi kullanımdan köy ve yayla rotalarına, düğünden havalimanı transferine kadar farklı ihtiyaçlara uygun araç ve hizmet seçenekleri.\n\nAmacımız yalnız araç teslim etmek değildir. Müşterinin neye ihtiyacı olduğunu hızlı anlamak, gerçek araç ve güncel bilgiyi göstermek, rezervasyonu kayıt altına almak, teslim ve ödeme sürecini izlenebilir hale getirmek ve gerektiğinde yerel ekip desteğini devreye sokmaktır. Satılık araçlarda ilan ve görüşme, kiralamada tarih ve teslim planı, turlarda rota ve kapasite, kurumsal müşterilerde ise operasyon ve raporlama tek sistem üzerinden yönetilir.\n\nAlperler büyüdükçe farklı faaliyet alanları aynı kurumsal çatı altında gelişebilir. Bu web sitesi özelinde müşterinin gördüğü marka Alperler Rent A Car’dır; Alperler Auto ise otomotiv ve filo altyapımızın kurumsal tanımıdır.",
+    "seoDescription": "Alperler Rent A Car ile Yüksekova ve Hakkâri çevresinde araç kiralama, satılık araç, şoförlü transfer, düğün ve özel gün aracı ile bölgesel tur hizmetlerini tek merkezden yönetin.",
+    "seoOgDescription": "Yüksekova merkezli araç kiralama, ikinci el satış, VIP transfer ve tur çözümleri.",
+    "homeContent": {
+      "heroTitle": "Yolculuğunuza yakışan aracı bulun.",
+      "heroSubtitle": "Yüksekova’da kiralık araç, ikinci el, şoförlü transfer ve özel rotalar tek yerde. İhtiyacınızı seçin, net fiyatı görün, gerisini yerel ekibimizle kolayca planlayın.",
+      "trustSupport": "Yüksekova’da yerel destek",
+      "trustVerified": "Güncel ve gerçek seçenekler",
+      "plannerKicker": "HIZLI BAŞLA",
+      "bookingTitle": "Tarihinizi seçin, uygun seçeneği görün",
+      "bookingSubtitle": "Hizmeti ve zamanı belirleyin. Planınıza uyan araç veya rotaları saniyeler içinde öne çıkaralım."
+    }
+  },
+  "homepage_sections": {
+    "campaigns": { "title": "Aktif Fırsatlar", "badge": "Kaçırmadan İncele", "description": "Planınıza ekstra avantaj katacak seçili fırsatlar burada. Süre dolmadan size uyan kampanyayı yakalayın, gerçek fiyat avantajını görün ve tek dokunuşla detayına geçin." },
+    "rental_featured": { "title": "Kiralık Araçlar", "badge": "Planınıza Uyan Araçlar", "description": "Şehir içinde pratik, uzun yolda rahat, özel günlerde şık. Planınıza uyan aracı seçin, tarihlerinizi belirleyin ve Yüksekova’dan yola güvenle çıkın." },
+    "sale_featured": { "title": "İkinci El Araçlar", "badge": "İçinize Sinen Aracı Bulun", "description": "Yeni yol arkadaşınızı rakam kalabalığında kaybolmadan bulun. Öne çıkan ikinci el araçları karşılaştırın, güven veren detayları görün ve içinize sinen araç için görüşmeyi başlatın." },
+    "tour_featured": { "title": "Turlar ve Rotalar", "badge": "Hakkâri’yi Yerel Gözle Keşfedin", "description": "Hakkâri’nin hafızasında kalan yollarına yerel gözle çıkın. Cilo’dan yaylalara uzanan rotalarda size uyan deneyimi seçin, tarihinizi belirleyin ve gerisini birlikte planlayalım." },
+    "branches": { "title": "Şubeler ve Hizmet Noktaları", "badge": "Hizmet Ağı", "description": "Size en uygun Alperler Rent A Car hizmet noktasını bulun. Her şubenin teslim ve iade imkanlarını, kiralama, satış, tur ve transfer hizmetlerini, çalışma bilgilerini ve iletişim kanallarını inceleyin; ihtiyacınıza göre doğrudan ilgili şubeye ulaşın." },
+    "partner": { "title": "Aracını Değerlendir", "badge": "Aracınız İçin Seçenekleri Görün", "description": "Aracınızı satmak veya kiralama filosunda değerlendirmek istiyorsanız marka, model, yıl, kilometre ve fiyat beklentinizi birkaç adımda gönderin. İsterseniz fotoğraf, video veya belge ekleyin; ekibimiz aracın durumunu ve talep ettiğiniz modeli inceleyerek uygun sonraki adımı sizinle netleştirsin." },
+    "blog_featured": { "title": "Rehber ve İçerikler", "badge": "Rehber & İpuçları", "description": "Araç seçimi, kiralama süreci, yolculuk planlama, bölgesel rotalar ve güvenli sürüş hakkında karar vermenizi kolaylaştıracak içerikleri okuyun. Her yazının tamamına girerek ayrıntılı rehberi inceleyebilir ve size yararlı olan içeriği paylaşabilirsiniz." },
+    "closing_cta": { "title": "Yolculuğunuzu Birlikte Planlayalım", "badge": "ALPERLER RENT A CAR", "description": "Hakkari ve Yüksekova’da kiralama, özel gün aracı ve rota planınızı tek noktadan oluşturun. Uygun seçeneği birlikte netleştirip rezervasyonunuzu güvenle başlatın." }
+  },
+  "footer_settings.main": {
+    "brand_summary": "Yüksekova’da araç kiralama, ikinci el satış, şoförlü transfer, özel gün aracı ve bölgesel tur ihtiyaçlarını tek yerde planlayın. İhtiyacınızı seçin, talebinizi gönderin, ayrıntıları yerel ekiple netleştirin.",
+    "newsletter_title": "Yeni araç, rota ve gerçek fırsatlardan haberdar olun",
+    "newsletter_description": "Yeni ilan, aktif kampanya veya seçili tur yayınlandığında haber alın. Gereksiz e-posta yok; abonelik ücretsizdir."
+  }
+}

@@ -59,7 +59,7 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Dependency vulnerability gate
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
 
       - name: Frontend and API checks
         run: |

@@ -44,7 +44,7 @@ jobs:
         run: node scripts/check-public-content-orchestration-v187.mjs
 
       - name: Dependency vulnerability gate
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
 
       - name: Frontend type check
         run: npm run lint

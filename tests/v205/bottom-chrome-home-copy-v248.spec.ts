@@ -97,10 +97,10 @@ test("quota outage still renders vitrin section titles and descriptions from sta
 
   const expected: Array<[string, string]> = [
     ["campaigns", "Aktif Fırsatlar"],
-    ["rental_featured", "Kiralık Araçlar"],
-    ["sale_featured", "İkinci El Araçlar"],
-    ["tour_featured", "Turlar ve Rotalar"],
-    ["blog_featured", "Rehber ve İçerikler"],
+    ["rental_featured", "Yola Hazır Kiralık Araçlar"],
+    ["sale_featured", "Geçmişi Açık İkinci El Araçlar"],
+    ["tour_featured", "Hakkâri’nin Dağ ve Yayla Rotaları"],
+    ["blog_featured", "Yola Çıkmadan Önce"],
   ];
   for (const [key, title] of expected) {
     const heading = page.locator(`[id="${key}-title"]`);
@@ -142,7 +142,7 @@ test("fresh admin copy replaces built-in defaults in place when the database rec
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
   const heading = page.locator('[id="rental_featured-title"]');
-  await expect(heading).toHaveText("Kiralık Araçlar");
+  await expect(heading).toHaveText("Yola Hazır Kiralık Araçlar");
 
   recovered = true;
   await page.locator('app-dynamic-home-section:has([id="rental_featured-title"])').getByRole("button", { name: /yeniden yükle/i }).first().click();

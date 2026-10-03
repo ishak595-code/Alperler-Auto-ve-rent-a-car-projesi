@@ -95,7 +95,7 @@ jobs:
           done
 
       - name: Dependency vulnerability gate
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
 
       - name: Frontend TypeScript
         run: npm run lint

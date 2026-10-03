@@ -103,7 +103,7 @@ jobs:
           npx -y deno@2.2.12 check --node-modules-dir=auto supabase/functions/v124-tour-media-import/index.ts
 
       - name: Dependency vulnerability gate
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
 
       - name: Frontend lint
         run: npm run lint

@@ -13,7 +13,7 @@ The rules behind the V257 copy refresh. Follow them when adding or editing custo
 | Listing, FAQ, contact, appointment, campaign, blog page headers | `src/services/ui.service.ts` (Turkish) and `src/i18n/*.ts` (other languages) |
 | Search and social snippets | `site_settings.seo*` (admin) and the meta tags in `index.html` |
 
-Database values that existed before this refresh are kept in `docs/copy-backup-v257-db.json`.
+Database values that existed before this refresh are kept in `docs/copy-backup-v257-db.json`; the new admin-managed copy is in `docs/copy-refresh-v257-db.sql` (data only, run once in the Supabase SQL editor).
 
 ## Voice
 

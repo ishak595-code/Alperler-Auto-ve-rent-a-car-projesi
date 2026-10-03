@@ -50,10 +50,10 @@ export default {
          favoritesCount: "{n} Favoriten",
        },
       hero: {
-        title: "Führende Autovermietung in Yüksekova",
-        subtitle: "Sicheres, komfortables und erstklassiges Mietwagenerlebnis.",
+        title: "Sie wählen den Weg. Wir stellen das Auto.",
+        subtitle: "Mietwagen, Hochzeitsauto, Transfer mit Fahrer oder Cilo-Route. Wählen Sie aus, sehen Sie den Preis sofort, den Rest übernimmt unser Team vor Ort.",
         cta: "Jetzt mieten",
-          trustLine: "1001+ ZUFRIEDENE KUNDEN • KEINE VERSTECKTEN GEBÜHREN • ZUVERLÄSSIGE FLOTTE",
+          trustLine: "YÜKSEKOVA · MIETE · VERKAUF · TOUREN · TRANSFER",
           ctaSubtext: "Schnelle Lösung ohne Bürgen und Papierkram",
           bullets: [
             "Premium-Autovermietung",
@@ -1409,7 +1409,7 @@ export default {
           searchButton: "Suchen",
           trustAria: "Alperler Rent A Car Servicevorteile",
           trustPrice: "Preis von Anfang an sichtbar",
-          trustSupport: "Team vor Ort, eine Nachricht entfernt",
+          trustSupport: "Team vor Ort, 24/7",
           trustVerified: "Aktuelle Fahrzeuge, klare Bedingungen",
           plannerKicker: "JETZT PLANEN",
           bookingTitle: "Wann geht es los?",

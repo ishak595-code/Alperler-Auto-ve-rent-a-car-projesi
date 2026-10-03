@@ -51,8 +51,8 @@ export default {
        },
       hero: {
         title:
-          "Rent a Car in Yüksekova in 2 Minutes - Instant Approval, Best Prices",
-        subtitle: "",
+          "You pick the road. We bring the car.",
+        subtitle: "Rental, wedding car, chauffeured transfer or a Cilo mountain route. Choose, see the price upfront, and our local team handles the rest.",
         bullets: [
           "Car Rental (With/Without Driver)",
           "Group, Wedding and VIP Transport",
@@ -60,7 +60,7 @@ export default {
           "Zero Commission, 100% Transparent Price",
         ],
         cta: "Find a car now - instant approval",
-          trustLine: "1001+ HAPPY CUSTOMERS • ZERO HIDDEN FEES • TRUSTED FLEET",
+          trustLine: "YÜKSEKOVA · RENTAL · SALES · TOURS · TRANSFER",
           ctaSubtext: "Fast solution, no guarantor, no paperwork",
         },
       buttons: {
@@ -2014,7 +2014,7 @@ export default {
           searchButton: "Search",
           trustAria: "Alperler Rent A Car service advantages",
           trustPrice: "Price shown upfront",
-          trustSupport: "Local team, one message away",
+          trustSupport: "Local team, 24/7",
           trustVerified: "Current cars, clear terms",
           plannerKicker: "PLAN NOW",
           bookingTitle: "When are you setting off?",

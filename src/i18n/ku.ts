@@ -40,7 +40,7 @@ export default {
         adminLogin: "Têketina rêveber",
         favoritesCount: "{n} favorî",
 },
-      hero: { title: "Li Bendê Neme: Di 5 Deqîqeyan de Pejirandin, Tavilê Bikeve Rê", subtitle: "Prosedurên dirêj û lêçûnên veşartî tune. Wesayîta xwe hilbijêre û bi ewlehî bikeve rê.", trustLine: "1001+ MÛŞTERIYÊN KÊFXWEŞ • LÊÇÛNA VEŞARTÎ TUNE • FÎLOYA EWLE", ctaSubtext: "Çareseriya bilez û hêsan", cta: "Niha kirê bike",
+      hero: { title: "Rê ya we ye, wesayît ji me ye.", subtitle: "Kirê, erebeya bûkê, transfera bi şofêr an rêyeke Cîloyê. Hilbijêrin, bihayê ji destpêkê ve bibînin; yê mayî tîma me ya herêmî pêk tîne.", trustLine: "YÜKSEKOVA · KIRÊ · FIROTIN · TÛR · TRANSFER", ctaSubtext: "Çareseriya bilez û hêsan", cta: "Niha kirê bike",
           bullets: [
             "Kirêkirina Wesayîtên Premium",
             "Veguhestina VIP ya bi Şofêr",
@@ -1383,7 +1383,7 @@ export default {
           searchButton: "Bigere",
           trustAria: "Avantajên xizmeta Alperler Rent A Car",
           trustPrice: "Biha ji destpêkê ve diyar e",
-          trustSupport: "Tîma herêmî, bi peyamekê",
+          trustSupport: "Tîma herêmî, 24/7",
           trustVerified: "Wesayîtên rojane, şertên zelal",
           plannerKicker: "NIHA PLAN BIKIN",
           bookingTitle: "Hûn ê kengê bikevin rê?",

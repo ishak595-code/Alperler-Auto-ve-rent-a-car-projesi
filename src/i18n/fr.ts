@@ -50,11 +50,11 @@ export default {
          favoritesCount: "{n} favoris",
        },
       hero: {
-        title: "Location de voitures leader à Yüksekova",
+        title: "À vous la route, à nous la voiture.",
         subtitle:
-          "Expérience de location de voiture sûre, confortable et premium.",
+          "Location, voiture de mariage, transfert ou itinéraire du Cilo. Choisissez, voyez le prix d'emblée, notre équipe locale fait le reste.",
         cta: "Louer maintenant",
-          trustLine: "1001+ CLIENTS SATISFAITS • AUCUN FRAIS CACHÉ • FLOTTE FIABLE",
+          trustLine: "YÜKSEKOVA · LOCATION · VENTE · CIRCUITS · TRANSFER",
           ctaSubtext: "Solution rapide, sans garant ni paperasse",
           bullets: [
             "Location premium",
@@ -1410,7 +1410,7 @@ export default {
           searchButton: "Rechercher",
           trustAria: "Avantages Alperler Rent A Car",
           trustPrice: "Prix affiché dès le départ",
-          trustSupport: "Équipe locale, à un message",
+          trustSupport: "Équipe locale, 24 h/24",
           trustVerified: "Véhicules à jour, conditions claires",
           plannerKicker: "PLANIFIEZ MAINTENANT",
           bookingTitle: "Quand partez-vous ?",

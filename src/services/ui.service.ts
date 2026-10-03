@@ -274,16 +274,16 @@ export class UiService {
          favoritesCount: "{n} favori",
        },
       hero: {
-        title: "Beklemek Yok: 5 Dakikada Onayla, Anında Yola Çık",
+        title: "Yüksekova'da yol sizin, araç bizden.",
         subtitle:
-          "Uzun prosedürlere ve gizli ücretlere son. Aracını Seç, 5 Dakikada Yola Çık.",
-        trustLine: "1001+ MUTLU MÜŞTERİ • SIFIR GİZLİ ÜCRET • GÜVENİLİR FİLO",
-        ctaSubtext: "Kefilsiz, evraksız, hızlı çözüm",
+          "Kiralık araç, gelin arabası, şoförlü transfer veya Cilo rotası. Seçin, fiyatı baştan görün; gerisini yerel ekibimiz halletsin.",
+        trustLine: "7/24 YEREL EKİP • FİYAT BAŞTAN BELLİ • EKSPERTİZLİ ARAÇLAR",
+        ctaSubtext: "Fiyatı baştan görün, tek mesajla planlayın",
         bullets: [
           "Premium Araç Kiralama",
           "Şoförlü VIP Transfer",
           "Havalimanı Teslimatı",
-          "Sıfır Komisyon",
+          "Gelin Arabası",
         ],
         cta: "Şimdi kirala",
       },
@@ -1434,7 +1434,7 @@ export class UiService {
           secondaryLabel: "Randevu oluştur",
           trustItems: [
             "Kiralama, satış, tur ve transfer tek ekipte",
-            "WhatsApp ve telefonla doğrudan ulaşım",
+            "WhatsApp ve telefonla 7/24 ulaşım",
             "Fiyat ve koşullar baştan açık",
           ],
         },
@@ -2036,12 +2036,12 @@ export class UiService {
             "why-us": {
               title: "Neden Biz",
               badge: "NEDEN ALPERLER",
-              description: "Fiyatı baştan söyleyen, kolayca ulaştığınız ve yolu bilen yerel bir ekip.",
+              description: "Fiyatı baştan söyleyen, 7/24 ulaştığınız ve yolu bilen yerel bir ekip.",
             },
             why_us: {
               title: "Neden Biz",
               badge: "NEDEN ALPERLER",
-              description: "Fiyatı baştan söyleyen, kolayca ulaştığınız ve yolu bilen yerel bir ekip.",
+              description: "Fiyatı baştan söyleyen, 7/24 ulaştığınız ve yolu bilen yerel bir ekip.",
             },
             kirala: {
               title: "Kirala",
@@ -2066,7 +2066,7 @@ export class UiService {
             sales: {
               title: "Geçmişi Açık İkinci El Araçlar",
               badge: "İKİNCİ EL",
-              description: "Araba almak büyük karar. O yüzden fiyatı, kilometreyi ve hasar bilgisini ilanda açıkça yazıyoruz. Beğendiğiniz aracı yerinde görün, aklınızdaki her soruyu doğrudan bize sorun.",
+              description: "Araba almak büyük karar. O yüzden ekspertizli araçlarımızın fiyatını, kilometresini ve hasar bilgisini ilanda açıkça yazıyoruz. Beğendiğiniz aracı yerinde görün, aklınızdaki her soruyu doğrudan bize sorun.",
             },
             tours: {
               title: "Hakkâri'nin Dağ ve Yayla Rotaları",
@@ -2110,7 +2110,7 @@ export class UiService {
             VEHICLES_SALE: {
               title: "Geçmişi Açık İkinci El Araçlar",
               badge: "İKİNCİ EL",
-              description: "Araba almak büyük karar. O yüzden fiyatı, kilometreyi ve hasar bilgisini ilanda açıkça yazıyoruz. Beğendiğiniz aracı yerinde görün, aklınızdaki her soruyu doğrudan bize sorun.",
+              description: "Araba almak büyük karar. O yüzden ekspertizli araçlarımızın fiyatını, kilometresini ve hasar bilgisini ilanda açıkça yazıyoruz. Beğendiğiniz aracı yerinde görün, aklınızdaki her soruyu doğrudan bize sorun.",
             },
             TOURS: {
               title: "Hakkâri'nin Dağ ve Yayla Rotaları",
@@ -2174,7 +2174,7 @@ export class UiService {
           searchButton: "Ara",
           trustAria: "Alperler Rent A Car hizmet avantajları",
           trustPrice: "Fiyatı baştan görün",
-          trustSupport: "Tek mesajla yerel ekip",
+          trustSupport: "7/24 yerel ekip",
           trustVerified: "Güncel araç, net koşul",
           plannerKicker: "ŞİMDİ PLANLAYIN",
           bookingTitle: "Ne zaman yola çıkıyorsunuz?",
@@ -2228,7 +2228,7 @@ export class UiService {
       
       home: {
         booking: {
-          title: "5 Dakikada Hızlıca Kirala",
+          title: "Ne zaman yola çıkıyorsunuz?",
           type: "HİZMET TÜRÜ",
           types: {
             individual: "Bireysel Kiralama",
@@ -2262,9 +2262,9 @@ export class UiService {
         },
         featured: {
           badge: "KİRALIK ARAÇLAR",
-          title: "Güvenli ve Temiz Kiralık Araçlar",
+          title: "Yola Hazır Kiralık Araçlar",
           subtitle:
-            "Günlük işleriniz ya da tatil planınız için bakımları tam yapılmış, bütçenize uygun araçlar. Gizli masraf veya karmaşık prosedürler yok.",
+            "Çarşıda pratik, yayla yolunda güçlü, düğün gününde gösterişli. Tarihinizi seçin, günlük fiyatı baştan görün, size uyan aracı kolayca ayırtın.",
           viewAll: "Tüm filoyu incele",
           model: "Model",
           perDay: "/ gün",
@@ -2273,15 +2273,15 @@ export class UiService {
         },
         sales: {
           badge: "İKİNCİ EL ARAÇLAR",
-          title: "Sorunsuz ve Garantili İkinci El Arabalar",
+          title: "Geçmişi Açık İkinci El Araçlar",
           description:
-            "Şeffaf geçmişli, ekspertiz garantili ve tüm kontrolleri yapılmış arabalarımızla bütçenize uygun aracı güvenle alın.",
+            "Araba almak büyük karar. O yüzden ekspertizli araçlarımızın fiyatını, kilometresini ve hasar bilgisini ilanda açıkça yazıyoruz. Beğendiğiniz aracı yerinde görün, aklınızdaki her soruyu doğrudan bize sorun.",
           viewAll: "Tüm satılık araçları incele",
           cta: "Satılık araçları göster",
           stats: {
-            expert: "Ekspertiz Garantisi",
+            expert: "Ekspertizli Araçlar",
             months: "Ay",
-            warranty: "Mekanik Garanti",
+            warranty: "Açık Araç Geçmişi",
             trade: "Takas",
             value: "Değerinde Alım",
             credit: "Kredi",
@@ -2289,9 +2289,9 @@ export class UiService {
           },
         },
         whyUs: {
-          title: "Neden Bizi Tercih Etmelisiniz?",
+          title: "Neden Alperler?",
           subtitle:
-            "Uzun yıllara dayanan tecrübemiz ve şeffaf hizmet anlayışımızla, araç kiralama ve satış süreçlerinizde her zaman güvenebileceğiniz çözüm ortağınızız.",
+            "Fiyatı baştan söyleyen, 7/24 ulaştığınız ve yolu bilen yerel bir ekip.",
           features: {
             trust: {
               title: "Tam Güvence ve Şeffaflık",
@@ -2314,7 +2314,7 @@ export class UiService {
           requirements: {
             title: "Bize Katılmanın Avantajları",
             year: "Resmi ve Güvenli Sözleşme",
-            damage: "Tam Kapsamlı Kasko Güvencesi",
+            damage: "Açık ve Yazılı Koşullar",
             maintenance: "Zamanında ve Düzenli Ödeme",
           },
           form: {
@@ -2404,11 +2404,11 @@ export class UiService {
       sales: {
         headerTitle: "Ayrıcalıklı İkinci El Dünyası",
         headerSubtitle:
-          "Risk sıfır, güven sonsuz. 101 nokta ekspertizinden geçmiş, şeffaf geçmişe sahip, tam donanımlı ve garantili araç portföyümüz.",
+          "Ekspertizli, geçmişi açık ve bilgisi ilanda yazan ikinci el araçlar. Karşılaştırın, yerinde görün, güvenle karar verin.",
         badge: "İKİNCİ EL SATIŞ DEPARTMANI",
-        card1: "Sıfır Ayarında",
+        card1: "Bakımlı Araçlar",
         card2: "Şeffaf Ekspertiz",
-        card3: "Mekanik Garanti",
+        card3: "Açık Araç Geçmişi",
         card4: "Değerinde Takas",
         expert: "Araç Detay & Ekspertiz",
         appointment: "Randevu Al",

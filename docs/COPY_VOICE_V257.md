@@ -33,18 +33,23 @@ The home hero sits above the quick planner. On a landscape phone (844 x 390) the
 
 Check every language, not only Turkish: French, Spanish and Russian wrap first.
 
-## Claims we do not make
+## Claims
 
-Persuasive copy must stay true. Do not publish any of these unless the business can prove it on request:
+Confirmed by the owner on 2026-10-03 and used in the copy:
 
-- Customer counts, years of experience, "en iyi", "en ucuz", "1 numara".
-- "7/24", fixed response or delivery times, "5 dakikada".
-- "Garanti", "ekspertiz garantili", "sıfır risk", "sorunsuz".
+- **7/24**: the team is reachable around the clock.
+- **Ekspertizli**: cars for sale are sold with an inspection report.
+
+Still not published unless the business can prove it on request:
+
+- A customer count or years of experience as a number, "en iyi", "en ucuz", "1 numara".
+- Fixed response or delivery times such as "5 dakikada".
+- "Garanti" in any form, "sıfır risk", "sorunsuz". An inspection report is not a warranty.
 - "Gerçek fotoğraf" while any listing still uses a representative image.
 - Urgency that is not real (a countdown without an actual end date).
 
-Unproven claims are a legal exposure under Turkish consumer and commercial-advertising rules, and they cost more trust than they win in a town where customers know each other.
+A number or a guarantee that cannot be shown on request is a legal exposure under Turkish consumer and commercial-advertising rules.
 
 ## Legacy keys
 
-`hero.*`, `home.featured|sales|whyUs|partner|tours|vipAndMinibus` and `sales.header*` in the Turkish dictionary are not rendered by any current page. They still contain old claims such as "1001+ mutlu müşteri" and "7/24". Do not reconnect them to a page without rewriting them first.
+`hero.*`, `home.featured|sales|whyUs|partner|tours|vipAndMinibus` and `sales.header*` are not rendered by any current page. V258 rewrote them in the same voice, so reconnecting one no longer brings back "1001+ mutlu müşteri", "5 dakikada" or "garantili".

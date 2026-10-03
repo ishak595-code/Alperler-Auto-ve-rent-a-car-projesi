@@ -50,10 +50,10 @@ export default {
          favoritesCount: "{n} 个收藏",
        },
       hero: {
-        title: "Yüksekova 领先的汽车租赁",
-        subtitle: "安全、舒适和优质的租车体验。",
+        title: "路由您选，车由我们备。",
+        subtitle: "租车、婚车、配司机接送或 Cilo 山路线。选择您的需求，价格一开始就清楚，其余交给本地团队。",
         cta: "立即租赁",
-          trustLine: "1001+ 满意客户 • 零隐藏费用 • 可靠车队",
+          trustLine: "YÜKSEKOVA · 租赁 · 销售 · 行程 · 接送",
           ctaSubtext: "快速办理，无需担保人和繁琐手续",
           bullets: [
             "高端租车",
@@ -1409,7 +1409,7 @@ export default {
           searchButton: "搜索",
           trustAria: "Alperler Rent A Car 服务优势",
           trustPrice: "价格一目了然",
-          trustSupport: "本地团队，一条消息即达",
+          trustSupport: "本地团队，全天候服务",
           trustVerified: "车辆信息及时更新，条款清晰",
           plannerKicker: "立即规划",
           bookingTitle: "您打算何时出发？",

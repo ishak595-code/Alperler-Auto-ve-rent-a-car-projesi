@@ -39,13 +39,6 @@ function required(value: unknown, field: string, max: number): string {
   return result;
 }
 
-function numberValue(value: unknown, min: number, max: number): number | null {
-  if (value === undefined || value === null || value === "") return null;
-  const n = Number(value);
-  if (!Number.isFinite(n) || n < min || n > max) throw new Error("INVALID_NUMBER");
-  return Math.round(n * 100) / 100;
-}
-
 function integerValue(value: unknown, min: number, max: number): number | null {
   if (value === undefined || value === null || value === "") return null;
   const n = Number(value);
@@ -74,6 +67,14 @@ function uuid(value: string): boolean {
 
 function money(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+const CATALOG_CURRENCIES = ["TRY", "EUR", "USD", "CHF"];
+
+/** Booking currency comes from the catalogue row, never from the request. */
+function catalogCurrency(value: unknown): string {
+  const code = String(value || "").trim().toUpperCase();
+  return CATALOG_CURRENCIES.includes(code) ? code : "TRY";
 }
 
 function serviceHeaders(extra: Record<string, string> = {}) {
@@ -332,7 +333,7 @@ async function getVehicleByIdentifier(
   identifier: string,
   category: "RENTAL" | "SALE",
 ): Promise<any | null> {
-  const select = "id,stock_code,brand,model,price,rental_price_daily,rental_price_hourly,hourly_rental_enabled,minimum_rental_hours,hourly_mileage_limit,branch_id,availability_status,publication_status,metadata";
+  const select = "id,stock_code,brand,model,price,currency,rental_price_daily,rental_price_hourly,hourly_rental_enabled,minimum_rental_hours,hourly_mileage_limit,branch_id,availability_status,publication_status,metadata";
   const base = `category=eq.${category}&is_active=eq.true&select=${select}&limit=1`;
 
   if (uuid(identifier)) {
@@ -366,7 +367,7 @@ async function getSaleVehicle(identifier: string): Promise<any> {
 }
 
 async function getTourByIdentifier(identifier: string): Promise<any> {
-  const select = "id,seo_slug,title,publication_status,is_active";
+  const select = "id,seo_slug,title,price_per_person,currency,capacity,publication_status,is_active";
   const tour = uuid(identifier)
     ? await firstRow(
       `tours?id=eq.${encodeURIComponent(identifier)}&is_active=eq.true&select=${select}&limit=1`,
@@ -757,10 +758,10 @@ async function createBooking(request: Request): Promise<Response> {
       body?.itemId === undefined ? "" : String(body.itemId),
       128,
     );
-    const currency = clean(body?.currency, 10) || "TRY";
-    if (!["TRY", "EUR", "USD", "CHF"].includes(currency)) {
-      throw new Error("INVALID_CURRENCY");
-    }
+    // Currency and every price below are server-authoritative (V255). The
+    // request body may still carry them for backwards compatibility, but they
+    // are never trusted: a booking total feeds card payment sessions directly.
+    let currency = "TRY";
 
     const paymentMethod = clean(body?.paymentMethod, 20) || "NONE";
     if (!["NONE", "CARD", "EFT", "OFFICE"].includes(paymentMethod)) {
@@ -772,8 +773,9 @@ async function createBooking(request: Request): Promise<Response> {
     let tourId: string | null = null;
     let startAt = type === "RENTAL" ? null : dateValue(body?.startDate);
     let endAt = type === "RENTAL" ? null : dateValue(body?.endDate);
-    let basePrice = numberValue(body?.basePrice, 0, 50_000_000);
-    let totalPrice = numberValue(body?.totalPrice, 0, 50_000_000);
+    let basePrice = 0;
+    let totalPrice = 0;
+    let personCount = integerValue(body?.personCount, 1, 100);
     let days = integerValue(body?.days, 1, 3650);
     let rentalHoursValue = integerValue(body?.rentalHours, 1, 23);
     let rentalDurationValue = clean(body?.rentalDuration, 40) || null;
@@ -789,6 +791,7 @@ async function createBooking(request: Request): Promise<Response> {
       if (!itemId) throw new Error("INVALID_RENTAL_VEHICLE");
       const vehicle = await getRentalVehicle(itemId);
       vehicleId = String(vehicle.id);
+      currency = catalogCurrency(vehicle.currency);
       if (pickupBranchInput) await operationalBranch(pickupBranchInput, "pickup");
       if (dropoffBranchInput) await operationalBranch(dropoffBranchInput, "dropoff");
       const evaluation = await evaluateRentalRequest(itemId, body?.startDate, body?.endDate, pickupBranchInput || null);
@@ -833,11 +836,35 @@ async function createBooking(request: Request): Promise<Response> {
       if (!itemId) throw new Error("INVALID_SALE_VEHICLE");
       const vehicle = await getSaleVehicle(itemId);
       vehicleId = String(vehicle.id);
+      currency = catalogCurrency(vehicle.currency);
+      const salePrice = money(Math.max(0, Number(vehicle.price || 0)));
+      basePrice = salePrice;
+      totalPrice = salePrice;
+      metadata = {
+        server_calculated: true,
+        resolved_vehicle_id: vehicleId,
+        price_breakdown: { unit_price: salePrice, base_total: salePrice },
+      };
     } else if (type === "TOUR") {
       if (!itemId) throw new Error("INVALID_TOUR");
       const tour = await getTourByIdentifier(itemId);
       tourId = String(tour.id);
+      currency = catalogCurrency(tour.currency);
+      const persons = personCount ?? 1;
+      if (Number(tour.capacity) > 0 && persons > Number(tour.capacity)) {
+        throw new Error("TOUR_CAPACITY_EXCEEDED");
+      }
+      const perPerson = money(Math.max(0, Number(tour.price_per_person || 0)));
+      personCount = persons;
+      basePrice = perPerson;
+      totalPrice = money(perPerson * persons);
+      metadata = {
+        server_calculated: true,
+        resolved_tour_id: tourId,
+        price_breakdown: { unit_price: perPerson, person_count: persons, base_total: totalPrice },
+      };
     }
+    // APPOINTMENT requests carry no price: base/total stay 0 and are not payable.
 
     const row = {
       idempotency_key: idempotencyKey,
@@ -858,7 +885,7 @@ async function createBooking(request: Request): Promise<Response> {
       dropoff_branch_id: dropoffBranchId,
       pickup_location: clean(body?.pickupLocation, 240) || null,
       dropoff_location: clean(body?.dropoffLocation, 240) || null,
-      person_count: integerValue(body?.personCount, 1, 100),
+      person_count: personCount,
       with_driver: Boolean(body?.withDriver),
       base_price: basePrice,
       total_price: totalPrice,
@@ -914,6 +941,7 @@ async function createBooking(request: Request): Promise<Response> {
       ? 503
       : code === "HOURLY_RENTAL_NOT_ALLOWED" ||
           code === "INVALID_HOURLY_RENTAL" ||
+          code === "TOUR_CAPACITY_EXCEEDED" ||
           code.startsWith("INVALID_") ||
           code === "DRIVER_OPTION_NOT_ALLOWED"
       ? 400
@@ -929,6 +957,8 @@ async function createBooking(request: Request): Promise<Response> {
       ? "Seçtiğiniz satılık araç bulunamadı veya artık satış talebine açık değil."
       : code === "INVALID_TOUR"
       ? "Seçtiğiniz tur bulunamadı veya şu anda rezervasyona açık değil."
+      : code === "TOUR_CAPACITY_EXCEEDED"
+      ? "Seçtiğiniz kişi sayısı bu turun kapasitesini aşıyor."
       : code === "INVALID_PICKUP_BRANCH"
       ? "Seçtiğiniz teslim alma şubesi şu anda kiralama teslimine açık değil."
       : code === "INVALID_DROPOFF_BRANCH"

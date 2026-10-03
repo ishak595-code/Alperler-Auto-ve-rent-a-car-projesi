@@ -10,6 +10,7 @@ import {
 } from './scalable-public-catalog-v217.service';
 import { PublicContentRealtimeService } from './public-content-realtime.service';
 import { publicSwrFetch, readPublicSwr, writePublicSwr, quotaOrPaymentError, turkishQuotaMessage } from './public-json-swr.util';
+import { readPublicCatalogJson } from "../utils/cdn-catalog-media";
 
 export interface PublicHomepageSection {
   sectionKey: string;
@@ -503,7 +504,7 @@ export class HomepageLayoutService {
           signal: AbortSignal.timeout(12_000),
         });
         if (!response.ok) throw new Error(`HOMEPAGE_LAYOUT_${response.status}`);
-        return await response.json() as T;
+        return await readPublicCatalogJson<T>(response);
       },
     });
     return result.value;

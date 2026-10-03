@@ -37,7 +37,7 @@
     "portability:host:v244": "node scripts/check-v244-host-portability.mjs",
     "hero-stability:v253": "node scripts/check-v253-hero-stability.mjs",
     "button-casing:v254": "node scripts/check-v254-button-casing.mjs",
-    "verify:handoff": "npm run repository-governance:v208 && npm run runtime-ownership:v2081 && npm run architecture-constitution:v2082 && npm run server-only-boundaries:v2083 && npm run domain-truth:v209 && npm run prestige-conversion:v210 && npm run booking-conversion:v211 && npm run privacy-consent:v212 && npm run prestige-discovery:v213 && npm run content-flow:v215 && npm run customer-experience:v207 && npm run database-source:v207 && node scripts/check-v206-handoff.mjs && node scripts/check-portability-v186.mjs && npm run portability:source:v234 && npm run portability:runtime:v242 && npm run portability:host:v244 && node scripts/check-v203-canonical-runtime-integrity.mjs && node scripts/check-v205-responsive-prestige.mjs && npm run hero-stability:v253 && npm run button-casing:v254 && npm run design:premium && npm run pwa:installability && npm run a11y:buttons && npm run a11y:dates && npm run media:vehicles && npm run vercel:functions && npm run security:v165 && npm run lint && npm run typecheck:api && npm run build && npm run portability:smoke:v242",
+    "verify:handoff": "npm run repository-governance:v208 && npm run runtime-ownership:v2081 && npm run architecture-constitution:v2082 && npm run server-only-boundaries:v2083 && npm run domain-truth:v209 && npm run prestige-conversion:v210 && npm run booking-conversion:v211 && npm run privacy-consent:v212 && npm run prestige-discovery:v213 && npm run content-flow:v215 && npm run customer-experience:v207 && npm run database-source:v207 && node scripts/check-v206-handoff.mjs && node scripts/check-portability-v186.mjs && npm run portability:source:v234 && npm run portability:runtime:v242 && npm run portability:host:v244 && node scripts/check-v203-canonical-runtime-integrity.mjs && node scripts/check-v205-responsive-prestige.mjs && npm run hero-stability:v253 && npm run button-casing:v254 && npm run design:premium && npm run pwa:installability && npm run a11y:buttons && npm run a11y:dates && npm run media:vehicles && npm run vercel:functions && npm run security:v165 && npm run server-pricing:v255 && npm run test:unit && npm run lint && npm run typecheck:api && npm run build && npm run portability:smoke:v242",
     "preview": "ng serve --configuration=production",
     "media:reprocess": "node scripts/reprocess-catalog-media.mjs",
     "egress:v236": "node scripts/check-v236-egress-quality.mjs",
@@ -45,29 +45,31 @@
     "media:v252": "node scripts/check-v252-media-provider.mjs",
     "test:cloudinary": "node --import tsx --test tests/unit/cloudinary-media.test.ts",
     "test:media": "node --import tsx --test tests/unit/media-provider.test.ts",
-    "media:migrate-cloudinary": "node scripts/migrate-media-to-cloudinary.mjs"
+    "media:migrate-cloudinary": "node scripts/migrate-media-to-cloudinary.mjs",
+    "test:unit": "node --import tsx --test tests/unit/*.test.ts",
+    "server-pricing:v255": "node scripts/check-v255-server-pricing-and-media.mjs"
   },
   "dependencies": {
-    "@angular/common": "21.2.22",
-    "@angular/compiler": "21.2.22",
-    "@angular/core": "21.2.22",
-    "@angular/forms": "21.2.22",
+    "@angular/common": "21.2.25",
+    "@angular/compiler": "21.2.25",
+    "@angular/core": "21.2.25",
+    "@angular/forms": "21.2.25",
     "@angular/material": "21.2.14",
-    "@angular/platform-browser": "21.2.22",
-    "@angular/router": "21.2.22",
+    "@angular/platform-browser": "21.2.25",
+    "@angular/router": "21.2.25",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "nodemailer": "9.1.1",
+    "nodemailer": "10.0.13",
     "pdfkit": "^0.18.0",
     "rxjs": "^7.8.2",
     "swiper": "^12.1.3",
     "tsx": "^4.21.0"
   },
   "devDependencies": {
-    "@angular/build": "21.2.22",
-    "@angular/cli": "21.2.22",
-    "@angular/compiler-cli": "21.2.22",
+    "@angular/build": "21.2.24",
+    "@angular/cli": "21.2.24",
+    "@angular/compiler-cli": "21.2.25",
     "@tailwindcss/postcss": "4.2.4",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
@@ -78,5 +80,14 @@
     "postcss": "8.5.26",
     "tailwindcss": "4.2.4",
     "typescript": "~5.9.3"
+  },
+  "overrides": {
+    "piscina": "5.3.2",
+    "brace-expansion": "5.0.12",
+    "fast-uri": "3.1.8",
+    "ip-address": "10.7.3",
+    "node-gyp": {
+      "undici": "6.29.0"
+    }
   }
 }
